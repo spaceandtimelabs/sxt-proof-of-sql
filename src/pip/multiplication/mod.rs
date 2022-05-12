@@ -1,6 +1,7 @@
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
+use sha3::Sha3_512;
 
 use crate::errors::ProofError;
 
@@ -8,7 +9,9 @@ use crate::errors::ProofError;
 mod test;
 
 #[derive(Clone, Debug)]
-pub struct MultiplicationProof {}
+pub struct MultiplicationProof {
+    pub commit_ab: RistrettoPoint,
+}
 
 impl MultiplicationProof {
     /// Create a multiplication proof.
@@ -25,7 +28,11 @@ impl MultiplicationProof {
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
-        MultiplicationProof {}
+        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"a"); // pretend like this is the commitment of ab
+
+        MultiplicationProof {
+            commit_ab: c_ab,
+        }
     }
 
     /// Verifies that a multiplication proof is correct given the associated commitments.
