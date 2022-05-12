@@ -12,3 +12,9 @@ Cargo.lock
 # latexpdf
 protocols/*.aux
 protocols/*.log
+
+
+# Added by cargo
+
+/target
+/Cargo.lock
