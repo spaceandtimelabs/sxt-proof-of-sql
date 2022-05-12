@@ -13,7 +13,7 @@ pub struct MultiplicationProof {}
 impl MultiplicationProof {
     /// Create a multiplication proof.
     ///
-    /// See protocol/multiplication.pdf
+    /// See protocols/multiplication.pdf
     #[allow(unused_variables)]
     pub fn create(
         transcript: &mut Transcript,
