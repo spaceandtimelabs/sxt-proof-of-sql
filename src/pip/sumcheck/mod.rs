@@ -4,6 +4,7 @@ use merlin::Transcript;
 
 pub mod prover_message;
 pub mod polynomial;
+use crate::errors::ProofError;
 use crate::pip::sumcheck::prover_message::ProverMessage;
 use crate::pip::sumcheck::polynomial::Polynomial;
 
@@ -24,4 +25,13 @@ impl<F: Field> SumcheckProof<F> {
             messages: messages,
         }
     }
+
+    #[allow(unused_variables)]
+    pub fn verify_without_evaluation(
+        &self,
+        transcript: &mut Transcript,
+    ) -> Result<(), ProofError> {
+        Ok(())
+    }
+
 }
