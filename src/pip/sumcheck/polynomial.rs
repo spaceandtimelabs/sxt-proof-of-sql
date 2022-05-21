@@ -1,8 +1,28 @@
+/**
+ * Adopted from arkworks
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
+
 use ark_ff::Field;
 use ark_std::rc::Rc;
 use ark_poly::DenseMultilinearExtension;
 use hashbrown::HashMap;
 
+/// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
+///
+/// The polynomial is represented by a list of products of polynomials along with its coefficient that is meant to be added together.
+///
+/// This data structure of the polynomial is a list of list of `(coefficient, DenseMultilinearExtension)`.
+/// * Number of products n = `self.products.len()`,
+/// * Number of multiplicands of ith product m_i = `self.products[i].1.len()`,
+/// * Coefficient of ith product c_i = `self.products[i].0`
+///
+/// The resulting polynomial is
+///
+/// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
+///
+/// The result polynomial is used as the prover key.
 pub struct Polynomial<F: Field> {
     /// max number of multiplicands in each product
     pub max_multiplicands: usize,
@@ -13,4 +33,24 @@ pub struct Polynomial<F: Field> {
     /// Stores multilinear extensions in which product multiplicand can refer to.
     pub flattened_ml_extensions: Vec<Rc<DenseMultilinearExtension<F>>>,
     raw_pointers_lookup_table: HashMap<*const DenseMultilinearExtension<F>, usize>,
+}
+
+// #[derive(CanonicalSerialize, CanonicalDeserialize, Clone)]
+/// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
+/// This data structures will is used as the verifier key.
+pub struct PolynomialInfo {
+    /// max number of multiplicands in each product
+    pub max_multiplicands: usize,
+    /// number of variables of the polynomial
+    pub num_variables: usize,
+}
+
+impl<F: Field> Polynomial<F> {
+    /// Extract the max number of multiplicands and number of variables of the list of products.
+    pub fn info(&self) -> PolynomialInfo {
+        PolynomialInfo {
+            max_multiplicands: self.max_multiplicands,
+            num_variables: self.num_variables,
+        }
+    }
 }
