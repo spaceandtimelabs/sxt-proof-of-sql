@@ -12,3 +12,6 @@ Cargo.lock
 # latexpdf
 protocols/*.aux
 protocols/*.log
+protocols/*.fdb_latexmk
+protocols/*.fls
+protocols/*.synctex.gz
