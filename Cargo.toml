@@ -1,0 +1,12 @@
+[package]
+name = "proofs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+curve25519-dalek = "2"
+merlin = "2"
+thiserror = "1"
+sha3 = "0.8"
