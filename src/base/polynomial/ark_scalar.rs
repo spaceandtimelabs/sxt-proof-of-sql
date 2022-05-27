@@ -10,7 +10,7 @@ pub struct ArkScalarConfig;
 pub type ArkScalar = Fp256<MontBackend<ArkScalarConfig, 4>>;
 
 #[allow(unused_variables)]
-pub fn to_ark_scalar(x: Scalar) -> ArkScalar {
+pub fn to_ark_scalar(x: &Scalar) -> ArkScalar {
     let mut values: [u64; 4] = [0; 4];
     values.as_mut_byte_slice().clone_from_slice(x.as_bytes());
     ArkScalar::new(BigInt::new(values))
