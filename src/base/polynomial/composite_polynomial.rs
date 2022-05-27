@@ -30,3 +30,33 @@ pub struct CompositePolynomial {
     pub flattened_ml_extensions: Vec<Rc<DenseMultilinearExtension>>,
     raw_pointers_lookup_table: HashMap<*const DenseMultilinearExtension, usize>,
 }
+
+/// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
+/// This data structures will is used as the verifier key.
+pub struct CompositePolynomialInfo {
+    /// max number of multiplicands in each product
+    pub max_multiplicands: usize,
+    /// number of variables of the polynomial
+    pub num_variables: usize,
+}
+
+impl CompositePolynomial {
+    /// Returns an empty polynomial
+    pub fn new(num_variables: usize) -> Self {
+        CompositePolynomial {
+            max_multiplicands: 0,
+            num_variables,
+            products: Vec::new(),
+            flattened_ml_extensions: Vec::new(),
+            raw_pointers_lookup_table: HashMap::new(),
+        }
+    }
+
+    /// Extract the max number of multiplicands and number of variables of the list of products.
+    pub fn info(&self) -> CompositePolynomialInfo {
+        CompositePolynomialInfo {
+            max_multiplicands: self.max_multiplicands,
+            num_variables: self.num_variables,
+        }
+    }
+}
