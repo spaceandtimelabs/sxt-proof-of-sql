@@ -3,7 +3,9 @@ use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::ark_scalar::{ArkScalar, to_ark_scalar};
 
-pub struct DenseMultilinearExtension(ark_poly::DenseMultilinearExtension<ArkScalar>);
+pub struct DenseMultilinearExtension {
+    pub ark_impl: ark_poly::DenseMultilinearExtension<ArkScalar>,
+}
 
 impl DenseMultilinearExtension {
     /// Construct a new polynomial from a list of evaluations where the index
@@ -14,7 +16,8 @@ impl DenseMultilinearExtension {
         let evaluations_p
             : Vec<ArkScalar> =
                   evaluations.iter().map(| x | to_ark_scalar(x)).collect();
-        DenseMultilinearExtension(
-            ark_poly::DenseMultilinearExtension::from_evaluations_vec(num_vars, evaluations_p))
+        DenseMultilinearExtension{
+            ark_impl: ark_poly::DenseMultilinearExtension::from_evaluations_vec(num_vars, evaluations_p),
+        }
     }
 }

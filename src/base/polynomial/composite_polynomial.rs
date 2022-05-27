@@ -1,5 +1,6 @@
 use ark_std::rc::Rc;
 use ark_std::vec::Vec;
+use ark_std::cmp::max;
 use hashbrown::HashMap;
 use curve25519_dalek::scalar::Scalar;
 
@@ -58,5 +59,34 @@ impl CompositePolynomial {
             max_multiplicands: self.max_multiplicands,
             num_variables: self.num_variables,
         }
+    }
+
+    /// Add a list of multilinear extensions that is meant to be multiplied together.
+    /// The resulting polynomial will be multiplied by the scalar `coefficient`.
+    pub fn add_product(
+        &mut self,
+        product: impl IntoIterator<Item = Rc<DenseMultilinearExtension>>,
+        coefficient: Scalar,
+    ) {
+        let product: Vec<Rc<DenseMultilinearExtension>> = product.into_iter().collect();
+        let mut indexed_product = Vec::with_capacity(product.len());
+        assert!(product.len() > 0);
+        self.max_multiplicands = max(self.max_multiplicands, product.len());
+        for m in product {
+            assert_eq!(
+                m.ark_impl.num_vars, self.num_variables,
+                "product has a multiplicand with wrong number of variables"
+            );
+            let m_ptr: *const DenseMultilinearExtension = Rc::as_ptr(&m);
+            if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
+                indexed_product.push(*index)
+            } else {
+                let curr_index = self.flattened_ml_extensions.len();
+                self.flattened_ml_extensions.push(m.clone());
+                self.raw_pointers_lookup_table.insert(m_ptr, curr_index);
+                indexed_product.push(curr_index);
+            }
+        }
+        self.products.push((coefficient, indexed_product));
     }
 }
