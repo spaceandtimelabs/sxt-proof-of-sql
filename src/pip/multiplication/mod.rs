@@ -5,6 +5,8 @@ use sha3::Sha3_512;
 
 use crate::errors::ProofError;
 
+mod sumcheck_polynomial;
+
 #[cfg(test)]
 mod test;
 
