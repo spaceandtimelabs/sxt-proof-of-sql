@@ -26,7 +26,7 @@ fn test_mod() {
 fn test_dalek_interop() {
     let x = Scalar::from(123u64);
     let mx = -x;
-    let xp = to_ark_scalar(x);
+    let xp = to_ark_scalar(&x);
     let mxp = -xp;
-    assert!(mxp == to_ark_scalar(mx));
+    assert!(mxp == to_ark_scalar(&mx));
 }
