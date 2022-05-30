@@ -92,15 +92,14 @@ impl CompositePolynomial {
 
     /// Evaluate the polynomial at point `point`
     pub fn evaluate(&self, point: &[Scalar]) -> Scalar {
-        Scalar::from(123u64)
-        // self.products
-        //     .iter()
-        //     .map(|(c, p)| {
-        //         *c * p
-        //             .iter()
-        //             .map(|&i| self.flattened_ml_extensions[i].evaluate(point).unwrap())
-        //             .product::<F>()
-        //     })
-        //     .sum()
+        self.products
+            .iter()
+            .map(|(c, p)| {
+                *c * p
+                    .iter()
+                    .map(|&i| self.flattened_ml_extensions[i].evaluate(point).unwrap())
+                    .product::<Scalar>()
+            })
+            .sum()
     }
 }

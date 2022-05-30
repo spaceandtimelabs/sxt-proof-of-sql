@@ -22,7 +22,7 @@ impl DenseMultilinearExtension {
         }
     }
 
-    fn evaluate(&self, point: &[Scalar]) -> Option<Scalar> {
+    pub fn evaluate(&self, point: &[Scalar]) -> Option<Scalar> {
         if point.len() == self.ark_impl.num_vars {
             let point_p
                 : Vec<ArkScalar> =
