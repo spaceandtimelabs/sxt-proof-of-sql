@@ -4,7 +4,7 @@ use merlin::Transcript;
 
 pub mod prover_message;
 pub mod polynomial;
-use crate::errors::ProofError;
+use crate::base::proof::ProofError;
 use crate::pip::sumcheck::prover_message::ProverMessage;
 use crate::pip::sumcheck::polynomial::Polynomial;
 
