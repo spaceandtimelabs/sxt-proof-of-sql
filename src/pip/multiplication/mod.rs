@@ -3,7 +3,8 @@ use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use sha3::Sha3_512;
 
-use crate::errors::ProofError;
+use crate::base::proof::ProofError;
+use crate::base::math::log2_up;
 
 mod sumcheck_polynomial;
 #[cfg(test)]
@@ -28,7 +29,7 @@ impl MultiplicationProof {
         b_vec: &[Scalar],
     ) -> MultiplicationProof {
         let n = a_vec.len();
-
+        assert!(n > 0);
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
