@@ -39,3 +39,14 @@ fn test_mod() {
     let xp1 = x + one;
     assert_eq!(xp1, zero);
 }
+
+#[test]
+fn vector_conversion() {
+    let one = Scalar::from(1u64);
+    let two = Scalar::from(2u64);
+    let xs = [one, two];
+    let mut xsp : [ArkScalar; 2] = [to_ark_scalar(&Scalar::from(0u64)); 2];
+    to_ark_scalars(& mut xsp, &xs);
+    assert_eq!(from_ark_scalar(&xsp[0]), one);
+    assert_eq!(from_ark_scalar(&xsp[1]), two);
+}

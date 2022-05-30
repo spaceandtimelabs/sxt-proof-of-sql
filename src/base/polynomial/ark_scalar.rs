@@ -15,6 +15,14 @@ pub fn to_ark_scalar(x: &Scalar) -> ArkScalar {
     ArkScalarConfig::from_bigint(BigInt::new(values)).unwrap()
 }
 
+pub fn to_ark_scalars(xsp: & mut[ArkScalar], xs: &[Scalar]) {
+    assert_eq!(xsp.len(), xs.len());
+    let n = xsp.len();
+    for i in 0..n {
+        xsp[i] = to_ark_scalar(&xs[i]);
+    }
+}
+
 pub fn from_ark_scalar(x: &ArkScalar) -> Scalar {
     let x = ArkScalarConfig::into_bigint(x.clone());
     let mut bytes = [0u8; 32];
