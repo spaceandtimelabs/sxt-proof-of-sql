@@ -1,7 +1,8 @@
 use ark_poly;
+use ark_poly::MultilinearExtension;
 use curve25519_dalek::scalar::Scalar;
 
-use crate::base::polynomial::ark_scalar::{ArkScalar, to_ark_scalar};
+use crate::base::polynomial::ark_scalar::{ArkScalar, to_ark_scalar, from_ark_scalar};
 
 pub struct DenseMultilinearExtension {
     pub ark_impl: ark_poly::DenseMultilinearExtension<ArkScalar>,
@@ -18,6 +19,18 @@ impl DenseMultilinearExtension {
                   evaluations.iter().map(| x | to_ark_scalar(x)).collect();
         DenseMultilinearExtension{
             ark_impl: ark_poly::DenseMultilinearExtension::from_evaluations_vec(num_vars, evaluations_p),
+        }
+    }
+
+    fn evaluate(&self, point: &[Scalar]) -> Option<Scalar> {
+        if point.len() == self.ark_impl.num_vars {
+            let point_p
+                : Vec<ArkScalar> =
+                      point.iter().map(| x | to_ark_scalar(x)).collect();
+            let value = self.ark_impl.fix_variables(&point_p)[0];
+            Some(from_ark_scalar(&value))
+        } else {
+            None
         }
     }
 }
