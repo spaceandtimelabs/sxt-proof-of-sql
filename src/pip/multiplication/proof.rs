@@ -7,9 +7,11 @@ use crate::base::math::{is_pow2, log2_up};
 use crate::base::proof::ProofError;
 use crate::base::proof::TranscriptProtocol;
 use crate::pip::multiplication::make_sumcheck_polynomial;
+use crate::pip::sumcheck::SumcheckProof;
 
 pub struct MultiplicationProof {
     pub commit_ab: CompressedRistretto,
+    pub sumcheck_proof: SumcheckProof,
 }
 
 impl MultiplicationProof {
@@ -76,5 +78,9 @@ fn create_proof_impl(
     transcript.challenge_scalars(&mut r_vec, b"r_vec");
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
-    MultiplicationProof { commit_ab: c_ab }
+    let sumcheck_proof = SumcheckProof::create(transcript, &poly);
+    MultiplicationProof { 
+        commit_ab: c_ab,
+        sumcheck_proof: sumcheck_proof,
+    }
 }
