@@ -1,7 +1,7 @@
 use curve25519_dalek::scalar::Scalar;
 use byte_slice_cast::AsMutByteSlice;
-use ark_ff::fields::{Fp256, MontBackend, MontConfig, MontFp};
-use ark_ff::{BigInt, ToBytes, One};
+use ark_ff::fields::{Fp256, MontBackend, MontConfig};
+use ark_ff::{BigInt, ToBytes};
 
 #[derive(MontConfig)]
 #[modulus = "7237005577332262213973186563042994240857116359379907606001950938285454250989"]

@@ -2,7 +2,7 @@ use crate::base::polynomial::ark_scalar::*;
 
 use curve25519_dalek::scalar::Scalar;
 use ark_ff::BigInt;
-use ark_ff::fields::{MontBackend, MontConfig};
+use ark_ff::fields::{MontConfig};
 
 #[test]
 fn test_dalek_interop_1() {
