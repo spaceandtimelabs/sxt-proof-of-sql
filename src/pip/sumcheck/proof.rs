@@ -1,6 +1,6 @@
 use ark_std::vec::Vec;
-use merlin::Transcript;
 use curve25519_dalek::scalar::Scalar;
+use merlin::Transcript;
 
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::proof::ProofError;
@@ -13,14 +13,9 @@ pub struct SumcheckProof {
 
 impl SumcheckProof {
     #[allow(unused_variables)]
-    pub fn create(
-        transcript: &mut Transcript,
-        polynomial: &CompositePolynomial,
-    ) -> SumcheckProof {
+    pub fn create(transcript: &mut Transcript, polynomial: &CompositePolynomial) -> SumcheckProof {
         let messages = Vec::with_capacity(0);
-        SumcheckProof{
-            messages: messages,
-        }
+        SumcheckProof { messages: messages }
     }
 
     #[allow(unused_variables)]
@@ -31,6 +26,4 @@ impl SumcheckProof {
     ) -> Result<(), ProofError> {
         Ok(())
     }
-
 }
-

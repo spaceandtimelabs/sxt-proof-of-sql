@@ -1,8 +1,8 @@
+use ark_std::cmp::max;
 use ark_std::rc::Rc;
 use ark_std::vec::Vec;
-use ark_std::cmp::max;
-use hashbrown::HashMap;
 use curve25519_dalek::scalar::Scalar;
+use hashbrown::HashMap;
 
 use crate::base::polynomial::dense_multilinear_extension::DenseMultilinearExtension;
 

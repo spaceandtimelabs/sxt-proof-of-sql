@@ -1,8 +1,8 @@
 use crate::base::polynomial::ark_scalar::*;
 
-use curve25519_dalek::scalar::Scalar;
+use ark_ff::fields::MontConfig;
 use ark_ff::BigInt;
-use ark_ff::fields::{MontConfig};
+use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn test_dalek_interop_1() {
@@ -32,7 +32,8 @@ fn test_add() {
 
 #[test]
 fn test_mod() {
-    let pm1 : BigInt<4> = BigInt!("7237005577332262213973186563042994240857116359379907606001950938285454250988");
+    let pm1: BigInt<4> =
+        BigInt!("7237005577332262213973186563042994240857116359379907606001950938285454250988");
     let x = ArkScalarConfig::from_bigint(pm1).unwrap();
     let one = to_ark_scalar(&Scalar::from(1u64));
     let zero = to_ark_scalar(&Scalar::from(0u64));
@@ -45,8 +46,8 @@ fn vector_conversion() {
     let one = Scalar::from(1u64);
     let two = Scalar::from(2u64);
     let xs = [one, two];
-    let mut xsp : [ArkScalar; 2] = [to_ark_scalar(&Scalar::from(0u64)); 2];
-    to_ark_scalars(& mut xsp, &xs);
+    let mut xsp: [ArkScalar; 2] = [to_ark_scalar(&Scalar::from(0u64)); 2];
+    to_ark_scalars(&mut xsp, &xs);
     assert_eq!(from_ark_scalar(&xsp[0]), one);
     assert_eq!(from_ark_scalar(&xsp[1]), two);
 }

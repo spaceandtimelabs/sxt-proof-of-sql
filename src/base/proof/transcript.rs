@@ -10,7 +10,7 @@ pub trait TranscriptProtocol {
     fn append_point(&mut self, label: &'static [u8], point: &CompressedRistretto);
 
     /// Compute a `label`ed challenge variable.
-    fn challenge_scalars(&mut self, scalars: & mut[Scalar], label: &'static [u8]);
+    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: &'static [u8]);
 }
 
 impl TranscriptProtocol for Transcript {
@@ -22,7 +22,7 @@ impl TranscriptProtocol for Transcript {
         self.append_message(label, point.as_bytes());
     }
 
-    fn challenge_scalars(&mut self, scalars: & mut[Scalar], label: &'static [u8]) {
+    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: &'static [u8]) {
         let n = scalars.len();
         assert!(n > 0);
 
