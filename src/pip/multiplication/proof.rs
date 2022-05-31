@@ -1,13 +1,16 @@
-use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use sha3::Sha3_512;
 
-use crate::base::proof::ProofError;
 use crate::base::math::{log2_up, is_pow2};
+use crate::base::polynomial::CompositePolynomial;
+use crate::base::proof::ProofError;
+use crate::base::proof::TranscriptProtocol;
+use crate::pip::multiplication::{make_sumcheck_polynomial};
 
 pub struct MultiplicationProof {
-    pub commit_ab: RistrettoPoint,
+    pub commit_ab: CompressedRistretto,
 }
 
 impl MultiplicationProof {
@@ -25,7 +28,7 @@ impl MultiplicationProof {
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
-        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab"); // pretend like this is the commitment of ab
+        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab").compress(); // pretend like this is the commitment of ab
 
         let num_vars = log2_up(n);
         if is_pow2(n) {
@@ -42,8 +45,8 @@ impl MultiplicationProof {
     pub fn verify(
         &self,
         transcript: &mut Transcript,
-        commit_a: &RistrettoPoint,
-        commit_b: &RistrettoPoint,
+        commit_a: &CompressedRistretto,
+        commit_b: &CompressedRistretto,
     ) -> Result<(), ProofError> {
         Ok(())
     }
@@ -60,14 +63,37 @@ fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
     vec
 }
 
+fn make_polynomial(
+        transcript: &mut Transcript,
+        a_vec: &[Scalar],
+        b_vec: &[Scalar],
+        num_vars: usize,
+    ) -> CompositePolynomial {
+    let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
+    transcript.challenge_scalars(& mut r_vec, b"r_vec");
+    let ab_vec : Vec<Scalar> = a_vec.iter()
+        .zip(b_vec.iter())
+        .map(|(a, b)| a * b)
+        .collect();
+    make_sumcheck_polynomial(
+        num_vars,
+        a_vec,
+        b_vec,
+        &ab_vec,
+        &r_vec)
+}
+
 #[allow(unused_variables)]
 fn create_proof_impl(
         transcript: &mut Transcript,
         a_vec: &[Scalar],
         b_vec: &[Scalar],
-        c_ab: RistrettoPoint,
+        c_ab: CompressedRistretto,
         num_vars: usize,
     ) -> MultiplicationProof {
+    let n = a_vec.len();
+    transcript.append_point(b"c_ab", &c_ab);
+    let poly = make_polynomial(transcript, a_vec, b_vec, num_vars);
     MultiplicationProof {
         commit_ab: c_ab,
     }
