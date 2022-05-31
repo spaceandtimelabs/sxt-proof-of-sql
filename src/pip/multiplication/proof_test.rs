@@ -1,12 +1,12 @@
+use crate::pip::multiplication::proof::*;
+
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use sha3::Sha3_512;
 
-use crate::pip::multiplication::MultiplicationProof;
-
 #[test]
-fn create_verify_proof() {
+fn test_create_verify_proof() {
     // create a proof
     let a = vec![Scalar::from(1u64), Scalar::from(7u64)];
     let b = vec![Scalar::from(3u64), Scalar::from(10u64)];
