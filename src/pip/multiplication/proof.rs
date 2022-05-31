@@ -27,13 +27,14 @@ impl MultiplicationProof {
 
         let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab"); // pretend like this is the commitment of ab
 
+        let num_vars = log2_up(n);
         if is_pow2(n) {
-            return create_proof_impl(transcript, a_vec, b_vec, c_ab);
+            return create_proof_impl(transcript, a_vec, b_vec, c_ab, num_vars);
         }
-        let n = log2_up(n);
+        let n = 1 << num_vars;
         let a_vec = extend_scalar_vector(a_vec, n);
         let b_vec = extend_scalar_vector(b_vec, n);
-        create_proof_impl(transcript, &a_vec, &b_vec, c_ab)
+        create_proof_impl(transcript, &a_vec, &b_vec, c_ab, num_vars)
     }
 
     /// Verifies that a multiplication proof is correct given the associated commitments.
@@ -65,6 +66,7 @@ fn create_proof_impl(
         a_vec: &[Scalar],
         b_vec: &[Scalar],
         c_ab: RistrettoPoint,
+        num_vars: usize,
     ) -> MultiplicationProof {
     MultiplicationProof {
         commit_ab: c_ab,
