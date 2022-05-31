@@ -4,7 +4,6 @@ use merlin::Transcript;
 use sha3::Sha3_512;
 
 use crate::base::math::{log2_up, is_pow2};
-use crate::base::polynomial::CompositePolynomial;
 use crate::base::proof::ProofError;
 use crate::base::proof::TranscriptProtocol;
 use crate::pip::multiplication::{make_sumcheck_polynomial};
@@ -63,26 +62,6 @@ fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
     vec
 }
 
-fn make_polynomial(
-        transcript: &mut Transcript,
-        a_vec: &[Scalar],
-        b_vec: &[Scalar],
-        num_vars: usize,
-    ) -> CompositePolynomial {
-    let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
-    transcript.challenge_scalars(& mut r_vec, b"r_vec");
-    let ab_vec : Vec<Scalar> = a_vec.iter()
-        .zip(b_vec.iter())
-        .map(|(a, b)| a * b)
-        .collect();
-    make_sumcheck_polynomial(
-        num_vars,
-        a_vec,
-        b_vec,
-        &ab_vec,
-        &r_vec)
-}
-
 #[allow(unused_variables)]
 fn create_proof_impl(
         transcript: &mut Transcript,
@@ -93,7 +72,18 @@ fn create_proof_impl(
     ) -> MultiplicationProof {
     let n = a_vec.len();
     transcript.append_point(b"c_ab", &c_ab);
-    let poly = make_polynomial(transcript, a_vec, b_vec, num_vars);
+    let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
+    transcript.challenge_scalars(& mut r_vec, b"r_vec");
+    let ab_vec : Vec<Scalar> = a_vec.iter()
+        .zip(b_vec.iter())
+        .map(|(a, b)| a * b)
+        .collect();
+    let poly = make_sumcheck_polynomial(
+        num_vars,
+        a_vec,
+        b_vec,
+        &ab_vec,
+        &r_vec);
     MultiplicationProof {
         commit_ab: c_ab,
     }
