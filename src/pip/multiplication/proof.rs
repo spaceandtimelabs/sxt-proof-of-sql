@@ -4,9 +4,8 @@ use merlin::Transcript;
 use sha3::Sha3_512;
 
 use crate::base::proof::ProofError;
-use crate::base::math::log2_up;
+use crate::base::math::{log2_up, is_pow2};
 
-#[derive(Clone, Debug)]
 pub struct MultiplicationProof {
     pub commit_ab: RistrettoPoint,
 }
@@ -26,11 +25,15 @@ impl MultiplicationProof {
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
-        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"a"); // pretend like this is the commitment of ab
+        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab"); // pretend like this is the commitment of ab
 
-        MultiplicationProof {
-            commit_ab: c_ab,
+        if is_pow2(n) {
+            return create_proof_impl(transcript, a_vec, b_vec, c_ab);
         }
+        let n = log2_up(n);
+        let a_vec = extend_scalar_vector(a_vec, n);
+        let b_vec = extend_scalar_vector(b_vec, n);
+        create_proof_impl(transcript, &a_vec, &b_vec, c_ab)
     }
 
     /// Verifies that a multiplication proof is correct given the associated commitments.
@@ -42,5 +45,28 @@ impl MultiplicationProof {
         commit_b: &RistrettoPoint,
     ) -> Result<(), ProofError> {
         Ok(())
+    }
+}
+
+fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
+    let mut vec = Vec::with_capacity(n);
+    for i in 0..a_vec.len() {
+        vec[i] = a_vec[i];
+    }
+    for i in a_vec.len()..n {
+        vec[i] = Scalar::from(0u64);
+    }
+    vec
+}
+
+#[allow(unused_variables)]
+fn create_proof_impl(
+        transcript: &mut Transcript,
+        a_vec: &[Scalar],
+        b_vec: &[Scalar],
+        c_ab: RistrettoPoint,
+    ) -> MultiplicationProof {
+    MultiplicationProof {
+        commit_ab: c_ab,
     }
 }

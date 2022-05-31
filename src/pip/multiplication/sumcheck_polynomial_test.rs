@@ -3,7 +3,7 @@ use crate::pip::multiplication::sumcheck_polynomial::*;
 use curve25519_dalek::scalar::Scalar;
 
 #[test]
-fn test_poly1() {
+fn test_poly2() {
     let one = Scalar::from(1u64);
     let zero = Scalar::from(0u64);
     let a_vec = [
