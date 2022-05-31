@@ -51,12 +51,16 @@ impl MultiplicationProof {
         commit_b: &CompressedRistretto,
     ) -> Result<(), ProofError> {
         let n = 1 << self.num_vars;
-        transcript.validate_and_append_point(b"c_ab", &self.commit_ab).unwrap();
+        transcript
+            .validate_and_append_point(b"c_ab", &self.commit_ab)
+            .unwrap();
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, b"r_vec");
-        
+
         let mut evaluation_point = vec![Scalar::from(0u64); self.num_vars];
-        self.sumcheck_proof.verify_without_evaluation(&mut evaluation_point, transcript).unwrap();
+        self.sumcheck_proof
+            .verify_without_evaluation(&mut evaluation_point, transcript)
+            .unwrap();
 
         // TODO(rnburn): verify bullet proofs
 
@@ -93,7 +97,7 @@ fn create_proof_impl(
 
     // TODO(rnburn: create bullet proofs
 
-    MultiplicationProof { 
+    MultiplicationProof {
         num_vars: num_vars,
         commit_ab: c_ab,
         sumcheck_proof: sumcheck_proof,
