@@ -52,10 +52,10 @@ impl MultiplicationProof {
 fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
     let mut vec = Vec::with_capacity(n);
     for i in 0..a_vec.len() {
-        vec[i] = a_vec[i];
+        vec.push(a_vec[i]);
     }
-    for i in a_vec.len()..n {
-        vec[i] = Scalar::from(0u64);
+    for _ in a_vec.len()..n {
+        vec.push(Scalar::from(0u64));
     }
     vec
 }
