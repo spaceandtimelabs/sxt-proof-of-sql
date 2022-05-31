@@ -3,6 +3,6 @@ mod sumcheck_polynomial;
 mod sumcheck_polynomial_test;
 
 mod proof;
-#[cfg(test)]
 pub use proof::{MultiplicationProof};
+#[cfg(test)]
 mod proof_test;
