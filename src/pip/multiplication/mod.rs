@@ -4,6 +4,6 @@ pub use sumcheck_polynomial::make_sumcheck_polynomial;
 mod sumcheck_polynomial_test;
 
 mod proof;
-pub use proof::{MultiplicationProof};
+pub use proof::MultiplicationProof;
 #[cfg(test)]
 mod proof_test;
