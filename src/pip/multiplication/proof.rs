@@ -10,6 +10,7 @@ use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 
 pub struct MultiplicationProof {
+    pub num_vars: usize,
     pub commit_ab: CompressedRistretto,
     pub sumcheck_proof: SumcheckProof,
 }
@@ -49,6 +50,16 @@ impl MultiplicationProof {
         commit_a: &CompressedRistretto,
         commit_b: &CompressedRistretto,
     ) -> Result<(), ProofError> {
+        let n = 1 << self.num_vars;
+        transcript.validate_and_append_point(b"c_ab", &self.commit_ab).unwrap();
+        let mut r_vec = vec![Scalar::from(0u64); n];
+        transcript.challenge_scalars(&mut r_vec, b"r_vec");
+        
+        let mut evaluation_point = vec![Scalar::from(0u64); self.num_vars];
+        self.sumcheck_proof.verify_without_evaluation(&mut evaluation_point, transcript).unwrap();
+
+        // TODO(rnburn): verify bullet proofs
+
         Ok(())
     }
 }
@@ -79,7 +90,11 @@ fn create_proof_impl(
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
     let sumcheck_proof = SumcheckProof::create(transcript, &poly);
+
+    // TODO(rnburn: create bullet proofs
+
     MultiplicationProof { 
+        num_vars: num_vars,
         commit_ab: c_ab,
         sumcheck_proof: sumcheck_proof,
     }
