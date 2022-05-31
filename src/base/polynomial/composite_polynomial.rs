@@ -1,3 +1,11 @@
+/**
+ * Adopted from arkworks
+ *
+ * Copyright (c) 2013-2022
+ * Frank Denis <j at pureftpd dot org>
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
 use ark_std::cmp::max;
 use ark_std::rc::Rc;
 use ark_std::vec::Vec;
