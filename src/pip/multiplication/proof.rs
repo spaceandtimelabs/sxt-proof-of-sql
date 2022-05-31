@@ -95,7 +95,7 @@ fn create_proof_impl(
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
     let sumcheck_proof = SumcheckProof::create(transcript, &poly);
 
-    // TODO(rnburn: create bullet proofs
+    // TODO(rnburn): create bullet proofs
 
     MultiplicationProof {
         num_vars: num_vars,

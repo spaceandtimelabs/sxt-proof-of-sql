@@ -42,7 +42,7 @@ fn test_mod() {
 }
 
 #[test]
-fn vector_conversion() {
+fn test_vector_conversion() {
     let one = Scalar::from(1u64);
     let two = Scalar::from(2u64);
     let xs = [one, two];
