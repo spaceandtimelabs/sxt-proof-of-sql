@@ -9,7 +9,7 @@ use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
 use hashbrown::HashMap;
 
-use crate::base::polynomial::dense_multilinear_extension::DenseMultilinearExtension;
+use crate::base::polynomial::DenseMultilinearExtension;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
