@@ -9,11 +9,9 @@ edition = "2021"
 byte-slice-cast = "1.2.1"
 ark-ff = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
 ark-poly = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
-# ark-poly = "^0.3.0"
 ark-std = "^0.3.0"
 curve25519-dalek = "2"
 hashbrown = "0.11.2"
 merlin = "2"
 thiserror = "1"
 sha3 = "0.8"
-rand = "0.7"
