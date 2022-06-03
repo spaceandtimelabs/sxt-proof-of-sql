@@ -5,7 +5,7 @@ use merlin::Transcript;
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::ProofError;
 use crate::base::proof::TranscriptProtocol;
-use crate::pip::sumcheck::prover_message::ProverMessage;
+use crate::pip::sumcheck::ProverMessage;
 
 #[allow(dead_code)]
 pub struct SumcheckProof {
