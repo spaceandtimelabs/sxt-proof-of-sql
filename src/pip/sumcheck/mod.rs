@@ -1,5 +1,5 @@
-mod prover_message;
-pub use prover_message::ProverMessage;
+mod message;
+pub use message::{ProverMessage, VerifierMsg};
 
 mod proof;
 #[cfg(test)]
