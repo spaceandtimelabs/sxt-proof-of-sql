@@ -9,7 +9,7 @@ pub struct ProverMessage {
 }
 
 /// Verifier Message
-pub struct VerifierMsg {
+pub struct VerifierMessage {
     /// randomness sampled by verifier
     pub randomness: Scalar,
 }

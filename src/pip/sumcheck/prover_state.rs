@@ -11,9 +11,9 @@ pub struct ProverState {
     pub list_of_products: Vec<(Scalar, Vec<usize>)>,
     /// Stores a list of multilinear extensions in which `self.list_of_products` points to
     pub flattened_ml_extensions: Vec<DenseMultilinearExtension>,
-    num_vars: usize,
-    max_multiplicands: usize,
-    round: usize,
+    pub num_vars: usize,
+    pub max_multiplicands: usize,
+    pub round: usize,
 }
 
 pub fn init_prover_state(polynomial: &CompositePolynomial) -> ProverState {
