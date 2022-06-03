@@ -1,6 +1,6 @@
 use curve25519_dalek::scalar::Scalar;
 
-use crate::base::polynomial::DenseMultilinearExtension;
+use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 
 #[allow(dead_code)]
 pub struct ProverState {
@@ -14,4 +14,26 @@ pub struct ProverState {
     num_vars: usize,
     max_multiplicands: usize,
     round: usize,
+}
+
+pub fn init_prover_state(polynomial: &CompositePolynomial) -> ProverState {
+    if polynomial.num_variables == 0 {
+        panic!("Attempt to prove a constant.")
+    }
+
+    // create a deep copy of all unique MLExtensions
+    let flattened_ml_extensions = polynomial
+        .flattened_ml_extensions
+        .iter()
+        .map(|x| x.as_ref().clone())
+        .collect();
+
+    ProverState {
+        randomness: Vec::with_capacity(polynomial.num_variables),
+        list_of_products: polynomial.products.clone(),
+        flattened_ml_extensions,
+        num_vars: polynomial.num_variables,
+        max_multiplicands: polynomial.max_multiplicands,
+        round: 0,
+    }
 }
