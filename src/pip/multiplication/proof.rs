@@ -4,13 +4,13 @@ use merlin::Transcript;
 use sha3::Sha3_512;
 
 use crate::base::math::{is_pow2, log2_up};
+use crate::base::polynomial::CompositePolynomialInfo;
 use crate::base::proof::ProofError;
 use crate::base::proof::TranscriptProtocol;
 use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 
 pub struct MultiplicationProof {
-    pub num_vars: usize,
     pub commit_ab: CompressedRistretto,
     pub sumcheck_proof: SumcheckProof,
 }
@@ -47,19 +47,26 @@ impl MultiplicationProof {
     pub fn verify(
         &self,
         transcript: &mut Transcript,
+        n: usize,
         commit_a: &CompressedRistretto,
         commit_b: &CompressedRistretto,
     ) -> Result<(), ProofError> {
-        let n = 1 << self.num_vars;
+        let num_vars = log2_up(n);
+        let n = 1 << num_vars;
+        transcript.multiplication_domain_sep(num_vars as u64);
         transcript
             .validate_and_append_point(b"c_ab", &self.commit_ab)
             .unwrap();
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, b"r_vec");
 
-        let mut evaluation_point = vec![Scalar::from(0u64); self.num_vars];
+        let mut evaluation_point = vec![Scalar::from(0u64); num_vars];
+        let polynomial_info = CompositePolynomialInfo {
+            max_multiplicands: 3,
+            num_variables: num_vars,
+        };
         self.sumcheck_proof
-            .verify_without_evaluation(&mut evaluation_point, transcript)
+            .verify_without_evaluation(&mut evaluation_point, transcript, polynomial_info)
             .unwrap();
 
         // TODO(rnburn): verify bullet proofs
@@ -87,6 +94,7 @@ fn create_proof_impl(
     c_ab: CompressedRistretto,
     num_vars: usize,
 ) -> MultiplicationProof {
+    transcript.multiplication_domain_sep(num_vars as u64);
     let n = a_vec.len();
     transcript.append_point(b"c_ab", &c_ab);
     let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
@@ -98,7 +106,6 @@ fn create_proof_impl(
     // TODO(rnburn): create bullet proofs
 
     MultiplicationProof {
-        num_vars: num_vars,
         commit_ab: c_ab,
         sumcheck_proof: sumcheck_proof,
     }

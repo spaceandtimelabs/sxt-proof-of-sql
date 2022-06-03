@@ -18,5 +18,5 @@ fn test_create_verify_proof() {
     let c_a = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"a").compress(); // pretend like this is the commitment of a
     let c_b = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"b").compress(); // pretend like this is the commitment of b
 
-    assert!(proof.verify(&mut transcript, &c_a, &c_b).is_ok());
+    assert!(proof.verify(&mut transcript, 3, &c_a, &c_b).is_ok());
 }
