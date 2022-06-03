@@ -7,3 +7,9 @@ pub struct ProverMessage {
     /// evaluations on P(0), P(1), P(2), ...
     pub(crate) evaluations: Vec<Scalar>,
 }
+
+/// Verifier Message
+pub struct VerifierMsg {
+    /// randomness sampled by verifier
+    pub randomness: Scalar,
+}
