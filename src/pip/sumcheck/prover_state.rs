@@ -16,24 +16,26 @@ pub struct ProverState {
     pub round: usize,
 }
 
-pub fn init_prover_state(polynomial: &CompositePolynomial) -> ProverState {
-    if polynomial.num_variables == 0 {
-        panic!("Attempt to prove a constant.")
-    }
+impl ProverState {
+    pub fn create(polynomial: &CompositePolynomial) -> ProverState {
+        if polynomial.num_variables == 0 {
+            panic!("Attempt to prove a constant.")
+        }
 
-    // create a deep copy of all unique MLExtensions
-    let flattened_ml_extensions = polynomial
-        .flattened_ml_extensions
-        .iter()
-        .map(|x| x.as_ref().clone())
-        .collect();
+        // create a deep copy of all unique MLExtensions
+        let flattened_ml_extensions = polynomial
+            .flattened_ml_extensions
+            .iter()
+            .map(|x| x.as_ref().clone())
+            .collect();
 
-    ProverState {
-        randomness: Vec::with_capacity(polynomial.num_variables),
-        list_of_products: polynomial.products.clone(),
-        flattened_ml_extensions,
-        num_vars: polynomial.num_variables,
-        max_multiplicands: polynomial.max_multiplicands,
-        round: 0,
+        ProverState {
+            randomness: Vec::with_capacity(polynomial.num_variables),
+            list_of_products: polynomial.products.clone(),
+            flattened_ml_extensions,
+            num_vars: polynomial.num_variables,
+            max_multiplicands: polynomial.max_multiplicands,
+            round: 0,
+        }
     }
 }

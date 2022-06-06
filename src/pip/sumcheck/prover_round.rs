@@ -5,18 +5,15 @@ use curve25519_dalek::scalar::Scalar;
 use crate::base::polynomial::{
     from_ark_scalar, to_ark_scalar, ArkScalar, DenseMultilinearExtension,
 };
-use crate::pip::sumcheck::{ProverMessage, ProverState, VerifierMessage};
+use crate::pip::sumcheck::{ProverMessage, ProverState};
 
 #[allow(unused_variables)]
-pub fn prove_round(
-    prover_state: &mut ProverState,
-    v_msg: &Option<VerifierMessage>,
-) -> ProverMessage {
-    if let Some(msg) = v_msg {
+pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> ProverMessage {
+    if let Some(r) = r_maybe {
         if prover_state.round == 0 {
             panic!("first round should be prover first.");
         }
-        prover_state.randomness.push(msg.randomness);
+        prover_state.randomness.push(r.clone());
 
         // fix argument
         let i = prover_state.round;
