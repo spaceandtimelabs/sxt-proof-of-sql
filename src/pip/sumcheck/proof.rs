@@ -1,6 +1,5 @@
 use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::ProofError;
@@ -14,7 +13,7 @@ pub struct SumcheckProof {
 
 impl SumcheckProof {
     #[allow(unused_variables)]
-    pub fn create(transcript: &mut Transcript, polynomial: &CompositePolynomial) -> SumcheckProof {
+    pub fn create(transcript: &mut dyn TranscriptProtocol, polynomial: &CompositePolynomial) -> SumcheckProof {
         transcript.sumcheck_domain_sep(
             polynomial.max_multiplicands as u64,
             polynomial.num_variables as u64,
@@ -27,7 +26,7 @@ impl SumcheckProof {
     pub fn verify_without_evaluation(
         &self,
         evaluation_point: &mut [Scalar],
-        transcript: &mut Transcript,
+        transcript: &mut dyn TranscriptProtocol,
         polynomial_info: CompositePolynomialInfo,
     ) -> Result<(), ProofError> {
         transcript.sumcheck_domain_sep(
