@@ -2,6 +2,7 @@ use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 
 use crate::base::proof::ProofError;
+use crate::base::scalar::as_byte_slice;
 
 // Note: for background on label and domain usage, see
 //      https://merlin.cool/use/passing.html#sequential-composition
@@ -38,6 +39,11 @@ impl Transcript {
     /// Append a `scalar` with the given `label`.
     pub fn append_scalar(&mut self, label: &'static [u8], scalar: &Scalar) {
         self.0.append_message(label, scalar.as_bytes());
+    }
+
+    /// Append a `scalars` with the given `label`.
+    pub fn append_scalars(&mut self, label: &'static [u8], scalars: &[Scalar]) {
+        self.0.append_message(label, as_byte_slice(scalars));
     }
 
     /// Append a `point` with the given `label`.
