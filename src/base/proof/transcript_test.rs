@@ -1,7 +1,6 @@
 use crate::base::proof::transcript::*;
 
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 
 #[test]
 fn test_challenge_scalars() {
