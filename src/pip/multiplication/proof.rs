@@ -1,12 +1,11 @@
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 use sha3::Sha3_512;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
 use crate::base::proof::ProofError;
-use crate::base::proof::TranscriptProtocol;
+use crate::base::proof::Transcript;
 use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 

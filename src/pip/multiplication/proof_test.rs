@@ -1,8 +1,8 @@
 use crate::pip::multiplication::proof::*;
 
+use crate::base::proof::Transcript;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 use sha3::Sha3_512;
 
 #[test]

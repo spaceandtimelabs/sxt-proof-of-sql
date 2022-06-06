@@ -1,10 +1,8 @@
 use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
-use crate::base::proof::ProofError;
-use crate::base::proof::TranscriptProtocol;
+use crate::base::proof::{ProofError, Transcript};
 use crate::pip::sumcheck::ProverMessage;
 
 #[allow(dead_code)]

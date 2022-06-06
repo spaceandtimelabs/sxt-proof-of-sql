@@ -12,7 +12,14 @@ Cargo.lock
 # latexpdf
 protocols/*.aux
 protocols/*.log
+protocols/*.fdb_latexmk
+protocols/*.fls
+protocols/*.synctex.gz
 
+
+#Added by osX
+.DS_Store
+protocols/.DS_Store
 
 # Added by cargo
 
