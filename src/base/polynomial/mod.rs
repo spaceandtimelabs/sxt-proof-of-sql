@@ -8,3 +8,6 @@ pub use dense_multilinear_extension::DenseMultilinearExtension;
 
 mod composite_polynomial;
 pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};
+
+#[cfg(test)]
+mod polynomial_test;
