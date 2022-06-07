@@ -2,7 +2,7 @@ use curve25519_dalek::scalar::Scalar;
 
 use crate::base::proof::{Commitment, ProofError, Transcript};
 
-pub trait PIPProof {
+pub trait PIPProof /*: serde::ser::Serialize + serde::ser::Deserialize*/ {
     fn create(
         //The merlin transcript for the prover
         transcript: &mut Transcript,
@@ -20,6 +20,4 @@ pub trait PIPProof {
         //The commitments of the outputs to the PIP. Typically, these are sent from the prover to the verifier before the PIPProof is created.
         outputs: &[Commitment],
     ) -> Result<(), ProofError>;
-    //fn to_bytes(&self) -> &[u8];
-    //fn from_bytes(data : &[u8]) -> Self;
 }
