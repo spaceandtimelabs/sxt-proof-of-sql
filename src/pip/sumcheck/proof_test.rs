@@ -2,10 +2,10 @@ use crate::pip::sumcheck::proof::*;
 
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
 
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::polynomial::DenseMultilinearExtension;
+use crate::base::proof::Transcript;
 
 #[test]
 fn test_create_verify_proof() {
