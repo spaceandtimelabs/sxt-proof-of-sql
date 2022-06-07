@@ -4,7 +4,7 @@ use sha3::Sha3_512;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
-use crate::base::proof::*;
+use crate::base::proof::{ProofError, Transcript, PIPProof, Commitment};
 use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 
@@ -19,7 +19,7 @@ impl PIPProof for MultiplicationProof {
     /// See protocols/multiplication.pdf
     #[allow(unused_variables)]
     fn create(
-        transcript: &mut dyn TranscriptProtocol,
+        transcript: &mut Transcript,
         inputs: Vec<&[Scalar]>,
         outputs: Vec<&[Scalar]>,
     ) -> MultiplicationProof {
@@ -49,7 +49,7 @@ impl PIPProof for MultiplicationProof {
     #[allow(unused_variables)]
     fn verify(
         &self,
-        transcript: &mut dyn TranscriptProtocol, 
+        transcript: &mut Transcript, 
         inputs : Vec<Commitment>, 
         outputs : Vec<Commitment>,
     ) -> Result<(), ProofError> {
@@ -99,7 +99,7 @@ fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
 
 #[allow(unused_variables)]
 fn create_proof_impl(
-    transcript: &mut dyn TranscriptProtocol,
+    transcript: &mut Transcript,
     a_vec: &[Scalar],
     b_vec: &[Scalar],
     c_ab: CompressedRistretto,
