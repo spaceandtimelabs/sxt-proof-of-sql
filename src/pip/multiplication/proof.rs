@@ -4,8 +4,7 @@ use sha3::Sha3_512;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
-use crate::base::proof::ProofError;
-use crate::base::proof::Transcript;
+use crate::base::proof::{Commitment, PIPProof, ProofError, Transcript};
 use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 
@@ -14,16 +13,21 @@ pub struct MultiplicationProof {
     pub sumcheck_proof: SumcheckProof,
 }
 
-impl MultiplicationProof {
+impl PIPProof for MultiplicationProof {
     /// Create a multiplication proof.
     ///
     /// See protocols/multiplication.pdf
     #[allow(unused_variables)]
-    pub fn create(
+    fn create(
         transcript: &mut Transcript,
-        a_vec: &[Scalar],
-        b_vec: &[Scalar],
+        inputs: &[&[Scalar]],
+        outputs: &[&[Scalar]],
     ) -> MultiplicationProof {
+        assert_eq!(inputs.len(), 2);
+        assert_eq!(outputs.len(), 0);
+        let a_vec = inputs[0];
+        let b_vec = inputs[1];
+
         let n = a_vec.len();
         assert!(n > 0);
         assert_eq!(a_vec.len(), n);
@@ -43,13 +47,19 @@ impl MultiplicationProof {
 
     /// Verifies that a multiplication proof is correct given the associated commitments.
     #[allow(unused_variables)]
-    pub fn verify(
+    fn verify(
         &self,
         transcript: &mut Transcript,
-        n: usize,
-        commit_a: &CompressedRistretto,
-        commit_b: &CompressedRistretto,
+        inputs: &[Commitment],
+        outputs: &[Commitment],
     ) -> Result<(), ProofError> {
+        assert_eq!(inputs.len(), 2);
+        assert_eq!(outputs.len(), 0);
+        let commit_a = inputs[0].commitment;
+        let commit_b = inputs[1].commitment;
+        assert_eq!(inputs[0].length, inputs[1].length);
+        let n = inputs[0].length;
+
         let num_vars = log2_up(n);
         let n = 1 << num_vars;
         transcript.multiplication_domain_sep(num_vars as u64);
