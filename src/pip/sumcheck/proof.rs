@@ -11,7 +11,6 @@ pub struct SumcheckProof {
 }
 
 impl SumcheckProof {
-    #[allow(unused_variables)]
     pub fn create(transcript: &mut Transcript, polynomial: &CompositePolynomial) -> SumcheckProof {
         transcript.sumcheck_domain_sep(
             polynomial.max_multiplicands as u64,
