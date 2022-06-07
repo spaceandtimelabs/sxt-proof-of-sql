@@ -4,7 +4,7 @@ use sha3::Sha3_512;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
-use crate::base::proof::{ProofError, Transcript, PIPProof, Commitment};
+use crate::base::proof::{Commitment, PIPProof, ProofError, Transcript};
 use crate::pip::multiplication::make_sumcheck_polynomial;
 use crate::pip::sumcheck::SumcheckProof;
 
@@ -49,12 +49,10 @@ impl PIPProof for MultiplicationProof {
     #[allow(unused_variables)]
     fn verify(
         &self,
-        transcript: &mut Transcript, 
-        inputs : Vec<Commitment>, 
-        outputs : Vec<Commitment>,
+        transcript: &mut Transcript,
+        inputs: Vec<Commitment>,
+        outputs: Vec<Commitment>,
     ) -> Result<(), ProofError> {
-        
-        
         assert_eq!(inputs.len(), 2);
         assert_eq!(outputs.len(), 0);
         let commit_a = inputs[0].commitment;
