@@ -20,8 +20,8 @@ impl PIPProof for MultiplicationProof {
     #[allow(unused_variables)]
     fn create(
         transcript: &mut Transcript,
-        inputs: Vec<&[Scalar]>,
-        outputs: Vec<&[Scalar]>,
+        inputs: &[&[Scalar]],
+        outputs: &[&[Scalar]],
     ) -> MultiplicationProof {
         assert_eq!(inputs.len(), 2);
         assert_eq!(outputs.len(), 0);
@@ -50,8 +50,8 @@ impl PIPProof for MultiplicationProof {
     fn verify(
         &self,
         transcript: &mut Transcript,
-        inputs: Vec<Commitment>,
-        outputs: Vec<Commitment>,
+        inputs: &[Commitment],
+        outputs: &[Commitment],
     ) -> Result<(), ProofError> {
         assert_eq!(inputs.len(), 2);
         assert_eq!(outputs.len(), 0);
