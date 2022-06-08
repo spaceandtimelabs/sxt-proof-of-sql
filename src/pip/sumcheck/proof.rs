@@ -1,3 +1,8 @@
+/**
+ * Adopted from arkworks
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
 use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
 
@@ -5,7 +10,6 @@ use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::{ProofError, Transcript};
 use crate::pip::sumcheck::{prove_round, ProverState, Subclaim};
 
-#[allow(dead_code)]
 pub struct SumcheckProof {
     pub evaluations: Vec<Vec<Scalar>>,
 }

@@ -1,10 +1,14 @@
+/**
+ * Adopted from arkworks
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
 use crate::pip::sumcheck::proof::*;
 
-use ark_std::rand::RngCore;
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
 use rand::rngs::ThreadRng;
-use rand::{thread_rng, Rng};
+use rand::Rng;
 
 use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 use crate::base::proof::Transcript;

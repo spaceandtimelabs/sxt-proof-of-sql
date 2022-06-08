@@ -1,3 +1,8 @@
+/**
+ * Adopted from arkworks
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
 use crate::base::polynomial::interpolate::*;
 
 use ark_poly::univariate::DensePolynomial;
