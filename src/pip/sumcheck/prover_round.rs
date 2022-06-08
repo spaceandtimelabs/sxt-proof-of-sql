@@ -7,7 +7,6 @@ use crate::base::polynomial::{
 };
 use crate::pip::sumcheck::ProverState;
 
-#[allow(unused_variables)]
 pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> Vec<Scalar> {
     if let Some(r) = r_maybe {
         if prover_state.round == 0 {

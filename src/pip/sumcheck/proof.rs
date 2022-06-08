@@ -41,7 +41,6 @@ impl SumcheckProof {
         }
     }
 
-    #[allow(unused_variables)]
     pub fn verify_without_evaluation(
         &self,
         transcript: &mut Transcript,
