@@ -69,16 +69,17 @@ impl PIPProof for MultiplicationProof {
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, b"r_vec");
 
-        let mut evaluation_point = vec![Scalar::from(0u64); num_vars];
         let polynomial_info = CompositePolynomialInfo {
             max_multiplicands: 3,
             num_variables: num_vars,
         };
-        self.sumcheck_proof
-            .verify_without_evaluation(&mut evaluation_point, transcript, polynomial_info)
+        let subclaim = self
+            .sumcheck_proof
+            .verify_without_evaluation(transcript, polynomial_info, &Scalar::zero())
             .unwrap();
 
-        // TODO(rnburn): verify bullet proofs
+        // TODO: use bulletproofs to verify that
+        // P(subclaim.evaluation_point) == subclaim.expected_evaluation
 
         Ok(())
     }

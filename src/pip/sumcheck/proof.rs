@@ -3,11 +3,11 @@ use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::{ProofError, Transcript};
-use crate::pip::sumcheck::{prove_round, ProverState};
+use crate::pip::sumcheck::{prove_round, ProverState, Subclaim};
 
 #[allow(dead_code)]
 pub struct SumcheckProof {
-    evaluations: Vec<Vec<Scalar>>,
+    pub evaluations: Vec<Vec<Scalar>>,
 }
 
 impl SumcheckProof {
@@ -34,14 +34,27 @@ impl SumcheckProof {
     #[allow(unused_variables)]
     pub fn verify_without_evaluation(
         &self,
-        evaluation_point: &mut [Scalar],
         transcript: &mut Transcript,
         polynomial_info: CompositePolynomialInfo,
-    ) -> Result<(), ProofError> {
+        claimed_sum: &Scalar,
+    ) -> Result<Subclaim, ProofError> {
         transcript.sumcheck_domain_sep(
             polynomial_info.max_multiplicands as u64,
             polynomial_info.num_variables as u64,
         );
-        Ok(())
+        if self.evaluations.len() != polynomial_info.num_variables {
+            return Err(ProofError::VerificationError);
+        }
+        let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
+        for round_index in 0..polynomial_info.num_variables {
+            transcript.append_scalars(b"P", &self.evaluations[round_index]);
+            evaluation_point.push(transcript.challenge_scalar(b"r"));
+        }
+        Subclaim::create(
+            evaluation_point,
+            &self.evaluations,
+            polynomial_info.max_multiplicands,
+            claimed_sum,
+        )
     }
 }
