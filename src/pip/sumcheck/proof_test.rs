@@ -20,17 +20,36 @@ fn test_create_verify_proof() {
     ));
     poly.add_product([fa], Scalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
-    let proof = SumcheckProof::create(&mut evaluation_point, &mut transcript, &poly);
+    let mut proof = SumcheckProof::create(&mut evaluation_point, &mut transcript, &poly);
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
-    let subclaim =
-        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64));
-    assert!(subclaim.is_ok());
-    let subclaim = subclaim.unwrap();
+    let subclaim = proof
+        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
+        .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
         poly.evaluate(&evaluation_point),
         subclaim.expected_evaluation
     );
+
+    // we return a different evaluation point if we start with a different transcript
+    let mut transcript = Transcript::new(b"sumchecktest");
+    transcript.multiplication_domain_sep(123u64);
+    let subclaim = proof
+        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
+        .expect("verify failed");
+    assert_ne!(subclaim.evaluation_point, evaluation_point);
+
+    // verify fails if sum is wrong
+    let mut transcript = Transcript::new(b"sumchecktest");
+    let subclaim =
+        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(123u64));
+    assert!(!subclaim.is_ok());
+
+    // verify fails if evaluations are changed
+    proof.evaluations[0][1] += Scalar::from(3u64);
+    let subclaim =
+        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64));
+    assert!(!subclaim.is_ok());
 }
