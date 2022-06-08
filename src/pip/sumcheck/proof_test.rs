@@ -23,8 +23,7 @@ fn test_create_verify_proof() {
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
-    let mut evaluation_point: [Scalar; 2] = [Scalar::from(0u64); 2];
     assert!(proof
-        .verify_without_evaluation(&mut evaluation_point, &mut transcript, poly.info())
+        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
         .is_ok());
 }
