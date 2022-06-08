@@ -12,4 +12,6 @@ pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};
 mod composite_polynomial_test;
 
 mod interpolate;
+#[cfg(test)]
+mod interpolate_test;
 pub use interpolate::interpolate_uni_poly;
