@@ -11,7 +11,12 @@ pub struct SumcheckProof {
 }
 
 impl SumcheckProof {
-    pub fn create(transcript: &mut Transcript, polynomial: &CompositePolynomial) -> SumcheckProof {
+    pub fn create(
+        evaluation_point: &mut [Scalar],
+        transcript: &mut Transcript,
+        polynomial: &CompositePolynomial,
+    ) -> SumcheckProof {
+        assert_eq!(evaluation_point.len(), polynomial.num_variables);
         transcript.sumcheck_domain_sep(
             polynomial.max_multiplicands as u64,
             polynomial.num_variables as u64,
@@ -19,11 +24,12 @@ impl SumcheckProof {
         let mut r = None;
         let mut state = ProverState::create(&polynomial);
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
-        for _ in 0..polynomial.num_variables {
+        for round_index in 0..polynomial.num_variables {
             let round_evaluations = prove_round(&mut state, &r);
             transcript.append_scalars(b"P", &round_evaluations);
             evaluations.push(round_evaluations);
-            r = Some(transcript.challenge_scalar(b"r"));
+            evaluation_point[round_index] = transcript.challenge_scalar(b"r");
+            r = Some(evaluation_point[round_index]);
         }
 
         SumcheckProof {

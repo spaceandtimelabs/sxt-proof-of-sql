@@ -10,6 +10,7 @@ use crate::base::proof::Transcript;
 #[test]
 fn test_create_verify_proof() {
     let num_vars = 1;
+    let mut evaluation_point: [Scalar; 1] = [Scalar::zero(); 1];
 
     // create a proof
     let mut poly = CompositePolynomial::new(num_vars);
@@ -19,7 +20,7 @@ fn test_create_verify_proof() {
     ));
     poly.add_product([fa], Scalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
-    let proof = SumcheckProof::create(&mut transcript, &poly);
+    let proof = SumcheckProof::create(&mut evaluation_point, &mut transcript, &poly);
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");

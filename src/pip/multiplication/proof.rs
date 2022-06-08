@@ -107,11 +107,12 @@ fn create_proof_impl(
     transcript.multiplication_domain_sep(num_vars as u64);
     let n = a_vec.len();
     transcript.append_point(b"c_ab", &c_ab);
-    let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
+    let mut r_vec = vec![Scalar::zero(); n];
     transcript.challenge_scalars(&mut r_vec, b"r_vec");
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
-    let sumcheck_proof = SumcheckProof::create(transcript, &poly);
+    let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
+    let sumcheck_proof = SumcheckProof::create(&mut evaluation_point, transcript, &poly);
 
     // TODO(rnburn): create bullet proofs
 
