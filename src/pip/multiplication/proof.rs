@@ -114,7 +114,7 @@ fn create_proof_impl(
     let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
     let sumcheck_proof = SumcheckProof::create(&mut evaluation_point, transcript, &poly);
 
-    // TODO(rnburn): create bullet proofs
+    // TODO: create bullet proofs with evaluation_point
 
     MultiplicationProof {
         commit_ab: c_ab,
