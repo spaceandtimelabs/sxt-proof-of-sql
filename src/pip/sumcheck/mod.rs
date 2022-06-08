@@ -1,6 +1,3 @@
-mod message;
-pub use message::{ProverMessage, VerifierMessage};
-
 mod proof;
 #[cfg(test)]
 mod proof_test;
