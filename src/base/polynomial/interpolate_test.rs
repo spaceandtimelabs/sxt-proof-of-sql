@@ -22,4 +22,24 @@ fn test_interpolate_uni_poly() {
     let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
     let expected_value = from_ark_scalar(&poly.evaluate(&query));
     assert_eq!(value, expected_value);
+
+    // test a polynomial with 33 known points, i.e., with degree 32
+    let poly = DensePolynomial::<ArkScalar>::rand(33 - 1, &mut prng);
+    let evals = (0..33)
+        .map(|i| from_ark_scalar(&poly.evaluate(&ArkScalar::from(i as u64))))
+        .collect::<Vec<Scalar>>();
+    let query = ArkScalar::rand(&mut prng);
+    let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
+    let expected_value = from_ark_scalar(&poly.evaluate(&query));
+    assert_eq!(value, expected_value);
+
+    // test a polynomial with 64 known points, i.e., with degree 63
+    let poly = DensePolynomial::<ArkScalar>::rand(64 - 1, &mut prng);
+    let evals = (0..64)
+        .map(|i| from_ark_scalar(&poly.evaluate(&ArkScalar::from(i as u64))))
+        .collect::<Vec<Scalar>>();
+    let query = ArkScalar::rand(&mut prng);
+    let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
+    let expected_value = from_ark_scalar(&poly.evaluate(&query));
+    assert_eq!(value, expected_value);
 }
