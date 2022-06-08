@@ -24,7 +24,13 @@ fn test_create_verify_proof() {
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
-    assert!(proof
-        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
-        .is_ok());
+    let subclaim =
+        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64));
+    assert!(subclaim.is_ok());
+    let subclaim = subclaim.unwrap();
+    assert_eq!(subclaim.evaluation_point, evaluation_point);
+    assert_eq!(
+        poly.evaluate(&evaluation_point),
+        subclaim.expected_evaluation
+    );
 }
