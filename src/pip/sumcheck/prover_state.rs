@@ -2,7 +2,6 @@ use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 
-#[allow(dead_code)]
 pub struct ProverState {
     /// sampled randomness given by the verifier
     pub randomness: Vec<Scalar>,
