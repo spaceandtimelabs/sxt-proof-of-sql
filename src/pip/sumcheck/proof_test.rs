@@ -26,7 +26,7 @@ fn test_create_verify_proof() {
     ));
     poly.add_product([fa], Scalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
-    let mut proof = SumcheckProof::create(&mut evaluation_point, &mut transcript, &poly);
+    let mut proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
@@ -118,7 +118,7 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
     // create a proof
     let mut transcript = Transcript::new(b"sumchecktest");
     let mut evaluation_point = vec![Scalar::zero(); poly_info.num_variables];
-    let proof = SumcheckProof::create(&mut evaluation_point, &mut transcript, &poly);
+    let proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");

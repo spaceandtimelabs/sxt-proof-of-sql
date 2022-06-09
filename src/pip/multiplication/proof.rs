@@ -112,7 +112,7 @@ fn create_proof_impl(
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
     let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
-    let sumcheck_proof = SumcheckProof::create(&mut evaluation_point, transcript, &poly);
+    let sumcheck_proof = SumcheckProof::create(transcript, &mut evaluation_point, &poly);
 
     // TODO: create bullet proofs with evaluation_point
 
