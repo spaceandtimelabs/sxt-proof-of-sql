@@ -16,8 +16,8 @@ pub struct SumcheckProof {
 
 impl SumcheckProof {
     pub fn create(
-        evaluation_point: &mut [Scalar],
         transcript: &mut Transcript,
+        evaluation_point: &mut [Scalar],
         polynomial: &CompositePolynomial,
     ) -> SumcheckProof {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
