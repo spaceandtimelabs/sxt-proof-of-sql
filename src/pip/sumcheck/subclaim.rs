@@ -1,3 +1,8 @@
+/**
+ * Adopted from arkworks
+ *
+ * See third_party/license/arkworks.LICENSE
+ */
 use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::interpolate_uni_poly;
