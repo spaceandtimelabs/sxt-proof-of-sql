@@ -7,8 +7,9 @@ use ark_poly;
 use ark_poly::MultilinearExtension;
 use curve25519_dalek::scalar::Scalar;
 
-use crate::base::polynomial::ark_scalar::{from_ark_scalar, to_ark_scalar, ArkScalar};
+use crate::base::polynomial::{from_ark_scalar, to_ark_scalar, ArkScalar};
 
+#[derive(Clone, PartialEq, Eq, Hash, Default)]
 pub struct DenseMultilinearExtension {
     pub ark_impl: ark_poly::DenseMultilinearExtension<ArkScalar>,
 }

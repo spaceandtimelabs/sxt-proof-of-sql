@@ -69,16 +69,17 @@ impl PIPProof for MultiplicationProof {
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, b"r_vec");
 
-        let mut evaluation_point = vec![Scalar::from(0u64); num_vars];
         let polynomial_info = CompositePolynomialInfo {
             max_multiplicands: 3,
             num_variables: num_vars,
         };
-        self.sumcheck_proof
-            .verify_without_evaluation(&mut evaluation_point, transcript, polynomial_info)
+        let subclaim = self
+            .sumcheck_proof
+            .verify_without_evaluation(transcript, polynomial_info, &Scalar::zero())
             .unwrap();
 
-        // TODO(rnburn): verify bullet proofs
+        // TODO: use bulletproofs to verify that
+        // P(subclaim.evaluation_point) == subclaim.expected_evaluation
 
         Ok(())
     }
@@ -106,13 +107,14 @@ fn create_proof_impl(
     transcript.multiplication_domain_sep(num_vars as u64);
     let n = a_vec.len();
     transcript.append_point(b"c_ab", &c_ab);
-    let mut r_vec = vec![Scalar::from(0u64); a_vec.len()];
+    let mut r_vec = vec![Scalar::zero(); n];
     transcript.challenge_scalars(&mut r_vec, b"r_vec");
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
-    let sumcheck_proof = SumcheckProof::create(transcript, &poly);
+    let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
+    let sumcheck_proof = SumcheckProof::create(transcript, &mut evaluation_point, &poly);
 
-    // TODO(rnburn): create bullet proofs
+    // TODO: create bullet proofs with evaluation_point
 
     MultiplicationProof {
         commit_ab: c_ab,
