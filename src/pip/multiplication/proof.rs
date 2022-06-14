@@ -1,6 +1,8 @@
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::traits::{Identity};
 use curve25519_dalek::scalar::Scalar;
-use sha3::Sha3_512;
+use pedersen::commitments::compute_commitments_with_scalars;
+use std::slice;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
@@ -33,7 +35,8 @@ impl PIPProof for MultiplicationProof {
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
-        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab").compress(); // pretend like this is the commitment of ab
+        let mut c_ab = CompressedRistretto::identity();
+        compute_commitments_with_scalars(slice::from_ref(& mut c_ab), inputs);
 
         let num_vars = log2_up(n);
         if is_pow2(n) {
