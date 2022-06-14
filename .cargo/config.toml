@@ -1,0 +1,2 @@
+[registries.pedersen_reg]
+index = "https://sxtproofs.jfrog.io/artifactory/git/proofsgpu-cargo-dev-local.git"
