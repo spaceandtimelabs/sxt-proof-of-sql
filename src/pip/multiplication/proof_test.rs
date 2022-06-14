@@ -1,11 +1,14 @@
-use crate::base::proof::Commitment;
-use crate::base::proof::PIPProof;
 use crate::pip::multiplication::proof::*;
 
-use crate::base::proof::Transcript;
-use curve25519_dalek::ristretto::RistrettoPoint;
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
-use sha3::Sha3_512;
+use curve25519_dalek::traits::Identity;
+use pedersen::commitments::compute_commitments_with_scalars;
+use std::slice;
+
+use crate::base::proof::Commitment;
+use crate::base::proof::PIPProof;
+use crate::base::proof::Transcript;
 
 #[test]
 fn test_create_verify_proof() {
@@ -17,12 +20,14 @@ fn test_create_verify_proof() {
 
     // verify proof
     let mut transcript = Transcript::new(b"multiplicationtest");
-    let c_a = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"a").compress(); // pretend like this is the commitment of a
+    let mut c_a = CompressedRistretto::identity();
+    compute_commitments_with_scalars(slice::from_mut(&mut c_a), &[&a]);
     let commitment_a = Commitment {
         commitment: c_a,
         length: a.len(),
     };
-    let c_b = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"b").compress(); // pretend like this is the commitment of b
+    let mut c_b = CompressedRistretto::identity();
+    compute_commitments_with_scalars(slice::from_mut(&mut c_b), &[&b]);
     let commitment_b = Commitment {
         commitment: c_b,
         length: b.len(),
