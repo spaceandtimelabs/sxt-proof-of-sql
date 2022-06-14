@@ -36,7 +36,7 @@ impl PIPProof for MultiplicationProof {
         assert_eq!(b_vec.len(), n);
 
         let mut c_ab = CompressedRistretto::identity();
-        compute_commitments_with_scalars(slice::from_ref(& mut c_ab), inputs);
+        compute_commitments_with_scalars(slice::from_mut(& mut c_ab), inputs);
 
         let num_vars = log2_up(n);
         if is_pow2(n) {
