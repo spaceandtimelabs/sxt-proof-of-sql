@@ -1,6 +1,8 @@
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
-use sha3::Sha3_512;
+use curve25519_dalek::traits::Identity;
+use pedersen::commitments::compute_commitments_with_scalars;
+use std::slice;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
@@ -33,16 +35,14 @@ impl PIPProof for MultiplicationProof {
         assert_eq!(a_vec.len(), n);
         assert_eq!(b_vec.len(), n);
 
-        let c_ab = RistrettoPoint::hash_from_bytes::<Sha3_512>(b"ab").compress(); // pretend like this is the commitment of ab
-
         let num_vars = log2_up(n);
         if is_pow2(n) {
-            return create_proof_impl(transcript, a_vec, b_vec, c_ab, num_vars);
+            return create_proof_impl(transcript, a_vec, b_vec, num_vars);
         }
         let n = 1 << num_vars;
         let a_vec = extend_scalar_vector(a_vec, n);
         let b_vec = extend_scalar_vector(b_vec, n);
-        create_proof_impl(transcript, &a_vec, &b_vec, c_ab, num_vars)
+        create_proof_impl(transcript, &a_vec, &b_vec, num_vars)
     }
 
     /// Verifies that a multiplication proof is correct given the associated commitments.
@@ -101,15 +101,19 @@ fn create_proof_impl(
     transcript: &mut Transcript,
     a_vec: &[Scalar],
     b_vec: &[Scalar],
-    c_ab: CompressedRistretto,
     num_vars: usize,
 ) -> MultiplicationProof {
     transcript.multiplication_domain_sep(num_vars as u64);
     let n = a_vec.len();
+
+    let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
+    let mut c_ab = CompressedRistretto::identity();
+    compute_commitments_with_scalars(slice::from_mut(&mut c_ab), &[&ab_vec]);
     transcript.append_point(b"c_ab", &c_ab);
+
     let mut r_vec = vec![Scalar::zero(); n];
     transcript.challenge_scalars(&mut r_vec, b"r_vec");
-    let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
+
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, &ab_vec, &r_vec);
     let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
     let sumcheck_proof = SumcheckProof::create(transcript, &mut evaluation_point, &poly);
