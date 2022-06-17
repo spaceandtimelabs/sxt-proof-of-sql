@@ -1,0 +1,57 @@
+{
+    "name": "proofs",
+    "version": "0.0.0-development",
+    "devDependencies": {
+        "conventional-changelog-conventionalcommits": "^5.0.0",
+        "semantic-release": "^19.0.2"
+    },
+    "release": {
+        "branches": [
+            "main"
+        ],
+        "plugins": [
+            [
+                "@semantic-release/commit-analyzer",
+                {
+                    "preset": "conventionalCommits",
+                    "releaseRules": [
+                        {
+                            "type": "build",
+                            "release": "patch"
+                        }
+                    ],
+                    "parserOpts": {
+                        "noteKeywords": [
+                            "BREAKING CHANGE",
+                            "BREAKING CHANGES",
+                            "BREAKING"
+                        ]
+                    }
+                }
+            ],
+            "@semantic-release/release-notes-generator",
+            [
+                "@semantic-release/exec",
+                {
+                    "prepareCmd": "bash ci/build.sh ${nextRelease.version}"
+                }
+            ],
+            [
+                "@semantic-release/github",
+                {
+                    "assets": [
+                        {
+                            "path": "*.zip"
+                        },
+                        {
+                            "path": "*.tar.gz"
+                        }
+                    ]
+                }
+            ]
+        ]
+    },
+    "dependencies": {
+        "@semantic-release/exec": "^6.0.3"
+    }
+}
