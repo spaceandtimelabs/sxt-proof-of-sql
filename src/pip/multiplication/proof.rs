@@ -1,7 +1,7 @@
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
-use pedersen::commitments::compute_commitments_with_scalars;
+use pedersen::commitments::compute_commitments;
 use std::slice;
 
 use crate::base::math::{is_pow2, log2_up};
@@ -108,7 +108,7 @@ fn create_proof_impl(
 
     let ab_vec: Vec<Scalar> = a_vec.iter().zip(b_vec.iter()).map(|(a, b)| a * b).collect();
     let mut c_ab = CompressedRistretto::identity();
-    compute_commitments_with_scalars(slice::from_mut(&mut c_ab), &[&ab_vec]);
+    compute_commitments(slice::from_mut(&mut c_ab), &[&ab_vec[..]]);
     transcript.append_point(b"c_ab", &c_ab);
 
     let mut r_vec = vec![Scalar::zero(); n];

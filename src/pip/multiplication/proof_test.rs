@@ -3,7 +3,7 @@ use crate::pip::multiplication::proof::*;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
-use pedersen::commitments::compute_commitments_with_scalars;
+use pedersen::commitments::compute_commitments;
 use std::slice;
 
 use crate::base::proof::Commitment;
@@ -21,13 +21,13 @@ fn test_create_verify_proof() {
     // verify proof
     let mut transcript = Transcript::new(b"multiplicationtest");
     let mut c_a = CompressedRistretto::identity();
-    compute_commitments_with_scalars(slice::from_mut(&mut c_a), &[&a]);
+    compute_commitments(slice::from_mut(&mut c_a), &[&a[..]]);
     let commitment_a = Commitment {
         commitment: c_a,
         length: a.len(),
     };
     let mut c_b = CompressedRistretto::identity();
-    compute_commitments_with_scalars(slice::from_mut(&mut c_b), &[&b]);
+    compute_commitments(slice::from_mut(&mut c_b), &[&b[..]]);
     let commitment_b = Commitment {
         commitment: c_b,
         length: b.len(),
