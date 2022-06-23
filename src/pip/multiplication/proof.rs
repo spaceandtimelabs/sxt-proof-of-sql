@@ -22,13 +22,14 @@ impl PIPProof for MultiplicationProof {
     #[allow(unused_variables)]
     fn create(
         transcript: &mut Transcript,
-        inputs: &[&[Scalar]],
-        outputs: &[&[Scalar]],
-    ) -> MultiplicationProof {
-        assert_eq!(inputs.len(), 2);
-        assert_eq!(outputs.len(), 0);
-        let a_vec = inputs[0];
-        let b_vec = inputs[1];
+        input_columns: &[&[Scalar]],
+        output_columns: &[&[Scalar]],
+        input_commitments: &[Commitment],
+    ) -> Self {
+        assert_eq!(input_columns.len(), 2);
+        assert_eq!(output_columns.len(), 0);
+        let a_vec = input_columns[0];
+        let b_vec = input_columns[1];
 
         let n = a_vec.len();
         assert!(n > 0);
@@ -51,10 +52,8 @@ impl PIPProof for MultiplicationProof {
         &self,
         transcript: &mut Transcript,
         inputs: &[Commitment],
-        outputs: &[Commitment],
     ) -> Result<(), ProofError> {
         assert_eq!(inputs.len(), 2);
-        assert_eq!(outputs.len(), 0);
         let commit_a = inputs[0].commitment;
         let commit_b = inputs[1].commitment;
         assert_eq!(inputs[0].length, inputs[1].length);
@@ -82,6 +81,10 @@ impl PIPProof for MultiplicationProof {
         // P(subclaim.evaluation_point) == subclaim.expected_evaluation
 
         Ok(())
+    }
+
+    fn get_output_commitments(&self) -> &[Commitment] {
+        todo!();
     }
 }
 

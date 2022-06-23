@@ -15,11 +15,8 @@ fn test_create_verify_proof() {
     // create a proof
     let a = vec![Scalar::from(1u64), Scalar::from(7u64), Scalar::from(5u64)];
     let b = vec![Scalar::from(3u64), Scalar::from(10u64), Scalar::from(2u64)];
-    let mut transcript = Transcript::new(b"multiplicationtest");
-    let proof = MultiplicationProof::create(&mut transcript, &[&a, &b], &[]);
 
-    // verify proof
-    let mut transcript = Transcript::new(b"multiplicationtest");
+    
     let mut c_a = CompressedRistretto::identity();
     compute_commitments(slice::from_mut(&mut c_a), &[&a[..]]);
     let commitment_a = Commitment {
@@ -33,7 +30,14 @@ fn test_create_verify_proof() {
         length: b.len(),
     };
 
+
+    let mut transcript = Transcript::new(b"multiplicationtest");
+    // Note: this is not passing the output $a \boxtimes b$ as a parameter.
+    let proof = MultiplicationProof::create(&mut transcript, &[&a, &b], &[], &[commitment_a.clone(), commitment_b.clone()]);
+
+    // verify proof
+    let mut transcript = Transcript::new(b"multiplicationtest");
     assert!(proof
-        .verify(&mut transcript, &[commitment_a, commitment_b], &[])
+        .verify(&mut transcript, &[commitment_a, commitment_b])
         .is_ok());
 }
