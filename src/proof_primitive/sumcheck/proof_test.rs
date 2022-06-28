@@ -3,7 +3,7 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::pip::sumcheck::proof::*;
+use crate::proof_primitive::sumcheck::proof::*;
 
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
@@ -41,7 +41,7 @@ fn test_create_verify_proof() {
 
     // we return a different evaluation point if we start with a different transcript
     let mut transcript = Transcript::new(b"sumchecktest");
-    transcript.multiplication_domain_sep(123u64);
+    transcript.hadamard_domain_sep(123u64);
     let subclaim = proof
         .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
         .expect("verify failed");
