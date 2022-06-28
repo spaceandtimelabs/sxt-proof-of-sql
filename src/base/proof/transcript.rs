@@ -23,13 +23,13 @@ impl Transcript {
         Transcript(merlin::Transcript::new(label))
     }
 
-    /// Append a domain separator for a multiplication proof with n variables
-    pub fn multiplication_domain_sep(&mut self, n: u64) {
-        self.0.append_message(b"dom-sep", b"multiplicationproof v1");
+    /// Append a domain separator for a hadamard proof with n variables
+    pub fn hadamard_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"hadamardproof v1");
         self.0.append_u64(b"n", n);
     }
 
-    /// Append a domain separator for a multiplication proof with m multiplcands and n variables
+    /// Append a domain separator for a sumcheck proof with m multiplicands and n variables
     pub fn sumcheck_domain_sep(&mut self, m: u64, n: u64) {
         self.0.append_message(b"dom-sep", b"sumcheckproof v1");
         self.0.append_u64(b"m", m);
@@ -89,5 +89,10 @@ impl Transcript {
             bytes = buf[s..t].try_into().unwrap();
             scalars[i] = Scalar::from_bytes_mod_order_wide(&bytes);
         }
+    }
+
+    pub fn innerproduct_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"ipp v1");
+        self.0.append_u64(b"n", n);
     }
 }

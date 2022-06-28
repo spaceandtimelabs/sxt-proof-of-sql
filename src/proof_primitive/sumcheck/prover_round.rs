@@ -10,7 +10,7 @@ use curve25519_dalek::scalar::Scalar;
 use crate::base::polynomial::{
     from_ark_scalar, to_ark_scalar, ArkScalar, DenseMultilinearExtension,
 };
-use crate::pip::sumcheck::ProverState;
+use crate::proof_primitive::sumcheck::ProverState;
 
 pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> Vec<Scalar> {
     if let Some(r) = r_maybe {
