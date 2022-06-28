@@ -1,4 +1,4 @@
-use crate::pip::multiplication::sumcheck_polynomial::*;
+use crate::pip::hadamard::sumcheck_polynomial::*;
 
 use curve25519_dalek::scalar::Scalar;
 

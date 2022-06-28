@@ -25,3 +25,7 @@ protocols/.DS_Store
 
 /target
 /Cargo.lock
+
+# annoying mac artifacts
+
+**.DS_Store
