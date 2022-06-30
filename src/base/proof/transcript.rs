@@ -69,7 +69,8 @@ impl Transcript {
         if point.is_identity() {
             Err(ProofError::VerificationError)
         } else {
-            Ok(self.0.append_message(label, point.as_bytes()))
+            self.0.append_message(label, point.as_bytes());
+            Ok(())
         }
     }
 
@@ -88,12 +89,12 @@ impl Transcript {
 
         let mut buf = vec![0u8; n * 64];
         self.0.challenge_bytes(label, &mut buf);
-        for i in 0..n {
+        for (i, scalar) in scalars.iter_mut().enumerate().take(n) {
             let s = i * 64;
             let t = s + 64;
-            let bytes: [u8; 64];
-            bytes = buf[s..t].try_into().unwrap();
-            scalars[i] = Scalar::from_bytes_mod_order_wide(&bytes);
+
+            let bytes: [u8; 64] = buf[s..t].try_into().unwrap();
+            *scalar = Scalar::from_bytes_mod_order_wide(&bytes);
         }
     }
 

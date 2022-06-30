@@ -29,3 +29,6 @@ protocols/.DS_Store
 # annoying mac artifacts
 
 **.DS_Store
+
+# Editor-specific
+Session.vim

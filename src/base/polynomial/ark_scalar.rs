@@ -24,7 +24,7 @@ pub fn to_ark_scalars(xsp: &mut [ArkScalar], xs: &[Scalar]) {
 }
 
 pub fn from_ark_scalar(x: &ArkScalar) -> Scalar {
-    let x = ArkScalarConfig::into_bigint(x.clone());
+    let x = ArkScalarConfig::into_bigint(*x);
     let mut bytes = [0u8; 32];
     x.write(bytes.as_mut()).unwrap();
     Scalar::from_canonical_bytes(bytes).unwrap()

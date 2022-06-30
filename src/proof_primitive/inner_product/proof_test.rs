@@ -39,7 +39,7 @@ fn test_helper_create(n: usize) {
     // verification fails if the transcript doesn't match
     if n > 1 {
         let mut transcript = Transcript::new(b"invalid");
-        assert!(!proof.verify(&mut transcript, &P, &Q, &G, &b).is_ok());
+        assert!(proof.verify(&mut transcript, &P, &Q, &G, &b).is_err());
     }
 
     // verification fails if the inner product is incorrect
@@ -49,7 +49,7 @@ fn test_helper_create(n: usize) {
         a.iter().cloned().chain(iter::once(c_plus_1)),
         G.iter().chain(iter::once(&Q)),
     );
-    assert!(!proof.verify(&mut transcript, &P, &Q, &G, &b).is_ok());
+    assert!(proof.verify(&mut transcript, &P, &Q, &G, &b).is_err());
 
     // verification fails if a is different
     let mut transcript = Transcript::new(b"innerproducttest");
@@ -58,7 +58,7 @@ fn test_helper_create(n: usize) {
         not_a.iter().cloned().chain(iter::once(c)),
         G.iter().chain(iter::once(&Q)),
     );
-    assert!(!proof.verify(&mut transcript, &P, &Q, &G, &b).is_ok());
+    assert!(proof.verify(&mut transcript, &P, &Q, &G, &b).is_err());
 
     // verification fails if b is different
     let mut transcript = Transcript::new(b"innerproducttest");
@@ -67,7 +67,7 @@ fn test_helper_create(n: usize) {
         a.iter().cloned().chain(iter::once(c)),
         G.iter().chain(iter::once(&Q)),
     );
-    assert!(!proof.verify(&mut transcript, &P, &Q, &G, &not_b).is_ok());
+    assert!(proof.verify(&mut transcript, &P, &Q, &G, &not_b).is_err());
 }
 
 #[test]
