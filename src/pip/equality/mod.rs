@@ -1,4 +1,3 @@
-mod hadamard;
 mod proof;
 #[cfg(test)]
 mod proof_test1;
