@@ -51,13 +51,13 @@ fn test_create_verify_proof() {
     let mut transcript = Transcript::new(b"sumchecktest");
     let subclaim =
         proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(123u64));
-    assert!(!subclaim.is_ok());
+    assert!(subclaim.is_err());
 
     // verify fails if evaluations are changed
     proof.evaluations[0][1] += Scalar::from(3u64);
     let subclaim =
         proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64));
-    assert!(!subclaim.is_ok());
+    assert!(subclaim.is_err());
 }
 
 fn random_product(
@@ -81,13 +81,13 @@ fn random_product(
         sum += product;
     }
 
-    return (
+    (
         multiplicands
             .into_iter()
             .map(|x| Rc::new(DenseMultilinearExtension::from_evaluations_slice(nv, &x)))
             .collect(),
         sum,
-    );
+    )
 }
 
 fn random_polynomial(

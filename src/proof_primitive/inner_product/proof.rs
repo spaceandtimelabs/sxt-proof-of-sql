@@ -67,22 +67,22 @@ impl InnerProductProof {
         // If it's the first iteration, unroll the Hprime = H*y_inv scalar mults
         // into multiscalar muls, for performance.
         if n != 1 {
-            n = n / 2;
+            n /= 2;
             let (a_L, a_R) = a.split_at_mut(n);
             let (b_L, b_R) = b.split_at_mut(n);
             let (G_L, G_R) = G.split_at_mut(n);
 
-            let c_L = inner_product(&a_L, &b_R);
-            let c_R = inner_product(&a_R, &b_L);
+            let c_L = inner_product(a_L, b_R);
+            let c_R = inner_product(a_R, b_L);
 
             let L = RistrettoPoint::vartime_multiscalar_mul(
-                a_L.iter().map(|&a_L_i| a_L_i).chain(iter::once(c_L)),
+                a_L.iter().copied().chain(iter::once(c_L)),
                 G_R.iter().chain(iter::once(Q)),
             )
             .compress();
 
             let R = RistrettoPoint::vartime_multiscalar_mul(
-                a_R.iter().map(|&a_R_i| a_R_i).chain(iter::once(c_R)),
+                a_R.iter().copied().chain(iter::once(c_R)),
                 G_L.iter().chain(iter::once(Q)),
             )
             .compress();
@@ -108,13 +108,13 @@ impl InnerProductProof {
         }
 
         while n != 1 {
-            n = n / 2;
+            n /= 2;
             let (a_L, a_R) = a.split_at_mut(n);
             let (b_L, b_R) = b.split_at_mut(n);
             let (G_L, G_R) = G.split_at_mut(n);
 
-            let c_L = inner_product(&a_L, &b_R);
-            let c_R = inner_product(&a_R, &b_L);
+            let c_L = inner_product(a_L, b_R);
+            let c_R = inner_product(a_R, b_L);
 
             let L = RistrettoPoint::vartime_multiscalar_mul(
                 a_L.iter().chain(iter::once(&c_L)),
@@ -149,8 +149,8 @@ impl InnerProductProof {
         }
 
         InnerProductProof {
-            L_vec: L_vec,
-            R_vec: R_vec,
+            L_vec,
+            R_vec,
             a: a[0],
         }
     }
@@ -158,6 +158,7 @@ impl InnerProductProof {
     // Computes three vectors of verification scalars \\([u\_{i}^{2}]\\), \\([u\_{i}^{-2}]\\) and \\([s\_{i}]\\) for combined multiscalar multiplication and the scalar b'
     // in a parent protocol. See [inner product protocol notes](index.html#verification-equation) for details.
     // The verifier must provide the input length \\(n\\) explicitly to avoid unbounded allocation within the inner product proof.
+    #[allow(clippy::type_complexity)]
     pub(crate) fn verification_scalars(
         &self,
         transcript: &mut Transcript,
@@ -277,7 +278,7 @@ fn compute_b_prime(b: &[Scalar], u_vec: &[Scalar], u_inv_vec: &[Scalar]) -> Scal
     let mut b = &mut b.to_vec()[..];
     let mut u_index = 0;
     while n != 1 {
-        n = n / 2;
+        n /= 2;
         let (b_L, b_R) = b.split_at_mut(n);
         let u = u_vec[u_index];
         let u_inv = u_inv_vec[u_index];

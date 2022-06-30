@@ -23,7 +23,7 @@ impl DenseMultilinearExtension {
         num_vars: usize,
         evaluations: &[Scalar],
     ) -> DenseMultilinearExtension {
-        let evaluations_p: Vec<ArkScalar> = evaluations.iter().map(|x| to_ark_scalar(x)).collect();
+        let evaluations_p: Vec<ArkScalar> = evaluations.iter().map(to_ark_scalar).collect();
         DenseMultilinearExtension {
             ark_impl: ark_poly::DenseMultilinearExtension::from_evaluations_vec(
                 num_vars,
@@ -34,7 +34,7 @@ impl DenseMultilinearExtension {
 
     pub fn evaluate(&self, point: &[Scalar]) -> Option<Scalar> {
         if point.len() == self.ark_impl.num_vars {
-            let point_p: Vec<ArkScalar> = point.iter().map(|x| to_ark_scalar(x)).collect();
+            let point_p: Vec<ArkScalar> = point.iter().map(to_ark_scalar).collect();
             let value = self.ark_impl.fix_variables(&point_p)[0];
             Some(from_ark_scalar(&value))
         } else {

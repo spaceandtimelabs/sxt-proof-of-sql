@@ -35,7 +35,7 @@ fn test_helper_create(n: usize) {
         &mut transcript,
         &[&a_vec, &b_vec],
         &[&ab_vec],
-        &[commitment_a.clone(), commitment_b.clone()],
+        &[commitment_a, commitment_b],
     );
 
     // verify proof
@@ -47,9 +47,9 @@ fn test_helper_create(n: usize) {
     // verify fails if the wrong transcript is used
     if n > 1 {
         let mut transcript = Transcript::new(b"invalid");
-        assert!(!proof
+        assert!(proof
             .verify(&mut transcript, &[commitment_a, commitment_b])
-            .is_ok());
+            .is_err());
     }
 
     // verify fails if commit_a doesn't match
@@ -58,9 +58,9 @@ fn test_helper_create(n: usize) {
         commitment: CompressedRistretto::identity(),
         length: a_vec.len(),
     };
-    assert!(!proof
+    assert!(proof
         .verify(&mut transcript, &[not_commitment_a, commitment_b])
-        .is_ok());
+        .is_err());
 
     // verify fails if commit_b doesn't match
     let mut transcript = Transcript::new(b"hadamardtest");
@@ -68,33 +68,33 @@ fn test_helper_create(n: usize) {
         commitment: CompressedRistretto::identity(),
         length: b_vec.len(),
     };
-    assert!(!proof
+    assert!(proof
         .verify(&mut transcript, &[commitment_a, not_commitment_b])
-        .is_ok());
+        .is_err());
 
     // verify fails if commit_ab doesn't match
     let mut bad_proof = proof.clone();
     bad_proof.commit_ab.commitment = CompressedRistretto::identity();
     let mut transcript = Transcript::new(b"hadamardtest");
-    assert!(!bad_proof
+    assert!(bad_proof
         .verify(&mut transcript, &[commitment_a, commitment_b])
-        .is_ok());
+        .is_err());
 
     // verify fails if f_a doesn't match
     let mut bad_proof = proof.clone();
     bad_proof.f_a = Scalar::one();
     let mut transcript = Transcript::new(b"hadamardtest");
-    assert!(!bad_proof
+    assert!(bad_proof
         .verify(&mut transcript, &[commitment_a, commitment_b])
-        .is_ok());
+        .is_err());
 
     // verify fails if f_b doesn't match
     let mut bad_proof = proof.clone();
     bad_proof.f_b = Scalar::one();
     let mut transcript = Transcript::new(b"hadamardtest");
-    assert!(!bad_proof
+    assert!(bad_proof
         .verify(&mut transcript, &[commitment_a, commitment_b])
-        .is_ok());
+        .is_err());
 
     // verify fails if the hadamard product is wrong
     let mut transcript = Transcript::new(b"hadamardtest");
@@ -102,12 +102,12 @@ fn test_helper_create(n: usize) {
         &mut transcript,
         &[&a_vec, &b_vec],
         &[&a_vec],
-        &[commitment_a.clone(), commitment_b.clone()],
+        &[commitment_a, commitment_b],
     );
     let mut transcript = Transcript::new(b"hadamardtest");
-    assert!(!bad_proof
+    assert!(bad_proof
         .verify(&mut transcript, &[commitment_a, commitment_b])
-        .is_ok());
+        .is_err());
 }
 
 #[test]
@@ -125,7 +125,7 @@ fn test_zero_proof() {
         &mut transcript,
         &[&a_vec, &a_vec],
         &[&a_vec],
-        &[commitment.clone(), commitment.clone()],
+        &[commitment, commitment],
     );
 
     // verify proof
