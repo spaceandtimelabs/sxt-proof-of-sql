@@ -27,19 +27,17 @@ impl SumcheckProof {
             polynomial.num_variables as u64,
         );
         let mut r = None;
-        let mut state = ProverState::create(&polynomial);
+        let mut state = ProverState::create(polynomial);
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
-        for round_index in 0..polynomial.num_variables {
+        for scalar in evaluation_point.iter_mut().take(polynomial.num_variables) {
             let round_evaluations = prove_round(&mut state, &r);
             transcript.append_scalars(b"P", &round_evaluations);
             evaluations.push(round_evaluations);
-            evaluation_point[round_index] = transcript.challenge_scalar(b"r");
-            r = Some(evaluation_point[round_index]);
+            *scalar = transcript.challenge_scalar(b"r");
+            r = Some(*scalar);
         }
 
-        SumcheckProof {
-            evaluations: evaluations,
-        }
+        SumcheckProof { evaluations }
     }
 
     pub fn verify_without_evaluation(

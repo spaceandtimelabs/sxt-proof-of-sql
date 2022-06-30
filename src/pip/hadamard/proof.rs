@@ -137,7 +137,7 @@ impl PIPProof for HadamardProof {
     }
 
     fn get_output_commitments(&self) -> &[Commitment] {
-        return slice::from_ref(&self.commit_ab);
+        slice::from_ref(&self.commit_ab)
     }
 }
 
@@ -149,8 +149,8 @@ fn compute_num_variables(n: usize) -> usize {
 
 fn extend_scalar_vector(a_vec: &[Scalar], n: usize) -> Vec<Scalar> {
     let mut vec = Vec::with_capacity(n);
-    for i in 0..a_vec.len() {
-        vec.push(a_vec[i]);
+    for a in a_vec {
+        vec.push(*a);
     }
     for _ in a_vec.len()..n {
         vec.push(Scalar::from(0u64));
@@ -218,13 +218,13 @@ fn create_proof_impl(
     HadamardProof {
         commit_ab: Commitment {
             commitment: c_ab,
-            length: length,
+            length,
         },
-        sumcheck_proof: sumcheck_proof,
-        f_a: f_a,
-        f_a_proof: f_a_proof,
-        f_b: f_b,
-        f_b_proof: f_b_proof,
-        f_ab_proof: f_ab_proof,
+        sumcheck_proof,
+        f_a,
+        f_a_proof,
+        f_b,
+        f_b_proof,
+        f_ab_proof,
     }
 }

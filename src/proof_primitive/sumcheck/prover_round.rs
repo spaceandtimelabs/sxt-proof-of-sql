@@ -17,7 +17,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         if prover_state.round == 0 {
             panic!("first round should be prover first.");
         }
-        prover_state.randomness.push(r.clone());
+        prover_state.randomness.push(*r);
 
         // fix argument
         let i = prover_state.round;
@@ -27,10 +27,8 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
                 ark_impl: multiplicand.ark_impl.fix_variables(&[to_ark_scalar(&r)]),
             };
         }
-    } else {
-        if prover_state.round > 0 {
-            panic!("verifier message is empty");
-        }
+    } else if prover_state.round > 0 {
+        panic!("verifier message is empty");
     }
 
     prover_state.round += 1;
@@ -49,18 +47,18 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
     // generate sum
     for b in 0..1 << (nv - i) {
         let mut t_as_field = ArkScalar::zero();
-        for t in 0..degree + 1 {
+        for scalar in products_sum.iter_mut().take(degree + 1) {
             // evaluate P_round(t)
             for (coefficient, products) in &prover_state.list_of_products {
                 let num_multiplicands = products.len();
                 let mut product = *coefficient;
-                for j in 0..num_multiplicands {
-                    let table = &prover_state.flattened_ml_extensions[products[j]].ark_impl; // j's range is checked in init
+                for multiplicand in products.iter().take(num_multiplicands) {
+                    let table = &prover_state.flattened_ml_extensions[*multiplicand].ark_impl; // j's range is checked in init
                     let term = table[b << 1] * (ArkScalar::one() - t_as_field)
                         + table[(b << 1) + 1] * t_as_field;
                     product *= from_ark_scalar(&term);
                 }
-                products_sum[t] += product;
+                *scalar += product;
             }
             t_as_field += ArkScalar::one();
         }

@@ -24,7 +24,7 @@ impl Subclaim {
         let num_vars = evaluation_point.len();
         assert!(max_multiplicands > 0);
         assert_eq!(num_vars, evaluations.len());
-        let mut expected_sum = claimed_sum.clone();
+        let mut expected_sum = *claimed_sum;
         for round_index in 0..num_vars {
             let round_evaluation = &evaluations[round_index];
             if round_evaluation.len() != max_multiplicands + 1 {
@@ -36,7 +36,7 @@ impl Subclaim {
             expected_sum = interpolate_uni_poly(round_evaluation, evaluation_point[round_index]);
         }
         Ok(Subclaim {
-            evaluation_point: evaluation_point,
+            evaluation_point,
             expected_evaluation: expected_sum,
         })
     }
