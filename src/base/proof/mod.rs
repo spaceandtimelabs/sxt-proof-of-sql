@@ -11,3 +11,6 @@ pub use commitment::Commitment;
 
 mod pip_proof;
 pub use pip_proof::PIPProof;
+
+#[cfg(test)]
+mod append_test;

@@ -4,7 +4,7 @@ use std::{
 };
 
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
-use pedersen::commitments::compute_commitments;
+use pedersen::commitments::{compute_commitments, update_commitment};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Commitment {
@@ -47,6 +47,18 @@ impl From<&[Scalar]> for Commitment {
         Commitment {
             commitment,
             length: data.len(),
+        }
+    }
+}
+
+impl Commitment {
+    pub fn update_append_commitment(&self, a: &[Scalar]) -> Self {
+        let mut commitment = self.commitment;
+        let offset_generators = self.length;
+        update_commitment(&mut commitment, offset_generators as u64, a);
+        Commitment {
+            commitment,
+            length: a.len() + offset_generators,
         }
     }
 }
