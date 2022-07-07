@@ -15,6 +15,8 @@ curve25519-dalek = "3"
 hashbrown = "0.11.2"
 merlin = "2"
 thiserror = "1"
+derive_more = "0.99"
+impl-trait-for-tuples = "0.2"
 datafusion = "9.0"
 serde_json = { version = "1.0", default-features = false, features = ["preserve_order"] }
 hex = { version = "0.4", default-features = false, features = ["std"] }
