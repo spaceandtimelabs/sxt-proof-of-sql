@@ -7,7 +7,7 @@ use pedersen::commitments::compute_commitments;
 use rand_core::SeedableRng;
 use std::slice;
 
-use crate::base::proof::{Commitment, PIPProof, Transcript};
+use crate::base::proof::{Column, Commitment, PipProve, PipVerify, Transcript};
 
 fn test_helper_create(n: usize) {
     let mut rng = rand::rngs::StdRng::seed_from_u64(123);
@@ -31,24 +31,24 @@ fn test_helper_create(n: usize) {
     };
 
     let mut transcript = Transcript::new(b"hadamardtest");
-    let proof = HadamardProof::create(
+    let proof = HadamardProof::prove(
         &mut transcript,
-        &[&a_vec, &b_vec],
-        &[&ab_vec],
-        &[commitment_a, commitment_b],
+        (a_vec.clone().into(), b_vec.clone().into()),
+        Column { data: ab_vec },
+        (commitment_a, commitment_b),
     );
 
     // verify proof
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(proof
-        .verify(&mut transcript, &[commitment_a, commitment_b])
+        .verify(&mut transcript, (commitment_a, commitment_b))
         .is_ok());
 
     // verify fails if the wrong transcript is used
     if n > 1 {
         let mut transcript = Transcript::new(b"invalid");
         assert!(proof
-            .verify(&mut transcript, &[commitment_a, commitment_b])
+            .verify(&mut transcript, (commitment_a, commitment_b))
             .is_err());
     }
 
@@ -59,7 +59,7 @@ fn test_helper_create(n: usize) {
         length: a_vec.len(),
     };
     assert!(proof
-        .verify(&mut transcript, &[not_commitment_a, commitment_b])
+        .verify(&mut transcript, (not_commitment_a, commitment_b))
         .is_err());
 
     // verify fails if commit_b doesn't match
@@ -69,7 +69,7 @@ fn test_helper_create(n: usize) {
         length: b_vec.len(),
     };
     assert!(proof
-        .verify(&mut transcript, &[commitment_a, not_commitment_b])
+        .verify(&mut transcript, (commitment_a, not_commitment_b))
         .is_err());
 
     // verify fails if commit_ab doesn't match
@@ -77,7 +77,7 @@ fn test_helper_create(n: usize) {
     bad_proof.commit_ab.commitment = CompressedRistretto::identity();
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
-        .verify(&mut transcript, &[commitment_a, commitment_b])
+        .verify(&mut transcript, (commitment_a, commitment_b))
         .is_err());
 
     // verify fails if f_a doesn't match
@@ -85,7 +85,7 @@ fn test_helper_create(n: usize) {
     bad_proof.f_a = Scalar::one();
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
-        .verify(&mut transcript, &[commitment_a, commitment_b])
+        .verify(&mut transcript, (commitment_a, commitment_b))
         .is_err());
 
     // verify fails if f_b doesn't match
@@ -93,20 +93,20 @@ fn test_helper_create(n: usize) {
     bad_proof.f_b = Scalar::one();
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
-        .verify(&mut transcript, &[commitment_a, commitment_b])
+        .verify(&mut transcript, (commitment_a, commitment_b))
         .is_err());
 
     // verify fails if the hadamard product is wrong
     let mut transcript = Transcript::new(b"hadamardtest");
-    let bad_proof = HadamardProof::create(
+    let bad_proof = HadamardProof::prove(
         &mut transcript,
-        &[&a_vec, &b_vec],
-        &[&a_vec],
-        &[commitment_a, commitment_b],
+        (a_vec.clone().into(), b_vec.into()),
+        a_vec.into(),
+        (commitment_a, commitment_b),
     );
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
-        .verify(&mut transcript, &[commitment_a, commitment_b])
+        .verify(&mut transcript, (commitment_a, commitment_b))
         .is_err());
 }
 
@@ -121,17 +121,17 @@ fn test_zero_proof() {
     };
 
     let mut transcript = Transcript::new(b"hadamardtest");
-    let proof = HadamardProof::create(
+    let proof = HadamardProof::prove(
         &mut transcript,
-        &[&a_vec, &a_vec],
-        &[&a_vec],
-        &[commitment, commitment],
+        (a_vec.clone().into(), a_vec.clone().into()),
+        a_vec.into(),
+        (commitment, commitment),
     );
 
     // verify proof
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(proof
-        .verify(&mut transcript, &[commitment, commitment])
+        .verify(&mut transcript, (commitment, commitment))
         .is_ok());
 }
 
