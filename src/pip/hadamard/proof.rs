@@ -8,7 +8,7 @@ use std::slice;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
-use crate::base::proof::{Commitment, PIPProof, ProofError, Transcript};
+use crate::base::proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript};
 use crate::base::scalar::inner_product;
 use crate::pip::hadamard::{compute_evaluation_vector, make_sumcheck_polynomial};
 use crate::proof_primitive::inner_product::InnerProductProof;
@@ -25,22 +25,19 @@ pub struct HadamardProof {
     pub f_ab_proof: InnerProductProof,
 }
 
-impl PIPProof for HadamardProof {
+impl PipProve<(Column<Scalar>, Column<Scalar>), Column<Scalar>> for HadamardProof {
     /// Create a hadamard proof.
     ///
     /// See protocols/multiplication.pdf
-    fn create(
+    fn prove(
         transcript: &mut Transcript,
-        input_columns: &[&[Scalar]],
-        output_columns: &[&[Scalar]],
-        input_commitments: &[Commitment],
+        input: (Column<Scalar>, Column<Scalar>),
+        output: Column<Scalar>,
+        _input_commitments: (Commitment, Commitment),
     ) -> Self {
-        assert_eq!(input_columns.len(), 2);
-        assert_eq!(input_commitments.len(), 2);
-        assert_eq!(output_columns.len(), 1);
-        let a_vec = input_columns[0];
-        let b_vec = input_columns[1];
-        let ab_vec = output_columns[0];
+        let a_vec = input.0;
+        let b_vec = input.1;
+        let ab_vec = output;
 
         let n = a_vec.len();
         assert!(n > 0);
@@ -50,22 +47,27 @@ impl PIPProof for HadamardProof {
 
         let num_vars = compute_num_variables(n);
         if is_pow2(n) && n > 1 {
-            return create_proof_impl(transcript, a_vec, b_vec, ab_vec, num_vars, n);
+            return create_proof_impl(transcript, &a_vec, &b_vec, &ab_vec, num_vars, n);
         }
         let n_p = 1 << num_vars;
-        let a_vec = extend_scalar_vector(a_vec, n_p);
-        let b_vec = extend_scalar_vector(b_vec, n_p);
-        let ab_vec = extend_scalar_vector(ab_vec, n_p);
+        let a_vec = extend_scalar_vector(a_vec.as_slice(), n_p);
+        let b_vec = extend_scalar_vector(b_vec.as_slice(), n_p);
+        let ab_vec = extend_scalar_vector(ab_vec.as_slice(), n_p);
         create_proof_impl(transcript, &a_vec, &b_vec, &ab_vec, num_vars, n)
     }
+}
 
+impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
     /// Verifies that a hadamard proof is correct given the associated commitments.
-    fn verify(&self, transcript: &mut Transcript, inputs: &[Commitment]) -> Result<(), ProofError> {
-        assert_eq!(inputs.len(), 2);
-        let commit_a = inputs[0].commitment;
-        let commit_b = inputs[1].commitment;
-        assert_eq!(inputs[0].length, inputs[1].length);
-        let n = inputs[0].length;
+    fn verify(
+        &self,
+        transcript: &mut Transcript,
+        input_commitments: (Commitment, Commitment),
+    ) -> Result<(), ProofError> {
+        let commit_a = input_commitments.0.commitment;
+        let commit_b = input_commitments.1.commitment;
+        assert_eq!(input_commitments.0.length, input_commitments.1.length);
+        let n = input_commitments.0.length;
 
         let num_vars = compute_num_variables(n);
 
@@ -136,8 +138,8 @@ impl PIPProof for HadamardProof {
         Ok(())
     }
 
-    fn get_output_commitments(&self) -> &[Commitment] {
-        slice::from_ref(&self.commit_ab)
+    fn get_output_commitments(&self) -> Commitment {
+        self.commit_ab
     }
 }
 

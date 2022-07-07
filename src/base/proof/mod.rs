@@ -9,8 +9,14 @@ pub use transcript::Transcript;
 mod commitment;
 pub use commitment::Commitment;
 
-mod pip_proof;
-pub use pip_proof::PIPProof;
+mod commit;
+pub use commit::Commit;
+
+mod pip_prove;
+pub use pip_prove::{PipProve, PipVerify};
+
+mod input;
+pub use input::Column;
 
 #[cfg(test)]
 mod append_test;

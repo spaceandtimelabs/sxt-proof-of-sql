@@ -1,10 +1,10 @@
-use crate::base::proof::{Commitment, PIPProof, Transcript};
+use crate::base::proof::{Column, Commit, PipProve, PipVerify, Transcript};
 use crate::pip::inequality::InequalityProof;
 use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn test_inequality() {
-    let a = vec![
+    let a: Column<Scalar> = vec![
         Scalar::from(1_u32),
         Scalar::from(1_u32),
         Scalar::from(1_u32),
@@ -12,8 +12,9 @@ fn test_inequality() {
         Scalar::from(2_u32),
         Scalar::from(2_u32),
         Scalar::from(2_u32),
-    ];
-    let b = vec![
+    ]
+    .into();
+    let b: Column<Scalar> = vec![
         Scalar::from(1_u32),
         Scalar::from(1_u32),
         Scalar::from(2_u32),
@@ -21,41 +22,27 @@ fn test_inequality() {
         Scalar::from(2_u32),
         Scalar::from(2_u32),
         Scalar::from(2_u32),
-    ];
+    ]
+    .into();
 
-    let output = vec![
-        Scalar::from(0_u32),
-        Scalar::from(0_u32),
-        Scalar::from(1_u32),
-        Scalar::from(1_u32),
-        Scalar::from(0_u32),
-        Scalar::from(0_u32),
-        Scalar::from(0_u32),
-    ];
+    let output: Column<bool> = vec![false, false, true, true, false, false, false].into();
 
-    let c_a = Commitment::from(&a[..]);
-    let c_b = Commitment::from(&b[..]);
+    let c_a = a.commit();
+    let c_b = b.commit();
 
     let mut transcript = Transcript::new(b"inequalitytest");
     let inequalityproof =
-        InequalityProof::create(&mut transcript, &[&a, &b], &[&output], &[c_a, c_b]);
+        InequalityProof::prove(&mut transcript, (a, b), output.clone(), (c_a, c_b));
 
     let mut transcript = Transcript::new(b"inequalitytest");
-    assert!(inequalityproof.verify(&mut transcript, &[c_a, c_b]).is_ok());
+    assert!(inequalityproof.verify(&mut transcript, (c_a, c_b)).is_ok());
 
-    assert_eq!(
-        Commitment::from(&output[..]),
-        inequalityproof.get_output_commitments()[0]
-    );
+    assert_eq!(output.commit(), inequalityproof.get_output_commitments());
 
     let mut transcript = Transcript::new(b"inequalitytest oops");
-    assert!(inequalityproof
-        .verify(&mut transcript, &[c_a, c_b])
-        .is_err());
+    assert!(inequalityproof.verify(&mut transcript, (c_a, c_b)).is_err());
 
     //wrong input commitments
     let mut transcript = Transcript::new(b"inequalitytest");
-    assert!(inequalityproof
-        .verify(&mut transcript, &[c_a, c_a])
-        .is_err());
+    assert!(inequalityproof.verify(&mut transcript, (c_a, c_a)).is_err());
 }
