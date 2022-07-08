@@ -1,5 +1,6 @@
 use super::array::print_long_array;
 use super::raw_pointer::RawPtrBox;
+use curve25519_dalek::scalar::Scalar;
 use datafusion::arrow::{
     array::{Array, ArrayData, FixedSizeListArray, JsonEqual},
     buffer::{Buffer, MutableBuffer},
@@ -301,6 +302,18 @@ impl From<Vec<&[u8; 32]>> for ScalarArray {
     }
 }
 
+impl From<Vec<Option<Scalar>>> for ScalarArray {
+    fn from(v: Vec<Option<Scalar>>) -> Self {
+        Self::try_from_sparse_iter(v.into_iter().map(|x| x.map(|val| val.to_bytes()))).unwrap()
+    }
+}
+
+impl From<Vec<Scalar>> for ScalarArray {
+    fn from(v: Vec<Scalar>) -> Self {
+        Self::try_from_iter(v.into_iter().map(|x| x.to_bytes())).unwrap()
+    }
+}
+
 impl fmt::Debug for ScalarArray {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ScalarArray<{}>\n[\n", self.value_length())?;
@@ -362,6 +375,7 @@ impl PartialEq<ScalarArray> for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::scalar::IntoScalar;
     use datafusion::arrow::datatypes::Field;
 
     #[test]
@@ -389,7 +403,7 @@ mod tests {
             assert!(!scalar_array.is_null(i));
         }
 
-        // Test binary array with offset
+        // Test scalar array with offset
         let array_data = ArrayData::builder(DataType::FixedSizeBinary(32))
             .len(2)
             .offset(1)
@@ -486,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_array_from_vec() {
+    fn test_scalar_array_from_arr_vec() {
         let values = vec![&[12_u8; 32]; 4];
         let array = ScalarArray::from(values);
         assert_eq!(array.len(), 4);
@@ -498,7 +512,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_array_from_opt_vec() {
+    fn test_scalar_array_from_opt_arr_vec() {
         let values = vec![
             Some(&[1_u8; 32]),
             Some(&[4_u8; 32]),
@@ -517,5 +531,37 @@ mod tests {
         assert!(array.is_null(2));
         assert!(!array.is_null(3));
         assert!(!array.is_null(4));
+    }
+
+    #[test]
+    fn test_scalar_array_from_scalar_vec() {
+        let values = vec![Scalar::one(); 4];
+        let array = ScalarArray::from(values);
+        assert_eq!(array.len(), 4);
+        assert_eq!(array.null_count(), 0);
+        for i in 0..4 {
+            assert_eq!(array.value(i), Scalar::one().to_bytes());
+            assert!(!array.is_null(i));
+        }
+    }
+
+    #[test]
+    fn test_scalar_array_from_opt_scalar_vec() {
+        let zero = Scalar::zero();
+        let one = Scalar::one();
+        let two = 2_u32.into_scalar();
+        let five = 5_u32.into_scalar();
+        let values = vec![Some(one), Some(zero), Some(two), Some(five), None];
+        let array = ScalarArray::from(values);
+        assert_eq!(array.len(), 5);
+        assert_eq!(array.value(0), one.to_bytes());
+        assert_eq!(array.value(1), zero.to_bytes());
+        assert_eq!(array.value(2), two.to_bytes());
+        assert_eq!(array.value(3), five.to_bytes());
+        assert!(!array.is_null(0));
+        assert!(!array.is_null(1));
+        assert!(!array.is_null(2));
+        assert!(!array.is_null(3));
+        assert!(array.is_null(4));
     }
 }
