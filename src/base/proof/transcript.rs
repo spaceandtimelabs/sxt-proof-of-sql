@@ -42,6 +42,12 @@ impl Transcript {
         self.0.append_u64(b"n", n);
     }
 
+    /// Append a domain separator for an addition proof of length n
+    pub fn addition_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"additionproof v1");
+        self.0.append_u64(b"n", n);
+    }
+
     /// Append a `scalar` with the given `label`.
     pub fn append_scalar(&mut self, label: &'static [u8], scalar: &Scalar) {
         self.0.append_message(label, scalar.as_bytes());
