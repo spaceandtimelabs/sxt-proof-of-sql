@@ -29,6 +29,12 @@ impl Transcript {
         self.0.append_u64(b"n", n);
     }
 
+    /// Append a domain separator for a subtraction proof of length n
+    pub fn subtraction_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"subtractionproof v1");
+        self.0.append_u64(b"n", n);
+    }
+
     /// Append a domain separator for a hadamard proof with n variables
     pub fn hadamard_domain_sep(&mut self, n: u64) {
         self.0.append_message(b"dom-sep", b"hadamardproof v1");
