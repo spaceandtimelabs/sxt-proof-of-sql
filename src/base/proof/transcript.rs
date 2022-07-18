@@ -114,4 +114,12 @@ impl Transcript {
         self.0.append_message(b"dom-sep", b"ipp v1");
         self.0.append_u64(b"n", n);
     }
+
+    pub fn negative_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"negative v1");
+    }
+
+    pub fn column_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"column v1");
+    }
 }
