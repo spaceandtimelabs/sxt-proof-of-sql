@@ -20,6 +20,7 @@ impl-trait-for-tuples = "0.2"
 datafusion = "9.0"
 serde_json = { version = "1.0", default-features = false, features = ["preserve_order"] }
 hex = { version = "0.4", default-features = false, features = ["std"] }
+num-traits = "0.2"
 
 [dev_dependencies]
 rand = "0.7"
