@@ -37,27 +37,31 @@ impl IntoScalar for bool {
     }
 }
 
-impl IntoScalar for u32 {
-    fn into_scalar(self) -> Scalar {
-        Scalar::from(self)
-    }
+macro_rules! uint_into_scalar {
+    ($tt:ty) => {
+        impl IntoScalar for $tt {
+            fn into_scalar(self) -> Scalar {
+                Scalar::from(self)
+            }
+        }
+    };
 }
 
-impl IntoScalar for i64 {
-    fn into_scalar(self) -> Scalar {
-        if self >= 0 {
-            Scalar::from(self as u64)
-        } else {
-            -Scalar::from(-self as u64)
+macro_rules! int_into_scalar {
+    ($it:ty, $ut:ty) => {
+        impl IntoScalar for $it {
+            fn into_scalar(self) -> Scalar {
+                if self >= 0 {
+                    Scalar::from(self as $ut)
+                } else {
+                    -Scalar::from((-self) as $ut)
+                }
+            }
         }
-    }
+    };
 }
-impl IntoScalar for i32 {
-    fn into_scalar(self) -> Scalar {
-        if self > 0 {
-            Scalar::from(self as u32)
-        } else {
-            -Scalar::from(-self as u32)
-        }
-    }
-}
+
+uint_into_scalar!(u32);
+uint_into_scalar!(u64);
+int_into_scalar!(i32, u32);
+int_into_scalar!(i64, u64);
