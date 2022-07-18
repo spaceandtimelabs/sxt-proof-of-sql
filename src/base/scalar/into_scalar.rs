@@ -43,6 +43,15 @@ impl IntoScalar for u32 {
     }
 }
 
+impl IntoScalar for i64 {
+    fn into_scalar(self) -> Scalar {
+        if self >= 0 {
+            Scalar::from(self as u64)
+        } else {
+            -Scalar::from(-self as u64)
+        }
+    }
+}
 impl IntoScalar for i32 {
     fn into_scalar(self) -> Scalar {
         if self > 0 {
