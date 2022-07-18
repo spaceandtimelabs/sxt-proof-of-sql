@@ -1,5 +1,5 @@
 use std::{
-    ops::{Add, Sub},
+    ops::{Add, Neg, Sub},
     slice,
 };
 
@@ -35,6 +35,16 @@ impl Sub for Commitment {
             commitment: (self.commitment.decompress().unwrap()
                 - rhs.commitment.decompress().unwrap())
             .compress(),
+            length: self.length,
+        }
+    }
+}
+
+impl Neg for Commitment {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Commitment {
+            commitment: (-self.commitment.decompress().unwrap()).compress(),
             length: self.length,
         }
     }
