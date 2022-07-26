@@ -32,3 +32,16 @@ impl<T> From<Vec<T>> for Column<T> {
         Column { data }
     }
 }
+
+impl<T> Column<T>
+where
+    T: IntoScalar + Clone,
+{
+    pub fn into_scalar_column(self) -> Column<Scalar> {
+        Column::from(
+            self.iter()
+                .map(|d| d.clone().into_scalar())
+                .collect::<Vec<Scalar>>(),
+        )
+    }
+}
