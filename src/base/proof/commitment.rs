@@ -6,6 +6,8 @@ use std::{
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
 use pedersen::commitments::{compute_commitments, update_commitment};
 
+use super::Commit;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Commitment {
     //The actual commitment to a column/vector. It may make sense for this to be non compressed, and only serialized as compressed.
@@ -70,5 +72,13 @@ impl Commitment {
             commitment,
             length: a.len() + offset_generators,
         }
+    }
+    pub fn from_ones(length: usize) -> Self {
+        super::Column::from(
+            std::iter::repeat(Scalar::one())
+                .take(length)
+                .collect::<Vec<_>>(),
+        )
+        .commit()
     }
 }

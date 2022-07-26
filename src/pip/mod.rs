@@ -4,5 +4,8 @@ pub mod expressions;
 pub use expressions::{ColumnProof, NegativeProof};
 pub mod hadamard;
 pub mod inequality;
+pub mod not;
+pub mod or;
 pub mod positive;
+pub mod scalar_multiply;
 pub mod subtraction;

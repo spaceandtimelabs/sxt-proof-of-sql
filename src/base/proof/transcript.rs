@@ -54,6 +54,12 @@ impl Transcript {
         self.0.append_u64(b"n", n);
     }
 
+    /// Append a domain separator for a not proof of length n
+    pub fn not_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"notproof v1");
+        self.0.append_u64(b"n", n);
+    }
+
     /// Append a `scalar` with the given `label`.
     pub fn append_scalar(&mut self, label: &'static [u8], scalar: &Scalar) {
         self.0.append_message(label, scalar.as_bytes());
@@ -121,5 +127,14 @@ impl Transcript {
 
     pub fn column_domain_sep(&mut self) {
         self.0.append_message(b"dom-sep", b"column v1");
+    }
+
+    pub fn scalar_multiply_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"scalarmultiplyproof v1");
+    }
+
+    pub fn or_domain_sep(&mut self, n: u64) {
+        self.0.append_message(b"dom-sep", b"orproof v1");
+        self.0.append_u64(b"n", n);
     }
 }
