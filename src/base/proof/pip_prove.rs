@@ -1,4 +1,4 @@
-use crate::base::proof::{Commit, ProofError, Transcript};
+use crate::base::proof::{Commit, ProofResult, Transcript};
 
 /// Provides construction for Partial Interactive Protocol (PIP) proofs.
 ///
@@ -45,7 +45,7 @@ pub trait PipVerify<IC, OC> {
         transcript: &mut Transcript,
         //The commitments of the inputs to the PIP. Typically, these are known by the verifier.
         input_commitments: IC,
-    ) -> Result<(), ProofError>;
+    ) -> ProofResult<()>;
 
     /// The commitments of the outputs to the PIP.
     /// These should be included in the proof itself.

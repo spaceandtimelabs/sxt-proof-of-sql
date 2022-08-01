@@ -61,7 +61,11 @@ macro_rules! int_into_scalar {
     };
 }
 
+uint_into_scalar!(u8);
+uint_into_scalar!(u16);
 uint_into_scalar!(u32);
 uint_into_scalar!(u64);
+int_into_scalar!(i8, u8);
+int_into_scalar!(i16, u16);
 int_into_scalar!(i32, u32);
 int_into_scalar!(i64, u64);

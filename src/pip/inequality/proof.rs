@@ -6,6 +6,7 @@ use crate::pip::hadamard::HadamardProof;
 use curve25519_dalek::scalar::Scalar;
 use std::iter;
 
+#[derive(Debug)]
 pub struct InequalityProof {
     pub c_c: Commitment,
     pub c_d: Commitment,

@@ -1,7 +1,6 @@
-use std::iter::repeat;
-
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
 use pedersen::commitments::compute_commitments;
+use std::iter::repeat;
 
 use crate::{
     base::{
@@ -12,6 +11,7 @@ use crate::{
     pip::hadamard::HadamardProof,
 };
 
+#[derive(Debug)]
 pub struct PositiveProof {
     pub c_decomposed_columns: Vec<Commitment>,
     pub bit_proof_decomposed_columns: Vec<HadamardProof>,
