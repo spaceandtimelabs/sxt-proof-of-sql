@@ -1,5 +1,5 @@
 mod error;
-pub use error::ProofError;
+pub use error::{IntoDataFusionResult, IntoProofResult, ProofError, ProofResult};
 
 mod transcript;
 #[cfg(test)]
