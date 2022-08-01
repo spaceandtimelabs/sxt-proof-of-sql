@@ -4,6 +4,7 @@ use crate::base::{
 };
 use std::ops::Add;
 
+#[derive(Debug)]
 pub struct AdditionProof {
     pub c_sum: Commitment,
 }

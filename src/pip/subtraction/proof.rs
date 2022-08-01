@@ -4,6 +4,7 @@ use crate::base::{
 };
 use std::ops::Add;
 
+#[derive(Debug)]
 pub struct SubtractionProof {
     pub c_diff: Commitment,
 }

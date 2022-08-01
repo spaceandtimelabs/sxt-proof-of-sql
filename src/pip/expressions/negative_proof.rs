@@ -3,7 +3,7 @@ use crate::base::{
     scalar::IntoScalar,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NegativeProof {
     pub c_out: Commitment,
 }
