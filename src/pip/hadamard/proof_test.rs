@@ -3,7 +3,7 @@ use crate::pip::hadamard::proof::*;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
-use pedersen::commitments::compute_commitments;
+use pedersen::compute::compute_commitments;
 use rand_core::SeedableRng;
 use std::slice;
 

@@ -4,20 +4,19 @@ use crate::proof_primitive::inner_product::proof::*;
 
 use crate::base::proof::Transcript;
 use crate::base::scalar::inner_product;
-use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::{Identity, VartimeMultiscalarMul};
-use pedersen::commitments::get_generators;
+use curve25519_dalek::traits::VartimeMultiscalarMul;
+use pedersen::compute::get_generators;
 use rand_core::SeedableRng;
 use std::iter;
 
 fn test_helper_create(n: usize) {
-    let mut G = vec![CompressedRistretto::identity(); n + 1];
+    let mut G = vec![constants::RISTRETTO_BASEPOINT_POINT; n + 1];
     get_generators(&mut G, 0);
-    let Q = G[n].decompress().unwrap();
-    let G: Vec<RistrettoPoint> = G.iter().take(n).map(|&x| x.decompress().unwrap()).collect();
-
+    let Q = G[n];
+    G.pop();
     let mut rng = rand::rngs::StdRng::seed_from_u64(123);
 
     // a and b are the vectors for which we want to prove c = <a,b>
