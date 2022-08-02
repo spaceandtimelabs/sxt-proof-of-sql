@@ -1,5 +1,5 @@
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
-use pedersen::commitments::compute_commitments;
+use pedersen::compute::compute_commitments;
 use std::iter::repeat;
 
 use crate::{

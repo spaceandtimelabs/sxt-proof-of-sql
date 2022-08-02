@@ -4,7 +4,7 @@ use std::{
 };
 
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
-use pedersen::commitments::{compute_commitments, update_commitment};
+use pedersen::compute::{compute_commitments, update_commitment};
 
 use super::Commit;
 

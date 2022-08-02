@@ -1,8 +1,9 @@
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::constants;
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
-use pedersen::commitments::compute_commitments;
-use pedersen::commitments::get_generators;
+use pedersen::compute::compute_commitments;
+use pedersen::compute::get_generators;
 use std::cmp;
 use std::slice;
 
@@ -97,12 +98,10 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         }
         let f_ab = self.f_a * self.f_b - subclaim.expected_evaluation * f_r.invert();
 
-        let mut generators = vec![CompressedRistretto::identity(); n + 1];
-        get_generators(&mut generators, 0);
-        let generators: Vec<RistrettoPoint> = generators
-            .iter()
-            .map(|&x| x.decompress().unwrap())
-            .collect();
+        let mut generators = vec![constants::RISTRETTO_BASEPOINT_POINT; n + 1];
+
+        get_generators(&mut generators[..], 0);
+
         let product_g = generators[n];
 
         // verify f_a
@@ -183,12 +182,10 @@ fn create_proof_impl(
     let sumcheck_proof = SumcheckProof::create(transcript, &mut evaluation_point, &poly);
 
     let evaluation_vec = compute_evaluation_vector(&evaluation_point);
-    let mut generators = vec![CompressedRistretto::identity(); n + 1];
+    let mut generators = vec![constants::RISTRETTO_BASEPOINT_POINT; n + 1];
+
     get_generators(&mut generators, 0);
-    let generators: Vec<RistrettoPoint> = generators
-        .iter()
-        .map(|&x| x.decompress().unwrap())
-        .collect();
+
     let product_g = generators[n];
 
     let f_a = inner_product(&evaluation_vec, a_vec);
