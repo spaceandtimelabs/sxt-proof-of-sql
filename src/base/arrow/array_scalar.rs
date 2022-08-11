@@ -259,6 +259,12 @@ impl From<ArrayData> for ScalarArray {
     }
 }
 
+impl From<ScalarArray> for ArrayData {
+    fn from(array: ScalarArray) -> Self {
+        array.data
+    }
+}
+
 /// Creates a `ScalarArray` from `FixedSizeList<u8>` array
 impl From<FixedSizeListArray> for ScalarArray {
     fn from(v: FixedSizeListArray) -> Self {
@@ -331,6 +337,10 @@ impl Array for ScalarArray {
 
     fn data(&self) -> &ArrayData {
         &self.data
+    }
+
+    fn into_data(self) -> ArrayData {
+        self.into()
     }
 }
 
