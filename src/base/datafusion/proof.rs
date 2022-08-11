@@ -1,6 +1,9 @@
 use crate::{
-    base::proof::{Commitment, PipVerify, ProofError, ProofResult},
-    pip::expressions::{ColumnProof, NegativeProof},
+    base::proof::{Commitment, PipVerify, ProofResult},
+    pip::{
+        execution_plans::{ReaderProof, TrivialProof},
+        expressions::{ColumnProof, NegativeProof},
+    },
 };
 
 #[derive(Debug)]
@@ -20,12 +23,18 @@ impl PhysicalExprProof {
 
 /// Here is where Proj and Filter proofs go
 #[derive(Debug)]
-pub enum ExecutionPlanProof {}
+pub enum ExecutionPlanProof {
+    ReaderProof(ReaderProof),
+    TrivialProof(TrivialProof),
+}
 
 impl ExecutionPlanProof {
     // Fill in the ExecutionPlan proofs
     pub fn get_output_commitments(&self) -> ProofResult<Vec<Commitment>> {
-        Err(ProofError::TypeError)
+        match &self {
+            ExecutionPlanProof::ReaderProof(p) => Ok(p.get_output_commitments()),
+            ExecutionPlanProof::TrivialProof(p) => Ok(p.get_output_commitments()),
+        }
     }
 }
 

@@ -1,21 +1,15 @@
-use crate::base::{
-    proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
-    scalar::IntoScalar,
-};
+use crate::base::proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript};
 
 #[derive(Clone, Debug)]
 pub struct NegativeProof {
     pub c_out: Commitment,
 }
 
-impl<T> PipProve<(Column<T>,), Column<T>> for NegativeProof
-where
-    T: IntoScalar + Clone,
-{
+impl PipProve<(GeneralColumn,), GeneralColumn> for NegativeProof {
     fn prove(
         transcript: &mut Transcript,
-        input: (Column<T>,),
-        _output: Column<T>,
+        input: (GeneralColumn,),
+        _output: GeneralColumn,
         input_commitment: (Commitment,),
     ) -> Self {
         let c_in = input_commitment.0;
@@ -65,31 +59,16 @@ fn verify_proof(
 mod tests {
 
     use super::*;
-    use crate::base::proof::Commit;
-    use curve25519_dalek::scalar::Scalar;
+    use crate::base::proof::{Column, Commit};
 
     #[test]
     fn test_negative_proof() {
-        let input: Column<Scalar> = vec![
-            3_i32.into_scalar(),
-            4_i32.into_scalar(),
-            5_i32.into_scalar(),
-            7_i32.into_scalar(),
-            9_i32.into_scalar(),
-            1_i32.into_scalar(),
-            2_i32.into_scalar(),
-        ]
-        .into();
-        let output: Column<Scalar> = vec![
-            (-3_i32).into_scalar(),
-            (-4_i32).into_scalar(),
-            (-5_i32).into_scalar(),
-            (-7_i32).into_scalar(),
-            (-9_i32).into_scalar(),
-            (-1_i32).into_scalar(),
-            (-2_i32).into_scalar(),
-        ]
-        .into();
+        let input = GeneralColumn::Int32Column(Column {
+            data: vec![1, -2, 3],
+        });
+        let output = GeneralColumn::Int32Column(Column {
+            data: vec![-1, 2, -3],
+        });
 
         let mut transcript = Transcript::new(b"negativetest");
         let c_in = input.commit();

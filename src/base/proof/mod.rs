@@ -16,7 +16,7 @@ mod pip_prove;
 pub use pip_prove::{PipProve, PipVerify};
 
 mod input;
-pub use input::Column;
+pub use input::{Column, GeneralColumn, Table};
 
 #[cfg(test)]
 mod append_test;

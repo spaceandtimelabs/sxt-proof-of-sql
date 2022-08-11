@@ -22,10 +22,16 @@ pub enum ProofError {
     /// This error occurs when there are type incompatibilities e.g. wrapping a NegativeExpr into ColumnWrapper
     #[error("Type incompatibility found in inputs.")]
     TypeError,
+    /// This error occurs when attempt is made to create a table with different columns having different lengths
+    /// or no lengths given/deduced at all
+    #[error(
+        "Columns in a Table do not have the same length or the length can not be found/deduced."
+    )]
+    TableColumnLengthError,
     /// This error occurs when proofs are attempted on a raw unevaluated PhysicalExpr
     #[error("A PhysicalExpr can not be proven unless evaluated first")]
     UnevaluatedError,
-    /// This error occurs when proofs are attempted on a raw unexecuted pExecutionPlan
+    /// This error occurs when proofs are attempted on a raw unexecuted ExecutionPlan
     #[error("An ExecutionPlan can not be proven unless executed first")]
     UnexecutedError,
     /// This error occurs when a nullable array is used in a function/method that requires nonnull inputs
@@ -93,5 +99,11 @@ pub trait IntoDataFusionResult<T> {
 impl<T> IntoDataFusionResult<T> for LockResult<T> {
     fn into_datafusion_result(self) -> DataFusionResult<T> {
         self.map_err(|e| DataFusionError::External(Box::new(ProofError::from(e))))
+    }
+}
+
+impl<T> IntoDataFusionResult<T> for ProofResult<T> {
+    fn into_datafusion_result(self) -> DataFusionResult<T> {
+        self.map_err(|e| DataFusionError::External(Box::new(e)))
     }
 }

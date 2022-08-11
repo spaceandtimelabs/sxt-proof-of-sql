@@ -1,7 +1,7 @@
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 
-use crate::base::proof::ProofError;
+use crate::base::proof::{Commitment, ProofError};
 use crate::base::scalar::as_byte_slice;
 
 // Note: for background on label and domain usage, see
@@ -75,6 +75,19 @@ impl Transcript {
         self.0.append_message(label, point.as_bytes());
     }
 
+    /// Append a `commitment` with the given `label`.
+    pub fn append_commitment(&mut self, label: &'static [u8], commitment: &Commitment) {
+        self.0
+            .append_message(label, commitment.commitment.as_bytes());
+    }
+
+    /// Append a slice of `commitments` with the given `label`.
+    pub fn append_commitments(&mut self, label: &'static [u8], commitments: &[Commitment]) {
+        for c in commitments {
+            self.append_commitment(label, c);
+        }
+    }
+
     /// Check that a point is not the identity, then append it to the
     /// transcript.  Otherwise, return an error.
     pub fn validate_and_append_point(
@@ -129,6 +142,10 @@ impl Transcript {
         self.0.append_message(b"dom-sep", b"column v1");
     }
 
+    pub fn projection_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"projection v1");
+    }
+
     pub fn scalar_multiply_domain_sep(&mut self) {
         self.0.append_message(b"dom-sep", b"scalarmultiplyproof v1");
     }
@@ -136,5 +153,13 @@ impl Transcript {
     pub fn or_domain_sep(&mut self, n: u64) {
         self.0.append_message(b"dom-sep", b"orproof v1");
         self.0.append_u64(b"n", n);
+    }
+
+    pub fn trivial_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"trivial v1");
+    }
+
+    pub fn reader_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"reader v1");
     }
 }

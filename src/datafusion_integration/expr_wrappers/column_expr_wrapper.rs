@@ -6,7 +6,7 @@ use crate::{
             Provable, ProvablePhysicalExpr,
         },
         proof::{
-            Column, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
+            GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
             ProofResult, Transcript,
         },
     },
@@ -14,6 +14,7 @@ use crate::{
 };
 use datafusion::{
     arrow::{
+        array::ArrayRef,
         datatypes::{DataType, Schema},
         record_batch::RecordBatch,
     },
@@ -44,12 +45,22 @@ impl ColumnWrapper {
 }
 
 impl ProvablePhysicalExpr for ColumnWrapper {
-    fn output(&self) -> ProofResult<ColumnarValue> {
+    fn try_raw(&self) -> ProofResult<Arc<dyn PhysicalExpr>> {
+        Ok(Arc::new(ColumnExpr::new(self.raw.name(), self.raw.index())))
+    }
+    fn set_num_rows(&self, _: usize) -> ProofResult<()> {
+        // num_rows do not need to be set for ColumnExpr for it always returns
+        // an ArrayRef when evaluated
+        Ok(())
+    }
+    fn array_output(&self) -> ProofResult<ArrayRef> {
+        // We use 1 here because it doesn't matter
         self.output
             .read()
             .into_proof_result()?
             .clone()
             .ok_or(ProofError::UnevaluatedError)
+            .map(|c| c.into_array(1))
     }
 }
 
@@ -78,28 +89,16 @@ impl Provable for ColumnWrapper {
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
         // Proofs are only meaningful after evaluation because
         // it relies on the returned ColumnarValue
-        let output = self
-            .output
-            .read()
-            .into_proof_result()?
-            .clone()
-            .ok_or(ProofError::UnevaluatedError)?;
-        match output.data_type() {
-            DataType::Int64 => {
-                let col: Column<i64> = Column::try_from(&output)?;
-                let proof = ColumnProof::prove(transcript, (), col, ());
-                *self.proof.write().into_proof_result()? = Some(Arc::new(
-                    PhysicalExprProofEnumVariant(ColumnProofEnumVariant(proof)),
-                ));
-                Ok(())
-            }
-            _ => Err(ProofError::TypeError),
-        }
+        let output = self.array_output()?;
+        let col: GeneralColumn = GeneralColumn::try_from(&output)?;
+        let proof = ColumnProof::prove(transcript, (), col, ());
+        *self.proof.write().into_proof_result()? = Some(Arc::new(PhysicalExprProofEnumVariant(
+            ColumnProofEnumVariant(proof),
+        )));
+        Ok(())
     }
     fn run_verify(&self, transcript: &mut Transcript) -> ProofResult<()> {
-        let proof = (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)?;
+        let proof = self.get_proof()?;
         match &*proof {
             PhysicalExprProofEnumVariant(ColumnProofEnumVariant(p)) => p.verify(transcript, ()),
             _ => Err(ProofError::TypeError),
@@ -187,10 +186,8 @@ mod tests {
 
         // Evaluate and check output
         let _res = prover_expr.evaluate(&batch).unwrap();
-        match prover_expr.output().unwrap().clone() {
-            ColumnarValue::Array(a) => assert_eq!(*a, *array1),
-            _ => panic!("Output is unexpectedly a ScalarValue!"),
-        }
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *array1);
 
         // Produce the proof
         let mut transcript = Transcript::new(b"test_column_wrapper");
