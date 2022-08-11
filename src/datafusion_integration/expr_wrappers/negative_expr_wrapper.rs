@@ -6,8 +6,8 @@ use crate::{
             Provable, ProvablePhysicalExpr,
         },
         proof::{
-            Column, Commit, Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify,
-            ProofError, ProofResult, Transcript,
+            Commit, Commitment, GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve,
+            PipVerify, ProofError, ProofResult, Transcript,
         },
     },
     datafusion_integration::wrappers::wrap_physical_expr,
@@ -15,6 +15,7 @@ use crate::{
 };
 use datafusion::{
     arrow::{
+        array::ArrayRef,
         datatypes::{DataType, Schema},
         record_batch::RecordBatch,
     },
@@ -34,6 +35,7 @@ pub struct NegativeExprWrapper {
     raw: NegativeExpr,
     proof: RwLock<Option<Arc<DataFusionProof>>>,
     output: RwLock<Option<ColumnarValue>>,
+    num_rows: RwLock<Option<usize>>,
 }
 
 impl NegativeExprWrapper {
@@ -46,6 +48,7 @@ impl NegativeExprWrapper {
             raw: NegativeExpr::new(raw_arg.clone()),
             proof: RwLock::new(None),
             output: RwLock::new(None),
+            num_rows: RwLock::new(None),
         })
     }
 
@@ -56,10 +59,21 @@ impl NegativeExprWrapper {
 }
 
 impl ProvablePhysicalExpr for NegativeExprWrapper {
-    fn output(&self) -> ProofResult<ColumnarValue> {
+    fn try_raw(&self) -> ProofResult<Arc<dyn PhysicalExpr>> {
+        Ok(Arc::new(NegativeExpr::new(self.raw.arg().clone())))
+    }
+    fn set_num_rows(&self, num_rows: usize) -> ProofResult<()> {
+        *self.num_rows.write().into_proof_result()? = Some(num_rows);
+        self.arg.set_num_rows(num_rows)?;
+        Ok(())
+    }
+    fn array_output(&self) -> ProofResult<ArrayRef> {
+        let num_rows =
+            (*self.num_rows.read().into_proof_result()?).ok_or(ProofError::UnexecutedError)?;
         (*self.output.read().into_proof_result()?)
             .clone()
             .ok_or(ProofError::UnevaluatedError)
+            .map(|c| c.into_array(num_rows))
     }
 }
 
@@ -84,26 +98,19 @@ impl Provable for NegativeExprWrapper {
         Ok(())
     }
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
-        // Proofs are only meaningful after evaluation because
-        // it relies on the returned ColumnarValue
-        let input = self.arg.output()?;
-        match input.data_type() {
-            DataType::Int64 => {
-                let col: Column<i64> = Column::try_from(&input)?;
-                let c_in: Commitment = col.commit();
-                let proof = NegativeProof::prove(transcript, (col.clone(),), col, (c_in,));
-                *self.proof.write().into_proof_result()? = Some(Arc::new(
-                    PhysicalExprProofEnumVariant(NegativeProofEnumVariant(proof)),
-                ));
-                Ok(())
-            }
-            _ => Err(ProofError::TypeError),
-        }
+        // Proofs are only meaningful after execution and evaluation because
+        // it relies on the returned ArrayRef
+        let input = self.arg.array_output()?;
+        let col = GeneralColumn::try_from(&input)?;
+        let c_in: Commitment = col.commit();
+        let proof = NegativeProof::prove(transcript, (col.clone(),), col, (c_in,));
+        *self.proof.write().into_proof_result()? = Some(Arc::new(PhysicalExprProofEnumVariant(
+            NegativeProofEnumVariant(proof),
+        )));
+        Ok(())
     }
     fn run_verify(&self, transcript: &mut Transcript) -> ProofResult<()> {
-        let proof = (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)?;
+        let proof = self.get_proof()?;
         match &*proof {
             PhysicalExprProofEnumVariant(NegativeProofEnumVariant(p)) => {
                 let arg_proof: &DataFusionProof = &*self.arg.get_proof()?;
@@ -207,10 +214,9 @@ mod tests {
 
         // Evaluate and check output
         let _res = prover_expr.evaluate(&batch).unwrap();
-        match prover_expr.output().unwrap().clone() {
-            ColumnarValue::Array(a) => assert_eq!(*a, *expected),
-            _ => panic!("Output is unexpectedly a ScalarValue!"),
-        }
+        prover_expr.set_num_rows(7).unwrap();
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *expected);
 
         // Produce the proof
         let mut transcript = Transcript::new(b"test_negative_wrapper");

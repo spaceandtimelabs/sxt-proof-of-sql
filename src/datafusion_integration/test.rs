@@ -1,76 +1,60 @@
-use crate::base::proof::{IntoProofResult, ProofResult, Transcript};
+use crate::base::{
+    datafusion::collect,
+    proof::{IntoProofResult, ProofResult, Transcript},
+};
 use std::sync::Arc;
 
-use datafusion::{
-    arrow::{
-        array::{ArrayRef, Int64Array, StringArray},
-        compute::kernels::{aggregate::min_boolean, comparison::eq_dyn},
-        record_batch::RecordBatch,
-    },
-    execution::context::TaskContext,
-    physical_plan::{collect, projection::ProjectionExec, ColumnarValue},
-    prelude::*,
-};
+use datafusion::{execution::context::TaskContext, physical_plan::ExecutionPlan, prelude::*};
 
-use super::casting::batch_column_to_columnar_value;
-use super::wrappers::wrap_physical_expr;
+use super::wrappers::wrap_exec_plan;
 
-#[tokio::test]
-async fn test_integration() -> ProofResult<()> {
+/// General csv-sql test function
+async fn test_read_csv_and_query(
+    table_name: &str,
+    file_name: &str,
+    query: &str,
+) -> ProofResult<()> {
+    let path = format!("test_files/csv/{}.csv", file_name);
     //Prover side. Produces proof.
-
     let ctx = SessionContext::new();
-    ctx.register_csv(
-        "example",
-        "test_files/integration_test.csv",
-        CsvReadOptions::new(),
-    )
-    .await
-    .into_proof_result()?;
-    let plan = ctx
-        .sql("SELECT -a FROM example")
+    ctx.register_csv(table_name, &path[..], CsvReadOptions::new())
+        .await
+        .into_proof_result()?;
+    let plan: Arc<dyn ExecutionPlan> = ctx
+        .sql(query)
         .await
         .into_proof_result()?
         .create_physical_plan()
         .await
         .into_proof_result()?;
-    let proj: &ProjectionExec = plan.as_any().downcast_ref::<ProjectionExec>().unwrap();
-    let (physical, _) = wrap_physical_expr(&proj.expr()[0].0).unwrap();
-    let input = collect(
-        proj.input().clone(),
+    let (physical, _, _) = wrap_exec_plan(&plan).unwrap();
+    let _query_result = collect(
+        &physical,
         Arc::new(TaskContext::from(&ctx.state.read().clone())),
     )
-    .await
-    .into_proof_result()?;
-    physical.evaluate(&input[0]).into_proof_result()?;
+    .await?;
 
     let mut transcript = Transcript::new(b"test_integration");
     physical
         .run_create_proof_with_children(&mut transcript)
         .unwrap();
     let proof = physical.get_proof_with_children().unwrap();
-    assert_eq!(proof.len(), 2);
 
     //End prover side. Produces proof.
 
     //Verifier side. Consumes proof.
     let ctx = SessionContext::new();
-    ctx.register_csv(
-        "example",
-        "test_files/integration_test.csv",
-        CsvReadOptions::new(),
-    )
-    .await
-    .into_proof_result()?;
+    ctx.register_csv(table_name, &path[..], CsvReadOptions::new())
+        .await
+        .into_proof_result()?;
     let plan = ctx
-        .sql("SELECT -a FROM example")
+        .sql(query)
         .await
         .into_proof_result()?
         .create_physical_plan()
         .await
         .into_proof_result()?;
-    let proj: &ProjectionExec = plan.as_any().downcast_ref::<ProjectionExec>().unwrap();
-    let (_, provable) = wrap_physical_expr(&proj.expr()[0].0).unwrap();
+    let (_, _, provable) = wrap_exec_plan(&plan).unwrap();
 
     println!("{:?}", provable.set_proof_with_children(&proof));
     let mut transcript = Transcript::new(b"test_integration");
@@ -80,39 +64,17 @@ async fn test_integration() -> ProofResult<()> {
     Ok(())
 }
 
-#[test]
-fn test_batch_column_convert() {
-    let arrs: [ArrayRef; 2] = [
-        Arc::new(Int64Array::from(vec![0, 1, 2, 3, 4])),
-        Arc::new(StringArray::from(vec![
-            None,
-            Some("test"),
-            Some("space"),
-            None,
-            Some("time!"),
-        ])),
-    ];
-    let batch =
-        RecordBatch::try_from_iter(vec![("col0", arrs[0].clone()), ("col1", arrs[1].clone())])
-            .unwrap();
-    for i in 0..2 {
-        let actual = batch_column_to_columnar_value(&batch, i);
-        let expected = ColumnarValue::Array(arrs[i].clone());
-        // Check array equality
-        match (actual, expected) {
-            (ColumnarValue::Array(actual_array), ColumnarValue::Array(expected_array)) => {
-                let min = min_boolean(&eq_dyn(&*actual_array, &*expected_array).unwrap());
-                assert_eq!(Some(true), min);
-            }
-            _ => panic!("Either the expected ColumnarValue or the actual one is a Scalar!"),
+macro_rules! test_read_csv_and_query_macro {
+    ($table_name:expr, $file_name:expr, $query:expr, $test_func_name:ident) => {
+        #[tokio::test]
+        async fn $test_func_name() -> ProofResult<()> {
+            test_read_csv_and_query($table_name, $file_name, $query).await
         }
-    }
+    };
 }
 
-#[test]
-#[should_panic]
-fn test_invalid_batch_column_convert_bad_index() {
-    let arr: ArrayRef = Arc::new(Int64Array::from(vec![0, 1, 2, 3, 4]));
-    let batch = RecordBatch::try_from_iter(vec![("col", arr.clone())]).unwrap();
-    batch_column_to_columnar_value(&batch, 1);
-}
+// Put your tests here
+test_read_csv_and_query_macro! {"tab1", "one_column", "select a from tab1", test_trivial0}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a from tab2", test_trivial1}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select -b from tab2", test_neg0}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select -a, b from tab2", test_neg1}

@@ -1,5 +1,7 @@
 pub mod addition;
 pub mod equality;
+pub mod execution_plans;
+pub use execution_plans::{ReaderProof, TrivialProof};
 pub mod expressions;
 pub use expressions::{ColumnProof, NegativeProof};
 pub mod hadamard;
