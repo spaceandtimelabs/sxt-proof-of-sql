@@ -2,9 +2,10 @@ use crate::base::{
     proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
     scalar::IntoScalar,
 };
+use serde::{Deserialize, Serialize};
 use std::ops::Add;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SubtractionProof {
     pub c_diff: Commitment,
 }

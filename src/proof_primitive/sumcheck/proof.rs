@@ -9,8 +9,9 @@ use curve25519_dalek::scalar::Scalar;
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::{ProofError, Transcript};
 use crate::proof_primitive::sumcheck::{prove_round, ProverState, Subclaim};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof {
     pub evaluations: Vec<Vec<Scalar>>,
 }

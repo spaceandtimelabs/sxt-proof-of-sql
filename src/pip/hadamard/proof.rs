@@ -14,8 +14,9 @@ use crate::base::scalar::inner_product;
 use crate::pip::hadamard::{compute_evaluation_vector, make_sumcheck_polynomial};
 use crate::proof_primitive::inner_product::InnerProductProof;
 use crate::proof_primitive::sumcheck::SumcheckProof;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HadamardProof {
     pub commit_ab: Commitment,
     pub sumcheck_proof: SumcheckProof,

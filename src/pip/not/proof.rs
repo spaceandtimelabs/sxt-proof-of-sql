@@ -1,6 +1,9 @@
 use crate::base::proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript};
 
+use serde::{Deserialize, Serialize};
+
 /// Implementation of Not logical operator. This uses the fact that !x = 1-x.
+#[derive(Serialize, Deserialize)]
 pub struct NotProof {
     pub input_commitment: Commitment,
 }

@@ -12,13 +12,14 @@ ark-ff = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211d
 ark-poly = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
 ark-std = "^0.3.0"
 async-trait = "0.1.57"
-curve25519-dalek = "3"
+curve25519-dalek = { version = "3", features = ["serde"] }
 hashbrown = "0.11.2"
 merlin = "2"
 thiserror = "1"
 derive_more = "0.99"
 impl-trait-for-tuples = "0.2"
 datafusion = "10.0"
+serde = { version = "1", features = ["serde_derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["preserve_order"] }
 hex = { version = "0.4", default-features = false, features = ["std"] }
 num-traits = "0.2"
