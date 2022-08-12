@@ -10,8 +10,9 @@ use crate::{
     },
     pip::hadamard::HadamardProof,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PositiveProof {
     pub c_decomposed_columns: Vec<Commitment>,
     pub bit_proof_decomposed_columns: Vec<HadamardProof>,

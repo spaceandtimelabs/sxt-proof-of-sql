@@ -4,9 +4,10 @@ use crate::base::{
 };
 use crate::pip::hadamard::HadamardProof;
 use curve25519_dalek::scalar::Scalar;
+use serde::{Deserialize, Serialize};
 use std::iter;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct EqualityProof {
     pub c_c: Commitment,
     pub c_e: Commitment,

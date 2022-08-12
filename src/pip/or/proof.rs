@@ -5,9 +5,11 @@ use crate::{
     },
     pip::hadamard::HadamardProof,
 };
+use serde::{Deserialize, Serialize};
 
 // NOTE: The or operator can be written as x || y == x + y - x * y, which is what is used to prove this.
 /// Implementation of proof for Or logical operator.
+#[derive(Serialize, Deserialize)]
 pub struct OrProof {
     pub product_proof: HadamardProof,
     pub output_commitment: Commitment,

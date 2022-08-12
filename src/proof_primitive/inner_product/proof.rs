@@ -16,8 +16,9 @@ use curve25519_dalek::traits::VartimeMultiscalarMul;
 
 use crate::base::proof::{ProofError, Transcript};
 use crate::base::scalar::inner_product;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InnerProductProof {
     pub L_vec: Vec<CompressedRistretto>,
     pub R_vec: Vec<CompressedRistretto>,
