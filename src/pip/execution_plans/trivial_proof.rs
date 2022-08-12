@@ -1,7 +1,9 @@
 use crate::base::proof::{Commitment, PipProve, PipVerify, ProofError, Table, Transcript};
 
+use serde::{Deserialize, Serialize};
+
 /// For pass through ExecutionPlans
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TrivialProof {
     pub c_out: Vec<Commitment>,
 }

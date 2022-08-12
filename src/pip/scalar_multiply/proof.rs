@@ -6,9 +6,12 @@ use crate::{
     pip::hadamard::HadamardProof,
 };
 
+use serde::{Deserialize, Serialize};
+
 /// Implementation of the Hadamard Product of two columns, after converting them to Scalars.
 /// Note: this is not safe for use when multiplying integers.
 /// This is equivalent to the And logical operation when `T` is a bool, because x && y == x * y
+#[derive(Serialize, Deserialize)]
 pub struct ScalarMultiplyProof {
     pub proof: HadamardProof,
 }

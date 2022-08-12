@@ -4,7 +4,9 @@ use crate::base::{
 };
 use std::ops::Add;
 
-#[derive(Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AdditionProof {
     pub c_sum: Commitment,
 }
