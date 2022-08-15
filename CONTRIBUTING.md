@@ -199,13 +199,23 @@ To ensure consistency throughout the source code, keep these rules in mind as yo
 
 ## <a name="commit-guidelines"></a> Commit Message Guidelines
 
+### <a name="semantic-version"></a> Semantic Versioning
+
+To version our code, we follow an **automatic semantic versioning** given by the [Semantic Versioning](https://semver.org/) scheme, which establishes that the version is given by **"MAJOR.MINOR.PATCH"** number, which is updated as:
+
+1. Increase the **MAJOR** version when you make incompatible API changes.
+2. Increase the **MINOR** version when you add functionality in a backwards compatible manner.
+3. Increase the **PATCH** version when you make backwards compatible bug fixes.
+
+For instance: "1.1.3" is a program that is in the first major and minor version and the third patch version. When an incompatible change is done to the public API, then this version is updated to "2.0.0". If a backward compatible feature is added later, the version is updated to "2.1.0".
+
 ### <a name="commit"></a> Commit Message Format
 
 *This specification is inspired by and supersedes the
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).*
 
 We have very precise rules over how our Git commit messages must be formatted.
-This format leads to **easier to read commit history** and also smooths our **automatic release process**.
+This format leads to **easier to read commit history** and also smooths our **automatic semantic versioning**.
 
 Each commit message consists of a **header**, a **body**, and a **footer**.
 
@@ -242,17 +252,21 @@ Both `<type>` and `<summary>` fields are mandatory. `Type` must always be follow
 
 Must be one of the following:
 
-* **feat**: A new feature
-* **fix**: A bug fix
-* **perf**: A code change that improves performance
-* **refactor**: A code change that neither fixes a bug nor adds a feature
+* **feat**: a commit of the type feat introduces a new feature to the codebase (this correlates with MINOR in Semantic Versioning).
+* **feat!**: a commit of the type feat introduces a new feature to the codebase and introduces breaking changes (this correlates with MAJOR in Semantic Versioning).
+* **fix**: a commit of the type fix patches a bug in your codebase (this correlates with PATCH in Semantic Versioning).
+* **fix!**: a commit of the type fix a bug in your codebase and introduces breaking changes (this correlates with MAJOR in Semantic Versioning).
+* **perf**: A code change that improves performance (this correlates with a PATCH in Semantic Versioning).
+* **perf!**: A code change that improves performance and introduces breaking changes (this correlates with MAJOR in Semantic Versioning).
+* **refactor**: A code change that neither fixes a bug nor adds a feature (this correlates with a PATCH in Semantic Versioning).
+* **refactor!**: A code change that neither fixes a bug nor adds a feature and introduces breaking changes (this correlates with MAJOR in Semantic Versioning).
 * **test**: Adding missing tests or correcting existing tests
-* **bench**: Adding missing benchmarks or correcting existing benchmarks
-* **build**: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
-* **ci**: Changes to our CI configuration files and scripts
-* **docs**: Documentation only changes
-* **style**: Feature and updates related to styling
-* **chore**: Regular code maintenance.
+* **bench**: Adding missing benchmarks or correcting existing benchmarks (this does not correlate with any semantic versioning update).
+* **build**: Changes that affect the build system or external dependencies (this correlates with a PATCH in Semantic Versioning).
+* **ci**: Changes to our CI configuration files and scripts.
+* **docs**: Documentation only changes (this correlates with a PATCH in Semantic Versioning).
+* **style**: Feature and updates related to styling (this does not correlate with any semantic versioning update).
+* **chore**: Regular code maintenance (this does not correlate with any semantic versioning update).
 
 Try to not fill your commit with many unrelated changes to your code, as it makes the process of review more difficult. For instance, if you add a feature and tests to validate your feature, try to commit your code as two messages, one for the feature implementation ("feat: add feature x") and another for the test addition ("test: add tests to validate feature x").
 
@@ -334,8 +348,7 @@ see the issue for details on the typos fixed
 fixes issue #12
 ```
 
-
-## <a name="semantic-release"></a>Automatic Semantic - Release process
+## <a name="semantic-release"></a>Automatic Semantic - Release Process
 
 We are using a node semantic-release tool to automatically trigger our release process. As shown below, this tool inspects the commitment message to decide if the release should be triggered and which type of release should be triggered:
 
@@ -352,5 +365,5 @@ We are using a node semantic-release tool to automatically trigger our release p
 | feat     | feat: add graphiteWidth option<br><br><body> The default graphite width of 10mm is always used for performance reasons.<br><br>BREAKING CHANGE: The graphiteWidth option has been added. | Breaking Release (Major)<br><br>(Note that the BREAKING CHANGE:<br>token must be in the footer of the commit) |
 | perf     | perf: remove graphiteWidth option<br><br><body> The default graphite width of 10mm is always used for performance reasons.<br><br>BREAKING CHANGE: The graphiteWidth option has been removed. | Breaking Release (Major)<br><br>(Note that the BREAKING CHANGE:<br>token must be in the footer of the commit) |
 
-Check the [Semantic-Release](https://github.com/semantic-release/semantic-release) link for more info.
+Check the [Semantic-Release](https://github.com/semantic-release/semantic-release) link for more info. Ps: to update the above rules, check the [package.json](package.json) file, in the `release -> plugins -> @semantic-release/commit-analyzer -> releaseRules` section.
 
