@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use datafusion::{
     physical_expr::{
-        expressions::{Column, NegativeExpr},
+        expressions::{BinaryExpr, Column, NegativeExpr},
         PhysicalExpr,
     },
     physical_plan::{
@@ -18,8 +18,8 @@ use crate::base::{
 };
 
 use super::{
-    CoalesceBatchesExecWrapper, CoalescePartitionsExecWrapper, ColumnWrapper, CsvExecWrapper,
-    NegativeExprWrapper, ProjectionExecWrapper, RepartitionExecWrapper,
+    BinaryExprWrapper, CoalesceBatchesExecWrapper, CoalescePartitionsExecWrapper, ColumnWrapper,
+    CsvExecWrapper, NegativeExprWrapper, ProjectionExecWrapper, RepartitionExecWrapper,
 };
 
 macro_rules! wrap_physical_expr_ind {
@@ -37,6 +37,7 @@ pub fn wrap_physical_expr(
     let any = (**expr).as_any();
     wrap_physical_expr_ind!(any, NegativeExpr, NegativeExprWrapper);
     wrap_physical_expr_ind!(any, Column, ColumnWrapper);
+    wrap_physical_expr_ind!(any, BinaryExpr, BinaryExprWrapper);
     Err(ProofError::UnimplementedError)
 }
 

@@ -1,13 +1,49 @@
 use crate::base::{
-    proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
+    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
     scalar::IntoScalar,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::Add;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubtractionProof {
     pub c_diff: Commitment,
+}
+
+impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProof {
+    fn prove(
+        //The merlin transcript for the prover
+        transcript: &mut Transcript,
+        //The inputs to the PIP
+        (left, right): (GeneralColumn, GeneralColumn),
+        //The output of the PIP. Note: these are not computed by the PIP itself. The PIP simply produces a proof that these are correct.
+        output: GeneralColumn,
+        //The commitments of the inputs to the PIP. This is redundant since it can be computed from input_columns, but they will already have been computed
+        input_commitment: (Commitment, Commitment),
+    ) -> Self {
+        // general implementation
+        // This will match against the type variants of the input and output columns,
+        // and error if the combination of column types aren't valid for this proof.
+        // The actual proof construction is handled in the core implementation.
+        use GeneralColumn::*;
+        match (left, right, output) {
+            (Int8Column(left), Int8Column(right), Int8Column(output)) => {
+                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (Int16Column(left), Int16Column(right), Int16Column(output)) => {
+                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (Int32Column(left), Int32Column(right), Int32Column(output)) => {
+                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (Int64Column(left), Int64Column(right), Int64Column(output)) => {
+                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            _ => {
+                panic!("type error");
+            }
+        }
+    }
 }
 
 impl<T> PipProve<(Column<T>, Column<T>), Column<T>> for SubtractionProof
@@ -20,6 +56,7 @@ where
         output: Column<T>,
         input_commitments: (Commitment, Commitment),
     ) -> Self {
+        // core implementation
         let (a, b) = input;
         let diff = output;
         let (c_a, c_b) = input_commitments;

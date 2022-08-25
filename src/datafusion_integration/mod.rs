@@ -5,7 +5,7 @@ pub use execution_plan_wrappers::{
     ProjectionExecWrapper, RepartitionExecWrapper,
 };
 mod expr_wrappers;
-pub use expr_wrappers::{ColumnWrapper, NegativeExprWrapper};
+pub use expr_wrappers::{BinaryExprWrapper, ColumnWrapper, NegativeExprWrapper};
 #[cfg(test)]
 mod test;
 pub mod wrappers;
