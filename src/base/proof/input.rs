@@ -102,6 +102,38 @@ impl Commit for GeneralColumn {
     }
 }
 
+impl From<GeneralColumn> for Column<Scalar> {
+    fn from(general_column: GeneralColumn) -> Self {
+        match general_column {
+            GeneralColumn::BooleanColumn(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::Int8Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::Int16Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::Int32Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::Int64Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+        }
+    }
+}
+
 /// The proof version of RecordBatch
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Table {
