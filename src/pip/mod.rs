@@ -1,4 +1,5 @@
 pub mod addition;
+pub mod casewhen;
 pub mod equality;
 pub mod execution_plans;
 pub use execution_plans::{ReaderProof, TrivialProof};
