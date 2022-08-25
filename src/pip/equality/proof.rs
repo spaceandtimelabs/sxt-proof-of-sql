@@ -1,5 +1,7 @@
 use crate::base::{
-    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
+    proof::{
+        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+    },
     scalar::IntoScalar,
 };
 use crate::pip::hadamard::HadamardProof;
@@ -55,13 +57,14 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for EqualityProof {
     }
 }
 
-impl<T> PipProve<(Column<T>, Column<T>), Column<bool>> for EqualityProof
+impl<I> PipProve<(I, I), Column<bool>> for EqualityProof
 where
-    T: IntoScalar + Clone,
+    I: IntoIterator + Commit<Commitment = Commitment>,
+    I::Item: Clone + IntoScalar,
 {
     fn prove(
         transcript: &mut Transcript,
-        input: (Column<T>, Column<T>),
+        input: (I, I),
         output: Column<bool>,
         input_commitments: (Commitment, Commitment),
     ) -> Self {
@@ -71,10 +74,6 @@ where
         let e = output;
         let c_a = input_commitments.0;
         let c_b = input_commitments.1;
-        assert_eq!(a.len(), b.len());
-        assert_eq!(a.len(), e.len());
-        assert_eq!(a.len(), c_a.length);
-        assert_eq!(a.len(), c_b.length);
         create_equality_proof(transcript, a, b, e, c_a, c_b)
     }
 }
@@ -95,23 +94,23 @@ impl PipVerify<(Commitment, Commitment), Commitment> for EqualityProof {
     }
 }
 
-fn create_equality_proof<T>(
+fn create_equality_proof<I>(
     transcript: &mut Transcript,
-    a: Column<T>,
-    b: Column<T>,
+    a: I,
+    b: I,
     e: Column<bool>,
     c_a: Commitment,
     c_b: Commitment,
 ) -> EqualityProof
 where
-    T: IntoScalar + Clone,
+    I: IntoIterator + Commit<Commitment = Commitment>,
+    I::Item: Clone + IntoScalar,
 {
     transcript.equality_domain_sep(c_a.length as u64);
-    let length = a.len();
+    let length = c_a.length;
     let (z_vec, c_vec): (Vec<Scalar>, Vec<Scalar>) = a
-        .data
         .into_iter()
-        .zip(b.data)
+        .zip(b.into_iter())
         .map(|(ai, bi)| {
             let zi: Scalar = ai.into_scalar() - bi.into_scalar();
             let ci = if zi == Scalar::zero() {
