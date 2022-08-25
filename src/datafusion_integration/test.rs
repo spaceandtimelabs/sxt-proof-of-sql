@@ -78,3 +78,10 @@ test_read_csv_and_query_macro! {"tab1", "one_column", "select a from tab1", test
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select a from tab2", test_trivial1}
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select -b from tab2", test_neg0}
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select -a, b from tab2", test_neg1}
+
+// binary expressions
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a = b from tab2", test_eq}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a != b from tab2", test_neq}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a + b from tab2", test_add}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a - b from tab2", test_sub}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select (a = b) or (a = -b) from tab2", test_or}

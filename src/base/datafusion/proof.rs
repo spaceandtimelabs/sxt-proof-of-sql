@@ -1,8 +1,13 @@
 use crate::{
     base::proof::{Commitment, PipVerify, ProofResult},
     pip::{
+        addition::AdditionProof,
+        equality::EqualityProof,
         execution_plans::{ReaderProof, TrivialProof},
         expressions::{ColumnProof, NegativeProof},
+        inequality::InequalityProof,
+        or::OrProof,
+        subtraction::SubtractionProof,
     },
 };
 
@@ -10,6 +15,11 @@ use crate::{
 pub enum PhysicalExprProof {
     ColumnProof(ColumnProof),
     NegativeProof(NegativeProof),
+    EqualityProof(EqualityProof),
+    InequalityProof(InequalityProof),
+    OrProof(OrProof),
+    AdditionProof(AdditionProof),
+    SubtractionProof(SubtractionProof),
 }
 
 impl PhysicalExprProof {
@@ -17,6 +27,11 @@ impl PhysicalExprProof {
         match &self {
             PhysicalExprProof::NegativeProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::ColumnProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::EqualityProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::InequalityProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::OrProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::AdditionProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::SubtractionProof(p) => Ok(p.get_output_commitments()),
         }
     }
 }
@@ -39,6 +54,7 @@ impl ExecutionPlanProof {
 }
 
 /// Provides general datafusion proofs
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum DataFusionProof {
     PhysicalExprProof(PhysicalExprProof),

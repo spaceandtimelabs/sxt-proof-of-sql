@@ -16,7 +16,7 @@ use datafusion::{
     },
     physical_plan::ColumnarValue,
 };
-use derive_more::{Deref, DerefMut};
+use derive_more::{Deref, DerefMut, TryInto};
 use std::convert::TryFrom;
 
 /// Definition of Column, GeneralColumn and Table
@@ -63,7 +63,8 @@ impl<T> From<Vec<T>> for Column<T> {
 }
 
 // Enum of columns of all the supported types
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, TryInto)]
+#[try_into(owned, ref, ref_mut)]
 pub enum GeneralColumn {
     BooleanColumn(Column<bool>),
     Int8Column(Column<i8>),

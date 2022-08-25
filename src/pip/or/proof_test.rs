@@ -1,5 +1,5 @@
 use crate::{
-    base::proof::{Column, Commit, PipProve, PipVerify, Transcript},
+    base::proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript},
     pip::or::OrProof,
 };
 
@@ -56,4 +56,53 @@ fn test_or_failure2() {
     let proof = OrProof::prove(&mut p_transcript, (a, b.clone()), c.clone(), (c_a, c_b));
 
     assert_ne!(proof.get_output_commitments(), c_c);
+}
+
+#[test]
+fn test_or_general() {
+    let a = GeneralColumn::BooleanColumn(vec![true, true, false, false, true, true].into());
+    let b = GeneralColumn::BooleanColumn(vec![true, false, true, false, true, false].into());
+    let c = GeneralColumn::BooleanColumn(vec![true, true, true, false, true, true].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+    let c_c = c.commit();
+
+    let mut p_transcript = Transcript::new(b"ortest");
+    let proof = OrProof::prove(&mut p_transcript, (a, b), c, (c_a, c_b));
+
+    let mut v_transcript = Transcript::new(b"ortest");
+    assert!(proof.verify(&mut v_transcript, (c_a, c_b)).is_ok());
+    assert_eq!(proof.get_output_commitments(), c_c);
+
+    let mut v_transcript = Transcript::new(b"ortest");
+    assert!(proof.verify(&mut v_transcript, (c_a, c_a)).is_err());
+}
+
+#[test]
+#[should_panic]
+fn test_or_general_non_bool_input() {
+    let a = GeneralColumn::Int32Column(vec![1, 1, 0, 0, 1, 1].into());
+    let b = GeneralColumn::Int32Column(vec![1, 0, 1, 0, 1, 0].into());
+    let c = GeneralColumn::BooleanColumn(vec![true, true, true, false, true, true].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+
+    let mut p_transcript = Transcript::new(b"ortest");
+    let _should_panic = OrProof::prove(&mut p_transcript, (a, b), c, (c_a, c_b));
+}
+
+#[test]
+#[should_panic]
+fn test_or_general_non_bool_output() {
+    let a = GeneralColumn::BooleanColumn(vec![true, true, false, false, true, true].into());
+    let b = GeneralColumn::BooleanColumn(vec![true, false, true, false, true, false].into());
+    let c = GeneralColumn::Int32Column(vec![1, 1, 1, 0, 1, 1].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+
+    let mut p_transcript = Transcript::new(b"ortest");
+    let _should_panic = OrProof::prove(&mut p_transcript, (a, b), c, (c_a, c_b));
 }
