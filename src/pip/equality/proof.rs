@@ -1,5 +1,5 @@
 use crate::base::{
-    proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
+    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
     scalar::IntoScalar,
 };
 use crate::pip::hadamard::HadamardProof;
@@ -7,12 +7,52 @@ use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 use std::iter;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EqualityProof {
     pub c_c: Commitment,
     pub c_e: Commitment,
     pub proof_ez0: HadamardProof,
     pub proof_czd: HadamardProof,
+}
+
+impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for EqualityProof {
+    fn prove(
+        //The merlin transcript for the prover
+        transcript: &mut Transcript,
+        //The inputs to the PIP
+        (left, right): (GeneralColumn, GeneralColumn),
+        //The output of the PIP. Note: these are not computed by the PIP itself. The PIP simply produces a proof that these are correct.
+        output: GeneralColumn,
+        //The commitments of the inputs to the PIP. This is redundant since it can be computed from input_columns, but they will already have been computed
+        input_commitment: (Commitment, Commitment),
+    ) -> Self {
+        // general implementation
+        // This will match against the type variants of the input and output columns,
+        // and error if the combination of column types aren't valid for this proof.
+        // The actual proof construction is handled in the core implementation.
+        let output = Column::<bool>::try_from(output).expect("type error");
+
+        match (left, right) {
+            (GeneralColumn::BooleanColumn(left), GeneralColumn::BooleanColumn(right)) => {
+                EqualityProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (GeneralColumn::Int8Column(left), GeneralColumn::Int8Column(right)) => {
+                EqualityProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (GeneralColumn::Int16Column(left), GeneralColumn::Int16Column(right)) => {
+                EqualityProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (GeneralColumn::Int32Column(left), GeneralColumn::Int32Column(right)) => {
+                EqualityProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            (GeneralColumn::Int64Column(left), GeneralColumn::Int64Column(right)) => {
+                EqualityProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            _ => {
+                panic!("type error");
+            }
+        }
+    }
 }
 
 impl<T> PipProve<(Column<T>, Column<T>), Column<bool>> for EqualityProof
@@ -25,6 +65,7 @@ where
         output: Column<bool>,
         input_commitments: (Commitment, Commitment),
     ) -> Self {
+        // core implementation
         let a = input.0;
         let b = input.1;
         let e = output;

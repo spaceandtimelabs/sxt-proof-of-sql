@@ -1,4 +1,4 @@
-use crate::base::proof::{Column, Commit, PipProve, PipVerify, Transcript};
+use crate::base::proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript};
 use crate::pip::equality::EqualityProof;
 use curve25519_dalek::scalar::Scalar;
 
@@ -86,4 +86,57 @@ fn test_equality_non_scalar() {
         .verify(&mut transcript, (c_eq_a_b, c_c))
         .is_ok());
     assert_eq!(c_eq_eq_a_b_c, eq_eq_a_b_c_proof.get_output_commitments());
+}
+
+#[test]
+fn test_equality_general() {
+    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
+    let output = GeneralColumn::BooleanColumn(vec![true, false, false, true, false, true].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+
+    let mut transcript = Transcript::new(b"equalitytest");
+    let equalityproof = EqualityProof::prove(&mut transcript, (a, b), output.clone(), (c_a, c_b));
+
+    let mut transcript = Transcript::new(b"equalitytest");
+    assert!(equalityproof.verify(&mut transcript, (c_a, c_b)).is_ok());
+
+    assert_eq!(output.commit(), equalityproof.get_output_commitments());
+
+    let mut transcript = Transcript::new(b"equalitytest oops");
+    assert!(equalityproof.verify(&mut transcript, (c_a, c_b)).is_err());
+
+    //wrong input commitments
+    let mut transcript = Transcript::new(b"equalitytest");
+    assert!(equalityproof.verify(&mut transcript, (c_a, c_a)).is_err());
+}
+
+#[test]
+#[should_panic]
+fn test_equality_general_mismatched_inputs() {
+    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::Int16Column(vec![1, -1, -2, 2, 3, 0].into());
+    let output = GeneralColumn::BooleanColumn(vec![true, false, false, true, false, true].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+
+    let mut transcript = Transcript::new(b"equalitytest");
+    let _should_panic = EqualityProof::prove(&mut transcript, (a, b), output, (c_a, c_b));
+}
+
+#[test]
+#[should_panic]
+fn test_equality_general_non_bool_output() {
+    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
+    let output = GeneralColumn::Int32Column(vec![1, 0, 0, 1, 0, 1].into());
+
+    let c_a = a.commit();
+    let c_b = b.commit();
+
+    let mut transcript = Transcript::new(b"equalitytest");
+    let _should_panic = EqualityProof::prove(&mut transcript, (a, b), output, (c_a, c_b));
 }

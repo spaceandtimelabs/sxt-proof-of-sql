@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
+        proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
         scalar::IntoScalar,
     },
     pip::hadamard::HadamardProof,
@@ -9,11 +9,40 @@ use serde::{Deserialize, Serialize};
 
 // NOTE: The or operator can be written as x || y == x + y - x * y, which is what is used to prove this.
 /// Implementation of proof for Or logical operator.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OrProof {
     pub product_proof: HadamardProof,
     pub output_commitment: Commitment,
 }
+
+impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for OrProof {
+    fn prove(
+        //The merlin transcript for the prover
+        transcript: &mut Transcript,
+        //The inputs to the PIP
+        (left, right): (GeneralColumn, GeneralColumn),
+        //The output of the PIP. Note: these are not computed by the PIP itself. The PIP simply produces a proof that these are correct.
+        output: GeneralColumn,
+        //The commitments of the inputs to the PIP. This is redundant since it can be computed from input_columns, but they will already have been computed
+        input_commitment: (Commitment, Commitment),
+    ) -> Self {
+        // general implementation
+        // This will match against the type variants of the input and output columns,
+        // and error if the combination of column types aren't valid for this proof.
+        // The actual proof construction is handled in the core implementation.
+        let output = Column::<bool>::try_from(output).expect("type error");
+
+        match (left, right) {
+            (GeneralColumn::BooleanColumn(left), GeneralColumn::BooleanColumn(right)) => {
+                OrProof::prove(transcript, (left, right), output, input_commitment)
+            }
+            _ => {
+                panic!("type error");
+            }
+        }
+    }
+}
+
 impl PipProve<(Column<bool>, Column<bool>), Column<bool>> for OrProof {
     fn prove(
         transcript: &mut Transcript,
@@ -21,6 +50,7 @@ impl PipProve<(Column<bool>, Column<bool>), Column<bool>> for OrProof {
         _output: Column<bool>,
         input_commitments: (Commitment, Commitment),
     ) -> Self {
+        // core implementation
         transcript.or_domain_sep(input_commitments.0.length as u64);
         // inputs_and is x*y.
         let inputs_product = Column::from(
