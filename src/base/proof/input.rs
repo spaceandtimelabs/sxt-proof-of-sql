@@ -62,6 +62,15 @@ impl<T> From<Vec<T>> for Column<T> {
     }
 }
 
+impl<T> IntoIterator for Column<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
 // Enum of columns of all the supported types
 #[derive(Clone, Debug, Eq, PartialEq, TryInto)]
 #[try_into(owned, ref, ref_mut)]

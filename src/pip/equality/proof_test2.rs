@@ -33,8 +33,7 @@ fn test_equality() {
 
     //wrong output
     let mut transcript = Transcript::new(b"equalitytest");
-    let equalityproof =
-        EqualityProof::prove(&mut transcript, (a.into(), b.into()), output, (c_a, c_b));
+    let equalityproof = EqualityProof::prove(&mut transcript, (a, b), output, (c_a, c_b));
 
     let mut transcript = Transcript::new(b"equalitytest");
     assert!(equalityproof.verify(&mut transcript, (c_a, c_b)).is_err());
