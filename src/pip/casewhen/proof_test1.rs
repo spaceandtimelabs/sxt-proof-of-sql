@@ -8,10 +8,11 @@ fn test_casewhen() {
     let a_vec: Column<i32> = vec![31, 24, 51].into();
     let b_vec: Column<i32> = vec![14, 23, 71].into();
     let c_vec: Column<i32> = vec![31, 23, 71].into();
+    let p_vec: Column<bool> = vec![true, false, false].into();
     let a: GeneralColumn = GeneralColumn::Int32Column(a_vec);
     let b: GeneralColumn = GeneralColumn::Int32Column(b_vec);
     let c: GeneralColumn = GeneralColumn::Int32Column(c_vec);
-    let p: Column<bool> = vec![true, false, false].into();
+    let p: GeneralColumn = GeneralColumn::BooleanColumn(p_vec);
     let p_scalar: Column<Scalar> = vec![
         Scalar::from(1_u32),
         Scalar::from(0_u32),
