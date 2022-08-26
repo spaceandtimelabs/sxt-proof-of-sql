@@ -12,10 +12,10 @@ pub struct CaseWhenProof {
     pub proof_pzy: HadamardProof, //Hadamard proof for p*(a-b) = c-b
 }
 
-impl PipProve<(GeneralColumn, GeneralColumn, Column<bool>), GeneralColumn> for CaseWhenProof {
+impl PipProve<(GeneralColumn, GeneralColumn, GeneralColumn), GeneralColumn> for CaseWhenProof {
     fn prove(
         transcript: &mut Transcript,
-        (a, b, p): (GeneralColumn, GeneralColumn, Column<bool>), //Input columns: a, b, (predicate) p
+        (a, b, p): (GeneralColumn, GeneralColumn, GeneralColumn), //Input columns: a, b, (predicate) p
         c: GeneralColumn, //Outputs: (claimed CASEWHEN column) c
         (c_a, c_b, c_p): (Commitment, Commitment, Commitment), //Input commitments
     ) -> Self {
@@ -45,9 +45,9 @@ impl PipVerify<(Commitment, Commitment, Commitment), Commitment> for CaseWhenPro
 
 fn create_casewhen_proof(
     transcript: &mut Transcript,
-    (a, b, p): (GeneralColumn, GeneralColumn, Column<bool>), //inputs
-    c: GeneralColumn,                                        //output
-    (c_a, c_b, c_p): (Commitment, Commitment, Commitment),   //input commitments
+    (a, b, p): (GeneralColumn, GeneralColumn, GeneralColumn), //inputs
+    c: GeneralColumn,                                         //output
+    (c_a, c_b, c_p): (Commitment, Commitment, Commitment),    //input commitments
 ) -> CaseWhenProof {
     //Generating columns for the HadamardProof: p*(a-b) = c-b.
     //Let z = a-b and y = c-b.
@@ -76,7 +76,8 @@ fn create_casewhen_proof(
 
     //Converts boolean array p into scalar array p_scalar
     //Needed for HadamardProof
-    let p_scalar: Vec<Scalar> = p.iter().map(|pi| pi.into_scalar()).collect();
+    let p_temp = Column::<Scalar>::from(p); //.into_scalar_column();
+    let p_scalar: Vec<Scalar> = p_temp.iter().map(|pi| pi.into_scalar()).collect();
 
     let c_z = c_a - c_b;
 
