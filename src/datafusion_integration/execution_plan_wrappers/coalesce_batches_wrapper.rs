@@ -1,6 +1,8 @@
+use super::impl_provable_passthrough;
 use crate::{
     base::{
         datafusion::{
+            impl_debug_for_provable, impl_execution_plan_for_provable,
             DataFusionProof::{self, ExecutionPlanProof as ExecutionPlanProofEnumVariant},
             ExecutionPlanProof::TrivialProof as TrivialProofEnumVariant,
             Provable, ProvableExecutionPlan,
@@ -11,7 +13,7 @@ use crate::{
         },
     },
     datafusion_integration::wrappers::{unwrap_exec_plan_if_wrapped, wrap_exec_plan},
-    pip::execution_plans::TrivialProof,
+    pip::execution_plan::TrivialProof,
 };
 use async_trait::async_trait;
 use datafusion::{
@@ -19,7 +21,7 @@ use datafusion::{
     execution::context::TaskContext,
     physical_plan::{
         coalesce_batches::CoalesceBatchesExec, common::collect, expressions::PhysicalSortExpr,
-        metrics::MetricsSet, DisplayFormatType, ExecutionPlan, Partitioning,
+        metrics::MetricsSet, DisplayFormatType, Distribution, ExecutionPlan, Partitioning,
         SendableRecordBatchStream, Statistics,
     },
 };
@@ -27,6 +29,7 @@ use std::sync::RwLock;
 use std::{
     any::Any,
     fmt::{Debug, Formatter},
+    stringify,
     sync::Arc,
 };
 
@@ -112,81 +115,16 @@ impl ProvableExecutionPlan for CoalesceBatchesExecWrapper {
     }
 }
 
-impl Provable for CoalesceBatchesExecWrapper {
-    fn children(&self) -> &[Arc<dyn Provable>] {
-        &self.provable_children[..]
-    }
-    fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
-        (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)
-    }
-    fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
-        let typed_proof: &TrivialProof = match &**proof {
-            ExecutionPlanProofEnumVariant(TrivialProofEnumVariant(p)) => p,
-            _ => return Err(ProofError::TypeError),
-        };
-        *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
-            TrivialProofEnumVariant((*typed_proof).clone()),
-        )));
-        Ok(())
-    }
-    fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
-        let input_table = Table::try_from(&self.input.output()?)?;
-        let output_table = Table::try_from(&self.output()?)?;
-        let c_in: Vec<Commitment> = input_table.commit();
-        let proof = TrivialProof::prove(transcript, (input_table,), output_table, (c_in,));
-        *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
-            TrivialProofEnumVariant(proof),
-        )));
-        Ok(())
-    }
-    fn run_verify(&self, transcript: &mut Transcript) -> ProofResult<()> {
-        let proof = self.get_proof()?;
-        match &*proof {
-            ExecutionPlanProofEnumVariant(TrivialProofEnumVariant(p)) => {
-                let input_proof: Arc<DataFusionProof> = self.input.get_proof()?;
-                let c_in: Vec<Commitment> = match &*input_proof {
-                    ExecutionPlanProofEnumVariant(exec_proof) => {
-                        exec_proof.get_output_commitments()
-                    }
-                    _ => Err(ProofError::TypeError),
-                }?;
-                p.verify(transcript, (c_in,))
-            }
-            _ => Err(ProofError::TypeError),
-        }
-    }
-}
+impl_provable_passthrough!(CoalesceBatchesExecWrapper);
 
 impl ExecutionPlan for CoalesceBatchesExecWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    /// Get the schema for this execution plan
-    fn schema(&self) -> SchemaRef {
-        self.raw.schema()
-    }
-
+    impl_execution_plan_for_provable!();
     fn children(&self) -> Vec<Arc<dyn ExecutionPlan>> {
         vec![self.input_as_plan.clone()]
     }
-
-    /// Get the output partitioning of this plan
-    fn output_partitioning(&self) -> Partitioning {
-        // The coalesce batches operator does not make any changes to the partitioning of its input
-        self.input.output_partitioning()
-    }
-
     fn output_ordering(&self) -> Option<&[PhysicalSortExpr]> {
         None
     }
-
-    fn relies_on_input_order(&self) -> bool {
-        false
-    }
-
     fn with_new_children(
         self: Arc<Self>,
         children: Vec<Arc<dyn ExecutionPlan>>,
@@ -198,32 +136,6 @@ impl ExecutionPlan for CoalesceBatchesExecWrapper {
             CoalesceBatchesExecWrapper::try_new_from_raw(&raw).into_datafusion_result()?,
         ))
     }
-
-    fn execute(
-        &self,
-        partition: usize,
-        context: Arc<TaskContext>,
-    ) -> datafusion::common::Result<SendableRecordBatchStream> {
-        self.raw.execute(partition, context)
-    }
-
-    fn fmt_as(&self, t: DisplayFormatType, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.raw.fmt_as(t, f)
-    }
-
-    fn metrics(&self) -> Option<MetricsSet> {
-        self.raw.metrics()
-    }
-
-    fn statistics(&self) -> Statistics {
-        self.raw.statistics()
-    }
 }
 
-impl Debug for CoalesceBatchesExecWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CoalesceBatchesExecWrapper")
-            .field("raw", &self.raw)
-            .finish()
-    }
-}
+impl_debug_for_provable!(CoalesceBatchesExecWrapper);

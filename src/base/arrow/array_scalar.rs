@@ -2,16 +2,14 @@ use super::array::print_long_array;
 use super::raw_pointer::RawPtrBox;
 use curve25519_dalek::scalar::Scalar;
 use datafusion::arrow::{
-    array::{Array, ArrayData, FixedSizeListArray, JsonEqual},
+    array::{Array, ArrayAccessor, ArrayData, ArrayIter, FixedSizeListArray},
     buffer::{Buffer, MutableBuffer},
     datatypes::DataType,
     error::{ArrowError, Result},
     util::bit_util,
 };
-use hex::FromHex;
-use serde_json::value::Value::{Null as JNull, String as JString};
-use serde_json::Value;
 use std::{any::Any, fmt};
+pub type ScalarIter<'a> = ArrayIter<&'a ScalarArray>;
 
 /// An array where each element consists of \mathbb{Z}_p elements.
 ///
@@ -269,13 +267,21 @@ impl From<ScalarArray> for ArrayData {
 impl From<FixedSizeListArray> for ScalarArray {
     fn from(v: FixedSizeListArray) -> Self {
         assert_eq!(
-            v.data_ref().child_data()[0].child_data().len(),
+            v.data_ref().child_data().len(),
+            1,
+            "ScalarArray can only be created from list array of u8 values \
+             (i.e. FixedSizeList<PrimitiveArray<u8>>)."
+        );
+        let child_data = &v.data_ref().child_data()[0];
+
+        assert_eq!(
+            child_data.child_data().len(),
             0,
             "ScalarArray can only be created from list array of u8 values \
              (i.e. FixedSizeList<PrimitiveArray<u8>>)."
         );
         assert_eq!(
-            v.data_ref().child_data()[0].data_type(),
+            child_data.data_type(),
             &DataType::UInt8,
             "ScalarArray can only be created from FixedSizeList<u8> arrays, mismatched data types."
         );
@@ -285,10 +291,16 @@ impl From<FixedSizeListArray> for ScalarArray {
             "ScalarArray can only be created from FixedSizeList<u8> arrays \
              with the length of each element equal to 32."
         );
+        assert_eq!(
+            child_data.null_count(),
+            0,
+            "The child array cannot contain null values."
+        );
 
         let builder = ArrayData::builder(DataType::FixedSizeBinary(v.value_length()))
             .len(v.len())
-            .add_buffer(v.data_ref().child_data()[0].buffers()[0].clone())
+            .offset(v.offset())
+            .add_buffer(child_data.buffers()[0].slice(child_data.offset()))
             .null_bit_buffer(v.data_ref().null_buffer().cloned());
 
         let data = unsafe { builder.build_unchecked() };
@@ -344,41 +356,24 @@ impl Array for ScalarArray {
     }
 }
 
-impl JsonEqual for ScalarArray {
-    fn equals_json(&self, json: &[&Value]) -> bool {
-        if self.len() != json.len() {
-            return false;
-        }
+impl<'a> ArrayAccessor for &'a ScalarArray {
+    type Item = &'a [u8];
 
-        (0..self.len()).all(|i| match json[i] {
-            JString(s) => {
-                // binary data is sometimes hex encoded, this checks if bytes are equal,
-                // and if not converting to hex is attempted
-                self.is_valid(i)
-                    && (s.as_str().as_bytes() == self.value(i)
-                        || Vec::from_hex(s.as_str()) == Ok(self.value(i).to_vec()))
-            }
-            JNull => self.is_null(i),
-            _ => false,
-        })
+    fn value(&self, index: usize) -> Self::Item {
+        ScalarArray::value(self, index)
+    }
+
+    unsafe fn value_unchecked(&self, index: usize) -> Self::Item {
+        ScalarArray::value_unchecked(self, index)
     }
 }
 
-impl PartialEq<Value> for ScalarArray {
-    fn eq(&self, json: &Value) -> bool {
-        match json {
-            Value::Array(json_array) => self.equals_json_values(json_array),
-            _ => false,
-        }
-    }
-}
+impl<'a> IntoIterator for &'a ScalarArray {
+    type Item = Option<&'a [u8]>;
+    type IntoIter = ScalarIter<'a>;
 
-impl PartialEq<ScalarArray> for Value {
-    fn eq(&self, arrow: &ScalarArray) -> bool {
-        match self {
-            Value::Array(json_array) => arrow.equals_json_values(json_array),
-            _ => false,
-        }
+    fn into_iter(self) -> Self::IntoIter {
+        ScalarIter::<'a>::new(self)
     }
 }
 

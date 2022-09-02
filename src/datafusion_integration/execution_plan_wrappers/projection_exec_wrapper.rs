@@ -1,12 +1,13 @@
 use crate::{
     base::{
         datafusion::{
+            impl_debug_for_provable, impl_execution_plan_for_provable, impl_provable,
             DataFusionProof::{
                 self, ExecutionPlanProof as ExecutionPlanProofEnumVariant,
                 PhysicalExprProof as PhysicalExprProofEnumVariant,
             },
             ExecutionPlanProof::TrivialProof as TrivialProofEnumVariant,
-            Provable, ProvableExecutionPlan, ProvablePhysicalExpr,
+            PhysicalExprTuple, Provable, ProvableExecutionPlan, ProvablePhysicalExprTuple,
         },
         proof::{
             Commit, Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify,
@@ -16,7 +17,7 @@ use crate::{
     datafusion_integration::wrappers::{
         unwrap_exec_plan_if_wrapped, wrap_exec_plan, wrap_physical_expr,
     },
-    pip::execution_plans::TrivialProof,
+    pip::execution_plan::TrivialProof,
 };
 use async_trait::async_trait;
 use datafusion::{
@@ -24,7 +25,7 @@ use datafusion::{
     execution::context::TaskContext,
     physical_plan::{
         common::collect, expressions::PhysicalSortExpr, metrics::MetricsSet,
-        projection::ProjectionExec, DisplayFormatType, ExecutionPlan, Partitioning, PhysicalExpr,
+        projection::ProjectionExec, DisplayFormatType, Distribution, ExecutionPlan, Partitioning,
         SendableRecordBatchStream, Statistics,
     },
 };
@@ -36,13 +37,10 @@ use std::{
     sync::Arc,
 };
 
-type ExprTuple = (Arc<dyn PhysicalExpr>, String);
-type ProvableExprTuple = (Arc<dyn ProvablePhysicalExpr>, String);
-
 pub struct ProjectionExecWrapper {
     raw: ProjectionExec,
     /// The projection expressions stored as tuples of (expression, output column name)
-    expr: Vec<ProvableExprTuple>,
+    expr: Vec<ProvablePhysicalExprTuple>,
     /// The input plan
     input: Arc<dyn ProvableExecutionPlan>,
     /// Same but as Arc<dyn ExecutionPlan> because trait upcast is unstable
@@ -65,19 +63,19 @@ impl ProjectionExecWrapper {
         let (wrapped_input, wrapped_input_as_plan, wrapped_input_as_provable) =
             wrap_exec_plan(raw_input)?;
         let (wrapped_expr, expr_provable_children): (
-            Vec<ProvableExprTuple>,
+            Vec<ProvablePhysicalExprTuple>,
             Vec<Arc<dyn Provable>>,
         ) = raw_expr
             .iter()
             .map(|field| {
-                let (physical_expr, physical_expr_as_provable) = wrap_physical_expr(&field.0)?;
+                let (physical_expr, _, physical_expr_as_provable) = wrap_physical_expr(&field.0)?;
                 Ok((
                     (physical_expr.clone(), field.1.clone()),
                     physical_expr_as_provable.clone(),
                 ))
             })
             .into_iter()
-            .collect::<ProofResult<Vec<(ProvableExprTuple, Arc<dyn Provable>)>>>()?
+            .collect::<ProofResult<Vec<(ProvablePhysicalExprTuple, Arc<dyn Provable>)>>>()?
             .into_iter()
             .unzip();
         let mut provable_children = vec![wrapped_input_as_provable];
@@ -95,20 +93,20 @@ impl ProjectionExecWrapper {
     }
 
     pub fn try_new_from_children(
-        expr: Vec<ProvableExprTuple>,
+        expr: Vec<ProvablePhysicalExprTuple>,
         input: Arc<dyn ProvableExecutionPlan>,
     ) -> ProofResult<Self> {
-        let raw_expr: Vec<ExprTuple> = expr
+        let raw_expr: Vec<PhysicalExprTuple> = expr
             .iter()
             .map(|field| Ok((field.0.try_raw()?, field.1.clone())))
             .into_iter()
-            .collect::<ProofResult<Vec<ExprTuple>>>()?;
+            .collect::<ProofResult<Vec<PhysicalExprTuple>>>()?;
         let raw = ProjectionExec::try_new(raw_expr, input.try_raw()?)?;
         Self::try_new_from_raw(&raw)
     }
 
     /// The projection expressions stored as tuples of (expression, output column name)
-    pub fn expr(&self) -> &[ProvableExprTuple] {
+    pub fn expr(&self) -> &[ProvablePhysicalExprTuple] {
         &self.expr
     }
 
@@ -149,7 +147,7 @@ impl ProvableExecutionPlan for ProjectionExecWrapper {
         // Give the correct num_rows to the exprs so that they can generate ArrayRefs for the proofs
         // This has to be after execution
         for field in self.expr.iter() {
-            field.0.set_num_rows(output.num_rows())?;
+            field.0.set_num_rows(output.clone().num_rows())?;
         }
         Ok(())
     }
@@ -162,23 +160,13 @@ impl ProvableExecutionPlan for ProjectionExecWrapper {
 }
 
 impl Provable for ProjectionExecWrapper {
+    impl_provable!(
+        TrivialProof,
+        ExecutionPlanProofEnumVariant,
+        TrivialProofEnumVariant
+    );
     fn children(&self) -> &[Arc<dyn Provable>] {
         &self.provable_children[..]
-    }
-    fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
-        (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)
-    }
-    fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
-        let typed_proof: &TrivialProof = match &**proof {
-            ExecutionPlanProofEnumVariant(TrivialProofEnumVariant(p)) => p,
-            _ => return Err(ProofError::TypeError),
-        };
-        *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
-            TrivialProofEnumVariant((*typed_proof).clone()),
-        )));
-        Ok(())
     }
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
         let input: Vec<ArrayRef> = self
@@ -222,37 +210,13 @@ impl Provable for ProjectionExecWrapper {
 }
 
 impl ExecutionPlan for ProjectionExecWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    /// Get the schema for this execution plan
-    fn schema(&self) -> SchemaRef {
-        self.raw.schema()
-    }
-
+    impl_execution_plan_for_provable!();
     fn children(&self) -> Vec<Arc<dyn ExecutionPlan>> {
         vec![self.input_as_plan.clone()]
     }
-
-    /// Get the output partitioning of this plan
-    fn output_partitioning(&self) -> Partitioning {
-        self.input.output_partitioning()
-    }
-
     fn output_ordering(&self) -> Option<&[PhysicalSortExpr]> {
         self.input.output_ordering()
     }
-
-    fn maintains_input_order(&self) -> bool {
-        // tell optimizer this operator doesn't reorder its input
-        true
-    }
-
-    fn relies_on_input_order(&self) -> bool {
-        false
-    }
-
     fn with_new_children(
         self: Arc<Self>,
         children: Vec<Arc<dyn ExecutionPlan>>,
@@ -265,32 +229,6 @@ impl ExecutionPlan for ProjectionExecWrapper {
             ProjectionExecWrapper::try_new_from_raw(&raw).into_datafusion_result()?,
         ))
     }
-
-    fn execute(
-        &self,
-        partition: usize,
-        context: Arc<TaskContext>,
-    ) -> datafusion::common::Result<SendableRecordBatchStream> {
-        self.raw.execute(partition, context)
-    }
-
-    fn fmt_as(&self, t: DisplayFormatType, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.raw.fmt_as(t, f)
-    }
-
-    fn metrics(&self) -> Option<MetricsSet> {
-        self.raw.metrics()
-    }
-
-    fn statistics(&self) -> Statistics {
-        self.raw.statistics()
-    }
 }
 
-impl Debug for ProjectionExecWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ProjectionExecWrapper")
-            .field("raw", &self.raw)
-            .finish()
-    }
-}
+impl_debug_for_provable!(ProjectionExecWrapper);

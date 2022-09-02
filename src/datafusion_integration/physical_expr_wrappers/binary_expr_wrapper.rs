@@ -1,6 +1,7 @@
 use crate::{
     base::{
         datafusion::{
+            impl_physical_expr_for_provable,
             DataFusionProof::{self, PhysicalExprProof as PhysicalExprProofEnumVariant},
             PhysicalExprProof, Provable, ProvablePhysicalExpr,
         },
@@ -46,11 +47,11 @@ impl BinaryExprWrapper {
     pub fn try_new(raw: &BinaryExpr) -> ProofResult<Self> {
         // wrap left argument for construction
         let raw_left = raw.left();
-        let (wrapped_left, wrapped_left_as_provable) = wrap_physical_expr(raw_left)?;
+        let (wrapped_left, _, wrapped_left_as_provable) = wrap_physical_expr(raw_left)?;
 
         // wrap right argument for construction
         let raw_right = raw.right();
-        let (wrapped_right, wrapped_right_as_provable) = wrap_physical_expr(raw_right)?;
+        let (wrapped_right, _, wrapped_right_as_provable) = wrap_physical_expr(raw_right)?;
 
         Ok(BinaryExprWrapper {
             args: [wrapped_left, wrapped_right],
@@ -210,17 +211,7 @@ impl Provable for BinaryExprWrapper {
 }
 
 impl PhysicalExpr for BinaryExprWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn data_type(&self, input_schema: &Schema) -> datafusion::error::Result<DataType> {
-        self.raw.data_type(input_schema)
-    }
-
-    fn nullable(&self, input_schema: &Schema) -> datafusion::common::Result<bool> {
-        self.raw.nullable(input_schema)
-    }
+    impl_physical_expr_for_provable!();
 
     fn evaluate(&self, batch: &RecordBatch) -> datafusion::error::Result<ColumnarValue> {
         // TODO: This essentially evaluates the args twice. Is there any way to change datafusion so that

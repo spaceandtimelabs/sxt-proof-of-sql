@@ -142,6 +142,10 @@ impl Transcript {
         self.0.append_message(b"dom-sep", b"column v1");
     }
 
+    pub fn literal_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"literal v1");
+    }
+
     pub fn projection_domain_sep(&mut self) {
         self.0.append_message(b"dom-sep", b"projection v1");
     }
@@ -161,5 +165,9 @@ impl Transcript {
 
     pub fn reader_domain_sep(&mut self) {
         self.0.append_message(b"dom-sep", b"reader v1");
+    }
+
+    pub fn count_domain_sep(&mut self) {
+        self.0.append_message(b"dom-sep", b"count v1");
     }
 }

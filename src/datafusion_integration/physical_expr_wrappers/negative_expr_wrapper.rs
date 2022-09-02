@@ -1,6 +1,8 @@
 use crate::{
     base::{
         datafusion::{
+            impl_debug_display_for_phys_expr_wrapper, impl_physical_expr_for_provable,
+            impl_provable,
             DataFusionProof::{self, PhysicalExprProof as PhysicalExprProofEnumVariant},
             PhysicalExprProof::NegativeProof as NegativeProofEnumVariant,
             Provable, ProvablePhysicalExpr,
@@ -11,7 +13,7 @@ use crate::{
         },
     },
     datafusion_integration::wrappers::wrap_physical_expr,
-    pip::expressions::NegativeProof,
+    pip::physical_expr::NegativeProof,
 };
 use datafusion::{
     arrow::{
@@ -41,7 +43,7 @@ pub struct NegativeExprWrapper {
 impl NegativeExprWrapper {
     pub fn try_new(raw: &NegativeExpr) -> ProofResult<Self> {
         let raw_arg = raw.arg();
-        let (wrapped_arg, wrapped_arg_as_provable) = wrap_physical_expr(raw_arg)?;
+        let (wrapped_arg, _, wrapped_arg_as_provable) = wrap_physical_expr(raw_arg)?;
         Ok(NegativeExprWrapper {
             arg: wrapped_arg.clone(),
             arg_as_provable: wrapped_arg_as_provable.clone(),
@@ -78,24 +80,14 @@ impl ProvablePhysicalExpr for NegativeExprWrapper {
 }
 
 impl Provable for NegativeExprWrapper {
-    // Column does not have children by definition
+    impl_provable!(
+        NegativeProof,
+        PhysicalExprProofEnumVariant,
+        NegativeProofEnumVariant
+    );
+
     fn children(&self) -> &[Arc<dyn Provable>] {
         slice::from_ref(&self.arg_as_provable)
-    }
-    fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
-        (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)
-    }
-    fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
-        let typed_proof: &NegativeProof = match &**proof {
-            PhysicalExprProofEnumVariant(NegativeProofEnumVariant(p)) => p,
-            _ => return Err(ProofError::TypeError),
-        };
-        *self.proof.write().into_proof_result()? = Some(Arc::new(PhysicalExprProofEnumVariant(
-            NegativeProofEnumVariant(typed_proof.clone()),
-        )));
-        Ok(())
     }
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
         // Proofs are only meaningful after execution and evaluation because
@@ -128,15 +120,8 @@ impl Provable for NegativeExprWrapper {
 }
 
 impl PhysicalExpr for NegativeExprWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn data_type(&self, input_schema: &Schema) -> datafusion::common::Result<DataType> {
-        self.raw.data_type(input_schema)
-    }
-    fn nullable(&self, input_schema: &Schema) -> datafusion::common::Result<bool> {
-        self.raw.nullable(input_schema)
-    }
+    impl_physical_expr_for_provable!();
+
     fn evaluate(&self, batch: &RecordBatch) -> datafusion::common::Result<ColumnarValue> {
         // TODO: This essentially evaluates the arg twice. Is there any way to change datafusion so that
         // we only do it once?
@@ -155,26 +140,7 @@ impl PhysicalExpr for NegativeExprWrapper {
     }
 }
 
-impl Display for NegativeExprWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.raw, f)
-    }
-}
-
-impl Debug for NegativeExprWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("NegativeExprWrapper")
-            .field("arg", &self.arg)
-            .field("raw", &self.raw)
-            .field(
-                "output",
-                &(*self.output.read().map_err(|_| std::fmt::Error)?)
-                    .clone()
-                    .map(|cv| cv.into_array(1)),
-            )
-            .finish()
-    }
-}
+impl_debug_display_for_phys_expr_wrapper!(NegativeExprWrapper);
 
 #[cfg(test)]
 mod tests {
