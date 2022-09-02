@@ -1,9 +1,7 @@
 use crate::base::proof::{Commit, Commitment, PipProve, PipVerify, ProofError, Table, Transcript};
 
-use serde::{Deserialize, Serialize};
-
 /// For reading a new data source
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct ReaderProof {
     pub c_out: Vec<Commitment>,
 }

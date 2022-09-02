@@ -1,13 +1,14 @@
 use crate::{
     base::{
         datafusion::{
+            impl_debug_for_provable, impl_execution_plan_for_provable, impl_provable,
             DataFusionProof::{self, ExecutionPlanProof as ExecutionPlanProofEnumVariant},
             ExecutionPlanProof::ReaderProof as ReaderProofEnumVariant,
             Provable, ProvableExecutionPlan,
         },
         proof::{IntoProofResult, PipProve, PipVerify, ProofError, ProofResult, Table, Transcript},
     },
-    pip::execution_plans::ReaderProof,
+    pip::execution_plan::ReaderProof,
 };
 use async_trait::async_trait;
 use datafusion::{
@@ -17,13 +18,16 @@ use datafusion::{
         common::collect,
         expressions::PhysicalSortExpr,
         file_format::{CsvExec, FileScanConfig},
-        DisplayFormatType, ExecutionPlan, Partitioning, SendableRecordBatchStream, Statistics,
+        metrics::MetricsSet,
+        DisplayFormatType, Distribution, ExecutionPlan, Partitioning, SendableRecordBatchStream,
+        Statistics,
     },
 };
 use std::sync::RwLock;
 use std::{
     any::Any,
     fmt::{Debug, Formatter},
+    stringify,
     sync::Arc,
 };
 
@@ -93,23 +97,14 @@ impl ProvableExecutionPlan for CsvExecWrapper {
 }
 
 impl Provable for CsvExecWrapper {
+    impl_provable!(
+        ReaderProof,
+        ExecutionPlanProofEnumVariant,
+        ReaderProofEnumVariant
+    );
+
     fn children(&self) -> &[Arc<dyn Provable>] {
         &[]
-    }
-    fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
-        (*self.proof.read().into_proof_result()?)
-            .clone()
-            .ok_or(ProofError::NoProofError)
-    }
-    fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
-        let typed_proof: &ReaderProof = match &**proof {
-            ExecutionPlanProofEnumVariant(ReaderProofEnumVariant(p)) => p,
-            _ => return Err(ProofError::TypeError),
-        };
-        *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
-            ReaderProofEnumVariant((*typed_proof).clone()),
-        )));
-        Ok(())
     }
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
         let output_table = Table::try_from(&self.output()?)?;
@@ -129,61 +124,20 @@ impl Provable for CsvExecWrapper {
 }
 
 impl ExecutionPlan for CsvExecWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    /// Get the schema for this execution plan
-    fn schema(&self) -> SchemaRef {
-        self.raw.schema()
-    }
-
+    impl_execution_plan_for_provable!();
     fn children(&self) -> Vec<Arc<dyn ExecutionPlan>> {
         // this is a leaf node and has no children
         vec![]
     }
-
-    /// Get the output partitioning of this plan
-    fn output_partitioning(&self) -> Partitioning {
-        Partitioning::UnknownPartitioning(self.raw.base_config().file_groups.len())
-    }
-
     fn output_ordering(&self) -> Option<&[PhysicalSortExpr]> {
         None
     }
-
-    fn relies_on_input_order(&self) -> bool {
-        false
-    }
-
     fn with_new_children(
         self: Arc<Self>,
         _: Vec<Arc<dyn ExecutionPlan>>,
     ) -> datafusion::common::Result<Arc<dyn ExecutionPlan>> {
         Ok(self)
     }
-
-    fn execute(
-        &self,
-        partition: usize,
-        context: Arc<TaskContext>,
-    ) -> datafusion::common::Result<SendableRecordBatchStream> {
-        self.raw.execute(partition, context)
-    }
-
-    fn fmt_as(&self, t: DisplayFormatType, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.raw.fmt_as(t, f)
-    }
-
-    fn statistics(&self) -> Statistics {
-        self.raw.statistics()
-    }
 }
 
-impl Debug for CsvExecWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CsvExecWrapper")
-            .field("raw", &self.raw)
-            .finish()
-    }
-}
+impl_debug_for_provable!(CsvExecWrapper);

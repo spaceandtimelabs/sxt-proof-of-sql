@@ -1,9 +1,7 @@
 use crate::base::proof::{Commitment, PipProve, PipVerify, ProofError, Table, Transcript};
 
-use serde::{Deserialize, Serialize};
-
 /// For pass through ExecutionPlans
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct TrivialProof {
     pub c_out: Vec<Commitment>,
 }
@@ -39,6 +37,8 @@ impl PipVerify<(Vec<Commitment>,), Vec<Commitment>> for TrivialProof {
         let c_out = input_commitments.0;
         transcript.append_commitments(b"c_out", &self.c_out);
         if self.c_out != c_out {
+            println!("Proof: {:?}", self.c_out);
+            println!("Input: {:?}", c_out);
             Err(ProofError::VerificationError)
         } else {
             Ok(())

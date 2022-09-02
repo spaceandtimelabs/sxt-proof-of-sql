@@ -32,3 +32,4 @@ protocols/.DS_Store
 
 # Editor-specific
 Session.vim
+.vscode

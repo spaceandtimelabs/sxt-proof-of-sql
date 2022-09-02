@@ -80,3 +80,25 @@ fn load_proof_with_children<'a>(
     }
     Ok(&proofs[1..])
 }
+
+macro_rules! impl_provable {
+    ($proof_type:ty, $dfproof_var:ident, $dfproof_subvar:ident) => {
+        fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
+            (*self.proof.read().into_proof_result()?)
+                .clone()
+                .ok_or(ProofError::NoProofError)
+        }
+        fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
+            let typed_proof: &$proof_type = match &**proof {
+                $dfproof_var($dfproof_subvar(p)) => p,
+                _ => return Err(ProofError::TypeError),
+            };
+            *self.proof.write().into_proof_result()? = Some(Arc::new($dfproof_var(
+                $dfproof_subvar((*typed_proof).clone()),
+            )));
+            Ok(())
+        }
+    };
+}
+
+pub(crate) use impl_provable;
