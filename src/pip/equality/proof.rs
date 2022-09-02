@@ -163,13 +163,25 @@ fn verify_proof(
     c_a: Commitment,
     c_b: Commitment,
 ) -> Result<(), ProofError> {
+    assert_eq!(c_a.length, c_b.length);
+
+    if c_a.length != proof.c_e.length
+        || c_a.length != proof.c_c.length
+        || c_a.length != proof.proof_ez0.commit_ab.length
+        || c_a.length != proof.proof_czd.commit_ab.length
+    {
+        return Err(ProofError::VerificationError);
+    }
+
     transcript.equality_domain_sep(c_a.length as u64);
     // Computing c_0 and c_1 here is terrible. It should be cached.
     let (zero, one): (Vec<Scalar>, Vec<Scalar>) = iter::repeat((Scalar::zero(), Scalar::one()))
         .take(c_a.length)
         .unzip();
+
     let c_0 = Commitment::from(&zero[..]);
     let c_1 = Commitment::from(&one[..]);
+
     let c_d = c_1 - proof.c_e;
     let c_z = c_a - c_b;
     transcript.append_point(b"c_c", &proof.c_c.commitment);
