@@ -108,9 +108,17 @@ fn test_equality_general() {
     let mut transcript = Transcript::new(b"equalitytest oops");
     assert!(equalityproof.verify(&mut transcript, (c_a, c_b)).is_err());
 
-    //wrong input commitments
+    // wrong input commitments
     let mut transcript = Transcript::new(b"equalitytest");
     assert!(equalityproof.verify(&mut transcript, (c_a, c_a)).is_err());
+
+    // equalityproof commitments and input commitments mismatch in length
+    let mut c_a = c_a;
+    c_a.length += 1;
+    let mut c_b = c_b;
+    c_b.length += 1;
+    let mut transcript = Transcript::new(b"equalitytest");
+    assert!(equalityproof.verify(&mut transcript, (c_a, c_b)).is_err());
 }
 
 #[test]
