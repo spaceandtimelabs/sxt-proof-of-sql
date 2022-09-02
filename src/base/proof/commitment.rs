@@ -9,7 +9,7 @@ use pedersen::compute::{compute_commitments, update_commitment};
 use super::Commit;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Commitment {
     //The actual commitment to a column/vector. It may make sense for this to be non compressed, and only serialized as compressed.
     pub commitment: CompressedRistretto,

@@ -46,6 +46,9 @@ pub enum ProofError {
     /// Datafusion error
     #[error("Datafusion error found.")]
     DataFusionError(DataFusionError),
+    /// General error especially internal errors that shouldn't happen ever
+    #[error("General error found.")]
+    GeneralError,
 }
 
 pub type ProofResult<T> = std::result::Result<T, ProofError>;

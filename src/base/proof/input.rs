@@ -80,6 +80,10 @@ pub enum GeneralColumn {
     Int16Column(Column<i16>),
     Int32Column(Column<i32>),
     Int64Column(Column<i64>),
+    UInt8Column(Column<u8>),
+    UInt16Column(Column<u16>),
+    UInt32Column(Column<u32>),
+    UInt64Column(Column<u64>),
 }
 
 impl GeneralColumn {
@@ -90,6 +94,10 @@ impl GeneralColumn {
             GeneralColumn::Int16Column(c) => c.data.len(),
             GeneralColumn::Int32Column(c) => c.data.len(),
             GeneralColumn::Int64Column(c) => c.data.len(),
+            GeneralColumn::UInt8Column(c) => c.data.len(),
+            GeneralColumn::UInt16Column(c) => c.data.len(),
+            GeneralColumn::UInt32Column(c) => c.data.len(),
+            GeneralColumn::UInt64Column(c) => c.data.len(),
         }
     }
 
@@ -108,6 +116,10 @@ impl Commit for GeneralColumn {
             GeneralColumn::Int16Column(c) => c.commit(),
             GeneralColumn::Int32Column(c) => c.commit(),
             GeneralColumn::Int64Column(c) => c.commit(),
+            GeneralColumn::UInt8Column(c) => c.commit(),
+            GeneralColumn::UInt16Column(c) => c.commit(),
+            GeneralColumn::UInt32Column(c) => c.commit(),
+            GeneralColumn::UInt64Column(c) => c.commit(),
         }
     }
 }
@@ -136,6 +148,26 @@ impl From<GeneralColumn> for Column<Scalar> {
                 .collect::<Vec<_>>()
                 .into(),
             GeneralColumn::Int64Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::UInt8Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::UInt16Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::UInt32Column(col) => col
+                .iter()
+                .map(|ci| ci.into_scalar())
+                .collect::<Vec<_>>()
+                .into(),
+            GeneralColumn::UInt64Column(col) => col
                 .iter()
                 .map(|ci| ci.into_scalar())
                 .collect::<Vec<_>>()
@@ -290,6 +322,26 @@ impl TryFrom<&ArrayRef> for GeneralColumn {
             Int64 => Ok(GeneralColumn::Int64Column(Column::try_from(
                 data.as_any()
                     .downcast_ref::<Int64Array>()
+                    .ok_or(ProofError::TypeError)?,
+            )?)),
+            UInt8 => Ok(GeneralColumn::UInt8Column(Column::try_from(
+                data.as_any()
+                    .downcast_ref::<UInt8Array>()
+                    .ok_or(ProofError::TypeError)?,
+            )?)),
+            UInt16 => Ok(GeneralColumn::UInt16Column(Column::try_from(
+                data.as_any()
+                    .downcast_ref::<UInt16Array>()
+                    .ok_or(ProofError::TypeError)?,
+            )?)),
+            UInt32 => Ok(GeneralColumn::UInt32Column(Column::try_from(
+                data.as_any()
+                    .downcast_ref::<UInt32Array>()
+                    .ok_or(ProofError::TypeError)?,
+            )?)),
+            UInt64 => Ok(GeneralColumn::UInt64Column(Column::try_from(
+                data.as_any()
+                    .downcast_ref::<UInt64Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
             _ => Err(ProofError::TypeError),

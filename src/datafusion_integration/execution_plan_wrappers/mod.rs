@@ -1,3 +1,5 @@
+pub mod aggregate_exec_wrapper;
+pub use aggregate_exec_wrapper::AggregateExecWrapper;
 pub mod coalesce_batches_wrapper;
 pub use coalesce_batches_wrapper::CoalesceBatchesExecWrapper;
 pub mod coalesce_partitions_wrapper;
@@ -7,3 +9,5 @@ pub mod projection_exec_wrapper;
 pub use projection_exec_wrapper::ProjectionExecWrapper;
 pub mod repartition_exec_wrapper;
 pub use repartition_exec_wrapper::RepartitionExecWrapper;
+mod macros;
+pub(crate) use macros::impl_provable_passthrough;

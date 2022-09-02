@@ -2,18 +2,33 @@ use crate::{
     base::proof::{Commitment, PipVerify, ProofResult},
     pip::{
         addition::AdditionProof,
+        aggregate_expr::CountProof,
         equality::EqualityProof,
-        execution_plans::{ReaderProof, TrivialProof},
-        expressions::{ColumnProof, NegativeProof},
+        execution_plan::{ReaderProof, TrivialProof},
         inequality::InequalityProof,
         or::OrProof,
+        physical_expr::{ColumnProof, LiteralProof, NegativeProof},
         subtraction::SubtractionProof,
     },
 };
 
 #[derive(Debug)]
+pub enum AggregateExprProof {
+    CountProof(CountProof),
+}
+
+impl AggregateExprProof {
+    pub fn get_output_commitments(&self) -> ProofResult<Commitment> {
+        match &self {
+            AggregateExprProof::CountProof(p) => Ok(p.get_output_commitments()),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum PhysicalExprProof {
     ColumnProof(ColumnProof),
+    LiteralProof(LiteralProof),
     NegativeProof(NegativeProof),
     EqualityProof(EqualityProof),
     InequalityProof(InequalityProof),
@@ -25,8 +40,9 @@ pub enum PhysicalExprProof {
 impl PhysicalExprProof {
     pub fn get_output_commitments(&self) -> ProofResult<Commitment> {
         match &self {
-            PhysicalExprProof::NegativeProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::ColumnProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::LiteralProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::NegativeProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::EqualityProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::InequalityProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::OrProof(p) => Ok(p.get_output_commitments()),
@@ -57,6 +73,7 @@ impl ExecutionPlanProof {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum DataFusionProof {
+    AggregateExprProof(AggregateExprProof),
     PhysicalExprProof(PhysicalExprProof),
     ExecutionPlanProof(ExecutionPlanProof),
 }

@@ -1,6 +1,8 @@
 use crate::{
     base::{
         datafusion::{
+            impl_debug_display_for_phys_expr_wrapper, impl_physical_expr_for_provable,
+            impl_provable,
             DataFusionProof::{self, PhysicalExprProof as PhysicalExprProofEnumVariant},
             PhysicalExprProof::ColumnProof as ColumnProofEnumVariant,
             Provable, ProvablePhysicalExpr,
@@ -10,7 +12,7 @@ use crate::{
             ProofResult, Transcript,
         },
     },
-    pip::expressions::ColumnProof,
+    pip::physical_expr::ColumnProof,
 };
 use datafusion::{
     arrow::{
@@ -65,26 +67,15 @@ impl ProvablePhysicalExpr for ColumnWrapper {
 }
 
 impl Provable for ColumnWrapper {
+    impl_provable!(
+        ColumnProof,
+        PhysicalExprProofEnumVariant,
+        ColumnProofEnumVariant
+    );
+
     // Column does not have children by definition
     fn children(&self) -> &[Arc<dyn Provable>] {
         &[]
-    }
-    fn get_proof(&self) -> ProofResult<Arc<DataFusionProof>> {
-        self.proof
-            .read()
-            .into_proof_result()?
-            .clone()
-            .ok_or(ProofError::NoProofError)
-    }
-    fn set_proof(&self, proof: &Arc<DataFusionProof>) -> ProofResult<()> {
-        let typed_proof: &ColumnProof = match &**proof {
-            PhysicalExprProofEnumVariant(ColumnProofEnumVariant(p)) => p,
-            _ => return Err(ProofError::TypeError),
-        };
-        *self.proof.write().into_proof_result()? = Some(Arc::new(PhysicalExprProofEnumVariant(
-            ColumnProofEnumVariant(typed_proof.clone()),
-        )));
-        Ok(())
     }
     fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
         // Proofs are only meaningful after evaluation because
@@ -107,15 +98,8 @@ impl Provable for ColumnWrapper {
 }
 
 impl PhysicalExpr for ColumnWrapper {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn data_type(&self, input_schema: &Schema) -> datafusion::common::Result<DataType> {
-        self.raw.data_type(input_schema)
-    }
-    fn nullable(&self, input_schema: &Schema) -> datafusion::common::Result<bool> {
-        self.raw.nullable(input_schema)
-    }
+    impl_physical_expr_for_provable!();
+
     fn evaluate(&self, batch: &RecordBatch) -> datafusion::common::Result<ColumnarValue> {
         let result = self.raw.evaluate(batch);
         match result {
@@ -131,25 +115,7 @@ impl PhysicalExpr for ColumnWrapper {
     }
 }
 
-impl Display for ColumnWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.raw, f)
-    }
-}
-
-impl Debug for ColumnWrapper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ColumnWrapper")
-            .field("raw", &self.raw)
-            .field(
-                "output",
-                &(*self.output.read().map_err(|_| std::fmt::Error)?)
-                    .clone()
-                    .map(|cv| cv.into_array(1)),
-            )
-            .finish()
-    }
-}
+impl_debug_display_for_phys_expr_wrapper!(ColumnWrapper);
 
 #[cfg(test)]
 mod tests {

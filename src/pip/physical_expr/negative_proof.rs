@@ -1,7 +1,6 @@
 use crate::base::proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript};
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct NegativeProof {
     pub c_out: Commitment,
 }
