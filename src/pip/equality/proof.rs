@@ -38,16 +38,7 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for EqualityProof {
             (GeneralColumn::BooleanColumn(left), GeneralColumn::BooleanColumn(right)) => {
                 EqualityProof::prove(transcript, (left, right), output, input_commitment)
             }
-            (GeneralColumn::Int8Column(left), GeneralColumn::Int8Column(right)) => {
-                EqualityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int16Column(left), GeneralColumn::Int16Column(right)) => {
-                EqualityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int32Column(left), GeneralColumn::Int32Column(right)) => {
-                EqualityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int64Column(left), GeneralColumn::Int64Column(right)) => {
+            (GeneralColumn::SafeIntColumn(left), GeneralColumn::SafeIntColumn(right)) => {
                 EqualityProof::prove(transcript, (left, right), output, input_commitment)
             }
             _ => {

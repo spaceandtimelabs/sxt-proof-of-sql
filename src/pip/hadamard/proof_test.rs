@@ -48,21 +48,24 @@ fn test_helper_create(n: usize) {
 
     // verify fails if commit_a doesn't match
     let mut transcript = Transcript::new(b"hadamardtest");
-    let not_commitment_a = Commitment::from_compressed(CompressedRistretto::identity(), a_vec.len());
+    let not_commitment_a =
+        Commitment::from_compressed(CompressedRistretto::identity(), a_vec.len());
     assert!(proof
         .verify(&mut transcript, (not_commitment_a, commitment_b))
         .is_err());
 
     // verify fails if commit_b doesn't match
     let mut transcript = Transcript::new(b"hadamardtest");
-    let not_commitment_b = Commitment::from_compressed(CompressedRistretto::identity(), b_vec.len());
+    let not_commitment_b =
+        Commitment::from_compressed(CompressedRistretto::identity(), b_vec.len());
     assert!(proof
         .verify(&mut transcript, (commitment_a, not_commitment_b))
         .is_err());
 
     // verify fails if commit_ab doesn't match
     let mut bad_proof = proof.clone();
-    bad_proof.commit_ab = Commitment::from_compressed(CompressedRistretto::identity(), bad_proof.commit_ab.length);
+    bad_proof.commit_ab =
+        Commitment::from_compressed(CompressedRistretto::identity(), bad_proof.commit_ab.length);
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
         .verify(&mut transcript, (commitment_a, commitment_b))

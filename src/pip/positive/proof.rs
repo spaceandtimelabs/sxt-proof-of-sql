@@ -5,28 +5,29 @@ use std::iter::repeat;
 use crate::{
     base::{
         math::SignedBitDecompose,
-        proof::{Column, Commitment, PipProve, PipVerify, ProofError},
+        proof::{Column, Commit, Commitment, PipProve, PipVerify, ProofError},
         scalar::IntoScalar,
     },
     pip::hadamard::HadamardProof,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PositiveProof {
     pub c_decomposed_columns: Vec<Commitment>,
     pub bit_proof_decomposed_columns: Vec<HadamardProof>,
 }
 
-impl<T> PipProve<(Column<T>,), Column<bool>> for PositiveProof
+impl<I> PipProve<(I,), Column<bool>> for PositiveProof
 where
-    T: IntoScalar + SignedBitDecompose + Clone,
+    I: IntoIterator + Commit<Commitment = Commitment> + Clone,
+    I::Item: IntoScalar + SignedBitDecompose + Clone,
 {
     fn prove(
         //The merlin transcript for the prover
         transcript: &mut crate::base::proof::Transcript,
         //The inputs to the PIP
-        (input,): (Column<T>,),
+        (input,): (I,),
         //The output of the PIP. Note: these are not computed by the PIP itself. The PIP simply produces a proof that these are correct.
         output: Column<bool>,
         //The commitments of the inputs to the PIP. This is redundant since it can be computed from input_columns, but they will already have been computed
@@ -40,7 +41,7 @@ where
         }
         let commitments: Vec<_> = group_commitments
             .iter()
-            .map(|c| Commitment::from_compressed(*c, input.len()))
+            .map(|c| Commitment::from_compressed(*c, input.clone().into_iter().count()))
             .collect();
         let proofs = commitments
             .iter()
@@ -83,13 +84,14 @@ fn calculate_commitments(columns: &Vec<Vec<Scalar>>) -> Vec<CompressedRistretto>
 /// and
 ///
 /// `r[N][j] = output[j]` as a `Scalar`. (Note: this is also the sign of `input[j]` as a Scalar)
-fn decompose_input<T>(input: &Column<T>, output: Column<bool>) -> Vec<Vec<Scalar>>
+fn decompose_input<I>(input: &I, output: Column<bool>) -> Vec<Vec<Scalar>>
 where
-    T: SignedBitDecompose,
+    I: IntoIterator + Clone,
+    I::Item: SignedBitDecompose,
 {
     let scalar_output: Vec<Scalar> = output.iter().map(|&b| b.into_scalar()).collect();
     let mut columns: Vec<Vec<Scalar>> = Vec::new();
-    for (i, (value, positive)) in input.iter().zip(output.iter()).enumerate() {
+    for (i, (value, positive)) in input.clone().into_iter().zip(output.iter()).enumerate() {
         let bits = match positive {
             true => value.sub_one_bits(),
             false => value.neg_bits(),
@@ -181,7 +183,7 @@ impl PipVerify<(Commitment,), Commitment> for PositiveProof {
             if c_c.length != input_commitments.length {
                 return Err(ProofError::VerificationError);
             }
-            transcript.append_commitment(b"c_c", &c_c);
+            transcript.append_commitment(b"c_c", c_c);
         }
         let mut it = self.c_decomposed_columns.iter().rev();
         let mut recompose = match it.next() {

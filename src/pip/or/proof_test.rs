@@ -82,8 +82,8 @@ fn test_or_general() {
 #[test]
 #[should_panic]
 fn test_or_general_non_bool_input() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 0, 0, 1, 1].into());
-    let b = GeneralColumn::Int32Column(vec![1, 0, 1, 0, 1, 0].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 0, 0, 1, 1].into());
+    let b = GeneralColumn::SafeIntColumn(vec![1, 0, 1, 0, 1, 0].into());
     let c = GeneralColumn::BooleanColumn(vec![true, true, true, false, true, true].into());
 
     let c_a = a.commit();
@@ -98,7 +98,7 @@ fn test_or_general_non_bool_input() {
 fn test_or_general_non_bool_output() {
     let a = GeneralColumn::BooleanColumn(vec![true, true, false, false, true, true].into());
     let b = GeneralColumn::BooleanColumn(vec![true, false, true, false, true, false].into());
-    let c = GeneralColumn::Int32Column(vec![1, 1, 1, 0, 1, 1].into());
+    let c = GeneralColumn::SafeIntColumn(vec![1, 1, 1, 0, 1, 1].into());
 
     let c_a = a.commit();
     let c_b = b.commit();

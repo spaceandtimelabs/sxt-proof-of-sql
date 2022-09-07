@@ -54,19 +54,15 @@ impl PipVerify<(Vec<Commitment>,), Vec<Commitment>> for TrivialProof {
 mod tests {
 
     use super::*;
-    use crate::base::proof::{Column, Commit, GeneralColumn};
+    use crate::base::proof::{Commit, GeneralColumn};
 
     #[test]
     fn test_trivial_proof() {
         // Setup
         let table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![1, -2, -3],
-                }),
+                GeneralColumn::SafeIntColumn(vec![1, 2, 3].into()),
+                GeneralColumn::SafeIntColumn(vec![1, -2, -3].into()),
             ],
             num_rows: 3,
         };
@@ -91,12 +87,8 @@ mod tests {
         let mut transcript = Transcript::new(b"trivialtest");
         let wrong_table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![2, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![1, -2, -3],
-                }),
+                GeneralColumn::SafeIntColumn(vec![2, 2, 3].into()),
+                GeneralColumn::SafeIntColumn(vec![1, -2, -3].into()),
             ],
             num_rows: 3,
         };

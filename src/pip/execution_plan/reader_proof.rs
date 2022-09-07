@@ -40,19 +40,15 @@ impl PipVerify<(), Vec<Commitment>> for ReaderProof {
 mod tests {
 
     use super::*;
-    use crate::base::proof::{Column, Commit, GeneralColumn};
+    use crate::base::proof::{Commit, GeneralColumn};
 
     #[test]
     fn test_reader_proof() {
         // Setup
         let output = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![1, -2, -3],
-                }),
+                GeneralColumn::SafeIntColumn(vec![1, 2, 3].into()),
+                GeneralColumn::SafeIntColumn(vec![1, -2, -3].into()),
             ],
             num_rows: 3,
         };

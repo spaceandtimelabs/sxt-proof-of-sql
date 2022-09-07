@@ -3,19 +3,37 @@ use std::{
     slice,
 };
 
-use curve25519_dalek::{ristretto::{CompressedRistretto, RistrettoPoint}, scalar::Scalar, traits::Identity};
+use crate::base::scalar::SafeInt;
+
+use curve25519_dalek::{
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+    traits::Identity,
+};
 use pedersen::compute::{compute_commitments, update_commitment};
 
-use super::{Commit, ProofResult, ProofError};
+use super::{Commit, ProofError, ProofResult};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Commitment {
     //The actual commitment to a column/vector. It may make sense for this to be non compressed, and only serialized as compressed.
     commitment: CompressedRistretto,
     //The length of the column/vector.
     pub length: usize,
+    /// Keeps track of the log_max value for commitments of SafeInt columns.
+    /// See [crate::base::scalar::SafeIntColumn] for more details.
+    pub log_max: Option<u8>,
 }
+
+/// Similar to SafeInt, Commitment equality ignores the log_max value.
+impl PartialEq for Commitment {
+    fn eq(&self, other: &Self) -> bool {
+        self.commitment == other.commitment && self.length == other.length
+    }
+}
+
+impl Eq for Commitment {}
 
 impl Add for Commitment {
     type Output = Self;
@@ -26,6 +44,16 @@ impl Add for Commitment {
                 + rhs.commitment.decompress().unwrap())
             .compress(),
             length: self.length,
+            log_max: match (self.log_max, rhs.log_max) {
+                (Some(a), Some(b)) => match a.max(b).checked_add(1) {
+                    Some(log_max) if log_max <= SafeInt::LOG_MAX_MAX => Some(log_max),
+                    _ => {
+                        panic!("possible overflow, add a range check upstream")
+                    }
+                },
+                (None, None) => None,
+                _ => panic!("cannot add commitments with and without log_max values together"),
+            },
         }
     }
 }
@@ -39,6 +67,16 @@ impl Sub for Commitment {
                 - rhs.commitment.decompress().unwrap())
             .compress(),
             length: self.length,
+            log_max: match (self.log_max, rhs.log_max) {
+                (Some(a), Some(b)) => match a.max(b).checked_add(1) {
+                    Some(log_max) if log_max <= SafeInt::LOG_MAX_MAX => Some(log_max),
+                    _ => {
+                        panic!("possible overflow, add a range check upstream")
+                    }
+                },
+                (None, None) => None,
+                _ => panic!("cannot sub commitments with and without log_max values together"),
+            },
         }
     }
 }
@@ -48,7 +86,7 @@ impl Neg for Commitment {
     fn neg(self) -> Self::Output {
         Commitment {
             commitment: (-self.commitment.decompress().unwrap()).compress(),
-            length: self.length,
+            ..self
         }
     }
 }
@@ -60,16 +98,19 @@ impl From<&[Scalar]> for Commitment {
         Commitment {
             commitment,
             length: data.len(),
+            log_max: None,
         }
     }
 }
 
 impl Commitment {
     /// Returns a decompressed version of the commitment.
-    /// 
+    ///
     /// Panics if the compressed point is invalid.
     pub fn try_as_decompressed(&self) -> ProofResult<RistrettoPoint> {
-        self.commitment.decompress().ok_or(ProofError::DecompressionError)
+        self.commitment
+            .decompress()
+            .ok_or(ProofError::DecompressionError)
     }
 
     /// Returns a compressed version of the commitment.
@@ -78,12 +119,13 @@ impl Commitment {
     }
 
     /// Creates a Commitment from a compressed point.
-    /// 
+    ///
     /// Panics if the compressed point is invalid.
     pub fn from_compressed(compressed: CompressedRistretto, length: usize) -> Self {
         let c = Commitment {
             commitment: compressed,
             length,
+            log_max: None,
         };
         assert!(c.commitment.decompress().is_some());
         c
@@ -96,6 +138,7 @@ impl Commitment {
         Commitment {
             commitment,
             length: a.len() + offset_generators,
+            log_max: None,
         }
     }
 
@@ -106,5 +149,21 @@ impl Commitment {
                 .collect::<Vec<_>>(),
         )
         .commit()
+    }
+
+    /// Returns this [Commitment], but with the provided log_max value
+    pub fn with_log_max(self, log_max: u8) -> Commitment {
+        Commitment {
+            log_max: Some(log_max),
+            ..self
+        }
+    }
+
+    /// Returns this [Commitment], but with no log_max value
+    pub fn without_log_max(self) -> Commitment {
+        Commitment {
+            log_max: None,
+            ..self
+        }
     }
 }

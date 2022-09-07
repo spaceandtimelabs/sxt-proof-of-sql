@@ -105,6 +105,8 @@ fn verify_proof(
     c_p: Commitment,
 ) -> Result<(), ProofError> {
     let c_z = c_a - c_b;
+    // Immutably ignore the log max value for future arithmetic to avoid panics
+    let c_b = c_b.without_log_max();
 
     transcript.append_commitment(b"c_c", &proof.c_c);
     proof.proof_pzy.verify(transcript, (c_p, c_z))?;
