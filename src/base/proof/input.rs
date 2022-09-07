@@ -2,7 +2,7 @@
 /// from Arrow Arrays, RecordBatches as well as Datafusion ColumnarValues into them.
 use crate::base::{
     proof::{Commit, Commitment, ProofError, ProofResult},
-    scalar::IntoScalar,
+    scalar::{IntoScalar, SafeIntColumn},
 };
 use curve25519_dalek::scalar::Scalar;
 use datafusion::{
@@ -11,7 +11,10 @@ use datafusion::{
             Array, ArrayRef, BooleanArray, Int16Array, Int32Array, Int64Array, Int8Array,
             PrimitiveArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array,
         },
-        datatypes::{ArrowPrimitiveType, DataType::*},
+        datatypes::{
+            ArrowPrimitiveType, DataType::*, Int16Type, Int32Type, Int64Type, Int8Type, UInt16Type,
+            UInt32Type, UInt64Type, UInt8Type,
+        },
         record_batch::RecordBatch,
     },
     physical_plan::ColumnarValue,
@@ -76,28 +79,14 @@ impl<T> IntoIterator for Column<T> {
 #[try_into(owned, ref, ref_mut)]
 pub enum GeneralColumn {
     BooleanColumn(Column<bool>),
-    Int8Column(Column<i8>),
-    Int16Column(Column<i16>),
-    Int32Column(Column<i32>),
-    Int64Column(Column<i64>),
-    UInt8Column(Column<u8>),
-    UInt16Column(Column<u16>),
-    UInt32Column(Column<u32>),
-    UInt64Column(Column<u64>),
+    SafeIntColumn(SafeIntColumn),
 }
 
 impl GeneralColumn {
     pub fn len(&self) -> usize {
         match self {
             GeneralColumn::BooleanColumn(c) => c.data.len(),
-            GeneralColumn::Int8Column(c) => c.data.len(),
-            GeneralColumn::Int16Column(c) => c.data.len(),
-            GeneralColumn::Int32Column(c) => c.data.len(),
-            GeneralColumn::Int64Column(c) => c.data.len(),
-            GeneralColumn::UInt8Column(c) => c.data.len(),
-            GeneralColumn::UInt16Column(c) => c.data.len(),
-            GeneralColumn::UInt32Column(c) => c.data.len(),
-            GeneralColumn::UInt64Column(c) => c.data.len(),
+            GeneralColumn::SafeIntColumn(c) => c.len(),
         }
     }
 
@@ -112,14 +101,7 @@ impl Commit for GeneralColumn {
     fn commit(&self) -> Self::Commitment {
         match self {
             GeneralColumn::BooleanColumn(c) => c.commit(),
-            GeneralColumn::Int8Column(c) => c.commit(),
-            GeneralColumn::Int16Column(c) => c.commit(),
-            GeneralColumn::Int32Column(c) => c.commit(),
-            GeneralColumn::Int64Column(c) => c.commit(),
-            GeneralColumn::UInt8Column(c) => c.commit(),
-            GeneralColumn::UInt16Column(c) => c.commit(),
-            GeneralColumn::UInt32Column(c) => c.commit(),
-            GeneralColumn::UInt64Column(c) => c.commit(),
+            GeneralColumn::SafeIntColumn(c) => c.commit(),
         }
     }
 }
@@ -132,43 +114,8 @@ impl From<GeneralColumn> for Column<Scalar> {
                 .map(|ci| ci.into_scalar())
                 .collect::<Vec<_>>()
                 .into(),
-            GeneralColumn::Int8Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::Int16Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::Int32Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::Int64Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::UInt8Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::UInt16Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::UInt32Column(col) => col
-                .iter()
-                .map(|ci| ci.into_scalar())
-                .collect::<Vec<_>>()
-                .into(),
-            GeneralColumn::UInt64Column(col) => col
-                .iter()
+            GeneralColumn::SafeIntColumn(col) => col
+                .into_iter()
                 .map(|ci| ci.into_scalar())
                 .collect::<Vec<_>>()
                 .into(),
@@ -242,8 +189,61 @@ where
     }
 }
 
+macro_rules! safe_int_column_try_from_primitive_array {
+    ($arrow_primitive_type:ty, $unsigned_type:ty, $log_max:literal, signed) => {
+        impl TryFrom<&PrimitiveArray<$arrow_primitive_type>> for SafeIntColumn {
+            type Error = ProofError;
+            fn try_from(data: &PrimitiveArray<$arrow_primitive_type>) -> ProofResult<Self> {
+                if data.null_count() > 0 {
+                    Err(ProofError::NullabilityError)
+                } else {
+                    let len = data.len();
+                    let vec: Vec<Scalar> = (0..len)
+                        .map(|index| data.value(index))
+                        .map(|value| {
+                            if value >= 0 {
+                                Scalar::from(value as $unsigned_type)
+                            } else {
+                                -Scalar::from(-value as $unsigned_type)
+                            }
+                        })
+                        .collect();
+                    Ok(SafeIntColumn::try_new(vec, $log_max)?)
+                }
+            }
+        }
+    };
+    ($arrow_primitive_type:ty, $log_max:literal, unsigned) => {
+        impl TryFrom<&PrimitiveArray<$arrow_primitive_type>> for SafeIntColumn {
+            type Error = ProofError;
+            fn try_from(data: &PrimitiveArray<$arrow_primitive_type>) -> ProofResult<Self> {
+                if data.null_count() > 0 {
+                    Err(ProofError::NullabilityError)
+                } else {
+                    let len = data.len();
+                    let vec: Vec<Scalar> = (0..len)
+                        .map(|index| data.value(index))
+                        .map(Scalar::from)
+                        .collect();
+                    Ok(SafeIntColumn::try_new(vec, $log_max)?)
+                }
+            }
+        }
+    };
+}
+
+safe_int_column_try_from_primitive_array!(Int8Type, u8, 7, signed);
+safe_int_column_try_from_primitive_array!(Int16Type, u8, 15, signed);
+safe_int_column_try_from_primitive_array!(Int32Type, u16, 31, signed);
+safe_int_column_try_from_primitive_array!(Int64Type, u32, 63, signed);
+
+safe_int_column_try_from_primitive_array!(UInt8Type, 8, unsigned);
+safe_int_column_try_from_primitive_array!(UInt16Type, 16, unsigned);
+safe_int_column_try_from_primitive_array!(UInt32Type, 32, unsigned);
+safe_int_column_try_from_primitive_array!(UInt64Type, 64, unsigned);
+
 macro_rules! column_try_from_columnar_value {
-    ($arrow_type:ty, $native_type:ty, $arrow_array_type:ty) => {
+    ($native_type:ty, $arrow_array_type:ty) => {
         impl TryFrom<&ColumnarValue> for Column<$native_type> {
             type Error = ProofError;
             fn try_from(data: &ColumnarValue) -> ProofResult<Self> {
@@ -283,15 +283,79 @@ macro_rules! column_try_from_columnar_value {
     };
 }
 
-column_try_from_columnar_value!(BooleanType, bool, BooleanArray);
-column_try_from_columnar_value!(UInt8Type, u8, UInt8Array);
-column_try_from_columnar_value!(UInt16Type, u16, UInt16Array);
-column_try_from_columnar_value!(UInt32Type, u32, UInt32Array);
-column_try_from_columnar_value!(UInt64Type, u64, UInt64Array);
-column_try_from_columnar_value!(Int8Type, i8, Int8Array);
-column_try_from_columnar_value!(Int16Type, i16, Int16Array);
-column_try_from_columnar_value!(Int32Type, i32, Int32Array);
-column_try_from_columnar_value!(Int64Type, i64, Int64Array);
+column_try_from_columnar_value!(bool, BooleanArray);
+
+impl TryFrom<&ColumnarValue> for SafeIntColumn {
+    type Error = ProofError;
+    fn try_from(data: &ColumnarValue) -> ProofResult<Self> {
+        match data {
+            ColumnarValue::Array(arr) => {
+                let any = arr.as_any();
+                match arr.data_type() {
+                    UInt8 => {
+                        let pa = any
+                            .downcast_ref::<UInt8Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    UInt16 => {
+                        let pa = any
+                            .downcast_ref::<UInt16Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    UInt32 => {
+                        let pa = any
+                            .downcast_ref::<UInt32Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    UInt64 => {
+                        let pa = any
+                            .downcast_ref::<UInt64Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    Int8 => {
+                        let pa = any
+                            .downcast_ref::<Int8Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    Int16 => {
+                        let pa = any
+                            .downcast_ref::<Int16Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    Int32 => {
+                        let pa = any
+                            .downcast_ref::<Int32Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    Int64 => {
+                        let pa = any
+                            .downcast_ref::<Int64Array>()
+                            .ok_or(ProofError::TypeError)?;
+                        SafeIntColumn::try_from(pa)
+                    }
+                    _ => Err(ProofError::TypeError),
+                }
+            }
+            // num_rows needed for Scalars. See the try_from function below.
+            _ => Err(ProofError::TypeError),
+        }
+    }
+}
+
+impl TryFrom<(&ColumnarValue, usize)> for SafeIntColumn {
+    type Error = ProofError;
+    fn try_from(data: (&ColumnarValue, usize)) -> ProofResult<Self> {
+        let array = data.0.clone().into_array(data.1);
+        SafeIntColumn::try_from(&ColumnarValue::Array(array))
+    }
+}
 
 /// ArrayRef and ColumnarValue to GeneralColumn
 
@@ -304,42 +368,42 @@ impl TryFrom<&ArrayRef> for GeneralColumn {
                     .downcast_ref::<BooleanArray>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            Int8 => Ok(GeneralColumn::Int8Column(Column::try_from(
+            Int8 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<Int8Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            Int16 => Ok(GeneralColumn::Int16Column(Column::try_from(
+            Int16 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<Int16Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            Int32 => Ok(GeneralColumn::Int32Column(Column::try_from(
+            Int32 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<Int32Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            Int64 => Ok(GeneralColumn::Int64Column(Column::try_from(
+            Int64 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<Int64Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            UInt8 => Ok(GeneralColumn::UInt8Column(Column::try_from(
+            UInt8 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<UInt8Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            UInt16 => Ok(GeneralColumn::UInt16Column(Column::try_from(
+            UInt16 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<UInt16Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            UInt32 => Ok(GeneralColumn::UInt32Column(Column::try_from(
+            UInt32 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<UInt32Array>()
                     .ok_or(ProofError::TypeError)?,
             )?)),
-            UInt64 => Ok(GeneralColumn::UInt64Column(Column::try_from(
+            UInt64 => Ok(GeneralColumn::SafeIntColumn(SafeIntColumn::try_from(
                 data.as_any()
                     .downcast_ref::<UInt64Array>()
                     .ok_or(ProofError::TypeError)?,
@@ -468,50 +532,41 @@ mod tests {
 
     #[test]
     fn test_generalcolumn_length() {
-        let general_column = GeneralColumn::Int16Column(Column {
-            data: vec![1, 2, 3],
-        });
+        let general_column =
+            GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1i16, 2i16, 3i16]));
         assert_eq!(general_column.len(), 3);
     }
 
     #[test]
     fn test_generalcolumn_length_empty() {
-        let general_column = GeneralColumn::Int8Column(Column { data: vec![] });
+        let general_column = GeneralColumn::SafeIntColumn(SafeIntColumn::from(Vec::<i8>::new()));
         assert_eq!(general_column.len(), 0);
     }
 
     #[test]
     fn test_generalcolumn_is_empty_true() {
-        let general_column = GeneralColumn::Int64Column(Column { data: vec![] });
+        let general_column = GeneralColumn::SafeIntColumn(SafeIntColumn::from(Vec::<i64>::new()));
         assert_eq!(general_column.is_empty(), true);
     }
 
     #[test]
     fn test_generalcolumn_is_empty_false() {
-        let general_column = GeneralColumn::Int16Column(Column {
-            data: vec![-1, -2, -3],
-        });
+        let general_column =
+            GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![-1i16, -2i16, -3i16]));
         assert_eq!(general_column.is_empty(), false);
     }
 
     #[test]
     fn test_table_try_new() {
-        let general_column0 = GeneralColumn::Int16Column(Column {
-            data: vec![-1, -2, -3],
-        });
-        let general_column1 = GeneralColumn::Int32Column(Column {
-            data: vec![1, 2, 3],
-        });
+        let general_column0 =
+            GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![-1i16, -2i16, -3i16]));
+        let general_column1 = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1, 2, 3]));
         let general_columns = vec![general_column0, general_column1];
         let actual = Table::try_new(general_columns, 3).unwrap();
         let expected = Table {
             data: vec![
-                GeneralColumn::Int16Column(Column {
-                    data: vec![-1, -2, -3],
-                }),
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
+                GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![-1i16, -2i16, -3i16])),
+                GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1, 2, 3])),
             ],
             num_rows: 3,
         };
@@ -532,10 +587,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_table_try_new_failed_incompatible_lengths() {
-        let general_column0 = GeneralColumn::Int16Column(Column { data: vec![-1, -2] });
-        let general_column1 = GeneralColumn::Int32Column(Column {
-            data: vec![1, 2, 3],
-        });
+        let general_column0 = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![-1i16, -2i16]));
+        let general_column1 = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1, 2, 3]));
         let general_columns = vec![general_column0, general_column1];
         Table::try_new(general_columns, 3).unwrap();
     }
@@ -543,12 +596,9 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_table_try_new_failed_wrong_num_rows() {
-        let general_column0 = GeneralColumn::Int16Column(Column {
-            data: vec![-1, -2, 3],
-        });
-        let general_column1 = GeneralColumn::Int32Column(Column {
-            data: vec![1, 2, 3],
-        });
+        let general_column0 =
+            GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![-1i16, -2i16, 3i16]));
+        let general_column1 = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1, 2, 3]));
         let general_columns = vec![general_column0, general_column1];
         Table::try_new(general_columns, 2).unwrap();
     }
@@ -588,10 +638,15 @@ mod tests {
     fn test_i64array_columnarvalue_to_column() {
         let arr: Int64Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 2));
         let columnar_value = ColumnarValue::Array(Arc::new(arr));
-        let actual: Column<i64> = Column::try_from(&columnar_value).unwrap();
-        let expected: Column<i64> = Column {
-            data: vec![2, 3, 4, 5, 6, 7, 8],
-        };
+        let actual = SafeIntColumn::try_from(&columnar_value).unwrap();
+        let expected = SafeIntColumn::try_new(
+            vec![2u32, 3u32, 4u32, 5u32, 6u32, 7u32, 8u32]
+                .into_iter()
+                .map(Scalar::from)
+                .collect(),
+            63,
+        )
+        .unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -599,10 +654,15 @@ mod tests {
     fn test_u16array_columnarvalue_to_column() {
         let arr: UInt16Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 2));
         let columnar_value = ColumnarValue::Array(Arc::new(arr));
-        let actual: Column<u16> = Column::try_from(&columnar_value).unwrap();
-        let expected: Column<u16> = Column {
-            data: vec![2, 3, 4, 5, 6, 7, 8],
-        };
+        let actual = SafeIntColumn::try_from(&columnar_value).unwrap();
+        let expected = SafeIntColumn::try_new(
+            vec![2u32, 3u32, 4u32, 5u32, 6u32, 7u32, 8u32]
+                .into_iter()
+                .map(Scalar::from)
+                .collect(),
+            16,
+        )
+        .unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -611,17 +671,22 @@ mod tests {
     fn test_u32scalar_columnarvalue_to_column_failed() {
         let scalar = ScalarValue::UInt32(Some(20));
         let columnar_value = ColumnarValue::Scalar(scalar);
-        let _column: Column<u32> = Column::try_from(&columnar_value).unwrap();
+        let _column = SafeIntColumn::try_from(&columnar_value).unwrap();
     }
 
     #[test]
     fn test_i64array_columnarvalue_to_column_with_num_rows() {
         let arr: Int64Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 3));
         let columnar_value = ColumnarValue::Array(Arc::new(arr));
-        let actual: Column<i64> = Column::try_from((&columnar_value, 7)).unwrap();
-        let expected: Column<i64> = Column {
-            data: vec![3, 4, 5, 6, 7, 8, 9],
-        };
+        let actual = SafeIntColumn::try_from((&columnar_value, 7)).unwrap();
+        let expected = SafeIntColumn::try_new(
+            vec![3u32, 4u32, 5u32, 6u32, 7u32, 8u32, 9u32]
+                .into_iter()
+                .map(Scalar::from)
+                .collect(),
+            63,
+        )
+        .unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -629,8 +694,8 @@ mod tests {
     fn test_u32scalar_columnarvalue_to_column_with_num_rows() {
         let scalar = ScalarValue::UInt32(Some(20));
         let columnar_value = ColumnarValue::Scalar(scalar);
-        let actual: Column<u32> = Column::try_from((&columnar_value, 5)).unwrap();
-        let expected: Column<u32> = Column { data: vec![20; 5] };
+        let actual = SafeIntColumn::try_from((&columnar_value, 5)).unwrap();
+        let expected = SafeIntColumn::try_new(vec![Scalar::from(20u32); 5], 32).unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -639,9 +704,16 @@ mod tests {
         let arr: Int16Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 2));
         let arc_arr: ArrayRef = Arc::new(arr);
         let actual: GeneralColumn = GeneralColumn::try_from(&arc_arr).unwrap();
-        let expected: GeneralColumn = GeneralColumn::Int16Column(Column {
-            data: vec![2, 3, 4, 5, 6, 7, 8],
-        });
+        let expected: GeneralColumn = GeneralColumn::SafeIntColumn(
+            SafeIntColumn::try_new(
+                vec![2u32, 3u32, 4u32, 5u32, 6u32, 7u32, 8u32]
+                    .into_iter()
+                    .map(Scalar::from)
+                    .collect(),
+                15,
+            )
+            .unwrap(),
+        );
         assert_eq!(actual, expected);
     }
 
@@ -658,9 +730,16 @@ mod tests {
         let arr: Int16Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 2));
         let columnar_value = ColumnarValue::Array(Arc::new(arr));
         let actual: GeneralColumn = GeneralColumn::try_from(&columnar_value).unwrap();
-        let expected: GeneralColumn = GeneralColumn::Int16Column(Column {
-            data: vec![2, 3, 4, 5, 6, 7, 8],
-        });
+        let expected: GeneralColumn = GeneralColumn::SafeIntColumn(
+            SafeIntColumn::try_new(
+                vec![2u32, 3u32, 4u32, 5u32, 6u32, 7u32, 8u32]
+                    .into_iter()
+                    .map(Scalar::from)
+                    .collect(),
+                15,
+            )
+            .unwrap(),
+        );
         assert_eq!(actual, expected);
     }
 
@@ -677,9 +756,16 @@ mod tests {
         let arr: Int64Array = PrimitiveArray::from_iter_values((0..7).map(|x| x + 2));
         let columnar_value = ColumnarValue::Array(Arc::new(arr));
         let actual: GeneralColumn = GeneralColumn::try_from((&columnar_value, 7)).unwrap();
-        let expected: GeneralColumn = GeneralColumn::Int64Column(Column {
-            data: vec![2, 3, 4, 5, 6, 7, 8],
-        });
+        let expected: GeneralColumn = GeneralColumn::SafeIntColumn(
+            SafeIntColumn::try_new(
+                vec![2u32, 3u32, 4u32, 5u32, 6u32, 7u32, 8u32]
+                    .into_iter()
+                    .map(Scalar::from)
+                    .collect(),
+                63,
+            )
+            .unwrap(),
+        );
         assert_eq!(actual, expected);
     }
 
@@ -688,7 +774,9 @@ mod tests {
         let scalar = ScalarValue::Int8(Some(50));
         let columnar_value = ColumnarValue::Scalar(scalar);
         let actual: GeneralColumn = GeneralColumn::try_from((&columnar_value, 7)).unwrap();
-        let expected: GeneralColumn = GeneralColumn::Int8Column(Column { data: vec![50; 7] });
+        let expected: GeneralColumn = GeneralColumn::SafeIntColumn(
+            SafeIntColumn::try_new(vec![Scalar::from(50u32); 7], 7).unwrap(),
+        );
         assert_eq!(actual, expected);
     }
 
@@ -709,12 +797,23 @@ mod tests {
         let actual: Table = Table::try_from(&batch).unwrap();
         let expected: Table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![1, -2, -3],
-                }),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![1u32, 2u32, 3u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        31,
+                    )
+                    .unwrap(),
+                ),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![Scalar::from(1u32), -Scalar::from(2u32), -Scalar::from(3u32)],
+                        63,
+                    )
+                    .unwrap(),
+                ),
                 GeneralColumn::BooleanColumn(Column {
                     data: vec![true, false, true],
                 }),
@@ -749,12 +848,26 @@ mod tests {
         let actual: Table = Table::try_from(&arrays).unwrap();
         let expected: Table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![5, 7, 9],
-                }),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![1u32, 2u32, 3u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        31,
+                    )
+                    .unwrap(),
+                ),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![5u32, 7u32, 9u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        63,
+                    )
+                    .unwrap(),
+                ),
                 GeneralColumn::BooleanColumn(Column {
                     data: vec![false, false, true],
                 }),
@@ -802,12 +915,26 @@ mod tests {
         let actual: Table = Table::try_from((&arrays, 3)).unwrap();
         let expected: Table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![5, 7, 9],
-                }),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![1u32, 2u32, 3u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        31,
+                    )
+                    .unwrap(),
+                ),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![5u32, 7u32, 9u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        63,
+                    )
+                    .unwrap(),
+                ),
                 GeneralColumn::BooleanColumn(Column {
                     data: vec![false, false, true],
                 }),
@@ -876,12 +1003,23 @@ mod tests {
         let actual: Table = Table::try_from(&columnar_values).unwrap();
         let expected: Table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![5, 7, -9],
-                }),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![1u32, 2u32, 3u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        31,
+                    )
+                    .unwrap(),
+                ),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![Scalar::from(5u32), Scalar::from(7u32), -Scalar::from(9u32)],
+                        63,
+                    )
+                    .unwrap(),
+                ),
                 GeneralColumn::BooleanColumn(Column {
                     data: vec![true, false, false],
                 }),
@@ -929,12 +1067,26 @@ mod tests {
         let actual: Table = Table::try_from((&columnar_values, 3)).unwrap();
         let expected: Table = Table {
             data: vec![
-                GeneralColumn::Int32Column(Column {
-                    data: vec![1, 2, 3],
-                }),
-                GeneralColumn::Int64Column(Column {
-                    data: vec![20, 20, 20],
-                }),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![1u32, 2u32, 3u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        31,
+                    )
+                    .unwrap(),
+                ),
+                GeneralColumn::SafeIntColumn(
+                    SafeIntColumn::try_new(
+                        vec![20u32, 20u32, 20u32]
+                            .into_iter()
+                            .map(Scalar::from)
+                            .collect(),
+                        63,
+                    )
+                    .unwrap(),
+                ),
             ],
             num_rows: 3,
         };

@@ -138,6 +138,16 @@ impl Transcript {
         self.0.append_message(b"dom-sep", b"negative v1");
     }
 
+    pub fn binary_range_domain_sep(&mut self, b: u8) {
+        self.0.append_message(b"dom-sep", b"binrange v1");
+        self.0.append_u64(b"b", b as u64)
+    }
+
+    pub fn log_max_reduction_domain_sep(&mut self, b: u8) {
+        self.0.append_message(b"dom-sep", b"logmaxreduction v1");
+        self.0.append_u64(b"b", b as u64)
+    }
+
     pub fn column_domain_sep(&mut self) {
         self.0.append_message(b"dom-sep", b"column v1");
     }

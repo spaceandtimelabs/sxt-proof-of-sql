@@ -10,3 +10,6 @@ pub use inner_product::inner_product;
 
 mod into_scalar;
 pub use into_scalar::IntoScalar;
+
+mod safe_int;
+pub use safe_int::{SafeInt, SafeIntColumn, SafeIntError};

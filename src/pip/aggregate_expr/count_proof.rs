@@ -1,5 +1,8 @@
-use crate::base::proof::{
-    Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+use crate::base::{
+    proof::{
+        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+    },
+    scalar::SafeInt,
 };
 
 #[derive(Clone, Debug)]
@@ -20,18 +23,11 @@ impl PipProve<(GeneralColumn,), GeneralColumn> for CountProof {
         let c_in = input_commitment.0;
         assert_eq!(output.len(), 1);
         let output_as_length = match output.clone() {
-            GeneralColumn::Int8Column(c) => c.data[0] as i64,
-            GeneralColumn::Int16Column(c) => c.data[0] as i64,
-            GeneralColumn::Int32Column(c) => c.data[0] as i64,
-            GeneralColumn::Int64Column(c) => c.data[0] as i64,
-            GeneralColumn::UInt8Column(c) => c.data[0] as i64,
-            GeneralColumn::UInt16Column(c) => c.data[0] as i64,
-            GeneralColumn::UInt32Column(c) => c.data[0] as i64,
-            GeneralColumn::UInt64Column(c) => c.data[0] as i64,
+            GeneralColumn::SafeIntColumn(c) => c.get(0).unwrap(),
             _ => panic!("The result of Count has to be an integer"),
         };
         assert_eq!(length, c_in.length as i64);
-        assert_eq!(length, output_as_length);
+        assert_eq!(SafeInt::from(length), output_as_length);
         transcript.count_domain_sep();
         let c_count = output.commit();
         transcript.append_commitment(b"c_count", &c_count);
@@ -71,13 +67,12 @@ impl PipVerify<(Commitment,), Commitment> for CountProof {
 mod tests {
 
     use super::*;
+    use crate::base::scalar::SafeIntColumn;
 
     #[test]
     fn test_count_proof() {
-        let input = GeneralColumn::Int32Column(Column {
-            data: vec![1, -2, 3],
-        });
-        let output = GeneralColumn::Int64Column(Column { data: vec![3] });
+        let input = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![1, -2, 3]));
+        let output = GeneralColumn::SafeIntColumn(SafeIntColumn::from(vec![3]));
 
         let mut transcript = Transcript::new(b"counttest");
         let c_in = input.commit();

@@ -1,3 +1,4 @@
+use crate::base::scalar::SafeIntError;
 use datafusion::{
     arrow::error::{ArrowError, Result as ArrowResult},
     common::{DataFusionError, Result as DataFusionResult},
@@ -46,6 +47,9 @@ pub enum ProofError {
     /// Datafusion error
     #[error("Datafusion error found.")]
     DataFusionError(#[from] DataFusionError),
+    /// SafeInt error
+    #[error("SafeInt error found.")]
+    SafeIntError(#[from] SafeIntError),
     /// A compressed Ristretto point could not be decompressed.
     #[error("A compressed Ristretto point could not be decompressed.")]
     DecompressionError,

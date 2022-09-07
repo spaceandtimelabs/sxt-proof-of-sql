@@ -28,10 +28,10 @@ fn test_append() {
     let c_a2 = c_a1.update_append_commitment(&c);
     let c_b2 = c_b1.update_append_commitment(&d);
 
-    let mut ac = a.clone();
+    let mut ac = a;
     ac.extend(c);
 
-    let mut bd = b.clone();
+    let mut bd = b;
     bd.extend(d);
 
     let c_ac = Commitment::from(&ac[..]);

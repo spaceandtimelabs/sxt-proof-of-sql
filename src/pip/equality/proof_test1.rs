@@ -90,8 +90,8 @@ fn test_equality_non_scalar() {
 
 #[test]
 fn test_equality_general() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::SafeIntColumn(vec![1, -1, -2, 2, 3, 0].into());
     let output = GeneralColumn::BooleanColumn(vec![true, false, false, true, false, true].into());
 
     let c_a = a.commit();
@@ -124,9 +124,9 @@ fn test_equality_general() {
 #[test]
 #[should_panic]
 fn test_equality_general_mismatched_inputs() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int16Column(vec![1, -1, -2, 2, 3, 0].into());
-    let output = GeneralColumn::BooleanColumn(vec![true, false, false, true, false, true].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::BooleanColumn(vec![true, false, true, false, true, false].into());
+    let output = GeneralColumn::BooleanColumn(vec![true, false, false, false, false, true].into());
 
     let c_a = a.commit();
     let c_b = b.commit();
@@ -138,9 +138,9 @@ fn test_equality_general_mismatched_inputs() {
 #[test]
 #[should_panic]
 fn test_equality_general_non_bool_output() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
-    let output = GeneralColumn::Int32Column(vec![1, 0, 0, 1, 0, 1].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::SafeIntColumn(vec![1, -1, -2, 2, 3, 0].into());
+    let output = GeneralColumn::SafeIntColumn(vec![1, 0, 0, 1, 0, 1].into());
 
     let c_a = a.commit();
     let c_b = b.commit();
