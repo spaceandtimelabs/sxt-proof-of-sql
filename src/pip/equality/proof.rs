@@ -129,8 +129,8 @@ where
     let c_c = Commitment::from(c_vec.as_slice());
     let c_e = Commitment::from(e_scalar.as_slice());
     let c_z = c_a - c_b;
-    transcript.append_point(b"c_c", &c_c.commitment);
-    transcript.append_point(b"c_e", &c_e.commitment);
+    transcript.append_commitment(b"c_c", &c_c);
+    transcript.append_commitment(b"c_e", &c_e);
     let proof_ez0 = HadamardProof::prove(
         transcript,
         (
@@ -184,8 +184,8 @@ fn verify_proof(
 
     let c_d = c_1 - proof.c_e;
     let c_z = c_a - c_b;
-    transcript.append_point(b"c_c", &proof.c_c.commitment);
-    transcript.append_point(b"c_e", &proof.c_e.commitment);
+    transcript.append_commitment(b"c_c", &proof.c_c);
+    transcript.append_commitment(b"c_e", &proof.c_e);
     proof.proof_ez0.verify(transcript, (proof.c_e, c_z))?;
     proof.proof_czd.verify(transcript, (proof.c_c, c_z))?;
     if proof.proof_ez0.commit_ab != c_0 || proof.proof_czd.commit_ab != c_d {

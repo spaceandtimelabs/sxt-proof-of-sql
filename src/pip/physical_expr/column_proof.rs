@@ -16,7 +16,7 @@ impl PipProve<(), GeneralColumn> for ColumnProof {
     ) -> Self {
         transcript.column_domain_sep();
         let c_out = output.commit();
-        transcript.append_point(b"c_out", &c_out.commitment);
+        transcript.append_commitment(b"c_out", &c_out);
         ColumnProof { c_out }
     }
 }
@@ -28,7 +28,7 @@ impl PipVerify<(), Commitment> for ColumnProof {
         _input_commitments: (),
     ) -> Result<(), ProofError> {
         transcript.column_domain_sep();
-        transcript.append_point(b"c_out", &self.c_out.commitment);
+        transcript.append_commitment(b"c_out", &self.c_out);
         Ok(())
     }
     fn get_output_commitments(&self) -> Commitment {

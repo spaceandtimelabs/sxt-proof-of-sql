@@ -19,16 +19,10 @@ fn test_helper_create(n: usize) {
 
     let mut c_a = CompressedRistretto::identity();
     compute_commitments(slice::from_mut(&mut c_a), &[&a_vec[..]]);
-    let commitment_a = Commitment {
-        commitment: c_a,
-        length: a_vec.len(),
-    };
+    let commitment_a = Commitment::from_compressed(c_a, a_vec.len());
     let mut c_b = CompressedRistretto::identity();
     compute_commitments(slice::from_mut(&mut c_b), &[&b_vec[..]]);
-    let commitment_b = Commitment {
-        commitment: c_b,
-        length: b_vec.len(),
-    };
+    let commitment_b = Commitment::from_compressed(c_b, b_vec.len());
 
     let mut transcript = Transcript::new(b"hadamardtest");
     let proof = HadamardProof::prove(
@@ -54,27 +48,21 @@ fn test_helper_create(n: usize) {
 
     // verify fails if commit_a doesn't match
     let mut transcript = Transcript::new(b"hadamardtest");
-    let not_commitment_a = Commitment {
-        commitment: CompressedRistretto::identity(),
-        length: a_vec.len(),
-    };
+    let not_commitment_a = Commitment::from_compressed(CompressedRistretto::identity(), a_vec.len());
     assert!(proof
         .verify(&mut transcript, (not_commitment_a, commitment_b))
         .is_err());
 
     // verify fails if commit_b doesn't match
     let mut transcript = Transcript::new(b"hadamardtest");
-    let not_commitment_b = Commitment {
-        commitment: CompressedRistretto::identity(),
-        length: b_vec.len(),
-    };
+    let not_commitment_b = Commitment::from_compressed(CompressedRistretto::identity(), b_vec.len());
     assert!(proof
         .verify(&mut transcript, (commitment_a, not_commitment_b))
         .is_err());
 
     // verify fails if commit_ab doesn't match
     let mut bad_proof = proof.clone();
-    bad_proof.commit_ab.commitment = CompressedRistretto::identity();
+    bad_proof.commit_ab = Commitment::from_compressed(CompressedRistretto::identity(), bad_proof.commit_ab.length);
     let mut transcript = Transcript::new(b"hadamardtest");
     assert!(bad_proof
         .verify(&mut transcript, (commitment_a, commitment_b))
@@ -115,10 +103,7 @@ fn test_zero_proof() {
     let n = 1;
     let a_vec = vec![Scalar::zero(); n];
 
-    let commitment = Commitment {
-        commitment: CompressedRistretto::identity(),
-        length: a_vec.len(),
-    };
+    let commitment = Commitment::from_compressed(CompressedRistretto::identity(), a_vec.len());
 
     let mut transcript = Transcript::new(b"hadamardtest");
     let proof = HadamardProof::prove(
