@@ -70,7 +70,7 @@ where
         transcript.addition_domain_sep(a.len() as u64);
 
         let c_sum = c_a + c_b;
-        transcript.append_point(b"c_sum", &c_sum.commitment);
+        transcript.append_commitment(b"c_sum", &c_sum);
         AdditionProof { c_sum }
     }
 }
@@ -84,7 +84,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for AdditionProof {
         let (c_a, c_b) = input_commitments;
         transcript.addition_domain_sep(c_a.length as u64);
 
-        transcript.append_point(b"c_sum", &self.c_sum.commitment);
+        transcript.append_commitment(b"c_sum", &self.c_sum);
 
         if c_a + c_b == self.c_sum {
             Ok(())

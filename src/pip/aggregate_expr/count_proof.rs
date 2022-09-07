@@ -34,7 +34,7 @@ impl PipProve<(GeneralColumn,), GeneralColumn> for CountProof {
         assert_eq!(length, output_as_length);
         transcript.count_domain_sep();
         let c_count = output.commit();
-        transcript.append_point(b"c_count", &c_count.commitment);
+        transcript.append_commitment(b"c_count", &c_count);
         CountProof {
             c_col: c_in,
             c_count,
@@ -49,7 +49,7 @@ impl PipVerify<(Commitment,), Commitment> for CountProof {
         input_commitments: (Commitment,),
     ) -> Result<(), ProofError> {
         transcript.count_domain_sep();
-        transcript.append_point(b"c_count", &self.c_count.commitment);
+        transcript.append_commitment(b"c_count", &self.c_count);
         let length = input_commitments.0.length;
         let count_column = Column {
             data: vec![length as i64],
