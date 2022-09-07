@@ -1,13 +1,20 @@
-use crate::base::{
-    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
-    scalar::IntoScalar,
+use crate::{
+    base::{
+        proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
+        scalar::SafeIntColumn,
+    },
+    pip::range::LogMaxReductionProof,
 };
 use serde::{Deserialize, Serialize};
-use std::ops::Add;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubtractionProof {
     pub c_diff: Commitment,
+    pub log_max_reduction_proof: Option<LogMaxReductionProof<{ SubtractionProof::LOG_MAX_MAX }>>,
+}
+
+impl SubtractionProof {
+    const LOG_MAX_MAX: u8 = 128;
 }
 
 impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProof {
@@ -27,16 +34,7 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProo
         // The actual proof construction is handled in the core implementation.
         use GeneralColumn::*;
         match (left, right, output) {
-            (Int8Column(left), Int8Column(right), Int8Column(output)) => {
-                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (Int16Column(left), Int16Column(right), Int16Column(output)) => {
-                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (Int32Column(left), Int32Column(right), Int32Column(output)) => {
-                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (Int64Column(left), Int64Column(right), Int64Column(output)) => {
+            (SafeIntColumn(left), SafeIntColumn(right), SafeIntColumn(output)) => {
                 SubtractionProof::prove(transcript, (left, right), output, input_commitment)
             }
             _ => {
@@ -46,31 +44,66 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProo
     }
 }
 
-impl<T> PipProve<(Column<T>, Column<T>), Column<T>> for SubtractionProof
-where
-    T: IntoScalar + Clone + Add,
-{
+impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for SubtractionProof {
     fn prove(
         transcript: &mut Transcript,
-        input: (Column<T>, Column<T>),
-        output: Column<T>,
-        input_commitments: (Commitment, Commitment),
+        (input_a, input_b): (SafeIntColumn, SafeIntColumn),
+        diff: SafeIntColumn,
+        (c_a, c_b): (Commitment, Commitment),
     ) -> Self {
         // core implementation
-        let (a, b) = input;
-        let diff = output;
-        let (c_a, c_b) = input_commitments;
+        assert_eq!(input_a.len(), input_b.len());
+        assert_eq!(input_a.len(), diff.len());
+        assert_eq!(input_a.len(), c_a.length);
+        assert_eq!(input_b.len(), c_b.length);
 
-        assert_eq!(a.len(), b.len());
-        assert_eq!(a.len(), diff.len());
-        assert_eq!(a.len(), c_a.length);
-        assert_eq!(b.len(), c_b.length);
+        assert_eq!(
+            input_a.log_max(),
+            c_a.log_max
+                .expect("commitments of SafeIntColumns should have a log_max")
+        );
+        assert_eq!(
+            input_b.log_max(),
+            c_b.log_max
+                .expect("commitments of SafeIntColumns should have a log_max")
+        );
 
-        transcript.subtraction_domain_sep(a.len() as u64);
+        transcript.subtraction_domain_sep(input_a.len() as u64);
 
         let c_diff = c_a - c_b;
         transcript.append_commitment(b"c_diff", &c_diff);
-        SubtractionProof { c_diff }
+
+        if c_diff
+            .log_max
+            .expect("commitments of SafeIntColumns should have a log_max")
+            > SubtractionProof::LOG_MAX_MAX
+        {
+            let diff_unreduced: SafeIntColumn = SafeIntColumn::try_new(
+                diff.clone().into_iter().map(|s| s.value()).collect(),
+                c_diff
+                    .log_max
+                    .expect("commitments of SafeIntColumn should have a log_max"),
+            )
+            .unwrap();
+
+            let log_max_reduction_proof = Some(LogMaxReductionProof::<
+                { SubtractionProof::LOG_MAX_MAX },
+            >::prove(
+                transcript, (diff_unreduced,), diff, (c_diff,)
+            ));
+
+            let c_diff_reduced = c_diff.with_log_max(SubtractionProof::LOG_MAX_MAX);
+
+            SubtractionProof {
+                c_diff: c_diff_reduced,
+                log_max_reduction_proof,
+            }
+        } else {
+            SubtractionProof {
+                c_diff,
+                log_max_reduction_proof: None,
+            }
+        }
     }
 }
 
@@ -78,18 +111,52 @@ impl PipVerify<(Commitment, Commitment), Commitment> for SubtractionProof {
     fn verify(
         &self,
         transcript: &mut Transcript,
-        input_commitments: (Commitment, Commitment),
+        (c_a, c_b): (Commitment, Commitment),
     ) -> Result<(), ProofError> {
-        let (c_a, c_b) = input_commitments;
         transcript.subtraction_domain_sep(c_a.length as u64);
 
-        transcript.append_commitment(b"c_diff", &self.c_diff);
+        let c_diff_calculated = c_a - c_b;
+        transcript.append_commitment(b"c_diff", &c_diff_calculated);
 
-        if c_a - c_b == self.c_diff {
-            Ok(())
+        let calculated_log_max = c_diff_calculated.log_max.ok_or(ProofError::FormatError)?;
+
+        let output_log_max = self.c_diff.log_max.ok_or(ProofError::FormatError)?;
+
+        let maybe_log_max_reduction_proof = if calculated_log_max > SubtractionProof::LOG_MAX_MAX {
+            // Proof should have a reduction, error if it doesn't
+            Some(
+                self.log_max_reduction_proof
+                    .as_ref()
+                    .ok_or(ProofError::VerificationError)?,
+            )
         } else {
-            Err(ProofError::VerificationError)
+            // Proof doesn't need a reduction, but might have one anyway
+            self.log_max_reduction_proof.as_ref()
+        };
+
+        if let Some(log_max_reduction_proof) = maybe_log_max_reduction_proof {
+            // Proof has a reduction. Whether or not it's required, verify it
+
+            // verify that the commitment log_max has been reduced
+            if output_log_max != SubtractionProof::LOG_MAX_MAX {
+                return Err(ProofError::VerificationError);
+            }
+
+            // verify the inner proof
+            log_max_reduction_proof.verify(transcript, (c_diff_calculated,))?;
+
+            // verify the LogMaxReductionProof is actually verifying against the correct output commitment
+            if c_diff_calculated != log_max_reduction_proof.get_output_commitments() {
+                return Err(ProofError::VerificationError);
+            }
         }
+
+        // Verify the provided output commitment
+        if c_diff_calculated != self.c_diff {
+            return Err(ProofError::VerificationError);
+        }
+
+        Ok(())
     }
 
     fn get_output_commitments(&self) -> Commitment {

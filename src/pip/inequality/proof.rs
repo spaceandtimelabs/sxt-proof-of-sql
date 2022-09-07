@@ -38,16 +38,7 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for InequalityProof
             (GeneralColumn::BooleanColumn(left), GeneralColumn::BooleanColumn(right)) => {
                 InequalityProof::prove(transcript, (left, right), output, input_commitment)
             }
-            (GeneralColumn::Int8Column(left), GeneralColumn::Int8Column(right)) => {
-                InequalityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int16Column(left), GeneralColumn::Int16Column(right)) => {
-                InequalityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int32Column(left), GeneralColumn::Int32Column(right)) => {
-                InequalityProof::prove(transcript, (left, right), output, input_commitment)
-            }
-            (GeneralColumn::Int64Column(left), GeneralColumn::Int64Column(right)) => {
+            (GeneralColumn::SafeIntColumn(left), GeneralColumn::SafeIntColumn(right)) => {
                 InequalityProof::prove(transcript, (left, right), output, input_commitment)
             }
             _ => {

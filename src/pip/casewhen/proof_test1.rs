@@ -1,27 +1,25 @@
-use crate::base::proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript};
+use crate::base::{
+    proof::{Commit, GeneralColumn, PipProve, PipVerify, Transcript},
+    scalar::SafeIntColumn,
+};
 use crate::pip::casewhen::CaseWhenProof;
 use curve25519_dalek::scalar::Scalar;
 
 //This test is for a valid case.
 #[test]
 fn test_casewhen() {
-    let a_vec: Column<i32> = vec![31, 24, 51].into();
-    let b_vec: Column<i32> = vec![14, 23, 71].into();
-    let c_vec: Column<i32> = vec![31, 23, 71].into();
-    let p_vec: Column<bool> = vec![true, false, false].into();
-    let a: GeneralColumn = GeneralColumn::Int32Column(a_vec);
-    let b: GeneralColumn = GeneralColumn::Int32Column(b_vec);
-    let c: GeneralColumn = GeneralColumn::Int32Column(c_vec);
-    let p: GeneralColumn = GeneralColumn::BooleanColumn(p_vec);
-    let p_scalar: Column<Scalar> = vec![
-        Scalar::from(1_u32),
-        Scalar::from(0_u32),
-        Scalar::from(0_u32),
-    ]
-    .into();
+    let a_vec: SafeIntColumn = vec![31, 24, 51].into();
+    let b_vec: SafeIntColumn = vec![14, 23, 71].into();
+    let c_vec: SafeIntColumn = vec![31, 23, 71].into();
+    let a: GeneralColumn = GeneralColumn::SafeIntColumn(a_vec);
+    let b: GeneralColumn = GeneralColumn::SafeIntColumn(b_vec);
+    let c: GeneralColumn = GeneralColumn::SafeIntColumn(c_vec);
+    let p = GeneralColumn::BooleanColumn(vec![true, false, false].into());
+    let p_numeric =
+        SafeIntColumn::try_new(vec![Scalar::one(), Scalar::zero(), Scalar::zero()], 0).unwrap();
     let c_a = a.commit();
     let c_b = b.commit();
-    let c_p = p_scalar.commit();
+    let c_p = p_numeric.commit();
     let c_c = c.commit();
 
     let mut transcript = Transcript::new(b"casewhentest");

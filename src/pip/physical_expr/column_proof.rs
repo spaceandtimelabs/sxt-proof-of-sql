@@ -40,13 +40,10 @@ impl PipVerify<(), Commitment> for ColumnProof {
 mod tests {
 
     use super::*;
-    use crate::base::proof::Column;
 
     #[test]
     fn test_column_proof() {
-        let output = GeneralColumn::Int32Column(Column {
-            data: vec![1, 2, 3],
-        });
+        let output = GeneralColumn::SafeIntColumn(vec![1, 2, 3].into());
 
         let mut transcript = Transcript::new(b"columntest");
         let column_proof = ColumnProof::prove(&mut transcript, (), output.clone(), ());

@@ -49,8 +49,8 @@ fn test_inequality() {
 
 #[test]
 fn test_inequality_general() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::SafeIntColumn(vec![1, -1, -2, 2, 3, 0].into());
     let output = GeneralColumn::BooleanColumn(vec![false, true, true, false, true, false].into());
 
     let c_a = a.commit();
@@ -76,9 +76,9 @@ fn test_inequality_general() {
 #[test]
 #[should_panic]
 fn test_inequality_general_mismatched_inputs() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int16Column(vec![1, -1, -2, 2, 3, 0].into());
-    let output = GeneralColumn::BooleanColumn(vec![false, true, true, false, true, false].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::BooleanColumn(vec![true, false, true, false, true, false].into());
+    let output = GeneralColumn::BooleanColumn(vec![false, true, true, true, true, false].into());
 
     let c_a = a.commit();
     let c_b = b.commit();
@@ -90,9 +90,9 @@ fn test_inequality_general_mismatched_inputs() {
 #[test]
 #[should_panic]
 fn test_inequality_general_non_bool_output() {
-    let a = GeneralColumn::Int32Column(vec![1, 1, 2, 2, 0, 0].into());
-    let b = GeneralColumn::Int32Column(vec![1, -1, -2, 2, 3, 0].into());
-    let output = GeneralColumn::Int32Column(vec![0, 1, 1, 0, 1, 0].into());
+    let a = GeneralColumn::SafeIntColumn(vec![1, 1, 2, 2, 0, 0].into());
+    let b = GeneralColumn::SafeIntColumn(vec![1, -1, -2, 2, 3, 0].into());
+    let output = GeneralColumn::SafeIntColumn(vec![0, 1, 1, 0, 1, 0].into());
 
     let c_a = a.commit();
     let c_b = b.commit();

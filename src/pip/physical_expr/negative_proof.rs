@@ -59,16 +59,12 @@ fn verify_proof(
 mod tests {
 
     use super::*;
-    use crate::base::proof::{Column, Commit};
+    use crate::base::proof::Commit;
 
     #[test]
     fn test_negative_proof() {
-        let input = GeneralColumn::Int32Column(Column {
-            data: vec![1, -2, 3],
-        });
-        let output = GeneralColumn::Int32Column(Column {
-            data: vec![-1, 2, -3],
-        });
+        let input = GeneralColumn::SafeIntColumn(vec![1, -2, 3].into());
+        let output = GeneralColumn::SafeIntColumn(vec![-1, 2, -3].into());
 
         let mut transcript = Transcript::new(b"negativetest");
         let c_in = input.commit();

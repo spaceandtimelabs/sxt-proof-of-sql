@@ -40,11 +40,10 @@ impl PipVerify<(), Commitment> for LiteralProof {
 mod tests {
 
     use super::*;
-    use crate::base::proof::Column;
 
     #[test]
     fn test_column_proof() {
-        let output = GeneralColumn::Int32Column(Column { data: vec![5] });
+        let output = GeneralColumn::SafeIntColumn(vec![5].into());
 
         let mut transcript = Transcript::new(b"literaltest");
         let column_proof = LiteralProof::prove(&mut transcript, (), output.clone(), ());

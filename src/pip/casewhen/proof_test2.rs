@@ -1,17 +1,19 @@
-use crate::base::proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript};
+use crate::base::{
+    proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript},
+    scalar::SafeIntColumn,
+};
 use crate::pip::casewhen::CaseWhenProof;
 use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn test_casewhen() {
-    let a_vec: Column<i32> = vec![31, 24, 51].into();
-    let b_vec: Column<i32> = vec![14, 23, 71].into();
-    let c_vec: Column<i32> = vec![31, 23, 71].into();
-    let p_vec: Column<bool> = vec![true, false, false].into();
-    let a: GeneralColumn = GeneralColumn::Int32Column(a_vec);
-    let b: GeneralColumn = GeneralColumn::Int32Column(b_vec);
-    let c: GeneralColumn = GeneralColumn::Int32Column(c_vec);
-    let p: GeneralColumn = GeneralColumn::BooleanColumn(p_vec);
+    let a_vec: SafeIntColumn = vec![31, 24, 51].into();
+    let b_vec: SafeIntColumn = vec![14, 23, 71].into();
+    let c_vec: SafeIntColumn = vec![31, 23, 71].into();
+    let a: GeneralColumn = GeneralColumn::SafeIntColumn(a_vec);
+    let b: GeneralColumn = GeneralColumn::SafeIntColumn(b_vec);
+    let c: GeneralColumn = GeneralColumn::SafeIntColumn(c_vec);
+    let p = GeneralColumn::BooleanColumn(vec![true, true, false].into());
     let p_scalar: Column<Scalar> = vec![
         Scalar::from(1_u32),
         Scalar::from(1_u32),
