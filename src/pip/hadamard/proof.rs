@@ -66,8 +66,8 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         transcript: &mut Transcript,
         input_commitments: (Commitment, Commitment),
     ) -> Result<(), ProofError> {
-        let commit_a = input_commitments.0.commitment;
-        let commit_b = input_commitments.1.commitment;
+        let commit_a = input_commitments.0;
+        let commit_b = input_commitments.1;
         assert_eq!(input_commitments.0.length, input_commitments.1.length);
         let n = input_commitments.0.length;
 
@@ -75,7 +75,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
 
         let n = 1 << num_vars;
         transcript.hadamard_domain_sep(num_vars as u64);
-        transcript.append_point(b"c_ab", &self.commit_ab.commitment);
+        transcript.append_commitment(b"c_ab", &self.commit_ab);
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, b"r_vec");
 
@@ -106,7 +106,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         let product_g = generators[n];
 
         // verify f_a
-        let f_commit = commit_a.decompress().unwrap() + self.f_a * product_g;
+        let f_commit = commit_a.try_as_decompressed()? + self.f_a * product_g;
         self.f_a_proof.verify(
             transcript,
             &f_commit,
@@ -116,7 +116,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         )?;
 
         // verify f_b
-        let f_commit = commit_b.decompress().unwrap() + self.f_b * product_g;
+        let f_commit = commit_b.try_as_decompressed()? + self.f_b * product_g;
         self.f_b_proof.verify(
             transcript,
             &f_commit,
@@ -126,7 +126,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         )?;
 
         // verify f_ab
-        let f_commit = self.commit_ab.commitment.decompress().unwrap() + f_ab * product_g;
+        let f_commit = self.commit_ab.try_as_decompressed()? + f_ab * product_g;
         self.f_ab_proof.verify(
             transcript,
             &f_commit,
@@ -216,10 +216,7 @@ fn create_proof_impl(
     );
 
     HadamardProof {
-        commit_ab: Commitment {
-            commitment: c_ab,
-            length,
-        },
+        commit_ab: Commitment::from_compressed(c_ab, length),
         sumcheck_proof,
         f_a,
         f_a_proof,

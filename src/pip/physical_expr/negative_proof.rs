@@ -35,7 +35,7 @@ impl PipVerify<(Commitment,), Commitment> for NegativeProof {
 fn create_negative_proof(transcript: &mut Transcript, c_in: Commitment) -> NegativeProof {
     transcript.negative_domain_sep();
     let c_out = -c_in;
-    transcript.append_point(b"c_out", &c_out.commitment);
+    transcript.append_commitment(b"c_out", &c_out);
 
     NegativeProof { c_out }
 }
@@ -47,7 +47,7 @@ fn verify_proof(
 ) -> Result<(), ProofError> {
     transcript.negative_domain_sep();
     let c_out = -c_in;
-    transcript.append_point(b"c_out", &proof.c_out.commitment);
+    transcript.append_commitment(b"c_out", &proof.c_out);
     if proof.c_out != c_out {
         Err(ProofError::VerificationError)
     } else {

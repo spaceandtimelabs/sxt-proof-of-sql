@@ -78,7 +78,7 @@ impl Transcript {
     /// Append a `commitment` with the given `label`.
     pub fn append_commitment(&mut self, label: &'static [u8], commitment: &Commitment) {
         self.0
-            .append_message(label, commitment.commitment.as_bytes());
+            .append_message(label, commitment.as_compressed().as_bytes());
     }
 
     /// Append a slice of `commitments` with the given `label`.

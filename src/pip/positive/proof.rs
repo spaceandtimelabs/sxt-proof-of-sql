@@ -40,10 +40,7 @@ where
         }
         let commitments: Vec<_> = group_commitments
             .iter()
-            .map(|c| Commitment {
-                commitment: *c,
-                length: input.len(),
-            })
+            .map(|c| Commitment::from_compressed(*c, input.len()))
             .collect();
         let proofs = commitments
             .iter()
@@ -184,20 +181,20 @@ impl PipVerify<(Commitment,), Commitment> for PositiveProof {
             if c_c.length != input_commitments.length {
                 return Err(ProofError::VerificationError);
             }
-            transcript.append_point(b"c_c", &c_c.commitment);
+            transcript.append_commitment(b"c_c", &c_c);
         }
         let mut it = self.c_decomposed_columns.iter().rev();
         let mut recompose = match it.next() {
             None => {
                 return Err(ProofError::VerificationError);
             }
-            Some(c) => c.commitment.decompress().unwrap(),
+            Some(c) => c.try_as_decompressed()?,
         };
         for c in it {
             recompose += recompose;
-            recompose -= c.commitment.decompress().unwrap();
+            recompose -= c.try_as_decompressed()?;
         }
-        if recompose.compress() != input_commitments.commitment {
+        if recompose.compress() != input_commitments.as_compressed() {
             return Err(ProofError::VerificationError);
         }
         for (c_c, p) in self

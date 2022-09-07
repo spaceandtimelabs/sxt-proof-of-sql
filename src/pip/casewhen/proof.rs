@@ -84,7 +84,7 @@ fn create_casewhen_proof(
     let c_c = Commitment::from(c_column.as_slice()); //Commits to c
 
     //Add c_c to the transcript
-    transcript.append_point(b"c_c", &c_c.commitment);
+    transcript.append_commitment(b"c_c", &c_c);
 
     //Generate HadamardProof for p*(a-b).
     let proof_pzy = HadamardProof::prove(
@@ -106,7 +106,7 @@ fn verify_proof(
 ) -> Result<(), ProofError> {
     let c_z = c_a - c_b;
 
-    transcript.append_point(b"c_c", &proof.c_c.commitment);
+    transcript.append_commitment(b"c_c", &proof.c_c);
     proof.proof_pzy.verify(transcript, (c_p, c_z))?;
     if (proof.proof_pzy.commit_ab + c_b) != proof.c_c {
         Err(ProofError::VerificationError)

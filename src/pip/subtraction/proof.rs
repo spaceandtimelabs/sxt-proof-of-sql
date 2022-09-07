@@ -69,7 +69,7 @@ where
         transcript.subtraction_domain_sep(a.len() as u64);
 
         let c_diff = c_a - c_b;
-        transcript.append_point(b"c_diff", &c_diff.commitment);
+        transcript.append_commitment(b"c_diff", &c_diff);
         SubtractionProof { c_diff }
     }
 }
@@ -83,7 +83,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for SubtractionProof {
         let (c_a, c_b) = input_commitments;
         transcript.subtraction_domain_sep(c_a.length as u64);
 
-        transcript.append_point(b"c_diff", &self.c_diff.commitment);
+        transcript.append_commitment(b"c_diff", &self.c_diff);
 
         if c_a - c_b == self.c_diff {
             Ok(())
