@@ -1,4 +1,4 @@
-use crate::base::proof::{Commit, Commitment, PipProve, PipVerify, ProofError, Table, Transcript};
+use crate::base::proof::{Commit, Commitment, PipProve, PipVerify, ProofError, Table, Transcript, MessageLabel};
 
 /// For reading a new data source
 #[derive(Clone, Debug)]
@@ -13,9 +13,11 @@ impl PipProve<(), Table> for ReaderProof {
         output: Table,
         _input_commitment: (),
     ) -> Self {
-        transcript.reader_domain_sep();
         let c_out = output.commit();
-        transcript.append_commitments(b"c_out", &c_out);
+        transcript.append_auto(
+            MessageLabel::Reader,
+            &c_out.iter().map(|c| c.as_compressed()).collect::<Vec<_>>())
+            .unwrap();
         ReaderProof { c_out }
     }
 }
@@ -26,9 +28,9 @@ impl PipVerify<(), Vec<Commitment>> for ReaderProof {
         transcript: &mut Transcript,
         _input_commitments: (),
     ) -> Result<(), ProofError> {
-        transcript.reader_domain_sep();
-        transcript.append_commitments(b"c_out", &self.c_out);
-        Ok(())
+        transcript.append_auto(
+            MessageLabel::Reader,
+            &self.c_out.iter().map(|c| c.as_compressed()).collect::<Vec<_>>())
     }
 
     fn get_output_commitments(&self) -> Vec<Commitment> {

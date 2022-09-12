@@ -1,5 +1,5 @@
 use crate::base::proof::{
-    Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+    Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel,
 };
 
 #[derive(Clone, Debug)]
@@ -14,9 +14,8 @@ impl PipProve<(), GeneralColumn> for LiteralProof {
         output: GeneralColumn,
         _input_commitment: (),
     ) -> Self {
-        transcript.literal_domain_sep();
         let c_out = output.commit();
-        transcript.append_commitment(b"c_out", &c_out);
+        transcript.append_auto(MessageLabel::Literal, &c_out.as_compressed()).unwrap();
         LiteralProof { c_out }
     }
 }
@@ -27,9 +26,7 @@ impl PipVerify<(), Commitment> for LiteralProof {
         transcript: &mut Transcript,
         _input_commitments: (),
     ) -> Result<(), ProofError> {
-        transcript.literal_domain_sep();
-        transcript.append_commitment(b"c_out", &self.c_out);
-        Ok(())
+        transcript.append_auto(MessageLabel::Literal, &self.c_out.as_compressed())
     }
     fn get_output_commitments(&self) -> Commitment {
         self.c_out

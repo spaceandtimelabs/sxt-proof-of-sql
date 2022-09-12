@@ -103,6 +103,7 @@ impl From<&[Scalar]> for Commitment {
     }
 }
 
+
 impl Commitment {
     /// Returns a decompressed version of the commitment.
     ///

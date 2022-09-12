@@ -9,6 +9,7 @@ use std::slice;
 
 use crate::base::math::{is_pow2, log2_up};
 use crate::base::polynomial::CompositePolynomialInfo;
+use crate::base::proof::MessageLabel;
 use crate::base::proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript};
 use crate::base::scalar::inner_product;
 use crate::pip::hadamard::{compute_evaluation_vector, make_sumcheck_polynomial};
@@ -74,10 +75,9 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         let num_vars = compute_num_variables(n);
 
         let n = 1 << num_vars;
-        transcript.hadamard_domain_sep(num_vars as u64);
-        transcript.append_commitment(b"c_ab", &self.commit_ab);
+        transcript.append_auto(MessageLabel::Hadamard, &(num_vars, self.commit_ab.as_compressed())).unwrap();
         let mut r_vec = vec![Scalar::from(0u64); n];
-        transcript.challenge_scalars(&mut r_vec, b"r_vec");
+        transcript.challenge_scalars(&mut r_vec, MessageLabel::HadamardChallenge);
 
         let polynomial_info = CompositePolynomialInfo {
             max_multiplicands: 3,
@@ -168,15 +168,17 @@ fn create_proof_impl(
     num_vars: usize,
     length: usize,
 ) -> HadamardProof {
-    transcript.hadamard_domain_sep(num_vars as u64);
-    let n = a_vec.len();
-
     let mut c_ab = CompressedRistretto::identity();
     compute_commitments(slice::from_mut(&mut c_ab), &[ab_vec]);
-    transcript.append_point(b"c_ab", &c_ab);
+
+    transcript.append_auto(MessageLabel::Hadamard, &(
+        num_vars,
+        c_ab
+    )).unwrap();
+    let n = a_vec.len();
 
     let mut r_vec = vec![Scalar::zero(); n];
-    transcript.challenge_scalars(&mut r_vec, b"r_vec");
+    transcript.challenge_scalars(&mut r_vec, MessageLabel::HadamardChallenge);
 
     let poly = make_sumcheck_polynomial(num_vars, a_vec, b_vec, ab_vec, &r_vec);
     let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];

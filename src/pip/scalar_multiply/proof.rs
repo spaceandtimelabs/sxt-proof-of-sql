@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
+        proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
         scalar::IntoScalar,
     },
     pip::hadamard::HadamardProof,
@@ -26,7 +26,7 @@ where
         output: Column<T>,
         input_commitments: (Commitment, Commitment),
     ) -> Self {
-        transcript.scalar_multiply_domain_sep();
+        transcript.append_auto(MessageLabel::ScalarMultiply, &()).unwrap();
         Self {
             proof: HadamardProof::prove(
                 transcript,
@@ -44,7 +44,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for ScalarMultiplyProof {
         transcript: &mut Transcript,
         input_commitments: (Commitment, Commitment),
     ) -> Result<(), ProofError> {
-        transcript.scalar_multiply_domain_sep();
+        transcript.append_auto(MessageLabel::ScalarMultiply, &()).unwrap();
         self.proof.verify(transcript, input_commitments)
     }
 

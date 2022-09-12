@@ -1,4 +1,4 @@
-use crate::base::proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript};
+use crate::base::proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel};
 
 #[derive(Clone, Debug)]
 pub struct NegativeProof {
@@ -33,9 +33,8 @@ impl PipVerify<(Commitment,), Commitment> for NegativeProof {
 }
 
 fn create_negative_proof(transcript: &mut Transcript, c_in: Commitment) -> NegativeProof {
-    transcript.negative_domain_sep();
     let c_out = -c_in;
-    transcript.append_commitment(b"c_out", &c_out);
+    transcript.append_auto(MessageLabel::Negative, &c_out.as_compressed()).unwrap();
 
     NegativeProof { c_out }
 }
@@ -45,9 +44,8 @@ fn verify_proof(
     proof: &NegativeProof,
     c_in: Commitment,
 ) -> Result<(), ProofError> {
-    transcript.negative_domain_sep();
     let c_out = -c_in;
-    transcript.append_commitment(b"c_out", &proof.c_out);
+    transcript.append_auto(MessageLabel::Negative, &proof.c_out.as_compressed())?;
     if proof.c_out != c_out {
         Err(ProofError::VerificationError)
     } else {

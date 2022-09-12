@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
+        proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
         scalar::IntoScalar,
     },
     pip::hadamard::HadamardProof,
@@ -51,7 +51,7 @@ impl PipProve<(Column<bool>, Column<bool>), Column<bool>> for OrProof {
         input_commitments: (Commitment, Commitment),
     ) -> Self {
         // core implementation
-        transcript.or_domain_sep(input_commitments.0.length as u64);
+        transcript.append_auto(MessageLabel::Or, &input_commitments.0.length).unwrap();
         // inputs_and is x*y.
         let inputs_product = Column::from(
             input
@@ -84,7 +84,7 @@ impl PipVerify<(Commitment, Commitment), Commitment> for OrProof {
         transcript: &mut Transcript,
         input_commitments: (Commitment, Commitment),
     ) -> Result<(), ProofError> {
-        transcript.or_domain_sep(input_commitments.0.length as u64);
+        transcript.append_auto(MessageLabel::Or, &input_commitments.0.length).unwrap();
         // We need to check that the claimed output matches with both the inputs as well as the internal proof's output. i.e. this is a check that x + y == x*y + x||y
         if input_commitments.0 + input_commitments.1
             == self.product_proof.get_output_commitments() + self.get_output_commitments()

@@ -11,7 +11,7 @@ use rand::rngs::ThreadRng;
 use rand::Rng;
 
 use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
-use crate::base::proof::Transcript;
+use crate::base::proof::{Transcript, MessageLabel};
 
 #[test]
 fn test_create_verify_proof() {
@@ -41,7 +41,7 @@ fn test_create_verify_proof() {
 
     // we return a different evaluation point if we start with a different transcript
     let mut transcript = Transcript::new(b"sumchecktest");
-    transcript.hadamard_domain_sep(123u64);
+    transcript.append_auto(MessageLabel::Hadamard, &123u64).unwrap();
     let subclaim = proof
         .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
         .expect("verify failed");
