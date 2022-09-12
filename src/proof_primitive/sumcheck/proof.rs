@@ -7,7 +7,7 @@ use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
-use crate::base::proof::{ProofError, Transcript};
+use crate::base::proof::{ProofError, Transcript, MessageLabel};
 use crate::proof_primitive::sumcheck::{prove_round, ProverState, Subclaim};
 use serde::{Deserialize, Serialize};
 
@@ -23,18 +23,18 @@ impl SumcheckProof {
         polynomial: &CompositePolynomial,
     ) -> SumcheckProof {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
-        transcript.sumcheck_domain_sep(
-            polynomial.max_multiplicands as u64,
-            polynomial.num_variables as u64,
-        );
+        transcript.append_auto(MessageLabel::Sumcheck, &(
+            polynomial.max_multiplicands,
+            polynomial.num_variables
+        )).unwrap();
         let mut r = None;
         let mut state = ProverState::create(polynomial);
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
         for scalar in evaluation_point.iter_mut().take(polynomial.num_variables) {
             let round_evaluations = prove_round(&mut state, &r);
-            transcript.append_scalars(b"P", &round_evaluations);
+            transcript.append_scalars(MessageLabel::SumcheckRoundEvaluation, &round_evaluations);
             evaluations.push(round_evaluations);
-            *scalar = transcript.challenge_scalar(b"r");
+            *scalar = transcript.challenge_scalar(MessageLabel::SumcheckChallenge);
             r = Some(*scalar);
         }
 
@@ -47,17 +47,17 @@ impl SumcheckProof {
         polynomial_info: CompositePolynomialInfo,
         claimed_sum: &Scalar,
     ) -> Result<Subclaim, ProofError> {
-        transcript.sumcheck_domain_sep(
-            polynomial_info.max_multiplicands as u64,
-            polynomial_info.num_variables as u64,
-        );
+        transcript.append_auto(MessageLabel::Sumcheck, &(
+            polynomial_info.max_multiplicands,
+            polynomial_info.num_variables
+        )).unwrap();
         if self.evaluations.len() != polynomial_info.num_variables {
             return Err(ProofError::VerificationError);
         }
         let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
         for round_index in 0..polynomial_info.num_variables {
-            transcript.append_scalars(b"P", &self.evaluations[round_index]);
-            evaluation_point.push(transcript.challenge_scalar(b"r"));
+            transcript.append_scalars(MessageLabel::SumcheckRoundEvaluation, &self.evaluations[round_index]);
+            evaluation_point.push(transcript.challenge_scalar(MessageLabel::SumcheckChallenge));
         }
         Subclaim::create(
             evaluation_point,

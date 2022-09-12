@@ -1,6 +1,6 @@
 use crate::base::{
     proof::{
-        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel,
     },
     scalar::SafeInt,
 };
@@ -28,9 +28,8 @@ impl PipProve<(GeneralColumn,), GeneralColumn> for CountProof {
         };
         assert_eq!(length, c_in.length as i64);
         assert_eq!(SafeInt::from(length), output_as_length);
-        transcript.count_domain_sep();
         let c_count = output.commit();
-        transcript.append_commitment(b"c_count", &c_count);
+        transcript.append_auto(MessageLabel::Count, &c_count.as_compressed()).unwrap();
         CountProof {
             c_col: c_in,
             c_count,
@@ -44,8 +43,7 @@ impl PipVerify<(Commitment,), Commitment> for CountProof {
         transcript: &mut Transcript,
         input_commitments: (Commitment,),
     ) -> Result<(), ProofError> {
-        transcript.count_domain_sep();
-        transcript.append_commitment(b"c_count", &self.c_count);
+        transcript.append_auto(MessageLabel::Count, &self.c_count.as_compressed())?;
         let length = input_commitments.0.length;
         let count_column = Column {
             data: vec![length as i64],

@@ -1,6 +1,6 @@
 use crate::base::{
     proof::{
-        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript,
+        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel
     },
     scalar::IntoScalar,
 };
@@ -97,7 +97,6 @@ where
     I: IntoIterator + Commit<Commitment = Commitment>,
     I::Item: Clone + IntoScalar,
 {
-    transcript.equality_domain_sep(c_a.length as u64);
     let length = c_a.length;
     let (z_vec, c_vec): (Vec<Scalar>, Vec<Scalar>) = a
         .into_iter()
@@ -120,8 +119,12 @@ where
     let c_c = Commitment::from(c_vec.as_slice());
     let c_e = Commitment::from(e_scalar.as_slice());
     let c_z = c_a - c_b;
-    transcript.append_commitment(b"c_c", &c_c);
-    transcript.append_commitment(b"c_e", &c_e);
+
+    transcript.append_auto(MessageLabel::Equality, &(
+        c_a.length,
+        &c_c.as_compressed(),
+        &c_e.as_compressed(),
+    )).unwrap();
     let proof_ez0 = HadamardProof::prove(
         transcript,
         (
@@ -164,7 +167,6 @@ fn verify_proof(
         return Err(ProofError::VerificationError);
     }
 
-    transcript.equality_domain_sep(c_a.length as u64);
     // Computing c_0 and c_1 here is terrible. It should be cached.
     let (zero, one): (Vec<Scalar>, Vec<Scalar>) = iter::repeat((Scalar::zero(), Scalar::one()))
         .take(c_a.length)
@@ -175,8 +177,12 @@ fn verify_proof(
 
     let c_d = c_1 - proof.c_e;
     let c_z = c_a - c_b;
-    transcript.append_commitment(b"c_c", &proof.c_c);
-    transcript.append_commitment(b"c_e", &proof.c_e);
+
+    transcript.append_auto(MessageLabel::Equality, &(
+        c_a.length,
+        proof.c_c.as_compressed(),
+        proof.c_e.as_compressed(),
+    ))?;
     proof.proof_ez0.verify(transcript, (proof.c_e, c_z))?;
     proof.proof_czd.verify(transcript, (proof.c_c, c_z))?;
     if proof.proof_ez0.commit_ab != c_0 || proof.proof_czd.commit_ab != c_d {

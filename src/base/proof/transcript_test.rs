@@ -7,7 +7,7 @@ fn test_challenge_scalars() {
     let zero = Scalar::from(0u64);
     let mut transcript = Transcript::new(b"multiplicationtest");
     let mut v: [Scalar; 3] = [zero; 3];
-    transcript.challenge_scalars(&mut v, b"scalars");
+    transcript.challenge_scalars(&mut v, MessageLabel::HadamardChallenge);
     assert_ne!(v[0], zero);
     assert_ne!(v[1], zero);
     assert_ne!(v[2], zero);

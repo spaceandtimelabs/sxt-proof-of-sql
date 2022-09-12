@@ -1,5 +1,5 @@
 use crate::base::{
-    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript},
+    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
     scalar::IntoScalar,
 };
 use crate::pip::hadamard::HadamardProof;
@@ -84,7 +84,7 @@ fn create_casewhen_proof(
     let c_c = Commitment::from(c_column.as_slice()); //Commits to c
 
     //Add c_c to the transcript
-    transcript.append_commitment(b"c_c", &c_c);
+    transcript.append_auto(MessageLabel::CaseWhen, &c_c.as_compressed()).unwrap();
 
     //Generate HadamardProof for p*(a-b).
     let proof_pzy = HadamardProof::prove(
@@ -107,8 +107,7 @@ fn verify_proof(
     let c_z = c_a - c_b;
     // Immutably ignore the log max value for future arithmetic to avoid panics
     let c_b = c_b.without_log_max();
-
-    transcript.append_commitment(b"c_c", &proof.c_c);
+    transcript.append_auto(MessageLabel::CaseWhen, &proof.c_c.as_compressed())?;
     proof.proof_pzy.verify(transcript, (c_p, c_z))?;
     if (proof.proof_pzy.commit_ab + c_b) != proof.c_c {
         Err(ProofError::VerificationError)
