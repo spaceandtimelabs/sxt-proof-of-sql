@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript},
+        proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
         scalar::SafeIntColumn,
     },
     pip::range::BinaryRangeProof,
@@ -27,9 +27,7 @@ impl<const B: u8> PipProve<(SafeIntColumn,), SafeIntColumn> for LogMaxReductionP
         (input_commitment,): (Commitment,),
     ) -> Self {
         assert_eq!(output.log_max(), B);
-
-        transcript.log_max_reduction_domain_sep(B);
-
+        transcript.append_auto(MessageLabel::LogMaxReduction, &B).unwrap();
         let true_column: Column<bool> = repeat(true).take(input.len()).collect::<Vec<_>>().into();
 
         let bin_range_proof =
@@ -52,7 +50,7 @@ impl<const B: u8> PipVerify<(Commitment,), Commitment> for LogMaxReductionProof<
         //The commitments of the inputs to the PIP. Typically, these are known by the verifier.
         (input_commitment,): (Commitment,),
     ) -> Result<(), ProofError> {
-        transcript.log_max_reduction_domain_sep(B);
+        transcript.append_auto(MessageLabel::LogMaxReduction, &B).unwrap();
 
         self.bin_range_proof
             .verify(transcript, (input_commitment,))?;

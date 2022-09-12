@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        proof::{Column, Commit, Commitment, PipProve, PipVerify, ProofError, Transcript},
+        proof::{Column, Commit, Commitment, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
         scalar::{SafeInt, SafeIntColumn},
     },
     pip::positive::PositiveProof,
@@ -42,8 +42,7 @@ impl<const B: u8> PipProve<(SafeIntColumn,), Column<bool>> for BinaryRangeProof<
         let bound = SafeInt::from(2)
             .try_pow(B)
             .expect("the log_max shouldn't exceed 251 since B <= 250");
-
-        transcript.binary_range_domain_sep(B);
+        transcript.append_auto(MessageLabel::BinaryRange, &B).unwrap();
 
         let lower_bound_offset: SafeIntColumn = input
             .clone()
@@ -123,8 +122,7 @@ impl<const B: u8> PipVerify<(Commitment,), Commitment> for BinaryRangeProof<B> {
         .collect();
 
         let one: SafeIntColumn = repeat(SafeInt::one()).take(c_in.length).collect();
-
-        transcript.binary_range_domain_sep(B);
+        transcript.append_auto(MessageLabel::BinaryRange, &B).unwrap();
         let c_bound: Commitment = bound.commit();
         let c_one: Commitment = one.commit();
 

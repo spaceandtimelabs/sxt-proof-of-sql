@@ -4,7 +4,7 @@ pub use error::{IntoDataFusionResult, IntoProofResult, ProofError, ProofResult};
 mod transcript;
 #[cfg(test)]
 mod transcript_test;
-pub use transcript::Transcript;
+pub use transcript::{Transcript, MessageLabel};
 
 mod commitment;
 pub use commitment::Commitment;

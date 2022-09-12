@@ -1,4 +1,4 @@
-use crate::base::proof::{Commitment, PipProve, PipVerify, ProofError, Table, Transcript};
+use crate::base::proof::{Commitment, PipProve, PipVerify, ProofError, Table, Transcript, MessageLabel};
 
 /// For pass through ExecutionPlans
 #[derive(Clone, Debug)]
@@ -21,8 +21,9 @@ impl PipProve<(Table,), Table> for TrivialProof {
             assert_eq!(num_rows, c_in[0].length);
             assert_eq!(num_rows, output.data[0].len());
         }
-        transcript.trivial_domain_sep();
-        transcript.append_commitments(b"c_out", &c_in);
+        transcript.append_auto(
+            MessageLabel::Trivial,
+            &c_in.iter().map(|c| c.as_compressed()).collect::<Vec<_>>()).unwrap();
         TrivialProof { c_out: c_in }
     }
 }
@@ -33,9 +34,10 @@ impl PipVerify<(Vec<Commitment>,), Vec<Commitment>> for TrivialProof {
         transcript: &mut Transcript,
         input_commitments: (Vec<Commitment>,),
     ) -> Result<(), ProofError> {
-        transcript.trivial_domain_sep();
+        transcript.append_auto(
+            MessageLabel::Trivial,
+            &self.c_out.iter().map(|c| c.as_compressed()).collect::<Vec<_>>())?;
         let c_out = input_commitments.0;
-        transcript.append_commitments(b"c_out", &self.c_out);
         if self.c_out != c_out {
             println!("Proof: {:?}", self.c_out);
             println!("Input: {:?}", c_out);

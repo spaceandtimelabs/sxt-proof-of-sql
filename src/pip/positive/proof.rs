@@ -5,7 +5,7 @@ use std::iter::repeat;
 use crate::{
     base::{
         math::SignedBitDecompose,
-        proof::{Column, Commit, Commitment, PipProve, PipVerify, ProofError},
+        proof::{Column, Commit, Commitment, PipProve, PipVerify, ProofError, MessageLabel},
         scalar::IntoScalar,
     },
     pip::hadamard::HadamardProof,
@@ -36,9 +36,7 @@ where
         // bit_columns is an atypical representation of the values.
         let bit_columns = decompose_input(&input, output);
         let group_commitments = calculate_commitments(&bit_columns);
-        for c_c in &group_commitments {
-            transcript.append_point(b"c_c", c_c);
-        }
+        transcript.append_auto(MessageLabel::Positive, &group_commitments).unwrap();
         let commitments: Vec<_> = group_commitments
             .iter()
             .map(|c| Commitment::from_compressed(*c, input.clone().into_iter().count()))
@@ -183,8 +181,11 @@ impl PipVerify<(Commitment,), Commitment> for PositiveProof {
             if c_c.length != input_commitments.length {
                 return Err(ProofError::VerificationError);
             }
-            transcript.append_commitment(b"c_c", c_c);
         }
+        transcript.append_auto(
+            MessageLabel::Positive, 
+            &self.c_decomposed_columns.iter().map(|c| c.as_compressed()).collect::<Vec<_>>(),
+        )?;
         let mut it = self.c_decomposed_columns.iter().rev();
         let mut recompose = match it.next() {
             None => {
