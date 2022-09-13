@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PositiveProof {
-    pub c_decomposed_columns: Vec<Commitment>,
-    pub bit_proof_decomposed_columns: Vec<HadamardProof>,
+    c_decomposed_columns: Vec<Commitment>,
+    bit_proof_decomposed_columns: Vec<HadamardProof>,
 }
 
 impl<I> PipProve<(I,), Column<bool>> for PositiveProof

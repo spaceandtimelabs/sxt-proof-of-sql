@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AdditionProof {
-    pub c_sum: Commitment,
-    pub log_max_reduction_proof: Option<LogMaxReductionProof<{ AdditionProof::LOG_MAX_MAX }>>,
+    pub(super) c_sum: Commitment,
+    pub(super) log_max_reduction_proof:
+        Option<LogMaxReductionProof<{ AdditionProof::LOG_MAX_MAX }>>,
 }
 
 impl AdditionProof {

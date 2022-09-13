@@ -19,13 +19,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct HadamardProof {
-    pub commit_ab: Commitment,
-    pub sumcheck_proof: SumcheckProof,
-    pub f_a: Scalar,
-    pub f_a_proof: InnerProductProof,
-    pub f_b: Scalar,
-    pub f_b_proof: InnerProductProof,
-    pub f_ab_proof: InnerProductProof,
+    pub(super) commit_ab: Commitment,
+    sumcheck_proof: SumcheckProof,
+    pub(super) f_a: Scalar,
+    f_a_proof: InnerProductProof,
+    pub(super) f_b: Scalar,
+    f_b_proof: InnerProductProof,
+    f_ab_proof: InnerProductProof,
 }
 
 impl PipProve<(Column<Scalar>, Column<Scalar>), Column<Scalar>> for HadamardProof {

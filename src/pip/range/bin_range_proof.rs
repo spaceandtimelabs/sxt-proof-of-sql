@@ -19,9 +19,9 @@ use std::iter::repeat;
 /// - `false` rows claim that `a < -2^B || a > 2^B`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BinaryRangeProof<const B: u8> {
-    pub lower_bound_proof: PositiveProof,
-    pub upper_bound_proof: PositiveProof,
-    pub c_range: Commitment,
+    lower_bound_proof: PositiveProof,
+    upper_bound_proof: PositiveProof,
+    c_range: Commitment,
 }
 
 impl<const B: u8> PipProve<(SafeIntColumn,), Column<bool>> for BinaryRangeProof<B> {

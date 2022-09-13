@@ -20,9 +20,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InnerProductProof {
-    pub L_vec: Vec<CompressedRistretto>,
-    pub R_vec: Vec<CompressedRistretto>,
-    pub a: Scalar,
+    L_vec: Vec<CompressedRistretto>,
+    R_vec: Vec<CompressedRistretto>,
+    a: Scalar,
 }
 
 impl InnerProductProof {

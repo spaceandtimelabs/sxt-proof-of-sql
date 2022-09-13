@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof {
-    pub evaluations: Vec<Vec<Scalar>>,
+    pub(super) evaluations: Vec<Vec<Scalar>>,
 }
 
 impl SumcheckProof {

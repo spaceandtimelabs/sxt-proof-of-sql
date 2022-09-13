@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CaseWhenProof {
-    pub c_c: Commitment,          //Commitment: output (claimed) of CASE-WHEN query.
-    pub proof_pzy: HadamardProof, //Hadamard proof for p*(a-b) = c-b
+    c_c: Commitment,          //Commitment: output (claimed) of CASE-WHEN query.
+    proof_pzy: HadamardProof, //Hadamard proof for p*(a-b) = c-b
 }
 
 impl PipProve<(GeneralColumn, GeneralColumn, GeneralColumn), GeneralColumn> for CaseWhenProof {
@@ -114,7 +114,7 @@ fn verify_proof(
     let c_b = c_b.without_log_max();
     transcript.append_auto(MessageLabel::CaseWhen, &proof.c_c.as_compressed())?;
     proof.proof_pzy.verify(transcript, (c_p, c_z))?;
-    if (proof.proof_pzy.commit_ab + c_b) != proof.c_c {
+    if (proof.proof_pzy.get_output_commitments() + c_b) != proof.c_c {
         Err(ProofError::VerificationError)
     } else {
         Ok(())

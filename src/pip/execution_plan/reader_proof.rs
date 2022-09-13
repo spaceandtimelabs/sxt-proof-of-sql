@@ -5,7 +5,7 @@ use crate::base::proof::{
 /// For reading a new data source
 #[derive(Clone, Debug)]
 pub struct ReaderProof {
-    pub c_out: Vec<Commitment>,
+    c_out: Vec<Commitment>,
 }
 
 impl PipProve<(), Table> for ReaderProof {
