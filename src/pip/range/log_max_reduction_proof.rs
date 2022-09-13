@@ -22,11 +22,13 @@ impl<const B: u8> PipProve<(SafeIntColumn,), SafeIntColumn> for LogMaxReductionP
         //The inputs to the PIP
         (input,): (SafeIntColumn,),
         //The output of the PIP. Note: these are not computed by the PIP itself. The PIP simply produces a proof that these are correct.
-        output: SafeIntColumn,
+        // With the current implementation of this proof, the output is ignored.
+        // The desired log_max to reduce to is provided by the generic parameter B, rather than the
+        // output log_max.
+        _output: SafeIntColumn,
         //The commitments of the inputs to the PIP. This is redundant since it can be computed from input_columns, but they will already have been computed
         (input_commitment,): (Commitment,),
     ) -> Self {
-        assert_eq!(output.log_max(), B);
         transcript
             .append_auto(MessageLabel::LogMaxReduction, &B)
             .unwrap();

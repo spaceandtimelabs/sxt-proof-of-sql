@@ -23,7 +23,14 @@ macro_rules! impl_provable_passthrough {
             fn run_create_proof(&self, transcript: &mut Transcript) -> ProofResult<()> {
                 let input_table = Table::try_from(&self.input.output()?)?;
                 let output_table = Table::try_from(&self.output()?)?;
-                let c_in: Vec<Commitment> = input_table.commit();
+
+                let c_in: Vec<Commitment> = match &*self.input.get_proof()? {
+                    ExecutionPlanProofEnumVariant(exec_proof) => {
+                        exec_proof.get_output_commitments()
+                    }
+                    _ => Err(ProofError::TypeError),
+                }?;
+
                 let proof = TrivialProof::prove(transcript, (input_table,), output_table, (c_in,));
                 *self.proof.write().into_proof_result()? = Some(Arc::new(
                     ExecutionPlanProofEnumVariant(TrivialProofEnumVariant(proof)),

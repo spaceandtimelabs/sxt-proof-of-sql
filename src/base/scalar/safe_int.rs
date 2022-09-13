@@ -21,6 +21,8 @@ pub enum SafeIntError {
     PotentialOverflow,
     #[error("value exceeds provided log_max, which should always overestimate the actual value")]
     ValueExceedsLogMax,
+    #[error("inappropriate log_max reduction attempted")]
+    InappropriateLogMaxReduction,
 }
 
 type Result<T> = std::result::Result<T, SafeIntError>;
@@ -125,6 +127,30 @@ impl SafeInt {
         }
 
         Ok(result)
+    }
+
+    /// Returns the [SafeInt], but with the `log_max` value increased by `log_max_addend`.
+    ///
+    /// `log_max` increases do not need to be checked against the [SafeInt]'s value since the type
+    /// guarantees that the the value didn't exceed the previous `log_max`.
+    pub fn increment_log_max(self, log_max_addend: u8) -> Result<Self> {
+        match self.log_max.checked_add(log_max_addend) {
+            Some(log_max) if log_max <= Self::LOG_MAX_MAX => Ok(SafeInt { log_max, ..self }),
+            _ => Err(SafeIntError::PotentialOverflow),
+        }
+    }
+
+    /// Returns the [SafeInt], but with the `log_max` value overwritten.
+    ///
+    /// Currently, this only intended to be used for increasing the `log_max` value.
+    /// Attempts to decrease will result in an error.
+    pub fn with_log_max(self, log_max: u8) -> Result<Self> {
+        if log_max >= self.log_max {
+            let log_max_addend = log_max - self.log_max;
+            Ok(self.increment_log_max(log_max_addend)?)
+        } else {
+            Err(SafeIntError::InappropriateLogMaxReduction)
+        }
     }
 }
 
@@ -405,6 +431,32 @@ impl SafeIntColumn {
     /// Returns `true` if the column contains no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Returns the [SafeIntColumn], but with the `log_max` value increased by `log_max_addend`.
+    ///
+    /// `log_max` increases do not need to be checked against the [SafeIntColumn]'s values since
+    /// the type guarantees that the the values didn't exceed the previous `log_max`.
+    pub fn increment_log_max(self, log_max_addend: u8) -> Result<Self> {
+        match self.log_max.checked_add(log_max_addend) {
+            Some(log_max) if log_max <= SafeInt::LOG_MAX_MAX => {
+                Ok(SafeIntColumn { log_max, ..self })
+            }
+            _ => Err(SafeIntError::PotentialOverflow),
+        }
+    }
+
+    /// Returns the [SafeIntColumn], but with the `log_max` value overwritten.
+    ///
+    /// Currently, this only intended to be used for increasing the `log_max` value.
+    /// Attempts to decrease will result in an error.
+    pub fn with_log_max(self, log_max: u8) -> Result<Self> {
+        if log_max >= self.log_max {
+            let log_max_addend = log_max - self.log_max;
+            Ok(self.increment_log_max(log_max_addend)?)
+        } else {
+            Err(SafeIntError::InappropriateLogMaxReduction)
+        }
     }
 }
 

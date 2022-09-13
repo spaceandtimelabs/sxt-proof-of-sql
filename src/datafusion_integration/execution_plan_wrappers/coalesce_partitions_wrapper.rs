@@ -8,8 +8,8 @@ use crate::{
             Provable, ProvableExecutionPlan,
         },
         proof::{
-            Commit, Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify,
-            ProofError, ProofResult, Table, Transcript,
+            Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
+            ProofResult, Table, Transcript,
         },
     },
     datafusion_integration::wrappers::{unwrap_exec_plan_if_wrapped, wrap_exec_plan},
