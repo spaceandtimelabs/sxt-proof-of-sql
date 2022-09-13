@@ -1,5 +1,8 @@
 use crate::base::{
-    proof::{Column, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
+    proof::{
+        Column, Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError,
+        Transcript,
+    },
     scalar::IntoScalar,
 };
 use crate::pip::hadamard::HadamardProof;
@@ -84,7 +87,9 @@ fn create_casewhen_proof(
     let c_c = Commitment::from(c_column.as_slice()); //Commits to c
 
     //Add c_c to the transcript
-    transcript.append_auto(MessageLabel::CaseWhen, &c_c.as_compressed()).unwrap();
+    transcript
+        .append_auto(MessageLabel::CaseWhen, &c_c.as_compressed())
+        .unwrap();
 
     //Generate HadamardProof for p*(a-b).
     let proof_pzy = HadamardProof::prove(

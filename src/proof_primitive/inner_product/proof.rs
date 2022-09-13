@@ -14,7 +14,7 @@ use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
 
-use crate::base::proof::{ProofError, Transcript, MessageLabel};
+use crate::base::proof::{MessageLabel, ProofError, Transcript};
 use crate::base::scalar::inner_product;
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +59,9 @@ impl InnerProductProof {
         let mut a = &mut a.to_vec()[..];
         let mut b = &mut b.to_vec()[..];
 
-        transcript.append_auto(MessageLabel::InnerProduct, &n).unwrap();
+        transcript
+            .append_auto(MessageLabel::InnerProduct, &n)
+            .unwrap();
 
         let lg_n = n.next_power_of_two().trailing_zeros() as usize;
         let mut L_vec = Vec::with_capacity(lg_n);
@@ -175,7 +177,9 @@ impl InnerProductProof {
         if n != (1 << lg_n) {
             return Err(ProofError::VerificationError);
         }
-        transcript.append_auto(MessageLabel::InnerProduct, &n).unwrap();
+        transcript
+            .append_auto(MessageLabel::InnerProduct, &n)
+            .unwrap();
 
         // 1. Recompute x_k,...,x_1 based on the proof transcript
 

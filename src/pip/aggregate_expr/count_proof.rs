@@ -1,6 +1,7 @@
 use crate::base::{
     proof::{
-        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel,
+        Column, Commit, Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError,
+        Transcript,
     },
     scalar::SafeInt,
 };
@@ -29,7 +30,9 @@ impl PipProve<(GeneralColumn,), GeneralColumn> for CountProof {
         assert_eq!(length, c_in.length as i64);
         assert_eq!(SafeInt::from(length), output_as_length);
         let c_count = output.commit();
-        transcript.append_auto(MessageLabel::Count, &c_count.as_compressed()).unwrap();
+        transcript
+            .append_auto(MessageLabel::Count, &c_count.as_compressed())
+            .unwrap();
         CountProof {
             c_col: c_in,
             c_count,

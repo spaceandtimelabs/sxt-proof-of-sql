@@ -1,4 +1,6 @@
-use crate::base::proof::{Column, Commitment, PipProve, PipVerify, ProofError, Transcript, MessageLabel};
+use crate::base::proof::{
+    Column, Commitment, MessageLabel, PipProve, PipVerify, ProofError, Transcript,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +17,9 @@ impl PipProve<(Column<bool>,), Column<bool>> for NotProof {
         _output: Column<bool>,
         input_commitments: (Commitment,),
     ) -> Self {
-        transcript.append_auto(MessageLabel::Not, &input_commitments.0.length).unwrap();
+        transcript
+            .append_auto(MessageLabel::Not, &input_commitments.0.length)
+            .unwrap();
         NotProof {
             input_commitment: input_commitments.0,
         }
@@ -28,7 +32,9 @@ impl PipVerify<(Commitment,), Commitment> for NotProof {
         transcript: &mut Transcript,
         input_commitments: (Commitment,),
     ) -> Result<(), ProofError> {
-        transcript.append_auto(MessageLabel::Not, &input_commitments.0.length).unwrap();
+        transcript
+            .append_auto(MessageLabel::Not, &input_commitments.0.length)
+            .unwrap();
         // Note: this isn't really checking much, because as long as the input commitments match, the output commitment is guaranteed to be correct.
         if input_commitments.0 == self.input_commitment {
             Ok(())
