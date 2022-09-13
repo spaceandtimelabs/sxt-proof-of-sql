@@ -1,6 +1,7 @@
 use crate::base::{
     proof::{
-        Column, Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel
+        Column, Commit, Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError,
+        Transcript,
     },
     scalar::IntoScalar,
 };
@@ -120,11 +121,12 @@ where
     let c_e = Commitment::from(e_scalar.as_slice());
     let c_z = c_a - c_b;
 
-    transcript.append_auto(MessageLabel::Equality, &(
-        c_a.length,
-        &c_c.as_compressed(),
-        &c_e.as_compressed(),
-    )).unwrap();
+    transcript
+        .append_auto(
+            MessageLabel::Equality,
+            &(c_a.length, &c_c.as_compressed(), &c_e.as_compressed()),
+        )
+        .unwrap();
     let proof_ez0 = HadamardProof::prove(
         transcript,
         (
@@ -178,11 +180,14 @@ fn verify_proof(
     let c_d = c_1 - proof.c_e;
     let c_z = c_a - c_b;
 
-    transcript.append_auto(MessageLabel::Equality, &(
-        c_a.length,
-        proof.c_c.as_compressed(),
-        proof.c_e.as_compressed(),
-    ))?;
+    transcript.append_auto(
+        MessageLabel::Equality,
+        &(
+            c_a.length,
+            proof.c_c.as_compressed(),
+            proof.c_e.as_compressed(),
+        ),
+    )?;
     proof.proof_ez0.verify(transcript, (proof.c_e, c_z))?;
     proof.proof_czd.verify(transcript, (proof.c_c, c_z))?;
     if proof.proof_ez0.commit_ab != c_0 || proof.proof_czd.commit_ab != c_d {

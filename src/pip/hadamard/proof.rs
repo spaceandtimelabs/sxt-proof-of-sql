@@ -75,7 +75,12 @@ impl PipVerify<(Commitment, Commitment), Commitment> for HadamardProof {
         let num_vars = compute_num_variables(n);
 
         let n = 1 << num_vars;
-        transcript.append_auto(MessageLabel::Hadamard, &(num_vars, self.commit_ab.as_compressed())).unwrap();
+        transcript
+            .append_auto(
+                MessageLabel::Hadamard,
+                &(num_vars, self.commit_ab.as_compressed()),
+            )
+            .unwrap();
         let mut r_vec = vec![Scalar::from(0u64); n];
         transcript.challenge_scalars(&mut r_vec, MessageLabel::HadamardChallenge);
 
@@ -171,10 +176,9 @@ fn create_proof_impl(
     let mut c_ab = CompressedRistretto::identity();
     compute_commitments(slice::from_mut(&mut c_ab), &[ab_vec]);
 
-    transcript.append_auto(MessageLabel::Hadamard, &(
-        num_vars,
-        c_ab
-    )).unwrap();
+    transcript
+        .append_auto(MessageLabel::Hadamard, &(num_vars, c_ab))
+        .unwrap();
     let n = a_vec.len();
 
     let mut r_vec = vec![Scalar::zero(); n];

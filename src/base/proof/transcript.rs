@@ -1,42 +1,41 @@
+use crate::base::scalar::as_byte_slice;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
-use crate::base::scalar::as_byte_slice;
 
 use super::ProofResult;
 
 /// Merlin Transcripts, for non-interactive proofs.
-/// 
+///
 /// Think of this as a transaction log.
 /// When adding data to it, the opaque state will change in a pseudorandom way.
 /// The provers and verifiers should be able to add the same data in the same order, and achieve the same state.
-/// 
+///
 /// In most cases, you would use this in PipVerify and PipProve, where they would look like this:
 /// ```ignore
 /// use proofs::base::proof::{Commitment, MessageLabel, transcript::Transcript};
 /// use curve25519_dalek::scalar::Scalar;
 /// let mut transcript = Transcript::new(b"my-protocol-name");
-/// 
+///
 /// // Begin your proof with message specific to your operation using the MessageLabel enum.
 /// // Still, keep them simple and small.
 /// let param = 8u64; // This would not normally be constant
 /// // let param = &(8u64, 9u64); // any serializable type can accompany the label, but keep it as simple as possible
-/// 
+///
 /// // Actually implement the proof .. (not shown)
-/// 
+///
 /// let c_c = Commitment::from(&[] as &[Scalar]); // these would not normally be empty
 /// let c_e = Commitment::from(&[] as &[Scalar]);
-/// 
+///
 /// // Now include the operation, its parameters, and the commitments in the transcript
 /// transcript.append_auto(MessageLabel::Equality, &(
 ///     param,
 ///     c_c,
 ///     c_e,
 /// )).unwrap();
-/// 
+///
 /// // It's completely valid to include additional addenda to the transcript, but for many operations, this is all you need.
 /// ```
 pub struct Transcript(merlin::Transcript);
-
 
 impl Transcript {
     /// Create a new transcript, with its own domain separator.
@@ -51,23 +50,29 @@ impl Transcript {
     /// Usually you would use this to start an operation, as well as include a few commitments.
     /// When including commitments this way, besure to use Commitment::as_compressed(),
     /// so that only the RistrettoPoint is included, and not the length.
-    /// 
+    ///
     /// The message is encoded with Postcard v1, chosen for its simplicity and stability.
-    pub fn append_auto(&mut self, label: MessageLabel, message: &impl serde::Serialize) -> ProofResult<()> {
-        self.0.append_message(label.as_bytes(), &postcard::to_allocvec(message)?);
+    pub fn append_auto(
+        &mut self,
+        label: MessageLabel,
+        message: &impl serde::Serialize,
+    ) -> ProofResult<()> {
+        self.0
+            .append_message(label.as_bytes(), &postcard::to_allocvec(message)?);
         Ok(())
     }
 
     /// Append some scalars to the transcript under a specific label.
-    /// 
+    ///
     /// For most types, prefer to include it as part of the message with append_auto.
     /// But Scalars are not Serialize, so you must use this method instead, creating a separate message.
     pub fn append_scalars(&mut self, label: MessageLabel, scalars: &[Scalar]) {
-        self.0.append_message(label.as_bytes(), as_byte_slice(scalars));
+        self.0
+            .append_message(label.as_bytes(), as_byte_slice(scalars));
     }
 
     /// Append a Compressed RistrettoPoint with a specific label.
-    /// 
+    ///
     /// For most types, prefer to include it as part of the message with append_auto instead,
     /// because using this method creates a need for more labels
     pub fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto) {
@@ -99,7 +104,6 @@ impl Transcript {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageLabel {
