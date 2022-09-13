@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
+        proof::{
+            Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError, Transcript,
+        },
         scalar::SafeIntColumn,
     },
     pip::range::LogMaxReductionProof,
@@ -68,11 +70,12 @@ impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for SubtractionProo
                 .expect("commitments of SafeIntColumns should have a log_max")
         );
         let c_diff = c_a - c_b;
-        transcript.append_auto(MessageLabel::Subtraction, &(
-            input_a.len(),
-            c_diff.as_compressed()
-        )).unwrap();
-
+        transcript
+            .append_auto(
+                MessageLabel::Subtraction,
+                &(input_a.len(), c_diff.as_compressed()),
+            )
+            .unwrap();
 
         if c_diff
             .log_max
@@ -115,10 +118,10 @@ impl PipVerify<(Commitment, Commitment), Commitment> for SubtractionProof {
         (c_a, c_b): (Commitment, Commitment),
     ) -> Result<(), ProofError> {
         let c_diff_calculated = c_a - c_b;
-        transcript.append_auto(MessageLabel::Subtraction, &(
-            c_a.length,
-            c_diff_calculated.as_compressed()
-        ))?;
+        transcript.append_auto(
+            MessageLabel::Subtraction,
+            &(c_a.length, c_diff_calculated.as_compressed()),
+        )?;
 
         let calculated_log_max = c_diff_calculated.log_max.ok_or(ProofError::FormatError)?;
 

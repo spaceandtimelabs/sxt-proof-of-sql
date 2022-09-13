@@ -1,6 +1,8 @@
 use crate::{
     base::{
-        proof::{Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel},
+        proof::{
+            Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError, Transcript,
+        },
         scalar::SafeIntColumn,
     },
     pip::range::LogMaxReductionProof,
@@ -70,11 +72,12 @@ impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for AdditionProof {
                 .expect("commitments of SafeIntColumns should have a log_max")
         );
         let c_sum = c_a + c_b;
-        transcript.append_auto(MessageLabel::Addition, &(
-            input_a.len(),
-            c_sum.as_compressed()
-        )).unwrap();
-
+        transcript
+            .append_auto(
+                MessageLabel::Addition,
+                &(input_a.len(), c_sum.as_compressed()),
+            )
+            .unwrap();
 
         if c_sum
             .log_max
@@ -118,10 +121,10 @@ impl PipVerify<(Commitment, Commitment), Commitment> for AdditionProof {
     ) -> Result<(), ProofError> {
         // self.c_sum is provided by the prover and will have an already-reduced log_max
         let c_sum_calculated = c_a + c_b;
-        transcript.append_auto(MessageLabel::Addition, &(
-            c_a.length,
-            c_sum_calculated.as_compressed()
-        ))?;
+        transcript.append_auto(
+            MessageLabel::Addition,
+            &(c_a.length, c_sum_calculated.as_compressed()),
+        )?;
 
         let calculated_log_max = c_sum_calculated.log_max.ok_or(ProofError::FormatError)?;
 

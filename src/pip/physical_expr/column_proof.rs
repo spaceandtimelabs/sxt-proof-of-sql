@@ -1,5 +1,5 @@
 use crate::base::proof::{
-    Commit, Commitment, GeneralColumn, PipProve, PipVerify, ProofError, Transcript, MessageLabel,
+    Commit, Commitment, GeneralColumn, MessageLabel, PipProve, PipVerify, ProofError, Transcript,
 };
 
 #[derive(Clone, Debug)]
@@ -15,7 +15,9 @@ impl PipProve<(), GeneralColumn> for ColumnProof {
         _input_commitment: (),
     ) -> Self {
         let c_out = output.commit();
-        transcript.append_auto(MessageLabel::Column, &c_out.as_compressed()).unwrap();
+        transcript
+            .append_auto(MessageLabel::Column, &c_out.as_compressed())
+            .unwrap();
         ColumnProof { c_out }
     }
 }
