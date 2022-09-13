@@ -10,8 +10,8 @@ use crate::{
             PhysicalExprTuple, Provable, ProvableExecutionPlan, ProvablePhysicalExprTuple,
         },
         proof::{
-            Commit, Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify,
-            ProofError, ProofResult, Table, Transcript,
+            Commitment, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
+            ProofResult, Table, Transcript,
         },
     },
     datafusion_integration::wrappers::{
@@ -177,8 +177,21 @@ impl Provable for ProjectionExecWrapper {
             .collect::<ProofResult<Vec<ArrayRef>>>()?;
         let input_table = Table::try_from(&input)?;
         let output_table = Table::try_from(&self.output()?)?;
-        let c_in: Vec<Commitment> = input_table.commit();
-        let proof = TrivialProof::prove(transcript, (input_table,), output_table, (c_in,));
+
+        let c_expr: Vec<Commitment> = self
+            .expr
+            .iter()
+            .map(|field| -> ProofResult<Commitment> {
+                let proof: Arc<DataFusionProof> = (*field.0).get_proof()?;
+                match &*proof {
+                    PhysicalExprProofEnumVariant(expr_proof) => expr_proof.get_output_commitments(),
+                    _ => Err(ProofError::TypeError),
+                }
+            })
+            .into_iter()
+            .collect::<ProofResult<Vec<Commitment>>>()?;
+
+        let proof = TrivialProof::prove(transcript, (input_table,), output_table, (c_expr,));
         *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
             TrivialProofEnumVariant(proof),
         )));

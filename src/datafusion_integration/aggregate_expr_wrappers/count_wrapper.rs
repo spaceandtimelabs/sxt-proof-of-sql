@@ -10,8 +10,8 @@ use crate::{
             Provable, ProvableAggregateExpr, ProvablePhysicalExpr,
         },
         proof::{
-            Commit, Commitment, GeneralColumn, IntoProofResult, PipProve, PipVerify, ProofError,
-            ProofResult, Transcript,
+            GeneralColumn, IntoProofResult, PipProve, PipVerify, ProofError, ProofResult,
+            Transcript,
         },
     },
     datafusion_integration::wrappers::wrap_physical_expr,
@@ -99,7 +99,18 @@ impl Provable for CountWrapper {
         let output = self.array_output()?;
         let input_col = GeneralColumn::try_from(&input)?;
         let output_col = GeneralColumn::try_from(&output)?;
-        let c_in: Commitment = input_col.commit();
+
+        // The input commitment can be obtained from the output commitments of the child proof.
+        // It's important to get the input commitment this way rather than calculating the
+        // commitment from the ArrayRef.
+        // The `log_max` values of the commitments should be incremented during arithmetic
+        // operations for security purposes, and calculating a new commitment will simply ignore
+        // this incrementation.
+        let c_in = match &*self.expr.get_proof()? {
+            DataFusionProof::PhysicalExprProof(p) => p.get_output_commitments()?,
+            _ => return Err(ProofError::TypeError),
+        };
+
         let proof = CountProof::prove(transcript, (input_col,), output_col, (c_in,));
         *self.proof.write().into_proof_result()? = Some(Arc::new(AggregateExprProofEnumVariant(
             CountProofEnumVariant(proof),

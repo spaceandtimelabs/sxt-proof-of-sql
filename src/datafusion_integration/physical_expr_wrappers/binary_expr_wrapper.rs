@@ -6,8 +6,8 @@ use crate::{
             PhysicalExprProof, Provable, ProvablePhysicalExpr,
         },
         proof::{
-            Commit, GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify,
-            ProofError, ProofResult, Transcript,
+            GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
+            ProofResult, Transcript,
         },
     },
     datafusion_integration::wrappers::wrap_physical_expr,
@@ -61,6 +61,7 @@ impl BinaryExprWrapper {
             // proving/evaluation process.
             proof: RwLock::new(None),
             output: RwLock::new(None),
+
             num_rows: RwLock::new(None),
         })
     }
@@ -148,12 +149,28 @@ impl Provable for BinaryExprWrapper {
             .ok_or(ProofError::UnevaluatedError)?;
         let output = GeneralColumn::try_from(&output_col)?;
 
+        // The input commitment can be obtained from the output commitments of the child proofs.
+        // It's important to get the input commitment this way rather than calculating the
+        // commitment from the ArrayRef.
+        // The `log_max` values of the commitments should be incremented during arithmetic
+        // operations for security purposes, and calculating a new commitment will simply ignore
+        // this incrementation.
+        let c_in = match (&*self.args[0].get_proof()?, &*self.args[1].get_proof()?) {
+            (
+                DataFusionProof::PhysicalExprProof(left_p),
+                DataFusionProof::PhysicalExprProof(right_p),
+            ) => (
+                left_p.get_output_commitments()?,
+                right_p.get_output_commitments()?,
+            ),
+            _ => return Err(ProofError::TypeError),
+        };
+
         // Typing violations for mismatched or unsupported `GeneralColumn` variants will be
         // different for each proof.
         // So, these errors are detected within each proof's "general" `PipProve` implementation,
         // and all we have to do here is provide the proofs with general columns.
         let input = (left_col, right_col);
-        let c_in = input.commit();
         let proof = match self.raw.op() {
             Operator::Eq => PhysicalExprProof::EqualityProof(EqualityProof::prove(
                 transcript, input, output, c_in,
@@ -509,6 +526,144 @@ mod tests {
             .unwrap();
         let proof = prover_expr.get_proof_with_children().unwrap();
         assert_eq!(proof.len(), 3);
+
+        // Verifier
+        let verifier_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Verify the proof
+        println!("{:?}", verifier_expr.set_proof_with_children(&proof));
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+
+        assert!(verifier_expr
+            .run_verify_with_children(&mut transcript)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_binary_wrapper_log_max_persists() {
+        // Setup
+        let array = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, -1, 5, -5, 0, 10,
+        ]));
+        let expected = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 66, -66, 330, -330, 0, 660,
+        ]));
+        let schema = Schema::new(vec![Field::new("a", DataType::Int64, false)]);
+        let batch = RecordBatch::try_new(Arc::new(schema.clone()), vec![array]).unwrap();
+
+        let col = (ColumnExpr::new_with_schema("a", &schema)).unwrap();
+
+        let mut raw = BinaryExpr::new(Arc::new(col.clone()), Operator::Plus, Arc::new(col.clone()));
+        for _ in 0..64 {
+            raw = BinaryExpr::new(Arc::new(col.clone()), Operator::Plus, Arc::new(raw));
+        }
+
+        // Prover
+        let prover_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Evaluate and check output
+        let _res = prover_expr.evaluate(&batch).unwrap();
+        prover_expr.set_num_rows(7).unwrap();
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *expected);
+
+        // Produce the proof
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        prover_expr
+            .run_create_proof_with_children(&mut transcript)
+            .unwrap();
+        let proof = prover_expr.get_proof_with_children().unwrap();
+        assert_eq!(proof.len(), 131);
+
+        // Check that the output log_max starts from the initial log_max of i64s (63)
+        // and is incremented by the proofs 65 times (128)
+        match proof.first().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(63));
+            }
+            _ => panic!(),
+        }
+        match proof.last().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(128));
+            }
+            _ => panic!(),
+        }
+
+        // Verifier
+        let verifier_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Verify the proof
+        println!("{:?}", verifier_expr.set_proof_with_children(&proof));
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+
+        assert!(verifier_expr
+            .run_verify_with_children(&mut transcript)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_binary_wrapper_log_max_reduction() {
+        // Setup
+        let array = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, -1, 5, -5, 0, 10,
+        ]));
+        let expected = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, -65, 65, -325, 325, 0, -650,
+        ]));
+        let schema = Schema::new(vec![Field::new("a", DataType::Int64, false)]);
+        let batch = RecordBatch::try_new(Arc::new(schema.clone()), vec![array]).unwrap();
+
+        let col = (ColumnExpr::new_with_schema("a", &schema)).unwrap();
+
+        let mut raw = BinaryExpr::new(
+            Arc::new(col.clone()),
+            Operator::Minus,
+            Arc::new(col.clone()),
+        );
+        for _ in 0..65 {
+            raw = BinaryExpr::new(Arc::new(raw), Operator::Minus, Arc::new(col.clone()));
+        }
+
+        // Prover
+        let prover_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Evaluate and check output
+        let _res = prover_expr.evaluate(&batch).unwrap();
+        prover_expr.set_num_rows(7).unwrap();
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *expected);
+
+        // Produce the proof
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        prover_expr
+            .run_create_proof_with_children(&mut transcript)
+            .unwrap();
+        let proof = prover_expr.get_proof_with_children().unwrap();
+        assert_eq!(proof.len(), 133);
+
+        // Check that the output log_max starts from the initial log_max of i64s (63)
+        // and is incremented by the proofs 66 times and then reduced (129 -> 128)
+        match proof.first().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(63));
+            }
+            _ => panic!(),
+        }
+        match proof.last().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(128));
+            }
+            _ => panic!(),
+        }
+
+        // Check that the final proof performed log max reduction
+        match proof.last().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(PhysicalExprProof::SubtractionProof(p)) => {
+                assert!(p.log_max_reduction_proof.is_some())
+            }
+            _ => panic!(),
+        }
 
         // Verifier
         let verifier_expr = BinaryExprWrapper::try_new(&raw).unwrap();
