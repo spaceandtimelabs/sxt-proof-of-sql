@@ -5,7 +5,7 @@ use crate::base::proof::{
 /// For pass through ExecutionPlans
 #[derive(Clone, Debug)]
 pub struct TrivialProof {
-    pub c_out: Vec<Commitment>,
+    c_out: Vec<Commitment>,
 }
 
 impl PipProve<(Table,), Table> for TrivialProof {

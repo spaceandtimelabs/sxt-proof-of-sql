@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Implementation of Not logical operator. This uses the fact that !x = 1-x.
 #[derive(Serialize, Deserialize)]
 pub struct NotProof {
-    pub input_commitment: Commitment,
+    input_commitment: Commitment,
 }
 
 impl PipProve<(Column<bool>,), Column<bool>> for NotProof {

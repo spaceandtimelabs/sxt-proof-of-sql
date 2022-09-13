@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 /// Implementation of proof for Or logical operator.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OrProof {
-    pub product_proof: HadamardProof,
-    pub output_commitment: Commitment,
+    product_proof: HadamardProof,
+    output_commitment: Commitment,
 }
 
 impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for OrProof {

@@ -8,8 +8,8 @@ use crate::base::{
 
 #[derive(Clone, Debug)]
 pub struct CountProof {
-    pub c_col: Commitment,   // Commitment of the counted
-    pub c_count: Commitment, // Commitment of the singleton Int64 "count" column
+    c_col: Commitment,   // Commitment of the counted
+    c_count: Commitment, // Commitment of the singleton Int64 "count" column
 }
 
 impl PipProve<(GeneralColumn,), GeneralColumn> for CountProof {

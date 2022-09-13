@@ -11,8 +11,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SubtractionProof {
-    pub c_diff: Commitment,
-    pub log_max_reduction_proof: Option<LogMaxReductionProof<{ SubtractionProof::LOG_MAX_MAX }>>,
+    pub(super) c_diff: Commitment,
+    pub(super) log_max_reduction_proof:
+        Option<LogMaxReductionProof<{ SubtractionProof::LOG_MAX_MAX }>>,
 }
 
 impl SubtractionProof {
