@@ -237,7 +237,25 @@ impl Provable for AggregateExecWrapper {
             .collect::<ProofResult<Vec<ArrayRef>>>()?;
         let input_table = Table::try_from(&input)?;
         let output_table = Table::try_from(&self.output()?)?;
-        let c_in: Vec<Commitment> = input_table.commit();
+
+        let c_in: Vec<Commitment> = match self.mode() {
+            AggregateMode::Partial => self
+                .aggr_expr
+                .iter()
+                .map(|field| -> ProofResult<Commitment> {
+                    let proof: Arc<DataFusionProof> = (*field).get_proof()?;
+                    match &*proof {
+                        AggregateExprProofEnumVariant(expr_proof) => {
+                            expr_proof.get_output_commitments()
+                        }
+                        _ => Err(ProofError::TypeError),
+                    }
+                })
+                .into_iter()
+                .collect::<ProofResult<Vec<Commitment>>>()?,
+            _ => input_table.commit(),
+        };
+
         let proof = TrivialProof::prove(transcript, (input_table,), output_table, (c_in,));
         *self.proof.write().into_proof_result()? = Some(Arc::new(ExecutionPlanProofEnumVariant(
             TrivialProofEnumVariant(proof),

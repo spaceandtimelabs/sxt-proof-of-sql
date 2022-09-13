@@ -8,8 +8,8 @@ use crate::{
             Provable, ProvablePhysicalExpr,
         },
         proof::{
-            Commit, Commitment, GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve,
-            PipVerify, ProofError, ProofResult, Transcript,
+            GeneralColumn, IntoDataFusionResult, IntoProofResult, PipProve, PipVerify, ProofError,
+            ProofResult, Transcript,
         },
     },
     datafusion_integration::wrappers::wrap_physical_expr,
@@ -94,7 +94,18 @@ impl Provable for NegativeExprWrapper {
         // it relies on the returned ArrayRef
         let input = self.arg.array_output()?;
         let col = GeneralColumn::try_from(&input)?;
-        let c_in: Commitment = col.commit();
+
+        // The input commitment can be obtained from the output commitments of the child proof.
+        // It's important to get the input commitment this way rather than calculating the
+        // commitment from the ArrayRef.
+        // The `log_max` values of the commitments should be incremented during arithmetic
+        // operations for security purposes, and calculating a new commitment will simply ignore
+        // this incrementation.
+        let c_in = match &*self.arg.get_proof()? {
+            DataFusionProof::PhysicalExprProof(p) => p.get_output_commitments()?,
+            _ => return Err(ProofError::TypeError),
+        };
+
         let proof = NegativeProof::prove(transcript, (col.clone(),), col, (c_in,));
         *self.proof.write().into_proof_result()? = Some(Arc::new(PhysicalExprProofEnumVariant(
             NegativeProofEnumVariant(proof),
@@ -151,7 +162,8 @@ mod tests {
             datatypes::{DataType, Field, Int64Type, Schema},
             record_batch::RecordBatch,
         },
-        physical_expr::expressions::Column as ColumnExpr,
+        logical_plan::Operator,
+        physical_expr::expressions::{BinaryExpr, Column as ColumnExpr},
     };
 
     #[test]
@@ -198,6 +210,71 @@ mod tests {
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
         let mut transcript = Transcript::new(b"test_negative_wrapper");
+        assert!(verifier_expr
+            .run_verify_with_children(&mut transcript)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_negative_wrapper_log_max_persists() {
+        // Setup
+        let array = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, -1, 5, -5, 0, 10,
+        ]));
+        let expected = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, -2, 2, -10, 10, 0, -20,
+        ]));
+        let schema = Schema::new(vec![Field::new("a", DataType::Int64, false)]);
+        let batch = RecordBatch::try_new(Arc::new(schema.clone()), vec![array]).unwrap();
+
+        let col = (ColumnExpr::new_with_schema("a", &schema)).unwrap();
+
+        let raw = NegativeExpr::new(Arc::new(BinaryExpr::new(
+            Arc::new(col.clone()),
+            Operator::Plus,
+            Arc::new(col.clone()),
+        )));
+
+        // Prover
+        let prover_expr = NegativeExprWrapper::try_new(&raw).unwrap();
+
+        // Evaluate and check output
+        let _res = prover_expr.evaluate(&batch).unwrap();
+        prover_expr.set_num_rows(7).unwrap();
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *expected);
+
+        // Produce the proof
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        prover_expr
+            .run_create_proof_with_children(&mut transcript)
+            .unwrap();
+        let proof = prover_expr.get_proof_with_children().unwrap();
+        assert_eq!(proof.len(), 4);
+
+        // Check that the output log_max starts from the initial log_max of i64s (63)
+        // and is incremented by the addition proof once (64)
+        // and that this change persists through the negative proof
+        match proof.first().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(63));
+            }
+            _ => panic!(),
+        }
+        match proof.last().unwrap().as_ref() {
+            DataFusionProof::PhysicalExprProof(p) => {
+                assert_eq!(p.get_output_commitments().unwrap().log_max, Some(64));
+            }
+            _ => panic!(),
+        }
+
+        // Verifier
+        let verifier_expr = NegativeExprWrapper::try_new(&raw).unwrap();
+
+        // Verify the proof
+        println!("{:?}", verifier_expr.set_proof_with_children(&proof));
+        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
             .is_ok());

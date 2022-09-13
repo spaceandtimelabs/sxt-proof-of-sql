@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AdditionProof {
     pub(super) c_sum: Commitment,
-    pub(super) log_max_reduction_proof:
+    pub(crate) log_max_reduction_proof:
         Option<LogMaxReductionProof<{ AdditionProof::LOG_MAX_MAX }>>,
 }
 
@@ -39,6 +39,33 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for AdditionProof {
         use GeneralColumn::*;
         match (left, right, output) {
             (SafeIntColumn(left), SafeIntColumn(right), SafeIntColumn(output)) => {
+                // log_max correction may be necessary since the SafeIntColumn may be generated
+                // from a datafusion array of an intermediate result instead of the output of an
+                // intermediate proof.
+                // In this scenario, log_max increments performed in previous proofs are only
+                // accessible via the commitment log_max.
+                //
+                // This is safe so long as the correction is an increase, which we expect it to be
+                let left_log_max = input_commitment
+                    .0
+                    .log_max
+                    .expect("commitments of SafeIntColumns should have a log_max");
+                let right_log_max = input_commitment
+                    .1
+                    .log_max
+                    .expect("commitments of SafeIntColumns should have a log_max");
+
+                let left = left
+                    .with_log_max(
+                        left_log_max
+                    )
+                    .expect("commitment log_max shouldn't be less than the log_max of the associated column");
+                let right = right
+                    .with_log_max(
+                        right_log_max
+                    )
+                    .expect("commitment log_max shouldn't be less than the log_max of the associated column");
+
                 AdditionProof::prove(transcript, (left, right), output, input_commitment)
             }
             _ => {
