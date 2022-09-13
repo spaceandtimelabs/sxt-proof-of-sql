@@ -12,10 +12,10 @@ use std::iter;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InequalityProof {
-    pub c_c: Commitment,
-    pub c_d: Commitment,
-    pub proof_ez0: HadamardProof,
-    pub proof_czd: HadamardProof,
+    c_c: Commitment,
+    c_d: Commitment,
+    proof_ez0: HadamardProof,
+    proof_czd: HadamardProof,
 }
 
 impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for InequalityProof {
@@ -176,7 +176,9 @@ fn verify_proof(
     )?;
     proof.proof_ez0.verify(transcript, (c_e, c_z))?;
     proof.proof_czd.verify(transcript, (proof.c_c, c_z))?;
-    if proof.proof_ez0.commit_ab != c_0 || proof.proof_czd.commit_ab != proof.c_d {
+    if proof.proof_ez0.get_output_commitments() != c_0
+        || proof.proof_czd.get_output_commitments() != proof.c_d
+    {
         Err(ProofError::VerificationError)
     } else {
         Ok(())

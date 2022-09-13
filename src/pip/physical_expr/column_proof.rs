@@ -4,7 +4,7 @@ use crate::base::proof::{
 
 #[derive(Clone, Debug)]
 pub struct ColumnProof {
-    pub c_out: Commitment,
+    c_out: Commitment,
 }
 
 impl PipProve<(), GeneralColumn> for ColumnProof {

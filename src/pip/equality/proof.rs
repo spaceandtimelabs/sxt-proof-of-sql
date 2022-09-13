@@ -12,10 +12,10 @@ use std::iter;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EqualityProof {
-    pub c_c: Commitment,
-    pub c_e: Commitment,
-    pub proof_ez0: HadamardProof,
-    pub proof_czd: HadamardProof,
+    c_c: Commitment,
+    c_e: Commitment,
+    proof_ez0: HadamardProof,
+    proof_czd: HadamardProof,
 }
 
 impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for EqualityProof {
@@ -163,8 +163,8 @@ fn verify_proof(
 
     if c_a.length != proof.c_e.length
         || c_a.length != proof.c_c.length
-        || c_a.length != proof.proof_ez0.commit_ab.length
-        || c_a.length != proof.proof_czd.commit_ab.length
+        || c_a.length != proof.proof_ez0.get_output_commitments().length
+        || c_a.length != proof.proof_czd.get_output_commitments().length
     {
         return Err(ProofError::VerificationError);
     }
@@ -190,7 +190,9 @@ fn verify_proof(
     )?;
     proof.proof_ez0.verify(transcript, (proof.c_e, c_z))?;
     proof.proof_czd.verify(transcript, (proof.c_c, c_z))?;
-    if proof.proof_ez0.commit_ab != c_0 || proof.proof_czd.commit_ab != c_d {
+    if proof.proof_ez0.get_output_commitments() != c_0
+        || proof.proof_czd.get_output_commitments() != c_d
+    {
         Err(ProofError::VerificationError)
     } else {
         Ok(())

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// This is equivalent to the And logical operation when `T` is a bool, because x && y == x * y
 #[derive(Serialize, Deserialize)]
 pub struct ScalarMultiplyProof {
-    pub proof: HadamardProof,
+    proof: HadamardProof,
 }
 
 impl<T> PipProve<(Column<T>, Column<T>), Column<T>> for ScalarMultiplyProof

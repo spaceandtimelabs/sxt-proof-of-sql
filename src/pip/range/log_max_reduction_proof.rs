@@ -11,8 +11,8 @@ use std::iter::repeat;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LogMaxReductionProof<const B: u8> {
-    pub bin_range_proof: BinaryRangeProof<B>,
-    pub c_reduced: Commitment,
+    bin_range_proof: BinaryRangeProof<B>,
+    c_reduced: Commitment,
 }
 
 impl<const B: u8> PipProve<(SafeIntColumn,), SafeIntColumn> for LogMaxReductionProof<B> {
