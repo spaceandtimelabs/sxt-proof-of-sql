@@ -1,0 +1,32 @@
+[package]
+name = "proofs"
+version = "0.0.0" # This version will be automatically updated
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pedersen = {version = "3.0", registry = "pedersen_reg"}
+byte-slice-cast = "1.2.1"
+ark-ff = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
+ark-poly = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
+ark-std = "^0.3.0"
+async-trait = "0.1.57"
+curve25519-dalek = { version = "3", features = ["serde"] }
+hashbrown = "0.11.2"
+merlin = "2"
+thiserror = "1"
+derive_more = "0.99"
+impl-trait-for-tuples = "0.2"
+datafusion = "11.0.0"
+serde = { version = "1", features = ["serde_derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["preserve_order"] }
+postcard = {version = "1.0", features = ["alloc"] }
+hex = { version = "0.4", default-features = false, features = ["std"] }
+num-traits = "0.2"
+futures = "^0.3.24"
+
+[dev_dependencies]
+rand = "0.7"
+rand_core = "0.5"
+tokio = { version = "1", features = ["full"] }
