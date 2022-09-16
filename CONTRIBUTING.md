@@ -37,22 +37,22 @@ The most relevant fields in the issue are: `assignees`, `projects`, `milestone`,
 
 2. From the created issue panel, use the `main` branch to generate a new branch that will be tied with the issue. In this case, when a Pull Request tied with the branch is merged, the issue will be automatically closed.
 
-3. As a convention, you can append the related problem you are trying to solve to the branch name. For instance:
+3. As a convention, you can append the related problem you are trying to solve to the branch name. It's paramount that you append the 'PROOF-<jira issue key>' in your branch name so that it's automatically linked with Jira. See [here](https://space-and-time.atlassian.net/wiki/spaces/SE/pages/12812378/SxT+Engineering+Team+Standards) for more informations. For example:
 
 ```
-feat/compute-commitments
-```
-
-```
-fix/compute-commitments
+feat/compute-commitments-PROOF-<jira issue key number>
 ```
 
 ```
-docs/compute-commitments
+fix/compute-commitments-PROOF-<jira issue key number>
 ```
 
 ```
-ci/set-up-environment
+docs/compute-commitments-PROOF-<jira issue key number>
+```
+
+```
+ci/set-up-environment-PROOF-<jira issue key number>
 ```
 
 4. Whenever you are done implementing the modifications in your branch, make a Pull Request to merge your changes into the main branch. Try to always assign someone to review your Pull Request. Since we are using an automatic release process to version our code, you should follow a strict pattern in your commit messages (below for more descriptions). It is advised that you name your Pull Request according to our semantic release rules, given that the commit message is automatically the same as the Pull Request title. For instance, name the PR as "feat: add hadamard product" and do not name the PR as "Adding hadamard product". Always test your code locally before any pull request is submitted.
@@ -238,15 +238,18 @@ The `footer` is optional. The [Commit Message Footer](#commit-footer) format des
 #### <a name="commit-header"></a>Commit Message Header
 
 ```
-<type>: <short summary>
-  │           │
+<type>: <short summary> ( PROOF-<jira issue key number> )
+  │           │                         |
+  |           |                         └─⫸ The JIRA issue key number associated with the commit message.
+  |           |                           
+  |           |
   │           └─⫸ Summary in present tense. Not capitalized. No period at the end.
   │
   │
-  └─⫸ Commit Type: feat|fix|perf|refactor|test|build|ci|docs|style|chore
+  └─⫸ Commit Type: feat|feat!|fix|fix!|perf|perf!|refactor|refactor!|test|bench|build|ci|docs|style|chore
 ```
 
-Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version.
+Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version. Also, we always reference the JIRA issue in the commit message. See [here](https://space-and-time.atlassian.net/wiki/spaces/SE/pages/12812378/SxT+Engineering+Team+Standards) for more information.
 
 #### <a name="type"></a> Type
 
