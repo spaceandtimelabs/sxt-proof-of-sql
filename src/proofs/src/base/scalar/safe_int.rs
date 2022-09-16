@@ -414,6 +414,12 @@ impl SafeIntColumn {
         }
     }
 
+    /// Getter for the internal values as a vec of [Scalar]s.
+    /// Public access to this value is prevented to avoid unsafe mutation.
+    pub fn values(&self) -> &Vec<Scalar> {
+        self.values.as_ref()
+    }
+
     /// Getter for the internal log_max.
     /// The log_max keeps track of the theoretical maximum value for the SafeInts in the column.
     /// This is an overestimate, and is stored logarithmically to save space.

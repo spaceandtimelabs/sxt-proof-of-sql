@@ -6,6 +6,7 @@ use crate::{
         equality::EqualityProof,
         execution_plan::{ReaderProof, TrivialProof},
         inequality::InequalityProof,
+        multiplication::MultiplicationProof,
         or::OrProof,
         physical_expr::{ColumnProof, LiteralProof, NegativeProof},
         subtraction::SubtractionProof,
@@ -35,6 +36,7 @@ pub enum PhysicalExprProof {
     OrProof(OrProof),
     AdditionProof(AdditionProof),
     SubtractionProof(SubtractionProof),
+    MultiplicationProof(MultiplicationProof),
 }
 
 impl PhysicalExprProof {
@@ -48,6 +50,7 @@ impl PhysicalExprProof {
             PhysicalExprProof::OrProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::AdditionProof(p) => Ok(p.get_output_commitments()),
             PhysicalExprProof::SubtractionProof(p) => Ok(p.get_output_commitments()),
+            PhysicalExprProof::MultiplicationProof(p) => Ok(p.get_output_commitments()),
         }
     }
 }
