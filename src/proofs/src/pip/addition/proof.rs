@@ -5,7 +5,7 @@ use crate::{
         },
         scalar::SafeIntColumn,
     },
-    pip::range::LogMaxReductionProof,
+    pip::range::{arithmetic, LogMaxReductionProof},
 };
 
 use serde::{Deserialize, Serialize};
@@ -107,36 +107,12 @@ impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for AdditionProof {
             )
             .unwrap();
 
-        if c_sum
-            .log_max
-            .expect("commitments of SafeIntColumns should have a log_max")
-            > AdditionProof::LOG_MAX_MAX
-        {
-            let sum_unreduced: SafeIntColumn = SafeIntColumn::try_new(
-                sum.clone().into_iter().map(|s| s.value()).collect(),
-                c_sum
-                    .log_max
-                    .expect("commitments of SafeIntColumn should have a log_max"),
-            )
-            .unwrap();
+        let (c_sum, log_max_reduction_proof) =
+            arithmetic::reduce_and_prove_if_necessary(transcript, sum, c_sum);
 
-            let log_max_reduction_proof = Some(LogMaxReductionProof::<
-                { AdditionProof::LOG_MAX_MAX },
-            >::prove(
-                transcript, (sum_unreduced,), sum, (c_sum,)
-            ));
-
-            let c_sum_reduced = c_sum.with_log_max(AdditionProof::LOG_MAX_MAX);
-
-            AdditionProof {
-                c_sum: c_sum_reduced,
-                log_max_reduction_proof,
-            }
-        } else {
-            AdditionProof {
-                c_sum,
-                log_max_reduction_proof: None,
-            }
+        AdditionProof {
+            c_sum,
+            log_max_reduction_proof,
         }
     }
 }
@@ -154,45 +130,12 @@ impl PipVerify<(Commitment, Commitment), Commitment> for AdditionProof {
             &(c_a.length, c_sum_calculated.as_compressed()),
         )?;
 
-        let calculated_log_max = c_sum_calculated.log_max.ok_or(ProofError::FormatError)?;
-
-        let output_log_max = self.c_sum.log_max.ok_or(ProofError::FormatError)?;
-
-        let maybe_log_max_reduction_proof = if calculated_log_max > AdditionProof::LOG_MAX_MAX {
-            // Proof should have a reduction, error if it doesn't
-            Some(
-                self.log_max_reduction_proof
-                    .as_ref()
-                    .ok_or(ProofError::VerificationError)?,
-            )
-        } else {
-            // Proof doesn't need a reduction, but might have one anyway
-            self.log_max_reduction_proof.as_ref()
-        };
-
-        if let Some(log_max_reduction_proof) = maybe_log_max_reduction_proof {
-            // Proof has a reduction. Whether or not it's required, verify it
-
-            // verify that the commitment log_max has been reduced
-            if output_log_max != AdditionProof::LOG_MAX_MAX {
-                return Err(ProofError::VerificationError);
-            }
-
-            // verify the inner proof
-            log_max_reduction_proof.verify(transcript, (c_sum_calculated,))?;
-
-            // verify the LogMaxReductionProof is actually verifying against the correct output commitment
-            if c_sum_calculated != log_max_reduction_proof.get_output_commitments() {
-                return Err(ProofError::VerificationError);
-            }
-        }
-
-        // Verify the provided output commitment
-        if c_sum_calculated != self.c_sum {
-            return Err(ProofError::VerificationError);
-        }
-
-        Ok(())
+        arithmetic::verify_with_reduction_if_necessary(
+            transcript,
+            &self.c_sum,
+            &self.log_max_reduction_proof,
+            c_sum_calculated,
+        )
     }
 
     fn get_output_commitments(&self) -> Commitment {

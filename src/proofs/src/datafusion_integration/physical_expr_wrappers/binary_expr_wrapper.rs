@@ -12,8 +12,8 @@ use crate::{
     },
     datafusion_integration::wrappers::wrap_physical_expr,
     pip::{
-        addition::AdditionProof, equality::EqualityProof, inequality::InequalityProof, or::OrProof,
-        subtraction::SubtractionProof,
+        addition::AdditionProof, equality::EqualityProof, inequality::InequalityProof,
+        multiplication::MultiplicationProof, or::OrProof, subtraction::SubtractionProof,
     },
 };
 use datafusion::{
@@ -127,6 +127,9 @@ impl Provable for BinaryExprWrapper {
                 PhysicalExprProofEnumVariant(PhysicalExprProof::SubtractionProof(p)) => {
                     PhysicalExprProof::SubtractionProof(p.clone())
                 }
+                PhysicalExprProofEnumVariant(PhysicalExprProof::MultiplicationProof(p)) => {
+                    PhysicalExprProof::MultiplicationProof(p.clone())
+                }
                 _ => return Err(ProofError::TypeError),
             })));
 
@@ -187,6 +190,9 @@ impl Provable for BinaryExprWrapper {
             Operator::Minus => PhysicalExprProof::SubtractionProof(SubtractionProof::prove(
                 transcript, input, output, c_in,
             )),
+            Operator::Multiply => PhysicalExprProof::MultiplicationProof(
+                MultiplicationProof::prove(transcript, input, output, c_in),
+            ),
             _ => return Err(ProofError::UnimplementedError),
         };
 
@@ -220,6 +226,7 @@ impl Provable for BinaryExprWrapper {
                 PhysicalExprProof::OrProof(p) => p.verify(transcript, c_in),
                 PhysicalExprProof::AdditionProof(p) => p.verify(transcript, c_in),
                 PhysicalExprProof::SubtractionProof(p) => p.verify(transcript, c_in),
+                PhysicalExprProof::MultiplicationProof(p) => p.verify(transcript, c_in),
                 _ => Err(ProofError::TypeError),
             },
             _ => Err(ProofError::TypeError),
@@ -367,7 +374,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_not_eq");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -379,7 +386,7 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_not_eq");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
@@ -418,7 +425,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_or");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -430,7 +437,7 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_or");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
@@ -469,7 +476,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_add");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -481,7 +488,7 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_add");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
@@ -520,7 +527,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_sub");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -532,7 +539,58 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_sub");
+
+        assert!(verifier_expr
+            .run_verify_with_children(&mut transcript)
+            .is_ok());
+    }
+
+    #[test]
+    fn test_binary_wrapper_mul() {
+        // Setup
+        let array0 = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, -1, 5, -5, 0, 10,
+        ]));
+        let array1 = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, 2, 3, -5, -7, 10,
+        ]));
+        let expected = Arc::new(PrimitiveArray::<Int64Type>::from_iter_values([
+            0, 1, -2, 15, 25, 0, 100,
+        ]));
+        let schema = Schema::new(vec![
+            Field::new("a", DataType::Int64, false),
+            Field::new("b", DataType::Int64, false),
+        ]);
+        let batch = RecordBatch::try_new(Arc::new(schema.clone()), vec![array0, array1]).unwrap();
+
+        let left_col = (ColumnExpr::new_with_schema("a", &schema)).unwrap();
+        let right_col = (ColumnExpr::new_with_schema("b", &schema)).unwrap();
+        let raw = BinaryExpr::new(Arc::new(left_col), Operator::Multiply, Arc::new(right_col));
+
+        // Prover
+        let prover_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Evaluate and check output
+        let _res = prover_expr.evaluate(&batch).unwrap();
+        prover_expr.set_num_rows(7).unwrap();
+        let res_array = prover_expr.array_output().unwrap().clone();
+        assert_eq!(*res_array, *expected);
+
+        // Produce the proof
+        let mut transcript = Transcript::new(b"test_binary_wrapper_mul");
+        prover_expr
+            .run_create_proof_with_children(&mut transcript)
+            .unwrap();
+        let proof = prover_expr.get_proof_with_children().unwrap();
+        assert_eq!(proof.len(), 3);
+
+        // Verifier
+        let verifier_expr = BinaryExprWrapper::try_new(&raw).unwrap();
+
+        // Verify the proof
+        println!("{:?}", verifier_expr.set_proof_with_children(&proof));
+        let mut transcript = Transcript::new(b"test_binary_wrapper_mul");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
@@ -568,7 +626,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_log_max_persists");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -595,7 +653,7 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_log_max_persists");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)
@@ -635,7 +693,7 @@ mod tests {
         assert_eq!(*res_array, *expected);
 
         // Produce the proof
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_log_max_reduction");
         prover_expr
             .run_create_proof_with_children(&mut transcript)
             .unwrap();
@@ -670,7 +728,7 @@ mod tests {
 
         // Verify the proof
         println!("{:?}", verifier_expr.set_proof_with_children(&proof));
-        let mut transcript = Transcript::new(b"test_binary_wrapper_eq");
+        let mut transcript = Transcript::new(b"test_binary_wrapper_log_max_reduction");
 
         assert!(verifier_expr
             .run_verify_with_children(&mut transcript)

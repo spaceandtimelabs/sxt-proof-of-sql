@@ -104,6 +104,7 @@ test_read_csv_and_query_macro! {"tab2", "two_columns", "select a = b from tab2",
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select a != b from tab2", test_neq}
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select a + b from tab2", test_add}
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select a - b from tab2", test_sub}
+test_read_csv_and_query_macro! {"tab2", "two_columns", "select a * b from tab2", test_mul}
 test_read_csv_and_query_macro! {"tab2", "two_columns", "select (a = b) or (a = -b) from tab2", test_or}
 
 // Aggregation

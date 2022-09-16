@@ -5,22 +5,27 @@ use crate::{
         },
         scalar::SafeIntColumn,
     },
-    pip::range::{arithmetic, LogMaxReductionProof},
+    pip::{
+        range::{arithmetic, LogMaxReductionProof},
+        scalar_multiply::ScalarMultiplyProof,
+    },
 };
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SubtractionProof {
-    pub(super) c_diff: Commitment,
+pub struct MultiplicationProof {
+    pub(super) scalar_multiply_proof: ScalarMultiplyProof,
+    pub(super) c_product: Commitment,
     pub(crate) log_max_reduction_proof:
-        Option<LogMaxReductionProof<{ SubtractionProof::LOG_MAX_MAX }>>,
+        Option<LogMaxReductionProof<{ MultiplicationProof::LOG_MAX_MAX }>>,
 }
 
-impl SubtractionProof {
+impl MultiplicationProof {
     const LOG_MAX_MAX: u8 = 128;
 }
 
-impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProof {
+impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for MultiplicationProof {
     fn prove(
         //The merlin transcript for the prover
         transcript: &mut Transcript,
@@ -65,7 +70,7 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProo
                     )
                     .expect("commitment log_max shouldn't be less than the log_max of the associated column");
 
-                SubtractionProof::prove(transcript, (left, right), output, input_commitment)
+                MultiplicationProof::prove(transcript, (left, right), output, input_commitment)
             }
             _ => {
                 panic!("type error");
@@ -74,16 +79,17 @@ impl PipProve<(GeneralColumn, GeneralColumn), GeneralColumn> for SubtractionProo
     }
 }
 
-impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for SubtractionProof {
+impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for MultiplicationProof {
     fn prove(
         transcript: &mut Transcript,
         (input_a, input_b): (SafeIntColumn, SafeIntColumn),
-        diff: SafeIntColumn,
-        (c_a, c_b): (Commitment, Commitment),
+        product: SafeIntColumn,
+        input_commitments: (Commitment, Commitment),
     ) -> Self {
-        // core implementation
+        let (c_a, c_b) = input_commitments;
+
         assert_eq!(input_a.len(), input_b.len());
-        assert_eq!(input_a.len(), diff.len());
+        assert_eq!(input_a.len(), product.len());
         assert_eq!(input_a.len(), c_a.length);
         assert_eq!(input_b.len(), c_b.length);
 
@@ -97,45 +103,73 @@ impl PipProve<(SafeIntColumn, SafeIntColumn), SafeIntColumn> for SubtractionProo
             c_b.log_max
                 .expect("commitments of SafeIntColumns should have a log_max")
         );
-        let c_diff = c_a - c_b;
+
+        let scalar_multiply_proof = ScalarMultiplyProof::prove(
+            transcript,
+            (
+                input_a.values().clone().into(),
+                input_b.values().clone().into(),
+            ),
+            product.values().clone().into(),
+            (c_a, c_b),
+        );
+
+        let c_product = scalar_multiply_proof
+            .get_output_commitments()
+            .with_log_max(input_a.log_max() + input_b.log_max());
+
         transcript
             .append_auto(
-                MessageLabel::Subtraction,
-                &(input_a.len(), c_diff.as_compressed()),
+                MessageLabel::Multiplication,
+                &(input_a.len(), c_product.as_compressed()),
             )
             .unwrap();
 
-        let (c_diff, log_max_reduction_proof) =
-            arithmetic::reduce_and_prove_if_necessary(transcript, diff, c_diff);
+        let (c_product, log_max_reduction_proof) =
+            arithmetic::reduce_and_prove_if_necessary(transcript, product, c_product);
 
-        SubtractionProof {
-            c_diff,
+        MultiplicationProof {
+            scalar_multiply_proof,
+            c_product,
             log_max_reduction_proof,
         }
     }
 }
 
-impl PipVerify<(Commitment, Commitment), Commitment> for SubtractionProof {
+impl PipVerify<(Commitment, Commitment), Commitment> for MultiplicationProof {
     fn verify(
         &self,
         transcript: &mut Transcript,
         (c_a, c_b): (Commitment, Commitment),
     ) -> Result<(), ProofError> {
-        let c_diff_calculated = c_a - c_b;
+        self.scalar_multiply_proof.verify(transcript, (c_a, c_b))?;
+
+        if self.c_product != self.scalar_multiply_proof.get_output_commitments() {
+            return Err(ProofError::VerificationError);
+        }
+
+        // self.c_product is provided by the prover and will have an already-reduced log_max
+        let c_product_calculated = self.c_product.with_log_max(
+            c_a.log_max
+                .expect("commitments of SafeIntColumns should have a log_max")
+                + c_b
+                    .log_max
+                    .expect("commitments of SafeIntColumns should have a log max"),
+        );
         transcript.append_auto(
-            MessageLabel::Subtraction,
-            &(c_a.length, c_diff_calculated.as_compressed()),
+            MessageLabel::Multiplication,
+            &(c_a.length, c_product_calculated.as_compressed()),
         )?;
 
         arithmetic::verify_with_reduction_if_necessary(
             transcript,
-            &self.c_diff,
+            &self.c_product,
             &self.log_max_reduction_proof,
-            c_diff_calculated,
+            c_product_calculated,
         )
     }
 
     fn get_output_commitments(&self) -> Commitment {
-        self.c_diff
+        self.c_product
     }
 }
