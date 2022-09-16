@@ -7,6 +7,7 @@ pub mod execution_plan;
 pub use execution_plan::{ReaderProof, TrivialProof};
 pub mod hadamard;
 pub mod inequality;
+pub mod multiplication;
 pub mod not;
 pub mod or;
 pub mod physical_expr;
