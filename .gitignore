@@ -33,3 +33,6 @@ protocols/.DS_Store
 # Editor-specific
 Session.vim
 .vscode
+
+# Measurements are really pretty huge and not necessary to store in the repo
+measurements.json
