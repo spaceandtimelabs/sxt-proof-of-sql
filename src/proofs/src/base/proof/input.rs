@@ -20,7 +20,10 @@ use datafusion::{
     physical_plan::ColumnarValue,
 };
 use derive_more::{Deref, DerefMut, TryInto};
-use std::convert::TryFrom;
+use std::{
+    convert::TryFrom,
+    ops::{Add, Mul, Neg, Sub},
+};
 
 /// Definition of Column, GeneralColumn and Table
 
@@ -71,6 +74,57 @@ impl<T> IntoIterator for Column<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+// Implement Add for Column<Scalar>
+impl Add for &Column<Scalar> {
+    type Output = Column<Scalar>;
+
+    fn add(self, other: Self) -> Self::Output {
+        assert_eq!(self.len(), other.len());
+        let sum: Vec<_> = self.iter().zip(other.iter()).map(|(a, b)| a + b).collect();
+        Column::from(sum)
+    }
+}
+
+// Implement Mul for Column<Scalar>
+impl Mul for &Column<Scalar> {
+    type Output = Column<Scalar>;
+
+    fn mul(self, other: Self) -> Self::Output {
+        assert_eq!(self.len(), other.len());
+        let product: Vec<_> = self.iter().zip(other.iter()).map(|(a, b)| a * b).collect();
+        Column::from(product)
+    }
+}
+
+// Implement Sub for Column<Scalar>
+impl Sub for &Column<Scalar> {
+    type Output = Column<Scalar>;
+
+    fn sub(self, other: Self) -> Self::Output {
+        assert_eq!(self.len(), other.len());
+        let difference: Vec<_> = self.iter().zip(other.iter()).map(|(a, b)| a - b).collect();
+        Column::from(difference)
+    }
+}
+
+// Implement Neg for Column<Scalar>
+impl Neg for &Column<Scalar> {
+    type Output = Column<Scalar>;
+
+    fn neg(self) -> Self::Output {
+        let negated: Vec<_> = self.iter().map(|a| -a).collect();
+        Column::from(negated)
+    }
+}
+
+impl<X> FromIterator<X> for Column<X> {
+    fn from_iter<I: IntoIterator<Item = X>>(iter: I) -> Self {
+        Column {
+            data: iter.into_iter().collect(),
+        }
     }
 }
 
