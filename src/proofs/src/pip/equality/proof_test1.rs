@@ -1,6 +1,62 @@
 use crate::base::proof::{Column, Commit, GeneralColumn, PipProve, PipVerify, Transcript};
+use crate::base::test_helpers::*;
 use crate::pip::equality::EqualityProof;
 use curve25519_dalek::scalar::Scalar;
+use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn equality_on_scalars(
+        p in arbitrary_column_array(1..=10, arbitrary_scalar())
+    ) {
+        let [a, b, c] = p; // Get three arbitrary columns of up to 10 elements each
+        let len = a.len(); // Because a is consumed later
+        let ab = a.iter().zip(b.iter()).map(|(x, y)| x == y).collect::<Column<bool>>();
+        let not_ab = a.iter().zip(b.iter()).map(|(x, y)| x != y).collect::<Column<bool>>();
+
+        let comm_a = a.commit();
+        let comm_b = b.commit();
+        let comm_c = c.commit();
+
+        let proof = EqualityProof::prove(
+            &mut Transcript::new(b"equalitytest"),
+            (a.clone(), b.clone()),
+            ab.clone(),
+            (comm_a, comm_b),
+        );
+
+        proof.verify(
+            &mut Transcript::new(b"equalitytest"),
+            (comm_a, comm_b),
+        ).expect("Valid proof should verify");
+
+        if len > 1 {
+            // TODO: Why does len have to be > 1 for this to work?
+            proof.verify(
+                &mut Transcript::new(b"invalid"),
+                (comm_a, comm_b),
+            ).expect_err("Should not be able to change Transcript domain separator");
+        }
+
+        proof.verify(
+            &mut Transcript::new(b"equalitytest"),
+            (comm_a, comm_c),
+        ).expect_err("Should not be able to change input commitments");
+
+        {
+            let proof = EqualityProof::prove(
+                &mut Transcript::new(b"equalitytest"),
+                (a.clone(), b.clone()),
+                not_ab.clone(),
+                (comm_a, comm_b),
+            );
+            proof.verify(
+                &mut Transcript::new(b"equalitytest"),
+                (comm_a, comm_b),
+            ).expect_err("Should not be able to change output");
+        }
+    }
+}
 
 #[test]
 fn test_equality() {
