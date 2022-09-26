@@ -1,0 +1,19 @@
+mod error;
+pub use error::{IntoProofResult, ProofError, ProofResult};
+
+mod transcript;
+#[cfg(test)]
+mod transcript_test;
+pub use transcript::{MessageLabel, Transcript};
+
+mod commitment;
+pub use commitment::Commitment;
+
+mod commit;
+pub use commit::Commit;
+
+mod input;
+pub use input::{Column, GeneralColumn, Table};
+
+#[cfg(test)]
+mod append_test;
