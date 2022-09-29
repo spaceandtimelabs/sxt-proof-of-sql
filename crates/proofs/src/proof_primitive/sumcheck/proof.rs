@@ -7,8 +7,9 @@ use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
-use crate::base::proof::{MessageLabel, ProofError, Transcript};
+use crate::base::proof::{MessageLabel, ProofError, TranscriptProtocol};
 use crate::proof_primitive::sumcheck::{prove_round, ProverState, Subclaim};
+use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -23,12 +24,10 @@ impl SumcheckProof {
         polynomial: &CompositePolynomial,
     ) -> SumcheckProof {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
-        transcript
-            .append_auto(
-                MessageLabel::Sumcheck,
-                &(polynomial.max_multiplicands, polynomial.num_variables),
-            )
-            .unwrap();
+        transcript.append_auto(
+            MessageLabel::Sumcheck,
+            &(polynomial.max_multiplicands, polynomial.num_variables),
+        );
         let mut r = None;
         let mut state = ProverState::create(polynomial);
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
@@ -49,15 +48,13 @@ impl SumcheckProof {
         polynomial_info: CompositePolynomialInfo,
         claimed_sum: &Scalar,
     ) -> Result<Subclaim, ProofError> {
-        transcript
-            .append_auto(
-                MessageLabel::Sumcheck,
-                &(
-                    polynomial_info.max_multiplicands,
-                    polynomial_info.num_variables,
-                ),
-            )
-            .unwrap();
+        transcript.append_auto(
+            MessageLabel::Sumcheck,
+            &(
+                polynomial_info.max_multiplicands,
+                polynomial_info.num_variables,
+            ),
+        );
         if self.evaluations.len() != polynomial_info.num_variables {
             return Err(ProofError::VerificationError);
         }
