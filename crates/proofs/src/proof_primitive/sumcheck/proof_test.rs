@@ -7,11 +7,12 @@ use crate::proof_primitive::sumcheck::proof::*;
 
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
+use merlin::Transcript;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 
 use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
-use crate::base::proof::{MessageLabel, Transcript};
+use crate::base::proof::{MessageLabel, TranscriptProtocol};
 
 #[test]
 fn test_create_verify_proof() {
@@ -41,9 +42,7 @@ fn test_create_verify_proof() {
 
     // we return a different evaluation point if we start with a different transcript
     let mut transcript = Transcript::new(b"sumchecktest");
-    transcript
-        .append_auto(MessageLabel::Hadamard, &123u64)
-        .unwrap();
+    transcript.append_auto(MessageLabel::SumcheckChallenge, &123u64);
     let subclaim = proof
         .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
         .expect("verify failed");

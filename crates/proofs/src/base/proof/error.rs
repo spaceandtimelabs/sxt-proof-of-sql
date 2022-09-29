@@ -43,9 +43,6 @@ pub enum ProofError {
     /// A compressed Ristretto point could not be decompressed.
     #[error("A compressed Ristretto point could not be decompressed.")]
     DecompressionError,
-    /// Internal Serde JSON error (unlikely to ever reach downstream users)
-    #[error("Internal Serde JSON error (unlikely to ever reach downstream users)")]
-    PostcardError(#[from] postcard::Error),
     /// General error especially internal errors that shouldn't happen ever
     #[error("General error found.")]
     GeneralError,
