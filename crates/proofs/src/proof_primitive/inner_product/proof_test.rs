@@ -2,12 +2,12 @@
 
 use crate::proof_primitive::inner_product::proof::*;
 
-use crate::base::proof::Transcript;
 use crate::base::scalar::inner_product;
 use curve25519_dalek::constants;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
+use merlin::Transcript;
 use pedersen::compute::get_generators;
 use rand_core::SeedableRng;
 use std::iter;

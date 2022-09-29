@@ -1,10 +1,10 @@
 mod error;
 pub use error::{IntoProofResult, ProofError, ProofResult};
 
-mod transcript;
+mod transcript_protocol;
 #[cfg(test)]
-mod transcript_test;
-pub use transcript::{MessageLabel, Transcript};
+mod transcript_protocol_test;
+pub use transcript_protocol::{MessageLabel, TranscriptProtocol};
 
 mod commitment;
 pub use commitment::Commitment;
