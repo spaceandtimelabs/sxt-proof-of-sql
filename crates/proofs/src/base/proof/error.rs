@@ -1,4 +1,3 @@
-use crate::base::scalar::SafeIntError;
 use std::sync::{LockResult, PoisonError};
 use thiserror::Error;
 
@@ -37,9 +36,6 @@ pub enum ProofError {
     /// Poison error
     #[error("RwLock poisoned.")]
     PoisonError,
-    /// SafeInt error
-    #[error("SafeInt error found.")]
-    SafeIntError(#[from] SafeIntError),
     /// A compressed Ristretto point could not be decompressed.
     #[error("A compressed Ristretto point could not be decompressed.")]
     DecompressionError,
