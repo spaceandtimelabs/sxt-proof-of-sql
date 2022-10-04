@@ -51,18 +51,26 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
             // evaluate P_round(t)
             for (coefficient, products) in &prover_state.list_of_products {
                 let num_multiplicands = products.len();
-                let mut product = *coefficient;
+                let mut product = to_ark_scalar(coefficient);
                 for multiplicand in products.iter().take(num_multiplicands) {
                     let table = &prover_state.flattened_ml_extensions[*multiplicand].ark_impl; // j's range is checked in init
-                    let term = table[b << 1] * (ArkScalar::one() - t_as_field)
-                        + table[(b << 1) + 1] * t_as_field;
-                    product *= from_ark_scalar(&term);
+                    multiply_product_by_term(table, b, &t_as_field, &mut product)
                 }
-                *scalar += product;
+                *scalar += from_ark_scalar(&product);
             }
             t_as_field += ArkScalar::one();
         }
     }
 
     products_sum
+}
+
+fn multiply_product_by_term(
+    table: &ark_poly::DenseMultilinearExtension<ArkScalar>,
+    b: usize,
+    t_as_field: &ArkScalar,
+    product: &mut ArkScalar,
+) {
+    let term = table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field;
+    *product *= term;
 }
