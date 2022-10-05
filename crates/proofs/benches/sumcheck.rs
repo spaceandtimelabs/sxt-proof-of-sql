@@ -3,23 +3,20 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use proofs::{
-    base::{
-        polynomial::{CompositePolynomial, DenseMultilinearExtension},
-        proof::Column,
-    },
+    base::polynomial::{CompositePolynomial, DenseMultilinearExtension},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
 use std::time::Duration;
 
 fn random_mle_with_num_vars<R: Rng>(v: usize, rng: &mut R) -> (Scalar, DenseMultilinearExtension) {
-    let column: Column<Scalar> = (0..2u32.pow(v as u32))
+    let scalars: Vec<Scalar> = (0..2u32.pow(v as u32))
         .map(|_| rng.gen::<u32>())
         .map(Scalar::from)
         .collect();
 
-    let sum = column.iter().sum();
-    let mle = DenseMultilinearExtension::from_evaluations_slice(v, column.as_slice());
+    let sum = scalars.iter().sum();
+    let mle = DenseMultilinearExtension::from_evaluations_slice(v, scalars.as_slice());
 
     (sum, mle)
 }
