@@ -74,9 +74,9 @@ fn random_product(
 
     for _ in 0..(1 << nv) {
         let mut product = Scalar::one();
-        for i in 0..num_multiplicands {
+        for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
             let val = Scalar::random(rng);
-            multiplicands[i].push(val);
+            multiplicand.push(val);
             product *= val;
         }
         sum += product;
