@@ -1,4 +1,5 @@
 [workspace]
 members = [
     "crates/proofs",
+    "crates/proofs-sql"               
 ]
