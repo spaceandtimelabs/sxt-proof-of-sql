@@ -15,8 +15,6 @@ curve25519-dalek = { version = "3", features = ["serde"] }
 hashbrown = "0.11.2"
 merlin = "2"
 thiserror = "1"
-derive_more = "0.99"
-impl-trait-for-tuples = "0.2"
 serde = { version = "1", features = ["serde_derive"] }
 postcard = {version = "1.0", features = ["alloc"] }
 num-traits = "0.2"
@@ -24,8 +22,6 @@ num-traits = "0.2"
 [dev_dependencies]
 rand = "0.7"
 rand_core = "0.5"
-tokio = { version = "1", features = ["full"] }
-proptest = "1.0"
 criterion = "0.4"
 
 [[bench]]
