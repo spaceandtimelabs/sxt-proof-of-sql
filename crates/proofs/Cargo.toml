@@ -18,6 +18,7 @@ thiserror = "1"
 serde = { version = "1", features = ["serde_derive"] }
 postcard = {version = "1.0", features = ["alloc"] }
 num-traits = "0.2"
+rayon = "1.5"
 
 [dev_dependencies]
 rand = "0.7"
