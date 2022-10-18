@@ -3,9 +3,10 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use ark_ff::{One, Zero};
+use ark_ff::One;
 use ark_poly::MultilinearExtension;
 use curve25519_dalek::scalar::Scalar;
+use rayon::prelude::*;
 
 use crate::base::polynomial::{
     from_ark_scalar, to_ark_scalar, ArkScalar, DenseMultilinearExtension,
@@ -20,13 +21,15 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         prover_state.randomness.push(*r);
 
         // fix argument
-        let i = prover_state.round;
-        let r = prover_state.randomness[i - 1];
-        for multiplicand in prover_state.flattened_ml_extensions.iter_mut() {
-            *multiplicand = DenseMultilinearExtension {
-                ark_impl: multiplicand.ark_impl.fix_variables(&[to_ark_scalar(&r)]),
-            };
-        }
+        let r_as_field = to_ark_scalar(&prover_state.randomness[prover_state.round - 1]);
+        prover_state
+            .flattened_ml_extensions
+            .par_iter_mut()
+            .for_each(|multiplicand| {
+                *multiplicand = DenseMultilinearExtension {
+                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
+                };
+            });
     } else if prover_state.round > 0 {
         panic!("verifier message is empty");
     }
@@ -37,40 +40,69 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         panic!("Prover is not active");
     }
 
-    let i = prover_state.round;
-    let nv = prover_state.num_vars;
     let degree = prover_state.max_multiplicands; // the degree of univariate polynomial sent by prover at this round
 
-    let mut products_sum = Vec::with_capacity(degree + 1);
-    products_sum.resize(degree + 1, Scalar::zero());
-
     // generate sum
-    for b in 0..1 << (nv - i) {
-        let mut t_as_field = ArkScalar::zero();
-        for scalar in products_sum.iter_mut().take(degree + 1) {
-            // evaluate P_round(t)
-            for (coefficient, products) in &prover_state.list_of_products {
-                let num_multiplicands = products.len();
-                let mut product = to_ark_scalar(coefficient);
-                for multiplicand in products.iter().take(num_multiplicands) {
-                    let table = &prover_state.flattened_ml_extensions[*multiplicand].ark_impl; // j's range is checked in init
-                    multiply_product_by_term(table, b, &t_as_field, &mut product)
-                }
-                *scalar += from_ark_scalar(&product);
-            }
-            t_as_field += ArkScalar::one();
-        }
-    }
-
-    products_sum
+    (0..=degree)
+        .into_par_iter()
+        .map(|t| {
+            let t_as_field = ArkScalar::from(t as u32);
+            from_ark_scalar(
+                &(0..1 << (prover_state.num_vars - prover_state.round))
+                    .into_par_iter()
+                    .map(|b| evaluate_p_round_of_t(prover_state, &t_as_field, b))
+                    .sum::<ArkScalar>(),
+            )
+        })
+        .collect()
 }
 
-fn multiply_product_by_term(
-    table: &ark_poly::DenseMultilinearExtension<ArkScalar>,
-    b: usize,
+fn evaluate_p_round_of_t(
+    prover_state: &ProverState,
     t_as_field: &ArkScalar,
-    product: &mut ArkScalar,
-) {
-    let term = table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field;
-    *product *= term;
+    b: usize,
+) -> ArkScalar {
+    prover_state
+        // evaluate P_round(t)
+        .list_of_products
+        .iter()
+        .map(|(coefficient, multiplicand_indices)| {
+            evaluate_term(
+                prover_state,
+                coefficient,
+                multiplicand_indices,
+                t_as_field,
+                b,
+            )
+        })
+        .sum::<ArkScalar>()
+}
+
+fn evaluate_term(
+    prover_state: &ProverState,
+    coefficient: &Scalar,
+    multiplicand_indices: &[usize],
+    t_as_field: &ArkScalar,
+    b: usize,
+) -> ArkScalar {
+    to_ark_scalar(coefficient)
+        * multiplicand_indices
+            // parallelizing this innermost iterator slows down the
+            // benches significantly, despite the fact that rayon
+            // uses work-stealing
+            .iter()
+            .map(|multiplicand_index| {
+                evaluate_multiplicand(prover_state, *multiplicand_index, t_as_field, b)
+            })
+            .product::<ArkScalar>()
+}
+
+fn evaluate_multiplicand(
+    prover_state: &ProverState,
+    multiplicand_index: usize,
+    t_as_field: &ArkScalar,
+    b: usize,
+) -> ArkScalar {
+    let table = &prover_state.flattened_ml_extensions[multiplicand_index].ark_impl; // j's range is checked in init
+    table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field
 }
