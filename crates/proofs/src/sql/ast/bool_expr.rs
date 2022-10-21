@@ -1,0 +1,33 @@
+use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::sql::ast::TableExpr;
+use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
+
+use bumpalo::Bump;
+use curve25519_dalek::scalar::Scalar;
+use std::fmt::Debug;
+
+/// Provable AST column expression that evaluates to a boolean
+pub trait BoolExpr: Debug {
+    /// Count the number of proof terms needed for this expression
+    fn count(&self, counts: &mut ProofCounts);
+
+    /// Evaluate the expression, add components needed to prove it, and return thet resulting column
+    /// of boolean values
+    fn prove<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        table: &TableExpr,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool];
+
+    /// Compute the evaluation of a multilinear extension from this boolean expression
+    /// at the random sumcheck point and adds components needed to verify the expression to
+    /// VerificationBuilder
+    fn verify(
+        &self,
+        builder: &mut VerificationBuilder,
+        table: &TableExpr,
+        accessor: &dyn CommitmentAccessor,
+    ) -> Scalar;
+}
