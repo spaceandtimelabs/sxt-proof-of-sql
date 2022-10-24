@@ -1,5 +1,5 @@
 mod error;
-pub use error::{IntoProofResult, ProofError, ProofResult};
+pub use error::ProofError;
 
 mod transcript_protocol;
 #[cfg(test)]
