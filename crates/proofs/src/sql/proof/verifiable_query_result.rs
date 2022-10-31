@@ -59,7 +59,7 @@ use serde::{Deserialize, Serialize};
 pub struct VerifiableQueryResult {}
 
 impl VerifiableQueryResult {
-    /// Form a VerifiableQueryResult from a query expression.
+    /// Form a `VerifiableQueryResult` from a query expression.
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
@@ -68,7 +68,7 @@ impl VerifiableQueryResult {
         todo!();
     }
 
-    /// Verify a VerifiableQueryResult. Upon success, this function returns the finalized form of
+    /// Verify a `VerifiableQueryResult`. Upon success, this function returns the finalized form of
     /// the query result.
     ///
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified

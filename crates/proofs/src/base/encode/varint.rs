@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 
 /// This function writes the input scalar x as a varint encoding to buf slice
 ///
-/// See https://developers.google.com/protocol-buffers/docs/encoding#varints as reference.
+/// See `<https://developers.google.com/protocol-buffers/docs/encoding#varints>` as reference.
 ///
 /// return:
 /// - the total number of bytes N written to buf
@@ -118,7 +118,7 @@ pub fn write_scalar_varints(buf: &mut [u8], scals: &[Scalar]) -> usize {
 /// This function read all the specified scalars from `input_buf` to `scals_buf`.
 /// For that, it converts the input buffer from a Varint and ZigZag encoding to a Dalek Scalar
 ///
-/// See https://developers.google.com/protocol-buffers/docs/encoding#varints as reference.
+/// See `<https://developers.google.com/protocol-buffers/docs/encoding#varints>` as reference.
 ///
 /// error:
 /// - in case it's not possible to read all specified scalars from `input_buf`

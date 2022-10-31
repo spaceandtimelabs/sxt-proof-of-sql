@@ -14,5 +14,5 @@ pub enum QueryError {
 /// result so as to allow for easy interoperability with
 /// Apache Arrow Flight.
 ///
-/// See https://voltrondata.com/blog/apache-arrow-flight-primer/
+/// See `<https://voltrondata.com/blog/apache-arrow-flight-primer/>`
 pub type QueryResult = Result<RecordBatch, QueryError>;
