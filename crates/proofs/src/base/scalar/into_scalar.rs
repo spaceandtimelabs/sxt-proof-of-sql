@@ -17,7 +17,7 @@ use curve25519_dalek::scalar::Scalar;
 /// 1. We can still create new-types if we want to, but we don't have to in simple cases.
 /// 2. There may be already-existing conversions for Scalar on types we *don't* want to support.
 /// A new trait allows us to be explicit about the types we want to support.
-pub trait IntoScalar {
+pub trait IntoScalar: Copy {
     fn into_scalar(self) -> Scalar;
 }
 
