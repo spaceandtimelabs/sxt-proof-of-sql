@@ -10,6 +10,7 @@ arrow = "24.0.0"
 pedersen = {version = "3.0", registry = "pedersen_reg"}
 bumpalo = { version = "3.11.0", features = ["collections"] }
 byte-slice-cast = "1.2.1"
+integer-encoding = "3.0.4"
 ark-ff = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
 ark-poly = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
 ark-std = "^0.3.0"
