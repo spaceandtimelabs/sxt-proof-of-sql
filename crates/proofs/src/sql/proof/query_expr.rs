@@ -9,7 +9,7 @@ pub trait QueryExpr: Debug {
     /// Count terms used within the Query's proof
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor);
 
-    /// Evaluate the query and modify ProofBuilder to store an intermediate representation
+    /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
     ///
     /// Intermediate values that are needed to form the proof are allocated into the arena
