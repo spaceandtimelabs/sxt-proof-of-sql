@@ -3,7 +3,6 @@ pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
 
 mod proof_builder;
 pub use proof_builder::ProofBuilder;
-
 #[cfg(test)]
 mod proof_builder_test;
 
@@ -12,6 +11,8 @@ pub use proof_counts::ProofCounts;
 
 mod verification_builder;
 pub use verification_builder::VerificationBuilder;
+#[cfg(test)]
+mod verification_builder_test;
 
 mod intermediate_result_column;
 pub use intermediate_result_column::{DenseIntermediateResultColumn, IntermediateResultColumn};
@@ -20,6 +21,9 @@ mod intermediate_query_result;
 pub use intermediate_query_result::IntermediateQueryResult;
 #[cfg(test)]
 mod intermediate_query_result_test;
+
+mod sumcheck_mle_evaluations;
+pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;
 
 mod query_expr;
 pub use query_expr::QueryExpr;
