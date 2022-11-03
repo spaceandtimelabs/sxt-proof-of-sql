@@ -28,6 +28,9 @@ pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;
 mod query_expr;
 pub use query_expr::QueryExpr;
 
+mod query_proof;
+pub use query_proof::QueryProof;
+
 mod query_result;
 pub use query_result::{QueryError, QueryResult};
 
@@ -37,5 +40,15 @@ pub use sumcheck_subpolynomial::SumcheckSubpolynomial;
 mod sumcheck_utility;
 pub use sumcheck_utility::make_sumcheck_term;
 
+mod schema_utility;
+pub use schema_utility::make_schema;
+
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;
+#[cfg(test)]
+mod verifiable_query_result_test;
+
+#[cfg(test)]
+mod test_query_expr;
+#[cfg(test)]
+pub use test_query_expr::TestQueryExpr;

@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 /// Counters for different terms used within a proof
-#[derive(Default)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct ProofCounts {
     pub sumcheck_variables: usize,
     pub result_columns: usize,

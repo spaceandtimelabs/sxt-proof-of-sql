@@ -1,7 +1,12 @@
+use super::{make_schema, IntermediateQueryResult, ProofCounts, QueryProof};
+
 use crate::base::database::{CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::{QueryExpr, QueryResult};
+use arrow::array::{Array, Int64Array};
+use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// The result of an sql query along with a proof that the query is valid. The
 /// result and proof can be verified using commitments to database columns.
@@ -55,16 +60,36 @@ use serde::{Deserialize, Serialize};
 ///         // proceed to use the result.
 /// }
 /// ```
-#[derive(Clone, Serialize, Deserialize)]
-pub struct VerifiableQueryResult {}
+///
+/// Note: Because the class is deserialized from untrusted data, it
+/// cannot maintain any invariant on its data members; hence, they are
+/// all public so as to allow for easy manipulation for testing.
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct VerifiableQueryResult {
+    pub intermediate_result: Option<IntermediateQueryResult>,
+    pub proof: Option<QueryProof>,
+}
 
 impl VerifiableQueryResult {
     /// Form a `VerifiableQueryResult` from a query expression.
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
-    #[allow(unused_variables)]
-    pub fn new(expr: &dyn QueryExpr, accessor: &dyn DataAccessor) -> VerifiableQueryResult {
+    pub fn new(expr: &dyn QueryExpr, accessor: &impl DataAccessor) -> VerifiableQueryResult {
+        let mut counts: ProofCounts = Default::default();
+        expr.count(&mut counts, accessor);
+
+        // a query must have at least one result column; if not, it should
+        // have been rejected at the parsing stage.
+        assert!(counts.result_columns > 0);
+
+        // handle the empty case
+        if counts.sumcheck_variables == 0 {
+            return VerifiableQueryResult {
+                intermediate_result: None,
+                proof: None,
+            };
+        }
         todo!();
     }
 
@@ -73,11 +98,32 @@ impl VerifiableQueryResult {
     ///
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
-    #[allow(unused_variables)]
     pub fn verify(
+        &self,
         expr: &dyn QueryExpr,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &impl CommitmentAccessor,
     ) -> Result<QueryResult, ProofError> {
+        let mut counts: ProofCounts = Default::default();
+        expr.count(&mut counts, accessor);
+
+        // a query must have at least one result column; if not, it should
+        // have been rejected at the parsing stage.
+        assert!(counts.result_columns > 0);
+
+        // handle the empty case
+        if counts.sumcheck_variables == 0 {
+            if self.intermediate_result.is_some() || self.proof.is_some() {
+                return Err(ProofError::VerificationError);
+            }
+            return Ok(make_empty_query_result(counts.result_columns));
+        }
         todo!();
     }
+}
+
+fn make_empty_query_result(num_columns: usize) -> QueryResult {
+    let schema = make_schema(num_columns);
+    let empty_col = Arc::new(Int64Array::from(Vec::<i64>::new()));
+    let columns: Vec<Arc<dyn Array>> = vec![empty_col; num_columns];
+    Ok(RecordBatch::try_new(schema, columns).unwrap())
 }
