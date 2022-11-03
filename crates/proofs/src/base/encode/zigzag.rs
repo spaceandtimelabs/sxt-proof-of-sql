@@ -38,10 +38,17 @@ impl ZigZag<U256> for Scalar {
         // recover the value x from -y. After all, by construction we have `x + y = 0`.
         if x.high > y.high || (x.high == y.high && x.low > y.low) {
             // y is smaller than x
-            // we multiply y by 2 and sum 1 (effectively encoding a ZigZag -y)
+            // we multiply y by 2
             y.high = (y.high << 1) | (y.low >> 127);
-            y.low = (y.low << 1) | 1;
+            y.low <<= 1;
 
+            // then we subtract 1 from y
+            let (low_val, carry_low) = y.low.overflowing_sub(1_u128);
+
+            y.low = low_val;
+            y.high -= carry_low as u128; // we should never expect overflow here
+
+            // effectively encoding a ZigZag y
             y
         } else {
             // x is smaller than y
@@ -70,21 +77,33 @@ impl ZigZag<U256> for Scalar {
 impl ZigZag<Scalar> for U256 {
     fn zigzag(&self) -> Scalar {
         // we need to divide self by 2 to remove the ZigZag encoding
-        let zig_val = U256 {
+        let mut zig_val = U256 {
             low: (self.low >> 1) | ((self.high & 1) << 127),
             high: self.high >> 1,
         };
-        let scal: Scalar = (&zig_val).into();
 
         // verify if self is an odd or even number
         // in case it's an odd number, then scal represents the number `y`
         // otherwise, it represents the number x
         if self.low & 1 == 1 {
+            // we need to sum 1 to zig_val.low to obtain the correct y value
+            // in case of addition overflow, we also sum 1 to zig_val.high.
+            // adding 1 to zig_val.high should never overflow, as we initially
+            // divided zig_val by 2
+            let (low_val, carry_low) = zig_val.low.overflowing_add(1_u128);
+
+            zig_val.low = low_val;
+            zig_val.high += carry_low as u128; // we should never expect overflow here
+
             // even though the encoding represented a -y,
-            // scal actually represents a `y` (we simply divided self by 2).
-            // Also, since x + y = 0, we need to compute -scal to return x
+            // zig_val actually represents a `y` (we simply divided self by 2).
+            // Also, since x + y = 0, we need to compute -(zig_val.into()) to return x
+            let scal: Scalar = (&zig_val).into();
+
             -scal
         } else {
+            let scal: Scalar = (&zig_val).into();
+
             // return x
             scal
         }
