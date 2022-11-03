@@ -1,5 +1,6 @@
+use super::{ProofBuilder, ProofCounts, VerificationBuilder};
+
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
-use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use std::fmt::Debug;

@@ -25,6 +25,7 @@ struct TestTable {
 }
 
 /// TestAccessor is used to simulate an in-memory database and commitment tracking database for proof testing.
+#[derive(Default)]
 pub struct TestAccessor {
     /// This `data` field defines a HashMap with pairs of table_name and their respective table values
     /// (columns with their associated rows and commitment values).
@@ -33,7 +34,7 @@ pub struct TestAccessor {
 
 impl TestAccessor {
     /// Creates an empty Test Accessor
-    pub fn create() -> Self {
+    pub fn new() -> Self {
         TestAccessor {
             data: HashMap::new(),
         }
@@ -115,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_metadata_accessor() {
-        let mut accessor = TestAccessor::create();
+        let mut accessor = TestAccessor::new();
 
         accessor.add_table(
             "test",
@@ -141,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_data_accessor() {
-        let mut accessor = TestAccessor::create();
+        let mut accessor = TestAccessor::new();
 
         accessor.add_table(
             "test",
@@ -174,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_commitment_accessor() {
-        let mut accessor = TestAccessor::create();
+        let mut accessor = TestAccessor::new();
 
         accessor.add_table(
             "test",

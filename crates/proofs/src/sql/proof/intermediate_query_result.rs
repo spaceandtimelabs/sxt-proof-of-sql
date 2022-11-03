@@ -6,6 +6,7 @@ use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use integer_encoding::VarInt;
 use merlin::Transcript;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 fn read_column<T: VarInt + std::fmt::Display>(
@@ -27,10 +28,15 @@ fn read_column<T: VarInt + std::fmt::Display>(
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
+///
+/// Note: Because the class is deserialized from untrusted data, it
+/// cannot maintain any invariant on its data members; hence, they are
+/// all public so as to allow for easy manipulation for testing.
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct IntermediateQueryResult {
-    num_columns: u64,
-    indexes: Vec<u64>,
-    data: Vec<u8>,
+    pub num_columns: u64,
+    pub indexes: Vec<u64>,
+    pub data: Vec<u8>,
 }
 
 impl IntermediateQueryResult {
