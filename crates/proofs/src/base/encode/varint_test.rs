@@ -127,18 +127,18 @@ fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as
 
     // x = p - 1 (p is the ristretto group order)
     // y = -x = 1
-    // which is encoded as -y, or as 2 * y + 1 = 3
+    // which is encoded as -y, or as 2 * y - 1 = 1
     let val = -Scalar::from(1u64);
     assert!(write_scalar_varint(&mut buf[..], &val) == 1);
-    assert!(buf[0] == 3);
+    assert!(buf[0] == 1);
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 1));
 
     // x = p - 2 (p is the ristretto group order)
     // y = -x = 2
-    // which is encoded as -y, or as 2 * y + 1 = 5
+    // which is encoded as -y, or as 2 * y - 1 = 3
     let val = -Scalar::from(2u64);
     assert!(write_scalar_varint(&mut buf[..], &val) == 1);
-    assert!(buf[0] == 5);
+    assert!(buf[0] == 3);
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 1));
 }
 
@@ -191,13 +191,14 @@ fn valid_varint_encoded_input_that_map_to_scalars_smaller_than_the_p_field_order
     buf[35] = 0b01111111_u8;
 
     // buf represents the number 2^252 - 1
-    // removing the varint encoding, we would have y = (2^251 - 1) % p = 2^251 - 1
+    // removing the varint encoding, we would have y = ((2^252 - 1) // 2 + 1) % p
     // since we want x, we would have x = -y
     let expected_x = -Scalar::from(&U256::from_words(
-        0xffffffffffffffffffffffffffffffff,
-        0x7ffffffffffffffffffffffffffffff,
+        0x00000000000000000000000000000000,
+        0x8000000000000000000000000000000,
     ));
-    assert!(read_scalar_varint(&buf[..36]).unwrap() == (expected_x, 36));
+
+    assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_x, 36));
 }
 
 #[test]
