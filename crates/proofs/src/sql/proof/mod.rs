@@ -1,3 +1,8 @@
+mod evaluation_vector;
+pub use evaluation_vector::compute_evaluation_vector;
+#[cfg(test)]
+mod evaluation_vector_test;
+
 mod multilinear_extension;
 pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
 
