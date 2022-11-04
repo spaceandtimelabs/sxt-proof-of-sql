@@ -55,6 +55,12 @@ pub trait TranscriptProtocol {
     /// because using this method creates a need for more labels
     fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto);
 
+    /// Append Compressed RistrettoPoint's with a specific label.
+    ///
+    /// For most types, prefer to include it as part of the message with append_auto instead,
+    /// because using this method creates a need for more labels
+    fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
+
     /// Compute a challenge variable (which requires a label).
     fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar;
 
@@ -73,6 +79,10 @@ impl TranscriptProtocol for Transcript {
 
     fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto) {
         self.append_message(label.as_bytes(), point.as_bytes());
+    }
+
+    fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]) {
+        self.append_message(label.as_bytes(), points_as_byte_slice(points));
     }
 
     fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar {
@@ -122,4 +132,10 @@ impl MessageLabel {
             MessageLabel::SumcheckRoundEvaluation => b"sumcheckroundevaluationscalars v1",
         }
     }
+}
+
+fn points_as_byte_slice(slice: &[CompressedRistretto]) -> &[u8] {
+    let slice = slice;
+    let len = slice.len() * core::mem::size_of::<CompressedRistretto>();
+    unsafe { core::slice::from_raw_parts(slice.as_ptr() as *const u8, len) }
 }
