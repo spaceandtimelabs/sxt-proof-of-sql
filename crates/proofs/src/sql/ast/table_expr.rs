@@ -1,5 +1,5 @@
 /// Expression for an SQL table
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TableExpr {
     pub name: String,
 }

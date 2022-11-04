@@ -9,7 +9,7 @@ use bumpalo::Bump;
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[allow(dead_code)]
 pub struct FilterExpr {
     results: Vec<FilterResultExpr>,

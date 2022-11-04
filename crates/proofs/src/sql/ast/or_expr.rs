@@ -4,9 +4,10 @@ use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
+use dyn_partial_eq::DynPartialEq;
 
 /// Provable logical OR expression
-#[derive(Debug)]
+#[derive(Debug, DynPartialEq, PartialEq)]
 #[allow(dead_code)]
 pub struct OrExpr {
     lhs: Box<dyn BoolExpr>,
