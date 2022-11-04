@@ -76,6 +76,8 @@ ResultColumn: Box<intermediate_ast::ResultColumn> = {
 
 QualifiedIdentifier: Vec<symbols::Name> = {
     Identifier => vec![<>],
+    <i1:Identifier> "." <i2:Identifier> => vec![i1, i2],
+    <i1:Identifier> "." <i2:Identifier> "." <i3:Identifier> => vec![i1, i2, i3],
 };
 
 FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
