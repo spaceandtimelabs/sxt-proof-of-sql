@@ -4,6 +4,7 @@ use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
+use dyn_partial_eq::DynPartialEq;
 
 /// Provable AST expression for an equals expression
 ///
@@ -11,7 +12,7 @@ use curve25519_dalek::scalar::Scalar;
 /// ```ignore
 ///     <col> = <constant>
 /// ```
-#[derive(Debug)]
+#[derive(Debug, DynPartialEq, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct EqualsExpr {
     column: String,

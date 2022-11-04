@@ -4,9 +4,11 @@ use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
+use dyn_partial_eq::dyn_partial_eq;
 use std::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a boolean
+#[dyn_partial_eq]
 pub trait BoolExpr: Debug {
     /// Count the number of proof terms needed for this expression
     fn count(&self, counts: &mut ProofCounts);

@@ -4,9 +4,10 @@ use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
+use dyn_partial_eq::DynPartialEq;
 
 /// Provable logical AND expression
-#[derive(Debug)]
+#[derive(Debug, DynPartialEq, PartialEq)]
 #[allow(dead_code)]
 pub struct AndExpr {
     lhs: Box<dyn BoolExpr>,
