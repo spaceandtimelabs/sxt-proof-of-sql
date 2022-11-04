@@ -8,7 +8,7 @@ use curve25519_dalek::scalar::Scalar;
 /// Provable expression for a result column within a filter SQL expression
 ///
 /// Note: this is currently limited to named column expressions.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[allow(dead_code)]
 pub struct FilterResultExpr {
     column: String,
