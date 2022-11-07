@@ -71,6 +71,12 @@ fn we_build_up_the_folded_pre_result_commitment() {
         builder.folded_pre_result_commitment(),
         expected_folded_pre_result_commit
     );
+    let expected_folded_pre_result_eval = inner_product_multipliers[0] * Scalar::from(123u64)
+        + inner_product_multipliers[1] * Scalar::from(456u64);
+    assert_eq!(
+        builder.folded_pre_result_evaluation(),
+        expected_folded_pre_result_eval
+    );
 }
 
 #[test]
