@@ -4,28 +4,13 @@ use super::{
 };
 
 use crate::base::polynomial::CompositePolynomial;
+use crate::base::scalar::compute_commitment_for_testing;
+
 use arrow::array::Int64Array;
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
-use byte_slice_cast::AsByteSlice;
-use curve25519_dalek::traits::Identity;
-use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
-use pedersen::compute::compute_commitments;
-use pedersen::sequences::{DenseSequence, Sequence};
+use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
-
-fn compute_commitment(data: &[i64]) -> CompressedRistretto {
-    let descriptor = Sequence::Dense(DenseSequence {
-        data_slice: data.as_byte_slice(),
-        element_size: 8,
-    });
-    let mut res = CompressedRistretto::identity();
-    compute_commitments(
-        std::slice::from_mut(&mut res),
-        std::slice::from_ref(&descriptor),
-    );
-    res
-}
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles() {
@@ -41,7 +26,10 @@ fn we_can_compute_commitments_for_intermediate_mles() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let commitments = builder.commit_intermediate_mles();
-    assert_eq!(commitments, [compute_commitment(&mle2)]);
+    assert_eq!(
+        commitments,
+        [compute_commitment_for_testing(&mle2).compress()]
+    );
 }
 
 #[test]

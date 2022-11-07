@@ -1,21 +1,8 @@
-use crate::base::database::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor};
-use crate::base::scalar::IntoScalar;
-use curve25519_dalek::{
-    ristretto::{CompressedRistretto, RistrettoPoint},
-    scalar::Scalar,
-};
-use pedersen::compute::compute_commitments;
-use std::collections::HashMap;
+use super::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor};
 
-/// Wraps the `vals` input into a slice of Scalar, then uses the pedersen library
-/// to compute the associated commitment value with the given input.
-fn compute_commitment(vals: &[i64]) -> RistrettoPoint {
-    let vals: Vec<Scalar> = vals.iter().map(|x| x.into_scalar()).collect();
-    let table = [&vals[..]; 1];
-    let mut commitments = [CompressedRistretto::from_slice(&[0_u8; 32])];
-    compute_commitments(&mut commitments, &table);
-    commitments[0].decompress().unwrap()
-}
+use crate::base::scalar::compute_commitment_for_testing;
+use curve25519_dalek::ristretto::RistrettoPoint;
+use std::collections::HashMap;
 
 struct TestTable {
     /// The total number of rows in the table. Every element in `columns` field must have a Vec<i64> with that same length.
@@ -61,7 +48,7 @@ impl TestAccessor {
             // all columns must have the same length
             assert_eq!(col_rows.len(), num_rows_table);
 
-            let commitment = compute_commitment(col_rows);
+            let commitment = compute_commitment_for_testing(col_rows);
 
             table_data.insert(col_name.to_string(), (commitment, col_rows.clone()));
         }
@@ -187,7 +174,7 @@ mod tests {
 
         assert_eq!(
             accessor.get_commitment("test", "b"),
-            compute_commitment(&[4, 5, 6])
+            compute_commitment_for_testing(&[4, 5, 6])
         );
 
         accessor.add_table(
@@ -200,11 +187,11 @@ mod tests {
 
         assert_eq!(
             accessor.get_commitment("test", "a"),
-            compute_commitment(&[1, 2, 3])
+            compute_commitment_for_testing(&[1, 2, 3])
         );
         assert_eq!(
             accessor.get_commitment("test2", "b"),
-            compute_commitment(&[4, 5, 6, 5])
+            compute_commitment_for_testing(&[4, 5, 6, 5])
         );
     }
 }
