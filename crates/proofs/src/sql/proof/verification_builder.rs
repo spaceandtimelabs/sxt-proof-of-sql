@@ -10,6 +10,7 @@ pub struct VerificationBuilder<'a> {
     inner_product_multipliers: &'a [Scalar],
     sumcheck_evaluation: Scalar,
     folded_pre_result_commitment: RistrettoPoint,
+    folded_pre_result_evaluation: Scalar,
     consumed_result_mles: usize,
     consumed_pre_result_mles: usize,
     consumed_intermediate_mles: usize,
@@ -34,6 +35,7 @@ impl<'a> VerificationBuilder<'a> {
             inner_product_multipliers,
             sumcheck_evaluation: Scalar::zero(),
             folded_pre_result_commitment: RistrettoPoint::identity(),
+            folded_pre_result_evaluation: Scalar::zero(),
             consumed_result_mles: 0,
             consumed_pre_result_mles: 0,
             consumed_intermediate_mles: 0,
@@ -46,9 +48,12 @@ impl<'a> VerificationBuilder<'a> {
     /// An anchored MLE is an MLE where the verifier has access to the commitment
     pub fn consume_anchored_mle(&mut self, commitment: &RistrettoPoint) -> Scalar {
         let index = self.consumed_pre_result_mles;
-        self.folded_pre_result_commitment += self.inner_product_multipliers[index] * commitment;
+        let multiplier = self.inner_product_multipliers[index];
+        self.folded_pre_result_commitment += multiplier * commitment;
         self.consumed_pre_result_mles += 1;
-        self.mle_evaluations.pre_result_evaluations[index]
+        let res = self.mle_evaluations.pre_result_evaluations[index];
+        self.folded_pre_result_evaluation += multiplier * res;
+        res
     }
 
     /// Consume the evaluation of an intermediate MLE used in sumcheck
@@ -85,6 +90,13 @@ impl<'a> VerificationBuilder<'a> {
     pub fn folded_pre_result_commitment(&self) -> RistrettoPoint {
         assert!(self.completed());
         self.folded_pre_result_commitment
+    }
+
+    /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
+    /// bulletproof
+    pub fn folded_pre_result_evaluation(&self) -> Scalar {
+        assert!(self.completed());
+        self.folded_pre_result_evaluation
     }
 
     /// Check that the verification builder is completely built up
