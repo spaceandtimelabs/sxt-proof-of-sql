@@ -29,6 +29,8 @@ mod intermediate_query_result_test;
 
 mod sumcheck_mle_evaluations;
 pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;
+#[cfg(test)]
+mod sumcheck_mle_evaluations_test;
 
 mod query_expr;
 pub use query_expr::QueryExpr;
