@@ -13,8 +13,8 @@ type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor)>;
 #[derive(Default)]
 pub struct TestQueryExpr {
     pub counts: ProofCounts,
-    pub prove_fn: Option<ProveFn>,
-    pub verify_fn: Option<VerifyFn>,
+    pub prover_fn: Option<ProveFn>,
+    pub verifier_fn: Option<VerifyFn>,
 }
 
 impl QueryExpr for TestQueryExpr {
@@ -22,19 +22,23 @@ impl QueryExpr for TestQueryExpr {
         *counts = self.counts;
     }
 
-    fn prove<'a>(
+    fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor,
     ) {
-        if let Some(f) = &self.prove_fn {
+        if let Some(f) = &self.prover_fn {
             f(builder, alloc, accessor);
         }
     }
 
-    fn verify(&self, builder: &mut VerificationBuilder, accessor: &dyn CommitmentAccessor) {
-        if let Some(f) = &self.verify_fn {
+    fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder,
+        accessor: &dyn CommitmentAccessor,
+    ) {
+        if let Some(f) = &self.verifier_fn {
             f(builder, accessor);
         }
     }

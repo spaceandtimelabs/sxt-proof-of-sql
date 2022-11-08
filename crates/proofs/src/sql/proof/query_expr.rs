@@ -16,7 +16,7 @@ pub trait QueryExpr: Debug {
     /// Intermediate values that are needed to form the proof are allocated into the arena
     /// allocator alloc. These intermediate values will persist through proof creation and
     /// will be bulk deallocated once the proof is formed.
-    fn prove<'a>(
+    fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
@@ -24,5 +24,9 @@ pub trait QueryExpr: Debug {
     );
 
     /// Form components needed to verify and proof store into VerificationBuilder
-    fn verify(&self, builder: &mut VerificationBuilder, accessor: &dyn CommitmentAccessor);
+    fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder,
+        accessor: &dyn CommitmentAccessor,
+    );
 }
