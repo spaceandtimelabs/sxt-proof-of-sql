@@ -1,4 +1,4 @@
-use super::{IntermediateResultColumn, QueryError, QueryResult};
+use super::{ProvableResultColumn, QueryError, QueryResult};
 
 use crate::base::encode::read_scalar_varint;
 
@@ -35,18 +35,15 @@ fn read_column<T: VarInt + std::fmt::Display>(
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Default, Clone, Serialize, Deserialize)]
-pub struct IntermediateQueryResult {
+pub struct ProvableQueryResult {
     pub num_columns: u64,
     pub indexes: Vec<u64>,
     pub data: Vec<u8>,
 }
 
-impl IntermediateQueryResult {
+impl ProvableQueryResult {
     /// Form intermediate query result from index rows and result columns
-    pub fn new<'a>(
-        indexes: &'a [u64],
-        columns: &'a [Box<dyn IntermediateResultColumn + 'a>],
-    ) -> Self {
+    pub fn new<'a>(indexes: &'a [u64], columns: &'a [Box<dyn ProvableResultColumn + 'a>]) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
             sz += col.num_bytes(indexes);
@@ -56,7 +53,7 @@ impl IntermediateQueryResult {
         for col in columns.iter() {
             sz += col.write(&mut data[sz..], indexes);
         }
-        IntermediateQueryResult {
+        ProvableQueryResult {
             num_columns: columns.len() as u64,
             indexes: indexes.to_vec(),
             data,

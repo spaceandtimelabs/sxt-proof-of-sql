@@ -41,7 +41,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
     };
     let accessor = TestAccessor::new();
     let res = VerifiableQueryResult {
-        intermediate_result: Some(Default::default()),
+        provable_result: Some(Default::default()),
         ..Default::default()
     };
     assert!(res.verify(&expr, &accessor).is_err());
