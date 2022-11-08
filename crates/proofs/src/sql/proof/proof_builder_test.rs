@@ -1,6 +1,5 @@
 use super::{
-    make_sumcheck_term, DenseIntermediateResultColumn, ProofBuilder, ProofCounts,
-    SumcheckSubpolynomial,
+    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts, SumcheckSubpolynomial,
 };
 
 use crate::base::polynomial::CompositePolynomial;
@@ -104,7 +103,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 }
 
 #[test]
-fn we_can_form_the_intermediate_query_result() {
+fn we_can_form_the_provable_query_result() {
     let counts = ProofCounts {
         sumcheck_variables: 2,
         result_columns: 2,
@@ -115,14 +114,14 @@ fn we_can_form_the_intermediate_query_result() {
     let col2 = [-2, -3, -4];
     let mut builder = ProofBuilder::new(&counts);
     builder.set_result_indexes(&result_indexes);
-    builder.produce_result_column(Box::new(DenseIntermediateResultColumn::<i64>::new(&col1)));
-    builder.produce_result_column(Box::new(DenseIntermediateResultColumn::<i64>::new(&col2)));
+    builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
+    builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
     let schema = Schema::new(vec![
         Field::new("1", DataType::Int64, false),
         Field::new("2", DataType::Int64, false),
     ]);
     let schema = Arc::new(schema);
-    let res = builder.make_intermediate_query_result();
+    let res = builder.make_provable_query_result();
     let res = res.into_query_result(schema.clone()).unwrap();
     let expected_res = RecordBatch::try_new(
         schema,
