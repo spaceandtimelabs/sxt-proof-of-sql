@@ -26,7 +26,7 @@ impl<'a> ProofBuilder<'a> {
             num_sumcheck_variables: counts.sumcheck_variables,
             result_index_vector: &[],
             result_columns: Vec::with_capacity(counts.result_columns),
-            commitment_descriptor: Vec::with_capacity(counts.anchored_mles),
+            commitment_descriptor: Vec::with_capacity(counts.intermediate_mles),
             pre_result_mles: Vec::with_capacity(counts.anchored_mles + counts.intermediate_mles),
             sumcheck_subpolynomials: Vec::with_capacity(counts.sumcheck_subpolynomials),
         }
