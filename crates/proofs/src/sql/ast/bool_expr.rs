@@ -15,7 +15,7 @@ pub trait BoolExpr: Debug {
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of boolean values
-    fn prove<'a>(
+    fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
@@ -26,7 +26,7 @@ pub trait BoolExpr: Debug {
     /// Compute the evaluation of a multilinear extension from this boolean expression
     /// at the random sumcheck point and adds components needed to verify the expression to
     /// VerificationBuilder
-    fn verify(
+    fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
         table: &TableExpr,

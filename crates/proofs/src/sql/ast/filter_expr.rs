@@ -39,7 +39,7 @@ impl QueryExpr for FilterExpr {
     }
 
     #[allow(unused_variables)]
-    fn prove<'a>(
+    fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
@@ -49,7 +49,11 @@ impl QueryExpr for FilterExpr {
     }
 
     #[allow(unused_variables)]
-    fn verify(&self, builder: &mut VerificationBuilder, accessor: &dyn CommitmentAccessor) {
+    fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder,
+        accessor: &dyn CommitmentAccessor,
+    ) {
         todo!();
     }
 }

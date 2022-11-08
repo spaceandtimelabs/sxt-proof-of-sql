@@ -28,7 +28,7 @@ impl BoolExpr for AndExpr {
     }
 
     #[allow(unused_variables)]
-    fn prove<'a>(
+    fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
@@ -39,7 +39,7 @@ impl BoolExpr for AndExpr {
     }
 
     #[allow(unused_variables)]
-    fn verify(
+    fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
         table: &TableExpr,
