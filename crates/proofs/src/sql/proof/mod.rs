@@ -19,13 +19,13 @@ pub use verification_builder::VerificationBuilder;
 #[cfg(test)]
 mod verification_builder_test;
 
-mod intermediate_result_column;
-pub use intermediate_result_column::{DenseIntermediateResultColumn, IntermediateResultColumn};
+mod provable_result_column;
+pub use provable_result_column::{DenseProvableResultColumn, ProvableResultColumn};
 
-mod intermediate_query_result;
-pub use intermediate_query_result::IntermediateQueryResult;
+mod provable_query_result;
+pub use provable_query_result::ProvableQueryResult;
 #[cfg(test)]
-mod intermediate_query_result_test;
+mod provable_query_result_test;
 
 mod sumcheck_mle_evaluations;
 pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;

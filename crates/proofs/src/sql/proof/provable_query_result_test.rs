@@ -1,4 +1,4 @@
-use super::{DenseIntermediateResultColumn, IntermediateQueryResult, IntermediateResultColumn};
+use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
 
 use arrow::array::Int64Array;
 use arrow::datatypes::{DataType, Field, Schema};
@@ -7,10 +7,10 @@ use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
 
 #[test]
-fn we_can_convert_an_empty_intermediate_result_to_a_final_result() {
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::<i64>::new(&[][..]))];
-    let res = IntermediateQueryResult::new(&[][..], &cols);
+fn we_can_convert_an_empty_provable_result_to_a_final_result() {
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::<i64>::new(&[][..]))];
+    let res = ProvableQueryResult::new(&[][..], &cols);
     let schema = Schema::new(vec![Field::new("1", DataType::Int64, false)]);
     let schema = Arc::new(schema);
     let res = res.into_query_result(schema.clone()).unwrap();
@@ -23,9 +23,9 @@ fn we_can_convert_an_empty_intermediate_result_to_a_final_result() {
 fn we_can_evaluate_result_columns_as_mles() {
     let indexes = [0, 2];
     let values = [10, 11, -12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         Scalar::from(10u64),
         Scalar::from(100u64),
@@ -42,9 +42,9 @@ fn we_can_evaluate_result_columns_as_mles() {
 fn we_can_evaluate_result_columns_with_no_rows() {
     let indexes = [];
     let values = [10, 11, 12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         Scalar::from(10u64),
         Scalar::from(100u64),
@@ -61,11 +61,11 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     let indexes = [0, 2];
     let values1 = [10, 11, 12];
     let values2 = [5, 7, 9];
-    let cols: [Box<dyn IntermediateResultColumn>; 2] = [
-        Box::new(DenseIntermediateResultColumn::new(&values1)),
-        Box::new(DenseIntermediateResultColumn::new(&values2)),
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [
+        Box::new(DenseProvableResultColumn::new(&values1)),
+        Box::new(DenseProvableResultColumn::new(&values2)),
     ];
-    let res = IntermediateQueryResult::new(&indexes, &cols);
+    let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         Scalar::from(10u64),
         Scalar::from(100u64),
@@ -84,9 +84,9 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
 fn evaluation_fails_if_indexes_are_out_of_range() {
     let indexes = [0, 2];
     let values = [10, 11, 12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let mut res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.indexes[1] = 20;
     let evaluation_vec = [
         Scalar::from(10u64),
@@ -101,9 +101,9 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
 fn evaluation_fails_if_extra_data_is_included() {
     let indexes = [0, 2];
     let values = [10, 11, 12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let mut res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data.push(3u8);
     let evaluation_vec = [
         Scalar::from(10u64),
@@ -116,7 +116,7 @@ fn evaluation_fails_if_extra_data_is_included() {
 
 #[test]
 fn evaluation_fails_if_the_result_cant_be_decoded() {
-    let mut res = IntermediateQueryResult {
+    let mut res = ProvableQueryResult {
         num_columns: 1,
         indexes: vec![0],
         data: vec![0b11111111_u8; 38],
@@ -135,9 +135,9 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 fn evaluation_fails_if_data_is_missing() {
     let indexes = [0, 2];
     let values = [10, 11, 12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let mut res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.num_columns = 3;
     let evaluation_vec = [
         Scalar::from(10u64),
@@ -149,12 +149,12 @@ fn evaluation_fails_if_data_is_missing() {
 }
 
 #[test]
-fn we_can_convert_an_intermediate_result_to_a_final_result() {
+fn we_can_convert_an_provable_result_to_a_final_result() {
     let indexes = [0, 2];
     let values = [10, 11, 12];
-    let cols: [Box<dyn IntermediateResultColumn>; 1] =
-        [Box::new(DenseIntermediateResultColumn::new(&values))];
-    let res = IntermediateQueryResult::new(&indexes, &cols);
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let res = ProvableQueryResult::new(&indexes, &cols);
     let schema = Schema::new(vec![Field::new("1", DataType::Int64, false)]);
     let schema = Arc::new(schema);
     let res = res.into_query_result(schema.clone()).unwrap();
@@ -169,10 +169,10 @@ fn we_can_convert_an_intermediate_result_to_a_final_result() {
 // fn we_can_detect_overflow() {
 //     let indexes = [0];
 //     let values = [i64::MAX];
-//     let cols : [Box<dyn IntermediateResultColumn>; 1] = [
-//             Box::new(DenseIntermediateResultColumn::new(&values)),
+//     let cols : [Box<dyn ProvableResultColumn>; 1] = [
+//             Box::new(DenseProvableResultColumn::new(&values)),
 //     ];
-//     let res = IntermediateQueryResult::new(
+//     let res = ProvableQueryResult::new(
 //         &indexes,
 //         &cols,
 //     );

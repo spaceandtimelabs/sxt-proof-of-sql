@@ -1,6 +1,6 @@
 use super::{
-    make_sumcheck_term, IntermediateQueryResult, IntermediateResultColumn, MultilinearExtension,
-    MultilinearExtensionImpl, ProofCounts, SumcheckSubpolynomial,
+    make_sumcheck_term, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
+    ProvableQueryResult, ProvableResultColumn, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::IntoScalar;
@@ -14,7 +14,7 @@ use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::I
 pub struct ProofBuilder<'a> {
     num_sumcheck_variables: usize,
     result_index_vector: &'a [u64],
-    result_columns: Vec<Box<dyn IntermediateResultColumn + 'a>>,
+    result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
     commitment_descriptor: Vec<Sequence<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial>,
@@ -70,7 +70,7 @@ impl<'a> ProofBuilder<'a> {
     }
 
     /// Produce an intermediate result column that will be sent to the verifier.
-    pub fn produce_result_column(&mut self, col: Box<dyn IntermediateResultColumn + 'a>) {
+    pub fn produce_result_column(&mut self, col: Box<dyn ProvableResultColumn + 'a>) {
         assert!(self.result_columns.len() < self.result_columns.capacity());
         self.result_columns.push(col);
     }
@@ -87,8 +87,8 @@ impl<'a> ProofBuilder<'a> {
     }
 
     /// Construct the intermediate query result to be sent to the verifier.
-    pub fn make_intermediate_query_result(&self) -> IntermediateQueryResult {
-        IntermediateQueryResult::new(self.result_index_vector, &self.result_columns)
+    pub fn make_provable_query_result(&self) -> ProvableQueryResult {
+        ProvableQueryResult::new(self.result_index_vector, &self.result_columns)
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all

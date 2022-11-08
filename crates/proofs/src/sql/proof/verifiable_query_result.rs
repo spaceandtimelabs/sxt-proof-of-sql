@@ -1,4 +1,4 @@
-use super::{make_schema, IntermediateQueryResult, ProofCounts, QueryProof};
+use super::{make_schema, ProofCounts, ProvableQueryResult, QueryProof};
 
 use crate::base::database::{CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
@@ -66,7 +66,7 @@ use std::sync::Arc;
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct VerifiableQueryResult {
-    pub intermediate_result: Option<IntermediateQueryResult>,
+    pub provable_result: Option<ProvableQueryResult>,
     pub proof: Option<QueryProof>,
 }
 
@@ -86,7 +86,7 @@ impl VerifiableQueryResult {
         // handle the empty case
         if counts.sumcheck_variables == 0 {
             return VerifiableQueryResult {
-                intermediate_result: None,
+                provable_result: None,
                 proof: None,
             };
         }
@@ -112,7 +112,7 @@ impl VerifiableQueryResult {
 
         // handle the empty case
         if counts.sumcheck_variables == 0 {
-            if self.intermediate_result.is_some() || self.proof.is_some() {
+            if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError);
             }
             return Ok(make_empty_query_result(counts.result_columns));
