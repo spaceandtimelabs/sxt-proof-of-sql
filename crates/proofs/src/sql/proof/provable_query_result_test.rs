@@ -98,6 +98,22 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
 }
 
 #[test]
+fn evaluation_fails_if_indexes_are_not_sorted() {
+    let indexes = [1, 0];
+    let values = [10, 11, 12];
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let res = ProvableQueryResult::new(&indexes, &cols);
+    let evaluation_vec = [
+        Scalar::from(10u64),
+        Scalar::from(100u64),
+        Scalar::from(1000u64),
+        Scalar::from(10000u64),
+    ];
+    assert!(res.evaluate(&evaluation_vec).is_none());
+}
+
+#[test]
 fn evaluation_fails_if_extra_data_is_included() {
     let indexes = [0, 2];
     let values = [10, 11, 12];

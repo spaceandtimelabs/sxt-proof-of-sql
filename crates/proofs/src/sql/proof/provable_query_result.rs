@@ -1,4 +1,4 @@
-use super::{ProvableResultColumn, QueryError, QueryResult};
+use super::{are_indexes_valid, ProvableResultColumn, QueryError, QueryResult};
 
 use crate::base::encode::read_scalar_varint;
 
@@ -63,10 +63,8 @@ impl ProvableQueryResult {
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
     pub fn evaluate(&self, evaluation_vec: &[Scalar]) -> Option<Vec<Scalar>> {
-        for index in self.indexes.iter() {
-            if *index >= evaluation_vec.len() as u64 {
-                return None;
-            }
+        if !are_indexes_valid(&self.indexes, evaluation_vec.len()) {
+            return None;
         }
         let num_columns = self.num_columns as usize;
         let mut offset: usize = 0;

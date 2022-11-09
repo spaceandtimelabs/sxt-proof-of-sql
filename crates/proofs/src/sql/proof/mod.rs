@@ -3,6 +3,11 @@ pub use evaluation_vector::compute_evaluation_vector;
 #[cfg(test)]
 mod evaluation_vector_test;
 
+mod index_utility;
+pub use index_utility::are_indexes_valid;
+#[cfg(test)]
+mod index_utility_test;
+
 mod multilinear_extension;
 pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
 
