@@ -1,4 +1,4 @@
-use crate::base::database::Column;
+use crate::base::database::{Column, ColumnType};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 /// Access metadata of tables in a database.
@@ -65,4 +65,20 @@ pub trait CommitmentAccessor: MetadataAccessor {
 /// ```
 pub trait DataAccessor: MetadataAccessor {
     fn get_column(&self, table_name: &str, column_name: &str) -> Column;
+}
+
+/// Access tables and their schemas in a database.
+///
+/// This accessor should be implemented by both the prover and verifier
+/// and then used by the proofs code to convert an IntermediateAst
+/// into a ProvableAst.
+pub trait SchemaAccessor {
+    /// Lookup the column's data type in the specified table
+    ///
+    /// Return:
+    ///   - Some(type) if the column exists, where `type` is the column's data type
+    ///   - None in case the column does not exist in the table
+    ///
+    /// Precondition: the table must exist and already be tamperproof.
+    fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType>;
 }
