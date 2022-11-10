@@ -37,11 +37,16 @@ pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;
 #[cfg(test)]
 mod sumcheck_mle_evaluations_test;
 
+mod sumcheck_random_scalars;
+pub use sumcheck_random_scalars::SumcheckRandomScalars;
+
 mod query_expr;
 pub use query_expr::QueryExpr;
 
 mod query_proof;
 pub use query_proof::QueryProof;
+#[cfg(test)]
+mod query_proof_test;
 
 mod query_result;
 pub use query_result::{QueryError, QueryResult};

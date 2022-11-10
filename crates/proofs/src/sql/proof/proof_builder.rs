@@ -1,6 +1,6 @@
 use super::{
     make_sumcheck_term, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
-    ProvableQueryResult, ProvableResultColumn, SumcheckSubpolynomial,
+    ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::IntoScalar;
@@ -93,17 +93,15 @@ impl<'a> ProofBuilder<'a> {
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
     /// the individual subpolynomials.
-    pub fn make_sumcheck_polynomial(&self, multipliers: &[Scalar]) -> CompositePolynomial {
+    pub fn make_sumcheck_polynomial(&self, scalars: &SumcheckRandomScalars) -> CompositePolynomial {
         assert_eq!(
             self.sumcheck_subpolynomials.len(),
             self.sumcheck_subpolynomials.capacity()
         );
-        let n = 1 << self.num_sumcheck_variables;
-        assert_eq!(multipliers.len(), n + self.sumcheck_subpolynomials.len());
-        let (entry_multipliers, group_multipliers) = multipliers.split_at(n);
         let mut res = CompositePolynomial::new(self.num_sumcheck_variables);
-        let fr = make_sumcheck_term(self.num_sumcheck_variables, entry_multipliers);
-        for (multiplier, subpoly) in group_multipliers
+        let fr = make_sumcheck_term(self.num_sumcheck_variables, scalars.entrywise_multipliers);
+        for (multiplier, subpoly) in scalars
+            .subpolynomial_multipliers
             .iter()
             .zip(self.sumcheck_subpolynomials.iter())
         {

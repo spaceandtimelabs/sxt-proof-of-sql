@@ -90,7 +90,12 @@ impl VerifiableQueryResult {
                 proof: None,
             };
         }
-        todo!();
+
+        let (proof, res) = QueryProof::new(expr, accessor, &counts);
+        Self {
+            provable_result: Some(res),
+            proof: Some(proof),
+        }
     }
 
     /// Verify a `VerifiableQueryResult`. Upon success, this function returns the finalized form of
@@ -117,7 +122,17 @@ impl VerifiableQueryResult {
             }
             return Ok(make_empty_query_result(counts.result_columns));
         }
-        todo!();
+
+        if self.provable_result.is_none() || self.proof.is_none() {
+            return Err(ProofError::VerificationError);
+        }
+
+        self.proof.as_ref().unwrap().verify(
+            expr,
+            accessor,
+            &counts,
+            self.provable_result.as_ref().unwrap(),
+        )
     }
 }
 
