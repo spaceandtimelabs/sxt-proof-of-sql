@@ -7,3 +7,12 @@
 pub enum Column<'a> {
     BigInt(&'a [i64]),
 }
+
+/// Represents the supported data types of a column in an in-memory,
+/// column-oriented database.
+///
+/// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
+/// a description of the native types used by Apache Ignite.
+pub enum ColumnType {
+    BigInt,
+}
