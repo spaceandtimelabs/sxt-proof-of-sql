@@ -1,5 +1,5 @@
 mod accessor;
-pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor};
+pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
 pub use column::{Column, ColumnType};
