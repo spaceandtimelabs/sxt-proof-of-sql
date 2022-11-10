@@ -94,7 +94,6 @@ impl TranscriptProtocol for Transcript {
 
     fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel) {
         let n = scalars.len();
-        assert!(n > 0);
 
         let mut buf = vec![0u8; n * 64];
         self.challenge_bytes(label.as_bytes(), &mut buf);
@@ -117,6 +116,13 @@ pub enum MessageLabel {
     Sumcheck,
     SumcheckChallenge,
     SumcheckRoundEvaluation,
+    QueryProof,
+    QueryCommit,
+    QueryMleEvaluations,
+    QueryMleEvaluationsChallenge,
+    QueryResultIndexes,
+    QueryResultData,
+    QuerySumcheckChallenge,
 }
 impl MessageLabel {
     /// Convert the label to a byte slice, which satisfies the requirements of a merlin label:
@@ -130,6 +136,13 @@ impl MessageLabel {
             MessageLabel::Sumcheck => b"sumcheckproof v1",
             MessageLabel::SumcheckChallenge => b"sumcheckchallenge v1",
             MessageLabel::SumcheckRoundEvaluation => b"sumcheckroundevaluationscalars v1",
+            MessageLabel::QueryProof => b"queryproof v1",
+            MessageLabel::QueryCommit => b"querycommit v1",
+            MessageLabel::QueryResultIndexes => b"queryresultindexes v1",
+            MessageLabel::QueryResultData => b"queryresultdata v1",
+            MessageLabel::QueryMleEvaluations => b"querymleevaluations v1",
+            MessageLabel::QueryMleEvaluationsChallenge => b"querymleevaluationschallenge v1",
+            MessageLabel::QuerySumcheckChallenge => b"querysumcheckchallenge v1",
         }
     }
 }

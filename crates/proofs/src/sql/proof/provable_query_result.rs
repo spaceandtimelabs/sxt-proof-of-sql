@@ -11,10 +11,7 @@ use integer_encoding::VarInt;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-fn read_column<T: VarInt + std::fmt::Display>(
-    data: &[u8],
-    n: usize,
-) -> Result<(Vec<T>, usize), QueryError> {
+fn read_column<T: VarInt>(data: &[u8], n: usize) -> Result<(Vec<T>, usize), QueryError> {
     let mut res = Vec::with_capacity(n);
     let mut cnt = 0;
     for _ in 0..n {

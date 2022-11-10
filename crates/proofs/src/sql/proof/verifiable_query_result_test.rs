@@ -45,12 +45,6 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
     assert!(res.verify(&expr, &accessor).is_err());
-
-    let res = VerifiableQueryResult {
-        proof: Some(Default::default()),
-        ..Default::default()
-    };
-    assert!(res.verify(&expr, &accessor).is_err());
 }
 
 #[test]
