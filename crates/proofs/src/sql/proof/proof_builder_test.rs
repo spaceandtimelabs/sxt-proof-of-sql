@@ -1,5 +1,6 @@
 use super::{
-    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts, SumcheckSubpolynomial,
+    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
+    SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 
 use crate::base::polynomial::CompositePolynomial;
@@ -85,7 +86,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
         Scalar::from(50u64),
         Scalar::from(25u64),
     ];
-    let poly = builder.make_sumcheck_polynomial(&multipliers);
+    let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&counts, &multipliers));
     let mut expected_poly = CompositePolynomial::new(2);
     let fr = make_sumcheck_term(2, &multipliers[..4]);
     expected_poly.add_product(
