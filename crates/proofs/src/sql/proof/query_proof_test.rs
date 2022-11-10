@@ -27,6 +27,7 @@ fn we_can_verify_a_trivial_query_proof() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -36,7 +37,11 @@ fn we_can_verify_a_trivial_query_proof() {
         let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         assert_eq!(builder.consume_result_mle(), Scalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&Scalar::zero());
     }
@@ -70,6 +75,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
@@ -79,7 +85,11 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         assert_eq!(builder.consume_result_mle(), Scalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&Scalar::zero());
     }
@@ -108,6 +118,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -117,7 +128,11 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         assert_eq!(builder.consume_result_mle(), Scalar::zero());
         // specify an arbitrary evaluation so that verify fails
         builder.produce_sumcheck_subpolynomial_evaluation(&Scalar::from(123u64));
@@ -147,6 +162,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -156,7 +172,11 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         assert_eq!(builder.consume_result_mle(), Scalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&Scalar::zero());
     }
@@ -186,6 +206,7 @@ fn verify_fails_if_counts_dont_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -195,7 +216,11 @@ fn verify_fails_if_counts_dont_match() {
         let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         assert_eq!(builder.consume_result_mle(), Scalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&Scalar::zero());
     }
@@ -230,6 +255,7 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -244,7 +270,11 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -292,6 +322,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -306,7 +337,11 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -343,6 +378,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -357,7 +393,11 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = Scalar::from(2u64) * compute_commitment_for_testing(&X);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -396,6 +436,7 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -423,7 +464,11 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let x_commit = compute_commitment_for_testing(&X);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -478,6 +523,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -505,7 +551,11 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let x_commit = compute_commitment_for_testing(&X);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -553,6 +603,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -580,7 +631,11 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let x_commit = compute_commitment_for_testing(&X);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -633,6 +688,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -660,7 +716,11 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let x_commit = compute_commitment_for_testing(&X);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -708,6 +768,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
+        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -735,7 +796,11 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         ];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _counts: &ProofCounts,
+        _accessor: &dyn CommitmentAccessor,
+    ) {
         let x_commit = compute_commitment_for_testing(&X);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);

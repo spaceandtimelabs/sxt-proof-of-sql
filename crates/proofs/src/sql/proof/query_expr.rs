@@ -20,6 +20,7 @@ pub trait QueryExpr: Debug {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     );
 
@@ -27,6 +28,7 @@ pub trait QueryExpr: Debug {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
+        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     );
 }

@@ -46,7 +46,7 @@ impl QueryProof {
 
         // pass over provable AST to fill in the proof builder
         let mut builder = ProofBuilder::new(counts);
-        expr.prover_evaluate(&mut builder, &alloc, accessor);
+        expr.prover_evaluate(&mut builder, &alloc, counts, accessor);
 
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles();
@@ -191,7 +191,7 @@ impl QueryProof {
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
         );
-        expr.verifier_evaluate(&mut builder, accessor);
+        expr.verifier_evaluate(&mut builder, counts, accessor);
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {

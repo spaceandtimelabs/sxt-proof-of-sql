@@ -6,8 +6,9 @@ use bumpalo::Bump;
 use std::fmt;
 use std::fmt::Debug;
 
-type ProveFn = Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor)>;
-type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor)>;
+type ProveFn =
+    Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &ProofCounts, &'a dyn DataAccessor)>;
+type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &ProofCounts, &dyn CommitmentAccessor)>;
 
 /// A query expression that can mock desired behavior for testing
 #[derive(Default)]
@@ -26,20 +27,22 @@ impl QueryExpr for TestQueryExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) {
         if let Some(f) = &self.prover_fn {
-            f(builder, alloc, accessor);
+            f(builder, alloc, counts, accessor);
         }
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
+        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
         if let Some(f) = &self.verifier_fn {
-            f(builder, accessor);
+            f(builder, counts, accessor);
         }
     }
 }

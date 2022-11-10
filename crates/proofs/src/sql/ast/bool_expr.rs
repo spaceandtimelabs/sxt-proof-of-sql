@@ -20,6 +20,7 @@ pub trait BoolExpr: Debug {
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
         table: &TableExpr,
+        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool];
 
@@ -30,6 +31,7 @@ pub trait BoolExpr: Debug {
         &self,
         builder: &mut VerificationBuilder,
         table: &TableExpr,
+        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar;
 }
