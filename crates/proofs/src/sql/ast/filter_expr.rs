@@ -43,6 +43,7 @@ impl QueryExpr for FilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
+        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) {
         todo!();
@@ -52,6 +53,7 @@ impl QueryExpr for FilterExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
+        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
         todo!();

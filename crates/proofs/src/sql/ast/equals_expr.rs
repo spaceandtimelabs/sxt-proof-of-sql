@@ -38,6 +38,7 @@ impl BoolExpr for EqualsExpr {
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
         table: &TableExpr,
+        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
         todo!();
@@ -48,6 +49,7 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut VerificationBuilder,
         table: &TableExpr,
+        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
         todo!();
