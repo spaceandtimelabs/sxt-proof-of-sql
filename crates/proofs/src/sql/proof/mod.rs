@@ -66,6 +66,11 @@ pub use verifiable_query_result::VerifiableQueryResult;
 mod verifiable_query_result_test;
 
 #[cfg(test)]
+mod verifiable_query_result_test_utility;
+#[cfg(test)]
+pub use verifiable_query_result_test_utility::exercise_verification;
+
+#[cfg(test)]
 mod test_query_expr;
 #[cfg(test)]
 pub use test_query_expr::TestQueryExpr;
