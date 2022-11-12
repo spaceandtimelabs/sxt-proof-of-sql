@@ -6,8 +6,10 @@ use crate::symbols::Name;
 #[test]
 fn select_one_col() {
     let actual = sql::SelectStatementParser::new().parse("select a from namespace.sxt_tab");
-    let tab = Name::from("sxt_tab");
-    let namespace = Name::from("namespace");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("sxt_tab"),
+        namespace: Some(Name::from("namespace")),
+    };
     let a = Name::from("a");
     let rc = ResultColumn::Expr {
         expr: Box::new(Expression::QualifiedIdentifier(vec![a])),
@@ -15,9 +17,7 @@ fn select_one_col() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: None,
     };
     let expected = SelectStatement {
@@ -29,7 +29,10 @@ fn select_one_col() {
 #[test]
 fn select_two_cols() {
     let actual = sql::SelectStatementParser::new().parse("select a, b from tab");
-    let tab = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: None,
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let a_rc = ResultColumn::Expr {
@@ -42,7 +45,7 @@ fn select_two_cols() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc), Box::new(b_rc)]),
-        from: vec![Box::new(TableExpression::Named { name: vec![tab] })],
+        from: vec![Box::new(table_ref)],
         where_expr: None,
     };
     let expected = SelectStatement {
@@ -54,13 +57,13 @@ fn select_two_cols() {
 #[test]
 fn select_star() {
     let actual = sql::SelectStatementParser::new().parse("select * from namespace.tab");
-    let tab = Name::from("TAB");
-    let namespace = Name::from("namespace");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: Some(Name::from("namespace")),
+    };
     let query = SetExpression::Query {
         columns: ResultColumns::All,
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: None,
     };
     let expected = SelectStatement {
@@ -72,14 +75,15 @@ fn select_star() {
 #[test]
 fn select_tablename_star() {
     let actual = sql::SelectStatementParser::new().parse("select tab.* from namespace.tab");
-    let tab = Name::from("tab");
-    let namespace = Name::from("namespace");
-    let rc = ResultColumn::AllFrom(tab.clone());
+    let table = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: table.clone(),
+        namespace: Some(Name::from("namespace")),
+    };
+    let rc = ResultColumn::AllFrom(table);
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: None,
     };
     let expected = SelectStatement {
@@ -93,8 +97,10 @@ fn select_tablename_star() {
 fn filter_one_cond() {
     let actual =
         sql::SelectStatementParser::new().parse("select a from namespace.tab where b = +4");
-    let tab = Name::from("TAB");
-    let namespace = Name::from("namespace");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: Some(Name::from("namespace")),
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let four_expr = Expression::Literal(Literal::NumericLiteral(4));
@@ -110,9 +116,7 @@ fn filter_one_cond() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(comp)),
     };
     let expected = SelectStatement {
@@ -124,7 +128,10 @@ fn filter_one_cond() {
 #[test]
 fn filter_one_cond_with_add_sub() {
     let actual = sql::SelectStatementParser::new().parse("select a from tab where b = 4 + 5 - 7");
-    let tab = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: None,
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let four_expr = Expression::Literal(Literal::NumericLiteral(4));
@@ -152,7 +159,7 @@ fn filter_one_cond_with_add_sub() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named { name: vec![tab] })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(comp)),
     };
     let expected = SelectStatement {
@@ -165,8 +172,10 @@ fn filter_one_cond_with_add_sub() {
 fn filter_one_cond_with_num_ops() {
     let actual = sql::SelectStatementParser::new()
         .parse("select a from another_namespace.tab where b = -(4 + 5) * 6 / 3");
-    let tab = Name::from("TAB");
-    let namespace = Name::from("another_namespace");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: Some(Name::from("another_namespace")),
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let four_expr = Expression::Literal(Literal::NumericLiteral(4));
@@ -204,9 +213,7 @@ fn filter_one_cond_with_num_ops() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(comp)),
     };
     let expected = SelectStatement {
@@ -219,7 +226,10 @@ fn filter_one_cond_with_num_ops() {
 fn filter_two_cond_and() {
     let actual =
         sql::SelectStatementParser::new().parse("select a from tab where b = 3 and c != -2");
-    let tab = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: None,
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let c = Name::from("c");
@@ -248,7 +258,7 @@ fn filter_two_cond_and() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named { name: vec![tab] })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(and)),
     };
     let expected = SelectStatement {
@@ -261,8 +271,10 @@ fn filter_two_cond_and() {
 fn filter_two_cond_and_not() {
     let actual = sql::SelectStatementParser::new()
         .parse("select a from public.tab where b = 3 and not c != -2");
-    let tab = Name::from("TAB");
-    let namespace = Name::from("public");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: Some(Name::from("public")),
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let c = Name::from("c");
@@ -295,9 +307,7 @@ fn filter_two_cond_and_not() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(and)),
     };
     let expected = SelectStatement {
@@ -311,7 +321,10 @@ fn filter_two_cond_and_not() {
 fn filter_mult_cond_and_or() {
     let actual = sql::SelectStatementParser::new()
         .parse("select a from tab where b = 3 and c != -2 or d <> 4 and e == 5");
-    let tab = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: None,
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let c = Name::from("c");
@@ -366,7 +379,7 @@ fn filter_mult_cond_and_or() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named { name: vec![tab] })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(or)),
     };
     let expected = SelectStatement {
@@ -381,8 +394,10 @@ fn filter_mult_cond_and_or() {
 fn filter_bigint_min_value() {
     let actual = sql::SelectStatementParser::new()
         .parse("select a from some_namespace.tab where b = -9223372036854775808");
-    let tab = Name::from("TAB");
-    let namespace = Name::from("some_namespace");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: Some(Name::from("some_namespace")),
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let i64min_expr = Expression::Literal(Literal::NumericLiteral(-9223372036854775808));
@@ -398,9 +413,7 @@ fn filter_bigint_min_value() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named {
-            name: vec![namespace, tab],
-        })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(comp)),
     };
     let expected = SelectStatement {
@@ -413,7 +426,10 @@ fn filter_bigint_min_value() {
 fn filter_bigint_max_value() {
     let actual =
         sql::SelectStatementParser::new().parse("select a from tab where b = 9223372036854775807");
-    let tab = Name::from("TAB");
+    let table_ref = TableExpression::TableRef {
+        table: Name::from("TAB"),
+        namespace: None,
+    };
     let a = Name::from("a");
     let b = Name::from("b");
     let i64max_expr = Expression::Literal(Literal::NumericLiteral(9223372036854775807));
@@ -429,13 +445,19 @@ fn filter_bigint_max_value() {
     };
     let query = SetExpression::Query {
         columns: ResultColumns::List(vec![Box::new(a_rc)]),
-        from: vec![Box::new(TableExpression::Named { name: vec![tab] })],
+        from: vec![Box::new(table_ref)],
         where_expr: Some(Box::new(comp)),
     };
     let expected = SelectStatement {
         expr: Box::new(query),
     };
     assert_eq!(expected, actual.unwrap());
+}
+
+#[test]
+fn more_than_one_namespace_wil_fail() {
+    let parsed_query = sql::SelectStatementParser::new().parse("select a from namespace.name.tab");
+    assert!(parsed_query.is_err());
 }
 
 #[test]

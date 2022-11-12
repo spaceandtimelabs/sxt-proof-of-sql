@@ -80,6 +80,11 @@ QualifiedIdentifier: Vec<symbols::Name> = {
     <i1:Identifier> "." <i2:Identifier> "." <i3:Identifier> => vec![i1, i2, i3],
 };
 
+QualifiedTableIdentifier: intermediate_ast::TableExpression = {
+    <table: Identifier> => intermediate_ast::TableExpression::TableRef { table, namespace: None },
+    <namespace: Identifier> "." <table: Identifier> => intermediate_ast::TableExpression::TableRef { table, namespace: Some(namespace) },
+};
+
 FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
     "FROM" <exprs:TableExpressionList> => exprs,
 };
@@ -89,9 +94,8 @@ TableExpressionList: Vec<Box<intermediate_ast::TableExpression>> = {
 };
 
 TableExpression: Box<intermediate_ast::TableExpression> = {
-    <name:QualifiedIdentifier> =>
-        Box::new(intermediate_ast::TableExpression::Named { name }),
-    "(" <expr:TableExpression> ")" => expr,
+    <table: QualifiedTableIdentifier> => Box::new(table),
+    "(" <table_expr: TableExpression> ")" => table_expr,
 };
 
 IdentifierList: Vec<symbols::Name> = {

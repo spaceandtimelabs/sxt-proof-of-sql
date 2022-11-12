@@ -13,9 +13,11 @@ pub struct SelectStatement {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum TableExpression {
     /// The row set of a given table; possibly providing an alias
-    Named {
+    TableRef {
         /// the qualified table name
-        name: Vec<Name>,
+        table: Name,
+        /// the qualified table namespace
+        namespace: Option<Name>,
     },
 }
 
