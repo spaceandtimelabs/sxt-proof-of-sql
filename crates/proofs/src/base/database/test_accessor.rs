@@ -3,14 +3,20 @@ use super::{
 };
 
 use crate::base::scalar::compute_commitment_for_testing;
+
 use curve25519_dalek::ristretto::RistrettoPoint;
+use polars::prelude::{DataFrame, NamedFrom, Series};
 use std::collections::HashMap;
 
 struct TestTable {
     /// The total number of rows in the table. Every element in `columns` field must have a Vec<i64> with that same length.
     len: usize,
-    /// The pairs of column_name and their respective rows data and commitment value (comprising all rows).
-    columns: HashMap<String, (RistrettoPoint, Vec<i64>)>,
+
+    /// commitments of each column
+    commitments: HashMap<String, RistrettoPoint>,
+
+    /// the column values
+    data: DataFrame,
 }
 
 /// TestAccessor is used to simulate an in-memory database and commitment tracking database for proof testing.
@@ -40,26 +46,28 @@ impl TestAccessor {
         assert!(!columns.is_empty());
         assert!(!self.data.contains_key(table_name));
 
-        let mut table_data = HashMap::new();
-
         // gets the first element, then its Vec<i64> length (number of rows)
         let num_rows_table = columns.values().next().unwrap().len();
 
         // computes the commitment of each column and adds it with its rows to `table_data`
+        let mut cols: Vec<Series> = Vec::with_capacity(columns.len());
+        let mut commitments = HashMap::new();
         for (col_name, col_rows) in columns {
             // all columns must have the same length
             assert_eq!(col_rows.len(), num_rows_table);
 
+            cols.push(Series::new(col_name, &col_rows));
             let commitment = compute_commitment_for_testing(col_rows);
 
-            table_data.insert(col_name.to_string(), (commitment, col_rows.clone()));
+            commitments.insert(col_name.to_string(), commitment);
         }
 
         self.data.insert(
             table_name.to_string(),
             TestTable {
                 len: num_rows_table,
-                columns: table_data,
+                commitments,
+                data: DataFrame::new(cols).unwrap(),
             },
         );
     }
@@ -79,11 +87,15 @@ impl MetadataAccessor for TestAccessor {
 /// Note: `table_name` and `column_name` must already exist.
 impl DataAccessor for TestAccessor {
     fn get_column(&self, table_name: &str, column_name: &str) -> Column {
-        let columns = &self.data.get(table_name).unwrap().columns;
-        let column = &columns.get(column_name).unwrap();
-        let column_rows = &column.1;
-
-        Column::BigInt(column_rows)
+        let column = &self
+            .data
+            .get(table_name)
+            .unwrap()
+            .data
+            .column(column_name)
+            .unwrap();
+        let data = column.i64().unwrap().cont_slice().unwrap();
+        Column::BigInt(data)
     }
 }
 
@@ -92,161 +104,20 @@ impl DataAccessor for TestAccessor {
 /// Note: `table_name` and `column_name` must already exist.
 impl CommitmentAccessor for TestAccessor {
     fn get_commitment(&self, table_name: &str, column_name: &str) -> RistrettoPoint {
-        let columns = &self.data.get(table_name).unwrap().columns;
-        let column = &columns.get(column_name).unwrap();
-
-        column.0
+        let commitments = &self.data.get(table_name).unwrap().commitments;
+        *commitments.get(column_name).unwrap()
     }
 }
 
 impl SchemaAccessor for TestAccessor {
     fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType> {
-        let columns = &self.data.get(table_name).unwrap().columns;
-        let column = columns.get(column_name);
+        let df = &self.data.get(table_name).unwrap().data;
+        let column = df.column(column_name);
 
-        if column.is_some() {
+        if column.is_ok() {
             return Some(ColumnType::BigInt);
         }
 
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_metadata_accessor() {
-        let mut accessor = TestAccessor::new();
-
-        accessor.add_table(
-            "test",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3]),
-                ("b".to_string(), vec![4, 5, 6]),
-            ]),
-        );
-
-        assert_eq!(accessor.get_length("test"), 3);
-
-        accessor.add_table(
-            "test2",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3, 4]),
-                ("b".to_string(), vec![4, 5, 6, 5]),
-            ]),
-        );
-
-        assert_eq!(accessor.get_length("test"), 3);
-        assert_eq!(accessor.get_length("test2"), 4);
-    }
-
-    #[test]
-    fn test_data_accessor() {
-        let mut accessor = TestAccessor::new();
-
-        accessor.add_table(
-            "test",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3]),
-                ("b".to_string(), vec![4, 5, 6]),
-            ]),
-        );
-
-        match accessor.get_column("test", "b") {
-            Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6]),
-        };
-
-        accessor.add_table(
-            "test2",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3, 4]),
-                ("b".to_string(), vec![4, 5, 6, 5]),
-            ]),
-        );
-
-        match accessor.get_column("test", "a") {
-            Column::BigInt(col) => assert_eq!(col.to_vec(), vec![1, 2, 3]),
-        };
-
-        match accessor.get_column("test2", "b") {
-            Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
-        };
-    }
-
-    #[test]
-    fn test_commitment_accessor() {
-        let mut accessor = TestAccessor::new();
-
-        accessor.add_table(
-            "test",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3]),
-                ("b".to_string(), vec![4, 5, 6]),
-            ]),
-        );
-
-        assert_eq!(
-            accessor.get_commitment("test", "b"),
-            compute_commitment_for_testing(&[4, 5, 6])
-        );
-
-        accessor.add_table(
-            "test2",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3, 4]),
-                ("b".to_string(), vec![4, 5, 6, 5]),
-            ]),
-        );
-
-        assert_eq!(
-            accessor.get_commitment("test", "a"),
-            compute_commitment_for_testing(&[1, 2, 3])
-        );
-        assert_eq!(
-            accessor.get_commitment("test2", "b"),
-            compute_commitment_for_testing(&[4, 5, 6, 5])
-        );
-    }
-
-    #[test]
-    fn test_schema_accessor() {
-        let mut accessor = TestAccessor::new();
-
-        accessor.add_table(
-            "test",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3]),
-                ("b".to_string(), vec![4, 5, 6]),
-            ]),
-        );
-
-        assert_eq!(
-            accessor.lookup_column("test", "b"),
-            Some(ColumnType::BigInt)
-        );
-
-        assert!(accessor.lookup_column("test", "c").is_none());
-
-        accessor.add_table(
-            "test2",
-            &HashMap::from([
-                ("a".to_string(), vec![1, 2, 3, 4]),
-                ("b".to_string(), vec![4, 5, 6, 5]),
-            ]),
-        );
-
-        assert_eq!(
-            accessor.lookup_column("test", "a"),
-            Some(ColumnType::BigInt)
-        );
-
-        assert_eq!(
-            accessor.lookup_column("test2", "b"),
-            Some(ColumnType::BigInt)
-        );
-
-        assert!(accessor.lookup_column("test2", "c").is_none());
     }
 }
