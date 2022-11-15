@@ -34,37 +34,6 @@ fn we_can_parse_one_column() {
 }
 
 #[test]
-fn we_can_parse_a_namespaced_table() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from eth.sxt_tab where a = -3")
-        .unwrap();
-
-    let from = vec![Box::new(TableExpression::Named {
-        table: Name::from("sxt_tab"),
-        namespace: Some(Name::from("eth")),
-    })];
-
-    let columns = vec![Box::new(ResultColumn::Expr {
-        expr: Name::from("a"),
-    })];
-
-    let where_expr = Box::new(Expression::Equal {
-        left: Name::from("a"),
-        right: -3,
-    });
-
-    let expr = Box::new(SetExpression::Query {
-        columns,
-        from,
-        where_expr,
-    });
-
-    let expected_ast = SelectStatement { expr };
-
-    assert_eq!(expected_ast, parsed_ast);
-}
-
-#[test]
 fn we_can_parse_two_columns() {
     let parsed_ast = sql::SelectStatementParser::new()
         .parse("select a,  b from sxt_tab where c = 123")
@@ -393,6 +362,13 @@ fn filter_i64_max_value() {
     let expected_ast = SelectStatement { expr };
 
     assert_eq!(expected_ast, parsed_ast);
+}
+
+#[test]
+fn we_cannot_parse_a_namespaced_table_yet() {
+    assert!(sql::SelectStatementParser::new()
+        .parse("select a from eth.sxt_tab where a = -3")
+        .is_err());
 }
 
 #[test]
