@@ -63,9 +63,6 @@ TableExpression: Box<intermediate_ast::TableExpression> = {
 QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
     <table: Identifier> =>
         Box::new(intermediate_ast::TableExpression::Named { table, namespace: None }),
-
-    <namespace: Identifier> "." <table: Identifier> =>
-        Box::new(intermediate_ast::TableExpression::Named { table, namespace: Some(namespace) }),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
