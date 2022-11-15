@@ -54,7 +54,7 @@ macro_rules! int_into_scalar {
                 if self >= 0 {
                     Scalar::from(self as $ut)
                 } else {
-                    -Scalar::from((-self) as $ut)
+                    -Scalar::from(-(self as i128) as $ut)
                 }
             }
         }
@@ -69,3 +69,32 @@ int_into_scalar!(i8, u8);
 int_into_scalar!(i16, u16);
 int_into_scalar!(i32, u32);
 int_into_scalar!(i64, u64);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn we_can_convert_unsigned_integers_into_scalars() {
+        assert_eq!(0_u8.into_scalar(), Scalar::from(0_u8));
+        assert_eq!(1_u16.into_scalar(), Scalar::from(1_u16));
+        assert_eq!(1234_u32.into_scalar(), Scalar::from(1234_u32));
+        assert_eq!(u64::MAX.into_scalar(), Scalar::from(u64::MAX));
+    }
+
+    #[test]
+    fn we_can_convert_signed_positive_integers_into_scalars() {
+        assert_eq!(0_i8.into_scalar(), Scalar::from(0_u8));
+        assert_eq!(1_i16.into_scalar(), Scalar::from(1_u16));
+        assert_eq!(1234_i32.into_scalar(), Scalar::from(1234_u32));
+        assert_eq!(i64::MAX.into_scalar(), Scalar::from(i64::MAX as u64));
+    }
+
+    #[test]
+    fn we_can_convert_signed_negative_integers_into_scalars() {
+        assert_eq!((-1_i16).into_scalar(), -Scalar::from(1_i16 as u16));
+        assert_eq!((-1234_i32).into_scalar(), -Scalar::from(1234_i32 as u32));
+        assert_eq!((-i64::MAX).into_scalar(), -Scalar::from(i64::MAX as u64));
+        assert_eq!(i64::MIN.into_scalar(), -Scalar::from(1_u64 << 63));
+    }
+}
