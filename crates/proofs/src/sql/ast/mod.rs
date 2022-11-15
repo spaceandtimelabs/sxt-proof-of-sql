@@ -18,6 +18,8 @@ pub use not_expr::NotExpr;
 
 mod equals_expr;
 pub use equals_expr::EqualsExpr;
+#[cfg(test)]
+mod equals_expr_test;
 
 mod table_expr;
 pub use table_expr::TableExpr;
