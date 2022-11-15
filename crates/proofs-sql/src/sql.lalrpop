@@ -4,7 +4,130 @@ use lalrpop_util::ParseError::User;
 
 grammar;
 
-// Lexer specification, with the primary purpose of making language keywords case insensitive
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Everything we allow in the PoSQL engine have to be SELECT
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub SelectStatement: intermediate_ast::SelectStatement = {
+    <expr: SelectCoreList> => 
+        intermediate_ast::SelectStatement {
+            expr,
+        },
+};
+
+SelectCoreList: Box<intermediate_ast::SetExpression> = {
+    SelectCore,
+};
+
+SelectCore: Box<intermediate_ast::SetExpression> = {
+    "SELECT" <columns:ResultColumnList> <from:FromClause> <where_expr:WhereClause> =>
+        Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Result Columns
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
+    ResultColumn => vec![<>],
+
+    <columns:ResultColumnList> "," <column:ResultColumn> => intermediate_ast::append(columns, column),
+};
+
+ResultColumn: Box<intermediate_ast::ResultColumn> = {
+    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr }),
+};
+
+QualifiedColumnIdentifier: symbols::Name = {
+    Identifier,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// FromClause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
+    "FROM" <table_ref: TableExpressionList> => table_ref,
+};
+
+TableExpressionList: Vec<Box<intermediate_ast::TableExpression>> = {
+    TableExpression => vec![<>],
+};
+
+TableExpression: Box<intermediate_ast::TableExpression> = {
+    <table: QualifiedTableIdentifier> => table,
+
+    "(" <table_ref: TableExpression> ")" => table_ref,
+};
+
+QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
+    <table: Identifier> =>
+        Box::new(intermediate_ast::TableExpression::Named { table, namespace: None }),
+
+    <namespace: Identifier> "." <table: Identifier> =>
+        Box::new(intermediate_ast::TableExpression::Named { table, namespace: Some(namespace) }),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// WhereClause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+WhereClause: Box<intermediate_ast::Expression> = {
+    "WHERE" <expr:Expression> => expr,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Expressions
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+Expression: Box<intermediate_ast::Expression> = {
+    NotExpression,
+    OrExpression,
+    AndExpression,
+    EqualityExpression,
+};
+
+AndExpression: Box<intermediate_ast::Expression> = {
+    "(" <left:Expression> ")" "AND" "(" <right:Expression> ")" =>
+        Box::new(intermediate_ast::Expression::And { left, right }),
+};
+
+OrExpression: Box<intermediate_ast::Expression> = {
+    "(" <left:Expression> ")" "OR" "(" <right:Expression> ")" =>
+        Box::new(intermediate_ast::Expression::Or { left, right }),
+};
+
+NotExpression: Box<intermediate_ast::Expression> = {
+    "NOT" "(" <expr:Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
+};
+
+EqualityExpression: Box<intermediate_ast::Expression> = {
+    <left:QualifiedColumnIdentifier> "=" <right: UnaryExpression> =>
+        Box::new(intermediate_ast::Expression::Equal { left, right }),
+};
+
+UnaryExpression: i64 = {
+    NumericLiteral,
+
+    "+" <expr: UnaryExpression> => expr,
+
+    "-" <expr: UnaryExpression> => -1 * expr,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Tokens
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+Identifier: symbols::Name = ID => symbols::Name::from(<>);
+
+NumericLiteral: i64 = {
+    NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Lexer specification, with the primary purpose of making language keywords case insensitive //
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 match {
     r"(?i)and" => "AND",
     
@@ -30,167 +153,7 @@ match {
     "==" => "==",
     "!=" => "!=",
     "<>" => "<>",
-
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,
-    r"'[^[[:cntrl:]]']*'" => STRING_LIT
 }
-
-//
-// Data Manipulation
-//
-
-// Everything we allow in the PoSQL engine have to be SELECT
-pub SelectStatement: intermediate_ast::SelectStatement = {
-    <expr:SelectCoreList> => 
-        intermediate_ast::SelectStatement {
-            expr,
-        },
-};
-
-SelectCoreList: Box<intermediate_ast::SetExpression> = {
-    SelectCore,
-};
-
-SelectCore: Box<intermediate_ast::SetExpression> = {
-    "SELECT" <columns:ResultColumns> <from:FromClause> <where_expr:WhereClause?> =>
-        Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
-};
-
-ResultColumns: intermediate_ast::ResultColumns = {
-    "*" => intermediate_ast::ResultColumns::All,
-    ResultColumnList => intermediate_ast::ResultColumns::List(<>),
-};
-
-ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
-    ResultColumn => vec![<>],
-    <columns:ResultColumnList> "," <column:ResultColumn> => intermediate_ast::append(columns, column),
-};
-
-ResultColumn: Box<intermediate_ast::ResultColumn> = {
-    <expr:Expression> =>
-        Box::new(intermediate_ast::ResultColumn::Expr { expr, rename: None }),
-    <name:Identifier> "." "*" => Box::new(intermediate_ast::ResultColumn::AllFrom(name)),
-};
-
-QualifiedIdentifier: Vec<symbols::Name> = {
-    Identifier => vec![<>],
-    <i1:Identifier> "." <i2:Identifier> => vec![i1, i2],
-    <i1:Identifier> "." <i2:Identifier> "." <i3:Identifier> => vec![i1, i2, i3],
-};
-
-QualifiedTableIdentifier: intermediate_ast::TableExpression = {
-    <table: Identifier> => intermediate_ast::TableExpression::TableRef { table, namespace: None },
-    <namespace: Identifier> "." <table: Identifier> => intermediate_ast::TableExpression::TableRef { table, namespace: Some(namespace) },
-};
-
-FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
-    "FROM" <exprs:TableExpressionList> => exprs,
-};
-
-TableExpressionList: Vec<Box<intermediate_ast::TableExpression>> = {
-    TableExpression => vec![<>],
-};
-
-TableExpression: Box<intermediate_ast::TableExpression> = {
-    <table: QualifiedTableIdentifier> => Box::new(table),
-    "(" <table_expr: TableExpression> ")" => table_expr,
-};
-
-IdentifierList: Vec<symbols::Name> = {
-    Identifier => vec![<>],
-    <ids:IdentifierList> "," <id:Identifier> => intermediate_ast::append(ids, id),
-};
-
-WhereClause: Box<intermediate_ast::Expression> = {
-    "WHERE" <expr:Expression> => expr,
-};
-
-//
-// Expressions
-//
-
-ExpressionList: Vec<Box<intermediate_ast::Expression>> = {
-    Expression => vec![<>],
-    <exprs:ExpressionList> "," <expr:Expression> => intermediate_ast::append(exprs, expr),
-};
-
-PrimaryExpression: Box<intermediate_ast::Expression> = {
-    "(" <expr:Expression> ")" => expr,
-    LiteralValue => Box::new(intermediate_ast::Expression::Literal(<>)),
-    QualifiedIdentifier => Box::new(intermediate_ast::Expression::QualifiedIdentifier(<>)),
-};
-
-UnaryExpression: Box<intermediate_ast::Expression> = {
-    PrimaryExpression,
-    "+" <expr:UnaryExpression> => expr,
-    "-" <expr:UnaryExpression> => Box::new(intermediate_ast::Expression::Unary { op: intermediate_ast::UnaryOperator::Negate, expr }),
-};
-
-MultiplicativeExpression: Box<intermediate_ast::Expression> = {
-    UnaryExpression,
-    <left:MultiplicativeExpression> "*" <right:UnaryExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::Multiply, left, right }),
-    <left:MultiplicativeExpression> "/" <right:UnaryExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::Divide, left, right }),
-};
-
-AdditiveExpression: Box<intermediate_ast::Expression> = {
-    MultiplicativeExpression,
-    <left:AdditiveExpression> "+" <right:MultiplicativeExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::Add, left, right }),
-    <left:AdditiveExpression> "-" <right:MultiplicativeExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::Subtract, left, right }),
-};
-
-ComparativeExpression: Box<intermediate_ast::Expression> = {
-    AdditiveExpression,
-    <left:ComparativeExpression> "=" <right:AdditiveExpression> =>
-        Box::new(intermediate_ast::Expression::Comparison { op: intermediate_ast::ComparisonOperator::Equal, left, right }),
-    <left:ComparativeExpression> "==" <right:AdditiveExpression> =>
-        Box::new(intermediate_ast::Expression::Comparison { op: intermediate_ast::ComparisonOperator::Equal, left, right }),
-    <left:ComparativeExpression> "!=" <right:AdditiveExpression> =>
-        Box::new(intermediate_ast::Expression::Comparison { op: intermediate_ast::ComparisonOperator::NotEqual, left, right }),
-    <left:ComparativeExpression> "<>" <right:AdditiveExpression> =>
-        Box::new(intermediate_ast::Expression::Comparison { op: intermediate_ast::ComparisonOperator::NotEqual, left, right }),
-};
-
-NotExpression: Box<intermediate_ast::Expression> = {
-    ComparativeExpression,
-    "NOT" <expr:ComparativeExpression> => Box::new(intermediate_ast::Expression::Unary { op: intermediate_ast::UnaryOperator::Not, expr }),
-};
-
-AndExpression: Box<intermediate_ast::Expression> = {
-    NotExpression,
-    <left:AndExpression> "AND" <right:NotExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::And, left, right }),
-};
-
-OrExpression: Box<intermediate_ast::Expression> = {
-    AndExpression,
-    <left:OrExpression> "OR" <right:AndExpression> =>
-        Box::new(intermediate_ast::Expression::Binary { op: intermediate_ast::BinaryOperator::Or, left, right }),
-};
-
-Expression: Box<intermediate_ast::Expression> = {
-    OrExpression,
-};
-
-
-//
-// Tokens
-//
-
-LiteralValue: intermediate_ast::Literal = {
-    NumericLiteral => intermediate_ast::Literal::NumericLiteral(<>),
-    StringLiteral => intermediate_ast::Literal::StringLiteral(<>),
-};
-
-Identifier: symbols::Name = ID => symbols::Name::from(<>);
-
-NumericLiteral: i64 = {
-    NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),
-};
-
-StringLiteral: String = STRING_LIT => <>[1..<>.len() - 1].to_string();

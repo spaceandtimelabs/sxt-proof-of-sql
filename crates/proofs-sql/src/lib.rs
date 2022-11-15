@@ -2,9 +2,9 @@
 extern crate lalrpop_util;
 
 pub mod intermediate_ast;
-pub mod symbols;
 #[cfg(test)]
-mod test;
+mod intermediate_ast_tests;
+pub mod symbols;
 
 mod intermediate_ast_utility;
 pub use intermediate_ast_utility::{get_ref_tables_from_ast, TableRef};
