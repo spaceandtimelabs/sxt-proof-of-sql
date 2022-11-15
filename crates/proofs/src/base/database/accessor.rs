@@ -79,6 +79,7 @@ pub trait SchemaAccessor {
     ///   - Some(type) if the column exists, where `type` is the column's data type
     ///   - None in case the column does not exist in the table
     ///
-    /// Precondition: the table must exist and already be tamperproof.
+    /// Precondition 1: the table must exist and already be tamperproof.
+    /// Precondition 2: `table_name` and `column_name` must always be upper case.
     fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType>;
 }

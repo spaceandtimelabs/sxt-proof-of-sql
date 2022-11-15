@@ -1,4 +1,6 @@
-use super::{Column, CommitmentAccessor, DataAccessor, MetadataAccessor};
+use super::{
+    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
+};
 
 use crate::base::scalar::compute_commitment_for_testing;
 use curve25519_dalek::ristretto::RistrettoPoint;
@@ -94,6 +96,19 @@ impl CommitmentAccessor for TestAccessor {
         let column = &columns.get(column_name).unwrap();
 
         column.0
+    }
+}
+
+impl SchemaAccessor for TestAccessor {
+    fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType> {
+        let columns = &self.data.get(table_name).unwrap().columns;
+        let column = columns.get(column_name);
+
+        if column.is_some() {
+            return Some(ColumnType::BigInt);
+        }
+
+        None
     }
 }
 
@@ -193,5 +208,45 @@ mod tests {
             accessor.get_commitment("test2", "b"),
             compute_commitment_for_testing(&[4, 5, 6, 5])
         );
+    }
+
+    #[test]
+    fn test_schema_accessor() {
+        let mut accessor = TestAccessor::new();
+
+        accessor.add_table(
+            "test",
+            &HashMap::from([
+                ("a".to_string(), vec![1, 2, 3]),
+                ("b".to_string(), vec![4, 5, 6]),
+            ]),
+        );
+
+        assert_eq!(
+            accessor.lookup_column("test", "b"),
+            Some(ColumnType::BigInt)
+        );
+
+        assert!(accessor.lookup_column("test", "c").is_none());
+
+        accessor.add_table(
+            "test2",
+            &HashMap::from([
+                ("a".to_string(), vec![1, 2, 3, 4]),
+                ("b".to_string(), vec![4, 5, 6, 5]),
+            ]),
+        );
+
+        assert_eq!(
+            accessor.lookup_column("test", "a"),
+            Some(ColumnType::BigInt)
+        );
+
+        assert_eq!(
+            accessor.lookup_column("test2", "b"),
+            Some(ColumnType::BigInt)
+        );
+
+        assert!(accessor.lookup_column("test2", "c").is_none());
     }
 }
