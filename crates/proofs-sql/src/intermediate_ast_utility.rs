@@ -15,7 +15,7 @@ fn ast_table_exprs_to_vec_table_ref(table_expressions: &[Box<TableExpression>]) 
         let table_ref: &TableExpression = table_expression.deref();
 
         match table_ref {
-            TableExpression::TableRef { table, namespace } => {
+            TableExpression::Named { table, namespace } => {
                 let table_name = table.as_str().to_string();
                 let namespace = namespace
                     .as_ref()
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn we_can_get_one_ref_from_a_parsed_query_with_one_table() {
         let parsed_query_ast = SelectStatementParser::new()
-            .parse("select a from tab")
+            .parse("select a from tab where c = 3")
             .unwrap();
         let ref_tables = get_ref_tables_from_ast(&parsed_query_ast);
 
@@ -73,7 +73,7 @@ mod tests {
     #[test]
     fn we_can_get_one_ref_from_a_parsed_query_with_one_namespaced_table() {
         let parsed_query_ast = SelectStatementParser::new()
-            .parse("select a from namespace.tab")
+            .parse("select a from namespace.tab where c = 3")
             .unwrap();
         let ref_tables = get_ref_tables_from_ast(&parsed_query_ast);
 
