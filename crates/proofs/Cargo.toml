@@ -28,6 +28,7 @@ dyn_partial_eq = "0.1.2"
 rand = "0.7"
 rand_core = "0.5"
 criterion = "0.4"
+polars = "0.25.1"
 
 [[bench]]
 name = "sumcheck"
