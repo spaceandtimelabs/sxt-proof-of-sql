@@ -9,6 +9,8 @@ pub use bool_expr::BoolExpr;
 
 mod and_expr;
 pub use and_expr::AndExpr;
+#[cfg(test)]
+mod and_expr_test;
 
 mod or_expr;
 pub use or_expr::OrExpr;
