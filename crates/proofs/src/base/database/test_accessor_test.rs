@@ -1,11 +1,15 @@
 use super::{
-    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
-    TestAccessor,
+    make_schema, Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TestAccessor,
 };
 
 use crate::base::scalar::compute_commitment_for_testing;
 
+use arrow::array::Int64Array;
+use arrow::record_batch::RecordBatch;
+use polars::prelude::*;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -139,4 +143,29 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     assert!(accessor.lookup_column("test2", "c").is_none());
+}
+
+#[test]
+fn we_can_run_arbitrary_queries_on_a_table() {
+    let mut accessor = TestAccessor::new();
+
+    accessor.add_table(
+        "test",
+        &HashMap::from([
+            ("a".to_string(), vec![1, 2, 3]),
+            ("b".to_string(), vec![123, 5, 123]),
+        ]),
+    );
+    let res = accessor.query_table("test", |df| {
+        df.clone()
+            .lazy()
+            .filter(col("b").eq(123))
+            .select([col("a")])
+            .collect()
+            .unwrap()
+    });
+    let schema = make_schema(1);
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![1, 3]))]).unwrap();
+    assert_eq!(res, expected_res);
 }

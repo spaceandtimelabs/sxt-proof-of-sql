@@ -1,7 +1,7 @@
 use super::{EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
 
-use crate::base::database::TestAccessor;
-use crate::sql::proof::{exercise_verification, make_schema, VerifiableQueryResult};
+use crate::base::database::{make_schema, TestAccessor};
+use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;

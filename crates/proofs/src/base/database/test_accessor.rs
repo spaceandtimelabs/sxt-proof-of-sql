@@ -2,11 +2,15 @@ use super::{
     Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
 };
 
+use crate::base::database::make_schema;
 use crate::base::scalar::compute_commitment_for_testing;
 
+use arrow::array::{Array, Int64Array};
+use arrow::record_batch::RecordBatch;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use polars::prelude::{DataFrame, NamedFrom, Series};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 struct TestTable {
     /// The total number of rows in the table. Every element in `columns` field must have a Vec<i64> with that same length.
@@ -70,6 +74,23 @@ impl TestAccessor {
                 data: DataFrame::new(cols).unwrap(),
             },
         );
+    }
+
+    pub fn query_table(
+        &self,
+        table_name: &str,
+        f: impl Fn(&DataFrame) -> DataFrame,
+    ) -> RecordBatch {
+        let df = &self.data.get(table_name).unwrap().data;
+        let df = f(df);
+        let columns = df.get_columns();
+        let schema = make_schema(columns.len());
+        let mut res: Vec<Arc<dyn Array>> = Vec::with_capacity(columns.len());
+        for col in columns {
+            let data = col.i64().unwrap().cont_slice().unwrap();
+            res.push(Arc::new(Int64Array::from(data.to_vec())));
+        }
+        RecordBatch::try_new(schema, res).unwrap()
     }
 }
 
