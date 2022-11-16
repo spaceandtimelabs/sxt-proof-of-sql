@@ -8,7 +8,6 @@ use dyn_partial_eq::DynPartialEq;
 
 /// Provable logical NOT expression
 #[derive(Debug, DynPartialEq, PartialEq)]
-#[allow(dead_code)]
 pub struct NotExpr {
     expr: Box<dyn BoolExpr>,
 }
@@ -21,12 +20,10 @@ impl NotExpr {
 }
 
 impl BoolExpr for NotExpr {
-    #[allow(unused_variables)]
     fn count(&self, counts: &mut ProofCounts) {
-        todo!();
+        self.expr.count(counts);
     }
 
-    #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
@@ -35,10 +32,12 @@ impl BoolExpr for NotExpr {
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        todo!();
+        let selection = self
+            .expr
+            .prover_evaluate(builder, alloc, table, counts, accessor);
+        alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
     }
 
-    #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
@@ -46,6 +45,9 @@ impl BoolExpr for NotExpr {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
-        todo!();
+        let eval = self
+            .expr
+            .verifier_evaluate(builder, table, counts, accessor);
+        builder.mle_evaluations.one_evaluation - eval
     }
 }
