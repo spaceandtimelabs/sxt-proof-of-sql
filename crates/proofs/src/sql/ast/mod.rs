@@ -14,6 +14,8 @@ mod and_expr_test;
 
 mod or_expr;
 pub use or_expr::OrExpr;
+#[cfg(test)]
+mod or_expr_test;
 
 mod not_expr;
 pub use not_expr::NotExpr;
