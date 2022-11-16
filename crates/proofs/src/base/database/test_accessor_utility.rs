@@ -9,10 +9,10 @@ use std::collections::HashMap;
 
 /// Specify what form a randomly generated TestAccessor can take
 pub struct RandomTestAccessorDescriptor {
-    min_rows: usize,
-    max_rows: usize,
-    min_value: i64,
-    max_value: i64,
+    pub min_rows: usize,
+    pub max_rows: usize,
+    pub min_value: i64,
+    pub max_value: i64,
 }
 
 impl Default for RandomTestAccessorDescriptor {
