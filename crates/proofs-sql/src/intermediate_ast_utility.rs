@@ -4,8 +4,8 @@ use std::ops::Deref;
 /// Case-insensitive name and namespace of a table.
 #[derive(Debug, Eq, PartialEq)]
 pub struct TableRef {
-    table_name: String,
-    namespace: Option<String>,
+    pub table_name: String,
+    pub namespace: Option<String>,
 }
 
 fn ast_table_exprs_to_vec_table_ref(table_expressions: &[Box<TableExpression>]) -> Vec<TableRef> {
