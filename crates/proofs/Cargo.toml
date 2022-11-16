@@ -31,7 +31,8 @@ proofs-sql= {path = "../proofs-sql"}
 rand = "0.7"
 rand_core = "0.5"
 criterion = "0.4"
-polars = "0.25.1"
+# polars = "0.25.1"
+polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"]}
 
 [[bench]]
 name = "sumcheck"

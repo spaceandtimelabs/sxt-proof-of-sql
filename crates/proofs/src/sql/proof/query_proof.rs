@@ -1,10 +1,10 @@
 use super::{
-    compute_evaluation_vector, make_schema, ProofBuilder, ProofCounts, ProvableQueryResult,
-    QueryExpr, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+    compute_evaluation_vector, ProofBuilder, ProofCounts, ProvableQueryResult, QueryExpr,
+    QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 
 use crate::base::{
-    database::{CommitmentAccessor, DataAccessor},
+    database::{make_schema, CommitmentAccessor, DataAccessor},
     polynomial::CompositePolynomialInfo,
     proof::{MessageLabel, ProofError, TranscriptProtocol},
 };
