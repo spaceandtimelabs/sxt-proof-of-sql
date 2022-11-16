@@ -1,6 +1,6 @@
-use super::{make_schema, ProofCounts, ProvableQueryResult, QueryProof};
+use super::{ProofCounts, ProvableQueryResult, QueryProof};
 
-use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::base::database::{make_schema, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::{QueryExpr, QueryResult};
 use arrow::array::{Array, Int64Array};

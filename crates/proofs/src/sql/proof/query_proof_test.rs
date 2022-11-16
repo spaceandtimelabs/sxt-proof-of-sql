@@ -1,9 +1,9 @@
 use super::{
-    make_schema, make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
-    QueryProof, SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
+    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts, QueryProof,
+    SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
 
-use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
+use crate::base::database::{make_schema, CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
 use arrow::array::Int64Array;

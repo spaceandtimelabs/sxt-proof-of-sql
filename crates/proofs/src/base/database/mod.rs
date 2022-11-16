@@ -4,6 +4,9 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnType};
 
+mod schema_utility;
+pub use schema_utility::make_schema;
+
 #[cfg(test)]
 mod test_accessor;
 #[cfg(test)]

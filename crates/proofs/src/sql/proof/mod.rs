@@ -57,9 +57,6 @@ pub use sumcheck_subpolynomial::SumcheckSubpolynomial;
 mod sumcheck_utility;
 pub use sumcheck_utility::make_sumcheck_term;
 
-mod schema_utility;
-pub use schema_utility::make_schema;
-
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;
 #[cfg(test)]
