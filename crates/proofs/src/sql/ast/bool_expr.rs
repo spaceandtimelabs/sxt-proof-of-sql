@@ -9,7 +9,7 @@ use std::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a boolean
 #[dyn_partial_eq]
-pub trait BoolExpr: Debug {
+pub trait BoolExpr: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
     fn count(&self, counts: &mut ProofCounts);
 
