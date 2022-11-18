@@ -1,5 +1,5 @@
 use crate::base::database::{CommitmentAccessor, DataAccessor};
-use crate::sql::ast::{BoolExpr, TableExpr};
+use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
@@ -37,16 +37,11 @@ impl BoolExpr for AndExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let lhs = self
-            .lhs
-            .prover_evaluate(builder, alloc, table, counts, accessor);
-        let rhs = self
-            .rhs
-            .prover_evaluate(builder, alloc, table, counts, accessor);
+        let lhs = self.lhs.prover_evaluate(builder, alloc, counts, accessor);
+        let rhs = self.rhs.prover_evaluate(builder, alloc, counts, accessor);
         let n = lhs.len();
         assert_eq!(n, rhs.len());
 
@@ -77,12 +72,11 @@ impl BoolExpr for AndExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        table: &TableExpr,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
-        let lhs = self.lhs.verifier_evaluate(builder, table, counts, accessor);
-        let rhs = self.rhs.verifier_evaluate(builder, table, counts, accessor);
+        let lhs = self.lhs.verifier_evaluate(builder, counts, accessor);
+        let rhs = self.rhs.verifier_evaluate(builder, counts, accessor);
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.consume_intermediate_mle();

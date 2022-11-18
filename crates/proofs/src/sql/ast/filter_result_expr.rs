@@ -1,4 +1,4 @@
-use super::{ColumnRef, TableExpr};
+use super::ColumnRef;
 
 use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{
@@ -38,7 +38,6 @@ impl FilterResultExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
@@ -81,7 +80,6 @@ impl FilterResultExpr {
     pub fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        _: &TableExpr,
         _counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
         selection_eval: &Scalar,

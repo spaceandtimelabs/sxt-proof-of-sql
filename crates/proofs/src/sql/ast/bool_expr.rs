@@ -1,5 +1,4 @@
 use crate::base::database::{CommitmentAccessor, DataAccessor};
-use crate::sql::ast::TableExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
@@ -19,7 +18,6 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr, // TODO: we will drop this table field, as we are using ColumnRef as an alternative
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool];
@@ -30,7 +28,6 @@ pub trait BoolExpr: Debug + Send + Sync {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        table: &TableExpr,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar;

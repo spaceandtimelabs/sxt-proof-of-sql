@@ -1,4 +1,4 @@
-/// Expression for an SQL table
+/// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq)]
 pub struct ColumnRef {
     pub column_name: String,

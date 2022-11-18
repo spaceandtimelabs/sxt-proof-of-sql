@@ -1,4 +1,4 @@
-use super::{BoolExpr, ColumnRef, TableExpr};
+use super::{BoolExpr, ColumnRef};
 
 use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
 use crate::base::scalar::IntoScalar;
@@ -43,7 +43,6 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
@@ -107,7 +106,6 @@ impl BoolExpr for EqualsExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {

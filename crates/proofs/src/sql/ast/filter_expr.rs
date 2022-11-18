@@ -57,9 +57,9 @@ impl QueryExpr for FilterExpr {
         accessor: &'a dyn DataAccessor,
     ) {
         // evaluate where clause
-        let selection =
-            self.where_clause
-                .prover_evaluate(builder, alloc, &self.table, counts, accessor);
+        let selection = self
+            .where_clause
+            .prover_evaluate(builder, alloc, counts, accessor);
 
         // set result indexes
         let mut cnt: usize = 0;
@@ -78,7 +78,7 @@ impl QueryExpr for FilterExpr {
 
         // evaluate result columns
         for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, &self.table, counts, accessor, selection);
+            expr.prover_evaluate(builder, alloc, counts, accessor, selection);
         }
     }
 
@@ -88,11 +88,11 @@ impl QueryExpr for FilterExpr {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
-        let selection_eval =
-            self.where_clause
-                .verifier_evaluate(builder, &self.table, counts, accessor);
+        let selection_eval = self
+            .where_clause
+            .verifier_evaluate(builder, counts, accessor);
         for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, &self.table, counts, accessor, &selection_eval);
+            expr.verifier_evaluate(builder, counts, accessor, &selection_eval);
         }
     }
 }
