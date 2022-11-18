@@ -1,4 +1,4 @@
-use super::{AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
+use super::{AndExpr, ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
 
 use crate::base::database::{
     make_random_test_accessor, make_schema, RandomTestAccessorDescriptor, TestAccessor,
@@ -21,13 +21,31 @@ use std::sync::Arc;
 #[test]
 fn we_can_prove_a_simple_and_query() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
         Box::new(AndExpr::new(
-            Box::new(EqualsExpr::new("B".to_string(), Scalar::from(1u64))),
-            Box::new(EqualsExpr::new("C".to_string(), Scalar::from(2u64))),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(1u64),
+            )),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "C".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(2u64),
+            )),
         )),
     );
     let mut accessor = TestAccessor::new();
@@ -65,13 +83,31 @@ fn we_can_query_random_tables() {
         let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
-            vec![FilterResultExpr::new("A".to_string())],
+            vec![FilterResultExpr::new(ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            })],
             TableExpr {
                 name: "T".to_string(),
             },
             Box::new(AndExpr::new(
-                Box::new(EqualsExpr::new("B".to_string(), lhs_val.into_scalar())),
-                Box::new(EqualsExpr::new("C".to_string(), rhs_val.into_scalar())),
+                Box::new(EqualsExpr::new(
+                    ColumnRef {
+                        column_name: "B".to_string(),
+                        table_name: "T".to_string(),
+                        namespace: None,
+                    },
+                    lhs_val.into_scalar(),
+                )),
+                Box::new(EqualsExpr::new(
+                    ColumnRef {
+                        column_name: "C".to_string(),
+                        table_name: "T".to_string(),
+                        namespace: None,
+                    },
+                    rhs_val.into_scalar(),
+                )),
             )),
         );
         let res = VerifiableQueryResult::new(&expr, &accessor);
