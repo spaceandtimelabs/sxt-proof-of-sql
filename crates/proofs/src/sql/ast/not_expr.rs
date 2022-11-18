@@ -1,5 +1,5 @@
 use crate::base::database::{CommitmentAccessor, DataAccessor};
-use crate::sql::ast::{BoolExpr, TableExpr};
+use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
@@ -28,26 +28,20 @@ impl BoolExpr for NotExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let selection = self
-            .expr
-            .prover_evaluate(builder, alloc, table, counts, accessor);
+        let selection = self.expr.prover_evaluate(builder, alloc, counts, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        table: &TableExpr,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
-        let eval = self
-            .expr
-            .verifier_evaluate(builder, table, counts, accessor);
+        let eval = self.expr.verifier_evaluate(builder, counts, accessor);
         builder.mle_evaluations.one_evaluation - eval
     }
 }
