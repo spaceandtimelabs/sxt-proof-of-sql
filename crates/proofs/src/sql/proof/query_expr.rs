@@ -6,7 +6,7 @@ use bumpalo::Bump;
 use std::fmt::Debug;
 
 /// A query expression that we can evaluate, prove, and verify
-pub trait QueryExpr: Debug {
+pub trait QueryExpr: Debug + Send + Sync {
     /// Count terms used within the Query's proof
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor);
 

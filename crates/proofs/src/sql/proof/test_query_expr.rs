@@ -6,9 +6,13 @@ use bumpalo::Bump;
 use std::fmt;
 use std::fmt::Debug;
 
-type ProveFn =
-    Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &ProofCounts, &'a dyn DataAccessor)>;
-type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &ProofCounts, &dyn CommitmentAccessor)>;
+type ProveFn = Box<
+    dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &ProofCounts, &'a dyn DataAccessor)
+        + Send
+        + Sync,
+>;
+type VerifyFn =
+    Box<dyn Fn(&mut VerificationBuilder, &ProofCounts, &dyn CommitmentAccessor) + Send + Sync>;
 
 /// A query expression that can mock desired behavior for testing
 #[derive(Default)]
