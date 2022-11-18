@@ -19,7 +19,7 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr,
+        table: &TableExpr, // TODO: we will drop this table field, as we are using ColumnRef as an alternative
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool];

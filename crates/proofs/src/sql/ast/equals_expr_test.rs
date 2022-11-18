@@ -1,4 +1,4 @@
-use super::{EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
+use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
 
 use crate::base::database::{
     make_random_test_accessor, make_schema, RandomTestAccessorDescriptor, TestAccessor,
@@ -21,11 +21,22 @@ use std::sync::Arc;
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::zero())),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::zero(),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -46,11 +57,22 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::zero())),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::zero(),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -71,11 +93,22 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::zero())),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::zero(),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -96,11 +129,22 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::zero())),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::zero(),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -123,11 +167,22 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::from(123u64))),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::from(123u64),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -150,11 +205,22 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 #[test]
 fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::zero())),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
+            Scalar::zero(),
+        )),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
@@ -190,11 +256,22 @@ fn we_can_query_random_tables() {
         let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
-            vec![FilterResultExpr::new("A".to_string())],
+            vec![FilterResultExpr::new(ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            })],
             TableExpr {
                 name: "T".to_string(),
             },
-            Box::new(EqualsExpr::new("B".to_string(), val.into_scalar())),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                },
+                val.into_scalar(),
+            )),
         );
         let res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&res, &expr, &accessor);
@@ -226,13 +303,28 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![
-                FilterResultExpr::new("AA".to_string()),
-                FilterResultExpr::new("AB".to_string()),
+                FilterResultExpr::new(ColumnRef {
+                    column_name: "AA".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                }),
+                FilterResultExpr::new(ColumnRef {
+                    column_name: "AB".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                }),
             ],
             TableExpr {
                 name: "T".to_string(),
             },
-            Box::new(EqualsExpr::new("B".to_string(), val.into_scalar())),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                },
+                val.into_scalar(),
+            )),
         );
         let res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&res, &expr, &accessor);

@@ -1,4 +1,4 @@
-use super::TableExpr;
+use super::{ColumnRef, TableExpr};
 
 use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{
@@ -15,13 +15,13 @@ use std::cmp::max;
 /// Note: this is currently limited to named column expressions.
 #[derive(Debug, PartialEq, Eq)]
 pub struct FilterResultExpr {
-    column: String,
+    column_ref: ColumnRef,
 }
 
 impl FilterResultExpr {
     /// Creates a new filter result expression
-    pub fn new(column: String) -> Self {
-        Self { column }
+    pub fn new(column_ref: ColumnRef) -> Self {
+        Self { column_ref }
     }
 
     /// Count the number of proof terms needed by this expression
@@ -38,12 +38,13 @@ impl FilterResultExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr,
+        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
     ) {
-        let Column::BigInt(col) = accessor.get_column(&table.name, &self.column);
+        let Column::BigInt(col) =
+            accessor.get_column(&self.column_ref.table_name, &self.column_ref.column_name);
 
         // add result column
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
@@ -80,12 +81,13 @@ impl FilterResultExpr {
     pub fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        table: &TableExpr,
+        _: &TableExpr,
         _counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
         selection_eval: &Scalar,
     ) {
-        let col_commit = accessor.get_commitment(&table.name, &self.column);
+        let col_commit =
+            accessor.get_commitment(&self.column_ref.table_name, &self.column_ref.column_name);
 
         let result_eval = builder.consume_result_mle();
         let col_eval = builder.consume_anchored_mle(&col_commit);
