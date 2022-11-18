@@ -1,4 +1,4 @@
-use super::{EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
+use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
 
 use crate::base::database::{
     make_random_test_accessor, make_schema, RandomTestAccessorDescriptor, TestAccessor,
@@ -21,12 +21,20 @@ use std::sync::Arc;
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "T".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "T".to_string(),
         },
         Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-            "B".to_string(),
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            },
             Scalar::from(1u64),
         )))),
     );
@@ -63,12 +71,20 @@ fn we_can_query_random_tables() {
         let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
-            vec![FilterResultExpr::new("A".to_string())],
+            vec![FilterResultExpr::new(ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+            })],
             TableExpr {
                 name: "T".to_string(),
             },
             Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-                "B".to_string(),
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                },
                 val.into_scalar(),
             )))),
         );

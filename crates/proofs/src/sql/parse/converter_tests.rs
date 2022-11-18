@@ -1,6 +1,6 @@
 use crate::base::database::TestAccessor;
 use crate::sql::ast::{
-    AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::sql::parse::Converter;
 use curve25519_dalek::scalar::Scalar;
@@ -21,11 +21,22 @@ fn we_can_convert_an_ast_with_one_column() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
-        Box::new(EqualsExpr::new("A".to_string(), Scalar::from(3_u64))),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
+            Scalar::from(3_u64),
+        )),
     );
 
     assert_eq!(expected_provable_ast, provable_ast);
@@ -53,13 +64,28 @@ fn we_can_convert_an_ast_with_two_columns() {
 
     let expected_provable_ast = FilterExpr::new(
         vec![
-            FilterResultExpr::new("A".to_string()),
-            FilterResultExpr::new("B".to_string()),
+            FilterResultExpr::new(ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            }),
+            FilterResultExpr::new(ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            }),
         ],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
-        Box::new(EqualsExpr::new("C".to_string(), Scalar::from(123_u64))),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "C".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
+            Scalar::from(123_u64),
+        )),
     );
 
     assert_eq!(expected_provable_ast, provable_ast);
@@ -83,11 +109,22 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), Scalar::from(4_u64))),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
+            Scalar::from(4_u64),
+        )),
     );
 
     assert_eq!(expected_provable_ast, provable_ast);
@@ -111,11 +148,22 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
-        Box::new(EqualsExpr::new("B".to_string(), -Scalar::from(4_u64))),
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
+            -Scalar::from(4_u64),
+        )),
     );
 
     assert_eq!(expected_provable_ast, provable_ast);
@@ -142,13 +190,31 @@ fn we_can_convert_an_ast_with_cond_and() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(AndExpr::new(
-            Box::new(EqualsExpr::new("B".to_string(), Scalar::from(3_u64))),
-            Box::new(EqualsExpr::new("C".to_string(), -Scalar::from(2_u64))),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(3_u64),
+            )),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "C".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                -Scalar::from(2_u64),
+            )),
         )),
     );
 
@@ -176,13 +242,31 @@ fn we_can_convert_an_ast_with_cond_or() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(OrExpr::new(
-            Box::new(EqualsExpr::new("B".to_string(), Scalar::from(3_u64))),
-            Box::new(EqualsExpr::new("C".to_string(), -Scalar::from(2_u64))),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(3_u64),
+            )),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "C".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                -Scalar::from(2_u64),
+            )),
         )),
     );
 
@@ -210,14 +294,29 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(OrExpr::new(
-            Box::new(EqualsExpr::new("B".to_string(), Scalar::from(3_u64))),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(3_u64),
+            )),
             Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-                "C".to_string(),
+                ColumnRef {
+                    column_name: "C".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
                 -Scalar::from(2_u64),
             )))),
         )),
@@ -248,16 +347,41 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(NotExpr::new(Box::new(AndExpr::new(
             Box::new(OrExpr::new(
-                Box::new(EqualsExpr::new("F".to_string(), Scalar::from(45_u64))),
-                Box::new(EqualsExpr::new("C".to_string(), -Scalar::from(2_u64))),
+                Box::new(EqualsExpr::new(
+                    ColumnRef {
+                        column_name: "F".to_string(),
+                        table_name: "SXT_TAB".to_string(),
+                        namespace: None,
+                    },
+                    Scalar::from(45_u64),
+                )),
+                Box::new(EqualsExpr::new(
+                    ColumnRef {
+                        column_name: "C".to_string(),
+                        table_name: "SXT_TAB".to_string(),
+                        namespace: None,
+                    },
+                    -Scalar::from(2_u64),
+                )),
             )),
-            Box::new(EqualsExpr::new("B".to_string(), Scalar::from(3_u64))),
+            Box::new(EqualsExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                },
+                Scalar::from(3_u64),
+            )),
         )))),
     );
 
@@ -278,12 +402,20 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(EqualsExpr::new(
-            "A".to_string(),
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
             -Scalar::from(9223372036854775808u64),
         )),
     );
@@ -305,12 +437,20 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new("A".to_string())],
+        vec![FilterResultExpr::new(ColumnRef {
+            column_name: "A".to_string(),
+            table_name: "SXT_TAB".to_string(),
+            namespace: None,
+        })],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
         Box::new(EqualsExpr::new(
-            "A".to_string(),
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+            },
             Scalar::from(9223372036854775807_u64),
         )),
     );

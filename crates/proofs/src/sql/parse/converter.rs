@@ -1,7 +1,8 @@
 use crate::base::database::SchemaAccessor;
 use crate::base::scalar::IntoScalar;
 use crate::sql::ast::{
-    AndExpr, BoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, BoolExpr, ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
+    TableExpr,
 };
 use crate::sql::parse::{ParseError, ParseResult};
 use curve25519_dalek::scalar::Scalar;
@@ -160,7 +161,7 @@ impl Converter {
         &self,
         id: &Name,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<String> {
+    ) -> ParseResult<ColumnRef> {
         let column_name = id.as_str().to_string();
 
         let current_table = self.current_table.as_deref().unwrap();
@@ -176,6 +177,10 @@ impl Converter {
 
         // TODO: check the column_type
 
-        Ok(column_name)
+        Ok(ColumnRef {
+            column_name,
+            table_name: current_table.to_string(),
+            namespace: None,
+        })
     }
 }

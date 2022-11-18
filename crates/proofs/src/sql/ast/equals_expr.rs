@@ -1,4 +1,4 @@
-use super::{BoolExpr, TableExpr};
+use super::{BoolExpr, ColumnRef, TableExpr};
 
 use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
 use crate::base::scalar::IntoScalar;
@@ -20,14 +20,14 @@ use std::cmp::max;
 /// ```
 #[derive(Debug, DynPartialEq, PartialEq, Eq)]
 pub struct EqualsExpr {
-    column: String,
     value: Scalar,
+    column_ref: ColumnRef,
 }
 
 impl EqualsExpr {
     /// Create a new equals expression
-    pub fn new(column: String, value: Scalar) -> Self {
-        Self { column, value }
+    pub fn new(column_ref: ColumnRef, value: Scalar) -> Self {
+        Self { value, column_ref }
     }
 }
 
@@ -43,11 +43,12 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        table: &TableExpr,
+        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let Column::BigInt(col) = accessor.get_column(&table.name, &self.column);
+        let Column::BigInt(col) =
+            accessor.get_column(&self.column_ref.table_name, &self.column_ref.column_name);
 
         // lhs
         let lhs =
@@ -106,12 +107,13 @@ impl BoolExpr for EqualsExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        table: &TableExpr,
+        _: &TableExpr,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
         // lhs_commit
-        let lhs_commit = accessor.get_commitment(&table.name, &self.column)
+        let lhs_commit = accessor
+            .get_commitment(&self.column_ref.table_name, &self.column_ref.column_name)
             - self.value * get_one_commit(counts.table_length as u64);
 
         // consume mle evaluations
