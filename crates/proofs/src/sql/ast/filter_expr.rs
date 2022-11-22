@@ -35,6 +35,7 @@ impl FilterExpr {
 }
 
 impl QueryExpr for FilterExpr {
+    #[tracing::instrument(name = "proofs.sql.ast.filter_expr.count", level = "info", skip_all)]
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor) {
         let n = accessor.get_length(&self.table.name);
         counts.table_length = n;
@@ -49,6 +50,11 @@ impl QueryExpr for FilterExpr {
         }
     }
 
+    #[tracing::instrument(
+        name = "proofs.sql.ast.filter_expr.prover_evaluate",
+        level = "info",
+        skip_all
+    )]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
@@ -82,6 +88,11 @@ impl QueryExpr for FilterExpr {
         }
     }
 
+    #[tracing::instrument(
+        name = "proofs.sql.ast.filter_expr.verifier_evaluate",
+        level = "info",
+        skip_all
+    )]
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,

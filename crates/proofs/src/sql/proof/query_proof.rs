@@ -35,6 +35,7 @@ pub struct QueryProof {
 }
 
 impl QueryProof {
+    #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(
         expr: &dyn QueryExpr,
         accessor: &dyn DataAccessor,
@@ -43,6 +44,8 @@ impl QueryProof {
         assert!(counts.sumcheck_variables > 0);
         let n = 1 << counts.sumcheck_variables;
         let alloc = Bump::new();
+
+        counts.annotate_trace();
 
         // pass over provable AST to fill in the proof builder
         let mut builder = ProofBuilder::new(counts);
@@ -111,6 +114,12 @@ impl QueryProof {
         (proof, provable_result)
     }
 
+    #[tracing::instrument(
+        name = "proofs.sql.proof.query_proof.verify",
+        level = "info",
+        skip_all,
+        err
+    )]
     pub fn verify(
         &self,
         expr: &dyn QueryExpr,
@@ -223,6 +232,11 @@ impl QueryProof {
     }
 }
 
+#[tracing::instrument(
+    name = "proofs.sql.proof.query_proof.make_transcript",
+    level = "info",
+    skip_all
+)]
 fn make_transcript(
     commitments: &[CompressedRistretto],
     result_indexes: &[u64],

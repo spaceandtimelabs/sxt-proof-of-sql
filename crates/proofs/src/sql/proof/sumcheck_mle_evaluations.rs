@@ -17,6 +17,11 @@ pub struct SumcheckMleEvaluations<'a> {
 }
 
 impl<'a> SumcheckMleEvaluations<'a> {
+    #[tracing::instrument(
+        name = "proofs.sql.proof.sumcheck_mle_evaluations.new",
+        level = "info",
+        skip_all
+    )]
     pub fn new(
         table_length: usize,
         evaluation_vec: &[Scalar],

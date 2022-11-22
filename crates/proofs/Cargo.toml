@@ -23,6 +23,7 @@ postcard = {version = "1.0", features = ["alloc"] }
 num-traits = "0.2"
 rayon = "1.5"
 dyn_partial_eq = "0.1.2"
+tracing = { version = "0.1.36", features = ["attributes"] }
 
 # SxT dependencies
 proofs-sql= {path = "../proofs-sql"}
@@ -31,7 +32,6 @@ proofs-sql= {path = "../proofs-sql"}
 rand = "0.7"
 rand_core = "0.5"
 criterion = "0.4"
-# polars = "0.25.1"
 polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"]}
 
 [[bench]]
