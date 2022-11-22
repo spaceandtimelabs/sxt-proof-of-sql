@@ -37,6 +37,11 @@ impl InnerProductProof {
     ///
     /// The lengths of the vectors must all be the same, and must all be
     /// either 0 or a power of 2.
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.inner_product.proof.create",
+        level = "info",
+        skip_all
+    )]
     pub fn create(
         transcript: &mut Transcript,
         Q: &RistrettoPoint,
@@ -161,6 +166,11 @@ impl InnerProductProof {
     // in a parent protocol. See [inner product protocol notes](index.html#verification-equation) for details.
     // The verifier must provide the input length \\(n\\) explicitly to avoid unbounded allocation within the inner product proof.
     #[allow(clippy::type_complexity)]
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.inner_product.proof.verification_scalars",
+        level = "info",
+        skip_all
+    )]
     pub(crate) fn verification_scalars(
         &self,
         transcript: &mut Transcript,
@@ -226,6 +236,11 @@ impl InnerProductProof {
     /// method to combine inner product verification with other checks
     /// in a single multiscalar multiplication.
     #[allow(dead_code)]
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.inner_product.proof.verify",
+        level = "info",
+        skip_all
+    )]
     pub fn verify(
         &self,
         transcript: &mut Transcript,
