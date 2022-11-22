@@ -18,6 +18,11 @@ pub struct SumcheckProof {
 }
 
 impl SumcheckProof {
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.sumcheck.proof.create",
+        level = "info",
+        skip_all
+    )]
     pub fn create(
         transcript: &mut Transcript,
         evaluation_point: &mut [Scalar],
@@ -42,6 +47,11 @@ impl SumcheckProof {
         SumcheckProof { evaluations }
     }
 
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.sumcheck.proof.verify_without_evaluation",
+        level = "info",
+        skip_all
+    )]
     pub fn verify_without_evaluation(
         &self,
         transcript: &mut Transcript,

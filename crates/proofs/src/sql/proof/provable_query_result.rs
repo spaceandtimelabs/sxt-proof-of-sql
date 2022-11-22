@@ -40,6 +40,11 @@ pub struct ProvableQueryResult {
 
 impl ProvableQueryResult {
     /// Form intermediate query result from index rows and result columns
+    #[tracing::instrument(
+        name = "proofs.sql.proof.provable_query_result.new",
+        level = "info",
+        skip_all
+    )]
     pub fn new<'a>(indexes: &'a [u64], columns: &'a [Box<dyn ProvableResultColumn + 'a>]) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
@@ -59,6 +64,11 @@ impl ProvableQueryResult {
 
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
+    #[tracing::instrument(
+        name = "proofs.sql.proof.provable_query_result.evaluate",
+        level = "info",
+        skip_all
+    )]
     pub fn evaluate(&self, evaluation_vec: &[Scalar]) -> Option<Vec<Scalar>> {
         if !are_indexes_valid(&self.indexes, evaluation_vec.len()) {
             return None;
@@ -85,6 +95,11 @@ impl ProvableQueryResult {
     }
 
     /// Convert the intermediate query result into a final query result
+    #[tracing::instrument(
+        name = "proofs.sql.proof.provable_query_result.into_query_result",
+        level = "info",
+        skip_all
+    )]
     pub fn into_query_result(&self, schema: SchemaRef) -> QueryResult {
         assert_eq!(schema.fields().len() as u64, self.num_columns);
         let n = self.indexes.len();

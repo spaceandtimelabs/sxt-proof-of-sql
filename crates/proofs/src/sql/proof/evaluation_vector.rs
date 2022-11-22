@@ -2,6 +2,11 @@ use curve25519_dalek::scalar::Scalar;
 
 /// Given a point of evaluation, computes the vector that allows us
 /// to evaluate a multilinear extension as an inner product.
+#[tracing::instrument(
+    name = "proofs.sql.proof.evaluation_vector.compute_evaluation_vector",
+    level = "info",
+    skip_all
+)]
 pub fn compute_evaluation_vector(point: &[Scalar]) -> Vec<Scalar> {
     let m = point.len();
     assert!(m > 0);
