@@ -1,10 +1,8 @@
-use super::{MetadataAccessor, TestAccessor};
-
+use super::TestAccessor;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
-use rand_core::SeedableRng;
 use std::collections::HashMap;
 
 /// Specify what form a randomly generated TestAccessor can take
@@ -48,6 +46,8 @@ pub fn make_random_test_accessor(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::database::accessor::MetadataAccessor;
+    use rand_core::SeedableRng;
 
     #[test]
     fn we_can_construct_a_random_test_accessor() {

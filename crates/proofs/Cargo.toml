@@ -24,16 +24,22 @@ num-traits = "0.2"
 rayon = "1.5"
 dyn_partial_eq = "0.1.2"
 tracing = { version = "0.1.36", features = ["attributes"] }
+rand = { version = "0.7", optional = true }
+polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"], optional = true }
 
 # SxT dependencies
 proofs-sql= {path = "../proofs-sql"}
 
 [dev_dependencies]
-rand = "0.7"
-rand_core = "0.5"
 criterion = "0.4"
-polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"]}
+rand = { version = "0.7"}
+rand_core = { version = "0.5" }
+polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"] }
 
 [[bench]]
 name = "sumcheck"
 harness = false
+
+[features]
+default = []
+test = ["dep:rand", "dep:polars"]
