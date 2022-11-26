@@ -1,5 +1,10 @@
 [workspace]
 members = [
     "crates/proofs",
-    "crates/proofs-sql"               
+    "crates/proofs-sql",
+    "benches/provable_sql"
 ]
+
+# benchmark program
+[profile.release.package.provable_sql]
+debug = true
