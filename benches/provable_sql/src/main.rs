@@ -1,4 +1,5 @@
 use clap::Parser;
+use pedersen::compute::{init_backend_with_config, BackendConfig};
 use proofs::base::database::{
     make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
@@ -76,6 +77,10 @@ fn generate_accessor(
 }
 
 fn generate_input_data(args: &Args) -> (FilterExpr, TestAccessor) {
+    init_backend_with_config(BackendConfig {
+        num_precomputed_generators: args.table_length as u64,
+    });
+
     let (table_name, accessor) = generate_accessor(
         args.table_length,
         args.num_columns,
