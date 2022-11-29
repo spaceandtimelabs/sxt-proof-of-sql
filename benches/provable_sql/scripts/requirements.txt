@@ -1,0 +1,5 @@
+argparse==1.1
+psutil==5.9.4
+numpy==1.23.0
+matplotlib==3.5.2
+gprof2dot==2022.7.29
