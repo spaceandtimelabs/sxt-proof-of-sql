@@ -13,3 +13,6 @@ pub use inner_product::inner_product;
 
 mod into_scalar;
 pub use into_scalar::IntoScalar;
+
+mod batch_pseudo_inverse;
+pub use batch_pseudo_inverse::batch_pseudo_invert;

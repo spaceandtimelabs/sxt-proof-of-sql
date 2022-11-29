@@ -6,6 +6,7 @@ use crate::sql::proof::{
     make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
+use crate::base::scalar::batch_pseudo_invert;
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
@@ -55,15 +56,9 @@ impl BoolExpr for EqualsExpr {
         builder.produce_anchored_mle(lhs);
 
         // lhs_pseudo_inv
-        // Note: We can do this more efficiently with bulk inversion; but we're keeping things
-        // simple to start with
-        let lhs_pseudo_inv = alloc.alloc_slice_fill_with(counts.table_length, |i| {
-            if lhs[i] != Scalar::zero() {
-                lhs[i].invert()
-            } else {
-                Scalar::zero()
-            }
-        });
+        let lhs_pseudo_inv = alloc.alloc_slice_fill_default::<Scalar>(counts.table_length);
+        batch_pseudo_invert(lhs_pseudo_inv, lhs);
+
         builder.produce_intermediate_mle(lhs_pseudo_inv);
 
         // selection_not
