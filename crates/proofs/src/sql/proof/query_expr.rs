@@ -1,4 +1,5 @@
 use super::{ProofBuilder, ProofCounts, VerificationBuilder};
+use arrow::datatypes::SchemaRef;
 
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 
@@ -31,4 +32,7 @@ pub trait QueryExpr: Debug + Send + Sync {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     );
+
+    /// Return the Schema of the Query’s result
+    fn get_result_schema(&self) -> SchemaRef;
 }

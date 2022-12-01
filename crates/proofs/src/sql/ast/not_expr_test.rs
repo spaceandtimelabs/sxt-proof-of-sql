@@ -1,9 +1,9 @@
 use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
-
 use crate::base::database::{
-    make_random_test_accessor, make_schema, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
+use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 
 use arrow::array::Int64Array;
@@ -53,7 +53,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![123];
     let expected_res =
-        RecordBatch::try_new(make_schema(1), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 

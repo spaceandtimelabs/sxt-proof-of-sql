@@ -4,7 +4,7 @@ use super::{
 };
 
 use crate::base::{
-    database::{make_schema, CommitmentAccessor, DataAccessor},
+    database::{CommitmentAccessor, DataAccessor},
     polynomial::CompositePolynomialInfo,
     proof::{MessageLabel, ProofError, TranscriptProtocol},
 };
@@ -221,7 +221,7 @@ impl QueryProof {
             &evaluation_vec,
         )?;
 
-        Ok(result.into_query_result(make_schema(counts.result_columns)))
+        Ok(result.into_query_result(expr.get_result_schema()))
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {

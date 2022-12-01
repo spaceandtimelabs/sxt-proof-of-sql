@@ -1,4 +1,6 @@
 use super::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use std::sync::Arc;
 
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 
@@ -48,6 +50,15 @@ impl QueryExpr for TestQueryExpr {
         if let Some(f) = &self.verifier_fn {
             f(builder, counts, accessor);
         }
+    }
+
+    fn get_result_schema(&self) -> SchemaRef {
+        let num_columns = self.counts.result_columns;
+        let mut columns = Vec::with_capacity(num_columns);
+        for i in 0..num_columns {
+            columns.push(Field::new(&(i + 1).to_string(), DataType::Int64, false));
+        }
+        Arc::new(Schema::new(columns))
     }
 }
 
