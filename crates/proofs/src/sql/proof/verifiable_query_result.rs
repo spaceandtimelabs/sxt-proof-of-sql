@@ -1,6 +1,6 @@
 use super::{ProofCounts, ProvableQueryResult, QueryProof};
 
-use crate::base::database::{make_schema, CommitmentAccessor, DataAccessor};
+use crate::base::database::{CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::{QueryExpr, QueryResult};
 use arrow::array::{Array, Int64Array};
@@ -120,7 +120,7 @@ impl VerifiableQueryResult {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError);
             }
-            return Ok(make_empty_query_result(counts.result_columns));
+            return Ok(make_empty_query_result(expr, counts.result_columns));
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
@@ -136,8 +136,8 @@ impl VerifiableQueryResult {
     }
 }
 
-fn make_empty_query_result(num_columns: usize) -> QueryResult {
-    let schema = make_schema(num_columns);
+fn make_empty_query_result(expr: &dyn QueryExpr, num_columns: usize) -> QueryResult {
+    let schema = expr.get_result_schema();
     let empty_col = Arc::new(Int64Array::from(Vec::<i64>::new()));
     let columns: Vec<Arc<dyn Array>> = vec![empty_col; num_columns];
     Ok(RecordBatch::try_new(schema, columns).unwrap())

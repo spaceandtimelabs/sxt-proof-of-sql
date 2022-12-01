@@ -1,4 +1,6 @@
 use super::{BoolExpr, FilterResultExpr, TableExpr};
+use arrow::datatypes::{Schema, SchemaRef};
+use std::sync::Arc;
 
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 use crate::base::math::log2_up;
@@ -105,5 +107,13 @@ impl QueryExpr for FilterExpr {
         for expr in self.results.iter() {
             expr.verifier_evaluate(builder, counts, accessor, &selection_eval);
         }
+    }
+
+    fn get_result_schema(&self) -> SchemaRef {
+        let mut columns = Vec::with_capacity(self.results.len());
+        for col in self.results.iter() {
+            columns.push(col.get_field());
+        }
+        Arc::new(Schema::new(columns))
     }
 }
