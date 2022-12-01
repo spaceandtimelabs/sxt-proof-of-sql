@@ -1,11 +1,10 @@
 use super::{
-    make_schema, Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-    SchemaAccessor, TestAccessor,
+    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
+    TestAccessor,
 };
-
 use crate::base::scalar::compute_commitment_for_testing;
-
 use arrow::array::Int64Array;
+use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use polars::prelude::*;
 use std::collections::HashMap;
@@ -164,7 +163,7 @@ fn we_can_run_arbitrary_queries_on_a_table() {
             .collect()
             .unwrap()
     });
-    let schema = make_schema(1);
+    let schema = Arc::new(Schema::new(vec![Field::new("a", DataType::Int64, false)]));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![1, 3]))]).unwrap();
     assert_eq!(res, expected_res);

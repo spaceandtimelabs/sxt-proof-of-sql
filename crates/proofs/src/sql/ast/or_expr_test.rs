@@ -1,9 +1,9 @@
 use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, OrExpr, TableExpr};
-
 use crate::base::database::{
-    make_random_test_accessor, make_schema, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
+use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 
 use arrow::array::Int64Array;
@@ -63,7 +63,7 @@ fn we_can_prove_a_simple_or_query() {
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 4];
     let expected_res =
-        RecordBatch::try_new(make_schema(1), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -113,7 +113,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 3, 4];
     let expected_res =
-        RecordBatch::try_new(make_schema(1), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 

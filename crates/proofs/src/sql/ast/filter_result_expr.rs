@@ -1,10 +1,10 @@
 use super::ColumnRef;
-
 use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{
     make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
 };
+use arrow::datatypes::{DataType, Field};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
@@ -22,6 +22,11 @@ impl FilterResultExpr {
     /// Creates a new filter result expression
     pub fn new(column_ref: ColumnRef) -> Self {
         Self { column_ref }
+    }
+
+    pub fn get_field(&self) -> Field {
+        // TODO: substitute DataType::Int64 by `self.column_ref.type`
+        Field::new(&self.column_ref.column_name, DataType::Int64, false)
     }
 
     /// Count the number of proof terms needed by this expression

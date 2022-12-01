@@ -2,10 +2,9 @@ use super::{
     make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts, QueryProof,
     SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
-
-use crate::base::database::{make_schema, CommitmentAccessor, DataAccessor, TestAccessor};
+use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
-
+use crate::sql::proof::QueryExpr;
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -57,7 +56,7 @@ fn we_can_verify_a_trivial_query_proof() {
         .unwrap()
         .unwrap();
     let expected_result =
-        RecordBatch::try_new(make_schema(1), vec![Arc::new(Int64Array::from(vec![0]))]).unwrap();
+        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(vec![0]))]).unwrap();
     assert_eq!(result, expected_result);
 }
 
@@ -293,7 +292,7 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
         .unwrap()
         .unwrap();
     let expected_result = RecordBatch::try_new(
-        make_schema(1),
+        expr.get_result_schema(),
         vec![Arc::new(Int64Array::from(vec![9, 25]))],
     )
     .unwrap();
@@ -494,7 +493,7 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
         .unwrap()
         .unwrap();
     let expected_result = RecordBatch::try_new(
-        make_schema(1),
+        expr.get_result_schema(),
         vec![Arc::new(Int64Array::from(vec![81, 625]))],
     )
     .unwrap();

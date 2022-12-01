@@ -1,11 +1,9 @@
 use super::{
     Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
 };
-
-use crate::base::database::make_schema;
 use crate::base::scalar::compute_commitment_for_testing;
-
 use arrow::array::{Array, Int64Array};
+use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use polars::prelude::{DataFrame, NamedFrom, Series};
@@ -84,7 +82,11 @@ impl TestAccessor {
         let df = &self.data.get(table_name).unwrap().data;
         let df = f(df);
         let columns = df.get_columns();
-        let schema = make_schema(columns.len());
+        let mut schema = Vec::with_capacity(columns.len());
+        for col_name in df.get_column_names() {
+            schema.push(Field::new(col_name, DataType::Int64, false));
+        }
+        let schema = Arc::new(Schema::new(schema));
         let mut res: Vec<Arc<dyn Array>> = Vec::with_capacity(columns.len());
         for col in columns {
             let data = col.i64().unwrap().cont_slice().unwrap();
