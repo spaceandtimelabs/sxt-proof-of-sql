@@ -49,8 +49,11 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![];
-    let expected_res =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let expected_res = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(res_col))],
+    )
+    .unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -85,8 +88,11 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![123];
-    let expected_res =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let expected_res = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(res_col))],
+    )
+    .unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -121,8 +127,11 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![];
-    let expected_res =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let expected_res = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(res_col))],
+    )
+    .unwrap();
     assert_eq!(res, expected_res);
 }
 
