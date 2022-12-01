@@ -55,8 +55,11 @@ fn we_can_verify_a_trivial_query_proof() {
         .verify(&expr, &accessor, &counts, &result)
         .unwrap()
         .unwrap();
-    let expected_result =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(vec![0]))]).unwrap();
+    let expected_result = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(vec![0]))],
+    )
+    .unwrap();
     assert_eq!(result, expected_result);
 }
 
