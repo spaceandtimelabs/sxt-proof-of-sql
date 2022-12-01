@@ -62,8 +62,11 @@ fn we_can_prove_a_simple_or_query() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 4];
-    let expected_res =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let expected_res = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(res_col))],
+    )
+    .unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -112,8 +115,11 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 3, 4];
-    let expected_res =
-        RecordBatch::try_new(expr.get_result_schema(), vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let expected_res = RecordBatch::try_new(
+        expr.get_result_schema(),
+        vec![Arc::new(Int64Array::from(res_col))],
+    )
+    .unwrap();
     assert_eq!(res, expected_res);
 }
 
