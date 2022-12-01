@@ -1,3 +1,5 @@
+use arrow::datatypes::DataType;
+
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
 ///
@@ -16,4 +18,13 @@ pub enum Column<'a> {
 #[derive(Eq, PartialEq, Debug)]
 pub enum ColumnType {
     BigInt,
+}
+
+/// Convert ColumnType values to some arrow DataType
+impl From<&ColumnType> for DataType {
+    fn from(column_type: &ColumnType) -> Self {
+        match column_type {
+            ColumnType::BigInt => DataType::Int64,
+        }
+    }
 }

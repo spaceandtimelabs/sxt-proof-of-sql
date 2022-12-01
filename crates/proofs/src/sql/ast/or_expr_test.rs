@@ -1,11 +1,11 @@
 use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, OrExpr, TableExpr};
+use crate::base::database::ColumnType;
 use crate::base::database::{
     make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
-
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
@@ -25,6 +25,7 @@ fn we_can_prove_a_simple_or_query() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -35,6 +36,7 @@ fn we_can_prove_a_simple_or_query() {
                     column_name: "B".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 Scalar::from(1u64),
             )),
@@ -43,6 +45,7 @@ fn we_can_prove_a_simple_or_query() {
                     column_name: "B".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 Scalar::from(2u64),
             )),
@@ -77,6 +80,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -87,6 +91,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
                     column_name: "B".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 Scalar::from(1u64),
             )),
@@ -95,6 +100,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
                     column_name: "C".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 Scalar::from(2u64),
             )),
@@ -142,6 +148,7 @@ fn we_can_query_random_tables() {
                 column_name: "A".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             })],
             TableExpr {
                 name: "T".to_string(),
@@ -152,6 +159,7 @@ fn we_can_query_random_tables() {
                         column_name: "B".to_string(),
                         table_name: "T".to_string(),
                         namespace: None,
+                        column_type: ColumnType::BigInt,
                     },
                     lhs_val.into_scalar(),
                 )),
@@ -160,6 +168,7 @@ fn we_can_query_random_tables() {
                         column_name: "C".to_string(),
                         table_name: "T".to_string(),
                         namespace: None,
+                        column_type: ColumnType::BigInt,
                     },
                     rhs_val.into_scalar(),
                 )),

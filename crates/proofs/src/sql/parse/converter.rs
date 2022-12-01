@@ -141,6 +141,10 @@ impl Converter {
                 self.visit_bool_expression(right.deref(), schema_accessor)?,
             ))),
 
+            // TODO: check if the column and the literal have the same type.
+            //       For instance, in the query `select A from T where B = 123`
+            //       we should verify if both B and 123 have the same type
+            //       (in the future, B could be varchar, or boolean, or any other type other than Int64).
             Expression::Equal { left, right } => Ok(Box::new(EqualsExpr::new(
                 self.visit_column_identifier(left, schema_accessor)?,
                 self.visit_literal(*right),
@@ -175,12 +179,11 @@ impl Converter {
             )));
         }
 
-        // TODO: check the column_type
-
         Ok(ColumnRef {
             column_name,
             table_name: current_table.to_string(),
             namespace: None,
+            column_type: column_type.unwrap(),
         })
     }
 }
