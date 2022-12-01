@@ -4,8 +4,7 @@ use crate::sql::proof::{
     make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
 };
-use arrow::datatypes::{DataType, Field};
-
+use arrow::datatypes::Field;
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use std::cmp::max;
@@ -25,8 +24,11 @@ impl FilterResultExpr {
     }
 
     pub fn get_field(&self) -> Field {
-        // TODO: substitute DataType::Int64 by `self.column_ref.type`
-        Field::new(&self.column_ref.column_name, DataType::Int64, false)
+        Field::new(
+            &self.column_ref.column_name,
+            (&self.column_ref.column_type).into(),
+            false,
+        )
     }
 
     /// Count the number of proof terms needed by this expression

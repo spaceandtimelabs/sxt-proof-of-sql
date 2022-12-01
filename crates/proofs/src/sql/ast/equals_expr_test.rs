@@ -1,11 +1,11 @@
 use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
+use crate::base::database::ColumnType;
 use crate::base::database::{
     make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
-
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
@@ -25,6 +25,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -34,6 +35,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
         )),
@@ -64,6 +66,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -73,6 +76,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
         )),
@@ -103,6 +107,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -112,6 +117,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
         )),
@@ -142,6 +148,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -151,6 +158,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
         )),
@@ -183,6 +191,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -192,6 +201,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::from(123u64),
         )),
@@ -224,6 +234,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
             column_name: "A".to_string(),
             table_name: "T".to_string(),
             namespace: None,
+            column_type: ColumnType::BigInt,
         })],
         TableExpr {
             name: "T".to_string(),
@@ -233,6 +244,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
                 column_name: "B".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
         )),
@@ -275,6 +287,7 @@ fn we_can_query_random_tables() {
                 column_name: "A".to_string(),
                 table_name: "T".to_string(),
                 namespace: None,
+                column_type: ColumnType::BigInt,
             })],
             TableExpr {
                 name: "T".to_string(),
@@ -284,6 +297,7 @@ fn we_can_query_random_tables() {
                     column_name: "B".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 val.into_scalar(),
             )),
@@ -322,11 +336,13 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                     column_name: "AA".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 }),
                 FilterResultExpr::new(ColumnRef {
                     column_name: "AB".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 }),
             ],
             TableExpr {
@@ -337,6 +353,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                     column_name: "B".to_string(),
                     table_name: "T".to_string(),
                     namespace: None,
+                    column_type: ColumnType::BigInt,
                 },
                 val.into_scalar(),
             )),
