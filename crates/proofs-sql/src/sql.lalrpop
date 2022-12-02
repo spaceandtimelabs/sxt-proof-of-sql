@@ -35,7 +35,9 @@ ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
 };
 
 ResultColumn: Box<intermediate_ast::ResultColumn> = {
-    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr }),
+    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: None }),
+    <expr: QualifiedColumnIdentifier> "AS"? <output_name: Identifier>  =>
+            Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: Some(output_name) }),
 };
 
 QualifiedColumnIdentifier: symbols::Name = {
@@ -126,6 +128,8 @@ NumericLiteral: i64 = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 match {
+    r"(?i)as" => "AS",
+
     r"(?i)and" => "AND",
     
     r"(?i)from" => "FROM",

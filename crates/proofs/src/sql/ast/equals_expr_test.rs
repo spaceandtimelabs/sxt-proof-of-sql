@@ -21,12 +21,15 @@ use std::sync::Arc;
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -62,12 +65,15 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -103,12 +109,15 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -144,12 +153,15 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -187,12 +199,15 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -230,12 +245,15 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 #[test]
 fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -283,12 +301,15 @@ fn we_can_query_random_tables() {
         let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
-            vec![FilterResultExpr::new(ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
-                namespace: None,
-                column_type: ColumnType::BigInt,
-            })],
+            vec![FilterResultExpr::new(
+                ColumnRef {
+                    column_name: "A".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                    column_type: ColumnType::BigInt,
+                },
+                "A".to_string(),
+            )],
             TableExpr {
                 name: "T".to_string(),
             },
@@ -332,18 +353,24 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![
-                FilterResultExpr::new(ColumnRef {
-                    column_name: "AA".to_string(),
-                    table_name: "T".to_string(),
-                    namespace: None,
-                    column_type: ColumnType::BigInt,
-                }),
-                FilterResultExpr::new(ColumnRef {
-                    column_name: "AB".to_string(),
-                    table_name: "T".to_string(),
-                    namespace: None,
-                    column_type: ColumnType::BigInt,
-                }),
+                FilterResultExpr::new(
+                    ColumnRef {
+                        column_name: "AA".to_string(),
+                        table_name: "T".to_string(),
+                        namespace: None,
+                        column_type: ColumnType::BigInt,
+                    },
+                    "AA".to_string(),
+                ),
+                FilterResultExpr::new(
+                    ColumnRef {
+                        column_name: "AB".to_string(),
+                        table_name: "T".to_string(),
+                        namespace: None,
+                        column_type: ColumnType::BigInt,
+                    },
+                    "AB".to_string(),
+                ),
             ],
             TableExpr {
                 name: "T".to_string(),
