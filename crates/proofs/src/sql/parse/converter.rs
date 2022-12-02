@@ -94,9 +94,13 @@ impl Converter {
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<FilterResultExpr> {
         match result_column {
-            ResultColumn::Expr { expr } => Ok(FilterResultExpr::new(
-                self.visit_column_identifier(expr, schema_accessor)?,
-            )),
+            ResultColumn::Expr { expr, output_name } => {
+                let result_expr = self.visit_column_identifier(expr, schema_accessor)?;
+                let output_name = output_name.as_ref().map(|output| output.as_str());
+                let output_name = output_name.unwrap_or(&result_expr.column_name).to_string();
+
+                Ok(FilterResultExpr::new(result_expr, output_name))
+            }
         }
     }
 

@@ -15,17 +15,21 @@ use std::cmp::max;
 #[derive(Debug, PartialEq, Eq)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
+    output_name: String,
 }
 
 impl FilterResultExpr {
     /// Creates a new filter result expression
-    pub fn new(column_ref: ColumnRef) -> Self {
-        Self { column_ref }
+    pub fn new(column_ref: ColumnRef, output_name: String) -> Self {
+        Self {
+            column_ref,
+            output_name,
+        }
     }
 
     pub fn get_field(&self) -> Field {
         Field::new(
-            &self.column_ref.column_name,
+            &self.output_name,
             (&self.column_ref.column_type).into(),
             false,
         )

@@ -15,6 +15,7 @@ fn we_can_parse_one_column() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let where_expr = Box::new(Expression::Equal {
@@ -47,9 +48,11 @@ fn we_can_parse_two_columns() {
     let columns = vec![
         Box::new(ResultColumn::Expr {
             expr: Name::from("a"),
+            output_name: None,
         }),
         Box::new(ResultColumn::Expr {
             expr: Name::from("b"),
+            output_name: None,
         }),
     ];
 
@@ -83,6 +86,7 @@ fn filter_one_positive_cond() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let where_expr = Box::new(Expression::Equal {
@@ -115,6 +119,7 @@ fn filter_one_negative_cond() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let where_expr = Box::new(Expression::Equal {
@@ -146,6 +151,7 @@ fn filter_two_cond_and() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let left = Box::new(Expression::Equal {
@@ -184,6 +190,7 @@ fn filter_two_cond_or() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let left = Box::new(Expression::Equal {
@@ -222,6 +229,7 @@ fn filter_two_cond_and_not() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let left = Box::new(Expression::Equal {
@@ -262,6 +270,7 @@ fn filter_three_cond_not_and_or() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let equal_left = Box::new(Expression::Equal {
@@ -315,6 +324,7 @@ fn filter_i64_min_value() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let where_expr = Box::new(Expression::Equal {
@@ -346,6 +356,7 @@ fn filter_i64_max_value() {
 
     let columns = vec![Box::new(ResultColumn::Expr {
         expr: Name::from("a"),
+        output_name: None,
     })];
 
     let where_expr = Box::new(Expression::Equal {
@@ -357,6 +368,58 @@ fn filter_i64_max_value() {
         columns,
         from,
         where_expr,
+    });
+
+    let expected_ast = SelectStatement { expr };
+
+    assert_eq!(expected_ast, parsed_ast);
+}
+
+#[test]
+fn query_using_as_keyword_will_be_parsed_as_a_column_rename() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a as a_rename from sxt_tab where b = 4")
+        .unwrap();
+
+    let expr = Box::new(SetExpression::Query {
+        columns: vec![Box::new(ResultColumn::Expr {
+            expr: Name::from("a"),
+            output_name: Some(Name::from("a_rename")),
+        })],
+        from: vec![Box::new(TableExpression::Named {
+            table: Name::from("sxt_tab"),
+            namespace: None,
+        })],
+        where_expr: Box::new(Expression::Equal {
+            left: Name::from("b"),
+            right: 4,
+        }),
+    });
+
+    let expected_ast = SelectStatement { expr };
+
+    assert_eq!(expected_ast, parsed_ast);
+}
+
+#[test]
+fn query_missing_select_result_semicolumn_will_be_parsed_as_a_column_rename() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a a_rename from sxt_tab where b = 4")
+        .unwrap();
+
+    let expr = Box::new(SetExpression::Query {
+        columns: vec![Box::new(ResultColumn::Expr {
+            expr: Name::from("a"),
+            output_name: Some(Name::from("a_rename")),
+        })],
+        from: vec![Box::new(TableExpression::Named {
+            table: Name::from("sxt_tab"),
+            namespace: None,
+        })],
+        where_expr: Box::new(Expression::Equal {
+            left: Name::from("b"),
+            right: 4,
+        }),
     });
 
     let expected_ast = SelectStatement { expr };
@@ -550,12 +613,5 @@ fn query_missing_select_keyword_will_error_out() {
 fn query_missing_select_result_column_will_error_out() {
     assert!(sql::SelectStatementParser::new()
         .parse("select from b where c = 4")
-        .is_err());
-}
-
-#[test]
-fn query_missing_select_result_semicolumn_will_error_out() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a c from b where c = 4")
         .is_err());
 }
