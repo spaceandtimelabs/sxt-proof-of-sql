@@ -23,21 +23,21 @@ fn we_can_prove_a_simple_and_query() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(AndExpr::new(
             Box::new(EqualsExpr::new(
                 ColumnRef {
-                    column_name: "B".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "b".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
@@ -45,8 +45,8 @@ fn we_can_prove_a_simple_and_query() {
             )),
             Box::new(EqualsExpr::new(
                 ColumnRef {
-                    column_name: "C".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "c".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
@@ -56,11 +56,11 @@ fn we_can_prove_a_simple_and_query() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
+        "t",
         &HashMap::from([
-            ("A".to_string(), vec![1, 2, 3, 4]),
-            ("B".to_string(), vec![0, 1, 0, 1]),
-            ("C".to_string(), vec![0, 2, 2, 0]),
+            ("a".to_string(), vec![1, 2, 3, 4]),
+            ("b".to_string(), vec![0, 1, 0, 1]),
+            ("c".to_string(), vec![0, 2, 2, 0]),
         ]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
@@ -86,29 +86,29 @@ fn we_can_query_random_tables() {
         max_value: 3,
     };
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = ["A", "B", "C"];
+    let cols = ["a", "b", "c"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
+        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef {
-                    column_name: "A".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "a".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
-                "A".to_string(),
+                "a".to_string(),
             )],
             TableExpr {
-                name: "T".to_string(),
+                name: "t".to_string(),
             },
             Box::new(AndExpr::new(
                 Box::new(EqualsExpr::new(
                     ColumnRef {
-                        column_name: "B".to_string(),
-                        table_name: "T".to_string(),
+                        column_name: "b".to_string(),
+                        table_name: "t".to_string(),
                         namespace: None,
                         column_type: ColumnType::BigInt,
                     },
@@ -116,8 +116,8 @@ fn we_can_query_random_tables() {
                 )),
                 Box::new(EqualsExpr::new(
                     ColumnRef {
-                        column_name: "C".to_string(),
-                        table_name: "T".to_string(),
+                        column_name: "c".to_string(),
+                        table_name: "t".to_string(),
                         namespace: None,
                         column_type: ColumnType::BigInt,
                     },
@@ -128,11 +128,11 @@ fn we_can_query_random_tables() {
         let res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&res, &expr, &accessor);
         let res = res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table("T", |df| {
+        let expected = accessor.query_table("t", |df| {
             df.clone()
                 .lazy()
-                .filter(col("B").eq(lhs_val).and(col("C").eq(rhs_val)))
-                .select([col("A")])
+                .filter(col("b").eq(lhs_val).and(col("c").eq(rhs_val)))
+                .select([col("a")])
                 .collect()
                 .unwrap()
         });

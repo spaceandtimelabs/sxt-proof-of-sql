@@ -20,7 +20,7 @@ SelectCoreList: Box<intermediate_ast::SetExpression> = {
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "SELECT" <columns:ResultColumnList> <from:FromClause> <where_expr:WhereClause> =>
+    "select" <columns:ResultColumnList> <from:FromClause> <where_expr:WhereClause> =>
         Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
 };
 
@@ -36,7 +36,7 @@ ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
 
 ResultColumn: Box<intermediate_ast::ResultColumn> = {
     <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: None }),
-    <expr: QualifiedColumnIdentifier> "AS"? <output_name: Identifier>  =>
+    <expr: QualifiedColumnIdentifier> "as"? <output_name: Identifier>  =>
             Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: Some(output_name) }),
 };
 
@@ -49,7 +49,7 @@ QualifiedColumnIdentifier: symbols::Name = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
-    "FROM" <table_ref: TableExpressionList> => table_ref,
+    "from" <table_ref: TableExpressionList> => table_ref,
 };
 
 TableExpressionList: Vec<Box<intermediate_ast::TableExpression>> = {
@@ -72,7 +72,7 @@ QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 WhereClause: Box<intermediate_ast::Expression> = {
-    "WHERE" <expr:Expression> => expr,
+    "where" <expr:Expression> => expr,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,17 +87,17 @@ Expression: Box<intermediate_ast::Expression> = {
 };
 
 AndExpression: Box<intermediate_ast::Expression> = {
-    "(" <left:Expression> ")" "AND" "(" <right:Expression> ")" =>
+    "(" <left:Expression> ")" "and" "(" <right:Expression> ")" =>
         Box::new(intermediate_ast::Expression::And { left, right }),
 };
 
 OrExpression: Box<intermediate_ast::Expression> = {
-    "(" <left:Expression> ")" "OR" "(" <right:Expression> ")" =>
+    "(" <left:Expression> ")" "or" "(" <right:Expression> ")" =>
         Box::new(intermediate_ast::Expression::Or { left, right }),
 };
 
 NotExpression: Box<intermediate_ast::Expression> = {
-    "NOT" "(" <expr:Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
+    "not" "(" <expr:Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
 };
 
 EqualityExpression: Box<intermediate_ast::Expression> = {
@@ -128,19 +128,19 @@ NumericLiteral: i64 = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 match {
-    r"(?i)as" => "AS",
+    r"(?i)as" => "as",
 
-    r"(?i)and" => "AND",
+    r"(?i)and" => "and",
     
-    r"(?i)from" => "FROM",
+    r"(?i)from" => "from",
 
-    r"(?i)not" => "NOT",
+    r"(?i)not" => "not",
 
-    r"(?i)or" => "OR",
+    r"(?i)or" => "or",
 
-    r"(?i)select" => "SELECT",
+    r"(?i)select" => "select",
 
-    r"(?i)where" => "WHERE",
+    r"(?i)where" => "where",
 
     "," => ",",
     "." => ".",

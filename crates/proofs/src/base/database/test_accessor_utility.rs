@@ -53,7 +53,7 @@ mod tests {
     fn we_can_construct_a_random_test_accessor() {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
-        let cols = ["A", "B"];
+        let cols = ["a", "b"];
         let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
         let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
         assert_ne!(accessor1.get_length("abc"), accessor2.get_length("abc"));
