@@ -28,7 +28,10 @@ pub enum SetExpression {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum ResultColumn {
     /// An expression
-    Expr { expr: Name },
+    Expr {
+        expr: Name,
+        output_name: Option<Name>,
+    },
 }
 
 /// Representations of base queries

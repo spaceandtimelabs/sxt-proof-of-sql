@@ -22,12 +22,15 @@ fn we_can_convert_an_ast_with_one_column() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -67,18 +70,24 @@ fn we_can_convert_an_ast_with_two_columns() {
 
     let expected_provable_ast = FilterExpr::new(
         vec![
-            FilterResultExpr::new(ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "SXT_TAB".to_string(),
-                namespace: None,
-                column_type: ColumnType::BigInt,
-            }),
-            FilterResultExpr::new(ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "SXT_TAB".to_string(),
-                namespace: None,
-                column_type: ColumnType::BigInt,
-            }),
+            FilterResultExpr::new(
+                ColumnRef {
+                    column_name: "A".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                    column_type: ColumnType::BigInt,
+                },
+                "A".to_string(),
+            ),
+            FilterResultExpr::new(
+                ColumnRef {
+                    column_name: "B".to_string(),
+                    table_name: "SXT_TAB".to_string(),
+                    namespace: None,
+                    column_type: ColumnType::BigInt,
+                },
+                "B".to_string(),
+            ),
         ],
         TableExpr {
             name: "SXT_TAB".to_string(),
@@ -115,12 +124,15 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -156,12 +168,15 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -200,12 +215,15 @@ fn we_can_convert_an_ast_with_cond_and() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -255,12 +273,15 @@ fn we_can_convert_an_ast_with_cond_or() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -310,12 +331,15 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -366,12 +390,15 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -425,12 +452,15 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -462,12 +492,15 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         .unwrap();
 
     let expected_provable_ast = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "SXT_TAB".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "SXT_TAB".to_string(),
         },
@@ -479,6 +512,50 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(9223372036854775807_u64),
+        )),
+    );
+
+    assert_eq!(expected_provable_ast, provable_ast);
+}
+
+// Filter
+#[test]
+fn we_can_convert_an_ast_using_as_rename_keyword() {
+    let intermediate_ast = SelectStatementParser::new()
+        .parse("select a as b_rename from sxt_tab where b = +4")
+        .unwrap();
+
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(
+        "SXT_TAB",
+        &HashMap::from([("A".to_string(), vec![]), ("B".to_string(), vec![])]),
+    );
+
+    let provable_ast = Converter::default()
+        .visit_intermediate_ast(&intermediate_ast, &accessor)
+        .unwrap();
+
+    let expected_provable_ast = FilterExpr::new(
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "B_RENAME".to_string(),
+        )],
+        TableExpr {
+            name: "SXT_TAB".to_string(),
+        },
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "B".to_string(),
+                table_name: "SXT_TAB".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            Scalar::from(4_u64),
         )),
     );
 

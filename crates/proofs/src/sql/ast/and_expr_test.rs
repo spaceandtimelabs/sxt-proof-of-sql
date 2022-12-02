@@ -21,12 +21,15 @@ use std::sync::Arc;
 #[test]
 fn we_can_prove_a_simple_and_query() {
     let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(ColumnRef {
-            column_name: "A".to_string(),
-            table_name: "T".to_string(),
-            namespace: None,
-            column_type: ColumnType::BigInt,
-        })],
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "A".to_string(),
+                table_name: "T".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "A".to_string(),
+        )],
         TableExpr {
             name: "T".to_string(),
         },
@@ -89,12 +92,15 @@ fn we_can_query_random_tables() {
         let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
-            vec![FilterResultExpr::new(ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
-                namespace: None,
-                column_type: ColumnType::BigInt,
-            })],
+            vec![FilterResultExpr::new(
+                ColumnRef {
+                    column_name: "A".to_string(),
+                    table_name: "T".to_string(),
+                    namespace: None,
+                    column_type: ColumnType::BigInt,
+                },
+                "A".to_string(),
+            )],
             TableExpr {
                 name: "T".to_string(),
             },
