@@ -59,7 +59,7 @@ fn generate_accessor(
 
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols: Vec<_> = (0..num_columns)
-        .map(|val| ((b'A' + (val as u8)) as char).to_string())
+        .map(|val| ((b'a' + (val as u8)) as char).to_string())
         .collect();
     let ref_cols: Vec<&str> = cols.iter().map(|val| val.as_str()).collect();
 
@@ -70,7 +70,7 @@ fn generate_accessor(
         max_value,
     };
 
-    let table_name = "T".to_string();
+    let table_name = "t".to_string();
     let accessor = make_random_test_accessor(&mut rng, &table_name, &ref_cols[..], &descriptor);
 
     (table_name, accessor)

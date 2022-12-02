@@ -23,20 +23,20 @@ fn we_can_prove_an_equality_query_with_no_rows() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -45,8 +45,8 @@ fn we_can_prove_an_equality_query_with_no_rows() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
-        &HashMap::from([("A".to_string(), vec![]), ("B".to_string(), vec![])]),
+        "t",
+        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -67,20 +67,20 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -89,8 +89,8 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
-        &HashMap::from([("A".to_string(), vec![123]), ("B".to_string(), vec![0])]),
+        "t",
+        &HashMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![0])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -111,20 +111,20 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -133,8 +133,8 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
-        &HashMap::from([("A".to_string(), vec![123]), ("B".to_string(), vec![55])]),
+        "t",
+        &HashMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![55])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -155,20 +155,20 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -177,10 +177,10 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
+        "t",
         &HashMap::from([
-            ("A".to_string(), vec![1, 2, 3, 4]),
-            ("B".to_string(), vec![0, 5, 0, 5]),
+            ("a".to_string(), vec![1, 2, 3, 4]),
+            ("b".to_string(), vec![0, 5, 0, 5]),
         ]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
@@ -201,20 +201,20 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -223,10 +223,10 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
+        "t",
         &HashMap::from([
-            ("A".to_string(), vec![1, 2, 3, 4, 5]),
-            ("B".to_string(), vec![123, 5, 123, 5, 0]),
+            ("a".to_string(), vec![1, 2, 3, 4, 5]),
+            ("b".to_string(), vec![123, 5, 123, 5, 0]),
         ]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
@@ -247,20 +247,20 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef {
-                column_name: "A".to_string(),
-                table_name: "T".to_string(),
+                column_name: "a".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
-            "A".to_string(),
+            "a".to_string(),
         )],
         TableExpr {
-            name: "T".to_string(),
+            name: "t".to_string(),
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
-                column_name: "B".to_string(),
-                table_name: "T".to_string(),
+                column_name: "b".to_string(),
+                table_name: "t".to_string(),
                 namespace: None,
                 column_type: ColumnType::BigInt,
             },
@@ -269,19 +269,19 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
+        "t",
         &HashMap::from([
-            ("A".to_string(), vec![1, 2, 3, 4]),
-            ("B".to_string(), vec![0, 5, 0, 5]),
+            ("a".to_string(), vec![1, 2, 3, 4]),
+            ("b".to_string(), vec![0, 5, 0, 5]),
         ]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "T",
+        "t",
         &HashMap::from([
-            ("A".to_string(), vec![1, 2, 3, 4]),
-            ("B".to_string(), vec![0, 2, 0, 5]),
+            ("a".to_string(), vec![1, 2, 3, 4]),
+            ("b".to_string(), vec![0, 2, 0, 5]),
         ]),
     );
     assert!(res.verify(&expr, &accessor).is_err());
@@ -296,27 +296,27 @@ fn we_can_query_random_tables() {
         max_value: 3,
     };
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = ["A", "B"];
+    let cols = ["a", "b"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
+        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef {
-                    column_name: "A".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "a".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
-                "A".to_string(),
+                "a".to_string(),
             )],
             TableExpr {
-                name: "T".to_string(),
+                name: "t".to_string(),
             },
             Box::new(EqualsExpr::new(
                 ColumnRef {
-                    column_name: "B".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "b".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
@@ -326,11 +326,11 @@ fn we_can_query_random_tables() {
         let res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&res, &expr, &accessor);
         let res = res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table("T", |df| {
+        let expected = accessor.query_table("t", |df| {
             df.clone()
                 .lazy()
-                .filter(col("B").eq(val))
-                .select([col("A")])
+                .filter(col("b").eq(val))
+                .select([col("a")])
                 .collect()
                 .unwrap()
         });
@@ -347,38 +347,38 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
         max_value: 3,
     };
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = ["AA", "AB", "B"];
+    let cols = ["aa", "ab", "b"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, "T", &cols, &descr);
+        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![
                 FilterResultExpr::new(
                     ColumnRef {
-                        column_name: "AA".to_string(),
-                        table_name: "T".to_string(),
+                        column_name: "aa".to_string(),
+                        table_name: "t".to_string(),
                         namespace: None,
                         column_type: ColumnType::BigInt,
                     },
-                    "AA".to_string(),
+                    "aa".to_string(),
                 ),
                 FilterResultExpr::new(
                     ColumnRef {
-                        column_name: "AB".to_string(),
-                        table_name: "T".to_string(),
+                        column_name: "ab".to_string(),
+                        table_name: "t".to_string(),
                         namespace: None,
                         column_type: ColumnType::BigInt,
                     },
-                    "AB".to_string(),
+                    "ab".to_string(),
                 ),
             ],
             TableExpr {
-                name: "T".to_string(),
+                name: "t".to_string(),
             },
             Box::new(EqualsExpr::new(
                 ColumnRef {
-                    column_name: "B".to_string(),
-                    table_name: "T".to_string(),
+                    column_name: "b".to_string(),
+                    table_name: "t".to_string(),
                     namespace: None,
                     column_type: ColumnType::BigInt,
                 },
@@ -388,11 +388,11 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
         let res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&res, &expr, &accessor);
         let res = res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table("T", |df| {
+        let expected = accessor.query_table("t", |df| {
             df.clone()
                 .lazy()
-                .filter(col("B").eq(val))
-                .select([col("AA"), col("AB")])
+                .filter(col("b").eq(val))
+                .select([col("aa"), col("ab")])
                 .collect()
                 .unwrap()
         });

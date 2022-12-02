@@ -60,11 +60,11 @@ mod tests {
             .unwrap();
         let ref_tables = get_ref_tables_from_ast(&parsed_query_ast);
 
-        // note: the parsed table is always upper case
+        // note: the parsed table is always lower case
         assert_eq!(
             ref_tables,
             [TableRef {
-                table_name: "TAB".to_string(),
+                table_name: "tab".to_string(),
                 namespace: None
             }]
         );
