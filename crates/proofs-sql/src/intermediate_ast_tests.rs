@@ -5,7 +5,7 @@ use crate::symbols::Name;
 #[test]
 fn we_can_parse_one_column() {
     let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = 3")
+        .parse("SELECT A FROM SXT_TAB WHERE A = 3")
         .unwrap();
 
     let from = vec![Box::new(TableExpression::Named {
@@ -37,7 +37,7 @@ fn we_can_parse_one_column() {
 #[test]
 fn we_can_parse_two_columns() {
     let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a,  b from sxt_tab where c = 123")
+        .parse("Select a,  b froM sxt_tab where C = 123")
         .unwrap();
 
     let from = vec![Box::new(TableExpression::Named {
