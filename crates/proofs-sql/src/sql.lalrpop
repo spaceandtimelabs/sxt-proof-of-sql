@@ -83,7 +83,8 @@ Expression: Box<intermediate_ast::Expression> = {
     NotExpression,
     OrExpression,
     AndExpression,
-    EqualityExpression,
+    EqualExpression,
+    NotEqualExpression,
 };
 
 AndExpression: Box<intermediate_ast::Expression> = {
@@ -100,9 +101,16 @@ NotExpression: Box<intermediate_ast::Expression> = {
     "not" "(" <expr:Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
 };
 
-EqualityExpression: Box<intermediate_ast::Expression> = {
+EqualExpression: Box<intermediate_ast::Expression> = {
     <left:QualifiedColumnIdentifier> "=" <right: UnaryExpression> =>
         Box::new(intermediate_ast::Expression::Equal { left, right }),
+};
+
+NotEqualExpression: Box<intermediate_ast::Expression> = {
+    <left:QualifiedColumnIdentifier> "!=" <right: UnaryExpression> =>
+        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
+    <left:QualifiedColumnIdentifier> "<>" <right: UnaryExpression> =>
+        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
 };
 
 UnaryExpression: i64 = {

@@ -70,6 +70,13 @@ pub enum Expression {
         left: Name,
         right: i64,
     },
+
+    /// left != right
+    /// left <> right
+    NotEqual {
+        left: Name,
+        right: i64,
+    },
 }
 
 /// Helper function to append an item to a vector
