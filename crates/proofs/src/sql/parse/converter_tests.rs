@@ -106,7 +106,6 @@ fn we_can_convert_an_ast_with_two_columns() {
     assert_eq!(expected_provable_ast, provable_ast);
 }
 
-// Filter
 #[test]
 fn we_can_convert_an_ast_with_one_positive_cond() {
     let intermediate_ast = SelectStatementParser::new()
@@ -150,7 +149,49 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     assert_eq!(expected_provable_ast, provable_ast);
 }
 
-// Filter
+#[test]
+fn we_can_convert_an_ast_with_one_not_equals_cond() {
+    let intermediate_ast = SelectStatementParser::new()
+        .parse("select a from sxt_tab where b <> +4")
+        .unwrap();
+
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(
+        "sxt_tab",
+        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+    );
+
+    let provable_ast = Converter::default()
+        .visit_intermediate_ast(&intermediate_ast, &accessor)
+        .unwrap();
+
+    let expected_provable_ast = FilterExpr::new(
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "a".to_string(),
+                table_name: "sxt_tab".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            "a".to_string(),
+        )],
+        TableExpr {
+            name: "sxt_tab".to_string(),
+        },
+        Box::new(NotExpr::new(Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "b".to_string(),
+                table_name: "sxt_tab".to_string(),
+                namespace: None,
+                column_type: ColumnType::BigInt,
+            },
+            Scalar::from(4_u64),
+        )))),
+    );
+
+    assert_eq!(expected_provable_ast, provable_ast);
+}
+
 #[test]
 fn we_can_convert_an_ast_with_one_negative_cond() {
     let intermediate_ast = SelectStatementParser::new()
@@ -518,7 +559,6 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
     assert_eq!(expected_provable_ast, provable_ast);
 }
 
-// Filter
 #[test]
 fn we_can_convert_an_ast_using_as_rename_keyword() {
     let intermediate_ast = SelectStatementParser::new()

@@ -72,7 +72,6 @@ fn we_can_parse_two_columns() {
     assert_eq!(expected_ast, parsed_ast);
 }
 
-// Filter
 #[test]
 fn filter_one_positive_cond() {
     let parsed_ast = sql::SelectStatementParser::new()
@@ -105,7 +104,34 @@ fn filter_one_positive_cond() {
     assert_eq!(expected_ast, parsed_ast);
 }
 
-// Filter
+#[test]
+fn filter_one_not_equals_cond() {
+    for not_equals_sign in ["!=", "<>"] {
+        let parsed_ast = sql::SelectStatementParser::new()
+            .parse(&("select a from sxt_tab where b".to_owned() + not_equals_sign + " -4"))
+            .unwrap();
+
+        let expected_ast = SelectStatement {
+            expr: Box::new(SetExpression::Query {
+                columns: vec![Box::new(ResultColumn::Expr {
+                    expr: Name::from("a"),
+                    output_name: None,
+                })],
+                from: vec![Box::new(TableExpression::Named {
+                    table: Name::from("sxt_tab"),
+                    namespace: None,
+                })],
+                where_expr: Box::new(Expression::NotEqual {
+                    left: Name::from("b"),
+                    right: -4,
+                }),
+            }),
+        };
+
+        assert_eq!(expected_ast, parsed_ast);
+    }
+}
+
 #[test]
 fn filter_one_negative_cond() {
     let parsed_ast = sql::SelectStatementParser::new()
