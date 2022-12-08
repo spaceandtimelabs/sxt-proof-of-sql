@@ -153,6 +153,13 @@ impl Converter {
                 self.visit_column_identifier(left, schema_accessor)?,
                 self.visit_literal(*right),
             ))),
+
+            Expression::NotEqual { left, right } => {
+                Ok(Box::new(NotExpr::new(Box::new(EqualsExpr::new(
+                    self.visit_column_identifier(left, schema_accessor)?,
+                    self.visit_literal(*right),
+                )))))
+            }
         }
     }
 }
