@@ -101,6 +101,9 @@ impl Converter {
 
                 Ok(FilterResultExpr::new(result_expr, output_name))
             }
+            _ => unimplemented!(
+                "TODO: new result column features will be added here, such as ResultColumn::All"
+            ),
         }
     }
 

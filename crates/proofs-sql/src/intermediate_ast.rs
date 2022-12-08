@@ -27,7 +27,9 @@ pub enum SetExpression {
 /// Representation of a single result column specification
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum ResultColumn {
-    /// An expression
+    /// All column expressions
+    All,
+    /// A column expression
     Expr {
         expr: Name,
         output_name: Option<Name>,

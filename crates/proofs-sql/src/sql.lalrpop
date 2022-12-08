@@ -20,7 +20,7 @@ SelectCoreList: Box<intermediate_ast::SetExpression> = {
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "select" <columns:ResultColumnList> <from:FromClause> <where_expr:WhereClause> =>
+    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause> =>
         Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
 };
 
@@ -31,11 +31,14 @@ SelectCore: Box<intermediate_ast::SetExpression> = {
 ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
     ResultColumn => vec![<>],
 
-    <columns:ResultColumnList> "," <column:ResultColumn> => intermediate_ast::append(columns, column),
+    <columns: ResultColumnList> "," <column: ResultColumn> => intermediate_ast::append(columns, column),
 };
 
 ResultColumn: Box<intermediate_ast::ResultColumn> = {
+    "*" => Box::new(intermediate_ast::ResultColumn::All),
+
     <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: None }),
+
     <expr: QualifiedColumnIdentifier> "as"? <output_name: Identifier>  =>
             Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: Some(output_name) }),
 };
@@ -72,7 +75,7 @@ QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 WhereClause: Box<intermediate_ast::Expression> = {
-    "where" <expr:Expression> => expr,
+    "where" <expr: Expression> => expr,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,28 +91,28 @@ Expression: Box<intermediate_ast::Expression> = {
 };
 
 AndExpression: Box<intermediate_ast::Expression> = {
-    "(" <left:Expression> ")" "and" "(" <right:Expression> ")" =>
+    "(" <left: Expression> ")" "and" "(" <right: Expression> ")" =>
         Box::new(intermediate_ast::Expression::And { left, right }),
 };
 
 OrExpression: Box<intermediate_ast::Expression> = {
-    "(" <left:Expression> ")" "or" "(" <right:Expression> ")" =>
+    "(" <left: Expression> ")" "or" "(" <right: Expression> ")" =>
         Box::new(intermediate_ast::Expression::Or { left, right }),
 };
 
 NotExpression: Box<intermediate_ast::Expression> = {
-    "not" "(" <expr:Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
+    "not" "(" <expr: Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
 };
 
 EqualExpression: Box<intermediate_ast::Expression> = {
-    <left:QualifiedColumnIdentifier> "=" <right: UnaryExpression> =>
+    <left: QualifiedColumnIdentifier> "=" <right: UnaryExpression> =>
         Box::new(intermediate_ast::Expression::Equal { left, right }),
 };
 
 NotEqualExpression: Box<intermediate_ast::Expression> = {
-    <left:QualifiedColumnIdentifier> "!=" <right: UnaryExpression> =>
+    <left: QualifiedColumnIdentifier> "!=" <right: UnaryExpression> =>
         Box::new(intermediate_ast::Expression::NotEqual { left, right }),
-    <left:QualifiedColumnIdentifier> "<>" <right: UnaryExpression> =>
+    <left: QualifiedColumnIdentifier> "<>" <right: UnaryExpression> =>
         Box::new(intermediate_ast::Expression::NotEqual { left, right }),
 };
 
