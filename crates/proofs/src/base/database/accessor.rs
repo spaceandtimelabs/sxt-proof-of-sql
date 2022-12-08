@@ -79,7 +79,16 @@ pub trait SchemaAccessor {
     ///   - Some(type) if the column exists, where `type` is the column's data type
     ///   - None in case the column does not exist in the table
     ///
-    /// Precondition 1: the table must exist and already be tamperproof.
-    /// Precondition 2: `table_name` and `column_name` must always be lower case.
+    /// Precondition 1: the table must exist and be tamperproof.
+    /// Precondition 2: `table_name` and `column_name` must always be lowercase.
     fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType>;
+
+    /// Lookup all the column names and their data types in the specified table
+    ///
+    /// Return:
+    ///   - The list of column names with their data types
+    ///
+    /// Precondition 1: the table must exist and be tamperproof.
+    /// Precondition 2: `table_name` must be lowercase.
+    fn lookup_schema<'a>(&'a self, table_name: &str) -> Vec<(&'a str, ColumnType)>;
 }

@@ -143,4 +143,13 @@ impl SchemaAccessor for TestAccessor {
 
         None
     }
+
+    fn lookup_schema<'a>(&'a self, table_name: &str) -> Vec<(&'a str, ColumnType)> {
+        let commitments = &self.data.get(table_name).unwrap().commitments;
+
+        commitments
+            .keys()
+            .map(|key| (key.as_str(), ColumnType::BigInt))
+            .collect()
+    }
 }
