@@ -35,6 +35,67 @@ fn we_can_parse_one_column() {
 }
 
 #[test]
+fn we_can_parse_all_result_columns_with_select_star() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("SELECT * FROM sxt_Tab WHERE A = 3")
+        .unwrap();
+
+    let expected_ast = SelectStatement {
+        expr: Box::new(SetExpression::Query {
+            columns: vec![Box::new(ResultColumn::All)],
+            from: vec![Box::new(TableExpression::Named {
+                table: Name::from("sxt_tab"),
+                namespace: None,
+            })],
+            where_expr: Box::new(Expression::Equal {
+                left: Name::from("a"),
+                right: 3,
+            }),
+        }),
+    };
+
+    assert_eq!(expected_ast, parsed_ast);
+}
+
+#[test]
+fn we_can_parse_all_result_columns_with_more_complex_select_star_expressions() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("SELECT a, *, b, c, * FROM sxt_Tab WHERE A = 3")
+        .unwrap();
+
+    let expected_ast = SelectStatement {
+        expr: Box::new(SetExpression::Query {
+            columns: vec![
+                Box::new(ResultColumn::Expr {
+                    expr: Name::from("a"),
+                    output_name: None,
+                }),
+                Box::new(ResultColumn::All),
+                Box::new(ResultColumn::Expr {
+                    expr: Name::from("b"),
+                    output_name: None,
+                }),
+                Box::new(ResultColumn::Expr {
+                    expr: Name::from("c"),
+                    output_name: None,
+                }),
+                Box::new(ResultColumn::All),
+            ],
+            from: vec![Box::new(TableExpression::Named {
+                table: Name::from("sxt_tab"),
+                namespace: None,
+            })],
+            where_expr: Box::new(Expression::Equal {
+                left: Name::from("a"),
+                right: 3,
+            }),
+        }),
+    };
+
+    assert_eq!(expected_ast, parsed_ast);
+}
+
+#[test]
 fn we_can_parse_two_columns() {
     let parsed_ast = sql::SelectStatementParser::new()
         .parse("Select a,  b froM sxt_tab where C = 123")
