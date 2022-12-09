@@ -12,7 +12,7 @@ use std::cmp::max;
 /// Provable expression for a result column within a filter SQL expression
 ///
 /// Note: this is currently limited to named column expressions.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
     output_name: String,

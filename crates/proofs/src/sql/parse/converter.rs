@@ -87,23 +87,59 @@ impl Converter {
 
 /// Result expression
 impl Converter {
-    /// Convert a `ResultColumn` into a `FilterResultExpr`
+    /// Convert a `ResultColumn::All` into a `Vec<FilterResultExpr>`
+    fn visit_result_column_all(
+        &self,
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> ParseResult<Vec<FilterResultExpr>> {
+        let current_table = self.current_table.as_deref().unwrap();
+        let columns = schema_accessor.lookup_schema(current_table);
+
+        Ok(columns
+            .into_iter()
+            .map(|(column_name, column_type)| {
+                FilterResultExpr::new(
+                    ColumnRef {
+                        column_name: column_name.to_string(),
+                        table_name: current_table.to_string(),
+                        namespace: None,
+                        column_type,
+                    },
+                    column_name.to_string(),
+                )
+            })
+            .collect())
+    }
+
+    /// Convert a `ResultColumn::Expr` into a `FilterResultExpr`
+    fn visit_result_column_expression(
+        &self,
+        expr: &Name,
+        output_name: &Option<Name>,
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> ParseResult<FilterResultExpr> {
+        let result_expr = self.visit_column_identifier(expr, schema_accessor)?;
+        let output_name = output_name.as_ref().map(|output| output.as_str());
+        let output_name = output_name.unwrap_or(&result_expr.column_name).to_string();
+
+        Ok(FilterResultExpr::new(result_expr, output_name))
+    }
+
+    /// Convert a `ResultColumn` into a `Vec<FilterResultExpr>`
     fn visit_result_column(
         &self,
         result_column: &ResultColumn,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<FilterResultExpr> {
+    ) -> ParseResult<Vec<FilterResultExpr>> {
         match result_column {
+            ResultColumn::All => self.visit_result_column_all(schema_accessor),
             ResultColumn::Expr { expr, output_name } => {
-                let result_expr = self.visit_column_identifier(expr, schema_accessor)?;
-                let output_name = output_name.as_ref().map(|output| output.as_str());
-                let output_name = output_name.unwrap_or(&result_expr.column_name).to_string();
-
-                Ok(FilterResultExpr::new(result_expr, output_name))
+                Ok(vec![self.visit_result_column_expression(
+                    expr,
+                    output_name,
+                    schema_accessor,
+                )?])
             }
-            _ => unimplemented!(
-                "TODO: new result column features will be added here, such as ResultColumn::All"
-            ),
         }
     }
 
@@ -115,13 +151,16 @@ impl Converter {
     ) -> ParseResult<Vec<FilterResultExpr>> {
         assert!(!result_columns.is_empty());
 
-        let results: Result<Vec<_>, _> = result_columns
+        let results = result_columns
             .iter()
             .map(|result_column| self.visit_result_column(result_column.deref(), schema_accessor))
             .into_iter()
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
             .collect();
 
-        results
+        Ok(results)
     }
 }
 

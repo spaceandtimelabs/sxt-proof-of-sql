@@ -15,7 +15,7 @@ pub enum Column<'a> {
 ///
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum ColumnType {
     BigInt,
 }
