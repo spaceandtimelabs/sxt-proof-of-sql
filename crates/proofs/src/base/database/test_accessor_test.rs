@@ -6,8 +6,8 @@ use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::Int64Array;
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
+use indexmap::IndexMap;
 use polars::prelude::*;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 #[test]
@@ -16,7 +16,7 @@ fn we_can_query_the_length_of_a_table() {
 
     accessor.add_table(
         "test",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
@@ -26,7 +26,7 @@ fn we_can_query_the_length_of_a_table() {
 
     accessor.add_table(
         "test2",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
@@ -42,7 +42,7 @@ fn we_can_access_the_columns_of_a_table() {
 
     accessor.add_table(
         "test",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
@@ -54,7 +54,7 @@ fn we_can_access_the_columns_of_a_table() {
 
     accessor.add_table(
         "test2",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
@@ -75,7 +75,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
     accessor.add_table(
         "test",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
@@ -88,7 +88,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
     accessor.add_table(
         "test2",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
@@ -110,7 +110,7 @@ fn we_can_access_the_type_of_table_columns() {
 
     accessor.add_table(
         "test",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
@@ -125,7 +125,7 @@ fn we_can_access_the_type_of_table_columns() {
 
     accessor.add_table(
         "test2",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
@@ -150,7 +150,7 @@ fn we_can_run_arbitrary_queries_on_a_table() {
 
     accessor.add_table(
         "test",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![123, 5, 123]),
         ]),

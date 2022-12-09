@@ -9,13 +9,13 @@ use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
+use indexmap::IndexMap;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 #[test]
@@ -46,7 +46,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -90,7 +90,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![0])]),
+        &IndexMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![0])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -134,7 +134,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![55])]),
+        &IndexMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![55])]),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -178,7 +178,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![0, 5, 0, 5]),
         ]),
@@ -224,7 +224,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4, 5]),
             ("b".to_string(), vec![123, 5, 123, 5, 0]),
         ]),
@@ -270,7 +270,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![0, 5, 0, 5]),
         ]),
@@ -279,7 +279,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![0, 2, 0, 5]),
         ]),
