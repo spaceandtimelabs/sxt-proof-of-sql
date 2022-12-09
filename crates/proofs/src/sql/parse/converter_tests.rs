@@ -6,8 +6,8 @@ use crate::sql::ast::{
 };
 use crate::sql::parse::Converter;
 use curve25519_dalek::scalar::Scalar;
+use indexmap::IndexMap;
 use proofs_sql::sql::SelectStatementParser;
-use std::collections::HashMap;
 
 #[test]
 fn we_can_convert_an_ast_with_one_column() {
@@ -16,7 +16,7 @@ fn we_can_convert_an_ast_with_one_column() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &HashMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor)
@@ -58,7 +58,7 @@ fn we_can_convert_an_ast_with_two_columns() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![]),
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
@@ -117,7 +117,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         table_name,
-        &HashMap::from([("b".to_string(), vec![5, 6]), ("a".to_string(), vec![3, 2])]),
+        &IndexMap::from([("b".to_string(), vec![5, 6]), ("a".to_string(), vec![3, 2])]),
     );
     let result_columns: Vec<_> = accessor
         .lookup_schema(table_name)
@@ -170,7 +170,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         table_name,
-        &HashMap::from([
+        &IndexMap::from([
             ("b".to_string(), vec![5, 6]),
             ("a".to_string(), vec![3, 2]),
             ("c".to_string(), vec![78, 8]),
@@ -251,7 +251,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
 
     let provable_ast = Converter::default()
@@ -294,7 +294,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
 
     let provable_ast = Converter::default()
@@ -337,7 +337,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
 
     let provable_ast = Converter::default()
@@ -380,7 +380,7 @@ fn we_can_convert_an_ast_with_cond_and() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![]),
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
@@ -438,7 +438,7 @@ fn we_can_convert_an_ast_with_cond_or() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![]),
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
@@ -496,7 +496,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![]),
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
@@ -554,7 +554,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![]),
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
@@ -622,7 +622,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &HashMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor)
@@ -662,7 +662,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &HashMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor)
@@ -704,7 +704,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "sxt_tab",
-        &HashMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
     );
 
     let provable_ast = Converter::default()
@@ -745,7 +745,7 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &HashMap::from([("b".to_string(), vec![3])]));
+    accessor.add_table("sxt_tab", &IndexMap::from([("b".to_string(), vec![3])]));
 
     assert!(Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor)
