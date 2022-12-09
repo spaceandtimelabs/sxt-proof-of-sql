@@ -6,6 +6,7 @@ use arrow::array::{Array, Int64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::ristretto::RistrettoPoint;
+use indexmap::IndexMap;
 use polars::prelude::{DataFrame, NamedFrom, Series};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,7 +16,7 @@ struct TestTable {
     len: usize,
 
     /// commitments of each column
-    commitments: HashMap<String, RistrettoPoint>,
+    commitments: IndexMap<String, RistrettoPoint>,
 
     /// the column values
     data: DataFrame,
@@ -44,7 +45,7 @@ impl TestAccessor {
     ///
     /// Note 2: for simplicity, we assume that `table_name` was not
     /// previously added to the accessor.
-    pub fn add_table(&mut self, table_name: &str, columns: &HashMap<String, Vec<i64>>) {
+    pub fn add_table(&mut self, table_name: &str, columns: &IndexMap<String, Vec<i64>>) {
         assert!(!columns.is_empty());
         assert!(!self.data.contains_key(table_name));
 
@@ -53,7 +54,7 @@ impl TestAccessor {
 
         // computes the commitment of each column and adds it with its rows to `table_data`
         let mut cols: Vec<Series> = Vec::with_capacity(columns.len());
-        let mut commitments = HashMap::new();
+        let mut commitments = IndexMap::new();
         for (col_name, col_rows) in columns {
             // all columns must have the same length
             assert_eq!(col_rows.len(), num_rows_table);

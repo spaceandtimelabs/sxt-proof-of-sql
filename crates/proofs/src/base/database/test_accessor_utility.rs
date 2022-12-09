@@ -1,9 +1,9 @@
 use super::TestAccessor;
+use indexmap::IndexMap;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
-use std::collections::HashMap;
 
 /// Specify what form a randomly generated TestAccessor can take
 pub struct RandomTestAccessorDescriptor {
@@ -32,7 +32,7 @@ pub fn make_random_test_accessor(
     descriptor: &RandomTestAccessorDescriptor,
 ) -> TestAccessor {
     let n = Uniform::new(descriptor.min_rows, descriptor.max_rows + 1).sample(rng);
-    let mut data = HashMap::new();
+    let mut data = IndexMap::new();
     let dist = Uniform::new(descriptor.min_value, descriptor.max_value + 1);
     for col in cols {
         let values = dist.sample_iter(&mut *rng).take(n).collect();

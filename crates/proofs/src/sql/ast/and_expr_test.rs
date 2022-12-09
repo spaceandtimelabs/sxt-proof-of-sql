@@ -9,13 +9,13 @@ use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
+use indexmap::IndexMap;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 #[test]
@@ -57,7 +57,7 @@ fn we_can_prove_a_simple_and_query() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(
         "t",
-        &HashMap::from([
+        &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![0, 1, 0, 1]),
             ("c".to_string(), vec![0, 2, 2, 0]),
