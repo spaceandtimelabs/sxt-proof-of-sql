@@ -5,7 +5,10 @@ use lalrpop_util::ParseError::User;
 grammar;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// Everything we allow in the PoSQL engine have to be SELECT
+// We only need to support SELECT statements on this SQL parser.
+//
+// Besides, the grammar here is strictly following Postgres grammar rules defined here: 
+// https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub SelectStatement: intermediate_ast::SelectStatement = {
@@ -43,7 +46,16 @@ ResultColumn: Box<intermediate_ast::ResultColumn> = {
             Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: Some(output_name) }),
 };
 
+// Note: we are adding a new `QualifiedColumnIdentifierParen` rule
+// solely for the purpose of overcoming LALRPOP restrictions.
+// For instance, see this thread:
+// [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
+QualifiedColumnIdentifierParen: symbols::Name = "(" <QualifiedColumnIdentifier> ")";
 QualifiedColumnIdentifier: symbols::Name = {
+    #[precedence(level="0")]
+    QualifiedColumnIdentifierParen,
+
+    #[precedence(level="1")]
     Identifier,
 };
 
@@ -52,20 +64,19 @@ QualifiedColumnIdentifier: symbols::Name = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 FromClause: Vec<Box<intermediate_ast::TableExpression>> = {
-    "from" <table_ref: TableExpressionList> => table_ref,
-};
-
-TableExpressionList: Vec<Box<intermediate_ast::TableExpression>> = {
-    TableExpression => vec![<>],
+    "from" <table_ref: TableExpression> => vec![table_ref],
 };
 
 TableExpression: Box<intermediate_ast::TableExpression> = {
     <table: QualifiedTableIdentifier> => table,
-
-    "(" <table_ref: TableExpression> ")" => table_ref,
 };
 
+QualifiedTableIdentifierParen: Box<intermediate_ast::TableExpression> = "(" <QualifiedTableIdentifier> ")";
 QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
+    #[precedence(level="0")]
+    QualifiedTableIdentifierParen,
+
+    #[precedence(level="1")]
     <table: Identifier> =>
         Box::new(intermediate_ast::TableExpression::Named { table, namespace: None }),
 };
@@ -81,47 +92,48 @@ WhereClause: Box<intermediate_ast::Expression> = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Expressions
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
+ExprParen: Box<intermediate_ast::Expression> = "(" <Expression> ")";
 Expression: Box<intermediate_ast::Expression> = {
-    NotExpression,
-    OrExpression,
-    AndExpression,
-    EqualExpression,
-    NotEqualExpression,
-};
+    #[precedence(level="0")]
+    ExprParen,
 
-AndExpression: Box<intermediate_ast::Expression> = {
-    "(" <left: Expression> ")" "and" "(" <right: Expression> ")" =>
+    #[precedence(level="1")]
+    ComparativeExpression,
+
+    #[precedence(level="2")] #[assoc(side="right")]
+    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Not { expr }),
+
+    #[precedence(level="3")] #[assoc(side="left")]
+    <left: Expression> "and" <right: Expression> =>
         Box::new(intermediate_ast::Expression::And { left, right }),
-};
 
-OrExpression: Box<intermediate_ast::Expression> = {
-    "(" <left: Expression> ")" "or" "(" <right: Expression> ")" =>
+    #[precedence(level="4")] #[assoc(side="left")]
+    <left: Expression> "or" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Or { left, right }),
 };
 
-NotExpression: Box<intermediate_ast::Expression> = {
-    "not" "(" <expr: Expression> ")" => Box::new(intermediate_ast::Expression::Not { expr }),
-};
-
-EqualExpression: Box<intermediate_ast::Expression> = {
-    <left: QualifiedColumnIdentifier> "=" <right: UnaryExpression> =>
+ComparativeExpression: Box<intermediate_ast::Expression> = {
+    <left: QualifiedColumnIdentifier> "=" <right: UnaryLiteral> =>
         Box::new(intermediate_ast::Expression::Equal { left, right }),
+
+    <left: QualifiedColumnIdentifier> "!=" <right: UnaryLiteral> =>
+        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
+
+    <left: QualifiedColumnIdentifier> "<>" <right: UnaryLiteral> =>
+        Box::new(intermediate_ast::Expression::NotEqual { left, right }),    
 };
 
-NotEqualExpression: Box<intermediate_ast::Expression> = {
-    <left: QualifiedColumnIdentifier> "!=" <right: UnaryExpression> =>
-        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
-    <left: QualifiedColumnIdentifier> "<>" <right: UnaryExpression> =>
-        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
-};
+UnaryParen: i64 = "(" <UnaryLiteral> ")";
+UnaryLiteral: i64 = {
+    #[precedence(level="0")]
+    UnaryParen,
 
-UnaryExpression: i64 = {
+    #[precedence(level="1")]
     NumericLiteral,
 
-    "+" <expr: UnaryExpression> => expr,
-
-    "-" <expr: UnaryExpression> => -1 * expr,
+    #[precedence(level="2")] #[assoc(side="right")]
+    "+" <expr: UnaryLiteral> => expr,
+    "-" <expr: UnaryLiteral> => -1 * expr,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
