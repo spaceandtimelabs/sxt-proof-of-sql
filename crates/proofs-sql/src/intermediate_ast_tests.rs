@@ -472,6 +472,85 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
 }
 
 #[test]
+fn we_can_parse_logical_not_with_more_precedence_priority_than_logical_and() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where a = 3 and not b = 4")
+        .unwrap();
+
+    let expected_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where (a = 3) and (not b = 4)")
+        .unwrap();
+
+    assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_parse_logical_not_with_more_precedence_priority_than_equal_operator() {
+    assert!(sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where (not b) = 4")
+        .is_err());
+}
+
+#[test]
+fn we_can_parse_logical_and_with_more_precedence_priority_than_logical_or() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where a = -1 or c = -3 and a = 3")
+        .unwrap();
+
+    let expected_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where a = -1 or (c = -3 and a = 3)")
+        .unwrap();
+
+    assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_logical_not_with_right_associativity() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where not not a = -1")
+        .unwrap();
+
+    let expected_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where not (not (a = -1))")
+        .unwrap();
+
+    assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_logical_and_with_left_associativity() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where a = -1 and c = -3 and b = 3")
+        .unwrap();
+
+    let expected_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where ((a = -1) and (c = -3)) and (b = 3)")
+        .unwrap();
+
+    assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_logical_or_with_left_associativity() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where a = -1 or c = -3 or b = 3")
+        .unwrap();
+
+    let expected_ast = sql::SelectStatementParser::new()
+        .parse("select a from sxt_tab where ((a = -1) or (c = -3)) or (b = 3)")
+        .unwrap();
+
+    assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary() {
+    sql::SelectStatementParser::new()
+        .parse("select (((a))) as F from ( (sxt_tab  )) where (((a = -1)) or c = -3) and (((((a = (((3)      ) ))))))")
+        .unwrap();
+}
+
+#[test]
 fn we_cannot_parse_a_query_with_one_namespace_followed_by_a_table_name() {
     assert!(sql::SelectStatementParser::new()
         .parse("select a from eth.sxt_tab where a = -3")
