@@ -18,6 +18,10 @@
                         {
                             "type": "build",
                             "release": "patch"
+                        },
+                        {
+                            "type": "docs",
+                            "release": "patch"
                         }
                     ],
                     "parserOpts": {
