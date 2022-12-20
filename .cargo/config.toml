@@ -1,2 +1,10 @@
-[registries.pedersen_reg]
-index = "https://sxtproofs.jfrog.io/artifactory/git/proofsgpu-cargo-dev-local.git"
+# Makes artifactory the default registry and saves passing --registry parameter
+[registry]
+default = "artifactory"
+
+[registries.artifactory]
+index = "https://spaceandtime.jfrog.io/artifactory/git/sxt-proofs-cargo-local.git"
+
+# For sending credentials in git requests
+[net]
+git-fetch-with-cli = true

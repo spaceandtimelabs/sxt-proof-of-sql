@@ -1,11 +1,11 @@
 use clap::Parser;
-use pedersen::compute::{init_backend_with_config, BackendConfig};
 use proofs::base::database::{
     make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
 };
 use proofs::sql::ast::FilterExpr;
 use proofs::sql::parse::Converter;
 use proofs::sql::proof::VerifiableQueryResult;
+use proofs_gpu::compute::{init_backend_with_config, BackendConfig};
 use proofs_sql::sql::SelectStatementParser;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
