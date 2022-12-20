@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::IntoScalar;
-use pedersen::compute::compute_commitments;
-use pedersen::sequences::{DenseSequence, Sequence};
+use proofs_gpu::compute::compute_commitments;
+use proofs_gpu::sequences::{DenseSequence, Sequence};
 
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
 

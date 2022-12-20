@@ -8,7 +8,7 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
 use merlin::Transcript;
-use pedersen::compute::get_generators;
+use proofs_gpu::compute::get_generators;
 use rand_core::SeedableRng;
 use std::iter;
 

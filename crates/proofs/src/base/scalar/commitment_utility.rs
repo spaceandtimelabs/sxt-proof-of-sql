@@ -4,7 +4,7 @@ use curve25519_dalek::{
     ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
 };
-use pedersen::compute::compute_commitments;
+use proofs_gpu::compute::compute_commitments;
 
 /// Compute the commitment of a sequence of values.
 ///

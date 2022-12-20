@@ -10,7 +10,7 @@ use crate::base::scalar::batch_pseudo_invert;
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
-use pedersen::compute::get_one_commit;
+use proofs_gpu::compute::get_one_commit;
 use std::cmp::max;
 
 /// Provable AST expression for an equals expression

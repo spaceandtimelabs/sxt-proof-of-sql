@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 arrow = "24.0.0"
-pedersen = {version = "3.0", registry = "pedersen_reg"}
 bumpalo = { version = "3.11.0", features = ["collections"] }
 byte-slice-cast = "1.2.1"
 integer-encoding = "3.0.4"
@@ -30,6 +29,7 @@ polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "tempo
 
 # SxT dependencies
 proofs-sql= {path = "../proofs-sql"}
+proofs-gpu = {version = "3.1.1", registry = "artifactory"}
 
 [dev_dependencies]
 criterion = "0.4"

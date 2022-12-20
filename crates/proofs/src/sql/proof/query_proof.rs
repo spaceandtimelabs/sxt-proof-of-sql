@@ -18,7 +18,7 @@ use curve25519_dalek::{
     traits::Identity,
 };
 use merlin::Transcript;
-use pedersen::compute::get_generators;
+use proofs_gpu::compute::get_generators;
 use serde::{Deserialize, Serialize};
 
 /// The proof for a query.
