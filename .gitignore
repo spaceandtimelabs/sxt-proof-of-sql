@@ -20,6 +20,9 @@ protocols/*.synctex.gz
 .DS_Store
 protocols/.DS_Store
 
+# ignore node files
+node_modules*
+
 # Added by cargo
 
 /target
