@@ -78,7 +78,7 @@ To get a local copy up and running, follow these steps.
 ### Prerequisites
 
 * Linux x86_64
-* [Rust 1.62.0](https://www.rust-lang.org/tools/install)
+* [Rust 1.65.0](https://www.rust-lang.org/tools/install)
 
 ### Installation
 
@@ -239,5 +239,5 @@ Project Link: [https://github.com/spaceandtimelabs/proofs](https://github.com/sp
 [CircleCI]: https://img.shields.io/badge/circleci-2.1-blue
 [circleci-url]: https://circleci.com/
 
-[Rust]: https://img.shields.io/badge/rust-1.62.0-blue
+[Rust]: https://img.shields.io/badge/rust-1.65.0-blue
 [rust-url]: https://www.rust-lang.org/
