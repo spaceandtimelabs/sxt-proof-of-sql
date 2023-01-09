@@ -15,7 +15,7 @@ pub enum Column<'a> {
 ///
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub enum ColumnType {
     BigInt,
 }
@@ -27,4 +27,13 @@ impl From<&ColumnType> for DataType {
             ColumnType::BigInt => DataType::Int64,
         }
     }
+}
+
+/// Reference of a SQL column
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct ColumnRef {
+    pub column_name: String,
+    pub table_name: String,
+    pub namespace: Option<String>,
+    pub column_type: ColumnType,
 }

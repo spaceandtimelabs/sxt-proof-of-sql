@@ -2,7 +2,7 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnType};
+pub use column::{Column, ColumnRef, ColumnType};
 
 #[cfg(any(test, feature = "test"))]
 mod test_accessor;

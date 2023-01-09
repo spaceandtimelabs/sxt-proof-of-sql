@@ -1,7 +1,6 @@
-use super::{BoolExpr, ColumnRef};
-
-use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
+use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::scalar::IntoScalar;
+use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
@@ -12,6 +11,7 @@ use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use proofs_gpu::compute::get_one_commit;
 use std::cmp::max;
+use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
 ///
@@ -125,5 +125,9 @@ impl BoolExpr for EqualsExpr {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
 
         selection_eval
+    }
+
+    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+        columns.insert(self.column_ref.clone());
     }
 }

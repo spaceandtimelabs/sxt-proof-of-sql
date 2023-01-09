@@ -1,5 +1,4 @@
-use super::ColumnRef;
-use crate::base::database::{Column, CommitmentAccessor, DataAccessor};
+use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{
     make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
@@ -8,6 +7,7 @@ use arrow::datatypes::Field;
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use std::cmp::max;
+use std::collections::HashSet;
 
 /// Provable expression for a result column within a filter SQL expression
 ///
@@ -25,6 +25,10 @@ impl FilterResultExpr {
             column_ref,
             output_name,
         }
+    }
+
+    pub fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+        columns.insert(self.column_ref.clone());
     }
 
     pub fn get_field(&self) -> Field {

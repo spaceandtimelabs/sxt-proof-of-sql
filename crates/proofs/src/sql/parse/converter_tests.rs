@@ -1,8 +1,6 @@
-use crate::base::database::ColumnType;
-use crate::base::database::SchemaAccessor;
-use crate::base::database::TestAccessor;
+use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TestAccessor};
 use crate::sql::ast::{
-    AndExpr, ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::sql::parse::Converter;
 use curve25519_dalek::scalar::Scalar;
