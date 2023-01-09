@@ -1,7 +1,6 @@
-use super::{ColumnRef, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
-use crate::base::database::ColumnType;
+use super::{EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;

@@ -1,6 +1,8 @@
 use super::{ProofBuilder, ProofCounts, VerificationBuilder};
 use arrow::datatypes::SchemaRef;
+use std::collections::HashSet;
 
+use crate::base::database::ColumnRef;
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 
 use bumpalo::Bump;
@@ -35,4 +37,7 @@ pub trait QueryExpr: Debug + Send + Sync {
 
     /// Return the Schema of the Query’s result
     fn get_result_schema(&self) -> SchemaRef;
+
+    /// Return all the columns referenced in the Query
+    fn get_column_references(&self) -> HashSet<ColumnRef>;
 }

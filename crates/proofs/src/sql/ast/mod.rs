@@ -4,6 +4,9 @@ pub use filter_result_expr::FilterResultExpr;
 mod filter_expr;
 pub use filter_expr::FilterExpr;
 
+#[cfg(test)]
+mod filter_expr_test;
+
 mod bool_expr;
 pub use bool_expr::BoolExpr;
 
@@ -29,6 +32,3 @@ mod equals_expr_test;
 
 mod table_expr;
 pub use table_expr::TableExpr;
-
-mod column_ref;
-pub use column_ref::ColumnRef;

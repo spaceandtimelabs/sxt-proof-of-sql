@@ -1,9 +1,10 @@
-use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::dyn_partial_eq;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a boolean
@@ -31,4 +32,9 @@ pub trait BoolExpr: Debug + Send + Sync {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar;
+
+    // Insert in the HashSet `columns` all the column
+    // references in the BoolExpr or forwards the call to some
+    // subsequent bool_expr
+    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>);
 }
