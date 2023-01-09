@@ -24,7 +24,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -36,7 +36,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
@@ -68,7 +68,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -80,7 +80,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
@@ -112,7 +112,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -124,7 +124,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
@@ -156,7 +156,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -168,7 +168,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
@@ -202,7 +202,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -214,7 +214,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(123u64),
@@ -248,7 +248,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -260,7 +260,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::zero(),
@@ -304,7 +304,7 @@ fn we_can_query_random_tables() {
                 ColumnRef {
                     column_name: "a".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "a".to_string(),
@@ -316,7 +316,7 @@ fn we_can_query_random_tables() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 val.into_scalar(),
@@ -356,7 +356,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                     ColumnRef {
                         column_name: "aa".to_string(),
                         table_name: "t".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     "aa".to_string(),
@@ -365,7 +365,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                     ColumnRef {
                         column_name: "ab".to_string(),
                         table_name: "t".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     "ab".to_string(),
@@ -378,7 +378,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 val.into_scalar(),

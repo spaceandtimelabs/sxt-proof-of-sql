@@ -34,6 +34,6 @@ impl From<&ColumnType> for DataType {
 pub struct ColumnRef {
     pub column_name: String,
     pub table_name: String,
-    pub namespace: Option<String>,
+    pub schema: Option<String>,
     pub column_type: ColumnType,
 }

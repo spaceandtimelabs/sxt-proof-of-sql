@@ -16,7 +16,7 @@ fn we_can_parse_a_query_with_one_equals_filter_expression() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("a"),
@@ -48,7 +48,7 @@ fn we_can_parse_a_query_with_two_result_columns() {
             ],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("c"),
@@ -71,7 +71,7 @@ fn we_can_parse_a_query_using_select_star() {
             columns: vec![Box::new(ResultColumn::All)],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("a"),
@@ -109,7 +109,7 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
             ],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("a"),
@@ -135,7 +135,7 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -161,7 +161,7 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -188,7 +188,7 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
                 })],
                 from: vec![Box::new(TableExpression::Named {
                     table: Name::from("sxt_tab"),
-                    namespace: None,
+                    schema: None,
                 })],
                 where_expr: Box::new(Expression::NotEqual {
                     left: Name::from("b"),
@@ -215,7 +215,7 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Not {
                 expr: Box::new(Expression::Equal {
@@ -243,7 +243,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
@@ -275,7 +275,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Or {
                 left: Box::new(Expression::Equal {
@@ -307,7 +307,7 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
@@ -341,7 +341,7 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Not {
                 expr: Box::new(Expression::And {
@@ -381,7 +381,7 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -407,7 +407,7 @@ fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal()
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -433,7 +433,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -459,7 +459,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
             })],
             from: vec![Box::new(TableExpression::Named {
                 table: Name::from("sxt_tab"),
-                namespace: None,
+                schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
                 left: Name::from("b"),
@@ -551,16 +551,16 @@ fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary()
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_one_namespace_followed_by_a_table_name() {
+fn we_cannot_parse_a_query_with_one_schema_followed_by_a_table_name() {
     assert!(sql::SelectStatementParser::new()
         .parse("select a from eth.sxt_tab where a = -3")
         .is_err());
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_two_namespaces_followed_by_a_table_name() {
+fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
     assert!(sql::SelectStatementParser::new()
-        .parse("select a from namespace.name.tab")
+        .parse("select a from schema.name.tab")
         .is_err());
 }
 
@@ -574,7 +574,7 @@ fn we_cannot_parse_a_query_with_a_filter_value_smaller_than_min_i64_as_it_will_o
 #[test]
 fn we_cannot_parse_a_query_with_a_filter_value_bigger_than_max_i64_as_it_will_overflow() {
     assert!(sql::SelectStatementParser::new()
-        .parse("select a from namespace.tab where b = 9223372036854775808")
+        .parse("select a from schema.tab where b = 9223372036854775808")
         .is_err());
 }
 
@@ -599,7 +599,7 @@ fn we_cannot_parse_a_query_with_select_tablename_followed_by_star() {
 //////////////////////
 
 #[test]
-fn we_cannot_parse_a_query_with_namespaces_followed_by_column_and_table_names() {
+fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
     assert!(sql::SelectStatementParser::new()
         .parse("select tab.a from tab")
         .is_err());

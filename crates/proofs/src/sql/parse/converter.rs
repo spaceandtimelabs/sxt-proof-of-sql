@@ -64,8 +64,8 @@ impl Converter {
     /// Convert a `TableExpression` into a TableExpr
     fn visit_table_expression(&mut self, table_expr: &TableExpression) -> TableExpr {
         match table_expr {
-            TableExpression::Named { table, namespace } => {
-                assert!(namespace.is_none());
+            TableExpression::Named { table, schema } => {
+                assert!(schema.is_none());
 
                 let name = table.as_str().to_string();
 
@@ -101,7 +101,7 @@ impl Converter {
                     ColumnRef {
                         column_name: column_name.to_string(),
                         table_name: current_table.to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type,
                     },
                     column_name.to_string(),
@@ -234,7 +234,7 @@ impl Converter {
         Ok(ColumnRef {
             column_name,
             table_name: current_table.to_string(),
-            namespace: None,
+            schema: None,
             column_type: column_type.unwrap(),
         })
     }
