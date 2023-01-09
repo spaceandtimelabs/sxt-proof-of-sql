@@ -24,7 +24,7 @@ fn we_can_prove_a_simple_and_query() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "t".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -37,7 +37,7 @@ fn we_can_prove_a_simple_and_query() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(1u64),
@@ -46,7 +46,7 @@ fn we_can_prove_a_simple_and_query() {
                 ColumnRef {
                     column_name: "c".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(2u64),
@@ -95,7 +95,7 @@ fn we_can_query_random_tables() {
                 ColumnRef {
                     column_name: "a".to_string(),
                     table_name: "t".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "a".to_string(),
@@ -108,7 +108,7 @@ fn we_can_query_random_tables() {
                     ColumnRef {
                         column_name: "b".to_string(),
                         table_name: "t".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     lhs_val.into_scalar(),
@@ -117,7 +117,7 @@ fn we_can_query_random_tables() {
                     ColumnRef {
                         column_name: "c".to_string(),
                         table_name: "t".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     rhs_val.into_scalar(),

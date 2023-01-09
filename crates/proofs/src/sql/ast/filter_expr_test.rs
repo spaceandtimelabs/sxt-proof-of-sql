@@ -20,7 +20,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 ColumnRef {
                     column_name: "a".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "a".to_string(),
@@ -29,7 +29,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "b".to_string(),
@@ -42,7 +42,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             ColumnRef {
                 column_name: "c".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(123_u64),
@@ -68,7 +68,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 ColumnRef {
                     column_name: "a".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "a".to_string(),
@@ -77,7 +77,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 ColumnRef {
                     column_name: "f".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "f".to_string(),
@@ -92,7 +92,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     ColumnRef {
                         column_name: "f".to_string(),
                         table_name: "sxt_tab".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     Scalar::from(45_u64),
@@ -101,7 +101,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     ColumnRef {
                         column_name: "c".to_string(),
                         table_name: "sxt_tab".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     -Scalar::from(2_u64),
@@ -111,7 +111,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(3_u64),
@@ -127,25 +127,25 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             ColumnRef {
                 column_name: "f".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             ColumnRef {
                 column_name: "c".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             }
         ])

@@ -43,7 +43,7 @@ pub enum TableExpression {
     Named {
         /// the qualified table name
         table: Name,
-        namespace: Option<Name>,
+        schema: Option<Name>,
     },
 }
 
