@@ -25,7 +25,7 @@ fn we_can_convert_an_ast_with_one_column() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -37,7 +37,7 @@ fn we_can_convert_an_ast_with_one_column() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(3_u64),
@@ -73,7 +73,7 @@ fn we_can_convert_an_ast_with_two_columns() {
                 ColumnRef {
                     column_name: "a".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "a".to_string(),
@@ -82,7 +82,7 @@ fn we_can_convert_an_ast_with_two_columns() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 "b".to_string(),
@@ -95,7 +95,7 @@ fn we_can_convert_an_ast_with_two_columns() {
             ColumnRef {
                 column_name: "c".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(123_u64),
@@ -125,7 +125,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
                 ColumnRef {
                     column_name: column_name.to_string(),
                     table_name: table_name.to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type,
                 },
                 column_name.to_string(),
@@ -148,7 +148,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: table_name.to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(3_u64),
@@ -183,7 +183,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
                 ColumnRef {
                     column_name: column_name.to_string(),
                     table_name: table_name.to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type,
                 },
                 column_name.to_string(),
@@ -197,7 +197,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
         ColumnRef {
             column_name: "a".to_string(),
             table_name: table_name.to_string(),
-            namespace: None,
+            schema: None,
             column_type: ColumnType::BigInt,
         },
         "a".to_string(),
@@ -209,7 +209,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
         ColumnRef {
             column_name: "b".to_string(),
             table_name: table_name.to_string(),
-            namespace: None,
+            schema: None,
             column_type: ColumnType::BigInt,
         },
         "b".to_string(),
@@ -230,7 +230,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: table_name.to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(3_u64),
@@ -261,7 +261,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -273,7 +273,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(4_u64),
@@ -304,7 +304,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -316,7 +316,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(4_u64),
@@ -347,7 +347,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -359,7 +359,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             -Scalar::from(4_u64),
@@ -394,7 +394,7 @@ fn we_can_convert_an_ast_with_cond_and() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -407,7 +407,7 @@ fn we_can_convert_an_ast_with_cond_and() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(3_u64),
@@ -416,7 +416,7 @@ fn we_can_convert_an_ast_with_cond_and() {
                 ColumnRef {
                     column_name: "c".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 -Scalar::from(2_u64),
@@ -452,7 +452,7 @@ fn we_can_convert_an_ast_with_cond_or() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -465,7 +465,7 @@ fn we_can_convert_an_ast_with_cond_or() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(3_u64),
@@ -474,7 +474,7 @@ fn we_can_convert_an_ast_with_cond_or() {
                 ColumnRef {
                     column_name: "c".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 -Scalar::from(2_u64),
@@ -510,7 +510,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -523,7 +523,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(3_u64),
@@ -532,7 +532,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 ColumnRef {
                     column_name: "c".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 -Scalar::from(2_u64),
@@ -569,7 +569,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -583,7 +583,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                     ColumnRef {
                         column_name: "f".to_string(),
                         table_name: "sxt_tab".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     Scalar::from(45_u64),
@@ -592,7 +592,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                     ColumnRef {
                         column_name: "c".to_string(),
                         table_name: "sxt_tab".to_string(),
-                        namespace: None,
+                        schema: None,
                         column_type: ColumnType::BigInt,
                     },
                     -Scalar::from(2_u64),
@@ -602,7 +602,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 ColumnRef {
                     column_name: "b".to_string(),
                     table_name: "sxt_tab".to_string(),
-                    namespace: None,
+                    schema: None,
                     column_type: ColumnType::BigInt,
                 },
                 Scalar::from(3_u64),
@@ -631,7 +631,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -643,7 +643,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             -Scalar::from(9223372036854775808u64),
@@ -671,7 +671,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "a".to_string(),
@@ -683,7 +683,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(9223372036854775807_u64),
@@ -714,7 +714,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
             ColumnRef {
                 column_name: "a".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             "b_rename".to_string(),
@@ -726,7 +726,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
             ColumnRef {
                 column_name: "b".to_string(),
                 table_name: "sxt_tab".to_string(),
-                namespace: None,
+                schema: None,
                 column_type: ColumnType::BigInt,
             },
             Scalar::from(4_u64),
@@ -751,7 +751,7 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
 }
 
 #[test]
-fn we_cannot_convert_an_ast_with_a_namespaced_table_yet() {
+fn we_cannot_convert_an_ast_with_a_schemad_table_yet() {
     assert!(SelectStatementParser::new()
         .parse("select a from eth.sxt_tab where a = -3")
         .is_err());
