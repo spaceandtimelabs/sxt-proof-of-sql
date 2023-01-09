@@ -1,8 +1,9 @@
 use super::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
 use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
+use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor};
 
 use bumpalo::Bump;
 use std::fmt;
@@ -59,6 +60,12 @@ impl QueryExpr for TestQueryExpr {
             columns.push(Field::new(&(i + 1).to_string(), DataType::Int64, false));
         }
         Arc::new(Schema::new(columns))
+    }
+
+    fn get_column_references(&self) -> HashSet<ColumnRef> {
+        // at least for now, we don't have any real
+        // usage for this function
+        unimplemented!()
     }
 }
 

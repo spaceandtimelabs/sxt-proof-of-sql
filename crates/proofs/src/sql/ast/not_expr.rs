@@ -1,10 +1,11 @@
-use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
+use std::collections::HashSet;
 
 /// Provable logical NOT expression
 #[derive(Debug, DynPartialEq, PartialEq)]
@@ -43,5 +44,9 @@ impl BoolExpr for NotExpr {
     ) -> Scalar {
         let eval = self.expr.verifier_evaluate(builder, counts, accessor);
         builder.mle_evaluations.one_evaluation - eval
+    }
+
+    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+        self.expr.get_column_references(columns);
     }
 }

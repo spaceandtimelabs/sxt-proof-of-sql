@@ -1,4 +1,4 @@
-use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
@@ -8,6 +8,7 @@ use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use std::cmp::max;
+use std::collections::HashSet;
 
 /// Provable logical AND expression
 #[derive(Debug, DynPartialEq, PartialEq)]
@@ -87,5 +88,10 @@ impl BoolExpr for AndExpr {
 
         // selection
         lhs_and_rhs
+    }
+
+    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+        self.lhs.get_column_references(columns);
+        self.rhs.get_column_references(columns);
     }
 }
