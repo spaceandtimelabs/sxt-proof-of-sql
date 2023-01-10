@@ -37,6 +37,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         ],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -85,6 +86,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         ],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(NotExpr::new(Box::new(AndExpr::new(
             Box::new(OrExpr::new(

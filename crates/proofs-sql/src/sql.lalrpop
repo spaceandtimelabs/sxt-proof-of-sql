@@ -77,8 +77,8 @@ QualifiedTableIdentifier: Box<intermediate_ast::TableExpression> = {
     QualifiedTableIdentifierParen,
 
     #[precedence(level="1")]
-    <table: Identifier> =>
-        Box::new(intermediate_ast::TableExpression::Named { table, schema: None }),
+    <schema: (<Identifier> ".")?> <table: Identifier> =>
+        Box::new(intermediate_ast::TableExpression::Named { table, schema }),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

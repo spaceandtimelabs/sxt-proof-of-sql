@@ -32,6 +32,7 @@ fn we_can_convert_an_ast_with_one_column() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -90,6 +91,7 @@ fn we_can_convert_an_ast_with_two_columns() {
         ],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -143,6 +145,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
         result_columns,
         TableExpr {
             name: table_name.to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -225,6 +228,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
         result_columns,
         TableExpr {
             name: table_name.to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -268,6 +272,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -311,6 +316,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(NotExpr::new(Box::new(EqualsExpr::new(
             ColumnRef {
@@ -354,6 +360,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -401,6 +408,7 @@ fn we_can_convert_an_ast_with_cond_and() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(AndExpr::new(
             Box::new(EqualsExpr::new(
@@ -459,6 +467,7 @@ fn we_can_convert_an_ast_with_cond_or() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(OrExpr::new(
             Box::new(EqualsExpr::new(
@@ -517,6 +526,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(OrExpr::new(
             Box::new(EqualsExpr::new(
@@ -576,6 +586,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(NotExpr::new(Box::new(AndExpr::new(
             Box::new(OrExpr::new(
@@ -638,6 +649,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -678,6 +690,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -721,6 +734,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
         )],
         TableExpr {
             name: "sxt_tab".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -751,8 +765,42 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
 }
 
 #[test]
-fn we_cannot_convert_an_ast_with_a_schemad_table_yet() {
-    assert!(SelectStatementParser::new()
-        .parse("select a from eth.sxt_tab where a = -3")
-        .is_err());
+fn we_can_convert_an_ast_with_a_schema() {
+    let intermediate_ast = SelectStatementParser::new()
+        .parse("select a from eth.sxt_tab where a = 3")
+        .unwrap();
+
+    let mut accessor = TestAccessor::new();
+    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
+
+    let provable_ast = Converter::default()
+        .visit_intermediate_ast(&intermediate_ast, &accessor)
+        .unwrap();
+
+    let expected_provable_ast = FilterExpr::new(
+        vec![FilterResultExpr::new(
+            ColumnRef {
+                column_name: "a".to_string(),
+                table_name: "sxt_tab".to_string(),
+                schema: None,
+                column_type: ColumnType::BigInt,
+            },
+            "a".to_string(),
+        )],
+        TableExpr {
+            name: "sxt_tab".to_string(),
+            schema: Some("eth".to_string()),
+        },
+        Box::new(EqualsExpr::new(
+            ColumnRef {
+                column_name: "a".to_string(),
+                table_name: "sxt_tab".to_string(),
+                schema: None,
+                column_type: ColumnType::BigInt,
+            },
+            Scalar::from(3_u64),
+        )),
+    );
+
+    assert_eq!(expected_provable_ast, provable_ast);
 }
