@@ -31,6 +31,7 @@ fn we_can_prove_a_simple_or_query() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(OrExpr::new(
             Box::new(EqualsExpr::new(
@@ -89,6 +90,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(OrExpr::new(
             Box::new(EqualsExpr::new(
@@ -160,6 +162,7 @@ fn we_can_query_random_tables() {
             )],
             TableExpr {
                 name: "t".to_string(),
+                schema: None,
             },
             Box::new(OrExpr::new(
                 Box::new(EqualsExpr::new(

@@ -31,6 +31,7 @@ fn we_can_prove_a_simple_and_query() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(AndExpr::new(
             Box::new(EqualsExpr::new(
@@ -102,6 +103,7 @@ fn we_can_query_random_tables() {
             )],
             TableExpr {
                 name: "t".to_string(),
+                schema: None,
             },
             Box::new(AndExpr::new(
                 Box::new(EqualsExpr::new(

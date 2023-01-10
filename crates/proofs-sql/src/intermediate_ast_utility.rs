@@ -66,9 +66,19 @@ mod tests {
     }
 
     #[test]
-    fn we_cannot_get_one_ref_from_a_parsed_query_with_one_schema_table_yet() {
-        assert!(SelectStatementParser::new()
-            .parse("select a from schema.tab where c = 3")
-            .is_err());
+    fn we_can_get_one_ref_from_a_parsed_query_with_one_schema_table() {
+        let parsed_query_ast = SelectStatementParser::new()
+            .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
+            .unwrap();
+        let ref_tables = get_ref_tables_from_ast(&parsed_query_ast);
+
+        // note: the parsed table is always lower case
+        assert_eq!(
+            ref_tables,
+            [TableRef {
+                table_name: "tab".to_string(),
+                schema: Some("schema".to_string())
+            }]
+        );
     }
 }

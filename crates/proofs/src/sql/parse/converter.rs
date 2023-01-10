@@ -65,13 +65,13 @@ impl Converter {
     fn visit_table_expression(&mut self, table_expr: &TableExpression) -> TableExpr {
         match table_expr {
             TableExpression::Named { table, schema } => {
-                assert!(schema.is_none());
-
                 let name = table.as_str().to_string();
+
+                let schema = schema.as_ref().map(|s| s.as_str().to_string());
 
                 self.current_table = Some(name.clone());
 
-                TableExpr { name }
+                TableExpr { name, schema }
             }
         }
     }

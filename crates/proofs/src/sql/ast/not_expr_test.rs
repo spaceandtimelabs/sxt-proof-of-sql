@@ -31,6 +31,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(NotExpr::new(Box::new(EqualsExpr::new(
             ColumnRef {
@@ -89,6 +90,7 @@ fn we_can_query_random_tables() {
             )],
             TableExpr {
                 name: "t".to_string(),
+                schema: None,
             },
             Box::new(NotExpr::new(Box::new(EqualsExpr::new(
                 ColumnRef {
