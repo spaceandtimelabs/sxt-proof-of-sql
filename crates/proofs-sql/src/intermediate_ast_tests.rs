@@ -551,10 +551,29 @@ fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary()
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_one_schema_followed_by_a_table_name() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from eth.sxt_tab where a = -3")
-        .is_err());
+fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
+    let parsed_ast = sql::SelectStatementParser::new()
+        .parse("select a from eth.sxt_tab where b = 4")
+        .unwrap();
+
+    let expected_ast = SelectStatement {
+        expr: Box::new(SetExpression::Query {
+            columns: vec![Box::new(ResultColumn::Expr {
+                expr: Name::from("a"),
+                output_name: None,
+            })],
+            from: vec![Box::new(TableExpression::Named {
+                table: Name::from("sxt_tab"),
+                schema: Some(Name::from("eth")),
+            })],
+            where_expr: Box::new(Expression::Equal {
+                left: Name::from("b"),
+                right: 4,
+            }),
+        }),
+    };
+
+    assert_eq!(parsed_ast, expected_ast);
 }
 
 #[test]

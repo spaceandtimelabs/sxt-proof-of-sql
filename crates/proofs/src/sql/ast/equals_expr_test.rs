@@ -31,6 +31,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -75,6 +76,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -119,6 +121,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -163,6 +166,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -209,6 +213,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -255,6 +260,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
         )],
         TableExpr {
             name: "t".to_string(),
+            schema: None,
         },
         Box::new(EqualsExpr::new(
             ColumnRef {
@@ -311,6 +317,7 @@ fn we_can_query_random_tables() {
             )],
             TableExpr {
                 name: "t".to_string(),
+                schema: None,
             },
             Box::new(EqualsExpr::new(
                 ColumnRef {
@@ -373,6 +380,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
             ],
             TableExpr {
                 name: "t".to_string(),
+                schema: None,
             },
             Box::new(EqualsExpr::new(
                 ColumnRef {
