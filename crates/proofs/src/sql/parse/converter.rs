@@ -5,10 +5,9 @@ use crate::sql::ast::{
 };
 use crate::sql::parse::{ParseError, ParseResult};
 use curve25519_dalek::scalar::Scalar;
-use proofs_sql::intermediate_ast::{
-    Expression, ResultColumn, SelectStatement, SetExpression, TableExpression,
-};
+use proofs_sql::intermediate_ast::{Expression, ResultColumn, SetExpression, TableExpression};
 use proofs_sql::symbols::Name;
+use proofs_sql::SelectStatement;
 use std::ops::Deref;
 
 #[derive(Default)]

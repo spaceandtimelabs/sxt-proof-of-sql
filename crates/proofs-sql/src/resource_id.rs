@@ -129,12 +129,19 @@ mod tests {
     }
 
     #[test]
-    fn resource_id_from_invalid_str_fails() {
-        assert!(ResourceId::from_str("GOOD_IDENTIFIER").is_err());
-        assert!(ResourceId::from_str("GOOD_IDENTIFIER:GOOD_IDENTIFIER").is_err());
-        assert!(ResourceId::from_str("BAD$IDENTIFIER.GOOD_IDENTIFIER").is_err());
-        assert!(ResourceId::from_str("GOOD_IDENTIFIER.BAD_IDENT!FIER").is_err());
-        assert!(ResourceId::from_str("GOOD_IDENTIFIER.BAD IDENTIFIER").is_err());
+    fn resource_id_schema_is_valid() {
+        let resource_id =
+            ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
+
+        assert_eq!(resource_id.schema(), "g00d_identifier");
+    }
+
+    #[test]
+    fn resource_id_object_name_is_valid() {
+        let resource_id =
+            ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
+
+        assert_eq!(resource_id.object_name(), "_can_start_with_underscore");
     }
 
     #[test]
@@ -172,6 +179,11 @@ mod tests {
 
     #[test]
     fn invalid_resource_id_parsing_fails() {
+        assert!(ResourceId::from_str("GOOD_IDENTIFIER").is_err());
+        assert!(ResourceId::from_str("GOOD_IDENTIFIER:GOOD_IDENTIFIER").is_err());
+        assert!(ResourceId::from_str("BAD$IDENTIFIER.GOOD_IDENTIFIER").is_err());
+        assert!(ResourceId::from_str("GOOD_IDENTIFIER.BAD_IDENT!FIER").is_err());
+        assert!(ResourceId::from_str("GOOD_IDENTIFIER.BAD IDENTIFIER").is_err());
         assert!(ResourceId::from_str("GOOD_IDENTIFIER.13AD_IDENTIFIER").is_err());
         assert!(ResourceId::from_str("13AD_IDENTIFIER.GOOD_IDENTIFIER").is_err());
         assert!(ResourceId::from_str("GOOD_IDENTIFIER.").is_err());
