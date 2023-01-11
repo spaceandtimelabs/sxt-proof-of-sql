@@ -1,6 +1,7 @@
 use crate::intermediate_ast::*;
 use crate::sql;
 use crate::symbols::Name;
+use crate::SelectStatement;
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_expression() {
