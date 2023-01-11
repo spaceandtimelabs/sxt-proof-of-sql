@@ -1,4 +1,5 @@
 use crate::intermediate_ast;
+use crate::select_statement;
 use crate::symbols;
 use lalrpop_util::ParseError::User;
 
@@ -11,9 +12,9 @@ grammar;
 // https://www.postgresql.org/docs/current/sql-syntax-lexical.html
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub SelectStatement: intermediate_ast::SelectStatement = {
+pub SelectStatement: select_statement::SelectStatement = {
     <expr: SelectCoreList> => 
-        intermediate_ast::SelectStatement {
+        select_statement::SelectStatement {
             expr,
         },
 };

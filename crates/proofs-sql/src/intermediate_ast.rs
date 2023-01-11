@@ -6,13 +6,6 @@
 use super::symbols::Name;
 use serde::{Deserialize, Serialize};
 
-/// Representation of a select statement, that is, the only type of queries allowed.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub struct SelectStatement {
-    /// the query expression
-    pub expr: Box<SetExpression>,
-}
-
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum SetExpression {

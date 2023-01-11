@@ -6,8 +6,8 @@ pub mod intermediate_ast;
 mod intermediate_ast_tests;
 pub mod symbols;
 
-mod intermediate_ast_utility;
-pub use intermediate_ast_utility::{get_ref_tables_from_ast, TableRef};
+pub mod select_statement;
+pub use select_statement::SelectStatement;
 
 pub mod error;
 pub use error::{ParseError, ParseResult};
