@@ -8,17 +8,13 @@ use crate::base::{
     polynomial::CompositePolynomialInfo,
     proof::{MessageLabel, ProofError, TranscriptProtocol},
 };
-use crate::proof_primitive::{inner_product::InnerProductProof, sumcheck::SumcheckProof};
+use crate::proof_primitive::sumcheck::SumcheckProof;
+use proofs_gpu::proof::InnerProductProof;
 
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
-use curve25519_dalek::{
-    ristretto::{CompressedRistretto, RistrettoPoint},
-    scalar::Scalar,
-    traits::Identity,
-};
+use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
 use merlin::Transcript;
-use proofs_gpu::compute::get_generators;
 use serde::{Deserialize, Serialize};
 
 /// The proof for a query.
@@ -42,7 +38,6 @@ impl QueryProof {
         counts: &ProofCounts,
     ) -> (Self, ProvableQueryResult) {
         assert!(counts.sumcheck_variables > 0);
-        let n = 1 << counts.sumcheck_variables;
         let alloc = Bump::new();
 
         counts.annotate_trace();
@@ -94,16 +89,8 @@ impl QueryProof {
         let folded_mle = builder.fold_pre_result_mles(&random_scalars);
 
         // finally, form the inner product proof of the MLEs' evaluations
-        let mut generators = vec![RistrettoPoint::identity(); n + 1];
-        get_generators(&mut generators, 0);
-        let product_g = generators[n];
-        let evaluation_proof = InnerProductProof::create(
-            &mut transcript,
-            &product_g,
-            &generators[..n],
-            &folded_mle,
-            &evaluation_vec,
-        );
+        let evaluation_proof =
+            InnerProductProof::create(&mut transcript, &folded_mle, &evaluation_vec, 0);
 
         let proof = Self {
             commitments,
@@ -128,7 +115,6 @@ impl QueryProof {
         result: &ProvableQueryResult,
     ) -> Result<QueryResult, ProofError> {
         assert!(counts.sumcheck_variables > 0);
-        let n = 1 << counts.sumcheck_variables;
 
         // verify sizes
         if !self.validate_sizes(counts, result) {
@@ -208,18 +194,17 @@ impl QueryProof {
         }
 
         // finally, check the MLE evaluations with the inner product proof
-        let mut generators = vec![RistrettoPoint::identity(); n + 1];
-        get_generators(&mut generators, 0);
-        let product_g = generators[n];
-        let expected_commit = builder.folded_pre_result_commitment()
-            + product_g * builder.folded_pre_result_evaluation();
-        self.evaluation_proof.verify(
-            &mut transcript,
-            &expected_commit,
-            &product_g,
-            &generators[..n],
-            &evaluation_vec,
-        )?;
+        let product = builder.folded_pre_result_evaluation();
+        let expected_commit = builder.folded_pre_result_commitment();
+        self.evaluation_proof
+            .verify(
+                &mut transcript,
+                &expected_commit,
+                &product,
+                &evaluation_vec,
+                0,
+            )
+            .map_err(|_e| ProofError::VerificationError)?;
 
         Ok(result.into_query_result(expr.get_result_schema()))
     }
