@@ -89,7 +89,12 @@ class BenchmarkExecutor:
 
                 run_cmd = self.exported_libs + " " + self.binary_file + " " + curr_params
 
-                mean_time, _  = run_process(run_cmd).split('\n')
+                # TODO: as GPU is now the default backend, 
+                # this `run_process` will output
+                # `WARN: Using pippenger cpu instead of naive gpu backend.`
+                # when a GPU host is not available.
+                # This message would not be shown with a GPU host.
+                _, mean_time, _  = run_process(run_cmd).split('\n')
 
                 execution_times.append(float(mean_time))
             
