@@ -141,8 +141,8 @@ UnaryLiteral: i64 = {
 // Tokens
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub(crate) ResourceId: Vec<symbols::Name> = {
-    <schema: Identifier> "." <object_name: Identifier> => vec![schema, object_name]
+pub(crate) ResourceId: (symbols::Name, symbols::Name) = {
+    <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
 };
 
 pub(crate) Identifier: symbols::Name = ID => symbols::Name::from(<>);
