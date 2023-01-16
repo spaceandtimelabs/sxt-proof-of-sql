@@ -12,6 +12,9 @@ pub use select_statement::SelectStatement;
 pub mod error;
 pub use error::{ParseError, ParseResult};
 
+pub mod identifier;
+pub use identifier::Identifier;
+
 pub mod resource_id;
 pub use resource_id::ResourceId;
 

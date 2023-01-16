@@ -1,5 +1,5 @@
-use crate::sql::{IdentifierParser, ResourceIdParser};
-use crate::{ParseError, ParseResult};
+use crate::sql::ResourceIdParser;
+use crate::{Identifier, ParseError, ParseResult};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -8,8 +8,8 @@ use std::{
 /// Unique resource identifier, like `schema.object_name`.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ResourceId {
-    schema: String,
-    object_name: String,
+    schema: Identifier,
+    object_name: Identifier,
 }
 
 impl ResourceId {
@@ -21,26 +21,22 @@ impl ResourceId {
     /// These identifiers are defined here:
     /// <https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS>.
     pub fn try_new(schema: &str, object_name: &str) -> ParseResult<Self> {
-        let schema = IdentifierParser::new()
-            .parse(schema)
-            .map_err(|e| ParseError::ResourceIdParseError(format!("{:?}", e)))?;
-        let object_name = IdentifierParser::new()
-            .parse(object_name)
-            .map_err(|e| ParseError::ResourceIdParseError(format!("{:?}", e)))?;
+        let schema = Identifier::try_new(schema)?;
+        let object_name = Identifier::try_new(object_name)?;
 
         Ok(ResourceId {
-            schema: schema.as_str().to_string(),
-            object_name: object_name.as_str().to_string(),
+            schema,
+            object_name,
         })
     }
 
-    /// The schema of this [ResourceId].
-    pub fn schema(&self) -> &String {
+    /// The schema identifier of this [ResourceId].
+    pub fn schema(&self) -> &Identifier {
         &self.schema
     }
 
-    /// The object_name of this [ResourceId].
-    pub fn object_name(&self) -> &String {
+    /// The object_name identifier of this [ResourceId].
+    pub fn object_name(&self) -> &Identifier {
         &self.object_name
     }
 
@@ -61,8 +57,8 @@ impl ResourceId {
             object_name,
         } = self;
 
-        let schema = schema.to_string().to_uppercase();
-        let object_name = object_name.to_string().to_uppercase();
+        let schema = schema.name().to_string().to_uppercase();
+        let object_name = object_name.name().to_string().to_uppercase();
 
         format!("{schema}:{object_name}")
     }
@@ -83,13 +79,14 @@ impl FromStr for ResourceId {
     type Err = ParseError;
 
     fn from_str(string: &str) -> ParseResult<Self> {
-        let parsed_values = ResourceIdParser::new()
+        let (schema, object_name) = ResourceIdParser::new()
             .parse(string)
             .map_err(|e| ParseError::ResourceIdParseError(format!("{:?}", e)))?;
 
+        // use unsafe `Identifier::new` to prevent double parsing the ids
         Ok(ResourceId {
-            schema: parsed_values[0].as_str().to_string(),
-            object_name: parsed_values[1].as_str().to_string(),
+            schema: Identifier::new(schema),
+            object_name: Identifier::new(object_name),
         })
     }
 }
@@ -100,13 +97,21 @@ mod tests {
 
     #[test]
     fn try_new_resource_id() {
+        let resource_id =
+            ResourceId::try_new("G00d_identifier", "_can_start_with_underscore").unwrap();
+        assert_eq!(resource_id.schema().name(), "g00d_identifier");
         assert_eq!(
-            ResourceId::try_new("G00d_identifier", "_can_start_with_underscore"),
-            Ok(ResourceId {
-                schema: "g00d_identifier".to_string(),
-                object_name: "_can_start_with_underscore".to_string()
-            })
+            resource_id.object_name().name(),
+            "_can_start_with_underscore"
         );
+    }
+
+    #[test]
+    fn resource_id_from_str() {
+        let resource_id =
+            ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
+        assert_eq!(resource_id.schema().name(), "g00d_identifier");
+        assert_eq!(resource_id.schema().name(), "g00d_identifier");
     }
 
     #[test]
@@ -118,30 +123,25 @@ mod tests {
     }
 
     #[test]
-    fn resource_id_from_str() {
+    fn we_can_parse_valid_resource_ids_with_white_spaces_at_beginning_or_end() {
+        let resource_id =
+            ResourceId::from_str("      GOOD_IDENTIFIER._can_start_with_underscore   ").unwrap();
+        assert_eq!(resource_id.schema().name(), "good_identifier");
         assert_eq!(
-            ResourceId::from_str("G00d_identifier._can_start_with_underscore"),
-            Ok(ResourceId {
-                schema: "g00d_identifier".to_string(),
-                object_name: "_can_start_with_underscore".to_string()
-            })
+            resource_id.object_name().name(),
+            "_can_start_with_underscore"
         );
-    }
 
-    #[test]
-    fn resource_id_schema_is_valid() {
-        let resource_id =
-            ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
-
-        assert_eq!(resource_id.schema(), "g00d_identifier");
-    }
-
-    #[test]
-    fn resource_id_object_name_is_valid() {
-        let resource_id =
-            ResourceId::from_str("G00d_identifier._can_start_with_underscore").unwrap();
-
-        assert_eq!(resource_id.object_name(), "_can_start_with_underscore");
+        let resource_id = ResourceId::try_new(
+            "      GOOD_IDENTIFIER     ",
+            "      _can_start_with_underscore   ",
+        )
+        .unwrap();
+        assert_eq!(resource_id.schema().name(), "good_identifier");
+        assert_eq!(
+            resource_id.object_name().name(),
+            "_can_start_with_underscore"
+        );
     }
 
     #[test]
