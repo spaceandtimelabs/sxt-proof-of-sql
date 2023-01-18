@@ -34,7 +34,7 @@ impl FilterResultExpr {
     pub fn get_field(&self) -> Field {
         Field::new(
             &self.output_name,
-            (&self.column_ref.column_type).into(),
+            self.column_ref.column_type().into(),
             false,
         )
     }
@@ -58,7 +58,7 @@ impl FilterResultExpr {
         selection: &'a [bool],
     ) {
         let Column::BigInt(col) =
-            accessor.get_column(&self.column_ref.table_name, &self.column_ref.column_name);
+            accessor.get_column(self.column_ref.table_name(), self.column_ref.column_name());
 
         // add result column
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
@@ -100,7 +100,7 @@ impl FilterResultExpr {
         selection_eval: &Scalar,
     ) {
         let col_commit =
-            accessor.get_commitment(&self.column_ref.table_name, &self.column_ref.column_name);
+            accessor.get_commitment(self.column_ref.table_name(), self.column_ref.column_name());
 
         let result_eval = builder.consume_result_mle();
         let col_eval = builder.consume_anchored_mle(&col_commit);

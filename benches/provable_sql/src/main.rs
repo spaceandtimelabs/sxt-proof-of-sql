@@ -7,6 +7,7 @@ use proofs::sql::parse::Converter;
 use proofs::sql::proof::VerifiableQueryResult;
 use proofs_gpu::compute::{init_backend_with_config, BackendConfig};
 use proofs_sql::sql::SelectStatementParser;
+use proofs_sql::Identifier;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::time::Instant;
@@ -42,10 +43,11 @@ struct Args {
 }
 
 fn parse_query(query: String, accessor: &TestAccessor) -> FilterExpr {
+    let default_schema = Identifier::try_new("sxt").unwrap();
     let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
 
     Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, accessor)
+        .visit_intermediate_ast(&intermediate_ast, accessor, &default_schema)
         .unwrap()
 }
 

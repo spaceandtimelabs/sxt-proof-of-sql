@@ -1,10 +1,13 @@
 use super::{EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
+    TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
+use proofs_sql::{Identifier, ResourceId};
+
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
@@ -19,27 +22,25 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::from(1u64),
         )))),
     );
@@ -78,27 +79,25 @@ fn we_can_query_random_tables() {
     for _ in 0..10 {
         let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
-                ColumnRef {
-                    column_name: "a".to_string(),
-                    table_name: "t".to_string(),
-                    schema: None,
-                    column_type: ColumnType::BigInt,
-                },
+                ColumnRef::new(
+                    table_ref.clone(),
+                    Identifier::try_new("a").unwrap(),
+                    ColumnType::BigInt,
+                ),
                 "a".to_string(),
             )],
             TableExpr {
-                name: "t".to_string(),
-                schema: None,
+                table_ref: table_ref.clone(),
             },
             Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-                ColumnRef {
-                    column_name: "b".to_string(),
-                    table_name: "t".to_string(),
-                    schema: None,
-                    column_type: ColumnType::BigInt,
-                },
+                ColumnRef::new(
+                    table_ref,
+                    Identifier::try_new("b").unwrap(),
+                    ColumnType::BigInt,
+                ),
                 val.into_scalar(),
             )))),
         );

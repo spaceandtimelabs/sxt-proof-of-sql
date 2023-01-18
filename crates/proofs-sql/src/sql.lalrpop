@@ -145,7 +145,7 @@ pub(crate) ResourceId: (symbols::Name, symbols::Name) = {
     <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
 };
 
-pub(crate) Identifier: symbols::Name = ID => symbols::Name::from(<>);
+pub(crate) Identifier: symbols::Name = ID => symbols::Name::new(<>);
 
 NumericLiteral: i64 = {
     NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),

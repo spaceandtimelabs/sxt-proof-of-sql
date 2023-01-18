@@ -4,6 +4,9 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnRef, ColumnType};
 
+mod table;
+pub use table::TableRef;
+
 #[cfg(any(test, feature = "test"))]
 mod test_accessor;
 #[cfg(any(test, feature = "test"))]
