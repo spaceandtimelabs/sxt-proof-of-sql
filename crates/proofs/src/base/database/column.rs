@@ -1,4 +1,6 @@
+use super::TableRef;
 use arrow::datatypes::DataType;
+use proofs_sql::Identifier;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -32,8 +34,33 @@ impl From<&ColumnType> for DataType {
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ColumnRef {
-    pub column_name: String,
-    pub table_name: String,
-    pub schema: Option<String>,
-    pub column_type: ColumnType,
+    column_name: Identifier,
+    table_ref: TableRef,
+    column_type: ColumnType,
+}
+
+impl ColumnRef {
+    pub fn new(table_ref: TableRef, column_name: Identifier, column_type: ColumnType) -> Self {
+        Self {
+            column_name,
+            column_type,
+            table_ref,
+        }
+    }
+
+    pub fn column_name(&self) -> &str {
+        self.column_name.name()
+    }
+
+    pub fn schema(&self) -> &str {
+        self.table_ref.schema()
+    }
+
+    pub fn table_name(&self) -> &str {
+        self.table_ref.table_name()
+    }
+
+    pub fn column_type(&self) -> &ColumnType {
+        &self.column_type
+    }
 }

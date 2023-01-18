@@ -12,15 +12,15 @@ fn we_can_parse_a_query_with_one_equals_filter_expression() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("a"),
+                left: Name::new("a"),
                 right: 3,
             }),
         }),
@@ -39,20 +39,20 @@ fn we_can_parse_a_query_with_two_result_columns() {
         expr: Box::new(SetExpression::Query {
             columns: vec![
                 Box::new(ResultColumn::Expr {
-                    expr: Name::from("a"),
+                    expr: Name::new("a"),
                     output_name: None,
                 }),
                 Box::new(ResultColumn::Expr {
-                    expr: Name::from("b"),
+                    expr: Name::new("b"),
                     output_name: None,
                 }),
             ],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("c"),
+                left: Name::new("c"),
                 right: 123,
             }),
         }),
@@ -71,11 +71,11 @@ fn we_can_parse_a_query_using_select_star() {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::All)],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("a"),
+                left: Name::new("a"),
                 right: 3,
             }),
         }),
@@ -94,26 +94,26 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
         expr: Box::new(SetExpression::Query {
             columns: vec![
                 Box::new(ResultColumn::Expr {
-                    expr: Name::from("a"),
+                    expr: Name::new("a"),
                     output_name: None,
                 }),
                 Box::new(ResultColumn::All),
                 Box::new(ResultColumn::Expr {
-                    expr: Name::from("b"),
+                    expr: Name::new("b"),
                     output_name: None,
                 }),
                 Box::new(ResultColumn::Expr {
-                    expr: Name::from("c"),
+                    expr: Name::new("c"),
                     output_name: None,
                 }),
                 Box::new(ResultColumn::All),
             ],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("a"),
+                left: Name::new("a"),
                 right: 3,
             }),
         }),
@@ -131,15 +131,15 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: 4,
             }),
         }),
@@ -157,15 +157,15 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: -4,
             }),
         }),
@@ -184,15 +184,15 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
         let expected_ast = SelectStatement {
             expr: Box::new(SetExpression::Query {
                 columns: vec![Box::new(ResultColumn::Expr {
-                    expr: Name::from("a"),
+                    expr: Name::new("a"),
                     output_name: None,
                 })],
                 from: vec![Box::new(TableExpression::Named {
-                    table: Name::from("sxt_tab"),
+                    table: Name::new("sxt_tab"),
                     schema: None,
                 })],
                 where_expr: Box::new(Expression::NotEqual {
-                    left: Name::from("b"),
+                    left: Name::new("b"),
                     right: -4,
                 }),
             }),
@@ -211,16 +211,16 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Not {
                 expr: Box::new(Expression::Equal {
-                    left: Name::from("b"),
+                    left: Name::new("b"),
                     right: 3,
                 }),
             }),
@@ -239,20 +239,20 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
-                    left: Name::from("b"),
+                    left: Name::new("b"),
                     right: 3,
                 }),
                 right: Box::new(Expression::Equal {
-                    left: Name::from("c"),
+                    left: Name::new("c"),
                     right: -2,
                 }),
             }),
@@ -271,20 +271,20 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Or {
                 left: Box::new(Expression::Equal {
-                    left: Name::from("b"),
+                    left: Name::new("b"),
                     right: 3,
                 }),
                 right: Box::new(Expression::Equal {
-                    left: Name::from("c"),
+                    left: Name::new("c"),
                     right: -2,
                 }),
             }),
@@ -303,21 +303,21 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
-                    left: Name::from("b"),
+                    left: Name::new("b"),
                     right: 3,
                 }),
                 right: Box::new(Expression::Not {
                     expr: Box::new(Expression::Equal {
-                        left: Name::from("c"),
+                        left: Name::new("c"),
                         right: -2,
                     }),
                 }),
@@ -337,26 +337,26 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Not {
                 expr: Box::new(Expression::And {
                     left: Box::new(Expression::Equal {
-                        left: Name::from("b"),
+                        left: Name::new("b"),
                         right: 3,
                     }),
                     right: Box::new(Expression::Or {
                         left: Box::new(Expression::Equal {
-                            left: Name::from("f"),
+                            left: Name::new("f"),
                             right: 45,
                         }),
                         right: Box::new(Expression::Equal {
-                            left: Name::from("c"),
+                            left: Name::new("c"),
                             right: -2,
                         }),
                     }),
@@ -377,15 +377,15 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: -9223372036854775808,
             }),
         }),
@@ -403,15 +403,15 @@ fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal()
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: 9223372036854775807,
             }),
         }),
@@ -429,15 +429,15 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
-                output_name: Some(Name::from("a_rename")),
+                expr: Name::new("a"),
+                output_name: Some(Name::new("a_rename")),
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: 4,
             }),
         }),
@@ -455,15 +455,15 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
-                output_name: Some(Name::from("a_rename")),
+                expr: Name::new("a"),
+                output_name: Some(Name::new("a_rename")),
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
+                table: Name::new("sxt_tab"),
                 schema: None,
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: 4,
             }),
         }),
@@ -560,15 +560,15 @@ fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
     let expected_ast = SelectStatement {
         expr: Box::new(SetExpression::Query {
             columns: vec![Box::new(ResultColumn::Expr {
-                expr: Name::from("a"),
+                expr: Name::new("a"),
                 output_name: None,
             })],
             from: vec![Box::new(TableExpression::Named {
-                table: Name::from("sxt_tab"),
-                schema: Some(Name::from("eth")),
+                table: Name::new("sxt_tab"),
+                schema: Some(Name::new("eth")),
             })],
             where_expr: Box::new(Expression::Equal {
-                left: Name::from("b"),
+                left: Name::new("b"),
                 right: 4,
             }),
         }),

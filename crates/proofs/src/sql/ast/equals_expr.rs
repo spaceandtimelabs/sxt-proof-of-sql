@@ -48,7 +48,7 @@ impl BoolExpr for EqualsExpr {
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
         let Column::BigInt(col) =
-            accessor.get_column(&self.column_ref.table_name, &self.column_ref.column_name);
+            accessor.get_column(self.column_ref.table_name(), self.column_ref.column_name());
 
         // lhs
         let lhs =
@@ -106,7 +106,7 @@ impl BoolExpr for EqualsExpr {
     ) -> Scalar {
         // lhs_commit
         let lhs_commit = accessor
-            .get_commitment(&self.column_ref.table_name, &self.column_ref.column_name)
+            .get_commitment(self.column_ref.table_name(), self.column_ref.column_name())
             - self.value * get_one_commit(counts.table_length as u64);
 
         // consume mle evaluations

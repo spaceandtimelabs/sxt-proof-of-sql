@@ -5,16 +5,25 @@ use std::fmt;
 /// Case-insensitive name of a table/column.
 ///
 /// Names are case-insensitive for the purpose of comparison since they usually are in SQL.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Name {
     /// The name itself which is always in lower case
     string: String,
 }
 
 impl Name {
-    pub fn new(string: String) -> Name {
+    /// Constructor for Name
+    ///
+    /// Note: this constructor should be private within the proofs_sql crate.
+    /// This is necessary to guarantee that no one outside the crate
+    /// can create Names, thus securing that ResourceIds and Identifiers
+    /// are always valid postgresql identifiers.
+    pub(crate) fn new<S>(string: S) -> Name
+    where
+        S: Into<String>,
+    {
         Name {
-            string: string.to_lowercase(),
+            string: string.into().to_lowercase(),
         }
     }
 
@@ -26,18 +35,6 @@ impl Name {
 impl fmt::Display for Name {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         self.string.fmt(f)
-    }
-}
-
-impl<'a> From<&'a str> for Name {
-    fn from(value: &'a str) -> Name {
-        Name::new(String::from(value))
-    }
-}
-
-impl From<String> for Name {
-    fn from(value: String) -> Name {
-        Name::new(value)
     }
 }
 
@@ -61,9 +58,9 @@ mod tests {
     fn strings_are_lower_case_when_converted_to_names() {
         let raw_str = "sxt";
         let string = "sXt".to_owned();
-        let lower_case = Name::from(raw_str);
+        let lower_case = Name::new(raw_str);
         let upper_case = Name::new("SXT".to_owned());
-        let mixed_case = Name::from(string);
+        let mixed_case = Name::new(string);
         // Everything is set to lower case
         assert_eq!(lower_case, upper_case);
         assert_eq!(lower_case, mixed_case);
