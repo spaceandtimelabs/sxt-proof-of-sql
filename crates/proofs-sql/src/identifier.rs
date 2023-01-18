@@ -5,17 +5,19 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 
 /// Top-level unique identifier.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Identifier {
     name: Name,
 }
 
 impl Identifier {
-    /// Unsafe constructor, which should be used for internal usage only.
+    /// Constructor for [Identifier]s.
     ///
-    /// Note: no parsing is applied to `name`. Therefore,
-    /// the caller must guarantee it's a valid Identifier.
-    pub(crate) fn new(name: Name) -> Self {
+    /// Note: this is a safe constructor, since
+    /// only the proofs_sql parser can construct
+    /// or modify `Name` objects (its constructor
+    /// is using pub(crate)).
+    pub fn new(name: Name) -> Self {
         Self { name }
     }
 

@@ -6,13 +6,21 @@ use std::{
 };
 
 /// Unique resource identifier, like `schema.object_name`.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResourceId {
     schema: Identifier,
     object_name: Identifier,
 }
 
 impl ResourceId {
+    /// Constructor for [ResourceId]s.
+    pub fn new(schema: Identifier, object_name: Identifier) -> Self {
+        Self {
+            schema,
+            object_name,
+        }
+    }
+
     /// Constructor for [ResourceId]s.
     ///
     /// # Errors

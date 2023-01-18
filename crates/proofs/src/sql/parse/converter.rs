@@ -1,29 +1,52 @@
-use crate::base::database::{ColumnRef, SchemaAccessor};
+use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
 use crate::base::scalar::IntoScalar;
 use crate::sql::ast::{
     AndExpr, BoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::sql::parse::{ParseError, ParseResult};
+
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::intermediate_ast::{Expression, ResultColumn, SetExpression, TableExpression};
 use proofs_sql::symbols::Name;
-use proofs_sql::SelectStatement;
+use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::ops::Deref;
 
 #[derive(Default)]
 pub struct Converter {
     /// The current table in context
-    current_table: Option<String>,
+    current_table: Option<TableRef>,
 }
 
 impl Converter {
     /// Convert an Intermediate AST into a Provable AST
+    ///
+    /// # Parameters:
+    ///
+    /// ast: the proper intermediate ast to be converted into a provable ast.
+    ///
+    /// schema_accessor: this accessor is particularly useful
+    ///     to allow us to check if a given column exists in a
+    ///     given `schema_table.table_name` as well as check
+    ///     its type. We also use it to fetch all columns
+    ///     existing in a given `schema_table.table_name`,
+    ///     necessary to convert a `select * from T` intermediate ast
+    ///     into the provable ast.
+    ///
+    /// default_schema: in case no schema is specified in the given
+    ///     intermediate ast, we use this `default_schema` to
+    ///     create the `TableRef`. Otherwise, we use the already
+    ///     SelectStatements' schema to create the `TableRef`.
+    ///
+    /// # Return:
+    ///
+    /// The provable ast, wrapped inside a parse result.
     pub fn visit_intermediate_ast(
         &mut self,
         ast: &SelectStatement,
         schema_accessor: &dyn SchemaAccessor,
+        default_schema: &Identifier,
     ) -> ParseResult<FilterExpr> {
-        self.visit_set_expression(ast.expr.deref(), schema_accessor)
+        self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)
     }
 }
 
@@ -34,6 +57,7 @@ impl Converter {
         &mut self,
         expr: &SetExpression,
         schema_accessor: &dyn SchemaAccessor,
+        default_schema: &Identifier,
     ) -> ParseResult<FilterExpr> {
         match expr {
             SetExpression::Query {
@@ -42,9 +66,11 @@ impl Converter {
                 where_expr,
             } => {
                 // we should always visit table_expr first, as we need to know the current table name
-                let table = self.visit_table_expressions(&from[..]);
+                let table = self.visit_table_expressions(&from[..], default_schema);
+
                 let filter_result_expr_list =
                     self.visit_result_columns(&columns[..], schema_accessor)?;
+
                 let where_clause =
                     self.visit_bool_expression(where_expr.deref(), schema_accessor)?;
 
@@ -61,25 +87,37 @@ impl Converter {
 /// Table expression
 impl Converter {
     /// Convert a `TableExpression` into a TableExpr
-    fn visit_table_expression(&mut self, table_expr: &TableExpression) -> TableExpr {
+    fn visit_table_expression(
+        &mut self,
+        table_expr: &TableExpression,
+        default_schema: &Identifier,
+    ) -> TableExpr {
         match table_expr {
             TableExpression::Named { table, schema } => {
-                let name = table.as_str().to_string();
+                let table = Identifier::new(table.clone());
+                let schema = schema
+                    .as_ref()
+                    .map(|schema| Identifier::new(schema.clone()))
+                    .unwrap_or_else(|| default_schema.clone());
 
-                let schema = schema.as_ref().map(|s| s.as_str().to_string());
+                let table_ref = TableRef::new(ResourceId::new(schema, table));
 
-                self.current_table = Some(name.clone());
+                self.current_table = Some(table_ref.clone());
 
-                TableExpr { name, schema }
+                TableExpr { table_ref }
             }
         }
     }
 
     /// Convert a `TableExpression slice` into a `TableExpr`
-    fn visit_table_expressions(&mut self, table_exprs: &[Box<TableExpression>]) -> TableExpr {
+    fn visit_table_expressions(
+        &mut self,
+        table_exprs: &[Box<TableExpression>],
+        default_schema: &Identifier,
+    ) -> TableExpr {
         assert!(table_exprs.len() == 1);
 
-        self.visit_table_expression(table_exprs[0].deref())
+        self.visit_table_expression(table_exprs[0].deref(), default_schema)
     }
 }
 
@@ -90,19 +128,23 @@ impl Converter {
         &self,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<Vec<FilterResultExpr>> {
-        let current_table = self.current_table.as_deref().unwrap();
-        let columns = schema_accessor.lookup_schema(current_table);
+        let current_table = self
+            .current_table
+            .as_ref()
+            .expect("Some table should've already been processed at this point");
+        let columns = schema_accessor.lookup_schema(current_table.table_name());
 
         Ok(columns
             .into_iter()
             .map(|(column_name, column_type)| {
+                // TODO: we unwrap here, but this is not a safe operation.
+                // We should update the accessors ASAP to return Identifiers
+                // instead of &str.
+                let column_name_id = Identifier::try_new(column_name)
+                    .expect("Lookup schema should have provided valid column names");
+
                 FilterResultExpr::new(
-                    ColumnRef {
-                        column_name: column_name.to_string(),
-                        table_name: current_table.to_string(),
-                        schema: None,
-                        column_type,
-                    },
+                    ColumnRef::new(current_table.clone(), column_name_id, column_type),
                     column_name.to_string(),
                 )
             })
@@ -118,7 +160,9 @@ impl Converter {
     ) -> ParseResult<FilterResultExpr> {
         let result_expr = self.visit_column_identifier(expr, schema_accessor)?;
         let output_name = output_name.as_ref().map(|output| output.as_str());
-        let output_name = output_name.unwrap_or(&result_expr.column_name).to_string();
+        let output_name = output_name
+            .unwrap_or_else(|| result_expr.column_name())
+            .to_string();
 
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
@@ -217,24 +261,34 @@ impl Converter {
         id: &Name,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<ColumnRef> {
-        let column_name = id.as_str().to_string();
+        let column_name = Identifier::new(id.clone());
 
-        let current_table = self.current_table.as_deref().unwrap();
+        let current_table = self
+            .current_table
+            .as_ref()
+            .expect("Some table should've already been processed at this point");
 
-        let column_type = schema_accessor.lookup_column(current_table, &column_name);
+        let column_ref = ColumnRef::new(
+            current_table.clone(),
+            column_name.clone(),
+            ColumnType::BigInt,
+        );
+
+        let column_type =
+            schema_accessor.lookup_column(column_ref.table_name(), column_ref.column_name());
 
         if column_type.is_none() {
             return Err(ParseError::MissingColumnError(format!(
                 "Column {:?} is not found in table {:?}",
-                column_name, current_table
+                column_name,
+                current_table.table_name()
             )));
         }
 
-        Ok(ColumnRef {
+        Ok(ColumnRef::new(
+            current_table.clone(),
             column_name,
-            table_name: current_table.to_string(),
-            schema: None,
-            column_type: column_type.unwrap(),
-        })
+            column_type.unwrap(),
+        ))
     }
 }

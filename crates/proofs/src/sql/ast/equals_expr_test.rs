@@ -1,6 +1,7 @@
 use super::{EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
+    TestAccessor,
 };
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;
@@ -10,6 +11,7 @@ use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use indexmap::IndexMap;
 use polars::prelude::*;
+use proofs_sql::{Identifier, ResourceId};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
@@ -19,27 +21,25 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::zero(),
         )),
     );
@@ -64,27 +64,25 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::zero(),
         )),
     );
@@ -109,27 +107,25 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::zero(),
         )),
     );
@@ -154,27 +150,25 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::zero(),
         )),
     );
@@ -201,27 +195,25 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::from(123u64),
         )),
     );
@@ -248,27 +240,25 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 
 #[test]
 fn verify_fails_if_data_between_prover_and_verifier_differ() {
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
-            ColumnRef {
-                column_name: "a".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
             "a".to_string(),
         )],
         TableExpr {
-            name: "t".to_string(),
-            schema: None,
+            table_ref: table_ref.clone(),
         },
         Box::new(EqualsExpr::new(
-            ColumnRef {
-                column_name: "b".to_string(),
-                table_name: "t".to_string(),
-                schema: None,
-                column_type: ColumnType::BigInt,
-            },
+            ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            ),
             Scalar::zero(),
         )),
     );
@@ -305,27 +295,25 @@ fn we_can_query_random_tables() {
     for _ in 0..10 {
         let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
-                ColumnRef {
-                    column_name: "a".to_string(),
-                    table_name: "t".to_string(),
-                    schema: None,
-                    column_type: ColumnType::BigInt,
-                },
+                ColumnRef::new(
+                    table_ref.clone(),
+                    Identifier::try_new("a").unwrap(),
+                    ColumnType::BigInt,
+                ),
                 "a".to_string(),
             )],
             TableExpr {
-                name: "t".to_string(),
-                schema: None,
+                table_ref: table_ref.clone(),
             },
             Box::new(EqualsExpr::new(
-                ColumnRef {
-                    column_name: "b".to_string(),
-                    table_name: "t".to_string(),
-                    schema: None,
-                    column_type: ColumnType::BigInt,
-                },
+                ColumnRef::new(
+                    table_ref,
+                    Identifier::try_new("b").unwrap(),
+                    ColumnType::BigInt,
+                ),
                 val.into_scalar(),
             )),
         );
@@ -357,38 +345,35 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
     for _ in 0..10 {
         let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
         let expr = FilterExpr::new(
             vec![
                 FilterResultExpr::new(
-                    ColumnRef {
-                        column_name: "aa".to_string(),
-                        table_name: "t".to_string(),
-                        schema: None,
-                        column_type: ColumnType::BigInt,
-                    },
+                    ColumnRef::new(
+                        table_ref.clone(),
+                        Identifier::try_new("aa").unwrap(),
+                        ColumnType::BigInt,
+                    ),
                     "aa".to_string(),
                 ),
                 FilterResultExpr::new(
-                    ColumnRef {
-                        column_name: "ab".to_string(),
-                        table_name: "t".to_string(),
-                        schema: None,
-                        column_type: ColumnType::BigInt,
-                    },
+                    ColumnRef::new(
+                        table_ref.clone(),
+                        Identifier::try_new("ab").unwrap(),
+                        ColumnType::BigInt,
+                    ),
                     "ab".to_string(),
                 ),
             ],
             TableExpr {
-                name: "t".to_string(),
-                schema: None,
+                table_ref: table_ref.clone(),
             },
             Box::new(EqualsExpr::new(
-                ColumnRef {
-                    column_name: "b".to_string(),
-                    table_name: "t".to_string(),
-                    schema: None,
-                    column_type: ColumnType::BigInt,
-                },
+                ColumnRef::new(
+                    table_ref,
+                    Identifier::try_new("b").unwrap(),
+                    ColumnType::BigInt,
+                ),
                 val.into_scalar(),
             )),
         );
