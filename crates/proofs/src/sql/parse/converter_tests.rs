@@ -30,7 +30,7 @@ fn we_can_convert_an_ast_with_one_column() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -78,7 +78,7 @@ fn we_can_convert_an_ast_with_two_columns() {
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
-                "a".to_string(),
+                Identifier::try_new("a").unwrap(),
             ),
             FilterResultExpr::new(
                 ColumnRef::new(
@@ -86,7 +86,7 @@ fn we_can_convert_an_ast_with_two_columns() {
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
-                "b".to_string(),
+                Identifier::try_new("b").unwrap(),
             ),
         ],
         TableExpr {
@@ -122,16 +122,13 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let table_ref = TableRef::new(ResourceId::try_new(default_schema.name(), table_name).unwrap());
 
     let result_columns: Vec<_> = accessor
-        .lookup_schema(table_ref.table_name())
+        .lookup_schema(&table_ref)
         .into_iter()
-        .map(|(column_name, column_type)| {
+        .map(|(column_name_id, column_type)| {
+            let column_name = column_name_id.name().to_string();
             FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref.clone(),
-                    Identifier::try_new(column_name).unwrap(),
-                    column_type,
-                ),
-                column_name.to_string(),
+                ColumnRef::new(table_ref.clone(), column_name_id, column_type),
+                Identifier::try_new(&column_name).unwrap(),
             )
         })
         .collect();
@@ -181,16 +178,13 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
     let table_ref = TableRef::new(ResourceId::try_new(default_schema.name(), table_name).unwrap());
 
     let all_schema_columns: Vec<_> = accessor
-        .lookup_schema(table_ref.table_name())
+        .lookup_schema(&table_ref)
         .into_iter()
-        .map(|(column_name, column_type)| {
+        .map(|(column_name_id, column_type)| {
+            let column_name = column_name_id.name().to_string();
             FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref.clone(),
-                    Identifier::try_new(column_name).unwrap(),
-                    column_type,
-                ),
-                column_name.to_string(),
+                ColumnRef::new(table_ref.clone(), column_name_id, column_type),
+                Identifier::try_new(&column_name).unwrap(),
             )
         })
         .collect();
@@ -203,7 +197,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
             Identifier::try_new("a").unwrap(),
             ColumnType::BigInt,
         ),
-        "a".to_string(),
+        Identifier::try_new("a").unwrap(),
     )];
 
     result_columns.extend_from_slice(&all_schema_columns[..]);
@@ -214,7 +208,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
             Identifier::try_new("b").unwrap(),
             ColumnType::BigInt,
         ),
-        "b".to_string(),
+        Identifier::try_new("b").unwrap(),
     ));
 
     result_columns.extend(all_schema_columns);
@@ -267,7 +261,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -311,7 +305,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -355,7 +349,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -403,7 +397,7 @@ fn we_can_convert_an_ast_with_cond_and() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -461,7 +455,7 @@ fn we_can_convert_an_ast_with_cond_or() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -519,7 +513,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -578,7 +572,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -639,7 +633,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -680,7 +674,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -724,7 +718,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "b_rename".to_string(),
+            Identifier::try_new("b_rename").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -781,7 +775,7 @@ fn we_can_convert_an_ast_with_a_schema() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),

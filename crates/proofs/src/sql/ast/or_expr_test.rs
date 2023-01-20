@@ -30,7 +30,7 @@ fn we_can_prove_a_simple_or_query() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -86,7 +86,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -155,7 +155,7 @@ fn we_can_query_random_tables() {
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
-                "a".to_string(),
+                Identifier::try_new("a").unwrap(),
             )],
             TableExpr {
                 table_ref: table_ref.clone(),
