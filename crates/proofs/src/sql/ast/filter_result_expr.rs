@@ -6,6 +6,7 @@ use crate::sql::proof::{
 use arrow::datatypes::Field;
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
+use proofs_sql::Identifier;
 use std::cmp::max;
 use std::collections::HashSet;
 
@@ -15,25 +16,27 @@ use std::collections::HashSet;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
-    output_name: String,
+    column_name_id: Identifier,
 }
 
 impl FilterResultExpr {
-    /// Creates a new filter result expression
-    pub fn new(column_ref: ColumnRef, output_name: String) -> Self {
+    /// Create a new filter result expression
+    pub fn new(column_ref: ColumnRef, column_name_id: Identifier) -> Self {
         Self {
             column_ref,
-            output_name,
+            column_name_id,
         }
     }
 
+    /// Add the `self.column_ref` to the `columns` HashSet
     pub fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         columns.insert(self.column_ref.clone());
     }
 
+    /// Wrap the column output name and its type within the arrow Field
     pub fn get_field(&self) -> Field {
         Field::new(
-            &self.output_name,
+            self.column_name_id.name(),
             self.column_ref.column_type().into(),
             false,
         )
@@ -57,8 +60,7 @@ impl FilterResultExpr {
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
     ) {
-        let Column::BigInt(col) =
-            accessor.get_column(self.column_ref.table_name(), self.column_ref.column_name());
+        let Column::BigInt(col) = accessor.get_column(&self.column_ref);
 
         // add result column
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
@@ -90,7 +92,7 @@ impl FilterResultExpr {
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
 
-    /// Give the evaluation of the selected row's multilinear extension at sumcheck's random point,
+    /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
     /// add components needed to verify this filter result expression
     pub fn verifier_evaluate(
         &self,
@@ -99,8 +101,7 @@ impl FilterResultExpr {
         accessor: &dyn CommitmentAccessor,
         selection_eval: &Scalar,
     ) {
-        let col_commit =
-            accessor.get_commitment(self.column_ref.table_name(), self.column_ref.column_name());
+        let col_commit = accessor.get_commitment(&self.column_ref);
 
         let result_eval = builder.consume_result_mle();
         let col_eval = builder.consume_anchored_mle(&col_commit);

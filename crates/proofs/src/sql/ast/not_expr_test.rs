@@ -30,7 +30,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -87,7 +87,7 @@ fn we_can_query_random_tables() {
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
-                "a".to_string(),
+                Identifier::try_new("a").unwrap(),
             )],
             TableExpr {
                 table_ref: table_ref.clone(),
