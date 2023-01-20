@@ -1,6 +1,6 @@
 use super::{
-    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
-    TestAccessor,
+    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TableRef, TestAccessor,
 };
 use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::Int64Array;
@@ -8,6 +8,7 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use indexmap::IndexMap;
 use polars::prelude::*;
+use proofs_sql::{Identifier, ResourceId};
 use std::sync::Arc;
 
 #[test]
@@ -22,7 +23,8 @@ fn we_can_query_the_length_of_a_table() {
         ]),
     );
 
-    assert_eq!(accessor.get_length("test"), 3);
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "test").unwrap());
+    assert_eq!(accessor.get_length(&table_ref), 3);
 
     accessor.add_table(
         "test2",
@@ -32,8 +34,10 @@ fn we_can_query_the_length_of_a_table() {
         ]),
     );
 
-    assert_eq!(accessor.get_length("test"), 3);
-    assert_eq!(accessor.get_length("test2"), 4);
+    assert_eq!(accessor.get_length(&table_ref), 3);
+
+    let table_ref = TableRef::new(ResourceId::try_new("sxt", "test2").unwrap());
+    assert_eq!(accessor.get_length(&table_ref), 4);
 }
 
 #[test]
@@ -48,7 +52,12 @@ fn we_can_access_the_columns_of_a_table() {
         ]),
     );
 
-    match accessor.get_column("test", "b") {
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
+    );
+    match accessor.get_column(&column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6]),
     };
 
@@ -60,11 +69,21 @@ fn we_can_access_the_columns_of_a_table() {
         ]),
     );
 
-    match accessor.get_column("test", "a") {
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("a").unwrap(),
+        ColumnType::BigInt,
+    );
+    match accessor.get_column(&column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![1, 2, 3]),
     };
 
-    match accessor.get_column("test2", "b") {
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
+    );
+    match accessor.get_column(&column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
     };
 }
@@ -81,8 +100,13 @@ fn we_can_access_the_commitments_of_table_columns() {
         ]),
     );
 
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
+    );
     assert_eq!(
-        accessor.get_commitment("test", "b"),
+        accessor.get_commitment(&column),
         compute_commitment_for_testing(&[4, 5, 6])
     );
 
@@ -94,12 +118,23 @@ fn we_can_access_the_commitments_of_table_columns() {
         ]),
     );
 
-    assert_eq!(
-        accessor.get_commitment("test", "a"),
-        compute_commitment_for_testing(&[1, 2, 3])
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("a").unwrap(),
+        ColumnType::BigInt,
     );
     assert_eq!(
-        accessor.get_commitment("test2", "b"),
+        accessor.get_commitment(&column),
+        compute_commitment_for_testing(&[1, 2, 3])
+    );
+
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
+    );
+    assert_eq!(
+        accessor.get_commitment(&column),
         compute_commitment_for_testing(&[4, 5, 6, 5])
     );
 }
@@ -116,12 +151,19 @@ fn we_can_access_the_type_of_table_columns() {
         ]),
     );
 
-    assert_eq!(
-        accessor.lookup_column("test", "b"),
-        Some(ColumnType::BigInt)
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
     );
+    assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
-    assert!(accessor.lookup_column("test", "c").is_none());
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("c").unwrap(),
+        ColumnType::BigInt,
+    );
+    assert!(accessor.lookup_column(&column).is_none());
 
     accessor.add_table(
         "test2",
@@ -131,17 +173,26 @@ fn we_can_access_the_type_of_table_columns() {
         ]),
     );
 
-    assert_eq!(
-        accessor.lookup_column("test", "a"),
-        Some(ColumnType::BigInt)
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        Identifier::try_new("a").unwrap(),
+        ColumnType::BigInt,
     );
+    assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
-    assert_eq!(
-        accessor.lookup_column("test2", "b"),
-        Some(ColumnType::BigInt)
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        Identifier::try_new("b").unwrap(),
+        ColumnType::BigInt,
     );
+    assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
-    assert!(accessor.lookup_column("test2", "c").is_none());
+    let column = ColumnRef::new(
+        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        Identifier::try_new("c").unwrap(),
+        ColumnType::BigInt,
+    );
+    assert!(accessor.lookup_column(&column).is_none());
 }
 
 #[test]

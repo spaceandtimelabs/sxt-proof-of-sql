@@ -132,20 +132,14 @@ impl Converter {
             .current_table
             .as_ref()
             .expect("Some table should've already been processed at this point");
-        let columns = schema_accessor.lookup_schema(current_table.table_name());
+        let columns = schema_accessor.lookup_schema(current_table);
 
         Ok(columns
             .into_iter()
-            .map(|(column_name, column_type)| {
-                // TODO: we unwrap here, but this is not a safe operation.
-                // We should update the accessors ASAP to return Identifiers
-                // instead of &str.
-                let column_name_id = Identifier::try_new(column_name)
-                    .expect("Lookup schema should have provided valid column names");
-
+            .map(|(column_name_id, column_type)| {
                 FilterResultExpr::new(
-                    ColumnRef::new(current_table.clone(), column_name_id, column_type),
-                    column_name.to_string(),
+                    ColumnRef::new(current_table.clone(), column_name_id.clone(), column_type),
+                    column_name_id,
                 )
             })
             .collect())
@@ -154,15 +148,15 @@ impl Converter {
     /// Convert a `ResultColumn::Expr` into a `FilterResultExpr`
     fn visit_result_column_expression(
         &self,
-        expr: &Name,
+        column_name: &Name,
         output_name: &Option<Name>,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<FilterResultExpr> {
-        let result_expr = self.visit_column_identifier(expr, schema_accessor)?;
-        let output_name = output_name.as_ref().map(|output| output.as_str());
+        let result_expr = self.visit_column_identifier(column_name, schema_accessor)?;
         let output_name = output_name
-            .unwrap_or_else(|| result_expr.column_name())
-            .to_string();
+            .as_ref()
+            .map(|output_name| Identifier::new(output_name.clone()));
+        let output_name = output_name.unwrap_or_else(|| Identifier::new(column_name.clone()));
 
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
@@ -274,8 +268,7 @@ impl Converter {
             ColumnType::BigInt,
         );
 
-        let column_type =
-            schema_accessor.lookup_column(column_ref.table_name(), column_ref.column_name());
+        let column_type = schema_accessor.lookup_column(&column_ref);
 
         if column_type.is_none() {
             return Err(ParseError::MissingColumnError(format!(
@@ -285,10 +278,8 @@ impl Converter {
             )));
         }
 
-        Ok(ColumnRef::new(
-            current_table.clone(),
-            column_name,
-            column_type.unwrap(),
-        ))
+        // Note: it's okay to return `column_ref` without changing its column_type.
+        // After all, we only support ColumnType::BigInt for now.
+        Ok(column_ref)
     }
 }

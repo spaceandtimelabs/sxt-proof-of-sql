@@ -1,5 +1,6 @@
-use crate::base::database::{Column, ColumnType};
+use crate::base::database::{Column, ColumnRef, ColumnType, TableRef};
 use curve25519_dalek::ristretto::RistrettoPoint;
+use proofs_sql::Identifier;
 
 /// Access metadata of tables in a database.
 ///
@@ -8,7 +9,7 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about tables that exist in the database.
 pub trait MetadataAccessor {
-    fn get_length(&self, table_name: &str) -> usize;
+    fn get_length(&self, table_ref: &TableRef) -> usize;
 }
 
 /// Access commitments of database columns.
@@ -33,8 +34,11 @@ pub trait MetadataAccessor {
 ///     return verify_result
 /// }
 /// ```
+///
+/// Note: we assume that the query has already been validated so that we
+/// will only be accessing information about columns that exist in the database.
 pub trait CommitmentAccessor: MetadataAccessor {
-    fn get_commitment(&self, table_name: &str, column_name: &str) -> RistrettoPoint;
+    fn get_commitment(&self, column: &ColumnRef) -> RistrettoPoint;
 }
 
 /// Access database columns of an in-memory database.
@@ -63,8 +67,11 @@ pub trait CommitmentAccessor: MetadataAccessor {
 ///       return proof
 /// }
 /// ```
+///
+/// Note: we assume that the query has already been validated so that we
+/// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor: MetadataAccessor {
-    fn get_column(&self, table_name: &str, column_name: &str) -> Column;
+    fn get_column(&self, column: &ColumnRef) -> Column;
 }
 
 /// Access tables and their schemas in a database.
@@ -81,7 +88,7 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` and `column_name` must always be lowercase.
-    fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType>;
+    fn lookup_column(&self, column: &ColumnRef) -> Option<ColumnType>;
 
     /// Lookup all the column names and their data types in the specified table
     ///
@@ -90,5 +97,5 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` must be lowercase.
-    fn lookup_schema<'a>(&'a self, table_name: &str) -> Vec<(&'a str, ColumnType)>;
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Identifier, ColumnType)>;
 }

@@ -1,5 +1,6 @@
 use super::{
-    Column, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor,
+    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TableRef,
 };
 use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::{Array, Int64Array};
@@ -8,6 +9,7 @@ use arrow::record_batch::RecordBatch;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use indexmap::IndexMap;
 use polars::prelude::{DataFrame, NamedFrom, Series};
+use proofs_sql::Identifier;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -101,8 +103,8 @@ impl TestAccessor {
 ///
 /// Note: `table_name` must already exist.
 impl MetadataAccessor for TestAccessor {
-    fn get_length(&self, table_name: &str) -> usize {
-        self.data.get(table_name).unwrap().len
+    fn get_length(&self, table_ref: &TableRef) -> usize {
+        self.data.get(table_ref.table_name()).unwrap().len
     }
 }
 
@@ -110,13 +112,13 @@ impl MetadataAccessor for TestAccessor {
 ///
 /// Note: `table_name` and `column_name` must already exist.
 impl DataAccessor for TestAccessor {
-    fn get_column(&self, table_name: &str, column_name: &str) -> Column {
+    fn get_column(&self, column: &ColumnRef) -> Column {
         let column = &self
             .data
-            .get(table_name)
+            .get(column.table_name())
             .unwrap()
             .data
-            .column(column_name)
+            .column(column.column_name())
             .unwrap();
         let data = column.i64().unwrap().cont_slice().unwrap();
         Column::BigInt(data)
@@ -127,16 +129,16 @@ impl DataAccessor for TestAccessor {
 ///
 /// Note: `table_name` and `column_name` must already exist.
 impl CommitmentAccessor for TestAccessor {
-    fn get_commitment(&self, table_name: &str, column_name: &str) -> RistrettoPoint {
-        let commitments = &self.data.get(table_name).unwrap().commitments;
-        *commitments.get(column_name).unwrap()
+    fn get_commitment(&self, column: &ColumnRef) -> RistrettoPoint {
+        let commitments = &self.data.get(column.table_name()).unwrap().commitments;
+        *commitments.get(column.column_name()).unwrap()
     }
 }
 
 impl SchemaAccessor for TestAccessor {
-    fn lookup_column(&self, table_name: &str, column_name: &str) -> Option<ColumnType> {
-        let df = &self.data.get(table_name).unwrap().data;
-        let column = df.column(column_name);
+    fn lookup_column(&self, column: &ColumnRef) -> Option<ColumnType> {
+        let df = &self.data.get(column.table_name()).unwrap().data;
+        let column = df.column(column.column_name());
 
         if column.is_ok() {
             return Some(ColumnType::BigInt);
@@ -145,12 +147,17 @@ impl SchemaAccessor for TestAccessor {
         None
     }
 
-    fn lookup_schema<'a>(&'a self, table_name: &str) -> Vec<(&'a str, ColumnType)> {
-        let commitments = &self.data.get(table_name).unwrap().commitments;
+    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Identifier, ColumnType)> {
+        let commitments = &self.data.get(table_ref.table_name()).unwrap().commitments;
 
         commitments
             .keys()
-            .map(|key| (key.as_str(), ColumnType::BigInt))
+            .map(|key| {
+                (
+                    Identifier::try_new(key.as_str()).unwrap(),
+                    ColumnType::BigInt,
+                )
+            })
             .collect()
     }
 }

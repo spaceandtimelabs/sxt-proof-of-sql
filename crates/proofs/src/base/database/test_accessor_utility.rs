@@ -47,6 +47,8 @@ pub fn make_random_test_accessor(
 mod tests {
     use super::*;
     use crate::base::database::accessor::MetadataAccessor;
+    use crate::base::database::TableRef;
+    use proofs_sql::ResourceId;
     use rand_core::SeedableRng;
 
     #[test]
@@ -56,6 +58,10 @@ mod tests {
         let cols = ["a", "b"];
         let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
         let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
-        assert_ne!(accessor1.get_length("abc"), accessor2.get_length("abc"));
+        let table_ref = TableRef::new(ResourceId::try_new("sxt", "abc").unwrap());
+        assert_ne!(
+            accessor1.get_length(&table_ref),
+            accessor2.get_length(&table_ref)
+        );
     }
 }

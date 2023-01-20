@@ -29,7 +29,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -72,7 +72,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -115,7 +115,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -158,7 +158,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -203,7 +203,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -248,7 +248,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
-            "a".to_string(),
+            Identifier::try_new("a").unwrap(),
         )],
         TableExpr {
             table_ref: table_ref.clone(),
@@ -303,7 +303,7 @@ fn we_can_query_random_tables() {
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
-                "a".to_string(),
+                Identifier::try_new("a").unwrap(),
             )],
             TableExpr {
                 table_ref: table_ref.clone(),
@@ -354,7 +354,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                         Identifier::try_new("aa").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    "aa".to_string(),
+                    Identifier::try_new("aa").unwrap(),
                 ),
                 FilterResultExpr::new(
                     ColumnRef::new(
@@ -362,7 +362,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
                         Identifier::try_new("ab").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    "ab".to_string(),
+                    Identifier::try_new("ab").unwrap(),
                 ),
             ],
             TableExpr {
