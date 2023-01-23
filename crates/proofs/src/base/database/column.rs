@@ -1,6 +1,7 @@
 use super::TableRef;
 use arrow::datatypes::DataType;
 use proofs_sql::Identifier;
+use serde::{Deserialize, Serialize};
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -17,7 +18,7 @@ pub enum Column<'a> {
 ///
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Eq, PartialEq, Debug, Clone, Hash)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum ColumnType {
     BigInt,
 }
