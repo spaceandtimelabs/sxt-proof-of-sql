@@ -12,7 +12,7 @@ clap = { version = "4", features = ["derive"] }
 # SxT dependencies
 proofs = { path = "../../crates/proofs", features = ["test"] }
 proofs-sql = { path = "../../crates/proofs-sql" }
-proofs-gpu = {version = "4.1", registry = "artifactory"}
+proofs-gpu = {version = "6", registry = "artifactory"}
 
 [build-dependencies]
 cc = { version = "1.0", optional = true }

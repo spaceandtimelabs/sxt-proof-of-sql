@@ -21,6 +21,7 @@ fn we_can_query_the_length_of_a_table() {
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
+        0_usize,
     );
 
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "test").unwrap());
@@ -32,6 +33,7 @@ fn we_can_query_the_length_of_a_table() {
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
+        0_usize,
     );
 
     assert_eq!(accessor.get_length(&table_ref), 3);
@@ -50,6 +52,7 @@ fn we_can_access_the_columns_of_a_table() {
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -67,6 +70,7 @@ fn we_can_access_the_columns_of_a_table() {
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -98,6 +102,7 @@ fn we_can_access_the_commitments_of_table_columns() {
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -107,7 +112,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
     assert_eq!(
         accessor.get_commitment(&column),
-        compute_commitment_for_testing(&[4, 5, 6])
+        compute_commitment_for_testing(&[4, 5, 6], 0_usize)
     );
 
     accessor.add_table(
@@ -116,6 +121,7 @@ fn we_can_access_the_commitments_of_table_columns() {
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -125,7 +131,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
     assert_eq!(
         accessor.get_commitment(&column),
-        compute_commitment_for_testing(&[1, 2, 3])
+        compute_commitment_for_testing(&[1, 2, 3], 0_usize)
     );
 
     let column = ColumnRef::new(
@@ -135,7 +141,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
     assert_eq!(
         accessor.get_commitment(&column),
-        compute_commitment_for_testing(&[4, 5, 6, 5])
+        compute_commitment_for_testing(&[4, 5, 6, 5], 0_usize)
     );
 }
 
@@ -149,6 +155,7 @@ fn we_can_access_the_type_of_table_columns() {
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -171,6 +178,7 @@ fn we_can_access_the_type_of_table_columns() {
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
         ]),
+        0_usize,
     );
 
     let column = ColumnRef::new(
@@ -205,6 +213,7 @@ fn we_can_run_arbitrary_queries_on_a_table() {
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![123, 5, 123]),
         ]),
+        0_usize,
     );
     let res = accessor.query_table("test", |df| {
         df.clone()

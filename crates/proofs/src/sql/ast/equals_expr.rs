@@ -103,9 +103,11 @@ impl BoolExpr for EqualsExpr {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
+        let one_commit = get_one_commit((counts.table_length + counts.offset_generators) as u64)
+            - get_one_commit(counts.offset_generators as u64);
+
         // lhs_commit
-        let lhs_commit = accessor.get_commitment(&self.column_ref)
-            - self.value * get_one_commit(counts.table_length as u64);
+        let lhs_commit = accessor.get_commitment(&self.column_ref) - self.value * one_commit;
 
         // consume mle evaluations
         let lhs_eval = builder.consume_anchored_mle(&lhs_commit);

@@ -56,6 +56,7 @@ fn generate_accessor(
     num_columns: usize,
     min_value: i64,
     max_value: i64,
+    offset_generators: usize,
 ) -> (String, TestAccessor) {
     assert!(num_columns < 26);
 
@@ -73,12 +74,18 @@ fn generate_accessor(
     };
 
     let table_name = "t".to_string();
-    let accessor = make_random_test_accessor(&mut rng, &table_name, &ref_cols[..], &descriptor);
+    let accessor = make_random_test_accessor(
+        &mut rng,
+        &table_name,
+        &ref_cols[..],
+        &descriptor,
+        offset_generators,
+    );
 
     (table_name, accessor)
 }
 
-fn generate_input_data(args: &Args) -> (FilterExpr, TestAccessor) {
+fn generate_input_data(args: &Args, offset_generators: usize) -> (FilterExpr, TestAccessor) {
     init_backend_with_config(BackendConfig {
         num_precomputed_generators: args.table_length as u64,
     });
@@ -88,6 +95,7 @@ fn generate_input_data(args: &Args) -> (FilterExpr, TestAccessor) {
         args.num_columns,
         args.min_value,
         args.max_value,
+        offset_generators,
     );
 
     let query = "select ".to_owned()
@@ -104,8 +112,9 @@ fn generate_input_data(args: &Args) -> (FilterExpr, TestAccessor) {
 
 fn main() {
     let args = Args::parse();
+    let offset_generators = 0_usize;
 
-    let (provable_ast, accessor) = generate_input_data(&args);
+    let (provable_ast, accessor) = generate_input_data(&args, offset_generators);
 
     let mut mean_time: f64 = 0.0;
 

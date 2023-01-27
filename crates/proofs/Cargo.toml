@@ -29,7 +29,7 @@ polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "tempo
 
 # SxT dependencies
 proofs-sql= {path = "../proofs-sql"}
-proofs-gpu = {version = "4.1", registry = "artifactory"}
+proofs-gpu = {version = "6", registry = "artifactory"}
 
 [dev_dependencies]
 criterion = "0.4"
