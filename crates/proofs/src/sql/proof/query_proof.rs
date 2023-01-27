@@ -47,7 +47,7 @@ impl QueryProof {
         expr.prover_evaluate(&mut builder, &alloc, counts, accessor);
 
         // commit to any intermediate MLEs
-        let commitments = builder.commit_intermediate_mles();
+        let commitments = builder.commit_intermediate_mles(counts.offset_generators);
 
         // compute the query's result
         let provable_result = builder.make_provable_query_result();
@@ -89,8 +89,12 @@ impl QueryProof {
         let folded_mle = builder.fold_pre_result_mles(&random_scalars);
 
         // finally, form the inner product proof of the MLEs' evaluations
-        let evaluation_proof =
-            InnerProductProof::create(&mut transcript, &folded_mle, &evaluation_vec, 0);
+        let evaluation_proof = InnerProductProof::create(
+            &mut transcript,
+            &folded_mle,
+            &evaluation_vec,
+            counts.offset_generators as u64,
+        );
 
         let proof = Self {
             commitments,
@@ -202,7 +206,7 @@ impl QueryProof {
                 &expected_commit,
                 &product,
                 &evaluation_vec,
-                0,
+                counts.offset_generators as u64,
             )
             .map_err(|_e| ProofError::VerificationError)?;
 

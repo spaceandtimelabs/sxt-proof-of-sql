@@ -15,7 +15,11 @@ fn we_can_convert_an_ast_with_one_column() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table(
+        "sxt_tab",
+        &IndexMap::from([("a".to_string(), vec![3])]),
+        0_usize,
+    );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
     let provable_ast = Converter::default()
@@ -62,6 +66,7 @@ fn we_can_convert_an_ast_with_two_columns() {
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -116,6 +121,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
     accessor.add_table(
         table_name,
         &IndexMap::from([("b".to_string(), vec![5, 6]), ("a".to_string(), vec![3, 2])]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -172,6 +178,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
             ("a".to_string(), vec![3, 2]),
             ("c".to_string(), vec![78, 8]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -245,6 +252,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     accessor.add_table(
         "sxt_tab",
         &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -289,6 +297,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     accessor.add_table(
         "sxt_tab",
         &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -333,6 +342,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     accessor.add_table(
         "sxt_tab",
         &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -381,6 +391,7 @@ fn we_can_convert_an_ast_with_cond_and() {
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -439,6 +450,7 @@ fn we_can_convert_an_ast_with_cond_or() {
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -497,6 +509,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
             ("b".to_string(), vec![]),
             ("c".to_string(), vec![]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -556,6 +569,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
             ("c".to_string(), vec![]),
             ("f".to_string(), vec![]),
         ]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -617,7 +631,11 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table(
+        "sxt_tab",
+        &IndexMap::from([("a".to_string(), vec![3])]),
+        0_usize,
+    );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
     let table_ref = TableRef::new(ResourceId::try_new(default_schema.name(), "sxt_tab").unwrap());
@@ -658,7 +676,11 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table(
+        "sxt_tab",
+        &IndexMap::from([("a".to_string(), vec![3])]),
+        0_usize,
+    );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
     let table_ref = TableRef::new(ResourceId::try_new(default_schema.name(), "sxt_tab").unwrap());
@@ -702,6 +724,7 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
     accessor.add_table(
         "sxt_tab",
         &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
+        0_usize,
     );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
@@ -743,7 +766,11 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &IndexMap::from([("b".to_string(), vec![3])]));
+    accessor.add_table(
+        "sxt_tab",
+        &IndexMap::from([("b".to_string(), vec![3])]),
+        0_usize,
+    );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
 
@@ -759,7 +786,11 @@ fn we_can_convert_an_ast_with_a_schema() {
         .unwrap();
 
     let mut accessor = TestAccessor::new();
-    accessor.add_table("sxt_tab", &IndexMap::from([("a".to_string(), vec![3])]));
+    accessor.add_table(
+        "sxt_tab",
+        &IndexMap::from([("a".to_string(), vec![3])]),
+        0_usize,
+    );
 
     let default_schema = Identifier::try_new("sxt").unwrap();
     let table_ref = TableRef::new(ResourceId::try_new("eth", "sxt_tab").unwrap());

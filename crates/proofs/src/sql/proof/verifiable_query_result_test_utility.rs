@@ -3,7 +3,7 @@ use super::{
     QueryProof, TestQueryExpr, VerifiableQueryResult,
 };
 
-use crate::base::database::{CommitmentAccessor, TestAccessor};
+use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
 use curve25519_dalek::scalar::Scalar;
@@ -15,7 +15,8 @@ use curve25519_dalek::scalar::Scalar;
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
     expr: &dyn QueryExpr,
-    accessor: &impl CommitmentAccessor,
+    accessor: &TestAccessor,
+    table_ref: &TableRef,
 ) {
     assert!(res.verify(expr, accessor).is_ok());
 
@@ -37,6 +38,7 @@ pub fn exercise_verification(
     // try changing intermediate commitments
     let commit_p = compute_commitment_for_testing(
         &[353453245u64, 93402346u64][..], // some arbitrary values
+        0_usize,
     )
     .compress();
     for i in 0..proof.commitments.len() {
@@ -44,6 +46,14 @@ pub fn exercise_verification(
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor).is_err());
     }
+
+    // try changing the offset
+    let offset_generators = accessor.get_offset(table_ref);
+    let mut fake_accessor = accessor.clone();
+    fake_accessor.update_offset(table_ref.table_name(), offset_generators);
+    res.verify(expr, &fake_accessor).unwrap().unwrap();
+    fake_accessor.update_offset(table_ref.table_name(), offset_generators + 1);
+    assert!(res.verify(expr, &fake_accessor).is_err());
 }
 
 fn tamper_no_result(

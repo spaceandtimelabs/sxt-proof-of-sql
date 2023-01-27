@@ -30,6 +30,7 @@ pub fn make_random_test_accessor(
     table: &str,
     cols: &[&str],
     descriptor: &RandomTestAccessorDescriptor,
+    offset_generators: usize,
 ) -> TestAccessor {
     let n = Uniform::new(descriptor.min_rows, descriptor.max_rows + 1).sample(rng);
     let mut data = IndexMap::new();
@@ -39,7 +40,7 @@ pub fn make_random_test_accessor(
         data.insert(col.to_string(), values);
     }
     let mut res = TestAccessor::new();
-    res.add_table(table, &data);
+    res.add_table(table, &data, offset_generators);
     res
 }
 
@@ -56,8 +57,19 @@ mod tests {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = ["a", "b"];
-        let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
-        let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor);
+
+        // zero offset generators
+        let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 0_usize);
+        let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 0_usize);
+        let table_ref = TableRef::new(ResourceId::try_new("sxt", "abc").unwrap());
+        assert_ne!(
+            accessor1.get_length(&table_ref),
+            accessor2.get_length(&table_ref)
+        );
+
+        // non-zero offset generators
+        let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 123_usize);
+        let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 123_usize);
         let table_ref = TableRef::new(ResourceId::try_new("sxt", "abc").unwrap());
         assert_ne!(
             accessor1.get_length(&table_ref),

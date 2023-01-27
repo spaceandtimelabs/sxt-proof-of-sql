@@ -10,10 +10,13 @@ use proofs_gpu::compute::compute_commitments;
 ///
 /// Computing commitments in isolation like this is inefficient so
 /// this function shoud only be used for testing.
-pub fn compute_commitment_for_testing<T: IntoScalar>(vals: &[T]) -> RistrettoPoint {
+pub fn compute_commitment_for_testing<T: IntoScalar>(
+    vals: &[T],
+    offset_generators: usize,
+) -> RistrettoPoint {
     let vals: Vec<Scalar> = vals.iter().map(|x| x.into_scalar()).collect();
     let table = [&vals[..]; 1];
     let mut commitments = [CompressedRistretto::from_slice(&[0_u8; 32])];
-    compute_commitments(&mut commitments, &table);
+    compute_commitments(&mut commitments, &table, offset_generators as u64);
     commitments[0].decompress().unwrap()
 }

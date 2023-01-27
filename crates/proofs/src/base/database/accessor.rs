@@ -2,14 +2,21 @@ use crate::base::database::{Column, ColumnRef, ColumnType, TableRef};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 
-/// Access metadata of tables in a database.
+/// Access metadata of a table span in a database.
 ///
 /// Both Prover and Verifier use this information when processing a query.
 ///
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about tables that exist in the database.
 pub trait MetadataAccessor {
+    /// Return the data span's length in the table (not the full table length)
     fn get_length(&self, table_ref: &TableRef) -> usize;
+
+    /// Return the data span's offset in the table
+    ///
+    /// If the data span has its first row starting at the ith table row,
+    /// this `get_offset` should then return `i`.
+    fn get_offset(&self, table_ref: &TableRef) -> usize;
 }
 
 /// Access commitments of database columns.
@@ -38,10 +45,11 @@ pub trait MetadataAccessor {
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about columns that exist in the database.
 pub trait CommitmentAccessor: MetadataAccessor {
+    /// Return the full table column commitment
     fn get_commitment(&self, column: &ColumnRef) -> RistrettoPoint;
 }
 
-/// Access database columns of an in-memory database.
+/// Access database columns of an in-memory table span.
 ///
 /// Prover uses this information to process a query.
 ///
@@ -71,6 +79,7 @@ pub trait CommitmentAccessor: MetadataAccessor {
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor: MetadataAccessor {
+    /// Return the data span in the table (not the full-table data)
     fn get_column(&self, column: &ColumnRef) -> Column;
 }
 

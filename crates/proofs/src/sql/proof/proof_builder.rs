@@ -107,13 +107,17 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn commit_intermediate_mles(&self) -> Vec<CompressedRistretto> {
+    pub fn commit_intermediate_mles(&self, offset_generators: usize) -> Vec<CompressedRistretto> {
         assert_eq!(
             self.commitment_descriptor.len(),
             self.commitment_descriptor.capacity()
         );
         let mut res = vec![CompressedRistretto::identity(); self.commitment_descriptor.len()];
-        compute_commitments(&mut res, &self.commitment_descriptor);
+        compute_commitments(
+            &mut res,
+            &self.commitment_descriptor,
+            offset_generators as u64,
+        );
         res
     }
 

@@ -11,12 +11,12 @@ use bumpalo::Bump;
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
 use std::sync::Arc;
 
-#[test]
-fn we_can_verify_a_trivial_query_proof() {
+fn verify_a_trivial_query_proof_with_given_offset(offset_generators: usize) {
     // prove and verify an artificial polynomial where we prove
     // that every entry in the result is zero
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
@@ -61,6 +61,16 @@ fn we_can_verify_a_trivial_query_proof() {
     )
     .unwrap();
     assert_eq!(result, expected_result);
+}
+
+#[test]
+fn we_can_verify_a_trivial_query_proof_with_a_zero_offset() {
+    verify_a_trivial_query_proof_with_given_offset(0);
+}
+
+#[test]
+fn we_can_verify_a_trivial_query_proof_with_a_non_zero_offset() {
+    verify_a_trivial_query_proof_with_given_offset(123);
 }
 
 #[test]
@@ -237,8 +247,7 @@ fn verify_fails_if_counts_dont_match() {
     assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
 }
 
-#[test]
-fn we_can_verify_a_proof_with_an_anchored_commitment() {
+fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators: usize) {
     // prove and verify an artificial query where
     //     res_i = x_i * x_i
     // where the commitment for x is known
@@ -247,6 +256,7 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -274,11 +284,11 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
+        counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
         let res_eval = builder.consume_result_mle();
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, counts.offset_generators);
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
@@ -300,6 +310,27 @@ fn we_can_verify_a_proof_with_an_anchored_commitment() {
     )
     .unwrap();
     assert_eq!(result, expected_result);
+
+    // invalid offset will fail to verify
+    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
+    let invalid_counts = {
+        let mut counts = counts;
+        counts.offset_generators += 1;
+        counts
+    };
+    assert!(proof
+        .verify(&expr, &accessor, &invalid_counts, &result)
+        .is_err());
+}
+
+#[test]
+fn we_can_verify_a_proof_with_an_anchored_commitment_and_with_a_zero_offset() {
+    verify_a_proof_with_an_anchored_commitment_and_given_offset(0);
+}
+
+#[test]
+fn we_can_verify_a_proof_with_an_anchored_commitment_and_with_a_non_zero_offset() {
+    verify_a_proof_with_an_anchored_commitment_and_given_offset(123);
 }
 
 #[test]
@@ -345,7 +376,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         _accessor: &dyn CommitmentAccessor,
     ) {
         let res_eval = builder.consume_result_mle();
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
@@ -401,7 +432,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         _accessor: &dyn CommitmentAccessor,
     ) {
         let res_eval = builder.consume_result_mle();
-        let x_commit = Scalar::from(2u64) * compute_commitment_for_testing(&X);
+        let x_commit = Scalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
@@ -416,8 +447,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
 }
 
-#[test]
-fn we_can_verify_a_proof_with_an_intermediate_commitment() {
+fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_generators: usize) {
     // prove and verify an artificial query where
     //     z_i = x_i * x_i
     //     res_i = z_i * z_i
@@ -428,6 +458,7 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -468,10 +499,10 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
+        counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, counts.offset_generators);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -501,6 +532,27 @@ fn we_can_verify_a_proof_with_an_intermediate_commitment() {
     )
     .unwrap();
     assert_eq!(result, expected_result);
+
+    // invalid offset will fail to verify
+    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
+    let invalid_counts = {
+        let mut counts = counts;
+        counts.offset_generators += 1;
+        counts
+    };
+    assert!(proof
+        .verify(&expr, &accessor, &invalid_counts, &result)
+        .is_err());
+}
+
+#[test]
+fn we_can_verify_a_proof_with_an_intermediate_commitment_and_with_a_zero_offset() {
+    verify_a_proof_with_an_intermediate_commitment_and_given_offset(0);
+}
+
+#[test]
+fn we_can_verify_a_proof_with_an_intermediate_commitment_and_with_a_non_zero_offset() {
+    verify_a_proof_with_an_intermediate_commitment_and_given_offset(89);
 }
 
 #[test]
@@ -515,6 +567,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators: 0,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -558,7 +611,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -595,6 +648,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators: 0,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -638,7 +692,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -680,6 +734,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators: 0,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -723,7 +778,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -760,6 +815,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
         table_length: 2,
+        offset_generators: 0,
         sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
@@ -803,7 +859,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) {
-        let x_commit = compute_commitment_for_testing(&X);
+        let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
