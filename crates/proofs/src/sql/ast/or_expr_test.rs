@@ -46,7 +46,7 @@ fn we_can_prove_a_simple_or_query() {
             )),
             Box::new(EqualsExpr::new(
                 ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -61,10 +61,11 @@ fn we_can_prove_a_simple_or_query() {
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![0, 1, 0, 2]),
         ]),
+        0_usize,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
-    exercise_verification(&res, &expr, &accessor);
+    exercise_verification(&res, &expr, &accessor, &table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 4];
@@ -102,7 +103,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
             )),
             Box::new(EqualsExpr::new(
                 ColumnRef::new(
-                    table_ref,
+                    table_ref.clone(),
                     Identifier::try_new("c").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -118,10 +119,11 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
             ("b".to_string(), vec![0, 1, 0, 1]),
             ("c".to_string(), vec![0, 2, 2, 0]),
         ]),
+        0_usize,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
-    exercise_verification(&res, &expr, &accessor);
+    exercise_verification(&res, &expr, &accessor, &table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2, 3, 4];
@@ -133,8 +135,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
     assert_eq!(res, expected_res);
 }
 
-#[test]
-fn we_can_query_random_tables() {
+fn test_random_tables_with_given_offset(offset_generators: usize) {
     let descr = RandomTestAccessorDescriptor {
         min_rows: 1,
         max_rows: 20,
@@ -144,7 +145,7 @@ fn we_can_query_random_tables() {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols = ["a", "b", "c"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr);
+        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr, offset_generators);
         let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
@@ -171,7 +172,7 @@ fn we_can_query_random_tables() {
                 )),
                 Box::new(EqualsExpr::new(
                     ColumnRef::new(
-                        table_ref,
+                        table_ref.clone(),
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ),
@@ -179,9 +180,9 @@ fn we_can_query_random_tables() {
                 )),
             )),
         );
-        let res = VerifiableQueryResult::new(&expr, &accessor);
-        exercise_verification(&res, &expr, &accessor);
-        let res = res.verify(&expr, &accessor).unwrap().unwrap();
+        let proof_res = VerifiableQueryResult::new(&expr, &accessor);
+        exercise_verification(&proof_res, &expr, &accessor, &table_ref);
+        let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
         let expected = accessor.query_table("t", |df| {
             df.clone()
                 .lazy()
@@ -192,4 +193,14 @@ fn we_can_query_random_tables() {
         });
         assert_eq!(res, expected);
     }
+}
+
+#[test]
+fn we_can_query_random_tables_with_a_zero_offset() {
+    test_random_tables_with_given_offset(0);
+}
+
+#[test]
+fn we_can_query_random_tables_with_a_non_zero_offset() {
+    test_random_tables_with_given_offset(1001);
 }

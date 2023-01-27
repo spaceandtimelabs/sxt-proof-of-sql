@@ -13,7 +13,7 @@ use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
 
 #[test]
-fn we_can_compute_commitments_for_intermediate_mles() {
+fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let counts = ProofCounts {
         sumcheck_variables: 1,
         anchored_mles: 1,
@@ -25,10 +25,32 @@ fn we_can_compute_commitments_for_intermediate_mles() {
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
-    let commitments = builder.commit_intermediate_mles();
+    let offset_generators = 0_usize;
+    let commitments = builder.commit_intermediate_mles(offset_generators);
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2).compress()]
+        [compute_commitment_for_testing(&mle2, offset_generators).compress()]
+    );
+}
+
+#[test]
+fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
+    let counts = ProofCounts {
+        sumcheck_variables: 1,
+        anchored_mles: 1,
+        intermediate_mles: 1,
+        ..Default::default()
+    };
+    let mle1 = [1, 2];
+    let mle2 = [10, 20];
+    let mut builder = ProofBuilder::new(&counts);
+    builder.produce_anchored_mle(&mle1);
+    builder.produce_intermediate_mle(&mle2);
+    let offset_generators = 123_usize;
+    let commitments = builder.commit_intermediate_mles(offset_generators);
+    assert_eq!(
+        commitments,
+        [compute_commitment_for_testing(&mle2, offset_generators).compress()]
     );
 }
 

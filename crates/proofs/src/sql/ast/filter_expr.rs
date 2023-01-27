@@ -42,6 +42,7 @@ impl QueryExpr for FilterExpr {
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor) {
         let n = accessor.get_length(&self.table.table_ref);
         counts.table_length = n;
+        counts.offset_generators = accessor.get_offset(&self.table.table_ref);
         if n > 0 {
             counts.sumcheck_variables = cmp::max(log2_up(n), 1);
         } else {

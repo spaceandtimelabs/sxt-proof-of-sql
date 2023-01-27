@@ -13,19 +13,23 @@ use proofs_sql::Identifier;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[derive(Clone)]
 struct TestTable {
     /// The total number of rows in the table. Every element in `columns` field must have a Vec<i64> with that same length.
     len: usize,
 
-    /// commitments of each column
+    /// The number of table rows shifted. Every column row i is shifted exactly `offset` rows, i.e., {i} represents {i + offset}.
+    offset: usize,
+
+    /// Commitments of each column
     commitments: IndexMap<String, RistrettoPoint>,
 
-    /// the column values
+    /// The column values
     data: DataFrame,
 }
 
 /// TestAccessor is used to simulate an in-memory database and commitment tracking database for proof testing.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TestAccessor {
     /// This `data` field defines a HashMap with pairs of table_name and their respective table values
     /// (columns with their associated rows and commitment values).
@@ -47,7 +51,12 @@ impl TestAccessor {
     ///
     /// Note 2: for simplicity, we assume that `table_name` was not
     /// previously added to the accessor.
-    pub fn add_table(&mut self, table_name: &str, columns: &IndexMap<String, Vec<i64>>) {
+    pub fn add_table(
+        &mut self,
+        table_name: &str,
+        columns: &IndexMap<String, Vec<i64>>,
+        offset_generators: usize,
+    ) {
         assert!(!columns.is_empty());
         assert!(!self.data.contains_key(table_name));
 
@@ -62,7 +71,7 @@ impl TestAccessor {
             assert_eq!(col_rows.len(), num_rows_table);
 
             cols.push(Series::new(col_name, &col_rows));
-            let commitment = compute_commitment_for_testing(col_rows);
+            let commitment = compute_commitment_for_testing(col_rows, offset_generators);
 
             commitments.insert(col_name.to_string(), commitment);
         }
@@ -71,10 +80,15 @@ impl TestAccessor {
             table_name.to_string(),
             TestTable {
                 len: num_rows_table,
+                offset: offset_generators,
                 commitments,
                 data: DataFrame::new(cols).unwrap(),
             },
         );
+    }
+
+    pub fn update_offset(&mut self, table_name: &str, new_offset_generators: usize) {
+        self.data.get_mut(table_name).unwrap().offset = new_offset_generators;
     }
 
     pub fn query_table(
@@ -105,6 +119,10 @@ impl TestAccessor {
 impl MetadataAccessor for TestAccessor {
     fn get_length(&self, table_ref: &TableRef) -> usize {
         self.data.get(table_ref.table_name()).unwrap().len
+    }
+
+    fn get_offset(&self, table_ref: &TableRef) -> usize {
+        self.data.get(table_ref.table_name()).unwrap().offset
     }
 }
 
