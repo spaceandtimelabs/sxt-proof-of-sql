@@ -25,7 +25,7 @@ fn small_scalars_are_encoded_as_positive_zigzag_values() {
 
     for x in 1..1000_u128 {
         // since x < y, where x + y = 0, the ZigZag value is encoded as 2 * x
-        assert!(Scalar::from(x as u128).zigzag() == U256::from_words(2 * x, 0));
+        assert!(Scalar::from(x).zigzag() == U256::from_words(2 * x, 0));
     }
 }
 
