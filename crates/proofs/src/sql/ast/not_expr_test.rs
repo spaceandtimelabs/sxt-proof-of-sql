@@ -6,7 +6,7 @@ use crate::base::database::{
 use crate::base::scalar::IntoScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
-use proofs_sql::{Identifier, ResourceId};
+use proofs_sql::Identifier;
 
 use arrow::array::Int64Array;
 use arrow::record_batch::RecordBatch;
@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
+    let table_ref: TableRef = "sxt.t".parse().unwrap();
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef::new(
@@ -46,7 +46,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        "t",
+        &table_ref,
         &IndexMap::from([
             ("a".to_string(), vec![123, 456]),
             ("b".to_string(), vec![0, 1]),
@@ -77,9 +77,10 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols = ["a", "b"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, "t", &cols, &descr, offset_generators);
+        let table_ref: TableRef = "sxt.t".parse().unwrap();
+        let accessor =
+            make_random_test_accessor(&mut rng, &table_ref, &cols, &descr, offset_generators);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let table_ref = TableRef::new(ResourceId::try_new("sxt", "t").unwrap());
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef::new(
@@ -104,7 +105,7 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
         let proof_res = VerifiableQueryResult::new(&expr, &accessor);
         exercise_verification(&proof_res, &expr, &accessor, &table_ref);
         let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table("t", |df| {
+        let expected = accessor.query_table(&table_ref, |df| {
             df.clone()
                 .lazy()
                 .filter(col("b").neq(val))

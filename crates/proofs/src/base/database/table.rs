@@ -1,4 +1,6 @@
-use proofs_sql::ResourceId;
+use std::str::FromStr;
+
+use proofs_sql::{Identifier, ResourceId};
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -11,11 +13,19 @@ impl TableRef {
         Self { resource_id }
     }
 
-    pub fn schema(&self) -> &str {
-        self.resource_id.schema().name()
+    pub fn schema_id(&self) -> &Identifier {
+        self.resource_id.schema()
     }
 
-    pub fn table_name(&self) -> &str {
-        self.resource_id.object_name().name()
+    pub fn table_id(&self) -> &Identifier {
+        self.resource_id.object_name()
+    }
+}
+
+impl FromStr for TableRef {
+    type Err = proofs_sql::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::new(s.parse()?))
     }
 }

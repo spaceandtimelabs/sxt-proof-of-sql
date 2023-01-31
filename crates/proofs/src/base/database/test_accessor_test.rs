@@ -1,6 +1,6 @@
 use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-    SchemaAccessor, TableRef, TestAccessor,
+    SchemaAccessor, TestAccessor,
 };
 use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::Int64Array;
@@ -8,15 +8,17 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use indexmap::IndexMap;
 use polars::prelude::*;
-use proofs_sql::{Identifier, ResourceId};
+use proofs_sql::Identifier;
 use std::sync::Arc;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
     let mut accessor = TestAccessor::new();
+    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_2 = "sxt.test2".parse().unwrap();
 
     accessor.add_table(
-        "test",
+        &table_ref_1,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
@@ -24,11 +26,10 @@ fn we_can_query_the_length_of_a_table() {
         0_usize,
     );
 
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "test").unwrap());
-    assert_eq!(accessor.get_length(&table_ref), 3);
+    assert_eq!(accessor.get_length(&table_ref_1), 3);
 
     accessor.add_table(
-        "test2",
+        &table_ref_2,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
@@ -36,18 +37,18 @@ fn we_can_query_the_length_of_a_table() {
         0_usize,
     );
 
-    assert_eq!(accessor.get_length(&table_ref), 3);
-
-    let table_ref = TableRef::new(ResourceId::try_new("sxt", "test2").unwrap());
-    assert_eq!(accessor.get_length(&table_ref), 4);
+    assert_eq!(accessor.get_length(&table_ref_1), 3);
+    assert_eq!(accessor.get_length(&table_ref_2), 4);
 }
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
     let mut accessor = TestAccessor::new();
+    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_2 = "sxt.test2".parse().unwrap();
 
     accessor.add_table(
-        "test",
+        &table_ref_1,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
@@ -56,7 +57,7 @@ fn we_can_access_the_columns_of_a_table() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
@@ -65,7 +66,7 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     accessor.add_table(
-        "test2",
+        &table_ref_2,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
@@ -74,7 +75,7 @@ fn we_can_access_the_columns_of_a_table() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("a").unwrap(),
         ColumnType::BigInt,
     );
@@ -83,7 +84,7 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        table_ref_2.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
@@ -95,9 +96,11 @@ fn we_can_access_the_columns_of_a_table() {
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
     let mut accessor = TestAccessor::new();
+    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_2 = "sxt.test2".parse().unwrap();
 
     accessor.add_table(
-        "test",
+        &table_ref_1,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
@@ -106,7 +109,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
@@ -116,7 +119,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     accessor.add_table(
-        "test2",
+        &table_ref_2,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
@@ -125,7 +128,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("a").unwrap(),
         ColumnType::BigInt,
     );
@@ -135,7 +138,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        table_ref_2.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
@@ -148,9 +151,11 @@ fn we_can_access_the_commitments_of_table_columns() {
 #[test]
 fn we_can_access_the_type_of_table_columns() {
     let mut accessor = TestAccessor::new();
+    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_2 = "sxt.test2".parse().unwrap();
 
     accessor.add_table(
-        "test",
+        &table_ref_1,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![4, 5, 6]),
@@ -159,21 +164,21 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
     assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("c").unwrap(),
         ColumnType::BigInt,
     );
     assert!(accessor.lookup_column(&column).is_none());
 
     accessor.add_table(
-        "test2",
+        &table_ref_2,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3, 4]),
             ("b".to_string(), vec![4, 5, 6, 5]),
@@ -182,21 +187,21 @@ fn we_can_access_the_type_of_table_columns() {
     );
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test").unwrap()),
+        table_ref_1.clone(),
         Identifier::try_new("a").unwrap(),
         ColumnType::BigInt,
     );
     assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        table_ref_2.clone(),
         Identifier::try_new("b").unwrap(),
         ColumnType::BigInt,
     );
     assert_eq!(accessor.lookup_column(&column), Some(ColumnType::BigInt));
 
     let column = ColumnRef::new(
-        TableRef::new(ResourceId::try_new("sxt", "test2").unwrap()),
+        table_ref_2.clone(),
         Identifier::try_new("c").unwrap(),
         ColumnType::BigInt,
     );
@@ -206,16 +211,17 @@ fn we_can_access_the_type_of_table_columns() {
 #[test]
 fn we_can_run_arbitrary_queries_on_a_table() {
     let mut accessor = TestAccessor::new();
+    let table_ref_1 = "sxt.test".parse().unwrap();
 
     accessor.add_table(
-        "test",
+        &table_ref_1,
         &IndexMap::from([
             ("a".to_string(), vec![1, 2, 3]),
             ("b".to_string(), vec![123, 5, 123]),
         ]),
         0_usize,
     );
-    let res = accessor.query_table("test", |df| {
+    let res = accessor.query_table(&table_ref_1, |df| {
         df.clone()
             .lazy()
             .filter(col("b").eq(123))

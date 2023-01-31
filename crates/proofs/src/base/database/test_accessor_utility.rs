@@ -1,4 +1,4 @@
-use super::TestAccessor;
+use super::{TableRef, TestAccessor};
 use indexmap::IndexMap;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -27,7 +27,7 @@ impl Default for RandomTestAccessorDescriptor {
 /// Generate a TestAccessor with random data
 pub fn make_random_test_accessor(
     rng: &mut StdRng,
-    table: &str,
+    table: &TableRef,
     cols: &[&str],
     descriptor: &RandomTestAccessorDescriptor,
     offset_generators: usize,
@@ -49,7 +49,6 @@ mod tests {
     use super::*;
     use crate::base::database::accessor::MetadataAccessor;
     use crate::base::database::TableRef;
-    use proofs_sql::ResourceId;
     use rand_core::SeedableRng;
 
     #[test]
@@ -57,20 +56,23 @@ mod tests {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
         let cols = ["a", "b"];
+        let table_ref: TableRef = "sxt.abc".parse().unwrap();
 
         // zero offset generators
-        let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 0_usize);
-        let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 0_usize);
-        let table_ref = TableRef::new(ResourceId::try_new("sxt", "abc").unwrap());
+        let accessor1 =
+            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 0_usize);
+        let accessor2 =
+            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 0_usize);
         assert_ne!(
             accessor1.get_length(&table_ref),
             accessor2.get_length(&table_ref)
         );
 
         // non-zero offset generators
-        let accessor1 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 123_usize);
-        let accessor2 = make_random_test_accessor(&mut rng, "abc", &cols, &descriptor, 123_usize);
-        let table_ref = TableRef::new(ResourceId::try_new("sxt", "abc").unwrap());
+        let accessor1 =
+            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 123_usize);
+        let accessor2 =
+            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 123_usize);
         assert_ne!(
             accessor1.get_length(&table_ref),
             accessor2.get_length(&table_ref)

@@ -50,9 +50,9 @@ pub fn exercise_verification(
     // try changing the offset
     let offset_generators = accessor.get_offset(table_ref);
     let mut fake_accessor = accessor.clone();
-    fake_accessor.update_offset(table_ref.table_name(), offset_generators);
+    fake_accessor.update_offset(table_ref, offset_generators);
     res.verify(expr, &fake_accessor).unwrap().unwrap();
-    fake_accessor.update_offset(table_ref.table_name(), offset_generators + 1);
+    fake_accessor.update_offset(table_ref, offset_generators + 1);
     assert!(res.verify(expr, &fake_accessor).is_err());
 }
 
