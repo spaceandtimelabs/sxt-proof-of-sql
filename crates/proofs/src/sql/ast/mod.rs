@@ -10,6 +10,11 @@ mod filter_expr_test;
 mod bool_expr;
 pub use bool_expr::BoolExpr;
 
+mod const_bool_expr;
+pub use const_bool_expr::ConstBoolExpr;
+#[cfg(test)]
+mod const_bool_expr_test;
+
 mod and_expr;
 pub use and_expr::AndExpr;
 #[cfg(test)]
