@@ -57,7 +57,7 @@ impl QueryExpr for TestQueryExpr {
         let num_columns = self.counts.result_columns;
         let mut columns = Vec::with_capacity(num_columns);
         for i in 0..num_columns {
-            columns.push(Field::new(&(i + 1).to_string(), DataType::Int64, false));
+            columns.push(Field::new((i + 1).to_string(), DataType::Int64, false));
         }
         Arc::new(Schema::new(columns))
     }

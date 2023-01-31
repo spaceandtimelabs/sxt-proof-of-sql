@@ -274,7 +274,7 @@ impl Converter {
             return Err(ParseError::MissingColumnError(format!(
                 "Column {:?} is not found in table {:?}",
                 column_name,
-                current_table.table_name()
+                current_table.table_id().name()
             )));
         }
 

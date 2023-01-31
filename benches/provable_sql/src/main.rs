@@ -73,16 +73,16 @@ fn generate_accessor(
         max_value,
     };
 
-    let table_name = "t".to_string();
+    let table_ref = "sxt.t".parse().unwrap();
     let accessor = make_random_test_accessor(
         &mut rng,
-        &table_name,
+        &table_ref,
         &ref_cols[..],
         &descriptor,
         offset_generators,
     );
 
-    (table_name, accessor)
+    (table_ref.table_id().name().to_owned(), accessor)
 }
 
 fn generate_input_data(args: &Args, offset_generators: usize) -> (FilterExpr, TestAccessor) {

@@ -35,15 +35,15 @@ impl From<&ColumnType> for DataType {
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ColumnRef {
-    column_name: Identifier,
+    column_id: Identifier,
     table_ref: TableRef,
     column_type: ColumnType,
 }
 
 impl ColumnRef {
-    pub fn new(table_ref: TableRef, column_name: Identifier, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
         Self {
-            column_name,
+            column_id,
             column_type,
             table_ref,
         }
@@ -53,16 +53,8 @@ impl ColumnRef {
         &self.table_ref
     }
 
-    pub fn column_name(&self) -> &str {
-        self.column_name.name()
-    }
-
-    pub fn schema(&self) -> &str {
-        self.table_ref.schema()
-    }
-
-    pub fn table_name(&self) -> &str {
-        self.table_ref.table_name()
+    pub fn column_id(&self) -> &Identifier {
+        &self.column_id
     }
 
     pub fn column_type(&self) -> &ColumnType {
