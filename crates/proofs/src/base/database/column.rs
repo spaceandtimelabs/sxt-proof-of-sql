@@ -49,6 +49,10 @@ impl ColumnRef {
         }
     }
 
+    pub fn table_ref(&self) -> &TableRef {
+        &self.table_ref
+    }
+
     pub fn column_name(&self) -> &str {
         self.column_name.name()
     }
