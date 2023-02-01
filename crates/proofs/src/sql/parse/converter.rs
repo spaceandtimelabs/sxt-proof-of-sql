@@ -1,7 +1,8 @@
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
 use crate::base::scalar::IntoScalar;
 use crate::sql::ast::{
-    AndExpr, BoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
+    TableExpr,
 };
 use crate::sql::parse::{ParseError, ParseResult};
 
@@ -71,8 +72,12 @@ impl Converter {
                 let filter_result_expr_list =
                     self.visit_result_columns(&columns[..], schema_accessor)?;
 
-                let where_clause =
-                    self.visit_bool_expression(where_expr.deref(), schema_accessor)?;
+                let where_clause = match where_expr {
+                    Some(where_expr) => {
+                        self.visit_bool_expression(where_expr.deref(), schema_accessor)?
+                    }
+                    None => Box::new(ConstBoolExpr::new(true)),
+                };
 
                 Ok(FilterExpr::new(
                     filter_result_expr_list,
