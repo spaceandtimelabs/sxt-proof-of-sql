@@ -24,7 +24,7 @@ SelectCoreList: Box<intermediate_ast::SetExpression> = {
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause> =>
+    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> =>
         Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
 };
 

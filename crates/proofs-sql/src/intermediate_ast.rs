@@ -13,7 +13,7 @@ pub enum SetExpression {
     Query {
         columns: Vec<Box<ResultColumn>>,
         from: Vec<Box<TableExpression>>,
-        where_expr: Box<Expression>,
+        where_expr: Option<Box<Expression>>,
     },
 }
 
