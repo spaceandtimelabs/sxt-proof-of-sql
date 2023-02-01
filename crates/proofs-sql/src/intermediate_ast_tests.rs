@@ -19,10 +19,10 @@ fn we_can_parse_a_query_with_one_equals_filter_expression() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("a"),
                 right: 3,
-            }),
+            })),
         }),
     };
 
@@ -51,10 +51,10 @@ fn we_can_parse_a_query_with_two_result_columns() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("c"),
                 right: 123,
-            }),
+            })),
         }),
     };
 
@@ -74,10 +74,10 @@ fn we_can_parse_a_query_using_select_star() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("a"),
                 right: 3,
-            }),
+            })),
         }),
     };
 
@@ -112,10 +112,10 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("a"),
                 right: 3,
-            }),
+            })),
         }),
     };
 
@@ -138,10 +138,10 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: 4,
-            }),
+            })),
         }),
     };
 
@@ -164,10 +164,10 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: -4,
-            }),
+            })),
         }),
     };
 
@@ -191,10 +191,10 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
                     table: Name::new("sxt_tab"),
                     schema: None,
                 })],
-                where_expr: Box::new(Expression::NotEqual {
+                where_expr: Some(Box::new(Expression::NotEqual {
                     left: Name::new("b"),
                     right: -4,
-                }),
+                })),
             }),
         };
 
@@ -218,12 +218,12 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Not {
+            where_expr: Some(Box::new(Expression::Not {
                 expr: Box::new(Expression::Equal {
                     left: Name::new("b"),
                     right: 3,
                 }),
-            }),
+            })),
         }),
     };
 
@@ -246,7 +246,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::And {
+            where_expr: Some(Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
                     left: Name::new("b"),
                     right: 3,
@@ -255,7 +255,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
                     left: Name::new("c"),
                     right: -2,
                 }),
-            }),
+            })),
         }),
     };
 
@@ -278,7 +278,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Or {
+            where_expr: Some(Box::new(Expression::Or {
                 left: Box::new(Expression::Equal {
                     left: Name::new("b"),
                     right: 3,
@@ -287,7 +287,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
                     left: Name::new("c"),
                     right: -2,
                 }),
-            }),
+            })),
         }),
     };
 
@@ -310,7 +310,7 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::And {
+            where_expr: Some(Box::new(Expression::And {
                 left: Box::new(Expression::Equal {
                     left: Name::new("b"),
                     right: 3,
@@ -321,7 +321,7 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
                         right: -2,
                     }),
                 }),
-            }),
+            })),
         }),
     };
 
@@ -344,7 +344,7 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Not {
+            where_expr: Some(Box::new(Expression::Not {
                 expr: Box::new(Expression::And {
                     left: Box::new(Expression::Equal {
                         left: Name::new("b"),
@@ -361,7 +361,7 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
                         }),
                     }),
                 }),
-            }),
+            })),
         }),
     };
 
@@ -384,10 +384,10 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: -9223372036854775808,
-            }),
+            })),
         }),
     };
 
@@ -410,10 +410,10 @@ fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal()
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: 9223372036854775807,
-            }),
+            })),
         }),
     };
 
@@ -436,10 +436,10 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: 4,
-            }),
+            })),
         }),
     };
 
@@ -462,10 +462,10 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
                 table: Name::new("sxt_tab"),
                 schema: None,
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: 4,
-            }),
+            })),
         }),
     };
 
@@ -567,14 +567,55 @@ fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
                 table: Name::new("sxt_tab"),
                 schema: Some(Name::new("eth")),
             })],
-            where_expr: Box::new(Expression::Equal {
+            where_expr: Some(Box::new(Expression::Equal {
                 left: Name::new("b"),
                 right: 4,
-            }),
+            })),
         }),
     };
 
     assert_eq!(parsed_ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_without_a_filter() {
+    let expected_ast = SelectStatement {
+        expr: Box::new(SetExpression::Query {
+            columns: vec![Box::new(ResultColumn::Expr {
+                expr: Name::new("a"),
+                output_name: None,
+            })],
+            from: vec![Box::new(TableExpression::Named {
+                table: Name::new("tab"),
+                schema: None,
+            })],
+            where_expr: None,
+        }),
+    };
+
+    assert_eq!(
+        sql::SelectStatementParser::new()
+            .parse("select a from tab")
+            .unwrap(),
+        expected_ast
+    );
+
+    let expected_ast = SelectStatement {
+        expr: Box::new(SetExpression::Query {
+            columns: vec![Box::new(ResultColumn::All)],
+            from: vec![Box::new(TableExpression::Named {
+                table: Name::new("tab"),
+                schema: Some(Name::new("eth")),
+            })],
+            where_expr: None,
+        }),
+    };
+    assert_eq!(
+        sql::SelectStatementParser::new()
+            .parse("select * from eth.tab")
+            .unwrap(),
+        expected_ast
+    );
 }
 
 #[test]
@@ -631,16 +672,6 @@ fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
         .is_err());
     assert!(sql::SelectStatementParser::new()
         .parse("select a from eth.tab where tab.b = 3")
-        .is_err());
-}
-
-#[test]
-fn we_cannot_parse_a_query_without_a_filter() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab")
-        .is_err());
-    assert!(sql::SelectStatementParser::new()
-        .parse("select * from tab")
         .is_err());
 }
 

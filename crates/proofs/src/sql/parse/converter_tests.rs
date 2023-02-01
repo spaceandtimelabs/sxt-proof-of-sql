@@ -1,6 +1,6 @@
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef, TestAccessor};
 use crate::sql::ast::{
-    AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::sql::parse::Converter;
 use curve25519_dalek::scalar::Scalar;
@@ -808,4 +808,43 @@ fn we_can_convert_an_ast_with_a_schema() {
     );
 
     assert_eq!(expected_provable_ast, provable_ast);
+}
+
+#[test]
+fn we_can_convert_an_ast_without_any_filter() {
+    let table_ref = "eth.sxt_tab".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(
+        &table_ref,
+        &IndexMap::from([("a".to_string(), vec![3])]),
+        0_usize,
+    );
+
+    let expected_provable_ast = FilterExpr::new(
+        vec![FilterResultExpr::new(
+            ColumnRef::new(
+                table_ref.clone(),
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            ),
+            Identifier::try_new("a").unwrap(),
+        )],
+        TableExpr {
+            table_ref: table_ref.clone(),
+        },
+        Box::new(ConstBoolExpr::new(true)),
+    );
+
+    let default_schema = table_ref.schema_id();
+
+    let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
+    for query in queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
+
+        let provable_ast = Converter::default()
+            .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
+            .unwrap();
+
+        assert_eq!(provable_ast, expected_provable_ast);
+    }
 }
