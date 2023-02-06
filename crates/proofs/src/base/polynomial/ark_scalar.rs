@@ -1,5 +1,5 @@
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
-use ark_ff::{BigInt, ToBytes};
+use ark_ff::{BigInt, BigInteger};
 use byte_slice_cast::AsMutByteSlice;
 use curve25519_dalek::scalar::Scalar;
 
@@ -25,7 +25,6 @@ pub fn to_ark_scalars(xsp: &mut [ArkScalar], xs: &[Scalar]) {
 
 pub fn from_ark_scalar(x: &ArkScalar) -> Scalar {
     let x = ArkScalarConfig::into_bigint(*x);
-    let mut bytes = [0u8; 32];
-    x.write(bytes.as_mut()).unwrap();
-    Scalar::from_canonical_bytes(bytes).unwrap()
+    let bytes = x.to_bytes_le();
+    Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
 }
