@@ -2,6 +2,12 @@
 name = "proofs"
 version = "0.0.0" # This version will be automatically updated
 edition = "2021"
+repository = "https://github.com/spaceandtimelabs/proofs"
+description = "Generates and verifies cryptographic proofs for SxT OLTP queries"
+exclude = [
+    "**/.gitignore",
+    ".gitignore"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,9 +16,9 @@ arrow = "30.0"
 bumpalo = { version = "3.11.0", features = ["collections"] }
 byte-slice-cast = "1.2.1"
 integer-encoding = "3.0.4"
-ark-ff = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
-ark-poly = { git = "https://github.com/arkworks-rs/algebra.git", rev = "bf1e24211df2be1ee317e382aa128281766e9c1f" }
-ark-std = "^0.3.0"
+ark-ff = "^0.4.0"
+ark-poly = "^0.4.0"
+ark-std = "^0.4.0"
 curve25519-dalek = { version = "3", features = ["serde"] }
 hashbrown = "0.11.2"
 merlin = "2"
@@ -28,7 +34,7 @@ indexmap = { version = "1.9", optional = true }
 polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"], optional = true }
 
 # SxT dependencies
-proofs-sql= {path = "../proofs-sql"}
+proofs-sql = {path = "../proofs-sql"} # We automatically update this line during release. So do not modify it!
 proofs-gpu = {version = "6", registry = "artifactory"}
 
 [dev_dependencies]
