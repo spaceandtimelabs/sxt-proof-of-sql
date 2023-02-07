@@ -3,7 +3,7 @@ use crate::base::database::{
     make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
     TestAccessor,
 };
-use crate::base::scalar::IntoScalar;
+use crate::base::scalar::ToScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 use proofs_sql::Identifier;
@@ -95,7 +95,7 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
-                val.into_scalar(),
+                val.to_scalar(),
             )))),
         );
         let proof_res = VerifiableQueryResult::new(&expr, &accessor);

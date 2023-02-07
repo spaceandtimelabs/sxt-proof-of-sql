@@ -11,8 +11,8 @@ mod inner_product;
 mod inner_product_test;
 pub use inner_product::inner_product;
 
-mod into_scalar;
-pub use into_scalar::IntoScalar;
+mod to_scalar;
+pub use to_scalar::ToScalar;
 
 mod batch_pseudo_inverse;
 pub use batch_pseudo_inverse::batch_pseudo_invert;
