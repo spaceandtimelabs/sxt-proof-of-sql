@@ -16,7 +16,7 @@ pub fn exercise_verification(
     res: &VerifiableQueryResult,
     expr: &dyn QueryExpr,
     accessor: &TestAccessor,
-    table_ref: &TableRef,
+    table_ref: TableRef,
 ) {
     assert!(res.verify(expr, accessor).is_ok());
 

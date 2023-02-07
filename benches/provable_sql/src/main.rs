@@ -47,7 +47,7 @@ fn parse_query(query: String, accessor: &TestAccessor) -> FilterExpr {
     let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
 
     Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, accessor, &default_schema)
+        .visit_intermediate_ast(&intermediate_ast, accessor, default_schema)
         .unwrap()
 }
 
@@ -76,7 +76,7 @@ fn generate_accessor(
     let table_ref = "sxt.t".parse().unwrap();
     let accessor = make_random_test_accessor(
         &mut rng,
-        &table_ref,
+        table_ref,
         &ref_cols[..],
         &descriptor,
         offset_generators,

@@ -26,18 +26,16 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
             Identifier::try_new("a").unwrap(),
         )],
-        TableExpr {
-            table_ref: table_ref.clone(),
-        },
+        TableExpr { table_ref },
         Box::new(NotExpr::new(Box::new(EqualsExpr::new(
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("b").unwrap(),
                 ColumnType::BigInt,
             ),
@@ -46,7 +44,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        &table_ref,
+        table_ref,
         &IndexMap::from([
             ("a".to_string(), vec![123, 456]),
             ("b".to_string(), vec![0, 1]),
@@ -55,7 +53,7 @@ fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
-    exercise_verification(&res, &expr, &accessor, &table_ref);
+    exercise_verification(&res, &expr, &accessor, table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![123];
@@ -79,23 +77,21 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
     for _ in 0..10 {
         let table_ref: TableRef = "sxt.t".parse().unwrap();
         let accessor =
-            make_random_test_accessor(&mut rng, &table_ref, &cols, &descr, offset_generators);
+            make_random_test_accessor(&mut rng, table_ref, &cols, &descr, offset_generators);
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
                 Identifier::try_new("a").unwrap(),
             )],
-            TableExpr {
-                table_ref: table_ref.clone(),
-            },
+            TableExpr { table_ref },
             Box::new(NotExpr::new(Box::new(EqualsExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -103,9 +99,9 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
             )))),
         );
         let proof_res = VerifiableQueryResult::new(&expr, &accessor);
-        exercise_verification(&proof_res, &expr, &accessor, &table_ref);
+        exercise_verification(&proof_res, &expr, &accessor, table_ref);
         let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table(&table_ref, |df| {
+        let expected = accessor.query_table(table_ref, |df| {
             df.clone()
                 .lazy()
                 .filter(col("b").neq(val))

@@ -53,12 +53,12 @@ impl TestAccessor {
     /// previously added to the accessor.
     pub fn add_table(
         &mut self,
-        table_ref: &TableRef,
+        table_ref: TableRef,
         columns: &IndexMap<String, Vec<i64>>,
         offset_generators: usize,
     ) {
         assert!(!columns.is_empty());
-        assert!(!self.data.contains_key(table_ref));
+        assert!(!self.data.contains_key(&table_ref));
 
         // gets the first element, then its Vec<i64> length (number of rows)
         let num_rows_table = columns.values().next().unwrap().len();
@@ -67,11 +67,7 @@ impl TestAccessor {
         let mut cols: Vec<Series> = Vec::with_capacity(columns.len());
         let mut commitments = IndexMap::new();
         for (col_name, col_rows) in columns {
-            let col_ref = ColumnRef::new(
-                table_ref.clone(),
-                col_name.parse().unwrap(),
-                ColumnType::BigInt,
-            );
+            let col_ref = ColumnRef::new(table_ref, col_name.parse().unwrap(), ColumnType::BigInt);
             // all columns must have the same length
             assert_eq!(col_rows.len(), num_rows_table);
 
@@ -82,7 +78,7 @@ impl TestAccessor {
         }
 
         self.data.insert(
-            table_ref.clone(),
+            table_ref,
             TestTable {
                 len: num_rows_table,
                 offset: offset_generators,
@@ -92,17 +88,17 @@ impl TestAccessor {
         );
     }
 
-    pub fn update_offset(&mut self, table_ref: &TableRef, new_offset_generators: usize) {
-        self.data.get_mut(table_ref).unwrap().offset = new_offset_generators;
+    pub fn update_offset(&mut self, table_ref: TableRef, new_offset_generators: usize) {
+        self.data.get_mut(&table_ref).unwrap().offset = new_offset_generators;
     }
 
     /// Executes a query on the given table and returns the result as a RecordBatch.
     pub fn query_table(
         &self,
-        table_ref: &TableRef,
+        table_ref: TableRef,
         f: impl Fn(&DataFrame) -> DataFrame,
     ) -> RecordBatch {
-        let df = &self.data.get(table_ref).unwrap().data;
+        let df = &self.data.get(&table_ref).unwrap().data;
         let df = f(df);
         let columns = df.get_columns();
         let mut schema = Vec::with_capacity(columns.len());
@@ -123,12 +119,12 @@ impl TestAccessor {
 ///
 /// Note: `table_name` must already exist.
 impl MetadataAccessor for TestAccessor {
-    fn get_length(&self, table_ref: &TableRef) -> usize {
-        self.data.get(table_ref).unwrap().len
+    fn get_length(&self, table_ref: TableRef) -> usize {
+        self.data.get(&table_ref).unwrap().len
     }
 
-    fn get_offset(&self, table_ref: &TableRef) -> usize {
-        self.data.get(table_ref).unwrap().offset
+    fn get_offset(&self, table_ref: TableRef) -> usize {
+        self.data.get(&table_ref).unwrap().offset
     }
 }
 
@@ -136,10 +132,10 @@ impl MetadataAccessor for TestAccessor {
 ///
 /// Note: `table_name` and `column_name` must already exist.
 impl DataAccessor for TestAccessor {
-    fn get_column(&self, column: &ColumnRef) -> Column {
+    fn get_column(&self, column: ColumnRef) -> Column {
         let column = &self
             .data
-            .get(column.table_ref())
+            .get(&column.table_ref())
             .unwrap()
             .data
             .column(column.column_id().name())
@@ -153,15 +149,15 @@ impl DataAccessor for TestAccessor {
 ///
 /// Note: `table_name` and `column_name` must already exist.
 impl CommitmentAccessor for TestAccessor {
-    fn get_commitment(&self, column: &ColumnRef) -> RistrettoPoint {
-        let commitments = &self.data.get(column.table_ref()).unwrap().commitments;
-        *commitments.get(column).unwrap()
+    fn get_commitment(&self, column: ColumnRef) -> RistrettoPoint {
+        let commitments = &self.data.get(&column.table_ref()).unwrap().commitments;
+        *commitments.get(&column).unwrap()
     }
 }
 
 impl SchemaAccessor for TestAccessor {
-    fn lookup_column(&self, column: &ColumnRef) -> Option<ColumnType> {
-        let df = &self.data.get(column.table_ref()).unwrap().data;
+    fn lookup_column(&self, column: ColumnRef) -> Option<ColumnType> {
+        let df = &self.data.get(&column.table_ref()).unwrap().data;
         let column = df.column(column.column_id().name());
 
         if column.is_ok() {
@@ -171,12 +167,12 @@ impl SchemaAccessor for TestAccessor {
         None
     }
 
-    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Identifier, ColumnType)> {
-        let commitments = &self.data.get(table_ref).unwrap().commitments;
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+        let commitments = &self.data.get(&table_ref).unwrap().commitments;
 
         commitments
             .keys()
-            .map(|key| (key.column_id().clone(), ColumnType::BigInt))
+            .map(|key| (key.column_id(), ColumnType::BigInt))
             .collect()
     }
 }

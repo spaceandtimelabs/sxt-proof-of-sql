@@ -5,7 +5,7 @@ use std::fmt::{self, Display};
 use std::str::FromStr;
 
 /// Top-level unique identifier.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub struct Identifier {
     name: Name,
 }
@@ -129,5 +129,6 @@ mod tests {
         assert!(Identifier::from_str("$AD_IDENTIFIER").is_err());
         assert!(Identifier::from_str("GOOD_IDENTIFIER.").is_err());
         assert!(Identifier::from_str(".GOOD_IDENTIFIER").is_err());
+        assert!(Identifier::from_str(&"LONG_IDENTIFIER_OVER_64_CHARACTERS".repeat(12)).is_err());
     }
 }

@@ -27,7 +27,7 @@ impl Default for RandomTestAccessorDescriptor {
 /// Generate a TestAccessor with random data
 pub fn make_random_test_accessor(
     rng: &mut StdRng,
-    table: &TableRef,
+    table: TableRef,
     cols: &[&str],
     descriptor: &RandomTestAccessorDescriptor,
     offset_generators: usize,
@@ -59,23 +59,21 @@ mod tests {
         let table_ref: TableRef = "sxt.abc".parse().unwrap();
 
         // zero offset generators
-        let accessor1 =
-            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 0_usize);
-        let accessor2 =
-            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 0_usize);
+        let accessor1 = make_random_test_accessor(&mut rng, table_ref, &cols, &descriptor, 0_usize);
+        let accessor2 = make_random_test_accessor(&mut rng, table_ref, &cols, &descriptor, 0_usize);
         assert_ne!(
-            accessor1.get_length(&table_ref),
-            accessor2.get_length(&table_ref)
+            accessor1.get_length(table_ref),
+            accessor2.get_length(table_ref)
         );
 
         // non-zero offset generators
         let accessor1 =
-            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 123_usize);
+            make_random_test_accessor(&mut rng, table_ref, &cols, &descriptor, 123_usize);
         let accessor2 =
-            make_random_test_accessor(&mut rng, &table_ref, &cols, &descriptor, 123_usize);
+            make_random_test_accessor(&mut rng, table_ref, &cols, &descriptor, 123_usize);
         assert_ne!(
-            accessor1.get_length(&table_ref),
-            accessor2.get_length(&table_ref)
+            accessor1.get_length(table_ref),
+            accessor2.get_length(table_ref)
         );
     }
 }

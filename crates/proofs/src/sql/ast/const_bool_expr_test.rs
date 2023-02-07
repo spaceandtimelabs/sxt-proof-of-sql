@@ -26,25 +26,23 @@ fn test_random_tables_with_given_constant(value: bool) {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols = ["a"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, &table_ref, &cols, &descr, 0);
+        let accessor = make_random_test_accessor(&mut rng, table_ref, &cols, &descr, 0);
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
                 Identifier::try_new("a").unwrap(),
             )],
-            TableExpr {
-                table_ref: table_ref.clone(),
-            },
+            TableExpr { table_ref },
             Box::new(ConstBoolExpr::new(value)),
         );
         let proof_res = VerifiableQueryResult::new(&expr, &accessor);
-        exercise_verification(&proof_res, &expr, &accessor, &table_ref);
+        exercise_verification(&proof_res, &expr, &accessor, table_ref);
         let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table(&table_ref, |df| {
+        let expected = accessor.query_table(table_ref, |df| {
             df.clone()
                 .lazy()
                 .filter(lit(value))
@@ -62,26 +60,24 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
             Identifier::try_new("a").unwrap(),
         )],
-        TableExpr {
-            table_ref: table_ref.clone(),
-        },
+        TableExpr { table_ref },
         Box::new(ConstBoolExpr::new(true)),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        &table_ref,
+        table_ref,
         &IndexMap::from([("a".to_string(), vec![123])]),
         0_usize,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
-    exercise_verification(&res, &expr, &accessor, &table_ref);
+    exercise_verification(&res, &expr, &accessor, table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![123];
@@ -99,26 +95,24 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
     let expr = FilterExpr::new(
         vec![FilterResultExpr::new(
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt,
             ),
             Identifier::try_new("a").unwrap(),
         )],
-        TableExpr {
-            table_ref: table_ref.clone(),
-        },
+        TableExpr { table_ref },
         Box::new(ConstBoolExpr::new(false)),
     );
     let mut accessor = TestAccessor::new();
     accessor.add_table(
-        &table_ref,
+        table_ref,
         &IndexMap::from([("a".to_string(), vec![])]),
         0_usize,
     );
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
-    exercise_verification(&res, &expr, &accessor, &table_ref);
+    exercise_verification(&res, &expr, &accessor, table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![];

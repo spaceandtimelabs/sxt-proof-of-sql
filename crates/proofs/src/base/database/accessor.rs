@@ -10,13 +10,13 @@ use proofs_sql::Identifier;
 /// will only be accessing information about tables that exist in the database.
 pub trait MetadataAccessor {
     /// Return the data span's length in the table (not the full table length)
-    fn get_length(&self, table_ref: &TableRef) -> usize;
+    fn get_length(&self, table_ref: TableRef) -> usize;
 
     /// Return the data span's offset in the table
     ///
     /// If the data span has its first row starting at the ith table row,
     /// this `get_offset` should then return `i`.
-    fn get_offset(&self, table_ref: &TableRef) -> usize;
+    fn get_offset(&self, table_ref: TableRef) -> usize;
 }
 
 /// Access commitments of database columns.
@@ -46,7 +46,7 @@ pub trait MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait CommitmentAccessor: MetadataAccessor {
     /// Return the full table column commitment
-    fn get_commitment(&self, column: &ColumnRef) -> RistrettoPoint;
+    fn get_commitment(&self, column: ColumnRef) -> RistrettoPoint;
 }
 
 /// Access database columns of an in-memory table span.
@@ -80,7 +80,7 @@ pub trait CommitmentAccessor: MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
-    fn get_column(&self, column: &ColumnRef) -> Column;
+    fn get_column(&self, column: ColumnRef) -> Column;
 }
 
 /// Access tables and their schemas in a database.
@@ -97,7 +97,7 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` and `column_name` must always be lowercase.
-    fn lookup_column(&self, column: &ColumnRef) -> Option<ColumnType>;
+    fn lookup_column(&self, column: ColumnRef) -> Option<ColumnType>;
 
     /// Lookup all the column names and their data types in the specified table
     ///
@@ -106,5 +106,5 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` must be lowercase.
-    fn lookup_schema(&self, table_ref: &TableRef) -> Vec<(Identifier, ColumnType)>;
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)>;
 }

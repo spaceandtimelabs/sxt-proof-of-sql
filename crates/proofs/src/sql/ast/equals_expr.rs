@@ -47,7 +47,7 @@ impl BoolExpr for EqualsExpr {
         counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let Column::BigInt(col) = accessor.get_column(&self.column_ref);
+        let Column::BigInt(col) = accessor.get_column(self.column_ref);
 
         // lhs
         let lhs =
@@ -107,7 +107,7 @@ impl BoolExpr for EqualsExpr {
             - get_one_commit(counts.offset_generators as u64);
 
         // lhs_commit
-        let lhs_commit = accessor.get_commitment(&self.column_ref) - self.value * one_commit;
+        let lhs_commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;
 
         // consume mle evaluations
         let lhs_eval = builder.consume_anchored_mle(&lhs_commit);
@@ -128,6 +128,6 @@ impl BoolExpr for EqualsExpr {
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
-        columns.insert(self.column_ref.clone());
+        columns.insert(self.column_ref);
     }
 }

@@ -6,7 +6,7 @@ use std::{
 };
 
 /// Unique resource identifier, like `schema.object_name`.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub struct ResourceId {
     schema: Identifier,
     object_name: Identifier,
@@ -39,13 +39,13 @@ impl ResourceId {
     }
 
     /// The schema identifier of this [ResourceId].
-    pub fn schema(&self) -> &Identifier {
-        &self.schema
+    pub fn schema(&self) -> Identifier {
+        self.schema
     }
 
     /// The object_name identifier of this [ResourceId].
-    pub fn object_name(&self) -> &Identifier {
-        &self.object_name
+    pub fn object_name(&self) -> Identifier {
+        self.object_name
     }
 
     /// Conversion to string in the format used in KeyDB.
