@@ -20,7 +20,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         vec![
             FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -28,16 +28,14 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             ),
             FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
                 Identifier::try_new("b").unwrap(),
             ),
         ],
-        TableExpr {
-            table_ref: table_ref.clone(),
-        },
+        TableExpr { table_ref },
         Box::new(EqualsExpr::new(
             ColumnRef::new(
                 table_ref,
@@ -66,7 +64,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         vec![
             FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("a").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -74,21 +72,19 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             ),
             FilterResultExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("f").unwrap(),
                     ColumnType::BigInt,
                 ),
                 Identifier::try_new("f").unwrap(),
             ),
         ],
-        TableExpr {
-            table_ref: table_ref.clone(),
-        },
+        TableExpr { table_ref },
         Box::new(NotExpr::new(Box::new(AndExpr::new(
             Box::new(OrExpr::new(
                 Box::new(EqualsExpr::new(
                     ColumnRef::new(
-                        table_ref.clone(),
+                        table_ref,
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ),
@@ -96,7 +92,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 )),
                 Box::new(EqualsExpr::new(
                     ColumnRef::new(
-                        table_ref.clone(),
+                        table_ref,
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ),
@@ -105,7 +101,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             )),
             Box::new(EqualsExpr::new(
                 ColumnRef::new(
-                    table_ref.clone(),
+                    table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
@@ -120,17 +116,17 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         ref_columns,
         HashSet::from([
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("a").unwrap(),
                 ColumnType::BigInt
             ),
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("f").unwrap(),
                 ColumnType::BigInt
             ),
             ColumnRef::new(
-                table_ref.clone(),
+                table_ref,
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt
             ),

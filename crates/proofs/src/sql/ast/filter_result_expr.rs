@@ -30,7 +30,7 @@ impl FilterResultExpr {
 
     /// Add the `self.column_ref` to the `columns` HashSet
     pub fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
-        columns.insert(self.column_ref.clone());
+        columns.insert(self.column_ref);
     }
 
     /// Wrap the column output name and its type within the arrow Field
@@ -60,7 +60,7 @@ impl FilterResultExpr {
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
     ) {
-        let Column::BigInt(col) = accessor.get_column(&self.column_ref);
+        let Column::BigInt(col) = accessor.get_column(self.column_ref);
 
         // add result column
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
@@ -101,7 +101,7 @@ impl FilterResultExpr {
         accessor: &dyn CommitmentAccessor,
         selection_eval: &Scalar,
     ) {
-        let col_commit = accessor.get_commitment(&self.column_ref);
+        let col_commit = accessor.get_commitment(self.column_ref);
 
         let result_eval = builder.consume_result_mle();
         let col_eval = builder.consume_anchored_mle(&col_commit);

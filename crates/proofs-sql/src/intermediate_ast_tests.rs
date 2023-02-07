@@ -797,3 +797,23 @@ fn we_cannot_parse_a_query_missing_select_result_columns() {
         .parse("select from b where c = 4")
         .is_err());
 }
+
+#[test]
+fn we_cannot_parse_queries_with_long_identifiers() {
+    // Long table names should be rejected
+    assert!(sql::SelectStatementParser::new()
+        .parse("SELECT A FROM AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA WHERE A = 3").is_err());
+
+    // Long column names should be rejected
+    assert!(sql::SelectStatementParser::new()
+        .parse("SELECT A FROM A WHERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA = 3").is_err());
+
+    // Long column aliases should be rejected
+    assert!(sql::SelectStatementParser::new()
+        .parse("SELECT A AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3").is_err());
+
+    // Long columns names shouldn't be interpreted as a short column and a short alias
+    // Whitespace matters: "AAAAAA" != ("AAA AAA" or "AAA AS AAA")
+    assert!(sql::SelectStatementParser::new()
+        .parse("SELECT AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3").is_err());
+}

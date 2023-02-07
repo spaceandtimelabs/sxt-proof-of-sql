@@ -1,3 +1,4 @@
+use arrayvec::ArrayString;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
@@ -5,10 +6,10 @@ use std::fmt;
 /// Case-insensitive name of a table/column.
 ///
 /// Names are case-insensitive for the purpose of comparison since they usually are in SQL.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
 pub struct Name {
     /// The name itself which is always in lower case
-    string: String,
+    string: ArrayString<64>,
 }
 
 impl Name {
@@ -23,7 +24,7 @@ impl Name {
         S: Into<String>,
     {
         Name {
-            string: string.into().to_lowercase(),
+            string: ArrayString::from(&string.into().to_lowercase()).expect("Identifier too long"),
         }
     }
 
@@ -40,13 +41,15 @@ impl fmt::Display for Name {
 
 impl PartialEq<str> for Name {
     fn eq(&self, other: &str) -> bool {
-        self.string.eq(&other.to_lowercase())
+        other.eq_ignore_ascii_case(self.as_str())
     }
 }
 
 impl PartialOrd<str> for Name {
     fn partial_cmp(&self, other: &str) -> Option<Ordering> {
-        self.string.partial_cmp(&other.to_lowercase())
+        self.string
+            .as_str()
+            .partial_cmp(other.to_lowercase().as_str())
     }
 }
 
@@ -65,5 +68,23 @@ mod tests {
         assert_eq!(lower_case, upper_case);
         assert_eq!(lower_case, mixed_case);
         assert_eq!(lower_case.as_str(), "sxt");
+    }
+
+    #[test]
+    #[should_panic]
+    fn long_names_panic() {
+        Name::new("t".repeat(65));
+    }
+
+    #[test]
+    #[should_panic]
+    fn long_unicode_names_panic() {
+        Name::new("茶".repeat(22));
+    }
+
+    #[test]
+    fn short_names_are_fine() {
+        Name::new("t".repeat(64));
+        Name::new("茶".repeat(21));
     }
 }
