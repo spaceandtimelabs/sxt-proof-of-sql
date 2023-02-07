@@ -1,4 +1,4 @@
-use crate::base::scalar::IntoScalar;
+use crate::base::scalar::ToScalar;
 use curve25519_dalek::scalar::Scalar;
 
 /// Interface for operating on multilinear extension's in-place
@@ -12,22 +12,22 @@ pub trait MultilinearExtension {
 }
 
 /// Treat scalar convertible columns as a multilinear extensions
-pub struct MultilinearExtensionImpl<'a, T: IntoScalar> {
+pub struct MultilinearExtensionImpl<'a, T: ToScalar> {
     data: &'a [T],
 }
 
-impl<'a, T: IntoScalar> MultilinearExtensionImpl<'a, T> {
+impl<'a, T: ToScalar> MultilinearExtensionImpl<'a, T> {
     /// Create MLE from slice
     pub fn new(data: &'a [T]) -> Self {
         Self { data }
     }
 }
 
-impl<'a, T: IntoScalar> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
+impl<'a, T: ToScalar> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
     fn evaluate(&self, evaluation_vec: &[Scalar]) -> Scalar {
         let mut res = Scalar::zero();
         for (xi, yi) in self.data.iter().zip(evaluation_vec.iter()) {
-            res += xi.into_scalar() * yi;
+            res += xi.to_scalar() * yi;
         }
         res
     }
@@ -35,7 +35,7 @@ impl<'a, T: IntoScalar> MultilinearExtension for MultilinearExtensionImpl<'a, T>
     fn mul_add(&self, res: &mut [Scalar], multiplier: &Scalar) {
         assert!(res.len() >= self.data.len());
         for (res_i, data_i) in res.iter_mut().zip(self.data) {
-            *res_i += multiplier * data_i.into_scalar();
+            *res_i += multiplier * data_i.to_scalar();
         }
     }
 }

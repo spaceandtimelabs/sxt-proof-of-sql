@@ -3,7 +3,7 @@ use super::{
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::CompositePolynomial;
-use crate::base::scalar::IntoScalar;
+use crate::base::scalar::ToScalar;
 use proofs_gpu::compute::compute_commitments;
 use proofs_gpu::sequences::{DenseSequence, Sequence};
 
@@ -41,7 +41,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn produce_anchored_mle<T: IntoScalar>(&mut self, data: &'a [T]) {
+    pub fn produce_anchored_mle<T: ToScalar>(&mut self, data: &'a [T]) {
         assert!(self.pre_result_mles.len() < self.pre_result_mles.capacity());
         self.pre_result_mles
             .push(Box::new(MultilinearExtensionImpl::new(data)));
@@ -56,7 +56,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn produce_intermediate_mle<T: IntoScalar>(&mut self, data: &'a [T]) {
+    pub fn produce_intermediate_mle<T: ToScalar>(&mut self, data: &'a [T]) {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         let len = data.len() * std::mem::size_of::<T>();
         let slice = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, len) };

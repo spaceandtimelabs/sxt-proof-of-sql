@@ -47,7 +47,7 @@ pub fn batch_pseudo_invert(res: &mut [Scalar], input: &[Scalar]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::scalar::into_scalar::IntoScalar;
+    use crate::base::scalar::to_scalar::ToScalar;
 
     #[test]
     fn we_can_pseudo_invert_empty_arrays() {
@@ -77,7 +77,7 @@ mod tests {
         let input = vec![
             Scalar::from(0_u32),
             Scalar::from(2_u32),
-            (-33_i32).into_scalar(),
+            (-33_i32).to_scalar(),
             Scalar::from(0_u32),
             Scalar::from(45_u32),
             Scalar::from(0_u32),

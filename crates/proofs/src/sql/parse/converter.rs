@@ -1,5 +1,5 @@
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
-use crate::base::scalar::IntoScalar;
+use crate::base::scalar::ToScalar;
 use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
@@ -251,7 +251,7 @@ impl Converter {
 impl Converter {
     /// Convert a `i64` into a `Scalar`
     fn visit_literal(&self, literal: i64) -> Scalar {
-        literal.into_scalar()
+        literal.to_scalar()
     }
 
     /// Convert a `Name` into an identifier string (i.e. a string)

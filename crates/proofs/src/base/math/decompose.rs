@@ -1,8 +1,8 @@
 use num_traits::{identities::One, int::PrimInt};
 use std::ops::{Neg, Sub};
-/// BitDecompose is a trait that converts a nonnegative number into it's bits. This should match with the bits of the `Scalar` when implementing `IntoScalar`.
+/// BitDecompose is a trait that converts a nonnegative number into it's bits. This should match with the bits of the `Scalar` when implementing `ToScalar`.
 pub trait BitDecompose {
-    /// The bits give be the binary representation of a nonnegative `self`. The behaviour is undefined for negative values. This should match with the bits of the embedding into `Scalar` when implementing `IntoScalar`.
+    /// The bits give be the binary representation of a nonnegative `self`. The behaviour is undefined for negative values. This should match with the bits of the embedding into `Scalar` when implementing `ToScalar`.
     fn bits(&self) -> Vec<bool>;
 }
 /// This is a helper trait for `PositiveProof` that allows for converting signed numeric values to their bits in a compact way.

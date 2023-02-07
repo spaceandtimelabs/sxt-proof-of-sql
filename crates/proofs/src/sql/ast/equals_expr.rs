@@ -1,5 +1,5 @@
 use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::scalar::IntoScalar;
+use crate::base::scalar::ToScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
@@ -51,7 +51,7 @@ impl BoolExpr for EqualsExpr {
 
         // lhs
         let lhs =
-            alloc.alloc_slice_fill_with(counts.table_length, |i| col[i].into_scalar() - self.value);
+            alloc.alloc_slice_fill_with(counts.table_length, |i| col[i].to_scalar() - self.value);
         builder.produce_anchored_mle(lhs);
 
         // lhs_pseudo_inv

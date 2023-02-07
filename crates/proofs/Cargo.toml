@@ -13,6 +13,7 @@ exclude = [
 
 [dependencies]
 arrow = "30.0"
+blake3 = "1.3.3"
 bumpalo = { version = "3.11.0", features = ["collections"] }
 byte-slice-cast = "1.2.1"
 integer-encoding = "3.0.4"
