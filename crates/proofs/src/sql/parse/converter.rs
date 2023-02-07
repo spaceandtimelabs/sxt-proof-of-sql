@@ -45,7 +45,7 @@ impl Converter {
         &mut self,
         ast: &SelectStatement,
         schema_accessor: &dyn SchemaAccessor,
-        default_schema: &Identifier,
+        default_schema: Identifier,
     ) -> ParseResult<FilterExpr> {
         self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)
     }
@@ -58,7 +58,7 @@ impl Converter {
         &mut self,
         expr: &SetExpression,
         schema_accessor: &dyn SchemaAccessor,
-        default_schema: &Identifier,
+        default_schema: Identifier,
     ) -> ParseResult<FilterExpr> {
         match expr {
             SetExpression::Query {
@@ -95,19 +95,19 @@ impl Converter {
     fn visit_table_expression(
         &mut self,
         table_expr: &TableExpression,
-        default_schema: &Identifier,
+        default_schema: Identifier,
     ) -> TableExpr {
         match table_expr {
             TableExpression::Named { table, schema } => {
-                let table = Identifier::new(table.clone());
+                let table = Identifier::new(*table);
                 let schema = schema
                     .as_ref()
-                    .map(|schema| Identifier::new(schema.clone()))
-                    .unwrap_or_else(|| default_schema.clone());
+                    .map(|schema| Identifier::new(*schema))
+                    .unwrap_or(default_schema);
 
                 let table_ref = TableRef::new(ResourceId::new(schema, table));
 
-                self.current_table = Some(table_ref.clone());
+                self.current_table = Some(table_ref);
 
                 TableExpr { table_ref }
             }
@@ -118,7 +118,7 @@ impl Converter {
     fn visit_table_expressions(
         &mut self,
         table_exprs: &[Box<TableExpression>],
-        default_schema: &Identifier,
+        default_schema: Identifier,
     ) -> TableExpr {
         assert!(table_exprs.len() == 1);
 
@@ -133,7 +133,7 @@ impl Converter {
         &self,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<Vec<FilterResultExpr>> {
-        let current_table = self
+        let current_table = *self
             .current_table
             .as_ref()
             .expect("Some table should've already been processed at this point");
@@ -143,7 +143,7 @@ impl Converter {
             .into_iter()
             .map(|(column_name_id, column_type)| {
                 FilterResultExpr::new(
-                    ColumnRef::new(current_table.clone(), column_name_id.clone(), column_type),
+                    ColumnRef::new(current_table, column_name_id, column_type),
                     column_name_id,
                 )
             })
@@ -153,15 +153,15 @@ impl Converter {
     /// Convert a `ResultColumn::Expr` into a `FilterResultExpr`
     fn visit_result_column_expression(
         &self,
-        column_name: &Name,
+        column_name: Name,
         output_name: &Option<Name>,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<FilterResultExpr> {
         let result_expr = self.visit_column_identifier(column_name, schema_accessor)?;
         let output_name = output_name
             .as_ref()
-            .map(|output_name| Identifier::new(output_name.clone()));
-        let output_name = output_name.unwrap_or_else(|| Identifier::new(column_name.clone()));
+            .map(|output_name| Identifier::new(*output_name));
+        let output_name = output_name.unwrap_or_else(|| Identifier::new(column_name));
 
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
@@ -176,7 +176,7 @@ impl Converter {
             ResultColumn::All => self.visit_result_column_all(schema_accessor),
             ResultColumn::Expr { expr, output_name } => {
                 Ok(vec![self.visit_result_column_expression(
-                    expr,
+                    *expr,
                     output_name,
                     schema_accessor,
                 )?])
@@ -233,13 +233,13 @@ impl Converter {
             //       we should verify if both B and 123 have the same type
             //       (in the future, B could be varchar, or boolean, or any other type other than Int64).
             Expression::Equal { left, right } => Ok(Box::new(EqualsExpr::new(
-                self.visit_column_identifier(left, schema_accessor)?,
+                self.visit_column_identifier(*left, schema_accessor)?,
                 self.visit_literal(*right),
             ))),
 
             Expression::NotEqual { left, right } => {
                 Ok(Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-                    self.visit_column_identifier(left, schema_accessor)?,
+                    self.visit_column_identifier(*left, schema_accessor)?,
                     self.visit_literal(*right),
                 )))))
             }
@@ -257,23 +257,19 @@ impl Converter {
     /// Convert a `Name` into an identifier string (i.e. a string)
     fn visit_column_identifier(
         &self,
-        id: &Name,
+        id: Name,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<ColumnRef> {
-        let column_name = Identifier::new(id.clone());
+        let column_name = Identifier::new(id);
 
-        let current_table = self
+        let current_table = *self
             .current_table
             .as_ref()
             .expect("Some table should've already been processed at this point");
 
-        let column_ref = ColumnRef::new(
-            current_table.clone(),
-            column_name.clone(),
-            ColumnType::BigInt,
-        );
+        let column_ref = ColumnRef::new(current_table, column_name, ColumnType::BigInt);
 
-        let column_type = schema_accessor.lookup_column(&column_ref);
+        let column_type = schema_accessor.lookup_column(column_ref);
 
         if column_type.is_none() {
             return Err(ParseError::MissingColumnError(format!(

@@ -3,7 +3,7 @@ use std::str::FromStr;
 use proofs_sql::{Identifier, ResourceId};
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub struct TableRef {
     resource_id: ResourceId,
 }
@@ -13,11 +13,11 @@ impl TableRef {
         Self { resource_id }
     }
 
-    pub fn schema_id(&self) -> &Identifier {
+    pub fn schema_id(&self) -> Identifier {
         self.resource_id.schema()
     }
 
-    pub fn table_id(&self) -> &Identifier {
+    pub fn table_id(&self) -> Identifier {
         self.resource_id.object_name()
     }
 }

@@ -145,7 +145,11 @@ pub(crate) ResourceId: (symbols::Name, symbols::Name) = {
     <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
 };
 
-pub(crate) Identifier: symbols::Name = ID => symbols::Name::new(<>);
+pub(crate) Identifier: symbols::Name = ID =>? if <>.len() <= 64 {
+    Ok(symbols::Name::new(<>))
+} else {
+    Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
+};
 
 NumericLiteral: i64 = {
     NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),

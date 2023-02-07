@@ -25,7 +25,7 @@ impl SelectStatement {
     ///
     /// Return:
     /// - The vector with all tables referenced by the intermediate ast, encoded as resource ids.
-    pub fn get_table_references(&self, default_schema: &Identifier) -> Vec<ResourceId> {
+    pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
         let set_expression: &SetExpression = &(self.expr);
 
         match set_expression {
@@ -40,7 +40,7 @@ impl SelectStatement {
 
 fn convert_table_expr_to_resource_id_vector(
     table_expressions: &[Box<TableExpression>],
-    default_schema: &Identifier,
+    default_schema: Identifier,
 ) -> Vec<ResourceId> {
     let mut tables = Vec::new();
 
@@ -73,7 +73,7 @@ mod tests {
             .parse("SELECT A FROM TAB WHERE C = 3")
             .unwrap();
         let default_schema = Identifier::try_new("ETH").unwrap();
-        let ref_tables = parsed_query_ast.get_table_references(&default_schema);
+        let ref_tables = parsed_query_ast.get_table_references(default_schema);
 
         // note: the parsed table is always lower case
         assert_eq!(ref_tables, [ResourceId::try_new("eth", "tab").unwrap()]);
@@ -86,7 +86,7 @@ mod tests {
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();
         let default_schema = Identifier::try_new("SCHEMA").unwrap();
-        let ref_tables = parsed_query_ast.get_table_references(&default_schema);
+        let ref_tables = parsed_query_ast.get_table_references(default_schema);
 
         assert_eq!(ref_tables, [ResourceId::try_new("schema", "tab").unwrap()]);
     }
@@ -98,7 +98,7 @@ mod tests {
             .parse("SELECT A FROM SCHEMA.TAB WHERE C = 3")
             .unwrap();
         let default_schema = Identifier::try_new("  ETH  ").unwrap();
-        let ref_tables = parsed_query_ast.get_table_references(&default_schema);
+        let ref_tables = parsed_query_ast.get_table_references(default_schema);
 
         assert_eq!(ref_tables, [ResourceId::try_new("schema", "tab").unwrap()]);
     }
