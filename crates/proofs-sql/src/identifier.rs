@@ -55,9 +55,7 @@ impl FromStr for Identifier {
 
 impl Display for Identifier {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Identifier { name } = self;
-
-        formatter.write_str(format!("{name}").as_str())
+        self.name.fmt(formatter)
     }
 }
 
