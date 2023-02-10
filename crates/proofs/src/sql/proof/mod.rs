@@ -71,3 +71,8 @@ pub use verifiable_query_result_test_utility::exercise_verification;
 mod test_query_expr;
 #[cfg(test)]
 pub use test_query_expr::TestQueryExpr;
+
+mod result_element_serialization;
+pub use result_element_serialization::{
+    decode_multiple_elements, DecodeProvableResultElement, EncodeProvableResultElement,
+};
