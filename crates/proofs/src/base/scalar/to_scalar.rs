@@ -93,7 +93,7 @@ macro_rules! byte_array_to_scalar {
 }
 
 byte_array_to_scalar!([u8]);
-byte_array_to_scalar!(Vec<u8>);
+byte_array_to_scalar!(&[u8]);
 
 macro_rules! string_to_scalar {
     ($tt:ty) => {
@@ -106,7 +106,6 @@ macro_rules! string_to_scalar {
 }
 
 string_to_scalar!(&str);
-string_to_scalar!(String);
 
 #[cfg(test)]
 mod tests {
@@ -147,12 +146,6 @@ mod tests {
     fn the_empty_string_will_be_mapped_to_the_default_scalar() {
         assert_eq!("".to_scalar(), Scalar::default());
         assert_eq!(<&str>::default().to_scalar(), Scalar::default());
-        assert_eq!(String::default().to_scalar(), Scalar::default());
-    }
-
-    #[test]
-    fn a_string_and_a_str_with_the_same_content_map_to_the_same_scalar() {
-        assert_eq!("abc".to_scalar(), String::from("abc").to_scalar());
     }
 
     #[test]
@@ -180,34 +173,33 @@ mod tests {
         );
     }
 
-    fn arbitrary_elements_will_map_to_different_scalars<T: ToScalar + core::fmt::Debug>(
-        generate_random_element: fn(&mut StdRng, &Uniform<usize>) -> T,
-    ) {
+    #[test]
+    fn strings_of_arbitrary_size_map_to_different_scalars() {
         let mut prev_scalars = HashSet::new();
         let mut rng = StdRng::from_seed([0u8; 32]);
         let dist = Uniform::new(1, 100);
 
         for _ in 0..100 {
-            let s = generate_random_element(&mut rng, &dist);
-            assert!(prev_scalars.insert(s.to_scalar()));
+            let s = dist.sample(&mut rng).to_string()
+                + "testing string to scalar"
+                    .repeat(dist.sample(&mut rng))
+                    .as_str();
+            assert!(prev_scalars.insert(s.as_str().to_scalar()));
         }
     }
 
     #[test]
-    fn strings_of_arbitrary_size_map_to_different_scalars() {
-        arbitrary_elements_will_map_to_different_scalars(|rng, dist| {
-            dist.sample(rng).to_string()
-                + "testing string to scalar".repeat(dist.sample(rng)).as_str()
-        });
-    }
-
-    #[test]
     fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
-        arbitrary_elements_will_map_to_different_scalars(|rng, dist| {
-            (0..dist.sample(rng))
-                .map(|_v| (dist.sample(rng) % 255) as u8)
-                .collect::<Vec<u8>>()
-        });
+        let mut prev_scalars = HashSet::new();
+        let mut rng = StdRng::from_seed([0u8; 32]);
+        let dist = Uniform::new(1, 100);
+
+        for _ in 0..100 {
+            let v = (0..dist.sample(&mut rng))
+                .map(|_v| (dist.sample(&mut rng) % 255) as u8)
+                .collect::<Vec<u8>>();
+            assert!(prev_scalars.insert((v[..]).to_scalar()));
+        }
     }
 
     #[test]
@@ -221,7 +213,7 @@ mod tests {
             let mut bset = HashSet::new();
 
             loop {
-                let s = dist.sample(&mut rng).to_string().to_scalar();
+                let s = dist.sample(&mut rng).to_string().as_str().to_scalar();
                 let bytes = s.as_bytes();
 
                 let is_ith_bit_set = bytes[i / 8] & (1 << (i % 8)) != 0;
