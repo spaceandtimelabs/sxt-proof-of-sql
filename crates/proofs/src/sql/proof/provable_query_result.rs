@@ -1,29 +1,16 @@
-use super::{are_indexes_valid, ProvableResultColumn, QueryError, QueryResult};
+use super::{
+    are_indexes_valid, decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn,
+    QueryResult,
+};
 
-use crate::base::encode::read_scalar_varint;
-
-use arrow::array::{Array, Int32Array, Int64Array};
+use super::QueryError;
+use arrow::array::{Array, Int64Array};
 use arrow::datatypes::DataType;
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
-use integer_encoding::VarInt;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-fn read_column<T: VarInt>(data: &[u8], n: usize) -> Result<(Vec<T>, usize), QueryError> {
-    let mut res = Vec::with_capacity(n);
-    let mut cnt = 0;
-    for _ in 0..n {
-        let (val, num_read) = match <T>::decode_var(&data[cnt..]) {
-            Some(x) => x,
-            _ => return Err(QueryError::Overflow),
-        };
-        res.push(val);
-        cnt += num_read;
-    }
-    Ok((res, cnt))
-}
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
@@ -79,12 +66,10 @@ impl ProvableQueryResult {
         for _ in 0..self.num_columns {
             let mut val = Scalar::zero();
             for index in self.indexes.iter() {
-                if let Some((x, sz)) = read_scalar_varint(&self.data[offset..]) {
-                    val += evaluation_vec[*index as usize] * x;
-                    offset += sz;
-                } else {
-                    return None;
-                }
+                let (x, sz) = <i64>::decode_to_scalar(&self.data[offset..])?;
+
+                val += evaluation_vec[*index as usize] * x;
+                offset += sz;
             }
             res.push(val);
         }
@@ -105,21 +90,19 @@ impl ProvableQueryResult {
         let n = self.indexes.len();
         let mut offset: usize = 0;
         let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(self.num_columns as usize);
+
         for field in schema.fields() {
             offset += match field.data_type() {
                 DataType::Int64 => {
-                    let (col, num_read) = read_column::<i64>(&self.data[offset..], n)?;
+                    let (col, num_read) = decode_multiple_elements::<i64>(&self.data[offset..], n)
+                        .ok_or(QueryError::Overflow)?;
                     columns.push(Arc::new(Int64Array::from(col)));
                     Ok(num_read)
                 }
-                DataType::Int32 => {
-                    let (col, num_read) = read_column::<i32>(&self.data[offset..], n)?;
-                    columns.push(Arc::new(Int32Array::from(col)));
-                    Ok(num_read)
-                }
-                _ => panic!("unsupported data type"),
+                _ => unimplemented!("Data type not supported"),
             }?;
         }
+
         assert_eq!(offset, self.data.len());
         Ok(RecordBatch::try_new(schema, columns).unwrap())
     }
