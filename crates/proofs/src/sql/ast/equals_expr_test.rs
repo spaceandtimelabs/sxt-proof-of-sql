@@ -7,6 +7,7 @@ use crate::base::scalar::ToScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 use arrow::array::Int64Array;
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use indexmap::IndexMap;
@@ -53,11 +54,14 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![];
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(res_col))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -95,11 +99,14 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![123];
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(res_col))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -137,11 +144,14 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![];
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(res_col))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -181,11 +191,14 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     exercise_verification(&res, &expr, &accessor, table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(vec![1, 3]))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![1, 3]))]).unwrap();
     assert_eq!(res, expected_res);
 }
 
@@ -225,11 +238,14 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     exercise_verification(&res, &expr, &accessor, table_ref);
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(vec![1, 3]))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![1, 3]))]).unwrap();
     assert_eq!(res, expected_res);
 }
 

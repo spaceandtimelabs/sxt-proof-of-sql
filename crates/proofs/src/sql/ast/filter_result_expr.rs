@@ -1,14 +1,15 @@
-use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::scalar::ToScalar;
+use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
     make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
 };
-use arrow::datatypes::Field;
+
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::Identifier;
 use std::cmp::max;
-use std::collections::HashSet;
 
 /// Provable expression for a result column within a filter SQL expression
 ///
@@ -28,18 +29,14 @@ impl FilterResultExpr {
         }
     }
 
-    /// Add the `self.column_ref` to the `columns` HashSet
-    pub fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+    /// Return the column referenced by this FilterResultExpr
+    pub fn get_column_reference(&self) -> ColumnRef {
+        self.column_ref
     }
 
-    /// Wrap the column output name and its type within the arrow Field
-    pub fn get_field(&self) -> Field {
-        Field::new(
-            self.column_name_id.name(),
-            self.column_ref.column_type().into(),
-            false,
-        )
+    /// Wrap the column output name and its type within the ColumnField
+    pub fn get_column_field(&self) -> ColumnField {
+        ColumnField::new(self.column_name_id, *self.column_ref.column_type())
     }
 
     /// Count the number of proof terms needed by this expression
@@ -60,36 +57,11 @@ impl FilterResultExpr {
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
     ) {
-        let Column::BigInt(col) = accessor.get_column(self.column_ref);
-
-        // add result column
-        builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-
-        // add MLE for result column
-        builder.produce_anchored_mle(col);
-
-        // make a column of selected result values only
-        let selected_vals =
-            alloc.alloc_slice_fill_with(
-                counts.table_length,
-                |i| if selection[i] { col[i] } else { 0 },
-            );
-
-        // add sumcheck term for col * selection
-        let terms = vec![
-            (
-                Scalar::one(),
-                vec![make_sumcheck_term(counts.sumcheck_variables, selected_vals)],
-            ),
-            (
-                -Scalar::one(),
-                vec![
-                    make_sumcheck_term(counts.sumcheck_variables, col),
-                    make_sumcheck_term(counts.sumcheck_variables, selection),
-                ],
-            ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        match accessor.get_column(self.column_ref) {
+            Column::BigInt(col) => {
+                prover_evaluate_impl(builder, alloc, counts, selection, col, col)
+            }
+        };
     }
 
     /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
@@ -110,4 +82,46 @@ impl FilterResultExpr {
             builder.mle_evaluations.random_evaluation * (result_eval - col_eval * selection_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&poly_eval);
     }
+}
+
+fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone + Default>(
+    builder: &mut ProofBuilder<'a>,
+    alloc: &'a Bump,
+    counts: &ProofCounts,
+    selection: &'a [bool],
+    col_data: &'a [T],
+    col_scalars: &'a [S],
+) where
+    [T]: ToOwned,
+{
+    // add result column
+    builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col_data)));
+
+    // make a column of selected result values only
+    let selected_vals = alloc.alloc_slice_fill_with(counts.table_length, |i| {
+        if selection[i] {
+            col_scalars[i].clone()
+        } else {
+            S::default()
+        }
+    });
+
+    // add sumcheck term for col * selection
+    let terms = vec![
+        (
+            Scalar::one(),
+            vec![make_sumcheck_term(counts.sumcheck_variables, selected_vals)],
+        ),
+        (
+            -Scalar::one(),
+            vec![
+                make_sumcheck_term(counts.sumcheck_variables, col_scalars),
+                make_sumcheck_term(counts.sumcheck_variables, selection),
+            ],
+        ),
+    ];
+
+    // add MLE for result column
+    builder.produce_anchored_mle(col_scalars);
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
 }

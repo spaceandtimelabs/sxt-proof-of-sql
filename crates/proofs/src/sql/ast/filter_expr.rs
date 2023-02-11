@@ -1,9 +1,9 @@
 use super::{BoolExpr, FilterResultExpr, TableExpr};
-use arrow::datatypes::{Schema, SchemaRef};
 use std::collections::HashSet;
-use std::sync::Arc;
 
-use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor};
+use crate::base::database::{
+    ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+};
 use crate::base::math::log2_up;
 use crate::sql::proof::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
 
@@ -111,19 +111,19 @@ impl QueryExpr for FilterExpr {
         }
     }
 
-    fn get_result_schema(&self) -> SchemaRef {
+    fn get_column_result_fields(&self) -> Vec<ColumnField> {
         let mut columns = Vec::with_capacity(self.results.len());
         for col in self.results.iter() {
-            columns.push(col.get_field());
+            columns.push(col.get_column_field());
         }
-        Arc::new(Schema::new(columns))
+        columns
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         let mut columns = HashSet::new();
 
         for col in self.results.iter() {
-            col.get_column_references(&mut columns);
+            columns.insert(col.get_column_reference());
         }
 
         self.where_clause.get_column_references(&mut columns);

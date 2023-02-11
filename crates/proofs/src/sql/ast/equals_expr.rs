@@ -30,25 +30,14 @@ impl EqualsExpr {
     pub fn new(column_ref: ColumnRef, value: Scalar) -> Self {
         Self { value, column_ref }
     }
-}
 
-impl BoolExpr for EqualsExpr {
-    fn count(&self, counts: &mut ProofCounts) {
-        counts.sumcheck_subpolynomials += 2;
-        counts.anchored_mles += 1;
-        counts.intermediate_mles += 2;
-        counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
-    }
-
-    fn prover_evaluate<'a>(
+    fn prover_evaluate_impl<'a, T: ToScalar>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
         counts: &ProofCounts,
-        accessor: &'a dyn DataAccessor,
+        col: &'a [T],
     ) -> &'a [bool] {
-        let Column::BigInt(col) = accessor.get_column(self.column_ref);
-
         // lhs
         let lhs =
             alloc.alloc_slice_fill_with(counts.table_length, |i| col[i].to_scalar() - self.value);
@@ -95,6 +84,27 @@ impl BoolExpr for EqualsExpr {
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
 
         selection
+    }
+}
+
+impl BoolExpr for EqualsExpr {
+    fn count(&self, counts: &mut ProofCounts) {
+        counts.sumcheck_subpolynomials += 2;
+        counts.anchored_mles += 1;
+        counts.intermediate_mles += 2;
+        counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
+    }
+
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        counts: &ProofCounts,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        match accessor.get_column(self.column_ref) {
+            Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, counts, col),
+        }
     }
 
     fn verifier_evaluate(

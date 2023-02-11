@@ -4,6 +4,7 @@ use crate::base::database::{CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::{QueryExpr, QueryResult};
 use arrow::array::{Array, Int64Array};
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -137,7 +138,12 @@ impl VerifiableQueryResult {
 }
 
 fn make_empty_query_result(expr: &dyn QueryExpr, num_columns: usize) -> QueryResult {
-    let schema = expr.get_result_schema();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
     let empty_col = Arc::new(Int64Array::from(Vec::<i64>::new()));
     let columns: Vec<Arc<dyn Array>> = vec![empty_col; num_columns];
     Ok(RecordBatch::try_new(schema, columns).unwrap())

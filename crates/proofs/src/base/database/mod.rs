@@ -2,7 +2,7 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnRef, ColumnType};
+pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
 mod table;
 pub use table::TableRef;
