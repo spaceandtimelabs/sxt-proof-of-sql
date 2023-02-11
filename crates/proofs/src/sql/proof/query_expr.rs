@@ -1,8 +1,7 @@
 use super::{ProofBuilder, ProofCounts, VerificationBuilder};
-use arrow::datatypes::SchemaRef;
 use std::collections::HashSet;
 
-use crate::base::database::ColumnRef;
+use crate::base::database::{ColumnField, ColumnRef};
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 
 use bumpalo::Bump;
@@ -35,8 +34,8 @@ pub trait QueryExpr: Debug + Send + Sync {
         accessor: &dyn CommitmentAccessor,
     );
 
-    /// Return the Schema of the Query’s result
-    fn get_result_schema(&self) -> SchemaRef;
+    /// Return all the result column fields
+    fn get_column_result_fields(&self) -> Vec<ColumnField>;
 
     /// Return all the columns referenced in the Query
     fn get_column_references(&self) -> HashSet<ColumnRef>;

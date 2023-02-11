@@ -3,11 +3,12 @@ use super::{
     SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 
+use crate::base::database::{ColumnField, ColumnType};
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::compute_commitment_for_testing;
 
 use arrow::array::Int64Array;
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
@@ -139,13 +140,15 @@ fn we_can_form_the_provable_query_result() {
     builder.set_result_indexes(&result_indexes);
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
-    let schema = Schema::new(vec![
-        Field::new("1", DataType::Int64, false),
-        Field::new("2", DataType::Int64, false),
-    ]);
-    let schema = Arc::new(schema);
+
     let res = builder.make_provable_query_result();
-    let res = res.into_query_result(schema.clone()).unwrap();
+
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); counts.result_columns];
+    let res = res.into_query_result(&column_fields).unwrap();
+    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let schema = Arc::new(Schema::new(column_fields));
+
     let expected_res = RecordBatch::try_new(
         schema,
         vec![

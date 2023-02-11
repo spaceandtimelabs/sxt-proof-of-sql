@@ -1,5 +1,6 @@
 use super::TableRef;
 use arrow::datatypes::DataType;
+use arrow::datatypes::Field;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 
@@ -59,5 +60,41 @@ impl ColumnRef {
 
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
+    }
+}
+
+// Represents an abstraction for the arrow Field
+//
+// This allows us to work with the proof column
+// native types, while also easily converting to
+// arrow Field structures.
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+pub struct ColumnField {
+    name: Identifier,
+    data_type: ColumnType,
+}
+
+impl ColumnField {
+    pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
+        ColumnField { name, data_type }
+    }
+
+    pub fn name(&self) -> Identifier {
+        self.name
+    }
+
+    pub fn data_type(&self) -> ColumnType {
+        self.data_type
+    }
+}
+
+/// Convert ColumnField values to arrow Field
+impl From<&ColumnField> for Field {
+    fn from(column_field: &ColumnField) -> Self {
+        Field::new(
+            column_field.name.name(),
+            (&column_field.data_type).into(),
+            false,
+        )
     }
 }

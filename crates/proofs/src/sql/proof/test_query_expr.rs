@@ -1,9 +1,9 @@
 use super::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use std::collections::HashSet;
-use std::sync::Arc;
 
-use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor};
+use crate::base::database::{
+    ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+};
 
 use bumpalo::Bump;
 use std::fmt;
@@ -53,13 +53,18 @@ impl QueryExpr for TestQueryExpr {
         }
     }
 
-    fn get_result_schema(&self) -> SchemaRef {
+    fn get_column_result_fields(&self) -> Vec<ColumnField> {
         let num_columns = self.counts.result_columns;
         let mut columns = Vec::with_capacity(num_columns);
         for i in 0..num_columns {
-            columns.push(Field::new((i + 1).to_string(), DataType::Int64, false));
+            columns.push(ColumnField::new(
+                ("a".to_owned() + (i + 1).to_string().as_str())
+                    .parse()
+                    .unwrap(),
+                ColumnType::BigInt,
+            ));
         }
-        Arc::new(Schema::new(columns))
+        columns
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {

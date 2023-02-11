@@ -1,7 +1,8 @@
 use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
+use crate::base::database::{ColumnField, ColumnType};
 
 use arrow::array::Int64Array;
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
@@ -11,9 +12,10 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::<i64>::new(&[][..]))];
     let res = ProvableQueryResult::new(&[][..], &cols);
-    let schema = Schema::new(vec![Field::new("1", DataType::Int64, false)]);
-    let schema = Arc::new(schema);
-    let res = res.into_query_result(schema.clone()).unwrap();
+    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
+    let res = res.into_query_result(&column_fields).unwrap();
+    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(Vec::<i64>::new()))]).unwrap();
     assert_eq!(res, expected_res);
@@ -32,7 +34,10 @@ fn we_can_evaluate_result_columns_as_mles() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    let evals = res.evaluate(&evaluation_vec).unwrap();
+
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals =
         [Scalar::from(10u64) * evaluation_vec[0] - Scalar::from(12u64) * evaluation_vec[2]];
     assert_eq!(evals, expected_evals);
@@ -51,7 +56,9 @@ fn we_can_evaluate_result_columns_with_no_rows() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    let evals = res.evaluate(&evaluation_vec).unwrap();
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [Scalar::zero()];
     assert_eq!(evals, expected_evals);
 }
@@ -72,7 +79,9 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    let evals = res.evaluate(&evaluation_vec).unwrap();
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
         Scalar::from(10u64) * evaluation_vec[0] + Scalar::from(12u64) * evaluation_vec[2],
         Scalar::from(5u64) * evaluation_vec[0] + Scalar::from(9u64) * evaluation_vec[2],
@@ -94,7 +103,9 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    assert!(res.evaluate(&evaluation_vec).is_none());
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
 #[test]
@@ -110,7 +121,9 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    assert!(res.evaluate(&evaluation_vec).is_none());
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
 #[test]
@@ -127,7 +140,9 @@ fn evaluation_fails_if_extra_data_is_included() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    assert!(res.evaluate(&evaluation_vec).is_none());
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
+    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
 #[test]
@@ -144,7 +159,9 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    assert!(res.evaluate(&evaluation_vec).is_none());
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];
+    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
 #[test]
@@ -161,7 +178,9 @@ fn evaluation_fails_if_data_is_missing() {
         Scalar::from(1000u64),
         Scalar::from(10000u64),
     ];
-    assert!(res.evaluate(&evaluation_vec).is_none());
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];
+    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
 #[test]
@@ -171,9 +190,10 @@ fn we_can_convert_an_provable_result_to_a_final_result() {
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::new(&values))];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let schema = Schema::new(vec![Field::new("1", DataType::Int64, false)]);
-    let schema = Arc::new(schema);
-    let res = res.into_query_result(schema.clone()).unwrap();
+    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
+    let res = res.into_query_result(&column_fields).unwrap();
+    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
     assert_eq!(res, expected_res);
@@ -192,8 +212,6 @@ fn we_can_convert_an_provable_result_to_a_final_result() {
 //         &indexes,
 //         &cols,
 //     );
-//     let schema = Schema::new(vec![
-//         Field::new("1", DataType::Int32, false),
-//     ]);
-//     let res = res.into_query_result(Arc::new(schema)).unwrap();
+//     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
+//     let res = res.into_query_result(&column_fields).unwrap();
 // }

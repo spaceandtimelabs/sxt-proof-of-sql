@@ -1,12 +1,12 @@
+use super::QueryError;
 use super::{
     are_indexes_valid, decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn,
     QueryResult,
 };
+use crate::base::database::{ColumnField, ColumnType};
 
-use super::QueryError;
 use arrow::array::{Array, Int64Array};
-use arrow::datatypes::DataType;
-use arrow::datatypes::SchemaRef;
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
@@ -56,26 +56,37 @@ impl ProvableQueryResult {
         level = "info",
         skip_all
     )]
-    pub fn evaluate(&self, evaluation_vec: &[Scalar]) -> Option<Vec<Scalar>> {
+    pub fn evaluate(
+        &self,
+        evaluation_vec: &[Scalar],
+        column_result_fields: &[ColumnField],
+    ) -> Option<Vec<Scalar>> {
+        assert_eq!(self.num_columns as usize, column_result_fields.len());
+
         if !are_indexes_valid(&self.indexes, evaluation_vec.len()) {
             return None;
         }
-        let num_columns = self.num_columns as usize;
+
         let mut offset: usize = 0;
-        let mut res = Vec::with_capacity(num_columns);
-        for _ in 0..self.num_columns {
+        let mut res = Vec::with_capacity(self.num_columns as usize);
+
+        for field in column_result_fields {
             let mut val = Scalar::zero();
             for index in self.indexes.iter() {
-                let (x, sz) = <i64>::decode_to_scalar(&self.data[offset..])?;
+                let (x, sz) = match field.data_type() {
+                    ColumnType::BigInt => <i64>::decode_to_scalar(&self.data[offset..]),
+                }?;
 
                 val += evaluation_vec[*index as usize] * x;
                 offset += sz;
             }
             res.push(val);
         }
+
         if offset != self.data.len() {
             return None;
         }
+
         Some(res)
     }
 
@@ -85,25 +96,33 @@ impl ProvableQueryResult {
         level = "info",
         skip_all
     )]
-    pub fn into_query_result(&self, schema: SchemaRef) -> QueryResult {
-        assert_eq!(schema.fields().len() as u64, self.num_columns);
+    pub fn into_query_result(&self, column_result_fields: &[ColumnField]) -> QueryResult {
+        assert_eq!(column_result_fields.len() as u64, self.num_columns);
+
         let n = self.indexes.len();
         let mut offset: usize = 0;
+        let mut column_fields: Vec<_> = Vec::with_capacity(self.num_columns as usize);
         let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(self.num_columns as usize);
 
-        for field in schema.fields() {
+        for field in column_result_fields {
             offset += match field.data_type() {
-                DataType::Int64 => {
+                ColumnType::BigInt => {
                     let (col, num_read) = decode_multiple_elements::<i64>(&self.data[offset..], n)
                         .ok_or(QueryError::Overflow)?;
+
                     columns.push(Arc::new(Int64Array::from(col)));
+
                     Ok(num_read)
                 }
-                _ => unimplemented!("Data type not supported"),
             }?;
+
+            column_fields.push(field.into());
         }
 
         assert_eq!(offset, self.data.len());
+
+        let schema = Arc::new(Schema::new(column_fields));
+
         Ok(RecordBatch::try_new(schema, columns).unwrap())
     }
 }

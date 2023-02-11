@@ -7,6 +7,7 @@ use crate::base::scalar::ToScalar;
 use crate::sql::proof::QueryExpr;
 use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
 use arrow::array::Int64Array;
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
 use indexmap::IndexMap;
@@ -67,11 +68,14 @@ fn we_can_prove_a_simple_and_query() {
 
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let res_col: Vec<i64> = vec![2];
-    let expected_res = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(res_col))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_res =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
     assert_eq!(res, expected_res);
 }
 

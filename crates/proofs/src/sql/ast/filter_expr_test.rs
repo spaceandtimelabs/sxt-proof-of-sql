@@ -46,10 +46,15 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         )),
     );
 
-    let result_schema = provable_ast.get_result_schema();
+    let column_fields = provable_ast
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
 
     assert_eq!(
-        result_schema,
+        schema,
         Arc::new(Schema::new(vec![
             Field::new("a", (&ColumnType::BigInt).into(), false,),
             Field::new("b", (&ColumnType::BigInt).into(), false,)
