@@ -170,8 +170,10 @@ impl QueryProof {
             MessageLabel::QueryMleEvaluationsChallenge,
         );
 
+        let column_result_fields = expr.get_column_result_fields();
+
         // compute the evaluation of the result MLEs
-        let result_evaluations = match result.evaluate(&evaluation_vec) {
+        let result_evaluations = match result.evaluate(&evaluation_vec, &column_result_fields[..]) {
             Some(evaluations) => evaluations,
             _ => return Err(ProofError::VerificationError),
         };
@@ -210,7 +212,7 @@ impl QueryProof {
             )
             .map_err(|_e| ProofError::VerificationError)?;
 
-        Ok(result.into_query_result(expr.get_result_schema()))
+        Ok(result.into_query_result(&column_result_fields[..]))
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {

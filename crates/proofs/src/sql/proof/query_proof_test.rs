@@ -6,6 +6,7 @@ use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 use crate::sql::proof::QueryExpr;
 use arrow::array::Int64Array;
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
@@ -55,11 +56,14 @@ fn verify_a_trivial_query_proof_with_given_offset(offset_generators: usize) {
         .verify(&expr, &accessor, &counts, &result)
         .unwrap()
         .unwrap();
-    let expected_result = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(vec![0]))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_result =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![0]))]).unwrap();
     assert_eq!(result, expected_result);
 }
 
@@ -304,11 +308,14 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         .verify(&expr, &accessor, &counts, &result)
         .unwrap()
         .unwrap();
-    let expected_result = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(vec![9, 25]))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_result =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![9, 25]))]).unwrap();
     assert_eq!(result, expected_result);
 
     // invalid offset will fail to verify
@@ -526,11 +533,14 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         .verify(&expr, &accessor, &counts, &result)
         .unwrap()
         .unwrap();
-    let expected_result = RecordBatch::try_new(
-        expr.get_result_schema(),
-        vec![Arc::new(Int64Array::from(vec![81, 625]))],
-    )
-    .unwrap();
+    let column_fields = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_result =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![81, 625]))]).unwrap();
     assert_eq!(result, expected_result);
 
     // invalid offset will fail to verify
