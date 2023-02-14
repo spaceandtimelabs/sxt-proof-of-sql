@@ -36,7 +36,7 @@ polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "tempo
 
 # SxT dependencies
 proofs-sql = {path = "../proofs-sql"} # We automatically update this line during release. So do not modify it!
-proofs-gpu = {version = "6", registry = "artifactory"}
+proofs-gpu = {version = "7", registry = "artifactory"}
 
 [dev_dependencies]
 criterion = "0.4"
