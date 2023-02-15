@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 /// Note: The types here should correspond to native SQL database types.
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
+#[derive(Debug, Eq, PartialEq)]
 pub enum Column<'a> {
     BigInt(&'a [i64]),
 }

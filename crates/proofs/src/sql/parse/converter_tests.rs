@@ -4,7 +4,7 @@ use crate::sql::ast::{
 };
 use crate::sql::parse::Converter;
 use curve25519_dalek::scalar::Scalar;
-use indexmap::IndexMap;
+use polars::prelude::*;
 use proofs_sql::sql::SelectStatementParser;
 use proofs_sql::Identifier;
 
@@ -16,12 +16,12 @@ fn we_can_convert_an_ast_with_one_column() {
         .parse("select a from sxt_tab where a = 3")
         .unwrap();
 
+    let data = df!(
+        "a" => [3]
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -58,16 +58,14 @@ fn we_can_convert_an_ast_with_two_columns() {
         .parse("select a,  b from sxt_tab where c = 123")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+        "c" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![]),
-            ("b".to_string(), vec![]),
-            ("c".to_string(), vec![]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -114,12 +112,13 @@ fn we_can_parse_all_result_columns_with_select_star() {
         .parse("select * from sxt_tab where a = 3")
         .unwrap();
 
+    let data = df!(
+        "b" => [5, 6],
+        "a" => [3, 2],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("b".to_string(), vec![5, 6]), ("a".to_string(), vec![3, 2])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let result_columns: Vec<_> = accessor
         .lookup_schema(table_ref)
@@ -163,16 +162,14 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
         .parse("select a, *, b,* from sxt_tab where a = 3")
         .unwrap();
 
+    let data = df!(
+        "b" => [5, 6],
+        "a" => [3, 2],
+        "c" => [78, 8]
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("b".to_string(), vec![5, 6]),
-            ("a".to_string(), vec![3, 2]),
-            ("c".to_string(), vec![78, 8]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let all_schema_columns: Vec<_> = accessor
         .lookup_schema(table_ref)
@@ -238,12 +235,13 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         .parse("select a from sxt_tab where b = +4")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -280,12 +278,13 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
         .parse("select a from sxt_tab where b <> +4")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -322,12 +321,13 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         .parse("select a from sxt_tab where b = -4")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -364,16 +364,14 @@ fn we_can_convert_an_ast_with_cond_and() {
         .parse("select a from sxt_tab where (b = 3) and (c = -2)")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+        "c" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![]),
-            ("b".to_string(), vec![]),
-            ("c".to_string(), vec![]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -420,16 +418,14 @@ fn we_can_convert_an_ast_with_cond_or() {
         .parse("select a from sxt_tab where (b = 3) or (c = -2)")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+        "c" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![]),
-            ("b".to_string(), vec![]),
-            ("c".to_string(), vec![]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -476,16 +472,14 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         .parse("select a from sxt_tab where (b = 3) or (not (c = -2))")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+        "c" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![]),
-            ("b".to_string(), vec![]),
-            ("c".to_string(), vec![]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -532,17 +526,15 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         .parse("select a from sxt_tab where not (((f = 45) or (c = -2)) and (b = 3))")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+        "c" => Vec::<i64>::new(),
+        "f" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![]),
-            ("b".to_string(), vec![]),
-            ("c".to_string(), vec![]),
-            ("f".to_string(), vec![]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -599,12 +591,12 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         .parse("select a from sxt_tab where a = -9223372036854775808")
         .unwrap();
 
+    let data = df!(
+        "a" => [3],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -641,12 +633,12 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         .parse("select a from sxt_tab where a = 9223372036854775807")
         .unwrap();
 
+    let data = df!(
+        "a" => [3],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -683,12 +675,13 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
         .parse("select a as b_rename from sxt_tab where b = +4")
         .unwrap();
 
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new(),
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let provable_ast = Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -725,12 +718,12 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
         .parse("select a from sxt_tab where a = 3")
         .unwrap();
 
+    let data = df!(
+        "b" => [3],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("b".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     assert!(Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, default_schema)
@@ -744,12 +737,12 @@ fn we_can_convert_an_ast_with_a_schema() {
         .parse("select a from eth.sxt_tab where a = 3")
         .unwrap();
 
+    let data = df!(
+        "a" => [3],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let default_schema = Identifier::try_new("sxt").unwrap();
 
@@ -783,12 +776,12 @@ fn we_can_convert_an_ast_with_a_schema() {
 #[test]
 fn we_can_convert_an_ast_without_any_filter() {
     let table_ref = "eth.sxt_tab".parse().unwrap();
+    let data = df!(
+        "a" => [3],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![3])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
 
     let expected_provable_ast = FilterExpr::new(
         vec![FilterResultExpr::new(
