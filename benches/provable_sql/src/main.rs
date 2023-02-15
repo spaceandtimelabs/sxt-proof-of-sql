@@ -1,6 +1,6 @@
 use clap::Parser;
 use proofs::base::database::{
-    make_random_test_accessor, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
 };
 use proofs::sql::ast::FilterExpr;
 use proofs::sql::parse::Converter;
@@ -74,13 +74,9 @@ fn generate_accessor(
     };
 
     let table_ref = "sxt.t".parse().unwrap();
-    let accessor = make_random_test_accessor(
-        &mut rng,
-        table_ref,
-        &ref_cols[..],
-        &descriptor,
-        offset_generators,
-    );
+    let data = make_random_test_accessor_data(&mut rng, &ref_cols[..], &descriptor);
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(table_ref, data, offset_generators);
 
     (table_ref.table_id().name().to_owned(), accessor)
 }

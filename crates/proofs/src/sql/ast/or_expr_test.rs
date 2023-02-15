@@ -1,6 +1,6 @@
 use super::{EqualsExpr, FilterExpr, FilterResultExpr, OrExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
+    make_random_test_accessor_data, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
     TestAccessor,
 };
 use crate::base::scalar::ToScalar;
@@ -12,7 +12,6 @@ use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
-use indexmap::IndexMap;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -53,15 +52,13 @@ fn we_can_prove_a_simple_or_query() {
             )),
         )),
     );
+    let data = df!(
+        "a" => [1, 2, 3, 4],
+        "b" => [0, 1, 0, 2],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4]),
-            ("b".to_string(), vec![0, 1, 0, 2]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -111,16 +108,14 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
             )),
         )),
     );
+    let data = df!(
+        "a" => [1, 2, 3, 4],
+        "b" => [0, 1, 0, 1],
+        "c" => [0, 2, 2, 0],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4]),
-            ("b".to_string(), vec![0, 1, 0, 1]),
-            ("c".to_string(), vec![0, 2, 2, 0]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -149,8 +144,10 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
     let cols = ["a", "b", "c"];
     for _ in 0..10 {
         let table_ref: TableRef = "sxt.t".parse().unwrap();
-        let accessor =
-            make_random_test_accessor(&mut rng, table_ref, &cols, &descr, offset_generators);
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let mut accessor = TestAccessor::new();
+        accessor.add_table(table_ref, data, offset_generators);
+
         let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(

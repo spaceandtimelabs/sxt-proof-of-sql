@@ -1,6 +1,6 @@
 use super::{EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
+    make_random_test_accessor_data, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
     TestAccessor,
 };
 use crate::base::scalar::ToScalar;
@@ -10,7 +10,6 @@ use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
-use indexmap::IndexMap;
 use polars::prelude::*;
 use proofs_sql::Identifier;
 use rand::{
@@ -42,12 +41,13 @@ fn we_can_prove_an_equality_query_with_no_rows() {
             Scalar::zero(),
         )),
     );
+    let data = df!(
+        "a" => Vec::<i64>::new(),
+        "b" => Vec::<i64>::new()
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![]), ("b".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -87,12 +87,13 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
             Scalar::zero(),
         )),
     );
+    let data = df!(
+        "a" => [123],
+        "b" => [0]
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![0])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -132,12 +133,13 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
             Scalar::zero(),
         )),
     );
+    let data = df!(
+        "a" => [123],
+        "b" => [55]
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![123]), ("b".to_string(), vec![55])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -177,15 +179,14 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
             Scalar::zero(),
         )),
     );
+
+    let data = df!(
+        "a" => [1, 2, 3, 4],
+        "b" => [0, 5, 0, 5]
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4]),
-            ("b".to_string(), vec![0, 5, 0, 5]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -224,15 +225,14 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
             Scalar::from(123u64),
         )),
     );
+
+    let data = df!(
+        "a" => [1, 2, 3, 4, 5],
+        "b" => [123, 5, 123, 5, 0],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4, 5]),
-            ("b".to_string(), vec![123, 5, 123, 5, 0]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -271,25 +271,21 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
             Scalar::zero(),
         )),
     );
+    let data = df!(
+        "a" => [1, 2, 3, 4],
+        "b" => [0, 5, 0, 5],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4]),
-            ("b".to_string(), vec![0, 5, 0, 5]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
+    let data = df!(
+        "a" => [1, 2, 3, 4],
+        "b" => [0, 2, 0, 5],
+    )
+    .unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([
-            ("a".to_string(), vec![1, 2, 3, 4]),
-            ("b".to_string(), vec![0, 2, 0, 5]),
-        ]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     assert!(res.verify(&expr, &accessor).is_err());
 }
 
@@ -304,8 +300,10 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
     let cols = ["a", "b"];
     for _ in 0..10 {
         let table_ref: TableRef = "sxt.t".parse().unwrap();
-        let accessor =
-            make_random_test_accessor(&mut rng, table_ref, &cols, &descr, offset_generators);
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let mut accessor = TestAccessor::new();
+        accessor.add_table(table_ref, data, offset_generators);
+
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
@@ -363,7 +361,10 @@ fn we_can_query_random_tables_with_multiple_selected_rows() {
     let cols = ["aa", "ab", "b"];
     for _ in 0..10 {
         let table_ref: TableRef = "sxt.t".parse().unwrap();
-        let accessor = make_random_test_accessor(&mut rng, table_ref, &cols, &descr, 0_usize);
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let mut accessor = TestAccessor::new();
+        accessor.add_table(table_ref, data, 0_usize);
+
         let val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let expr = FilterExpr::new(
             vec![

@@ -1,6 +1,6 @@
 use super::{ConstBoolExpr, FilterExpr, FilterResultExpr, TableExpr};
 use crate::base::database::{
-    make_random_test_accessor, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
+    make_random_test_accessor_data, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
     TestAccessor,
 };
 use crate::sql::proof::QueryExpr;
@@ -10,7 +10,6 @@ use proofs_sql::Identifier;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
-use indexmap::IndexMap;
 use polars::prelude::*;
 use rand::rngs::StdRng;
 use rand_core::SeedableRng;
@@ -27,7 +26,10 @@ fn test_random_tables_with_given_constant(value: bool) {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols = ["a"];
     for _ in 0..10 {
-        let accessor = make_random_test_accessor(&mut rng, table_ref, &cols, &descr, 0);
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let mut accessor = TestAccessor::new();
+        accessor.add_table(table_ref, data, 0_usize);
+
         let expr = FilterExpr::new(
             vec![FilterResultExpr::new(
                 ColumnRef::new(
@@ -70,12 +72,9 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
         TableExpr { table_ref },
         Box::new(ConstBoolExpr::new(true)),
     );
+    let data = df!("a" => [123]).unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![123])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
@@ -108,12 +107,9 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
         TableExpr { table_ref },
         Box::new(ConstBoolExpr::new(false)),
     );
+    let data = df!("a" => Vec::<i64>::new()).unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(
-        table_ref,
-        &IndexMap::from([("a".to_string(), vec![])]),
-        0_usize,
-    );
+    accessor.add_table(table_ref, data, 0_usize);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     exercise_verification(&res, &expr, &accessor, table_ref);
