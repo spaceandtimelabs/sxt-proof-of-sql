@@ -127,7 +127,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
             let column_name = column_name_id.name().to_string();
             FilterResultExpr::new(
                 ColumnRef::new(table_ref, column_name_id, column_type),
-                Identifier::try_new(&column_name).unwrap(),
+                Identifier::try_new(column_name).unwrap(),
             )
         })
         .collect();
@@ -178,7 +178,7 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
             let column_name = column_name_id.name().to_string();
             FilterResultExpr::new(
                 ColumnRef::new(table_ref, column_name_id, column_type),
-                Identifier::try_new(&column_name).unwrap(),
+                Identifier::try_new(column_name).unwrap(),
             )
         })
         .collect();

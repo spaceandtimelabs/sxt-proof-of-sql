@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use proofs_sql::{Identifier, ResourceId};
+use proofs_sql::{impl_serde_from_str, Identifier, ResourceId};
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -29,3 +29,11 @@ impl FromStr for TableRef {
         Ok(Self::new(s.parse()?))
     }
 }
+
+impl std::fmt::Display for TableRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.resource_id.fmt(f)
+    }
+}
+
+impl_serde_from_str!(TableRef);

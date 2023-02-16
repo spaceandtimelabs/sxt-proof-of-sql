@@ -1,6 +1,6 @@
 use crate::intermediate_ast;
 use crate::select_statement;
-use crate::symbols;
+use crate::identifier;
 use lalrpop_util::ParseError::User;
 
 grammar;
@@ -51,8 +51,8 @@ ResultColumn: Box<intermediate_ast::ResultColumn> = {
 // solely for the purpose of overcoming LALRPOP restrictions.
 // For instance, see this thread:
 // [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
-QualifiedColumnIdentifierParen: symbols::Name = "(" <QualifiedColumnIdentifier> ")";
-QualifiedColumnIdentifier: symbols::Name = {
+QualifiedColumnIdentifierParen: identifier::Identifier = "(" <QualifiedColumnIdentifier> ")";
+QualifiedColumnIdentifier: identifier::Identifier = {
     #[precedence(level="0")]
     QualifiedColumnIdentifierParen,
 
@@ -141,12 +141,12 @@ UnaryLiteral: i64 = {
 // Tokens
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub(crate) ResourceId: (symbols::Name, symbols::Name) = {
+pub(crate) ResourceId: (identifier::Identifier, identifier::Identifier) = {
     <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
 };
 
-pub(crate) Identifier: symbols::Name = ID =>? if <>.len() <= 64 {
-    Ok(symbols::Name::new(<>))
+pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
+    Ok(identifier::Identifier::new(<>))
 } else {
     Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
 };
