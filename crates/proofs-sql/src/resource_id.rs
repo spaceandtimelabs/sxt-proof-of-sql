@@ -1,5 +1,5 @@
 use crate::sql::ResourceIdParser;
-use crate::{Identifier, ParseError, ParseResult};
+use crate::{impl_serde_from_str, Identifier, ParseError, ParseResult};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -98,6 +98,7 @@ impl FromStr for ResourceId {
         })
     }
 }
+impl_serde_from_str!(ResourceId);
 
 #[cfg(test)]
 mod tests {
@@ -199,5 +200,27 @@ mod tests {
         assert!(ResourceId::from_str(".").is_err());
         assert!(ResourceId::from_str("GOOD_IDENTIFIER").is_err());
         assert!(ResourceId::from_str("GOOD_IDENTIFIER.GOOD_IDENTIFIER.GOOD_IDENTIFIER").is_err());
+    }
+
+    #[test]
+    fn resource_id_serializes_to_string() {
+        let resource_id = ResourceId::try_new("GOOD_IDENTIFIER", "good_identifier").unwrap();
+        let serialized = serde_json::to_string(&resource_id).unwrap();
+        assert_eq!(serialized, r#""good_identifier.good_identifier""#);
+    }
+
+    #[test]
+    fn resource_id_deserializes_from_string() {
+        let resource_id = ResourceId::try_new("GOOD_IDENTIFIER", "good_identifier").unwrap();
+        let deserialized: ResourceId =
+            serde_json::from_str(r#""good_identifier.good_identifier""#).unwrap();
+        assert_eq!(resource_id, deserialized);
+    }
+
+    #[test]
+    fn resource_id_fails_to_deserialize_with_invalid_identifier() {
+        let deserialized: Result<ResourceId, _> =
+            serde_json::from_str(r#""good_identifier.bad!identifier"#);
+        assert!(deserialized.is_err());
     }
 }

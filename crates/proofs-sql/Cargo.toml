@@ -21,3 +21,6 @@ arrayvec = { version = "0.7", features = ["serde"] }
 
 [build-dependencies]
 lalrpop = "0.19.8"
+
+[dev-dependencies]
+serde_json = "1"

@@ -104,6 +104,8 @@ impl From<(&polars::prelude::Field, &polars::prelude::Series)> for TestAccessorC
 
 #[cfg(test)]
 mod tests {
+    use crate::base::database::TableRef;
+
     use super::*;
 
     #[test]
@@ -188,5 +190,27 @@ mod tests {
             t.compute_commitment(offset),
             compute_commitment_for_testing(&data[..], offset)
         );
+    }
+
+    #[test]
+    fn serializing_tableref_to_json() {
+        let table_ref: TableRef = "databasename.tablename".parse().unwrap();
+        let json = serde_json::to_string(&table_ref).unwrap();
+        assert_eq!(json, r#""databasename.tablename""#);
+    }
+
+    #[test]
+    fn deserializing_tableref_from_json() {
+        let table_ref: TableRef = "databasename.tablename".parse().unwrap();
+        let json = r#""databasename.tablename""#;
+        let deserialized: TableRef = serde_json::from_str(json).unwrap();
+        assert_eq!(table_ref, deserialized);
+    }
+
+    #[test]
+    fn deserializing_tableref_fails_for_invalid_identifier() {
+        let json = r#""databasename.table name""#;
+        let deserialized: Result<TableRef, _> = serde_json::from_str(json);
+        assert!(deserialized.is_err());
     }
 }
