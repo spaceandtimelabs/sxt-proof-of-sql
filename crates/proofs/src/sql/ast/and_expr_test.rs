@@ -1,82 +1,59 @@
-use super::{AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, TableExpr};
+use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
-    make_random_test_accessor_data, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
-    TestAccessor,
+    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::ToScalar;
-use crate::sql::proof::QueryExpr;
-use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
-use arrow::array::Int64Array;
-use arrow::datatypes::Schema;
-use arrow::record_batch::RecordBatch;
-use curve25519_dalek::scalar::Scalar;
+use crate::sql::ast::test_expr::TestExpr;
+use crate::sql::ast::test_utility::{and, equal};
+
 use polars::prelude::*;
-use proofs_sql::Identifier;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-use std::sync::Arc;
+
+fn create_test_expr<T1: ToScalar + Copy + Into<Expr>, T2: ToScalar + Copy + Into<Expr>>(
+    table_ref: &str,
+    results: &[&str],
+    lhs: (&str, T1),
+    rhs: (&str, T2),
+    data: DataFrame,
+    offset: usize,
+) -> TestExpr {
+    let mut accessor = TestAccessor::new();
+    let t = table_ref.parse().unwrap();
+    accessor.add_table(t, data, offset);
+    let and_expr = and(
+        equal(t, lhs.0, lhs.1, &accessor),
+        equal(t, rhs.0, rhs.1, &accessor),
+    );
+    let df_filter = polars::prelude::col(lhs.0)
+        .eq(lhs.1)
+        .and(polars::prelude::col(rhs.0).eq(rhs.1));
+    TestExpr::new(t, results, and_expr, df_filter, accessor)
+}
 
 #[test]
 fn we_can_prove_a_simple_and_query() {
-    let table_ref: TableRef = "sxt.t".parse().unwrap();
-    let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("a").unwrap(),
-                ColumnType::BigInt,
-            ),
-            Identifier::try_new("a").unwrap(),
-        )],
-        TableExpr { table_ref },
-        Box::new(AndExpr::new(
-            Box::new(EqualsExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("b").unwrap(),
-                    ColumnType::BigInt,
-                ),
-                Scalar::from(1u64),
-            )),
-            Box::new(EqualsExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("c").unwrap(),
-                    ColumnType::BigInt,
-                ),
-                Scalar::from(2u64),
-            )),
-        )),
-    );
     let data = df!(
         "a" => [1, 2, 3, 4],
         "b" => [0, 1, 0, 1],
         "c" => [0, 2, 2, 0],
     )
     .unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(table_ref, data, 0_usize);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-
-    exercise_verification(&res, &expr, &accessor, table_ref);
-
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let res_col: Vec<i64> = vec![2];
-    let column_fields = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let test_expr = create_test_expr("sxt.t", &["a"], ("b", 1), ("c", 2), data, 0);
+    let res = test_expr.verify_expr();
+    let expected_res = data_frame_to_record_batch(
+        &df!(
+            "a" => [2],
+        )
+        .unwrap(),
+    );
     assert_eq!(res, expected_res);
 }
 
-fn test_random_tables_with_given_offset(offset_generators: usize) {
+fn test_random_tables_with_given_offset(offset: usize) {
     let descr = RandomTestAccessorDescriptor {
         min_rows: 1,
         max_rows: 20,
@@ -86,54 +63,20 @@ fn test_random_tables_with_given_offset(offset_generators: usize) {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let cols = ["a", "b", "c"];
     for _ in 0..10 {
-        let table_ref: TableRef = "sxt.t".parse().unwrap();
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let mut accessor = TestAccessor::new();
-        accessor.add_table(table_ref, data, offset_generators);
-
-        let lhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let rhs_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let expr = FilterExpr::new(
-            vec![FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("a").unwrap(),
-                    ColumnType::BigInt,
-                ),
-                Identifier::try_new("a").unwrap(),
-            )],
-            TableExpr { table_ref },
-            Box::new(AndExpr::new(
-                Box::new(EqualsExpr::new(
-                    ColumnRef::new(
-                        table_ref,
-                        Identifier::try_new("b").unwrap(),
-                        ColumnType::BigInt,
-                    ),
-                    lhs_val.to_scalar(),
-                )),
-                Box::new(EqualsExpr::new(
-                    ColumnRef::new(
-                        table_ref,
-                        Identifier::try_new("c").unwrap(),
-                        ColumnType::BigInt,
-                    ),
-                    rhs_val.to_scalar(),
-                )),
-            )),
+        let filter_val1 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let filter_val2 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let test_expr = create_test_expr(
+            "sxt.t",
+            &["a"],
+            ("b", filter_val1),
+            ("c", filter_val2),
+            data,
+            offset,
         );
-        let proof_res = VerifiableQueryResult::new(&expr, &accessor);
-        exercise_verification(&proof_res, &expr, &accessor, table_ref);
-        let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table(table_ref, |df| {
-            df.clone()
-                .lazy()
-                .filter(col("b").eq(lhs_val).and(col("c").eq(rhs_val)))
-                .select([col("a")])
-                .collect()
-                .unwrap()
-        });
-        assert_eq!(res, expected);
+        let res = test_expr.verify_expr();
+        let expected_res = test_expr.query_table();
+        assert_eq!(res, expected_res);
     }
 }
 
