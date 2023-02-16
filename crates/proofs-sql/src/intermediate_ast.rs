@@ -3,8 +3,9 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use super::symbols::Name;
 use serde::{Deserialize, Serialize};
+
+use crate::Identifier;
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -24,8 +25,8 @@ pub enum ResultColumn {
     All,
     /// A column expression
     Expr {
-        expr: Name,
-        output_name: Option<Name>,
+        expr: Identifier,
+        output_name: Option<Identifier>,
     },
 }
 
@@ -34,9 +35,9 @@ pub enum ResultColumn {
 pub enum TableExpression {
     /// The row set of a given table; possibly providing an alias
     Named {
-        /// the qualified table name
-        table: Name,
-        schema: Option<Name>,
+        /// the qualified table Identifier
+        table: Identifier,
+        schema: Option<Identifier>,
     },
 }
 
@@ -62,14 +63,14 @@ pub enum Expression {
 
     /// left == right
     Equal {
-        left: Name,
+        left: Identifier,
         right: i64,
     },
 
     /// left != right
     /// left <> right
     NotEqual {
-        left: Name,
+        left: Identifier,
         right: i64,
     },
 }

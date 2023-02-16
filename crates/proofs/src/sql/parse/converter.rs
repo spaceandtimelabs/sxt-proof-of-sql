@@ -8,7 +8,6 @@ use crate::sql::parse::{ParseError, ParseResult};
 
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::intermediate_ast::{Expression, ResultColumn, SetExpression, TableExpression};
-use proofs_sql::symbols::Name;
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::ops::Deref;
 
@@ -99,13 +98,9 @@ impl Converter {
     ) -> TableExpr {
         match table_expr {
             TableExpression::Named { table, schema } => {
-                let table = Identifier::new(*table);
-                let schema = schema
-                    .as_ref()
-                    .map(|schema| Identifier::new(*schema))
-                    .unwrap_or(default_schema);
+                let schema = schema.unwrap_or(default_schema);
 
-                let table_ref = TableRef::new(ResourceId::new(schema, table));
+                let table_ref = TableRef::new(ResourceId::new(schema, *table));
 
                 self.current_table = Some(table_ref);
 
@@ -153,15 +148,12 @@ impl Converter {
     /// Convert a `ResultColumn::Expr` into a `FilterResultExpr`
     fn visit_result_column_expression(
         &self,
-        column_name: Name,
-        output_name: &Option<Name>,
+        column_name: Identifier,
+        output_name: &Option<Identifier>,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<FilterResultExpr> {
         let result_expr = self.visit_column_identifier(column_name, schema_accessor)?;
-        let output_name = output_name
-            .as_ref()
-            .map(|output_name| Identifier::new(*output_name));
-        let output_name = output_name.unwrap_or_else(|| Identifier::new(column_name));
+        let output_name = output_name.unwrap_or(column_name);
 
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
@@ -257,11 +249,9 @@ impl Converter {
     /// Convert a `Name` into an identifier string (i.e. a string)
     fn visit_column_identifier(
         &self,
-        id: Name,
+        column_name: Identifier,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ParseResult<ColumnRef> {
-        let column_name = Identifier::new(id);
-
         let current_table = *self
             .current_table
             .as_ref()
