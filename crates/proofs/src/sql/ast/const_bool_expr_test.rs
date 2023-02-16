@@ -1,22 +1,30 @@
-use super::{ConstBoolExpr, FilterExpr, FilterResultExpr, TableExpr};
+use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
-    make_random_test_accessor_data, ColumnRef, ColumnType, RandomTestAccessorDescriptor, TableRef,
-    TestAccessor,
+    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
 };
-use crate::sql::proof::QueryExpr;
-use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
-use proofs_sql::Identifier;
+use crate::sql::ast::test_expr::TestExpr;
+use crate::sql::ast::test_utility::const_v;
 
-use arrow::array::Int64Array;
-use arrow::datatypes::Schema;
-use arrow::record_batch::RecordBatch;
 use polars::prelude::*;
 use rand::rngs::StdRng;
 use rand_core::SeedableRng;
-use std::sync::Arc;
+
+fn create_test_expr(
+    table_ref: &str,
+    results: &[&str],
+    filter_val: bool,
+    data: DataFrame,
+    offset: usize,
+) -> TestExpr {
+    let mut accessor = TestAccessor::new();
+    let table_ref = table_ref.parse().unwrap();
+    accessor.add_table(table_ref, data, offset);
+    let df_filter = lit(filter_val);
+    let const_expr = const_v(filter_val);
+    TestExpr::new(table_ref, results, const_expr, df_filter, accessor)
+}
 
 fn test_random_tables_with_given_constant(value: bool) {
-    let table_ref: TableRef = "sxt.t".parse().unwrap();
     let descr = RandomTestAccessorDescriptor {
         min_rows: 1,
         max_rows: 20,
@@ -27,103 +35,28 @@ fn test_random_tables_with_given_constant(value: bool) {
     let cols = ["a"];
     for _ in 0..10 {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let mut accessor = TestAccessor::new();
-        accessor.add_table(table_ref, data, 0_usize);
-
-        let expr = FilterExpr::new(
-            vec![FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("a").unwrap(),
-                    ColumnType::BigInt,
-                ),
-                Identifier::try_new("a").unwrap(),
-            )],
-            TableExpr { table_ref },
-            Box::new(ConstBoolExpr::new(value)),
-        );
-        let proof_res = VerifiableQueryResult::new(&expr, &accessor);
-        exercise_verification(&proof_res, &expr, &accessor, table_ref);
-        let res = proof_res.verify(&expr, &accessor).unwrap().unwrap();
-        let expected = accessor.query_table(table_ref, |df| {
-            df.clone()
-                .lazy()
-                .filter(lit(value))
-                .select([col("a")])
-                .collect()
-                .unwrap()
-        });
-        assert_eq!(res, expected);
+        let test_expr = create_test_expr("sxt.t", &["a"], value, data, 0);
+        let res = test_expr.verify_expr();
+        let expected_res = test_expr.query_table();
+        assert_eq!(res, expected_res);
     }
 }
 
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
-    let table_ref: TableRef = "sxt.t".parse().unwrap();
-    let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("a").unwrap(),
-                ColumnType::BigInt,
-            ),
-            Identifier::try_new("a").unwrap(),
-        )],
-        TableExpr { table_ref },
-        Box::new(ConstBoolExpr::new(true)),
-    );
     let data = df!("a" => [123]).unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(table_ref, data, 0_usize);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-
-    exercise_verification(&res, &expr, &accessor, table_ref);
-
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let res_col: Vec<i64> = vec![123];
-    let column_fields = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let test_expr = create_test_expr("sxt.t", &["a"], true, data.clone(), 0);
+    let res = test_expr.verify_expr();
+    let expected_res = data_frame_to_record_batch(&data);
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
-    let table_ref: TableRef = "sxt.t".parse().unwrap();
-    let expr = FilterExpr::new(
-        vec![FilterResultExpr::new(
-            ColumnRef::new(
-                table_ref,
-                Identifier::try_new("a").unwrap(),
-                ColumnType::BigInt,
-            ),
-            Identifier::try_new("a").unwrap(),
-        )],
-        TableExpr { table_ref },
-        Box::new(ConstBoolExpr::new(false)),
-    );
-    let data = df!("a" => Vec::<i64>::new()).unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(table_ref, data, 0_usize);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-
-    exercise_verification(&res, &expr, &accessor, table_ref);
-
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let res_col: Vec<i64> = vec![];
-    let column_fields = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_res =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(res_col))]).unwrap();
+    let data = df!("a" => [123]).unwrap();
+    let test_expr = create_test_expr("sxt.t", &["a"], false, data, 0);
+    let res = test_expr.verify_expr();
+    let expected_res = data_frame_to_record_batch(&df!("a" => Vec::<i64>::new()).unwrap());
     assert_eq!(res, expected_res);
 }
 

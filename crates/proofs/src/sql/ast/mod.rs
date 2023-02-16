@@ -37,3 +37,9 @@ mod equals_expr_test;
 
 mod table_expr;
 pub use table_expr::TableExpr;
+
+#[cfg(test)]
+pub mod test_expr;
+
+#[cfg(test)]
+pub mod test_utility;
