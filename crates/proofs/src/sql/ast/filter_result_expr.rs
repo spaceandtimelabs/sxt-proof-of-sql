@@ -61,6 +61,9 @@ impl FilterResultExpr {
             Column::BigInt(col) => {
                 prover_evaluate_impl(builder, alloc, counts, selection, col, col)
             }
+            Column::HashedBytes((col, scals)) => {
+                prover_evaluate_impl(builder, alloc, counts, selection, col, scals)
+            }
         };
     }
 

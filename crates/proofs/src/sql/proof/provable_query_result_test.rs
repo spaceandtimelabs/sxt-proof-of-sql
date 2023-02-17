@@ -184,7 +184,7 @@ fn evaluation_fails_if_data_is_missing() {
 }
 
 #[test]
-fn we_can_convert_an_provable_result_to_a_final_result() {
+fn we_can_convert_a_provable_result_to_a_final_result() {
     let indexes = [0, 2];
     let values = [10, 11, 12];
     let cols: [Box<dyn ProvableResultColumn>; 1] =
@@ -197,6 +197,26 @@ fn we_can_convert_an_provable_result_to_a_final_result() {
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
     assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
+    let values = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
+    let cols: [Box<dyn ProvableResultColumn>; 1] =
+        [Box::new(DenseProvableResultColumn::new(&values))];
+    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::VarChar)];
+    let indexes = [0];
+    assert!(ProvableQueryResult::new(&indexes, &cols)
+        .into_query_result(&column_fields)
+        .is_ok());
+    let indexes = [2];
+    assert!(ProvableQueryResult::new(&indexes, &cols)
+        .into_query_result(&column_fields)
+        .is_ok());
+    let indexes = [1];
+    assert!(ProvableQueryResult::new(&indexes, &cols)
+        .into_query_result(&column_fields)
+        .is_err());
 }
 
 // TODO: we don't correctly detect overflow yet

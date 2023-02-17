@@ -1,9 +1,10 @@
 use super::{ProofCounts, ProvableQueryResult, QueryProof};
+use crate::base::database::ColumnType;
 
-use crate::base::database::{CommitmentAccessor, DataAccessor};
+use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::{QueryExpr, QueryResult};
-use arrow::array::{Array, Int64Array};
+use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
@@ -121,7 +122,11 @@ impl VerifiableQueryResult {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError);
             }
-            return Ok(make_empty_query_result(expr, counts.result_columns));
+
+            let result_fields = expr.get_column_result_fields();
+            assert_eq!(counts.result_columns, result_fields.len());
+
+            return Ok(make_empty_query_result(result_fields));
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
@@ -137,14 +142,20 @@ impl VerifiableQueryResult {
     }
 }
 
-fn make_empty_query_result(expr: &dyn QueryExpr, num_columns: usize) -> QueryResult {
-    let column_fields = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
+fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
+    let mut column_fields = Vec::with_capacity(result_fields.len());
+    let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(result_fields.len());
+
+    for field in result_fields.iter() {
+        let col: Arc<dyn Array> = match field.data_type() {
+            ColumnType::BigInt => Arc::new(Int64Array::from(Vec::<i64>::new())),
+            ColumnType::VarChar => Arc::new(StringArray::from(Vec::<String>::new())),
+        };
+
+        column_fields.push(field.into());
+        columns.push(col);
+    }
+
     let schema = Arc::new(Schema::new(column_fields));
-    let empty_col = Arc::new(Int64Array::from(Vec::<i64>::new()));
-    let columns: Vec<Arc<dyn Array>> = vec![empty_col; num_columns];
     Ok(RecordBatch::try_new(schema, columns).unwrap())
 }

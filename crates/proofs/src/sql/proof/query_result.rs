@@ -6,6 +6,8 @@ use thiserror::Error;
 pub enum QueryError {
     #[error("Overflow error")]
     Overflow,
+    #[error("String decode error")]
+    InvalidString,
 }
 
 /// The result of a query -- either an error or a table.
