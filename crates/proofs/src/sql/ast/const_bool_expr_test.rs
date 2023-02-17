@@ -1,6 +1,6 @@
 use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
-    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::sql::ast::test_expr::TestExpr;
 use crate::sql::ast::test_utility::const_v;
@@ -32,10 +32,10 @@ fn test_random_tables_with_given_constant(value: bool) {
         max_value: 3,
     };
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = ["a"];
+    let cols = [("a", ColumnType::BigInt), ("b", ColumnType::VarChar)];
     for _ in 0..10 {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let test_expr = create_test_expr("sxt.t", &["a"], value, data, 0);
+        let test_expr = create_test_expr("sxt.t", &["a", "b"], value, data, 0);
         let res = test_expr.verify_expr();
         let expected_res = test_expr.query_table();
         assert_eq!(res, expected_res);

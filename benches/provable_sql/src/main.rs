@@ -1,6 +1,6 @@
 use clap::Parser;
 use proofs::base::database::{
-    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use proofs::sql::ast::FilterExpr;
 use proofs::sql::parse::Converter;
@@ -64,7 +64,10 @@ fn generate_accessor(
     let cols: Vec<_> = (0..num_columns)
         .map(|val| ((b'a' + (val as u8)) as char).to_string())
         .collect();
-    let ref_cols: Vec<&str> = cols.iter().map(|val| val.as_str()).collect();
+    let ref_cols: Vec<_> = cols
+        .iter()
+        .map(|val| (val.as_str(), ColumnType::BigInt))
+        .collect();
 
     let descriptor = RandomTestAccessorDescriptor {
         min_rows: table_length,

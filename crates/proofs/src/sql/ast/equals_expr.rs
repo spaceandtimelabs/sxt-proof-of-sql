@@ -104,6 +104,9 @@ impl BoolExpr for EqualsExpr {
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, counts, col),
+            Column::HashedBytes((_, scals)) => {
+                self.prover_evaluate_impl(builder, alloc, counts, scals)
+            }
         }
     }
 
