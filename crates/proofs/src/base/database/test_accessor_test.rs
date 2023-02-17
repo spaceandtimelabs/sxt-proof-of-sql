@@ -3,6 +3,8 @@ use super::{
     SchemaAccessor, TestAccessor,
 };
 use crate::base::scalar::compute_commitment_for_testing;
+use crate::base::scalar::ToScalar;
+
 use arrow::array::Int64Array;
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -51,10 +53,12 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6]),
+        _ => panic!("Invalid column type"),
     };
 
     let data2 = df!(
         "a" => [1, 2, 3, 4],
+        "d" => ["a", "bc", "d", "e"],
         "b" => [4, 5, 6, 5],
     )
     .unwrap();
@@ -63,11 +67,27 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![1, 2, 3]),
+        _ => panic!("Invalid column type"),
     };
 
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
+        _ => panic!("Invalid column type"),
+    };
+
+    let col_slice: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.as_bytes()).collect();
+    let col_scalars: Vec<_> = ["a", "bc", "d", "e"]
+        .iter()
+        .map(|v| v.to_scalar())
+        .collect();
+    let column = ColumnRef::new(table_ref_2, "d".parse().unwrap(), ColumnType::VarChar);
+    match accessor.get_column(column) {
+        Column::HashedBytes((col, scals)) => {
+            assert_eq!(col.to_vec(), col_slice);
+            assert_eq!(scals.to_vec(), col_scalars);
+        }
+        _ => panic!("Invalid column type"),
     };
 }
 

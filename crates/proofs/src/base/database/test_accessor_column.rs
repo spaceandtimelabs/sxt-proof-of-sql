@@ -27,7 +27,7 @@ impl TestAccessorColumn {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::BigInt(_) => ColumnType::BigInt,
-            _ => unimplemented!(),
+            Self::VarChar(_) => ColumnType::VarChar,
         }
     }
 
@@ -40,13 +40,18 @@ impl TestAccessorColumn {
     }
 
     /// Map the TestAccessorColumn values to some accessor Column
-    pub fn to_column<'a>(&'a self, column_type: ColumnType, _alloc: &'a Bump) -> Column {
+    pub fn to_column<'a>(&'a self, column_type: ColumnType, alloc: &'a Bump) -> Column {
         match self {
             Self::BigInt(v) => {
                 assert_eq!(ColumnType::BigInt, column_type);
                 Column::BigInt(&v[..])
             }
-            _ => unimplemented!(),
+            Self::VarChar((v, s)) => {
+                assert_eq!(ColumnType::VarChar, column_type);
+
+                let v = alloc.alloc_slice_fill_with(v.len(), |i| -> &'a [u8] { v[i].as_bytes() });
+                Column::HashedBytes((v, &s[..]))
+            }
         }
     }
 
@@ -115,12 +120,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn we_can_get_the_correct_column_type_with_varchar() {
         let data = vec!["abc".to_string()];
         let v2 = data.iter().map(|v| (&v[..]).to_scalar()).collect();
         let t = TestAccessorColumn::VarChar((data, v2));
-        t.column_type();
+        assert_eq!(t.column_type(), ColumnType::VarChar);
     }
 
     #[test]
@@ -135,13 +139,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn we_can_get_the_correct_column_with_varchar() {
         let data = vec!["abc".to_string()];
         let alloc = Bump::new();
-        let v2 = data.iter().map(|v| (&v[..]).to_scalar()).collect();
-        let t = TestAccessorColumn::VarChar((data, v2));
-        t.to_column(ColumnType::BigInt, &alloc); // TODO: update ColumnType::BigInt to ColumnType::VarChar
+        let s: Vec<_> = data.iter().map(|v| (&v[..]).to_scalar()).collect();
+        let t = TestAccessorColumn::VarChar((data.clone(), s.clone()));
+        let data_slice: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
+        assert_eq!(
+            t.to_column(ColumnType::VarChar, &alloc),
+            Column::HashedBytes((&data_slice[..], &s[..]))
+        );
     }
 
     #[test]

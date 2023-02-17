@@ -5,7 +5,7 @@ use super::{
 };
 use crate::base::database::{ColumnField, ColumnType};
 
-use arrow::array::{Array, Int64Array};
+use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::scalar::Scalar;
@@ -75,6 +75,7 @@ impl ProvableQueryResult {
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
                     ColumnType::BigInt => <i64>::decode_to_scalar(&self.data[offset..]),
+                    ColumnType::VarChar => <&str>::decode_to_scalar(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[*index as usize] * x;
@@ -111,6 +112,14 @@ impl ProvableQueryResult {
                         .ok_or(QueryError::Overflow)?;
 
                     columns.push(Arc::new(Int64Array::from(col)));
+
+                    Ok(num_read)
+                }
+                ColumnType::VarChar => {
+                    let (col, num_read) = decode_multiple_elements::<&str>(&self.data[offset..], n)
+                        .ok_or(QueryError::InvalidString)?;
+
+                    columns.push(Arc::new(StringArray::from(col)));
 
                     Ok(num_read)
                 }

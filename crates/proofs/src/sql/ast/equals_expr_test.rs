@@ -1,12 +1,11 @@
 use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
-    make_random_test_accessor_data, RandomTestAccessorDescriptor, TestAccessor,
+    make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::ToScalar;
 use crate::sql::ast::test_expr::TestExpr;
 use crate::sql::ast::test_utility::equal;
 
-use polars::prelude::Expr;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -14,7 +13,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_expr<T: ToScalar + Copy + Into<Expr>>(
+fn create_test_expr<T: ToScalar + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,
@@ -26,7 +25,7 @@ fn create_test_expr<T: ToScalar + Copy + Into<Expr>>(
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let equals_expr = equal(t, filter_col, filter_val, &accessor);
-    let df_filter = polars::prelude::col(filter_col).eq(filter_val);
+    let df_filter = polars::prelude::col(filter_col).eq(lit(filter_val));
     TestExpr::new(t, results, equals_expr, df_filter, accessor)
 }
 
@@ -34,14 +33,16 @@ fn create_test_expr<T: ToScalar + Copy + Into<Expr>>(
 fn we_can_prove_an_equality_query_with_no_rows() {
     let data = df!(
         "a" => Vec::<i64>::new(),
-        "b" => Vec::<i64>::new()
+        "b" => Vec::<i64>::new(),
+        "d" => Vec::<String>::new(),
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 0_i64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["a", "d"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = data_frame_to_record_batch(
         &df!(
-            "a" => Vec::<i64>::new()
+            "a" => Vec::<i64>::new(),
+            "d" => Vec::<String>::new(),
         )
         .unwrap(),
     );
@@ -52,14 +53,16 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let data = df!(
         "a" => [123],
-        "b" => [0]
+        "b" => [0],
+        "d" => ["abc"]
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 0_i64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["d", "a"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = data_frame_to_record_batch(
         &df!(
-            "a" => [123]
+            "d" => ["abc"],
+            "a" => [123],
         )
         .unwrap(),
     );
@@ -70,14 +73,16 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let data = df!(
         "a" => [123],
-        "b" => [55]
+        "b" => [55],
+        "d" => ["abc"]
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 0_i64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["a", "d"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = data_frame_to_record_batch(
         &df!(
-            "a" => Vec::<i64>::new()
+            "a" => Vec::<i64>::new(),
+            "d" => Vec::<String>::new(),
         )
         .unwrap(),
     );
@@ -88,14 +93,16 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 fn we_can_prove_an_equality_query_with_multiple_rows() {
     let data = df!(
         "a" => [1, 2, 3, 4],
-        "b" => [0, 5, 0, 5]
+        "c" => ["t", "ghi", "jj", "f"],
+        "b" => [0, 5, 0, 5],
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 0_i64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["a", "c"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = data_frame_to_record_batch(
         &df!(
-            "a" => [1, 3]
+            "a" => [1, 3],
+            "c" => ["t", "jj"],
         )
         .unwrap(),
     );
@@ -107,13 +114,35 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let data = df!(
         "a" => [1, 2, 3, 4, 5],
         "b" => [123, 5, 123, 5, 0],
+        "c" => ["t", "ghi", "jj", "f", "abc"],
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 123_u64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["a", "c"], "b", 123_u64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = data_frame_to_record_batch(
         &df!(
-            "a" => [1, 3]
+            "a" => [1, 3],
+            "c" => ["t", "jj"],
+        )
+        .unwrap(),
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_prove_an_equality_query_with_a_string_comparison() {
+    let data = df!(
+        "a" => [1, 2, 3, 4, 5],
+        "b" => [123, 5, 123, 5, 0],
+        "c" => ["t", "ghi", "jj", "f", "ghi"],
+    )
+    .unwrap();
+    let test_expr = create_test_expr("sxt.t", &["a", "b"], "c", "ghi", data, 0);
+    let res = test_expr.verify_expr();
+    let expected_res = data_frame_to_record_batch(
+        &df!(
+            "a" => [2, 5],
+            "b" => [5, 0],
         )
         .unwrap(),
     );
@@ -124,17 +153,19 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let data = df!(
         "a" => [1, 2, 3, 4],
+        "c" => ["t", "ghi", "jj", "f"],
         "b" => [0, 5, 0, 5],
     )
     .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], "b", 0_u64, data, 0);
+    let test_expr = create_test_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 
     let data = df!(
         "a" => [1, 2, 3, 4],
+        "c" => ["t", "ghi", "jj", "f"],
         "b" => [0, 2, 0, 5],
     )
     .unwrap();
-    let tampered_test_expr = create_test_expr("sxt.t", &["a"], "b", 0_u64, data, 0);
+    let tampered_test_expr = create_test_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 
     let res = test_expr.create_verifiable_result();
     assert!(res
@@ -150,11 +181,32 @@ fn we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(offse
         max_value: 3,
     };
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = ["aa", "ab", "b"];
-    for _ in 0..10 {
+    let cols = [
+        ("aa", ColumnType::BigInt),
+        ("ab", ColumnType::VarChar),
+        ("b", ColumnType::BigInt),
+    ];
+    for _ in 0..20 {
+        // filtering by string value
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_expr("sxt.t", &["aa", "ab"], "ab", filter_val, data, offset);
+        let test_expr = create_test_expr(
+            "sxt.t",
+            &["aa", "ab", "b"],
+            "ab",
+            ("s".to_owned() + &filter_val.to_string()[..]).as_str(),
+            data,
+            offset,
+        );
+        let res = test_expr.verify_expr();
+        let expected_res = test_expr.query_table();
+        assert_eq!(res, expected_res);
+
+        // filtering by integer value
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let test_expr =
+            create_test_expr("sxt.t", &["aa", "ab", "b"], "b", filter_val, data, offset);
         let res = test_expr.verify_expr();
         let expected_res = test_expr.query_table();
         assert_eq!(res, expected_res);

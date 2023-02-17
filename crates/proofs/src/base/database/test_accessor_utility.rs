@@ -1,4 +1,4 @@
-use crate::base::database::ColumnField;
+use crate::base::database::{ColumnField, ColumnType};
 use crate::base::database::{TestAccessorColumn, TestAccessorColumns};
 
 use arrow::datatypes::Schema;
@@ -34,16 +34,25 @@ impl Default for RandomTestAccessorDescriptor {
 /// Generate a DataFrame with random data
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,
-    cols: &[&str],
+    cols: &[(&str, ColumnType)],
     descriptor: &RandomTestAccessorDescriptor,
 ) -> DataFrame {
     let n = Uniform::new(descriptor.min_rows, descriptor.max_rows + 1).sample(rng);
     let dist = Uniform::new(descriptor.min_value, descriptor.max_value + 1);
     let mut series = Vec::new();
-    for col in cols {
-        let v: Vec<i64> = dist.sample_iter(&mut *rng).take(n).collect();
-        let v = Series::new(col, &v[..]);
-        series.push(v)
+    for (col_name, col_type) in cols {
+        let values: Vec<i64> = dist.sample_iter(&mut *rng).take(n).collect();
+        let values = match col_type {
+            ColumnType::BigInt => Series::new(col_name, &values[..]),
+            ColumnType::VarChar => Series::new(
+                col_name,
+                &values
+                    .iter()
+                    .map(|v| "s".to_owned() + &v.to_string()[..])
+                    .collect::<Vec<String>>()[..],
+            ),
+        };
+        series.push(values)
     }
     DataFrame::new(series).unwrap()
 }
@@ -86,7 +95,7 @@ pub fn data_frame_to_record_batch(data: &DataFrame) -> RecordBatch {
 mod tests {
     use super::*;
     use crate::base::scalar::ToScalar;
-    use arrow::array::{Array, Int64Array};
+    use arrow::array::{Array, Int64Array, StringArray};
     use polars::prelude::*;
     use rand_core::SeedableRng;
 
@@ -94,15 +103,28 @@ mod tests {
     fn we_can_construct_a_random_test_data() {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
-        let cols = ["a", "b"];
+        let cols = [("a", ColumnType::BigInt), ("b", ColumnType::VarChar)];
 
-        // zero offset generators
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
         let data2 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
         assert_ne!(
             data1.iter().next().unwrap().len(),
             data2.iter().next().unwrap().len()
         );
+    }
+
+    #[test]
+    fn we_can_construct_a_random_test_data_with_the_correct_data() {
+        let descriptor = RandomTestAccessorDescriptor {
+            min_rows: 1,
+            max_rows: 1,
+            min_value: -2,
+            max_value: -2,
+        };
+        let mut rng = StdRng::from_seed([0u8; 32]);
+        let cols = [("b", ColumnType::BigInt), ("a", ColumnType::VarChar)];
+        let data = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
+        assert_eq!(data, df!("b" => [-2_i64], "a" => ["s-2"]).unwrap());
     }
 
     #[test]
@@ -134,22 +156,22 @@ mod tests {
     #[test]
     fn we_can_convert_data_frames_to_record_batches() {
         let data_int = vec![1, 2, 3];
-        // let data_str = vec!["abc", "de", "t"]; // TODO: add this line when Column::String is supported
+        let data_str = vec!["abc", "de", "t"];
 
         let data = df!(
             "a" => data_int.to_vec(),
-            // "b" => data_str.to_vec(), // TODO: add this line when Column::String is supported
+            "b" => data_str.to_vec(),
         )
         .unwrap();
 
         let record_batch = data_frame_to_record_batch(&data);
         let columns: Vec<Arc<dyn Array>> = vec![
             Arc::new(Int64Array::from(data_int)),
-            // Arc::new(StringArray::from(data_str)) // TODO: add this line when Column::String is supported
+            Arc::new(StringArray::from(data_str)),
         ];
         let column_fields = vec![
             arrow::datatypes::Field::new("a", arrow::datatypes::DataType::Int64, false),
-            // arrow::datatypes::Field::new("b", arrow::datatypes::DataType::Utf8, false), // TODO: add this line when Column::String is supported
+            arrow::datatypes::Field::new("b", arrow::datatypes::DataType::Utf8, false),
         ];
         let schema = Arc::new(arrow::datatypes::Schema::new(column_fields));
         let expected_record_batch = RecordBatch::try_new(schema, columns).unwrap();
