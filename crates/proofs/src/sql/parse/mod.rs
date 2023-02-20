@@ -1,5 +1,5 @@
 mod error;
-pub use error::{ParseError, ParseResult};
+pub use error::{ConversionError, ConversionResult};
 
 mod converter;
 pub use converter::Converter;

@@ -5,6 +5,9 @@ pub mod intermediate_ast;
 #[cfg(test)]
 mod intermediate_ast_tests;
 
+#[cfg(test)]
+pub mod test_utility;
+
 pub mod select_statement;
 pub use select_statement::SelectStatement;
 

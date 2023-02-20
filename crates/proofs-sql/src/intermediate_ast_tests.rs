@@ -1,756 +1,431 @@
-use crate::intermediate_ast::*;
-use crate::sql;
-use crate::Identifier;
+use crate::test_utility::*;
 use crate::SelectStatement;
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_expression() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("SELECT A FROM SXT_TAB WHERE A = 3")
+    let ast = "SELECT A FROM SXT_TAB WHERE A = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("a"),
-                right: 3,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("a", 3)));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_two_result_columns() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("Select a,  b froM sxt_tab where C = 123")
+    let ast = "Select a,  b froM sxt_tab where C = 123"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![
-                Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("a"),
-                    output_name: None,
-                }),
-                Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("b"),
-                    output_name: None,
-                }),
-            ],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("c"),
-                right: 123,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a", "b"]),
+        tab(None, "sxt_tab"),
+        equal("c", 123),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_using_select_star() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("SELECT * FROM sxt_Tab WHERE A = 3")
+    let ast = "SELECT * FROM sxt_Tab WHERE A = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::All)],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("a"),
-                right: 3,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        vec![col_res_all()],
+        tab(None, "sxt_tab"),
+        equal("a", 3),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_using_multiple_select_star_expressions() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("SELECT a, *, b, c, * FROM sxt_Tab WHERE A = 3")
+    let ast = "SELECT a, *, b, c, * FROM sxt_Tab WHERE A = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![
-                Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("a"),
-                    output_name: None,
-                }),
-                Box::new(ResultColumn::All),
-                Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("b"),
-                    output_name: None,
-                }),
-                Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("c"),
-                    output_name: None,
-                }),
-                Box::new(ResultColumn::All),
-            ],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("a"),
-                right: 3,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        vec![
+            col_res("a", "a"),
+            col_res_all(),
+            col_res("b", "b"),
+            col_res("c", "c"),
+            col_res_all(),
+        ],
+        tab(None, "sxt_tab"),
+        equal("a", 3),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where b = +4")
+    let ast = "select a from sxt_tab where b = +4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: 4,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("b", 4)));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where b = -4")
+    let ast = "select a from sxt_tab where b = -4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: -4,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        equal("b", -4),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
     for not_equals_sign in ["!=", "<>"] {
-        let parsed_ast = sql::SelectStatementParser::new()
-            .parse(&("select a from sxt_tab where b".to_owned() + not_equals_sign + " -4"))
+        let ast = ("select a from sxt_tab where b".to_owned() + not_equals_sign + " -4")
+            .parse::<SelectStatement>()
             .unwrap();
-
-        let expected_ast = SelectStatement {
-            expr: Box::new(SetExpression::Query {
-                columns: vec![Box::new(ResultColumn::Expr {
-                    expr: Identifier::new("a"),
-                    output_name: None,
-                })],
-                from: vec![Box::new(TableExpression::Named {
-                    table: Identifier::new("sxt_tab"),
-                    schema: None,
-                })],
-                where_expr: Some(Box::new(Expression::NotEqual {
-                    left: Identifier::new("b"),
-                    right: -4,
-                })),
-            }),
-        };
-
-        assert_eq!(parsed_ast, expected_ast);
+        let expected_ast = select(query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            not(equal("b", -4)),
+        ));
+        assert_eq!(ast, expected_ast);
     }
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where not (b = 3)")
+    let ast = "select a from sxt_tab where not (b = 3)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Not {
-                expr: Box::new(Expression::Equal {
-                    left: Identifier::new("b"),
-                    right: 3,
-                }),
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        not(equal("b", 3)),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where (b = 3) and (c = -2)")
+    let ast = "select a from sxt_tab where (b = 3) and (c = -2)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::And {
-                left: Box::new(Expression::Equal {
-                    left: Identifier::new("b"),
-                    right: 3,
-                }),
-                right: Box::new(Expression::Equal {
-                    left: Identifier::new("c"),
-                    right: -2,
-                }),
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        and(equal("b", 3), equal("c", -2)),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where (b = 3) OR (c = -2)")
+    let ast = "select a from sxt_tab where (b = 3) or (c = -2)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Or {
-                left: Box::new(Expression::Equal {
-                    left: Identifier::new("b"),
-                    right: 3,
-                }),
-                right: Box::new(Expression::Equal {
-                    left: Identifier::new("c"),
-                    right: -2,
-                }),
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        or(equal("b", 3), equal("c", -2)),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where (b = 3) and (not (c = -2))")
+    let ast = "select a from sxt_tab where (b = 3) and (not (c = -2))"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::And {
-                left: Box::new(Expression::Equal {
-                    left: Identifier::new("b"),
-                    right: 3,
-                }),
-                right: Box::new(Expression::Not {
-                    expr: Box::new(Expression::Equal {
-                        left: Identifier::new("c"),
-                        right: -2,
-                    }),
-                }),
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        and(equal("b", 3), not(equal("c", -2))),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where not ((b = 3) and  ((f = 45) or (c = -2)))")
+    let ast = "select a from sxt_tab where not ((b = 3) and  ((f = 45) or (c = -2)))"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Not {
-                expr: Box::new(Expression::And {
-                    left: Box::new(Expression::Equal {
-                        left: Identifier::new("b"),
-                        right: 3,
-                    }),
-                    right: Box::new(Expression::Or {
-                        left: Box::new(Expression::Equal {
-                            left: Identifier::new("f"),
-                            right: 45,
-                        }),
-                        right: Box::new(Expression::Equal {
-                            left: Identifier::new("c"),
-                            right: -2,
-                        }),
-                    }),
-                }),
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        not(and(equal("b", 3), or(equal("f", 45), equal("c", -2)))),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where b = -9223372036854775808")
+    let ast = "select a from sxt_tab where b = -9223372036854775808"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: -9223372036854775808,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        equal("b", -9223372036854775808_i64),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where b = 9223372036854775807")
+    let ast = "select a from sxt_tab where b = 9223372036854775807"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: 9223372036854775807,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        equal("b", 9223372036854775807_i64),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a as a_rename from sxt_tab where b = 4")
+    let ast = "select a as a_rename from sxt_tab where b = 4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: Some(Identifier::new("a_rename")),
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: 4,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        vec![col_res("a", "a_rename")],
+        tab(None, "sxt_tab"),
+        equal("b", 4),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a a_rename from sxt_tab where b = 4")
+    let parsed_ast = "select a a_rename from sxt_tab where b = 4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: Some(Identifier::new("a_rename")),
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: None,
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: 4,
-            })),
-        }),
-    };
-
+    let expected_ast = select(query(
+        vec![col_res("a", "a_rename")],
+        tab(None, "sxt_tab"),
+        equal("b", 4),
+    ));
     assert_eq!(parsed_ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_logical_not_with_more_precedence_priority_than_logical_and() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = 3 and not b = 4")
+    let parsed_ast = "select a from sxt_tab where a = 3 and not b = 4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where (a = 3) and (not b = 4)")
+    let expected_ast = "select a from sxt_tab where (a = 3) and (not b = 4)"
+        .parse::<SelectStatement>()
         .unwrap();
-
     assert_eq!(parsed_ast, expected_ast);
 }
 
 #[test]
 fn we_cannot_parse_logical_not_with_more_precedence_priority_than_equal_operator() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where (not b) = 4")
+    assert!("select a from sxt_tab where (not b) = 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_can_parse_logical_and_with_more_precedence_priority_than_logical_or() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = -1 or c = -3 and a = 3")
+    let ast = "select a from sxt_tab where a = -1 or c = -3 and a = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = -1 or (c = -3 and a = 3)")
+    let expected_ast = "select a from sxt_tab where a = -1 or (c = -3 and a = 3)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    assert_eq!(parsed_ast, expected_ast);
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_logical_not_with_right_associativity() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where not not a = -1")
+    let ast = "select a from sxt_tab where not not a = -1"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where not (not (a = -1))")
+    let expected_ast = "select a from sxt_tab where not (not (a = -1))"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    assert_eq!(parsed_ast, expected_ast);
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_logical_and_with_left_associativity() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = -1 and c = -3 and b = 3")
+    let ast = "select a from sxt_tab where a = -1 and c = -3 and b = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where ((a = -1) and (c = -3)) and (b = 3)")
+    let expected_ast = "select a from sxt_tab where ((a = -1) and (c = -3)) and (b = 3)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    assert_eq!(parsed_ast, expected_ast);
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_logical_or_with_left_associativity() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = -1 or c = -3 or b = 3")
+    let ast = "select a from sxt_tab where a = -1 or c = -3 or b = 3"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = sql::SelectStatementParser::new()
-        .parse("select a from sxt_tab where ((a = -1) or (c = -3)) or (b = 3)")
+    let expected_ast = "select a from sxt_tab where ((a = -1) or (c = -3)) or (b = 3)"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    assert_eq!(parsed_ast, expected_ast);
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary() {
-    sql::SelectStatementParser::new()
-        .parse("select (((a))) as F from ( (sxt_tab  )) where (((a = -1)) or c = -3) and (((((a = (((3)      ) ))))))")
+    let ast = "select (((a))) as F from ( (sxt_tab  )) where (((a = -1)) or c = -3) and (((((a = (((3)      ) ))))))"
+        .parse::<SelectStatement>()
         .unwrap();
+    let expected_ast = select(query(
+        vec![col_res("a", "F")],
+        tab(None, "sxt_tab"),
+        and(or(equal("a", -1), equal("c", -3)), equal("a", 3)),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
-    let parsed_ast = sql::SelectStatementParser::new()
-        .parse("select a from eth.sxt_tab where b = 4")
+    let ast = "select a from eth.sxt_tab where b = 4"
+        .parse::<SelectStatement>()
         .unwrap();
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("sxt_tab"),
-                schema: Some(Identifier::new("eth")),
-            })],
-            where_expr: Some(Box::new(Expression::Equal {
-                left: Identifier::new("b"),
-                right: 4,
-            })),
-        }),
-    };
-
-    assert_eq!(parsed_ast, expected_ast);
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(Some("eth"), "sxt_tab"),
+        equal("b", 4),
+    ));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_without_a_filter() {
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::Expr {
-                expr: Identifier::new("a"),
-                output_name: None,
-            })],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("tab"),
-                schema: None,
-            })],
-            where_expr: None,
-        }),
-    };
+    let ast = "select a from tab".parse::<SelectStatement>().unwrap();
+    let expected_ast = select(query_all(cols_res(&["a"]), tab(None, "tab")));
+    assert_eq!(ast, expected_ast);
 
-    assert_eq!(
-        sql::SelectStatementParser::new()
-            .parse("select a from tab")
-            .unwrap(),
-        expected_ast
-    );
-
-    let expected_ast = SelectStatement {
-        expr: Box::new(SetExpression::Query {
-            columns: vec![Box::new(ResultColumn::All)],
-            from: vec![Box::new(TableExpression::Named {
-                table: Identifier::new("tab"),
-                schema: Some(Identifier::new("eth")),
-            })],
-            where_expr: None,
-        }),
-    };
-    assert_eq!(
-        sql::SelectStatementParser::new()
-            .parse("select * from eth.tab")
-            .unwrap(),
-        expected_ast
-    );
+    let ast = "select * from eth.tab".parse::<SelectStatement>().unwrap();
+    let expected_ast = select(query_all(vec![col_res_all()], tab(Some("eth"), "tab")));
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from schema.Identifier.tab")
+    assert!("select a from schema.Identifier.tab"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_a_filter_value_smaller_than_min_i64_as_it_will_overflow() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b = -9223372036854775809")
+    assert!("select a from tab where b = -9223372036854775809"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_a_filter_value_bigger_than_max_i64_as_it_will_overflow() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from schema.tab where b = 9223372036854775808")
+    assert!("select a from schema.tab where b = 9223372036854775808"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_select_tablename_followed_by_star() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select tab.* from tab")
-        .is_err());
+    assert!("select tab.* from tab".parse::<SelectStatement>().is_err());
 }
-
-// Unparsables
-// Unparsables consist of the following categories
-// 1. Queries we don't support yet but plan to support in the future.
-// 2. Valid queries that are out of scope.
-// 3. Invalid queries.
-
-//////////////////////
-// Not supported yet
-// The following are valid queries that will be gradually enabled as our PoSQL engine is built.
-// We ignore the exact LALRPOP error type since it changes as LARPOP is upgraded
-// and is outside our control.
-//////////////////////
 
 #[test]
 fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select tab.a from tab")
+    assert!("select tab.a from tab".parse::<SelectStatement>().is_err());
+    assert!("select tab.a from eth.tab"
+        .parse::<SelectStatement>()
         .is_err());
-    assert!(sql::SelectStatementParser::new()
-        .parse("select tab.a from eth.tab")
+    assert!("select eth.tab.a from eth.tab"
+        .parse::<SelectStatement>()
         .is_err());
-    assert!(sql::SelectStatementParser::new()
-        .parse("select eth.tab.a from eth.tab")
-        .is_err());
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from eth.tab where tab.b = 3")
+    assert!("select a from eth.tab where tab.b = 3"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_a_subquery() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from (select a from tab where b = 4)")
+    assert!("select a from (select a from tab where b = 4)"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_ending_with_a_semicolon() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b = 3;")
+    assert!("select a from tab where b = 3;"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_having_the_limit_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b = 4 limit 3")
+    assert!("select a from tab where b = 4 limit 3"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_filter_gt() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b > 4")
+    assert!("select a from tab where b > 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_filter_ge() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b >= 4")
+    assert!("select a from tab where b >= 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_filter_lt() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b < 4")
+    assert!("select a from tab where b < 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_filter_le() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from tab where b <= 4")
+    assert!("select a from tab where b <= 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_summing_the_result_columns() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select sum(a) from tab")
-        .is_err());
+    assert!("select sum(a) from tab".parse::<SelectStatement>().is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_group_by_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select b, sum(a) from tab group by b")
+    assert!("select b, sum(a) from tab group by b"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_with_inner_join_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select tab1.a from tab1 join tab2 on tab1.c = tab2.c where tab2.b > 4")
-        .is_err());
+    assert!(
+        "select tab1.a from tab1 join tab2 on tab1.c = tab2.c where tab2.b > 4"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 // Case when
 #[test]
 fn we_cannot_parse_a_query_with_case_when_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select case when a == 2 then 3 else 5 from tab where b <= 4")
-        .is_err());
+    assert!(
+        "select case when a == 2 then 3 else 5 from tab where b <= 4"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 //////////////////////
@@ -758,62 +433,50 @@ fn we_cannot_parse_a_query_with_case_when_keyword() {
 //////////////////////
 #[test]
 fn we_cannot_parse_a_query_missing_where_expressions() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from b where")
-        .is_err());
+    assert!("select a from b where".parse::<SelectStatement>().is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_missing_where_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from b c = 4")
-        .is_err());
+    assert!("select a from b c = 4".parse::<SelectStatement>().is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_missing_from_table_name() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a from where c = 4")
+    assert!("select a from where c = 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_missing_from_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select a b where c = 4")
-        .is_err());
+    assert!("select a b where c = 4".parse::<SelectStatement>().is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_missing_select_keyword() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("a from b where c = 4")
-        .is_err());
+    assert!("a from b where c = 4".parse::<SelectStatement>().is_err());
 }
 
 #[test]
 fn we_cannot_parse_a_query_missing_select_result_columns() {
-    assert!(sql::SelectStatementParser::new()
-        .parse("select from b where c = 4")
+    assert!("select from b where c = 4"
+        .parse::<SelectStatement>()
         .is_err());
 }
 
 #[test]
 fn we_cannot_parse_queries_with_long_identifiers() {
     // Long table names should be rejected
-    assert!(sql::SelectStatementParser::new()
-        .parse("SELECT A FROM AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA WHERE A = 3").is_err());
+    assert!("SELECT A FROM AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA WHERE A = 3".parse::<SelectStatement>().is_err());
 
     // Long column names should be rejected
-    assert!(sql::SelectStatementParser::new()
-        .parse("SELECT A FROM A WHERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA = 3").is_err());
+    assert!("SELECT A FROM A WHERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA = 3".parse::<SelectStatement>().is_err());
 
     // Long column aliases should be rejected
-    assert!(sql::SelectStatementParser::new()
-        .parse("SELECT A AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3").is_err());
+    assert!("SELECT A AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3".parse::<SelectStatement>().is_err());
 
     // Long columns names shouldn't be interpreted as a short column and a short alias
     // Whitespace matters: "AAAAAA" != ("AAA AAA" or "AAA AS AAA")
-    assert!(sql::SelectStatementParser::new()
-        .parse("SELECT AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3").is_err());
+    assert!("SELECT AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA FROM A WHERE A = 3".parse::<SelectStatement>().is_err());
 }

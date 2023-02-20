@@ -4,10 +4,12 @@ use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
 };
-use crate::sql::parse::{ParseError, ParseResult};
+use crate::sql::parse::{ConversionError, ConversionResult};
 
 use curve25519_dalek::scalar::Scalar;
-use proofs_sql::intermediate_ast::{Expression, ResultColumn, SetExpression, TableExpression};
+use proofs_sql::intermediate_ast::{
+    Expression, Literal, ResultColumn, SetExpression, TableExpression,
+};
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::ops::Deref;
 
@@ -45,7 +47,7 @@ impl Converter {
         ast: &SelectStatement,
         schema_accessor: &dyn SchemaAccessor,
         default_schema: Identifier,
-    ) -> ParseResult<FilterExpr> {
+    ) -> ConversionResult<FilterExpr> {
         self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)
     }
 }
@@ -58,7 +60,7 @@ impl Converter {
         expr: &SetExpression,
         schema_accessor: &dyn SchemaAccessor,
         default_schema: Identifier,
-    ) -> ParseResult<FilterExpr> {
+    ) -> ConversionResult<FilterExpr> {
         match expr {
             SetExpression::Query {
                 columns,
@@ -127,7 +129,7 @@ impl Converter {
     fn visit_result_column_all(
         &self,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<Vec<FilterResultExpr>> {
+    ) -> ConversionResult<Vec<FilterResultExpr>> {
         let current_table = *self
             .current_table
             .as_ref()
@@ -149,12 +151,10 @@ impl Converter {
     fn visit_result_column_expression(
         &self,
         column_name: Identifier,
-        output_name: &Option<Identifier>,
+        output_name: Identifier,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<FilterResultExpr> {
+    ) -> ConversionResult<FilterResultExpr> {
         let result_expr = self.visit_column_identifier(column_name, schema_accessor)?;
-        let output_name = output_name.unwrap_or(column_name);
-
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
 
@@ -163,13 +163,13 @@ impl Converter {
         &self,
         result_column: &ResultColumn,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<Vec<FilterResultExpr>> {
+    ) -> ConversionResult<Vec<FilterResultExpr>> {
         match result_column {
             ResultColumn::All => self.visit_result_column_all(schema_accessor),
             ResultColumn::Expr { expr, output_name } => {
                 Ok(vec![self.visit_result_column_expression(
                     *expr,
-                    output_name,
+                    *output_name,
                     schema_accessor,
                 )?])
             }
@@ -181,7 +181,7 @@ impl Converter {
         &self,
         result_columns: &[Box<ResultColumn>],
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<Vec<FilterResultExpr>> {
+    ) -> ConversionResult<Vec<FilterResultExpr>> {
         assert!(!result_columns.is_empty());
 
         let results = result_columns
@@ -204,7 +204,7 @@ impl Converter {
         &self,
         expression: &Expression,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<Box<dyn BoolExpr>> {
+    ) -> ConversionResult<Box<dyn BoolExpr>> {
         match expression {
             Expression::Not { expr } => Ok(Box::new(NotExpr::new(
                 self.visit_bool_expression(expr.deref(), schema_accessor)?,
@@ -220,30 +220,40 @@ impl Converter {
                 self.visit_bool_expression(right.deref(), schema_accessor)?,
             ))),
 
-            // TODO: check if the column and the literal have the same type.
-            //       For instance, in the query `select A from T where B = 123`
-            //       we should verify if both B and 123 have the same type
-            //       (in the future, B could be varchar, or boolean, or any other type other than Int64).
-            Expression::Equal { left, right } => Ok(Box::new(EqualsExpr::new(
-                self.visit_column_identifier(*left, schema_accessor)?,
-                self.visit_literal(*right),
-            ))),
-
-            Expression::NotEqual { left, right } => {
-                Ok(Box::new(NotExpr::new(Box::new(EqualsExpr::new(
-                    self.visit_column_identifier(*left, schema_accessor)?,
-                    self.visit_literal(*right),
-                )))))
+            Expression::Equal { left, right } => {
+                self.visit_equals_expression(*left, right, schema_accessor)
             }
         }
+    }
+
+    /// Convert an `Expression` into an EqualsExpr
+    fn visit_equals_expression(
+        &self,
+        left: Identifier,
+        right: &Literal,
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> ConversionResult<Box<dyn BoolExpr>> {
+        let (scalar, dtype) = self.visit_literal(right.deref());
+        let column_ref = self.visit_column_identifier(left, schema_accessor)?;
+
+        if *column_ref.column_type() != dtype {
+            return Err(ConversionError::MismatchTypeError(format!(
+                "Literal has type {:?} but column has type {:?}",
+                dtype,
+                column_ref.column_type()
+            )));
+        }
+
+        Ok(Box::new(EqualsExpr::new(column_ref, scalar)))
     }
 }
 
 /// Tokens (literals and id's)
 impl Converter {
-    /// Convert a `i64` into a `Scalar`
-    fn visit_literal(&self, literal: i64) -> Scalar {
-        literal.to_scalar()
+    fn visit_literal(&self, literal: &Literal) -> (Scalar, ColumnType) {
+        match literal {
+            Literal::BigInt(val) => (val.to_scalar(), ColumnType::BigInt),
+        }
     }
 
     /// Convert a `Name` into an identifier string (i.e. a string)
@@ -251,7 +261,7 @@ impl Converter {
         &self,
         column_name: Identifier,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ParseResult<ColumnRef> {
+    ) -> ConversionResult<ColumnRef> {
         let current_table = *self
             .current_table
             .as_ref()
@@ -262,7 +272,7 @@ impl Converter {
         let column_type = schema_accessor.lookup_column(column_ref);
 
         if column_type.is_none() {
-            return Err(ParseError::MissingColumnError(format!(
+            return Err(ConversionError::MissingColumnError(format!(
                 "Column \"{}\" is not found in table \"{}\"",
                 column_name,
                 current_table.table_id()
