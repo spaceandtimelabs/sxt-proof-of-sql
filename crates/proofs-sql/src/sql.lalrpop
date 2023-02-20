@@ -41,10 +41,10 @@ ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
 ResultColumn: Box<intermediate_ast::ResultColumn> = {
     "*" => Box::new(intermediate_ast::ResultColumn::All),
 
-    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: None }),
+    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr: expr.clone(), output_name: expr }),
 
     <expr: QualifiedColumnIdentifier> "as"? <output_name: Identifier>  =>
-            Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: Some(output_name) }),
+            Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: output_name }),
 };
 
 // Note: we are adding a new `QualifiedColumnIdentifierParen` rule
@@ -114,27 +114,36 @@ Expression: Box<intermediate_ast::Expression> = {
 };
 
 ComparativeExpression: Box<intermediate_ast::Expression> = {
-    <left: QualifiedColumnIdentifier> "=" <right: UnaryLiteral> =>
-        Box::new(intermediate_ast::Expression::Equal { left, right }),
+    <left: QualifiedColumnIdentifier> "=" <right: LiteralValue> =>
+        Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) }),
 
-    <left: QualifiedColumnIdentifier> "!=" <right: UnaryLiteral> =>
-        Box::new(intermediate_ast::Expression::NotEqual { left, right }),
+    <left: QualifiedColumnIdentifier> "!=" <right: LiteralValue> =>
+        Box::new(intermediate_ast::Expression::Not {
+            expr: Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) })
+        }),
 
-    <left: QualifiedColumnIdentifier> "<>" <right: UnaryLiteral> =>
-        Box::new(intermediate_ast::Expression::NotEqual { left, right }),    
+    <left: QualifiedColumnIdentifier> "<>" <right: LiteralValue> =>
+        Box::new(intermediate_ast::Expression::Not { 
+            expr: Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) })
+        }),    
 };
 
-UnaryParen: i64 = "(" <UnaryLiteral> ")";
-UnaryLiteral: i64 = {
+UnaryNumericParen: i64 = "(" <UnaryNumericLiteral> ")";
+UnaryNumericLiteral: i64 = {
     #[precedence(level="0")]
-    UnaryParen,
+    UnaryNumericParen,
 
     #[precedence(level="1")]
     NumericLiteral,
 
     #[precedence(level="2")] #[assoc(side="right")]
-    "+" <expr: UnaryLiteral> => expr,
-    "-" <expr: UnaryLiteral> => -1 * expr,
+    "+" <expr: UnaryNumericLiteral> => expr,
+    "-" <expr: UnaryNumericLiteral> => -1 * expr,
+};
+
+LiteralValue: intermediate_ast::Literal = {
+    #[precedence(level="1")]
+    <value: UnaryNumericLiteral> => intermediate_ast::Literal::BigInt(<>),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

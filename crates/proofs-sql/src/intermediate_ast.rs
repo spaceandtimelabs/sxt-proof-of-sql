@@ -26,7 +26,7 @@ pub enum ResultColumn {
     /// A column expression
     Expr {
         expr: Identifier,
-        output_name: Option<Identifier>,
+        output_name: Identifier,
     },
 }
 
@@ -64,16 +64,34 @@ pub enum Expression {
     /// left == right
     Equal {
         left: Identifier,
-        right: i64,
-    },
-
-    /// left != right
-    /// left <> right
-    NotEqual {
-        left: Identifier,
-        right: i64,
+        right: Box<Literal>,
     },
 }
+
+/// Literal values
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum Literal {
+    /// Numeric literal
+    BigInt(i64),
+}
+
+macro_rules! impl_into_literal {
+    ($tt:ty) => {
+        impl From<$tt> for Literal {
+            fn from(val: $tt) -> Self {
+                Literal::BigInt(val as i64)
+            }
+        }
+    };
+}
+
+impl_into_literal!(i8);
+impl_into_literal!(u8);
+impl_into_literal!(i16);
+impl_into_literal!(u16);
+impl_into_literal!(i32);
+impl_into_literal!(u32);
+impl_into_literal!(i64);
 
 /// Helper function to append an item to a vector
 pub(crate) fn append<T>(list: Vec<T>, item: T) -> Vec<T> {

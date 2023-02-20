@@ -1,8 +1,11 @@
 use super::intermediate_ast::{SetExpression, TableExpression};
+use crate::sql::SelectStatementParser;
 use crate::{Identifier, ResourceId};
+use crate::{ParseError, ParseResult};
 
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
+use std::str::FromStr;
 
 /// Representation of a select statement, that is, the only type of queries allowed.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -35,6 +38,16 @@ impl SelectStatement {
                 where_expr: _,
             } => convert_table_expr_to_resource_id_vector(&from[..], default_schema),
         }
+    }
+}
+
+impl FromStr for SelectStatement {
+    type Err = crate::ParseError;
+
+    fn from_str(query: &str) -> ParseResult<Self> {
+        SelectStatementParser::new()
+            .parse(query)
+            .map_err(|e| ParseError::QueryParseError(e.to_string()))
     }
 }
 
