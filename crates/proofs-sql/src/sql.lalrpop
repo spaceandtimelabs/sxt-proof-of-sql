@@ -115,23 +115,23 @@ Expression: Box<intermediate_ast::Expression> = {
 
 ComparativeExpression: Box<intermediate_ast::Expression> = {
     <left: QualifiedColumnIdentifier> "=" <right: LiteralValue> =>
-        Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) }),
+        Box::new(intermediate_ast::Expression::Equal { left, right: right }),
 
     <left: QualifiedColumnIdentifier> "!=" <right: LiteralValue> =>
         Box::new(intermediate_ast::Expression::Not {
-            expr: Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) })
+            expr: Box::new(intermediate_ast::Expression::Equal { left, right: right })
         }),
 
     <left: QualifiedColumnIdentifier> "<>" <right: LiteralValue> =>
         Box::new(intermediate_ast::Expression::Not { 
-            expr: Box::new(intermediate_ast::Expression::Equal { left, right: Box::new(right) })
+            expr: Box::new(intermediate_ast::Expression::Equal { left, right: right })
         }),    
 };
 
-UnaryNumericParen: i64 = "(" <UnaryNumericLiteral> ")";
+UnaryNumericLiteralParen: i64 = "(" <UnaryNumericLiteral> ")";
 UnaryNumericLiteral: i64 = {
     #[precedence(level="0")]
-    UnaryNumericParen,
+    UnaryNumericLiteralParen,
 
     #[precedence(level="1")]
     NumericLiteral,
@@ -141,9 +141,18 @@ UnaryNumericLiteral: i64 = {
     "-" <expr: UnaryNumericLiteral> => -1 * expr,
 };
 
-LiteralValue: intermediate_ast::Literal = {
-    #[precedence(level="1")]
-    <value: UnaryNumericLiteral> => intermediate_ast::Literal::BigInt(<>),
+StringLiteralParen: String = "(" <StringLiteral> ")";
+pub StringLiteral: String = {
+    #[precedence(level="0")]
+    StringLiteralParen,
+
+    STRING_LITERAL => <>[1..<>.len() - 1].to_string(),
+};
+
+LiteralValue: Box<intermediate_ast::Literal> = {
+    <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
+
+    <value: UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::BigInt(<>)),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,4 +207,5 @@ match {
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,
+    r"'(?s).*'" => STRING_LITERAL,
 }

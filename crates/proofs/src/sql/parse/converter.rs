@@ -253,6 +253,7 @@ impl Converter {
     fn visit_literal(&self, literal: &Literal) -> (Scalar, ColumnType) {
         match literal {
             Literal::BigInt(val) => (val.to_scalar(), ColumnType::BigInt),
+            Literal::VarChar(val) => (val.to_scalar(), ColumnType::VarChar),
         }
     }
 

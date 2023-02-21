@@ -71,11 +71,13 @@ pub enum Expression {
 /// Literal values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
-    /// Numeric literal
+    /// Numeric Literal
     BigInt(i64),
+    /// String Literal
+    VarChar(String),
 }
 
-macro_rules! impl_into_literal {
+macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
             fn from(val: $tt) -> Self {
@@ -85,13 +87,26 @@ macro_rules! impl_into_literal {
     };
 }
 
-impl_into_literal!(i8);
-impl_into_literal!(u8);
-impl_into_literal!(i16);
-impl_into_literal!(u16);
-impl_into_literal!(i32);
-impl_into_literal!(u32);
-impl_into_literal!(i64);
+impl_int_to_literal!(i8);
+impl_int_to_literal!(u8);
+impl_int_to_literal!(i16);
+impl_int_to_literal!(u16);
+impl_int_to_literal!(i32);
+impl_int_to_literal!(u32);
+impl_int_to_literal!(i64);
+
+macro_rules! impl_string_to_literal {
+    ($tt:ty) => {
+        impl From<$tt> for Literal {
+            fn from(val: $tt) -> Self {
+                Literal::VarChar(val.into())
+            }
+        }
+    };
+}
+
+impl_string_to_literal!(&str);
+impl_string_to_literal!(String);
 
 /// Helper function to append an item to a vector
 pub(crate) fn append<T>(list: Vec<T>, item: T) -> Vec<T> {

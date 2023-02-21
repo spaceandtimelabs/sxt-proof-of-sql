@@ -106,6 +106,8 @@ macro_rules! string_to_scalar {
 }
 
 string_to_scalar!(&str);
+string_to_scalar!(String);
+string_to_scalar!(&String);
 
 #[cfg(test)]
 mod tests {
