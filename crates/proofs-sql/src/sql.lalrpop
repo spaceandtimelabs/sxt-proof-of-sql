@@ -115,17 +115,20 @@ Expression: Box<intermediate_ast::Expression> = {
 
 ComparativeExpression: Box<intermediate_ast::Expression> = {
     <left: QualifiedColumnIdentifier> "=" <right: LiteralValue> =>
-        Box::new(intermediate_ast::Expression::Equal { left, right: right }),
+        Box::new(intermediate_ast::Expression::Equal { left, right }),
+
+    <left: LiteralValue> "=" <right: QualifiedColumnIdentifier> =>
+        Box::new(intermediate_ast::Expression::Equal { left: right, right: left }),
 
     <left: QualifiedColumnIdentifier> "!=" <right: LiteralValue> =>
         Box::new(intermediate_ast::Expression::Not {
-            expr: Box::new(intermediate_ast::Expression::Equal { left, right: right })
+            expr: Box::new(intermediate_ast::Expression::Equal { left, right })
         }),
 
-    <left: QualifiedColumnIdentifier> "<>" <right: LiteralValue> =>
-        Box::new(intermediate_ast::Expression::Not { 
-            expr: Box::new(intermediate_ast::Expression::Equal { left, right: right })
-        }),    
+    <left: LiteralValue> "!=" <right: QualifiedColumnIdentifier> =>
+        Box::new(intermediate_ast::Expression::Not {
+            expr: Box::new(intermediate_ast::Expression::Equal { left: right, right: left })
+        }),
 };
 
 UnaryNumericLiteralParen: i64 = "(" <UnaryNumericLiteral> ")";
@@ -199,11 +202,8 @@ match {
     "+" => "+",
     "-" => "-",
     "*" => "*",
-    "/" => "/",
     "=" => "=",
-    "==" => "==",
-    "!=" => "!=",
-    "<>" => "<>",
+    r"(!=|<>)" => "!=",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,

@@ -437,6 +437,25 @@ fn we_can_parse_a_query_without_a_filter() {
 }
 
 #[test]
+fn we_support_symmetric_equality_expressions() {
+    let ast1 = "SELECT * FROM T WHERE A = 3"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let ast2 = "SELECT * FROM T WHERE 3 = A"
+        .parse::<SelectStatement>()
+        .unwrap();
+    assert_eq!(ast1, ast2);
+
+    let ast1 = "SELECT * FROM T WHERE A <> 'abc'"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let ast2 = "SELECT * FROM T WHERE 'abc' <> A"
+        .parse::<SelectStatement>()
+        .unwrap();
+    assert_eq!(ast1, ast2);
+}
+
+#[test]
 fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
     assert!("select a from schema.Identifier.tab"
         .parse::<SelectStatement>()
