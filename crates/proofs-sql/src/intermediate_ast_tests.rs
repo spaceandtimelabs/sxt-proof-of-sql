@@ -1,12 +1,140 @@
+use crate::sql::*;
 use crate::test_utility::*;
 use crate::SelectStatement;
 
+// Sting parser tests
 #[test]
-fn we_can_parse_a_query_with_one_equals_filter_expression() {
+fn we_can_parse_simple_strings() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'abc'"),
+        Ok("abc".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_empty_strings() {
+    assert_eq!(StringLiteralParser::new().parse("''"), Ok("".to_string()));
+}
+
+#[test]
+fn we_can_parse_strings_with_a_single_character() {
+    assert_eq!(StringLiteralParser::new().parse("'a'"), Ok("a".to_string()));
+}
+
+#[test]
+fn we_can_parse_strings_starting_with_numbers() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'123a'"),
+        Ok("123a".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_having_multiple_quotes() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'123a'"),
+        Ok("123a".to_string())
+    );
+    assert_eq!(
+        StringLiteralParser::new().parse("'\"123a\"'"),
+        Ok("\"123a\"".to_string())
+    );
+    assert_eq!(
+        StringLiteralParser::new().parse("''123a''"),
+        Ok("'123a'".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_strings_containing_spaces() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'  a12fdf 3a  '"),
+        Ok("  a12fdf 3a  ".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_starting_with_special_characters() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'$abc'"),
+        Ok("$abc".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_having_unicode_characters() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'a茶a'"),
+        Ok("a茶a".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_having_whitespace_characters() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'abc\n12\r3\t'"),
+        Ok("abc\n12\r3\t".to_string())
+    );
+    assert_eq!(
+        StringLiteralParser::new().parse(
+            "'abc
+
+    ab
+123'"
+        ),
+        Ok("abc\n\n    ab\n123".to_string())
+    );
+}
+
+#[test]
+fn we_can_parse_strings_having_control_characters() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'\x1F'"),
+        Ok("\x1F".to_string())
+    );
+    assert_eq!(
+        StringLiteralParser::new().parse("'abc\x1F'"),
+        Ok("abc\x1F".to_string())
+    );
+}
+
+#[test]
+fn unnormalized_strings_should_differ() {
+    let lhs = StringLiteralParser::new().parse("'á'").unwrap();
+    let rhs = StringLiteralParser::new().parse("'á'").unwrap();
+    assert_ne!(lhs, rhs);
+}
+
+#[test]
+fn we_cannot_parse_strings_having_incorrect_quotes() {
+    assert!(StringLiteralParser::new().parse("").is_err());
+    assert!(StringLiteralParser::new().parse("'").is_err());
+    assert!(StringLiteralParser::new().parse("a").is_err());
+    assert!(StringLiteralParser::new().parse("'a").is_err());
+    assert!(StringLiteralParser::new().parse("a'").is_err());
+    assert!(StringLiteralParser::new().parse("\"a\"").is_err());
+}
+
+// Select Query parser Tests
+#[test]
+fn we_can_parse_a_query_with_a_column_equals_a_simple_integer() {
     let ast = "SELECT A FROM SXT_TAB WHERE A = 3"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("a", 3)));
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_a_column_equals_a_string() {
+    let ast = "SELECT A FROM SXT_TAB WHERE A = 'this_is_a_test'"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(query(
+        cols_res(&["a"]),
+        tab(None, "sxt_tab"),
+        equal("a", "this_is_a_test"),
+    ));
     assert_eq!(ast, expected_ast);
 }
 
