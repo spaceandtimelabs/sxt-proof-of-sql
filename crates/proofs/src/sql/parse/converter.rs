@@ -238,8 +238,11 @@ impl Converter {
 
         if *column_ref.column_type() != dtype {
             return Err(ConversionError::MismatchTypeError(format!(
-                "Literal has type {:?} but column has type {:?}",
+                "Literal \"{:?}\" has type {:?} but column \"{:?}\" from table \"{:?}\" has type {:?}",
+                right.deref(),
                 dtype,
+                column_ref.column_id(),
+                column_ref.table_ref(),
                 column_ref.column_type()
             )));
         }
@@ -268,20 +271,15 @@ impl Converter {
             .as_ref()
             .expect("Some table should've already been processed at this point");
 
-        let column_ref = ColumnRef::new(current_table, column_name, ColumnType::BigInt);
-
-        let column_type = schema_accessor.lookup_column(column_ref);
-
-        if column_type.is_none() {
-            return Err(ConversionError::MissingColumnError(format!(
+        let column_type = schema_accessor.lookup_column(current_table, column_name);
+        let column_type = column_type.ok_or_else(|| {
+            ConversionError::MissingColumnError(format!(
                 "Column \"{}\" is not found in table \"{}\"",
                 column_name,
                 current_table.table_id()
-            )));
-        }
+            ))
+        })?;
 
-        // Note: it's okay to return `column_ref` without changing its column_type.
-        // After all, we only support ColumnType::BigInt for now.
-        Ok(column_ref)
+        Ok(ColumnRef::new(current_table, column_name, column_type))
     }
 }

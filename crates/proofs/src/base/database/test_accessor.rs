@@ -123,12 +123,12 @@ impl MetadataAccessor for TestAccessor {
 
 /// SchemaAccessor implementation for TestAccessor
 impl SchemaAccessor for TestAccessor {
-    /// Return the column type associated with column_ref, if exists.
+    /// Return the column type associated with column_id, if exists.
     ///
-    /// Note: this function expects column_ref.table_ref() to exist
-    fn lookup_column(&self, column_ref: ColumnRef) -> Option<ColumnType> {
-        let table = self.tables.get(&column_ref.table_ref())?;
-        table.schema.get(&column_ref.column_id()).copied()
+    /// Note: this function expects `table_ref` and `column_id` to exist
+    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+        let table = self.tables.get(&table_ref)?;
+        table.schema.get(&column_id).copied()
     }
 
     /// Return the column schema + column type associated with table_ref
