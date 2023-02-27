@@ -2,14 +2,12 @@ use super::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::base::database::SchemaAccessor;
-use crate::base::database::{ColumnRef, ColumnType, TableRef, TestAccessor};
+use crate::base::database::{ColumnRef, TableRef, TestAccessor};
 use crate::base::scalar::ToScalar;
 
 pub fn col(tab: TableRef, name: &str, accessor: &TestAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
-    let type_col = accessor
-        .lookup_column(ColumnRef::new(tab, name, ColumnType::BigInt))
-        .unwrap();
+    let type_col = accessor.lookup_column(tab, name).unwrap();
     ColumnRef::new(tab, name, type_col)
 }
 

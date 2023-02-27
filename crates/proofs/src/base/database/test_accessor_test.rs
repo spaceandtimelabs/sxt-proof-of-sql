@@ -144,10 +144,15 @@ fn we_can_access_the_type_of_table_columns() {
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(accessor.lookup_column(column), Some(ColumnType::BigInt));
+    assert_eq!(
+        accessor.lookup_column(column.table_ref(), column.column_id()),
+        Some(ColumnType::BigInt)
+    );
 
     let column = ColumnRef::new(table_ref_1, "c".parse().unwrap(), ColumnType::BigInt);
-    assert!(accessor.lookup_column(column).is_none());
+    assert!(accessor
+        .lookup_column(column.table_ref(), column.column_id())
+        .is_none());
 
     let data2 = df!(
         "a" => [1, 2, 3, 4],
@@ -157,13 +162,21 @@ fn we_can_access_the_type_of_table_columns() {
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(accessor.lookup_column(column), Some(ColumnType::BigInt));
+    assert_eq!(
+        accessor.lookup_column(column.table_ref(), column.column_id()),
+        Some(ColumnType::BigInt)
+    );
 
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(accessor.lookup_column(column), Some(ColumnType::BigInt));
+    assert_eq!(
+        accessor.lookup_column(column.table_ref(), column.column_id()),
+        Some(ColumnType::BigInt)
+    );
 
     let column = ColumnRef::new(table_ref_2, "c".parse().unwrap(), ColumnType::BigInt);
-    assert!(accessor.lookup_column(column).is_none());
+    assert!(accessor
+        .lookup_column(column.table_ref(), column.column_id())
+        .is_none());
 }
 
 #[test]

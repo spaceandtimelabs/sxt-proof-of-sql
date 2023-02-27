@@ -352,7 +352,25 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
         0,
     );
     let intermediate_ast = SelectStatementParser::new()
-        .parse("select a from sxt_tab where a = 3")
+        .parse("select * from sxt_tab where a = 3")
+        .unwrap();
+    assert!(Converter::default()
+        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
+        .is_err());
+}
+
+#[test]
+fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = data_frame_to_accessor(
+        t,
+        df!(
+            "b" => ["abc"],
+        ),
+        0,
+    );
+    let intermediate_ast = SelectStatementParser::new()
+        .parse("select * from sxt_tab where b = 123")
         .unwrap();
     assert!(Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
