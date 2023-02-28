@@ -1,9 +1,10 @@
 [workspace]
-members = [
-    "crates/proofs",
-    "crates/proofs-sql",
-    "benches/provable_sql"
-]
+members = ["crates/proofs", "crates/proofs-sql", "benches/provable_sql"]
+
+[workspace.package]
+edition = "2021"
+exclude = ["**/.gitignore", ".gitignore"]
+repository = "https://github.com/spaceandtimelabs/proofs"
 
 # benchmark program
 [profile.release.package.provable_sql]
