@@ -13,11 +13,11 @@ exclude = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arrayvec = { version = "0.7", features = ["serde"] }
 lalrpop-util = "0.19.8"
 regex = "1"
-thiserror = "1"
 serde = { version = "1", features = ["serde_derive"] }
-arrayvec = { version = "0.7", features = ["serde"] }
+thiserror = "1"
 
 [build-dependencies]
 lalrpop = "0.19.8"
