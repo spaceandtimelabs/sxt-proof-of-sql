@@ -14,7 +14,7 @@ exclude = [
 
 [dependencies]
 arrayvec = { version = "0.7", features = ["serde"] }
-lalrpop-util = "0.19.8"
+lalrpop-util = { version = "0.19.8", features = ["lexer"] }
 regex = "1"
 serde = { version = "1", features = ["serde_derive"] }
 thiserror = "1"
