@@ -7,7 +7,7 @@ use arrow::record_batch::RecordBatch;
 use polars::prelude::Expr;
 use polars::prelude::*;
 
-pub struct TestExpr {
+pub struct TestExprNode {
     pub table_ref: TableRef,
     pub results: Vec<Expr>,
     pub ast: FilterExpr,
@@ -15,7 +15,7 @@ pub struct TestExpr {
     pub df_filter: Expr,
 }
 
-impl TestExpr {
+impl TestExprNode {
     pub fn new(
         table_ref: TableRef,
         results: &[&str],

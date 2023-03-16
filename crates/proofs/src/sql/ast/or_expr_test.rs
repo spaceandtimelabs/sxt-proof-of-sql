@@ -1,10 +1,11 @@
-use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::ToScalar;
-use crate::sql::ast::test_expr::TestExpr;
+use crate::record_batch;
+use crate::sql::ast::test_expr::TestExprNode;
 use crate::sql::ast::test_utility::{equal, or};
+use arrow::record_batch::RecordBatch;
 
 use polars::prelude::*;
 use rand::{
@@ -13,14 +14,14 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_expr<T1: ToScalar + Copy + Literal, T2: ToScalar + Copy + Literal>(
+fn create_test_or_expr<T1: ToScalar + Copy + Literal, T2: ToScalar + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     lhs: (&str, T1),
     rhs: (&str, T2),
-    data: DataFrame,
+    data: RecordBatch,
     offset: usize,
-) -> TestExpr {
+) -> TestExprNode {
     let mut accessor = TestAccessor::new();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
@@ -31,44 +32,36 @@ fn create_test_expr<T1: ToScalar + Copy + Literal, T2: ToScalar + Copy + Literal
     let df_filter = polars::prelude::col(lhs.0)
         .eq(lit(lhs.1))
         .or(polars::prelude::col(rhs.0).eq(lit(rhs.1)));
-    TestExpr::new(t, results, or_expr, df_filter, accessor)
+    TestExprNode::new(t, results, or_expr, df_filter, accessor)
 }
 
 #[test]
 fn we_can_prove_a_simple_or_query() {
-    let data = df!(
+    let data = record_batch!(
         "a" => [1, 2, 3, 4],
         "d" => ["ab", "t", "g", "efg"],
         "b" => [0, 1, 0, 2],
-    )
-    .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], ("b", 1), ("d", "efgh"), data, 0);
+    );
+    let test_expr = create_test_or_expr("sxt.t", &["a"], ("b", 1), ("d", "efgh"), data, 0);
     let res = test_expr.verify_expr();
-    let expected_res = data_frame_to_record_batch(
-        &df!(
-            "a" => [2],
-        )
-        .unwrap(),
+    let expected_res = record_batch!(
+        "a" => [2],
     );
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
-    let data = df!(
+    let data = record_batch!(
         "a" => [1, 2, 3, 4],
         "b" => [0, 1, 0, 1],
         "c" => [0, 2, 2, 0],
         "d" => ["ab", "t", "g", "efg"],
-    )
-    .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["d"], ("b", 1), ("d", "g"), data, 0);
+    );
+    let test_expr = create_test_or_expr("sxt.t", &["d"], ("b", 1), ("d", "g"), data, 0);
     let res = test_expr.verify_expr();
-    let expected_res = data_frame_to_record_batch(
-        &df!(
-            "d" => ["t", "g", "efg"],
-        )
-        .unwrap(),
+    let expected_res = record_batch!(
+        "d" => ["t", "g", "efg"],
     );
     assert_eq!(res, expected_res);
 }
@@ -91,7 +84,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val1 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let filter_val2 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_expr(
+        let test_expr = create_test_or_expr(
             "sxt.t",
             &["a", "d"],
             (
