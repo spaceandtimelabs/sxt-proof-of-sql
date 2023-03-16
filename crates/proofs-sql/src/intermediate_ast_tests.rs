@@ -1,3 +1,4 @@
+use crate::intermediate_ast::OrderByDirection::{Asc, Desc};
 use crate::sql::*;
 use crate::test_utility::*;
 use crate::SelectStatement;
@@ -121,7 +122,10 @@ fn we_can_parse_a_query_with_a_column_equals_a_simple_integer() {
     let ast = "SELECT A FROM SXT_TAB WHERE A = 3"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("a", 3)));
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("a", 3)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -130,11 +134,14 @@ fn we_can_parse_a_query_with_a_column_equals_a_string() {
     let ast = "SELECT A FROM SXT_TAB WHERE A = 'this_is_a_test'"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        equal("a", "this_is_a_test"),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            equal("a", "this_is_a_test"),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -143,11 +150,10 @@ fn we_can_parse_a_query_with_two_result_columns() {
     let ast = "Select a,  b froM sxt_tab where C = 123"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a", "b"]),
-        tab(None, "sxt_tab"),
-        equal("c", 123),
-    ));
+    let expected_ast = select(
+        query(cols_res(&["a", "b"]), tab(None, "sxt_tab"), equal("c", 123)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -156,11 +162,10 @@ fn we_can_parse_a_query_using_select_star() {
     let ast = "SELECT * FROM sxt_Tab WHERE A = 3"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        vec![col_res_all()],
-        tab(None, "sxt_tab"),
-        equal("a", 3),
-    ));
+    let expected_ast = select(
+        query(vec![col_res_all()], tab(None, "sxt_tab"), equal("a", 3)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -169,17 +174,20 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
     let ast = "SELECT a, *, b, c, * FROM sxt_Tab WHERE A = 3"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        vec![
-            col_res("a", "a"),
-            col_res_all(),
-            col_res("b", "b"),
-            col_res("c", "c"),
-            col_res_all(),
-        ],
-        tab(None, "sxt_tab"),
-        equal("a", 3),
-    ));
+    let expected_ast = select(
+        query(
+            vec![
+                col_res("a", "a"),
+                col_res_all(),
+                col_res("b", "b"),
+                col_res("c", "c"),
+                col_res_all(),
+            ],
+            tab(None, "sxt_tab"),
+            equal("a", 3),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -188,7 +196,10 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
     let ast = "select a from sxt_tab where b = +4"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("b", 4)));
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("b", 4)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -197,11 +208,10 @@ fn we_can_parse_a_query_with_one_equals_filter_having_a_negative_literal() {
     let ast = "select a from sxt_tab where b = -4"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        equal("b", -4),
-    ));
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "sxt_tab"), equal("b", -4)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -211,11 +221,10 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
         let ast = ("select a from sxt_tab where b".to_owned() + not_equals_sign + " -4")
             .parse::<SelectStatement>()
             .unwrap();
-        let expected_ast = select(query(
-            cols_res(&["a"]),
-            tab(None, "sxt_tab"),
-            not(equal("b", -4)),
-        ));
+        let expected_ast = select(
+            query(cols_res(&["a"]), tab(None, "sxt_tab"), not(equal("b", -4))),
+            vec![],
+        );
         assert_eq!(ast, expected_ast);
     }
 }
@@ -225,11 +234,10 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
     let ast = "select a from sxt_tab where not (b = 3)"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        not(equal("b", 3)),
-    ));
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "sxt_tab"), not(equal("b", 3))),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -238,11 +246,14 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
     let ast = "select a from sxt_tab where (b = 3) and (c = -2)"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        and(equal("b", 3), equal("c", -2)),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            and(equal("b", 3), equal("c", -2)),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -251,11 +262,14 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
     let ast = "select a from sxt_tab where (b = 3) or (c = -2)"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        or(equal("b", 3), equal("c", -2)),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            or(equal("b", 3), equal("c", -2)),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -264,11 +278,14 @@ fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
     let ast = "select a from sxt_tab where (b = 3) and (not (c = -2))"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        and(equal("b", 3), not(equal("c", -2))),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            and(equal("b", 3), not(equal("c", -2))),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -277,11 +294,14 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
     let ast = "select a from sxt_tab where not ((b = 3) and  ((f = 45) or (c = -2)))"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        not(and(equal("b", 3), or(equal("f", 45), equal("c", -2)))),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            not(and(equal("b", 3), or(equal("f", 45), equal("c", -2)))),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -290,11 +310,14 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
     let ast = "select a from sxt_tab where b = -9223372036854775808"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        equal("b", -9223372036854775808_i64),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            equal("b", -9223372036854775808_i64),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -303,11 +326,14 @@ fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal()
     let ast = "select a from sxt_tab where b = 9223372036854775807"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(None, "sxt_tab"),
-        equal("b", 9223372036854775807_i64),
-    ));
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            equal("b", 9223372036854775807_i64),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -316,11 +342,14 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
     let ast = "select a as a_rename from sxt_tab where b = 4"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        vec![col_res("a", "a_rename")],
-        tab(None, "sxt_tab"),
-        equal("b", 4),
-    ));
+    let expected_ast = select(
+        query(
+            vec![col_res("a", "a_rename")],
+            tab(None, "sxt_tab"),
+            equal("b", 4),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -329,11 +358,14 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
     let parsed_ast = "select a a_rename from sxt_tab where b = 4"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        vec![col_res("a", "a_rename")],
-        tab(None, "sxt_tab"),
-        equal("b", 4),
-    ));
+    let expected_ast = select(
+        query(
+            vec![col_res("a", "a_rename")],
+            tab(None, "sxt_tab"),
+            equal("b", 4),
+        ),
+        vec![],
+    );
     assert_eq!(parsed_ast, expected_ast);
 }
 
@@ -404,11 +436,14 @@ fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary()
     let ast = "select (((a))) as F from ( (sxt_tab  )) where (((a = -1)) or c = -3) and (((((a = (((3)      ) ))))))"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        vec![col_res("a", "F")],
-        tab(None, "sxt_tab"),
-        and(or(equal("a", -1), equal("c", -3)), equal("a", 3)),
-    ));
+    let expected_ast = select(
+        query(
+            vec![col_res("a", "F")],
+            tab(None, "sxt_tab"),
+            and(or(equal("a", -1), equal("c", -3)), equal("a", 3)),
+        ),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
@@ -417,23 +452,117 @@ fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
     let ast = "select a from eth.sxt_tab where b = 4"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = select(query(
-        cols_res(&["a"]),
-        tab(Some("eth"), "sxt_tab"),
-        equal("b", 4),
-    ));
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(Some("eth"), "sxt_tab"), equal("b", 4)),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_parse_a_query_without_a_filter() {
     let ast = "select a from tab".parse::<SelectStatement>().unwrap();
-    let expected_ast = select(query_all(cols_res(&["a"]), tab(None, "tab")));
+    let expected_ast = select(query_all(cols_res(&["a"]), tab(None, "tab")), vec![]);
     assert_eq!(ast, expected_ast);
 
     let ast = "select * from eth.tab".parse::<SelectStatement>().unwrap();
-    let expected_ast = select(query_all(vec![col_res_all()], tab(Some("eth"), "tab")));
+    let expected_ast = select(
+        query_all(vec![col_res_all()], tab(Some("eth"), "tab")),
+        vec![],
+    );
     assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_single_order_by_with_ascending_direction_as_default() {
+    let ast = "select a from tab order by x"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(cols_res(&["a"]), tab(None, "tab")),
+        order("x", Asc),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_single_order_by_with_a_filter() {
+    let ast = "select a from tab where y = 3 order by x"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "tab"), equal("y", 3)),
+        order("x", Asc),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_single_order_by_in_the_ascending_direction() {
+    let ast = "select a from tab order by x asc"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(cols_res(&["a"]), tab(None, "tab")),
+        order("x", Asc),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_single_order_by_in_the_descending_direction() {
+    let ast = "select a from tab order by x desc"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(cols_res(&["a"]), tab(None, "tab")),
+        order("x", Desc),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_multiple_order_by() {
+    let ast = "select * from tab order by x desc, y, z asc"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(vec![col_res_all()], tab(None, "tab")),
+        orders(&["x", "y", "z"], &[Desc, Asc, Asc]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+// TODO: we should be able to pass this test.
+// But due to some lalrpop restriction, we aren't.
+// This problem will be addressed in a future PR.
+#[test]
+#[should_panic]
+fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
+    let ast = "select a as asc from tab order by a asc"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(vec![col_res("a", "asc")], tab(None, "tab")),
+        orders(&["a"], &[Asc]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_parse_invalid_order_by_expressions() {
+    assert!("select a from tab order by x y"
+        .parse::<SelectStatement>()
+        .is_err());
+    assert!("select a from tab order by x, y asc desc"
+        .parse::<SelectStatement>()
+        .is_err());
+    assert!("select a from tab order by x, asc y"
+        .parse::<SelectStatement>()
+        .is_err());
+    assert!("select a from tab order by x asc y"
+        .parse::<SelectStatement>()
+        .is_err());
 }
 
 #[test]
