@@ -68,6 +68,20 @@ pub enum Expression {
     },
 }
 
+/// OrderBy
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct OrderBy {
+    pub expr: Identifier,
+    pub direction: OrderByDirection,
+}
+
+/// OrderByDirection values
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum OrderByDirection {
+    Asc,
+    Desc,
+}
+
 /// Literal values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
