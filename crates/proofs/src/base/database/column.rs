@@ -1,6 +1,5 @@
 use super::TableRef;
-use arrow::datatypes::DataType;
-use arrow::datatypes::Field;
+use arrow::datatypes::{DataType, Field};
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
@@ -11,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// Note: The types here should correspond to native SQL database types.
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Column<'a> {
     /// i64 columns
     BigInt(&'a [i64]),
@@ -19,6 +18,16 @@ pub enum Column<'a> {
     ///  - the first element maps to the byte values.
     ///  - the second element maps to the byte hashes (see [crate::base::scalar::ToScalar] trait).
     HashedBytes((&'a [&'a [u8]], &'a [Scalar])),
+}
+
+/// Provides the column type associated with the column
+impl Column<'_> {
+    pub fn column_type(&self) -> ColumnType {
+        match self {
+            Self::BigInt(_) => ColumnType::BigInt,
+            Self::HashedBytes(_) => ColumnType::VarChar,
+        }
+    }
 }
 
 /// Represents the supported data types of a column in an in-memory,
@@ -29,8 +38,10 @@ pub enum Column<'a> {
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
 pub enum ColumnType {
     /// Mapped to i64
+    #[serde(alias = "BIGINT", alias = "bigint")]
     BigInt,
     /// Mapped to String
+    #[serde(alias = "VARCHAR", alias = "varchar")]
     VarChar,
 }
 
@@ -40,6 +51,19 @@ impl From<&ColumnType> for DataType {
         match column_type {
             ColumnType::BigInt => DataType::Int64,
             ColumnType::VarChar => DataType::Utf8,
+        }
+    }
+}
+
+/// Convert arrow DataType values to some ColumnType
+impl TryFrom<DataType> for ColumnType {
+    type Error = String;
+
+    fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
+        match data_type {
+            DataType::Int64 => Ok(ColumnType::BigInt),
+            DataType::Utf8 => Ok(ColumnType::VarChar),
+            _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
     }
 }
@@ -103,9 +127,66 @@ impl ColumnField {
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
         Field::new(
-            column_field.name.name(),
-            (&column_field.data_type).into(),
+            column_field.name().name(),
+            (&column_field.data_type()).into(),
             false,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn column_type_serializes_to_string() {
+        let column_type = ColumnType::BigInt;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""BigInt""#);
+
+        let column_type = ColumnType::VarChar;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""VarChar""#);
+    }
+
+    #[test]
+    fn we_can_deserialize_columns_from_valid_strings() {
+        let expected_column_type = ColumnType::BigInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""BigInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::VarChar;
+        let deserialized: ColumnType = serde_json::from_str(r#""VarChar""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+    }
+
+    #[test]
+    fn we_can_deserialize_columns_from_lowercase_or_uppercase_strings() {
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""bigint""#).unwrap(),
+            ColumnType::BigInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""BIGINT""#).unwrap(),
+            ColumnType::BigInt
+        );
+
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""VARCHAR""#).unwrap(),
+            ColumnType::VarChar
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""varchar""#).unwrap(),
+            ColumnType::VarChar
+        );
+    }
+
+    #[test]
+    fn we_cannot_deserialize_columns_from_invalid_strings() {
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Bigint""#);
+        assert!(deserialized.is_err());
+
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Varchar""#);
+        assert!(deserialized.is_err());
     }
 }

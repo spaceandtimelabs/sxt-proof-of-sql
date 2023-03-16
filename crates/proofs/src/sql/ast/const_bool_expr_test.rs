@@ -1,27 +1,28 @@
-use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
-use crate::sql::ast::test_expr::TestExpr;
+use crate::record_batch;
+use crate::sql::ast::test_expr::TestExprNode;
 use crate::sql::ast::test_utility::const_v;
 
+use arrow::record_batch::RecordBatch;
 use polars::prelude::*;
 use rand::rngs::StdRng;
 use rand_core::SeedableRng;
 
-fn create_test_expr(
+fn create_test_const_bool_expr(
     table_ref: &str,
     results: &[&str],
     filter_val: bool,
-    data: DataFrame,
+    data: RecordBatch,
     offset: usize,
-) -> TestExpr {
+) -> TestExprNode {
     let mut accessor = TestAccessor::new();
     let table_ref = table_ref.parse().unwrap();
     accessor.add_table(table_ref, data, offset);
     let df_filter = lit(filter_val);
     let const_expr = const_v(filter_val);
-    TestExpr::new(table_ref, results, const_expr, df_filter, accessor)
+    TestExprNode::new(table_ref, results, const_expr, df_filter, accessor)
 }
 
 fn test_random_tables_with_given_constant(value: bool) {
@@ -35,7 +36,7 @@ fn test_random_tables_with_given_constant(value: bool) {
     let cols = [("a", ColumnType::BigInt), ("b", ColumnType::VarChar)];
     for _ in 0..10 {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let test_expr = create_test_expr("sxt.t", &["a", "b"], value, data, 0);
+        let test_expr = create_test_const_bool_expr("sxt.t", &["a", "b"], value, data, 0);
         let res = test_expr.verify_expr();
         let expected_res = test_expr.query_table();
         assert_eq!(res, expected_res);
@@ -44,19 +45,18 @@ fn test_random_tables_with_given_constant(value: bool) {
 
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
-    let data = df!("a" => [123]).unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], true, data.clone(), 0);
+    let data = record_batch!("a" => [123]);
+    let test_expr = create_test_const_bool_expr("sxt.t", &["a"], true, data.clone(), 0);
     let res = test_expr.verify_expr();
-    let expected_res = data_frame_to_record_batch(&data);
-    assert_eq!(res, expected_res);
+    assert_eq!(res, data);
 }
 
 #[test]
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
-    let data = df!("a" => [123]).unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a"], false, data, 0);
+    let data = record_batch!("a" => [123]);
+    let test_expr = create_test_const_bool_expr("sxt.t", &["a"], false, data, 0);
     let res = test_expr.verify_expr();
-    let expected_res = data_frame_to_record_batch(&df!("a" => Vec::<i64>::new()).unwrap());
+    let expected_res = record_batch!("a" => Vec::<i64>::new());
     assert_eq!(res, expected_res);
 }
 
