@@ -1,4 +1,4 @@
-use super::intermediate_ast::{SetExpression, TableExpression};
+use super::intermediate_ast::{OrderBy, SetExpression, TableExpression};
 use crate::sql::SelectStatementParser;
 use crate::{Identifier, ResourceId};
 use crate::{ParseError, ParseResult};
@@ -12,6 +12,7 @@ use std::str::FromStr;
 pub struct SelectStatement {
     /// the query expression
     pub expr: Box<SetExpression>,
+    pub order_by: Vec<OrderBy>,
 }
 
 impl SelectStatement {

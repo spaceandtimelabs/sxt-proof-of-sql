@@ -13,19 +13,32 @@ grammar;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub SelectStatement: select_statement::SelectStatement = {
-    <expr: SelectCoreList> => 
+    <expr: SelectCore>  <order_by: ("order" "by" <OrderByList>)?> => 
         select_statement::SelectStatement {
             expr,
+            order_by: order_by.unwrap_or(vec![])
         },
-};
-
-SelectCoreList: Box<intermediate_ast::SetExpression> = {
-    SelectCore,
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
     "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> =>
         Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
+};
+
+OrderByList: Vec<intermediate_ast::OrderBy> = {
+    <order_by: OrderByCore> => vec![<>],
+
+    <order_by_list: OrderByList> "," <order_by: OrderByCore> => intermediate_ast::append(order_by_list, order_by),    
+};
+
+OrderByCore: intermediate_ast::OrderBy = {
+    <col_id: Identifier> "asc"? => intermediate_ast::OrderBy {
+            expr: col_id, direction: intermediate_ast::OrderByDirection::Asc,
+    },
+
+    <col_id: Identifier> "desc" => intermediate_ast::OrderBy {
+            expr: col_id, direction: intermediate_ast::OrderByDirection::Desc,
+    },
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,6 +194,10 @@ NumericLiteral: i64 = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 match {
+    r"(?i)asc" => "asc",
+
+    r"(?i)desc" => "desc",
+
     r"(?i)as" => "as",
 
     r"(?i)and" => "and",
@@ -194,6 +211,10 @@ match {
     r"(?i)select" => "select",
 
     r"(?i)where" => "where",
+
+    r"(?i)order" => "order",
+
+    r"(?i)by" => "by",
 
     "," => ",",
     "." => ".",

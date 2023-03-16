@@ -70,6 +70,23 @@ pub fn query_all(columns: Vec<Box<ResultColumn>>, tab: Box<TableExpression>) -> 
     })
 }
 
-pub fn select(expr: Box<SetExpression>) -> SelectStatement {
-    SelectStatement { expr }
+pub fn select(expr: Box<SetExpression>, order_by: Vec<OrderBy>) -> SelectStatement {
+    SelectStatement { expr, order_by }
+}
+
+pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
+    vec![OrderBy {
+        expr: id.parse().unwrap(),
+        direction,
+    }]
+}
+
+pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
+    ids.iter()
+        .zip(directions.iter())
+        .map(|(id, dir)| OrderBy {
+            expr: id.parse().unwrap(),
+            direction: dir.clone(),
+        })
+        .collect::<Vec<_>>()
 }
