@@ -1,23 +1,21 @@
 [package]
+publish = true
 name = "proofs-sql"
-version = "0.0.0" # This version will be automatically updated
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
 build = "build.rs"
-edition = "2021"
-repository = "https://github.com/spaceandtimelabs/proofs"
 description = "Parse provable SQL queries into Intermediate ASTs"
-exclude = [
-    "**/.gitignore",
-    ".gitignore"
-]
+exclude = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrayvec = { version = "0.7", features = ["serde"] }
-lalrpop-util = { version = "0.19.8", features = ["lexer"] }
-regex = "1"
-serde = { version = "1", features = ["serde_derive"] }
-thiserror = "1"
+arrayvec = { workspace = true, features = ["serde"] }
+lalrpop-util = { workspace = true, features = ["lexer"] }
+regex = { workspace = true }
+serde = { workspace = true, features = ["serde_derive"] }
+thiserror = { workspace = true }
 
 [build-dependencies]
 lalrpop = "0.19.8"

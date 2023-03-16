@@ -44,3 +44,8 @@ measurements.json
 __pycache__/
 *.py[cod]
 *$py.class
+
+# ignore release artifacts
+*.tar.gz
+*.tar
+*.zip
