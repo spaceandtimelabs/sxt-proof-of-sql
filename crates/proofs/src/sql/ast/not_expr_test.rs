@@ -1,10 +1,11 @@
-use crate::base::database::data_frame_to_record_batch;
 use crate::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use crate::base::scalar::ToScalar;
-use crate::sql::ast::test_expr::TestExpr;
+use crate::record_batch;
+use crate::sql::ast::test_expr::TestExprNode;
 use crate::sql::ast::test_utility::{equal, not};
+use arrow::record_batch::RecordBatch;
 
 use polars::prelude::*;
 use rand::{
@@ -13,38 +14,34 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_expr<T: ToScalar + Copy + Literal>(
+fn create_test_not_expr<T: ToScalar + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,
     filter_val: T,
-    data: DataFrame,
+    data: RecordBatch,
     offset: usize,
-) -> TestExpr {
+) -> TestExprNode {
     let mut accessor = TestAccessor::new();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let df_filter = polars::prelude::col(filter_col).neq(lit(filter_val));
     let not_expr = not(equal(t, filter_col, filter_val, &accessor));
-    TestExpr::new(t, results, not_expr, df_filter, accessor)
+    TestExprNode::new(t, results, not_expr, df_filter, accessor)
 }
 
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
-    let data = df!(
+    let data = record_batch!(
         "a" => [123, 456],
         "b" => [0, 1],
         "d" => ["alfa", "gama"]
-    )
-    .unwrap();
-    let test_expr = create_test_expr("sxt.t", &["a", "d"], "b", 1_i64, data, 0);
+    );
+    let test_expr = create_test_not_expr("sxt.t", &["a", "d"], "b", 1_i64, data, 0);
     let res = test_expr.verify_expr();
-    let expected_res = data_frame_to_record_batch(
-        &df!(
-            "a" => [123],
-            "d" => ["alfa"]
-        )
-        .unwrap(),
+    let expected_res = record_batch!(
+        "a" => [123],
+        "d" => ["alfa"]
     );
     assert_eq!(res, expected_res);
 }
@@ -66,7 +63,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // filtering by string value
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_expr(
+        let test_expr = create_test_not_expr(
             "sxt.t",
             &["aa", "ab", "b"],
             "ab",
@@ -82,7 +79,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
         let test_expr =
-            create_test_expr("sxt.t", &["aa", "ab", "b"], "b", filter_val, data, offset);
+            create_test_not_expr("sxt.t", &["aa", "ab", "b"], "b", filter_val, data, offset);
         let res = test_expr.verify_expr();
         let expected_res = test_expr.query_table();
         assert_eq!(res, expected_res);

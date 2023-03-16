@@ -1,9 +1,10 @@
 use crate::base::database::{TableRef, TestAccessor};
+use crate::record_batch;
 use crate::sql::ast::test_utility::{and, col_result, cols_result, const_v, equal, not, or, tab};
 use crate::sql::ast::FilterExpr;
 use crate::sql::parse::Converter;
 
-use polars::prelude::*;
+use arrow::record_batch::RecordBatch;
 use proofs_sql::sql::SelectStatementParser;
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> FilterExpr {
@@ -13,22 +14,25 @@ fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) 
         .unwrap()
 }
 
-pub fn data_frame_to_accessor(
-    table: TableRef,
-    data: Result<DataFrame, PolarsError>,
-    offset: usize,
-) -> TestAccessor {
+fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) {
+    let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
+    assert!(Converter::default()
+        .visit_intermediate_ast(&intermediate_ast, accessor, table.schema_id())
+        .is_err());
+}
+
+pub fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
     let mut accessor = TestAccessor::new();
-    accessor.add_table(table, data.unwrap(), offset);
+    accessor.add_table(table, data, offset);
     accessor
 }
 
 #[test]
 fn we_can_convert_an_ast_with_one_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => [3]
         ),
         0,
@@ -45,9 +49,9 @@ fn we_can_convert_an_ast_with_one_column() {
 #[test]
 fn we_can_convert_an_ast_with_two_columns() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
             "c" => Vec::<i64>::new(),
@@ -66,9 +70,9 @@ fn we_can_convert_an_ast_with_two_columns() {
 #[test]
 fn we_can_parse_all_result_columns_with_select_star() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "b" => [5, 6],
             "a" => [3, 2],
         ),
@@ -86,9 +90,9 @@ fn we_can_parse_all_result_columns_with_select_star() {
 #[test]
 fn we_can_parse_all_result_columns_with_more_complex_select_star() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "b" => [5, 6],
             "a" => [3, 2],
             "c" => [78, 8]
@@ -107,9 +111,9 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
 #[test]
 fn we_can_convert_an_ast_with_one_positive_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
         ),
@@ -127,9 +131,9 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
 #[test]
 fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
         ),
@@ -147,9 +151,9 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
 #[test]
 fn we_can_convert_an_ast_with_one_negative_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
         ),
@@ -167,9 +171,9 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
 #[test]
 fn we_can_convert_an_ast_with_cond_and() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
             "c" => Vec::<i64>::new(),
@@ -192,9 +196,9 @@ fn we_can_convert_an_ast_with_cond_and() {
 #[test]
 fn we_can_convert_an_ast_with_cond_or() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
             "c" => Vec::<i64>::new(),
@@ -217,9 +221,9 @@ fn we_can_convert_an_ast_with_cond_or() {
 #[test]
 fn we_can_convert_an_ast_with_conds_or_not() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
             "c" => Vec::<i64>::new(),
@@ -245,9 +249,9 @@ fn we_can_convert_an_ast_with_conds_or_not() {
 #[test]
 fn we_can_convert_an_ast_with_conds_not_and_or() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
             "c" => Vec::<i64>::new(),
@@ -274,9 +278,9 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
 #[test]
 fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => [3],
         ),
         0,
@@ -297,9 +301,9 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
 #[test]
 fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => [3],
         ),
         0,
@@ -320,9 +324,9 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
 #[test]
 fn we_can_convert_an_ast_using_as_rename_keyword() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => Vec::<i64>::new(),
             "b" => Vec::<i64>::new(),
         ),
@@ -344,45 +348,35 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
 #[test]
 fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "b" => [3],
         ),
         0,
     );
-    let intermediate_ast = SelectStatementParser::new()
-        .parse("select * from sxt_tab where a = 3")
-        .unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
-        .is_err());
+    invalid_query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
 }
 
 #[test]
 fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "b" => ["abc"],
         ),
         0,
     );
-    let intermediate_ast = SelectStatementParser::new()
-        .parse("select * from sxt_tab where b = 123")
-        .unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
-        .is_err());
+    invalid_query_to_provable_ast(t, "select * from sxt_tab where b = 123", &accessor);
 }
 
 #[test]
 fn we_can_convert_an_ast_with_a_schema() {
     let t = "eth.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => [3],
         ),
         0,
@@ -399,9 +393,9 @@ fn we_can_convert_an_ast_with_a_schema() {
 #[test]
 fn we_can_convert_an_ast_without_any_filter() {
     let t = "eth.sxt_tab".parse().unwrap();
-    let accessor = data_frame_to_accessor(
+    let accessor = record_batch_to_accessor(
         t,
-        df!(
+        record_batch!(
             "a" => [3],
         ),
         0,

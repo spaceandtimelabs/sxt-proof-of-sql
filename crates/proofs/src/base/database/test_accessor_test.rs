@@ -4,6 +4,7 @@ use super::{
 };
 use crate::base::scalar::compute_commitment_for_testing;
 use crate::base::scalar::ToScalar;
+use crate::record_batch;
 
 use arrow::array::Int64Array;
 use arrow::datatypes::{DataType, Field, Schema};
@@ -17,20 +18,18 @@ fn we_can_query_the_length_of_a_table() {
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
-    let data1 = df!(
+    let data1 = record_batch!(
         "a" => [1, 2, 3],
         "b" => [4, 5, 6]
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     assert_eq!(accessor.get_length(table_ref_1), 3);
 
-    let data2 = df!(
+    let data2 = record_batch!(
         "a" => [1, 2, 3, 4],
         "b" => [4, 5, 6, 5],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     assert_eq!(accessor.get_length(table_ref_1), 3);
@@ -43,11 +42,10 @@ fn we_can_access_the_columns_of_a_table() {
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
-    let data1 = df!(
+    let data1 = record_batch!(
         "a" => [1, 2, 3],
         "b" => [4, 5, 6],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
@@ -56,12 +54,11 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let data2 = df!(
+    let data2 = record_batch!(
         "a" => [1, 2, 3, 4],
         "d" => ["a", "bc", "d", "e"],
         "b" => [4, 5, 6, 5],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
@@ -97,11 +94,10 @@ fn we_can_access_the_commitments_of_table_columns() {
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
-    let data1 = df!(
+    let data1 = record_batch!(
         "a" => [1, 2, 3],
         "b" => [4, 5, 6],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
@@ -110,11 +106,10 @@ fn we_can_access_the_commitments_of_table_columns() {
         compute_commitment_for_testing(&[4, 5, 6], 0_usize)
     );
 
-    let data2 = df!(
+    let data2 = record_batch!(
         "a" => [1, 2, 3, 4],
         "b" => [4, 5, 6, 5],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
@@ -136,11 +131,10 @@ fn we_can_access_the_type_of_table_columns() {
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
-    let data1 = df!(
+    let data1 = record_batch!(
         "a" => [1, 2, 3],
         "b" => [4, 5, 6],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
@@ -154,11 +148,10 @@ fn we_can_access_the_type_of_table_columns() {
         .lookup_column(column.table_ref(), column.column_id())
         .is_none());
 
-    let data2 = df!(
+    let data2 = record_batch!(
         "a" => [1, 2, 3, 4],
         "b" => [4, 5, 6, 5],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
@@ -184,11 +177,10 @@ fn we_can_run_arbitrary_queries_on_a_table() {
     let mut accessor = TestAccessor::new();
     let table_ref_1 = "sxt.test".parse().unwrap();
 
-    let data = df!(
+    let data = record_batch!(
         "a" => [1, 2, 3],
         "b" => [123, 5, 123],
-    )
-    .unwrap();
+    );
     accessor.add_table(table_ref_1, data, 0_usize);
     let res = accessor.query_table(table_ref_1, |df| {
         df.clone()
@@ -209,11 +201,10 @@ fn we_can_correctly_update_offsets() {
     let mut accessor1 = TestAccessor::new();
     let table_ref = "sxt.test".parse().unwrap();
 
-    let data = df!(
+    let data = record_batch!(
         "a" => [1, 2, 3],
         "b" => [123, 5, 123],
-    )
-    .unwrap();
+    );
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 
     let offset = 123;
