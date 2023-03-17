@@ -187,7 +187,6 @@ impl Converter {
         let results = result_columns
             .iter()
             .map(|result_column| self.visit_result_column(result_column.deref(), schema_accessor))
-            .into_iter()
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .flatten()
