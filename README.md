@@ -81,7 +81,7 @@ To get a local copy up and running, follow these steps.
 * Linux x86_64
 * lld (sudo apt-get install lld)
 * clang (sudo apt install clang)
-* [Rust 1.67.1](https://www.rust-lang.org/tools/install)
+* [Rust 1.68.0](https://www.rust-lang.org/tools/install)
 
 Clang/lld was added as a dependency in order to speed up the build time. Please, see [DEPS](https://github.com/spaceandtimelabs/sxt-utility-images/blob/main/proofs/rust-dev/Dockerfile) for a full list of dependencies.
 
@@ -244,5 +244,5 @@ Project Link: [https://github.com/spaceandtimelabs/proofs](https://github.com/sp
 [CircleCI]: https://img.shields.io/badge/circleci-2.1-blue
 [circleci-url]: https://circleci.com/
 
-[Rust]: https://img.shields.io/badge/rust-1.67.1-blue
+[Rust]: https://img.shields.io/badge/rust-1.68.0-blue
 [rust-url]: https://www.rust-lang.org/
