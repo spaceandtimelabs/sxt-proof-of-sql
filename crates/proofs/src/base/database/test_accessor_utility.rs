@@ -45,7 +45,7 @@ pub fn make_random_test_accessor_data(
 
         match col_type {
             ColumnType::BigInt => {
-                column_fields.push(Field::new(col_name, DataType::Int64, false));
+                column_fields.push(Field::new(*col_name, DataType::Int64, false));
 
                 columns.push(Arc::new(Int64Array::from(values.to_vec())));
             }
@@ -56,7 +56,7 @@ pub fn make_random_test_accessor_data(
                     .collect::<Vec<String>>()[..];
                 let col: Vec<_> = col.iter().map(|v| v.as_str()).collect();
 
-                column_fields.push(Field::new(col_name, DataType::Utf8, false));
+                column_fields.push(Field::new(*col_name, DataType::Utf8, false));
 
                 columns.push(Arc::new(StringArray::from(col)));
             }
