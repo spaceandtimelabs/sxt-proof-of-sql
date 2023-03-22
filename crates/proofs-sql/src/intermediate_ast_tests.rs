@@ -31,19 +31,16 @@ fn we_can_parse_strings_starting_with_numbers() {
 }
 
 #[test]
-fn we_can_parse_strings_having_multiple_quotes() {
-    assert_eq!(
-        StringLiteralParser::new().parse("'123a'"),
-        Ok("123a".to_string())
-    );
+fn we_can_parse_strings_having_multiple_double_quotes() {
     assert_eq!(
         StringLiteralParser::new().parse("'\"123a\"'"),
         Ok("\"123a\"".to_string())
     );
-    assert_eq!(
-        StringLiteralParser::new().parse("''123a''"),
-        Ok("'123a'".to_string())
-    );
+}
+
+#[test]
+fn we_cannot_parse_strings_having_more_than_two_quotes() {
+    assert!(StringLiteralParser::new().parse("''123a''").is_err());
 }
 
 #[test]
@@ -251,6 +248,21 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
             and(equal("b", 3), equal("c", -2)),
+        ),
+        vec![],
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_and_right_side_equal_to_string_literals(
+) {
+    let ast = "select bid_in_usd_over_1e2 from sxt.options_quote where type = 'call' and security = 'eth'".parse::<SelectStatement>().unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["bid_in_usd_over_1e2"]),
+            tab(Some("sxt"), "options_quote"),
+            and(equal("type", "call"), equal("security", "eth")),
         ),
         vec![],
     );
