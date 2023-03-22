@@ -228,5 +228,5 @@ match {
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,
-    r"'(?s).*'" => STRING_LITERAL,
+    r"'(?s)[^']*'" => STRING_LITERAL,
 }
