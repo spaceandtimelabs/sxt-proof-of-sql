@@ -4,7 +4,8 @@ use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
 };
-use crate::sql::parse::{ConversionError, ConversionResult};
+use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr};
+use crate::sql::transform::ResultExpr;
 
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::intermediate_ast::{
@@ -47,8 +48,14 @@ impl Converter {
         ast: &SelectStatement,
         schema_accessor: &dyn SchemaAccessor,
         default_schema: Identifier,
-    ) -> ConversionResult<FilterExpr> {
-        self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)
+    ) -> ConversionResult<QueryExpr> {
+        let filter_expr =
+            self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)?;
+
+        // TODO(joe): update this field to use the actual order_by
+        let result_expr = ResultExpr::default();
+
+        Ok(QueryExpr::new(Box::new(filter_expr), Box::new(result_expr)))
     }
 }
 

@@ -5,16 +5,17 @@ use crate::base::database::{
     ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
 };
 use crate::base::math::log2_up;
-use crate::sql::proof::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
+use crate::sql::proof::{ProofBuilder, ProofCounts, ProofExpr, VerificationBuilder};
 
 use bumpalo::Bump;
+use dyn_partial_eq::DynPartialEq;
 use std::cmp;
 
 /// Provable expressions for queries of the form
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq)]
 #[allow(dead_code)]
 pub struct FilterExpr {
     results: Vec<FilterResultExpr>,
@@ -37,7 +38,7 @@ impl FilterExpr {
     }
 }
 
-impl QueryExpr for FilterExpr {
+impl ProofExpr for FilterExpr {
     #[tracing::instrument(name = "proofs.sql.ast.filter_expr.count", level = "info", skip_all)]
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor) {
         let n = accessor.get_length(self.table.table_ref);

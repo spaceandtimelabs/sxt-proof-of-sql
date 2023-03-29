@@ -40,8 +40,8 @@ mod sumcheck_mle_evaluations_test;
 mod sumcheck_random_scalars;
 pub use sumcheck_random_scalars::SumcheckRandomScalars;
 
-mod query_expr;
-pub use query_expr::QueryExpr;
+mod proof_exprs;
+pub use proof_exprs::{ProofExpr, TransformExpr};
 
 mod query_proof;
 pub use query_proof::QueryProof;

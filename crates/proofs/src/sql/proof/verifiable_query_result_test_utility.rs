@@ -1,6 +1,6 @@
 use super::{
-    DenseProvableResultColumn, ProofCounts, ProvableQueryResult, ProvableResultColumn, QueryExpr,
-    QueryProof, TestQueryExpr, VerifiableQueryResult,
+    DenseProvableResultColumn, ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn,
+    QueryProof, TestQueryExpr, TransformExpr, VerifiableQueryResult,
 };
 
 use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
@@ -14,7 +14,7 @@ use curve25519_dalek::scalar::Scalar;
 /// It's useful as a tool for testing proof code.
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
-    expr: &dyn QueryExpr,
+    expr: &(impl ProofExpr + TransformExpr),
     accessor: &TestAccessor,
     table_ref: TableRef,
 ) {
@@ -58,7 +58,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult,
-    expr: &dyn QueryExpr,
+    expr: &(impl ProofExpr + TransformExpr),
     accessor: &impl CommitmentAccessor,
 ) {
     // add a result
@@ -87,7 +87,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult,
-    expr: &dyn QueryExpr,
+    expr: &(impl ProofExpr + TransformExpr),
     accessor: &impl CommitmentAccessor,
 ) {
     // try to add a result
@@ -100,7 +100,7 @@ fn tamper_empty_result(
 
 fn tamper_result(
     res: &VerifiableQueryResult,
-    expr: &dyn QueryExpr,
+    expr: &(impl ProofExpr + TransformExpr),
     accessor: &impl CommitmentAccessor,
 ) {
     if res.provable_result.is_none() {

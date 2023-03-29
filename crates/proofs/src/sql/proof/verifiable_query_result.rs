@@ -1,9 +1,9 @@
-use super::{ProofCounts, ProvableQueryResult, QueryProof};
+use super::{ProofCounts, ProofExpr, ProvableQueryResult, QueryProof, TransformExpr};
 use crate::base::database::ColumnType;
 
 use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
-use crate::sql::proof::{QueryExpr, QueryResult};
+use crate::sql::proof::QueryResult;
 use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -77,7 +77,7 @@ impl VerifiableQueryResult {
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
-    pub fn new(expr: &dyn QueryExpr, accessor: &impl DataAccessor) -> VerifiableQueryResult {
+    pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> VerifiableQueryResult {
         let mut counts: ProofCounts = Default::default();
         expr.count(&mut counts, accessor);
 
@@ -107,7 +107,7 @@ impl VerifiableQueryResult {
     /// error.
     pub fn verify(
         &self,
-        expr: &dyn QueryExpr,
+        expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
     ) -> Result<QueryResult, ProofError> {
         let mut counts: ProofCounts = Default::default();

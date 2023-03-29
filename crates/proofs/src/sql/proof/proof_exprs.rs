@@ -1,14 +1,15 @@
 use super::{ProofBuilder, ProofCounts, VerificationBuilder};
-use std::collections::HashSet;
-
 use crate::base::database::{ColumnField, ColumnRef};
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 
+use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use dyn_partial_eq::dyn_partial_eq;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
-/// A query expression that we can evaluate, prove, and verify
-pub trait QueryExpr: Debug + Send + Sync {
+#[dyn_partial_eq]
+pub trait ProofExpr: Debug {
     /// Count terms used within the Query's proof
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor);
 
@@ -39,4 +40,12 @@ pub trait QueryExpr: Debug + Send + Sync {
 
     /// Return all the columns referenced in the Query
     fn get_column_references(&self) -> HashSet<ColumnRef>;
+}
+
+#[dyn_partial_eq]
+pub trait TransformExpr: Debug {
+    /// Apply transformations to the resulting record batch
+    fn transform_results(&self, result: RecordBatch) -> RecordBatch {
+        result
+    }
 }
