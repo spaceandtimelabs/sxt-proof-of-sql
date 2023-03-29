@@ -1,4 +1,4 @@
-use super::{ProofBuilder, ProofCounts, QueryExpr, VerificationBuilder};
+use super::{ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder};
 use std::collections::HashSet;
 
 use crate::base::database::{
@@ -6,6 +6,7 @@ use crate::base::database::{
 };
 
 use bumpalo::Bump;
+use dyn_partial_eq::DynPartialEq;
 use std::fmt;
 use std::fmt::Debug;
 
@@ -14,18 +15,19 @@ type ProveFn = Box<
         + Send
         + Sync,
 >;
+
 type VerifyFn =
     Box<dyn Fn(&mut VerificationBuilder, &ProofCounts, &dyn CommitmentAccessor) + Send + Sync>;
 
 /// A query expression that can mock desired behavior for testing
-#[derive(Default)]
+#[derive(Default, DynPartialEq)]
 pub struct TestQueryExpr {
     pub counts: ProofCounts,
     pub prover_fn: Option<ProveFn>,
     pub verifier_fn: Option<VerifyFn>,
 }
 
-impl QueryExpr for TestQueryExpr {
+impl ProofExpr for TestQueryExpr {
     fn count(&self, counts: &mut ProofCounts, _accessor: &dyn MetadataAccessor) {
         *counts = self.counts;
     }
@@ -68,8 +70,15 @@ impl QueryExpr for TestQueryExpr {
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
-        // at least for now, we don't have any real
-        // usage for this function
+        unimplemented!("no real usage for this function yet")
+    }
+}
+
+impl TransformExpr for TestQueryExpr {}
+
+/// Non-implemented equality. This only exists because of the Ast trait bounds.
+impl PartialEq for TestQueryExpr {
+    fn eq(&self, _other: &Self) -> bool {
         unimplemented!()
     }
 }

@@ -17,15 +17,15 @@ use std::cmp::max;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
-    column_name_id: Identifier,
+    column_output_name: Identifier,
 }
 
 impl FilterResultExpr {
     /// Create a new filter result expression
-    pub fn new(column_ref: ColumnRef, column_name_id: Identifier) -> Self {
+    pub fn new(column_ref: ColumnRef, column_output_name: Identifier) -> Self {
         Self {
             column_ref,
-            column_name_id,
+            column_output_name,
         }
     }
 
@@ -36,7 +36,7 @@ impl FilterResultExpr {
 
     /// Wrap the column output name and its type within the ColumnField
     pub fn get_column_field(&self) -> ColumnField {
-        ColumnField::new(self.column_name_id, *self.column_ref.column_type())
+        ColumnField::new(self.column_output_name, *self.column_ref.column_type())
     }
 
     /// Count the number of proof terms needed by this expression

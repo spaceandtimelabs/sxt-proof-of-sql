@@ -1,6 +1,6 @@
 use super::{
-    compute_evaluation_vector, ProofBuilder, ProofCounts, ProvableQueryResult, QueryExpr,
-    QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+    compute_evaluation_vector, ProofBuilder, ProofCounts, ProofExpr, ProvableQueryResult,
+    QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr, VerificationBuilder,
 };
 
 use crate::base::{
@@ -33,7 +33,7 @@ pub struct QueryProof {
 impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(
-        expr: &dyn QueryExpr,
+        expr: &impl ProofExpr,
         accessor: &dyn DataAccessor,
         counts: &ProofCounts,
     ) -> (Self, ProvableQueryResult) {
@@ -113,7 +113,7 @@ impl QueryProof {
     )]
     pub fn verify(
         &self,
-        expr: &dyn QueryExpr,
+        expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
         counts: &ProofCounts,
         result: &ProvableQueryResult,
@@ -212,7 +212,9 @@ impl QueryProof {
             )
             .map_err(|_e| ProofError::VerificationError)?;
 
-        Ok(result.into_query_result(&column_result_fields[..]))
+        Ok(result
+            .into_query_result(&column_result_fields[..])
+            .map(|batch| expr.transform_results(batch)))
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {

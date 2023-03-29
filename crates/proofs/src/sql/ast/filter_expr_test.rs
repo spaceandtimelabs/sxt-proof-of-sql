@@ -4,7 +4,7 @@ use crate::sql::ast::FilterExpr;
 use crate::sql::ast::FilterResultExpr;
 use crate::sql::ast::TableExpr;
 use crate::sql::ast::{AndExpr, NotExpr, OrExpr};
-use crate::sql::proof::QueryExpr;
+use crate::sql::proof::ProofExpr;
 use proofs_sql::{Identifier, ResourceId};
 
 use arrow::datatypes::Field;

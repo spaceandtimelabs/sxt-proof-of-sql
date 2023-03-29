@@ -87,7 +87,7 @@ pub trait DataAccessor: MetadataAccessor {
 ///
 /// This accessor should be implemented by both the prover and verifier
 /// and then used by the proofs code to convert an IntermediateAst
-/// into a ProvableAst.
+/// into a ProofExpr.
 pub trait SchemaAccessor {
     /// Lookup the column's data type in the specified table
     ///

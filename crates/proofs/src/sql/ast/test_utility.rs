@@ -1,5 +1,6 @@
 use super::{
-    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr,
+    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
+    TableExpr,
 };
 use crate::base::database::SchemaAccessor;
 use crate::base::database::{ColumnRef, TableRef, TestAccessor};
@@ -58,4 +59,12 @@ pub fn cols_result(
         .iter()
         .map(|name| col_result(tab, name, name, accessor))
         .collect()
+}
+
+pub fn filter(
+    results: Vec<FilterResultExpr>,
+    table: TableExpr,
+    where_clause: Box<dyn BoolExpr>,
+) -> Box<FilterExpr> {
+    Box::new(FilterExpr::new(results, table, where_clause))
 }
