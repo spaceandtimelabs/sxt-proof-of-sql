@@ -1,13 +1,15 @@
 use crate::base::database::{TableRef, TestAccessor};
 use crate::record_batch;
-use crate::sql::ast::test_utility::{and, col_result, cols_result, const_v, equal, not, or, tab};
-use crate::sql::ast::FilterExpr;
-use crate::sql::parse::Converter;
+use crate::sql::ast::test_utility::{
+    and, col_result, cols_result, const_v, equal, filter, not, or, tab,
+};
+use crate::sql::parse::{Converter, QueryExpr};
+use crate::sql::transform::test_utility::result;
 
 use arrow::record_batch::RecordBatch;
 use proofs_sql::sql::SelectStatementParser;
 
-fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> FilterExpr {
+fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     Converter::default()
         .visit_intermediate_ast(&intermediate_ast, accessor, table.schema_id())
@@ -38,10 +40,13 @@ fn we_can_convert_an_ast_with_one_column() {
         0,
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "a", 3, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", 3, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -59,10 +64,13 @@ fn we_can_convert_an_ast_with_two_columns() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a", "b"], &accessor),
-        tab(t),
-        equal(t, "c", 123, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a", "b"], &accessor),
+            tab(t),
+            equal(t, "c", 123, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -79,10 +87,13 @@ fn we_can_parse_all_result_columns_with_select_star() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["b", "a"], &accessor),
-        tab(t),
-        equal(t, "a", 3, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["b", "a"], &accessor),
+            tab(t),
+            equal(t, "a", 3, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -100,10 +111,13 @@ fn we_can_parse_all_result_columns_with_more_complex_select_star() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select a, *, b,* from sxt_tab where a = 3", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a", "b", "a", "c", "b", "b", "a", "c"], &accessor),
-        tab(t),
-        equal(t, "a", 3, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a", "b", "a", "c", "b", "b", "a", "c"], &accessor),
+            tab(t),
+            equal(t, "a", 3, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -120,10 +134,13 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "b", 4, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "b", 4, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -140,10 +157,13 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        not(equal(t, "b", 4, &accessor)),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            not(equal(t, "b", 4, &accessor)),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -160,10 +180,13 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         0_usize,
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = -4", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "b", -4, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "b", -4, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -185,10 +208,13 @@ fn we_can_convert_an_ast_with_cond_and() {
         "select a from sxt_tab where (b = 3) and (c = -2)",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        and(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            and(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -210,10 +236,13 @@ fn we_can_convert_an_ast_with_cond_or() {
         "select a from sxt_tab where (b = 3) or (c = -2)",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        or(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            or(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -235,13 +264,16 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         "select a from sxt_tab where (b = 3) or (not (c = -2))",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        or(
-            equal(t, "b", 3, &accessor),
-            not(equal(t, "c", -2, &accessor)),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            or(
+                equal(t, "b", 3, &accessor),
+                not(equal(t, "c", -2, &accessor)),
+            ),
         ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -264,13 +296,16 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         "select a from sxt_tab where not (((f = 45) or (c = -2)) and (b = 3))",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        not(and(
-            or(equal(t, "f", 45, &accessor), equal(t, "c", -2, &accessor)),
-            equal(t, "b", 3, &accessor),
-        )),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            not(and(
+                or(equal(t, "f", 45, &accessor), equal(t, "c", -2, &accessor)),
+                equal(t, "b", 3, &accessor),
+            )),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -290,10 +325,13 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
         "select a from sxt_tab where a = -9223372036854775808",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "a", i64::MIN, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", i64::MIN, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -313,10 +351,13 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
         "select a from sxt_tab where a = 9223372036854775807",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "a", i64::MAX, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", i64::MAX, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -337,10 +378,13 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
         "select a as b_rename from sxt_tab where b = +4",
         &accessor,
     );
-    let expected_ast = FilterExpr::new(
-        vec![col_result(t, "a", "b_rename", &accessor)],
-        tab(t),
-        equal(t, "b", 4, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            vec![col_result(t, "a", "b_rename", &accessor)],
+            tab(t),
+            equal(t, "b", 4, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -382,10 +426,13 @@ fn we_can_convert_an_ast_with_a_schema() {
         0,
     );
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
-    let expected_ast = FilterExpr::new(
-        cols_result(t, &["a"], &accessor),
-        tab(t),
-        equal(t, "a", 3, &accessor),
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", 3, &accessor),
+        ),
+        result(),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -400,7 +447,10 @@ fn we_can_convert_an_ast_without_any_filter() {
         ),
         0,
     );
-    let expected_ast = FilterExpr::new(cols_result(t, &["a"], &accessor), tab(t), const_v(true));
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        result(),
+    );
     let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
     for query in queries {
         let ast = query_to_provable_ast(t, query, &accessor);

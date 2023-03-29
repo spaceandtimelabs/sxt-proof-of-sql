@@ -1,7 +1,7 @@
 use super::{BoolExpr, FilterExpr};
 use crate::base::database::{TableRef, TestAccessor};
 use crate::sql::ast::test_utility::{cols_result, tab};
-use crate::sql::proof::{exercise_verification, VerifiableQueryResult};
+use crate::sql::proof::{exercise_verification, TransformExpr, VerifiableQueryResult};
 
 use arrow::record_batch::RecordBatch;
 use polars::prelude::Expr;
@@ -14,6 +14,9 @@ pub struct TestExprNode {
     pub accessor: TestAccessor,
     pub df_filter: Expr,
 }
+
+// Note: this implementation is purely for test purposes
+impl TransformExpr for FilterExpr {}
 
 impl TestExprNode {
     pub fn new(

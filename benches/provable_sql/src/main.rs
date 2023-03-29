@@ -2,8 +2,7 @@ use clap::Parser;
 use proofs::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
-use proofs::sql::ast::FilterExpr;
-use proofs::sql::parse::Converter;
+use proofs::sql::parse::{Converter, QueryExpr};
 use proofs::sql::proof::VerifiableQueryResult;
 use proofs_gpu::compute::{init_backend_with_config, BackendConfig};
 use proofs_sql::sql::SelectStatementParser;
@@ -42,7 +41,7 @@ struct Args {
     pub result_columns: String,
 }
 
-fn parse_query(query: String, accessor: &TestAccessor) -> FilterExpr {
+fn parse_query(query: String, accessor: &TestAccessor) -> QueryExpr {
     let default_schema = Identifier::try_new("sxt").unwrap();
     let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
 
@@ -84,7 +83,7 @@ fn generate_accessor(
     (table_ref.table_id().name().to_owned(), accessor)
 }
 
-fn generate_input_data(args: &Args, offset_generators: usize) -> (FilterExpr, TestAccessor) {
+fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, TestAccessor) {
     init_backend_with_config(BackendConfig {
         num_precomputed_generators: args.table_length as u64,
     });
