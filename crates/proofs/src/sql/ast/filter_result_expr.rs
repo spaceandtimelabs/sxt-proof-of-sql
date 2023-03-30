@@ -87,7 +87,7 @@ impl FilterResultExpr {
     }
 }
 
-fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone + Default>(
+fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone + Default + Sync>(
     builder: &mut ProofBuilder<'a>,
     alloc: &'a Bump,
     counts: &ProofCounts,
