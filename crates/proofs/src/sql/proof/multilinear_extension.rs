@@ -1,5 +1,6 @@
 use crate::base::scalar::ToScalar;
 use curve25519_dalek::scalar::Scalar;
+use rayon::iter::*;
 
 /// Interface for operating on multilinear extension's in-place
 pub trait MultilinearExtension {
@@ -23,19 +24,21 @@ impl<'a, T: ToScalar> MultilinearExtensionImpl<'a, T> {
     }
 }
 
-impl<'a, T: ToScalar> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
+impl<'a, T: ToScalar + Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
     fn evaluate(&self, evaluation_vec: &[Scalar]) -> Scalar {
-        let mut res = Scalar::zero();
-        for (xi, yi) in self.data.iter().zip(evaluation_vec.iter()) {
-            res += xi.to_scalar() * yi;
-        }
-        res
+        self.data
+            .par_iter()
+            .zip(evaluation_vec)
+            .map(|(xi, yi)| xi.to_scalar() * yi)
+            .reduce(Scalar::zero, std::ops::Add::add)
     }
 
     fn mul_add(&self, res: &mut [Scalar], multiplier: &Scalar) {
         assert!(res.len() >= self.data.len());
-        for (res_i, data_i) in res.iter_mut().zip(self.data) {
-            *res_i += multiplier * data_i.to_scalar();
-        }
+        res.par_iter_mut()
+            .zip(self.data)
+            .for_each(|(res_i, data_i)| {
+                *res_i += multiplier * data_i.to_scalar();
+            })
     }
 }
