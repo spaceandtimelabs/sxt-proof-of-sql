@@ -122,7 +122,7 @@ impl QueryProof {
 
         // verify sizes
         if !self.validate_sizes(counts, result) {
-            return Err(ProofError::VerificationError);
+            return Err(ProofError::VerificationError("invalid proof size"));
         }
 
         // decompress commitments
@@ -131,7 +131,9 @@ impl QueryProof {
             if let Some(commitment) = commitment.decompress() {
                 commitments.push(commitment);
             } else {
-                return Err(ProofError::VerificationError);
+                return Err(ProofError::VerificationError(
+                    "commitment failed to decompress",
+                ));
             }
         }
 
@@ -175,7 +177,11 @@ impl QueryProof {
         // compute the evaluation of the result MLEs
         let result_evaluations = match result.evaluate(&evaluation_vec, &column_result_fields[..]) {
             Some(evaluations) => evaluations,
-            _ => return Err(ProofError::VerificationError),
+            _ => {
+                return Err(ProofError::VerificationError(
+                    "failed to evaluate intermediate result MLEs",
+                ))
+            }
         };
 
         // pass over the provable AST to fill in the verification builder
@@ -196,7 +202,9 @@ impl QueryProof {
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
-            return Err(ProofError::VerificationError);
+            return Err(ProofError::VerificationError(
+                "sumcheck evaluation check failed",
+            ));
         }
 
         // finally, check the MLE evaluations with the inner product proof
@@ -210,7 +218,9 @@ impl QueryProof {
                 &evaluation_vec,
                 counts.offset_generators as u64,
             )
-            .map_err(|_e| ProofError::VerificationError)?;
+            .map_err(|_e| {
+                ProofError::VerificationError("Inner product proof of MLE evaluations failed")
+            })?;
 
         Ok(result
             .into_query_result(&column_result_fields[..])
