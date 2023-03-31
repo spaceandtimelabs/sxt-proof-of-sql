@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 
 #[dyn_partial_eq]
-pub trait ProofExpr: Debug {
+pub trait ProofExpr: Debug + Send + Sync {
     /// Count terms used within the Query's proof
     fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor);
 
@@ -43,7 +43,7 @@ pub trait ProofExpr: Debug {
 }
 
 #[dyn_partial_eq]
-pub trait TransformExpr: Debug {
+pub trait TransformExpr: Debug + Send + Sync {
     /// Apply transformations to the resulting record batch
     fn transform_results(&self, result: RecordBatch) -> RecordBatch {
         result
