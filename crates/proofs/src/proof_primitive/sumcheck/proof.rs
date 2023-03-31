@@ -66,7 +66,9 @@ impl SumcheckProof {
             ),
         );
         if self.evaluations.len() != polynomial_info.num_variables {
-            return Err(ProofError::VerificationError);
+            return Err(ProofError::VerificationError(
+                "invalid number of evaluations",
+            ));
         }
         let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
         for round_index in 0..polynomial_info.num_variables {
