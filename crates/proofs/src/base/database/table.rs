@@ -20,6 +20,10 @@ impl TableRef {
     pub fn table_id(&self) -> Identifier {
         self.resource_id.object_name()
     }
+
+    pub fn resource_id(&self) -> ResourceId {
+        self.resource_id
+    }
 }
 
 impl FromStr for TableRef {
