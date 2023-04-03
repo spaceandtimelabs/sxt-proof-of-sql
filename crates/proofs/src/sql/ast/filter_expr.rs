@@ -24,7 +24,7 @@ pub struct FilterExpr {
 }
 
 impl FilterExpr {
-    /// Creates a new filter expression
+    /// Creates a new filter expression.
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
@@ -35,6 +35,11 @@ impl FilterExpr {
             table,
             where_clause,
         }
+    }
+
+    /// Returns the result expressions.
+    pub fn get_results(&self) -> &[FilterResultExpr] {
+        &self.results[..]
     }
 }
 

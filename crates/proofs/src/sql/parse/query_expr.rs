@@ -7,11 +7,20 @@ use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use std::fmt;
 
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(DynPartialEq, PartialEq)]
 pub struct QueryExpr {
     filter: Box<dyn ProofExpr>,
     result: Box<dyn TransformExpr>,
+}
+
+// Implements fmt::Debug to aid in debugging QueryExpr.
+// Prints filter and result fields in a readable format.
+impl fmt::Debug for QueryExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "QueryExpr \n[{:#?},\n{:#?}\n]", self.filter, self.result)
+    }
 }
 
 impl QueryExpr {
