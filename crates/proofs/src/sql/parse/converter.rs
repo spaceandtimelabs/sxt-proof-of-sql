@@ -1,13 +1,15 @@
+use super::ResultColumnAliasGraph;
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
 use crate::base::scalar::ToScalar;
 use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
 };
-use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr};
+use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr, ResultExprBuilder};
 use crate::sql::transform::ResultExpr;
 
 use curve25519_dalek::scalar::Scalar;
+use proofs_sql::intermediate_ast::OrderBy;
 use proofs_sql::intermediate_ast::{
     Expression, Literal, ResultColumn, SetExpression, TableExpression,
 };
@@ -18,6 +20,7 @@ use std::ops::Deref;
 pub struct Converter {
     /// The current table in context
     current_table: Option<TableRef>,
+    result_column_alias_graph: Option<ResultColumnAliasGraph>,
 }
 
 impl Converter {
@@ -52,8 +55,10 @@ impl Converter {
         let filter_expr =
             self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)?;
 
-        // TODO(joe): update this field to use the actual order_by
-        let result_expr = ResultExpr::default();
+        self.result_column_alias_graph =
+            Some(ResultColumnAliasGraph::new(filter_expr.get_results()));
+
+        let result_expr = self.build_result_expr(ast)?;
 
         Ok(QueryExpr::new(Box::new(filter_expr), Box::new(result_expr)))
     }
@@ -127,6 +132,108 @@ impl Converter {
         assert!(table_exprs.len() == 1);
 
         self.visit_table_expression(table_exprs[0].deref(), default_schema)
+    }
+}
+
+/// Utilities methods
+impl Converter {
+    fn check_ambiguous_alias_name(&self, alias_name: &Identifier) -> ConversionResult<()> {
+        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
+
+        if result_column_alias_graph
+            .get_alias_mapping(alias_name)
+            .expect("alias name must exist at this point")
+            .len()
+            != 1
+        {
+            // multiple column names associated with the same alias are not allowed
+            return Err(ConversionError::AmbiguousOrderByError(
+                alias_name.to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn try_to_remap_column_name_name_to_alias(
+        &self,
+        column_name: &Identifier,
+    ) -> ConversionResult<Identifier> {
+        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
+
+        // the same column name can be associated with multiple aliases
+        // this is the case when we have a `select a as b, c, a as d from T order by a`
+        // we pick the first alias available as order by should have the same effect in both cases
+        let alias_name = result_column_alias_graph
+            .get_name_mapping(column_name)
+            .map(|v| *v.iter().next().unwrap());
+
+        // we return an error if the `column_name` is not associated with any existing column name
+        alias_name.ok_or(ConversionError::InvalidOrderByError(
+            column_name.name().to_string(),
+            self.current_table.unwrap().table_id().name().to_string(),
+        ))
+    }
+
+    fn maybe_remap_column_name_to_alias(
+        &self,
+        maybe_column_name_or_alias: &Identifier,
+    ) -> ConversionResult<Identifier> {
+        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
+
+        // Check if `maybe_column_name_or_alias` is already associated with an alias name.
+        match result_column_alias_graph.get_alias_mapping(maybe_column_name_or_alias) {
+            Some(_) => {
+                // `maybe_column_name_or_alias` is an alias name.
+                // so it will reference the correct column in the result record batch.
+                let alias_name = *maybe_column_name_or_alias;
+
+                Ok(alias_name)
+            }
+            None => {
+                // `maybe_column_name_or_alias` may be a column name.
+                let maybe_column_name = maybe_column_name_or_alias;
+
+                // thus, we try to remap it to the alias name associated with column name.
+                self.try_to_remap_column_name_name_to_alias(maybe_column_name)
+            }
+        }
+    }
+}
+
+/// Build result expr
+impl Converter {
+    fn build_result_expr(&self, ast: &SelectStatement) -> ConversionResult<ResultExpr> {
+        Ok(ResultExprBuilder::default()
+            .order_by(self.visit_order_by(&ast.order_by[..])?)
+            .build())
+    }
+}
+
+// Order By
+impl Converter {
+    fn visit_order_by(&self, by_exprs: &[OrderBy]) -> ConversionResult<Vec<OrderBy>> {
+        let by_exprs = by_exprs
+            .iter()
+            .map(|by_expr| {
+                // `by_expr.expr` can be either an alias or a column name
+                // - if it's an alias, it will already be associated with the correct column
+                // - if it's a column name, we need to remap it to the alias name used in the result record batch
+                let alias_name = self.maybe_remap_column_name_to_alias(&by_expr.expr)?;
+
+                // check that the alias name is not ambiguous
+                // (i.e. that it's not associated with multiple and different column names)
+                self.check_ambiguous_alias_name(&alias_name)?;
+
+                // return a new `OrderBy` with the correct alias name
+                Ok(OrderBy {
+                    expr: alias_name,
+                    direction: by_expr.direction.clone(),
+                })
+            })
+            .collect::<ConversionResult<Vec<_>>>()?;
+
+        Ok(by_exprs)
     }
 }
 
