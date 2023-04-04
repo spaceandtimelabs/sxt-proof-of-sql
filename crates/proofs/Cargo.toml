@@ -20,7 +20,7 @@ byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 dyn_partial_eq = { workspace = true }
 hashbrown = { workspace = true }
-indexmap = { workspace = true, optional = true }
+indexmap = { workspace = true }
 integer-encoding = { workspace = true }
 merlin = { workspace = true }
 num-traits = { workspace = true }
@@ -36,7 +36,6 @@ tracing = { workspace = true, features = ["attributes"] }
 
 [dev_dependencies]
 criterion = "0.4"
-indexmap = { version = "1.9" }
 polars = { version = "0.25.1", features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"] }
 rand = { version = "0.7" }
 rand_core = { version = "0.5" }
@@ -48,4 +47,4 @@ name = "sumcheck"
 
 [features]
 default = []
-test = ["dep:rand", "dep:indexmap"]
+test = ["dep:rand"]
