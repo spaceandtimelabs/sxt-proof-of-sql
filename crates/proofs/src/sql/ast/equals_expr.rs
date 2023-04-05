@@ -10,6 +10,7 @@ use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use proofs_gpu::compute::get_one_commit;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::cmp::max;
 use std::collections::HashSet;
 
@@ -31,7 +32,7 @@ impl EqualsExpr {
         Self { value, column_ref }
     }
 
-    fn prover_evaluate_impl<'a, T: ToScalar>(
+    fn prover_evaluate_impl<'a, T: ToScalar + Sync>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
@@ -39,8 +40,10 @@ impl EqualsExpr {
         col: &'a [T],
     ) -> &'a [bool] {
         // lhs
-        let lhs =
-            alloc.alloc_slice_fill_with(counts.table_length, |i| col[i].to_scalar() - self.value);
+        let lhs = alloc.alloc_slice_fill_default(counts.table_length);
+        lhs.par_iter_mut()
+            .zip(col)
+            .for_each(|(a, b)| *a = b.to_scalar() - self.value);
         builder.produce_anchored_mle(lhs);
 
         // lhs_pseudo_inv
