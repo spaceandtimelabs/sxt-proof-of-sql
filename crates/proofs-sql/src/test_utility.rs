@@ -70,8 +70,16 @@ pub fn query_all(columns: Vec<Box<ResultColumn>>, tab: Box<TableExpression>) -> 
     })
 }
 
-pub fn select(expr: Box<SetExpression>, order_by: Vec<OrderBy>) -> SelectStatement {
-    SelectStatement { expr, order_by }
+pub fn select(
+    expr: Box<SetExpression>,
+    order_by: Vec<OrderBy>,
+    slice: Option<Slice>,
+) -> SelectStatement {
+    SelectStatement {
+        expr,
+        order_by,
+        slice,
+    }
 }
 
 pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
@@ -89,4 +97,11 @@ pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
             direction: dir.clone(),
         })
         .collect::<Vec<_>>()
+}
+
+pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
+    Some(Slice {
+        number_rows,
+        offset_value,
+    })
 }

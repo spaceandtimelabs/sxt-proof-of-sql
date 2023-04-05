@@ -82,6 +82,22 @@ pub enum OrderByDirection {
     Desc,
 }
 
+/// Limits for a limit clause
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct Slice {
+    /// number of rows to return
+    ///
+    /// if u64::MAX, specify all rows
+    pub number_rows: u64,
+
+    /// number of rows to skip
+    ///
+    /// if 0, specify the first row as starting point
+    /// if negative, specify the offset from the end
+    /// (e.g. -1 is the last row, -2 is the second to last row, etc.)
+    pub offset_value: i64,
+}
+
 /// Literal values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
