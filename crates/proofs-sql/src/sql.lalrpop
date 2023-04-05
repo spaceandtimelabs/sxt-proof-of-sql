@@ -13,10 +13,11 @@ grammar;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub SelectStatement: select_statement::SelectStatement = {
-    <expr: SelectCore>  <order_by: ("order" "by" <OrderByList>)?> => 
+    <expr: SelectCore> <order_by: ("order" "by" <OrderByList>)?> <slice: SliceClause?> => 
         select_statement::SelectStatement {
             expr,
-            order_by: order_by.unwrap_or(vec![])
+            order_by: order_by.unwrap_or(vec![]),
+            slice
         },
 };
 
@@ -24,6 +25,11 @@ SelectCore: Box<intermediate_ast::SetExpression> = {
     "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> =>
         Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
 };
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Order By
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 OrderByList: Vec<intermediate_ast::OrderBy> = {
     <order_by: OrderByCore> => vec![<>],
@@ -39,6 +45,38 @@ OrderByCore: intermediate_ast::OrderBy = {
     <col_id: Identifier> "desc" => intermediate_ast::OrderBy {
             expr: col_id, direction: intermediate_ast::OrderByDirection::Desc,
     },
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Limit Clause
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+SliceClause: intermediate_ast::Slice = {
+    <limit: LimitClause> => intermediate_ast::Slice {
+        number_rows: limit,
+        offset_value: 0,
+    },
+    <offset: OffsetClause> => intermediate_ast::Slice {
+        number_rows: u64::MAX,
+        offset_value: offset,
+    },
+    <offset: OffsetClause> <number_rows: LimitClause> => intermediate_ast::Slice {
+        number_rows: number_rows,
+        offset_value: offset,
+    },
+    <number_rows: LimitClause> <offset: OffsetClause> => intermediate_ast::Slice {
+        number_rows: number_rows,
+        offset_value: offset,
+    },
+};
+
+LimitClause: u64 = {
+    "LIMIT" "ALL" => u64::MAX,
+    "LIMIT" <number_rows: UnsignedNumericLiteral> => number_rows,
+};
+
+OffsetClause: i64 = {
+    "OFFSET" <offset: SignedNumericLiteral> => offset,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,11 +188,11 @@ UnaryNumericLiteral: i64 = {
     UnaryNumericLiteralParen,
 
     #[precedence(level="1")]
-    NumericLiteral,
+    SignedNumericLiteral,
 
     #[precedence(level="2")] #[assoc(side="right")]
     "+" <expr: UnaryNumericLiteral> => expr,
-    "-" <expr: UnaryNumericLiteral> => -1 * expr,
+    "-" <expr: UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
 };
 
 StringLiteralParen: String = "(" <StringLiteral> ")";
@@ -185,8 +223,12 @@ pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
     Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
 };
 
-NumericLiteral: i64 = {
+SignedNumericLiteral: i64 = {
     NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),
+};
+
+UnsignedNumericLiteral: u64 = {
+    NUMERIC_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "Integer out of range"}),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,27 +236,20 @@ NumericLiteral: i64 = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 match {
+    r"(?i)all" => "ALL",
     r"(?i)asc" => "asc",
-
     r"(?i)desc" => "desc",
-
     r"(?i)as" => "as",
-
     r"(?i)and" => "and",
-    
     r"(?i)from" => "from",
-
     r"(?i)not" => "not",
-
     r"(?i)or" => "or",
-
     r"(?i)select" => "select",
-
     r"(?i)where" => "where",
-
     r"(?i)order" => "order",
-
     r"(?i)by" => "by",
+    r"(?i)limit" => "LIMIT",
+    r"(?i)offset" => "OFFSET",
 
     "," => ",",
     "." => ".",
