@@ -13,7 +13,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_positive_limit_value() {
         "d" => data_d.to_vec()
     );
 
-    let result_expr = composite_result(slice(limit as u64, 0));
+    let result_expr = composite_result(vec![slice(limit as u64, 0)]);
     let data_frame = result_expr.transform_results(data_frame);
 
     assert_eq!(
@@ -36,7 +36,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_zero_limit_value() {
         "d" => data_d.to_vec()
     );
 
-    let result_expr = composite_result(slice(limit as u64, 0));
+    let result_expr = composite_result(vec![slice(limit as u64, 0)]);
     let data_frame = result_expr.transform_results(data_frame);
 
     assert_eq!(
@@ -59,7 +59,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_positive_offset_value() {
         "d" => data_d.to_vec()
     );
 
-    let result_expr = composite_result(slice(u64::MAX, offset));
+    let result_expr = composite_result(vec![slice(u64::MAX, offset)]);
     let data_frame = result_expr.transform_results(data_frame);
 
     assert_eq!(
@@ -82,7 +82,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_negative_offset_value() {
         "d" => data_d.to_vec()
     );
 
-    let result_expr = composite_result(slice(u64::MAX, offset));
+    let result_expr = composite_result(vec![slice(u64::MAX, offset)]);
     let data_frame = result_expr.transform_results(data_frame);
 
     assert_eq!(
@@ -106,7 +106,7 @@ fn we_can_slice_a_lazy_frame_using_both_limit_and_offset_values() {
         "d" => data_d.to_vec()
     );
 
-    let result_expr = composite_result(slice(limit as u64, offset));
+    let result_expr = composite_result(vec![slice(limit as u64, offset)]);
     let data_frame = result_expr.transform_results(data_frame);
     let beg_expected_index = (data_a.len() as i64 + offset) as usize;
 

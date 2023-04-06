@@ -4,7 +4,7 @@ use crate::sql::ast::test_utility::{
     and, col_result, cols_result, const_v, equal, filter, not, or, tab,
 };
 use crate::sql::parse::{Converter, QueryExpr};
-use crate::sql::transform::test_utility::{composite_result, orders, result};
+use crate::sql::transform::test_utility::{composite_result, orders, result, slice};
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
 use arrow::record_batch::RecordBatch;
@@ -459,6 +459,9 @@ fn we_can_convert_an_ast_without_any_filter() {
     }
 }
 
+/////////////////////////
+/// OrderBy
+/////////////////////////
 #[test]
 fn we_can_parse_order_by_with_a_single_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
@@ -477,7 +480,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(orders(&["b"], &[Asc])),
+        composite_result(vec![orders(&["b"], &[Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -504,7 +507,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(orders(&["b", "a"], &[Desc, Asc])),
+        composite_result(vec![orders(&["b", "a"], &[Desc, Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -535,7 +538,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
             tab(t),
             equal(t, "salary", 5, &accessor),
         ),
-        composite_result(orders(&["salary"], &[Desc])),
+        composite_result(vec![orders(&["salary"], &[Desc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -561,7 +564,7 @@ fn we_can_parse_order_by_remapping_the_column_name_reference_to_an_existing_alia
             tab(t),
             const_v(true),
         ),
-        composite_result(orders(&["s"], &[Asc])),
+        composite_result(vec![orders(&["s"], &[Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -672,7 +675,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
             tab(t),
             const_v(true),
         ),
-        composite_result(orders(&["s"], &[Desc])),
+        composite_result(vec![orders(&["s"], &[Desc])]),
     );
     assert_eq!(ast, expected_ast);
 
@@ -696,4 +699,115 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
     assert!(Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
         .is_ok());
+}
+
+/////////////////////////
+// Slice
+/////////////////////////
+
+#[test]
+fn we_can_parse_a_query_having_a_simple_limit_clause() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        composite_result(vec![slice(3, 0)]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        composite_result(vec![slice(u64::MAX, 7)]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_having_a_negative_offset_clause() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        composite_result(vec![slice(u64::MAX, -7)]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        composite_result(vec![slice(55, 3)]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+///////////////////////////
+// Composition Expressions
+///////////////////////////
+#[test]
+fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by(
+) {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select a from sxt_tab where a = -3 order by a desc limit 55 offset 3",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", -3, &accessor),
+        ),
+        composite_result(vec![orders(&["a"], &[Desc]), slice(55, 3)]),
+    );
+    assert_eq!(ast, expected_ast);
 }
