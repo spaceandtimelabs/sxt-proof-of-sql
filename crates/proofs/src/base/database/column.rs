@@ -68,6 +68,29 @@ impl TryFrom<DataType> for ColumnType {
     }
 }
 
+/// Display the column type as a str name (in all caps)
+impl std::fmt::Display for ColumnType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ColumnType::BigInt => write!(f, "BIGINT"),
+            ColumnType::VarChar => write!(f, "VARCHAR"),
+        }
+    }
+}
+
+/// Parse the column type from a str name (flexible about case)
+impl std::str::FromStr for ColumnType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "BIGINT" => Ok(ColumnType::BigInt),
+            "VARCHAR" => Ok(ColumnType::VarChar),
+            _ => Err(format!("Unsupported column type {:?}", s)),
+        }
+    }
+}
+
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
 pub struct ColumnRef {
@@ -188,5 +211,16 @@ mod tests {
 
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Varchar""#);
         assert!(deserialized.is_err());
+    }
+
+    #[test]
+    fn we_can_convert_columntype_to_string_and_back_with_display_and_parse() {
+        assert_eq!(format!("{}", ColumnType::BigInt), "BIGINT");
+        assert_eq!(format!("{}", ColumnType::VarChar), "VARCHAR");
+        assert_eq!("BIGINT".parse::<ColumnType>().unwrap(), ColumnType::BigInt);
+        assert_eq!(
+            "VARCHAR".parse::<ColumnType>().unwrap(),
+            ColumnType::VarChar
+        );
     }
 }
