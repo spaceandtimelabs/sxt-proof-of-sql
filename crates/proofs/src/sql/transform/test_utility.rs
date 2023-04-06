@@ -8,10 +8,14 @@ pub fn result() -> Box<ResultExpr> {
     Box::default()
 }
 
-pub fn composite_result(tranformations: Box<dyn DataFrameExpr>) -> Box<ResultExpr> {
-    Box::new(ResultExpr::new(Box::new(CompositionExpr::new(
-        tranformations,
-    ))))
+pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> Box<ResultExpr> {
+    let mut composition = CompositionExpr::default();
+
+    for transformation in transformations {
+        composition.add(transformation);
+    }
+
+    Box::new(ResultExpr::new(Box::new(composition)))
 }
 
 pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFrameExpr> {
