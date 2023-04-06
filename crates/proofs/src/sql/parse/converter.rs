@@ -204,9 +204,15 @@ impl Converter {
 /// Build result expr
 impl Converter {
     fn build_result_expr(&self, ast: &SelectStatement) -> ConversionResult<ResultExpr> {
-        Ok(ResultExprBuilder::default()
-            .order_by(self.visit_order_by(&ast.order_by[..])?)
-            .build())
+        let mut result_expr_builder = ResultExprBuilder::default();
+
+        result_expr_builder.add_order_by(self.visit_order_by(&ast.order_by[..])?);
+
+        if let Some(slice) = &ast.slice {
+            result_expr_builder.add_slice(slice.number_rows, slice.offset_value);
+        }
+
+        Ok(result_expr_builder.build())
     }
 }
 

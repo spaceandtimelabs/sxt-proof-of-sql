@@ -6,7 +6,7 @@ use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 #[test]
 fn we_can_transform_a_result_using_a_single_order_by_in_ascending_direction() {
     let data = record_batch!("c" => [1, -5, 2], "a" => ["a", "d", "b"]);
-    let result_expr = composite_result(orders(&["a"], &[Asc]));
+    let result_expr = composite_result(vec![orders(&["a"], &[Asc])]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("c" => [1, 2, -5], "a" => ["a", "b", "d"]);
     assert_eq!(data, expected_data);
@@ -15,7 +15,7 @@ fn we_can_transform_a_result_using_a_single_order_by_in_ascending_direction() {
 #[test]
 fn we_can_transform_a_result_using_a_single_order_by_in_descending_direction() {
     let data = record_batch!("c" => [1, -5, 2], "a" => ["a", "d", "b"]);
-    let result_expr = composite_result(orders(&["c"], &[Desc]));
+    let result_expr = composite_result(vec![orders(&["c"], &[Desc])]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("c" => [2, 1, -5], "a" => ["b", "a", "d"]);
     assert_eq!(data, expected_data);
@@ -27,7 +27,7 @@ fn we_can_transform_a_result_ordering_by_the_first_column_then_the_second_column
         "a" => [123, 342, -234, 777, 123, 34],
         "d" => ["alfa", "beta", "abc", "f", "kl", "f"]
     );
-    let result_expr = composite_result(orders(&["a", "d"], &[Desc, Desc]));
+    let result_expr = composite_result(vec![orders(&["a", "d"], &[Desc, Desc])]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!(
         "a" => [777, 342, 123, 123, 34, -234],
@@ -42,7 +42,7 @@ fn we_can_transform_a_result_ordering_by_the_second_column_then_the_first_column
         "a" => [123, 342, -234, 777, 123, 34],
         "d" => ["alfa", "beta", "abc", "f", "kl", "f"]
     );
-    let result_expr = composite_result(orders(&["d", "a"], &[Desc, Asc]));
+    let result_expr = composite_result(vec![orders(&["d", "a"], &[Desc, Asc])]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!(
         "a" => [123, 34, 777, 342, 123, -234],
