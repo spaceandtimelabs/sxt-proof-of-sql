@@ -1,4 +1,4 @@
-use super::{OrderByExprs, ResultExpr};
+use super::{OrderByExprs, ResultExpr, SliceExpr};
 use crate::sql::transform::CompositionExpr;
 use crate::sql::transform::DataFrameExpr;
 
@@ -25,4 +25,8 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFra
         .collect();
 
     Box::new(OrderByExprs::new(by_exprs))
+}
+
+pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
+    Box::new(SliceExpr::new(limit, offset))
 }
