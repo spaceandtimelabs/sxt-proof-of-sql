@@ -24,7 +24,7 @@ indexmap = { workspace = true }
 integer-encoding = { workspace = true }
 merlin = { workspace = true }
 num-traits = { workspace = true }
-polars = { workspace = true, features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex"] }
+polars = { workspace = true, features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex", "bigidx"] }
 postcard = { workspace = true, features = ["alloc"] }
 proofs-gpu = { workspace = true }
 proofs-sql = { workspace = true }
