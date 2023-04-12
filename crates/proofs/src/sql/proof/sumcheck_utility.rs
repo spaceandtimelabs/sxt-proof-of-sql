@@ -9,6 +9,11 @@ use std::rc::Rc;
 /// Note: Currently our sumcheck algorithm doesn't support working on MLEs in-place
 /// so we use this function to copy and convert the MLE into a form that works with
 /// sumcheck.
+#[tracing::instrument(
+    name = "proofs.sql.proof.sumcheck_utility.make_sumcheck_term",
+    level = "info",
+    skip_all
+)]
 pub fn make_sumcheck_term<T: ToScalar + Sync>(
     num_vars: usize,
     values: &[T],

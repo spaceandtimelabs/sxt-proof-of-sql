@@ -49,7 +49,7 @@ impl SumcheckProof {
 
     #[tracing::instrument(
         name = "proofs.proof_primitive.sumcheck.proof.verify_without_evaluation",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn verify_without_evaluation(

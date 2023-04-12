@@ -12,6 +12,11 @@ use crate::base::polynomial::{
 };
 use crate::proof_primitive::sumcheck::ProverState;
 
+#[tracing::instrument(
+    name = "proofs.proof_primitive.sumcheck.prover_round.prove_round",
+    level = "info",
+    skip_all
+)]
 pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> Vec<Scalar> {
     if let Some(r) = r_maybe {
         if prover_state.round == 0 {

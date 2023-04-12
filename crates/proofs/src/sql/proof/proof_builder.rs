@@ -22,7 +22,7 @@ pub struct ProofBuilder<'a> {
 }
 
 impl<'a> ProofBuilder<'a> {
-    #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "info", skip_all)]
+    #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
     pub fn new(counts: &ProofCounts) -> Self {
         Self {
             table_length: counts.table_length,
@@ -40,7 +40,7 @@ impl<'a> ProofBuilder<'a> {
     /// An anchored MLE is an MLE where the verifier has access to the commitment.
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.produce_anchored_mle",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn produce_anchored_mle<T: ToScalar + Sync>(&mut self, data: &'a [T]) {
@@ -55,7 +55,7 @@ impl<'a> ProofBuilder<'a> {
     /// commit to the MLE before we form the sumcheck polynomial.
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.produce_intermediate_mle",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn produce_intermediate_mle<T: ToScalar + Sync>(&mut self, data: &'a [T]) {
@@ -74,7 +74,7 @@ impl<'a> ProofBuilder<'a> {
     /// values of the variables is zero.
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.produce_sumcheck_subpolynomial",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn produce_sumcheck_subpolynomial(&mut self, group: SumcheckSubpolynomial) {
@@ -85,7 +85,7 @@ impl<'a> ProofBuilder<'a> {
     /// Set the indexes of the rows select in the result
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.set_result_indexes",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn set_result_indexes(&mut self, result_index_vector: &'a [u64]) {
@@ -95,7 +95,7 @@ impl<'a> ProofBuilder<'a> {
     /// Produce an intermediate result column that will be sent to the verifier.
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.produce_result_column",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn produce_result_column(&mut self, col: Box<dyn ProvableResultColumn + 'a>) {
@@ -126,7 +126,7 @@ impl<'a> ProofBuilder<'a> {
     /// Construct the intermediate query result to be sent to the verifier.
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.make_provable_query_result",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn make_provable_query_result(&self) -> ProvableQueryResult {
