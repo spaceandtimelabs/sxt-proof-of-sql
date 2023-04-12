@@ -70,7 +70,8 @@ impl QueryProof {
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
         // evaluate the MLEs used in sumcheck except for the result columns
-        let evaluation_vec = compute_evaluation_vector(&evaluation_point);
+        let mut evaluation_vec = vec![Scalar::zero(); counts.table_length];
+        compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
         let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
@@ -155,7 +156,9 @@ impl QueryProof {
             poly_info,
             &Scalar::zero(),
         )?;
-        let evaluation_vec = compute_evaluation_vector(&subclaim.evaluation_point);
+        // evaluate the MLEs used in sumcheck except for the result columns
+        let mut evaluation_vec = vec![Scalar::zero(); counts.table_length];
+        compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
         transcript.append_scalars(

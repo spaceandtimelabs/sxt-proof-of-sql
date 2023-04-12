@@ -3,6 +3,7 @@ use super::{
     QueryProof, SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
+use crate::base::math::log2_up;
 use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
@@ -11,13 +12,14 @@ use bumpalo::Bump;
 use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
 use std::sync::Arc;
 
-fn verify_a_trivial_query_proof_with_given_offset(offset_generators: usize) {
+fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {
+    let num_sumcheck_variables = std::cmp::max(log2_up(n), 1);
     // prove and verify an artificial polynomial where we prove
     // that every entry in the result is zero
     let counts = ProofCounts {
-        table_length: 2,
+        table_length: n,
         offset_generators,
-        sumcheck_variables: 1,
+        sumcheck_variables: num_sumcheck_variables,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -26,14 +28,17 @@ fn verify_a_trivial_query_proof_with_given_offset(offset_generators: usize) {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _counts: &ProofCounts,
+        counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
+        let col = alloc.alloc_slice_fill_copy(counts.table_length, 0i64);
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
+        let terms = vec![(
+            Scalar::one(),
+            vec![make_sumcheck_term(counts.sumcheck_variables, col)],
+        )];
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
     }
     fn verifier_eval(
@@ -68,12 +73,16 @@ fn verify_a_trivial_query_proof_with_given_offset(offset_generators: usize) {
 
 #[test]
 fn we_can_verify_a_trivial_query_proof_with_a_zero_offset() {
-    verify_a_trivial_query_proof_with_given_offset(0);
+    for n in 1..5 {
+        verify_a_trivial_query_proof_with_given_offset(n, 0);
+    }
 }
 
 #[test]
 fn we_can_verify_a_trivial_query_proof_with_a_non_zero_offset() {
-    verify_a_trivial_query_proof_with_given_offset(123);
+    for n in 1..5 {
+        verify_a_trivial_query_proof_with_given_offset(n, 123);
+    }
 }
 
 #[test]
