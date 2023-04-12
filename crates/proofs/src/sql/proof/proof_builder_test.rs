@@ -81,6 +81,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        table_length: 4,
         ..Default::default()
     };
     let mle1 = [1, 2, -1];
@@ -166,6 +167,7 @@ fn we_can_fold_pre_result_mles() {
         sumcheck_variables: 1,
         anchored_mles: 1,
         intermediate_mles: 1,
+        table_length: 2,
         ..Default::default()
     };
     let mle1 = [1, 2];

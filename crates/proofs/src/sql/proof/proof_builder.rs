@@ -12,6 +12,7 @@ use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::I
 /// Track components used to form a query's proof
 #[allow(dead_code)]
 pub struct ProofBuilder<'a> {
+    table_length: usize,
     num_sumcheck_variables: usize,
     result_index_vector: &'a [u64],
     result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
@@ -24,6 +25,7 @@ impl<'a> ProofBuilder<'a> {
     #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "info", skip_all)]
     pub fn new(counts: &ProofCounts) -> Self {
         Self {
+            table_length: counts.table_length,
             num_sumcheck_variables: counts.sumcheck_variables,
             result_index_vector: &[],
             result_columns: Vec::with_capacity(counts.result_columns),
@@ -181,7 +183,7 @@ impl<'a> ProofBuilder<'a> {
     pub fn fold_pre_result_mles(&self, multipliers: &[Scalar]) -> Vec<Scalar> {
         assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
-        let mut res = vec![Scalar::zero(); 1 << self.num_sumcheck_variables];
+        let mut res = vec![Scalar::zero(); self.table_length];
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
             evaluator.mul_add(&mut res, multiplier);
         }
