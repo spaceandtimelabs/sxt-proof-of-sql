@@ -25,6 +25,11 @@ impl BoolExpr for NotExpr {
         self.expr.count(counts);
     }
 
+    #[tracing::instrument(
+        name = "proofs.sql.ast.not_expr.prover_evaluate",
+        level = "info",
+        skip_all
+    )]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,

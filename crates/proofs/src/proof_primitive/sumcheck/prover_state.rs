@@ -21,6 +21,11 @@ pub struct ProverState {
 }
 
 impl ProverState {
+    #[tracing::instrument(
+        name = "proofs.proof_primitive.sumcheck.prover_state.create",
+        level = "info",
+        skip_all
+    )]
     pub fn create(polynomial: &CompositePolynomial) -> ProverState {
         if polynomial.num_variables == 0 {
             panic!("Attempt to prove a constant.")
