@@ -240,7 +240,7 @@ impl QueryProof {
 
 #[tracing::instrument(
     name = "proofs.sql.proof.query_proof.make_transcript",
-    level = "info",
+    level = "debug",
     skip_all
 )]
 fn make_transcript(

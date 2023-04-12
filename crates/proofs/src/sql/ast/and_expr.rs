@@ -34,6 +34,11 @@ impl BoolExpr for AndExpr {
         counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
     }
 
+    #[tracing::instrument(
+        name = "proofs.sql.ast.and_expr.prover_evaluate",
+        level = "info",
+        skip_all
+    )]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,

@@ -29,7 +29,7 @@ impl ProvableQueryResult {
     /// Form intermediate query result from index rows and result columns
     #[tracing::instrument(
         name = "proofs.sql.proof.provable_query_result.new",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn new<'a>(indexes: &'a [u64], columns: &'a [Box<dyn ProvableResultColumn + 'a>]) -> Self {
@@ -53,7 +53,7 @@ impl ProvableQueryResult {
     /// columns as spare multilinear extensions
     #[tracing::instrument(
         name = "proofs.sql.proof.provable_query_result.evaluate",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn evaluate(
@@ -94,7 +94,7 @@ impl ProvableQueryResult {
     /// Convert the intermediate query result into a final query result
     #[tracing::instrument(
         name = "proofs.sql.proof.provable_query_result.into_query_result",
-        level = "info",
+        level = "debug",
         skip_all
     )]
     pub fn into_query_result(&self, column_result_fields: &[ColumnField]) -> QueryResult {

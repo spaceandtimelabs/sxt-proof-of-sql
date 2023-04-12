@@ -33,6 +33,11 @@ impl ConstBoolExpr {
 impl BoolExpr for ConstBoolExpr {
     fn count(&self, _counts: &mut ProofCounts) {}
 
+    #[tracing::instrument(
+        name = "proofs.sql.ast.const_bool_expr.prover_evaluate",
+        level = "info",
+        skip_all
+    )]
     fn prover_evaluate<'a>(
         &self,
         _builder: &mut ProofBuilder<'a>,

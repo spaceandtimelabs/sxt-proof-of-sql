@@ -13,6 +13,11 @@ const MIN_CHUNKING_SIZE: usize = 64; // The minimum size for which we should act
 ///
 /// Warning:
 /// - both `input` and `res` must have the same length
+#[tracing::instrument(
+    name = "proofs.base.scalar.batch_pseudo_inverse.batch_pseudo_invert",
+    level = "info",
+    skip_all
+)]
 pub fn batch_pseudo_invert(res: &mut [Scalar], input: &[Scalar]) {
     assert_eq!(res.len(), input.len());
 

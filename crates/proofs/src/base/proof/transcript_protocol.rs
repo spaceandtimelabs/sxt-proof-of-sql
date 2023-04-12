@@ -92,11 +92,22 @@ impl TranscriptProtocol for Transcript {
         Scalar::from_bytes_mod_order_wide(&buf)
     }
 
+    #[tracing::instrument(
+        name = "proofs.base.proof.transcript_protocol.challenge_scalars",
+        level = "info",
+        skip_all
+    )]
     fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel) {
         let n = scalars.len();
 
         let mut buf = vec![0u8; n * 64];
+        let span = tracing::span!(
+            tracing::Level::INFO,
+            "proofs.base.proof.transcript_protocol.challenge_scalars.challenge_bytes"
+        )
+        .entered();
         self.challenge_bytes(label.as_bytes(), &mut buf);
+        span.exit();
         for (i, scalar) in scalars.iter_mut().enumerate().take(n) {
             let s = i * 64;
             let t = s + 64;
