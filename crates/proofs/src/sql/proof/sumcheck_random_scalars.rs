@@ -12,7 +12,7 @@ impl<'a> SumcheckRandomScalars<'a> {
     pub fn new(counts: &ProofCounts, scalars: &'a [Scalar]) -> Self {
         assert_eq!(scalars.len(), SumcheckRandomScalars::count(counts));
         let (entrywise_multipliers, subpolynomial_multipliers) =
-            scalars.split_at(1 << counts.sumcheck_variables);
+            scalars.split_at(counts.table_length);
         Self {
             entrywise_multipliers,
             subpolynomial_multipliers,
@@ -21,6 +21,6 @@ impl<'a> SumcheckRandomScalars<'a> {
 
     /// Count the number of random scalars required for sumcheck
     pub fn count(counts: &ProofCounts) -> usize {
-        (1 << counts.sumcheck_variables) + counts.sumcheck_subpolynomials
+        counts.table_length + counts.sumcheck_subpolynomials
     }
 }

@@ -6,7 +6,9 @@ use super::{
 use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
+use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::traits::Identity;
 
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
 /// verification fails.
@@ -48,12 +50,23 @@ pub fn exercise_verification(
     }
 
     // try changing the offset
-    let offset_generators = accessor.get_offset(table_ref);
-    let mut fake_accessor = accessor.clone();
-    fake_accessor.update_offset(table_ref, offset_generators);
-    res.verify(expr, &fake_accessor).unwrap().unwrap();
-    fake_accessor.update_offset(table_ref, offset_generators + 1);
-    assert!(res.verify(expr, &fake_accessor).is_err());
+    //
+    // Note: in the n = 1 case with proof.commmitments all the identity element,
+    // the inner product proof isn't dependent on the generators since it simply sends the input
+    // vector; hence, changing the offset would have no effect.
+    if accessor.get_length(table_ref) > 1
+        || proof
+            .commitments
+            .iter()
+            .any(|&c| c != CompressedRistretto::identity())
+    {
+        let offset_generators = accessor.get_offset(table_ref);
+        let mut fake_accessor = accessor.clone();
+        fake_accessor.update_offset(table_ref, offset_generators);
+        res.verify(expr, &fake_accessor).unwrap().unwrap();
+        fake_accessor.update_offset(table_ref, offset_generators + 1);
+        assert!(res.verify(expr, &fake_accessor).is_err());
+    }
 }
 
 fn tamper_no_result(
