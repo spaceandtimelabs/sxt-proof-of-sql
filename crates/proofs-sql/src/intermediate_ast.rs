@@ -12,22 +12,44 @@ use crate::Identifier;
 pub enum SetExpression {
     /// Query result as `SetExpression`
     Query {
-        columns: Vec<Box<ResultColumn>>,
+        columns: Vec<ResultColumnExpr>,
         from: Vec<Box<TableExpression>>,
         where_expr: Option<Box<Expression>>,
+        group_by: Vec<Identifier>,
     },
+}
+
+/// Representation of a single result column
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct ResultColumn {
+    /// The name of the column
+    pub name: Identifier,
+    /// The alias of the column
+    pub alias: Identifier,
 }
 
 /// Representation of a single result column specification
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum ResultColumn {
+pub enum ResultColumnExpr {
     /// All column expressions
-    All,
-    /// A column expression
-    Expr {
-        expr: Identifier,
-        output_name: Identifier,
-    },
+    AllColumns,
+    /// A simple column expression
+    SimpleColumn(ResultColumn),
+    /// An aggregation expression
+    AggColumn(AggExpr),
+}
+
+/// Representation of an aggregation expression
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum AggExpr {
+    /// An aggregation expression associated with max(expr)
+    Max(ResultColumn),
+    /// An aggregation expression associated with min(expr)
+    Min(ResultColumn),
+    /// An aggregation expression associated with count(expr)
+    Count(ResultColumn),
+    /// An aggregation expression associated with count(*)
+    CountAll(Identifier),
 }
 
 /// Representations of base queries
