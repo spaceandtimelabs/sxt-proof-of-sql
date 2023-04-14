@@ -11,7 +11,7 @@ use crate::sql::transform::ResultExpr;
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::intermediate_ast::OrderBy;
 use proofs_sql::intermediate_ast::{
-    Expression, Literal, ResultColumn, SetExpression, TableExpression,
+    Expression, Literal, ResultColumn, ResultColumnExpr, SetExpression, TableExpression,
 };
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::ops::Deref;
@@ -78,6 +78,7 @@ impl Converter {
                 columns,
                 from,
                 where_expr,
+                group_by: _,
             } => {
                 // we should always visit table_expr first, as we need to know the current table name
                 let table = self.visit_table_expressions(&from[..], default_schema);
@@ -245,7 +246,7 @@ impl Converter {
 
 /// Result expression
 impl Converter {
-    /// Convert a `ResultColumn::All` into a `Vec<FilterResultExpr>`
+    /// Convert a `ResultColumnExpr::All` into a `Vec<FilterResultExpr>`
     fn visit_result_column_all(
         &self,
         schema_accessor: &dyn SchemaAccessor,
@@ -267,7 +268,7 @@ impl Converter {
             .collect())
     }
 
-    /// Convert a `ResultColumn::Expr` into a `FilterResultExpr`
+    /// Convert a `ResultColumnExpr::Expr` into a `FilterResultExpr`
     fn visit_result_column_expression(
         &self,
         column_name: Identifier,
@@ -278,28 +279,29 @@ impl Converter {
         Ok(FilterResultExpr::new(result_expr, output_name))
     }
 
-    /// Convert a `ResultColumn` into a `Vec<FilterResultExpr>`
+    /// Convert a `ResultColumnExpr` into a `Vec<FilterResultExpr>`
     fn visit_result_column(
         &self,
-        result_column: &ResultColumn,
+        result_column: &ResultColumnExpr,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<FilterResultExpr>> {
         match result_column {
-            ResultColumn::All => self.visit_result_column_all(schema_accessor),
-            ResultColumn::Expr { expr, output_name } => {
+            ResultColumnExpr::AllColumns => self.visit_result_column_all(schema_accessor),
+            ResultColumnExpr::SimpleColumn(ResultColumn { name, alias }) => {
                 Ok(vec![self.visit_result_column_expression(
-                    *expr,
-                    *output_name,
+                    *name,
+                    *alias,
                     schema_accessor,
                 )?])
             }
+            _ => todo!(),
         }
     }
 
-    /// Convert a `ResultColumn slice` into a `Vec<FilterResultExpr>`
+    /// Convert a `ResultColumnExpr slice` into a `Vec<FilterResultExpr>`
     fn visit_result_columns(
         &self,
-        result_columns: &[Box<ResultColumn>],
+        result_columns: &[ResultColumnExpr],
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<FilterResultExpr>> {
         assert!(!result_columns.is_empty());
