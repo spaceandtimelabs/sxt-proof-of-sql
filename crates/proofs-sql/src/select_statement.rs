@@ -54,6 +54,7 @@ impl SelectStatement {
                 columns: _,
                 from,
                 where_expr: _,
+                group_by: _,
             } => convert_table_expr_to_resource_id_vector(&from[..], default_schema),
         }
     }

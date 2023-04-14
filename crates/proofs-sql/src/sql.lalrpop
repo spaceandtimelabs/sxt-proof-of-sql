@@ -17,15 +17,14 @@ pub SelectStatement: select_statement::SelectStatement = {
         select_statement::SelectStatement {
             expr,
             order_by: order_by.unwrap_or(vec![]),
-            slice
+            slice,
         },
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> =>
-        Box::new(intermediate_ast::SetExpression::Query{ columns, from, where_expr }),
+    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
+        Box::new(intermediate_ast::SetExpression::Query { columns, from, where_expr, group_by: group_by.unwrap_or(vec![]) }),
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Order By
@@ -71,32 +70,79 @@ SliceClause: intermediate_ast::Slice = {
 };
 
 LimitClause: u64 = {
-    "LIMIT" "ALL" => u64::MAX,
-    "LIMIT" <number_rows: UnsignedNumericLiteral> => number_rows,
+    "limit" "all" => u64::MAX,
+    "limit" <number_rows: UnsignedNumericLiteral> => number_rows,
 };
 
 OffsetClause: i64 = {
-    "OFFSET" <offset: SignedNumericLiteral> => offset,
+    "offset" <offset: SignedNumericLiteral> => offset,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Group By
+////////////////////////////////////////////////////////////////////////////////////////////////
+GroupByClause: Vec<identifier::Identifier> = {
+    "group" "by" <group_by_list: GroupByList> => group_by_list, 
+};
+
+GroupByList: Vec<identifier::Identifier> = {
+    <group_by: GroupByCore> => vec![<>],
+
+    <group_by_list: GroupByList> "," <group_by: GroupByCore> => intermediate_ast::append(group_by_list, group_by),    
+};
+
+GroupByCore: identifier::Identifier = {
+    <col_id: Identifier> => col_id,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Result Columns
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-ResultColumnList: Vec<Box<intermediate_ast::ResultColumn>> = {
-    ResultColumn => vec![<>],
+ResultColumnList: Vec<intermediate_ast::ResultColumnExpr> = {
+    ResultColumnExpr => vec![<>],
 
-    <columns: ResultColumnList> "," <column: ResultColumn> => intermediate_ast::append(columns, column),
+    <columns: ResultColumnList> "," <column: ResultColumnExpr> => intermediate_ast::append(columns, column),
 };
 
-ResultColumn: Box<intermediate_ast::ResultColumn> = {
-    "*" => Box::new(intermediate_ast::ResultColumn::All),
+ResultColumnExpr: intermediate_ast::ResultColumnExpr = {
+    "*" => intermediate_ast::ResultColumnExpr::AllColumns,
 
-    <expr: QualifiedColumnIdentifier> => Box::new(intermediate_ast::ResultColumn::Expr { expr: expr.clone(), output_name: expr }),
+    <name: QualifiedColumnIdentifier> <alias: ("as"? <Identifier>)?>  =>
+            intermediate_ast::ResultColumnExpr::SimpleColumn(
+                intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(name) }),
 
-    <expr: QualifiedColumnIdentifier> "as"? <output_name: Identifier>  =>
-            Box::new(intermediate_ast::ResultColumn::Expr { expr, output_name: output_name }),
+    <agg_expr: AggExpr> => intermediate_ast::ResultColumnExpr::AggColumn(agg_expr),
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Aggregation Expressions
+////////////////////////////////////////////////////////////////////////////////////////////////
+AggExpr: intermediate_ast::AggExpr = {
+    // TODO: for now, we use alias `__max__` instead of `max` because `max` is a reserved word.
+    "max" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AggExpr::Max(intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__max__")) }),
+
+    // TODO: for now, we use alias `__min__` instead of `min` because `min` is a reserved word.
+    "min" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AggExpr::Min(
+            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__min__")) }
+        ),
+
+    // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
+    "count" "(" "*" ")" <alias: ("as"? <Identifier>)?>  =>
+        intermediate_ast::AggExpr::CountAll(alias.unwrap_or(identifier::Identifier::new("__count__"))),
+
+    // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
+    "count" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AggExpr::Count(
+            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__count__")) }
+        ),
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// QualifiedColumnIdentifier (used by result column and where_expr columns)
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Note: we are adding a new `QualifiedColumnIdentifierParen` rule
 // solely for the purpose of overcoming LALRPOP restrictions.
@@ -236,7 +282,7 @@ UnsignedNumericLiteral: u64 = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 match {
-    r"(?i)all" => "ALL",
+    r"(?i)all" => "all",
     r"(?i)asc" => "asc",
     r"(?i)desc" => "desc",
     r"(?i)as" => "as",
@@ -248,8 +294,12 @@ match {
     r"(?i)where" => "where",
     r"(?i)order" => "order",
     r"(?i)by" => "by",
-    r"(?i)limit" => "LIMIT",
-    r"(?i)offset" => "OFFSET",
+    r"(?i)limit" => "limit",
+    r"(?i)offset" => "offset",
+    r"(?i)group" => "group",
+    r"(?i)min" => "min",
+    r"(?i)max" => "max",
+    r"(?i)count" => "count",
 
     "," => ",",
     "." => ".",
