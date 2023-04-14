@@ -146,7 +146,10 @@ impl<'a> ProofBuilder<'a> {
             self.sumcheck_subpolynomials.capacity()
         );
         let mut res = CompositePolynomial::new(self.num_sumcheck_variables);
-        let fr = make_sumcheck_term(self.num_sumcheck_variables, scalars.entrywise_multipliers);
+        let fr = make_sumcheck_term(
+            self.num_sumcheck_variables,
+            &scalars.compute_entrywise_multipliers(),
+        );
         for (multiplier, subpoly) in scalars
             .subpolynomial_multipliers
             .iter()

@@ -191,7 +191,7 @@ impl QueryProof {
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             counts.table_length,
             &evaluation_vec,
-            sumcheck_random_scalars.entrywise_multipliers,
+            &sumcheck_random_scalars.compute_entrywise_multipliers(),
             &self.pre_result_mle_evaluations,
             &result_evaluations,
         );
