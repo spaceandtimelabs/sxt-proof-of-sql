@@ -30,7 +30,7 @@ impl<'a> SumcheckMleEvaluations<'a> {
         result_evaluations: &'a [Scalar],
     ) -> Self {
         assert_eq!(evaluation_vec.len(), entrywise_random_scalars.len());
-        assert!(table_length <= evaluation_vec.len());
+        assert_eq!(table_length, evaluation_vec.len());
         let mut random_evaluation = Scalar::zero();
         for (ei, ri) in evaluation_vec.iter().zip(entrywise_random_scalars.iter()) {
             random_evaluation += ei * ri;

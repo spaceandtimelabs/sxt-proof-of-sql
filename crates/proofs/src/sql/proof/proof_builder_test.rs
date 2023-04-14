@@ -6,6 +6,7 @@ use super::{
 use crate::base::database::{ColumnField, ColumnType};
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::compute_commitment_for_testing;
+use crate::sql::proof::compute_evaluation_vector;
 
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
@@ -105,21 +106,23 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let multipliers = [
         Scalar::from(5u64),
         Scalar::from(2u64),
-        Scalar::from(20u64),
-        Scalar::from(100u64),
         Scalar::from(50u64),
         Scalar::from(25u64),
     ];
+
+    let mut evaluation_vector = vec![Scalar::zero(); 4];
+    compute_evaluation_vector(&mut evaluation_vector, &multipliers[..2]);
+
     let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&counts, &multipliers));
     let mut expected_poly = CompositePolynomial::new(2);
-    let fr = make_sumcheck_term(2, &multipliers[..4]);
+    let fr = make_sumcheck_term(2, &evaluation_vector);
     expected_poly.add_product(
         [fr.clone(), make_sumcheck_term(2, &mle1)],
-        -Scalar::from(1u64) * multipliers[4],
+        -Scalar::from(1u64) * multipliers[2],
     );
     expected_poly.add_product(
         [fr, make_sumcheck_term(2, &mle2)],
-        -Scalar::from(10u64) * multipliers[5],
+        -Scalar::from(10u64) * multipliers[3],
     );
     let random_point = [Scalar::from(123u64), Scalar::from(101112u64)];
     let eval = poly.evaluate(&random_point);
