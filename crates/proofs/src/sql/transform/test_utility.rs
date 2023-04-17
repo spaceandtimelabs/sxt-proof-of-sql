@@ -6,7 +6,19 @@ use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection, ResultColumn};
 use proofs_sql::Identifier;
 
 pub fn result() -> Box<ResultExpr> {
-    Box::default()
+    let composition = CompositionExpr::default();
+
+    Box::new(ResultExpr::new_with_transformation(Box::new(composition)))
+}
+
+pub fn schema(columns: &[(&str, &str)]) -> Vec<ResultColumn> {
+    columns
+        .iter()
+        .map(|(name, alias)| ResultColumn {
+            name: name.parse().unwrap(),
+            alias: alias.parse().unwrap(),
+        })
+        .collect()
 }
 
 pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> Box<ResultExpr> {
@@ -16,7 +28,7 @@ pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> Box<Res
         composition.add(transformation);
     }
 
-    Box::new(ResultExpr::new(Box::new(composition)))
+    Box::new(ResultExpr::new_with_transformation(Box::new(composition)))
 }
 
 pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFrameExpr> {
