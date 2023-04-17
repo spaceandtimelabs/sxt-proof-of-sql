@@ -246,7 +246,7 @@ pub StringLiteral: String = {
     #[precedence(level="0")]
     StringLiteralParen,
 
-    STRING_LITERAL => <>[1..<>.len() - 1].to_string(),
+    STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
 };
 
 LiteralValue: Box<intermediate_ast::Literal> = {
@@ -313,5 +313,5 @@ match {
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,
-    r"'(?s)[^']*'" => STRING_LITERAL,
+    r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
 }
