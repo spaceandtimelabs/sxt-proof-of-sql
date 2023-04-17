@@ -1,3 +1,7 @@
+use super::{
+    compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
+    SumcheckRandomScalars,
+};
 use curve25519_dalek::scalar::Scalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
@@ -24,21 +28,22 @@ impl<'a> SumcheckMleEvaluations<'a> {
     )]
     pub fn new(
         table_length: usize,
-        evaluation_vec: &[Scalar],
-        entrywise_random_scalars: &[Scalar],
+        evaluation_point: &[Scalar],
+        sumcheck_random_scalars: &SumcheckRandomScalars,
         pre_result_evaluations: &'a [Scalar],
         result_evaluations: &'a [Scalar],
     ) -> Self {
-        assert_eq!(evaluation_vec.len(), entrywise_random_scalars.len());
-        assert_eq!(table_length, evaluation_vec.len());
-        let mut random_evaluation = Scalar::zero();
-        for (ei, ri) in evaluation_vec.iter().zip(entrywise_random_scalars.iter()) {
-            random_evaluation += ei * ri;
-        }
-        let mut one_evaluation = Scalar::zero();
-        for ei in evaluation_vec.iter().take(table_length) {
-            one_evaluation += ei;
-        }
+        assert_eq!(
+            evaluation_point.len(),
+            sumcheck_random_scalars.entrywise_point.len()
+        );
+        assert_eq!(table_length, sumcheck_random_scalars.table_length);
+        let random_evaluation = compute_truncated_lagrange_basis_inner_product(
+            table_length,
+            evaluation_point,
+            sumcheck_random_scalars.entrywise_point,
+        );
+        let one_evaluation = compute_truncated_lagrange_basis_sum(table_length, evaluation_point);
         Self {
             one_evaluation,
             random_evaluation,
