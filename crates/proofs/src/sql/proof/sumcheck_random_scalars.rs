@@ -4,9 +4,9 @@ use curve25519_dalek::scalar::Scalar;
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
 pub struct SumcheckRandomScalars<'a> {
-    entrywise_point: &'a [Scalar],
+    pub entrywise_point: &'a [Scalar],
     pub subpolynomial_multipliers: &'a [Scalar],
-    table_length: usize,
+    pub table_length: usize,
 }
 
 impl<'a> SumcheckRandomScalars<'a> {

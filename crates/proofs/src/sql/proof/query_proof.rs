@@ -190,8 +190,8 @@ impl QueryProof {
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             counts.table_length,
-            &evaluation_vec,
-            &sumcheck_random_scalars.compute_entrywise_multipliers(),
+            &subclaim.evaluation_point,
+            &sumcheck_random_scalars,
             &self.pre_result_mle_evaluations,
             &result_evaluations,
         );
