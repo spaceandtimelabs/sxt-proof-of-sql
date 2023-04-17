@@ -32,10 +32,9 @@ impl ResultExprBuilder {
 
     /// Build a `ResultExpr` from the current state of the builder.
     pub fn build(self) -> ResultExpr {
-        if self.composition.is_empty() {
-            return ResultExpr::default();
-        }
+        // TODO: add `assert!(!self.composition.is_empty());` here
+        // when we actually start using `result_schema` in the Converter code
 
-        ResultExpr::new(Box::new(self.composition))
+        ResultExpr::new_with_transformation(Box::new(self.composition))
     }
 }
