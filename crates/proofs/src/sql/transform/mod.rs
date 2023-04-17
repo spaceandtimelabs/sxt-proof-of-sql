@@ -2,6 +2,9 @@ mod result_expr;
 pub use result_expr::ResultExpr;
 
 #[cfg(test)]
+mod result_expr_test;
+
+#[cfg(test)]
 pub mod test_utility;
 
 mod composition_expr;
