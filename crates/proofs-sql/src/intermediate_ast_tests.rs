@@ -13,6 +13,14 @@ fn we_can_parse_simple_strings() {
 }
 
 #[test]
+fn we_can_correctly_escape_the_single_quote_character() {
+    assert_eq!(
+        StringLiteralParser::new().parse("'this isn''t a test'"),
+        Ok("this isn't a test".to_string())
+    );
+}
+
+#[test]
 fn we_can_parse_empty_strings() {
     assert_eq!(StringLiteralParser::new().parse("''"), Ok("".to_string()));
 }
