@@ -1,15 +1,24 @@
 use curve25519_dalek::scalar::Scalar;
+use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
+
+const MIN_PARALLEL_LEN: usize = 16; // The minimum size for which we should actually parallelize the compute.
 
 fn compute_evaluation_vector_impl(left: &mut [Scalar], right: &mut [Scalar], p: &Scalar) {
     let k = std::cmp::min(left.len(), right.len());
     let pm1 = Scalar::one() - p;
-    for (li, ri) in left.iter_mut().zip(right.iter_mut()) {
-        *ri = *li * p;
-        *li *= pm1;
-    }
-    for li in &mut left[k..] {
-        *li *= pm1;
-    }
+    left.par_iter_mut()
+        .with_min_len(MIN_PARALLEL_LEN)
+        .zip(right.par_iter_mut())
+        .for_each(|(li, ri)| {
+            *ri = *li * p;
+            *li *= pm1;
+        });
+    left[k..]
+        .par_iter_mut()
+        .with_min_len(MIN_PARALLEL_LEN)
+        .for_each(|li| {
+            *li *= pm1;
+        });
 }
 
 /// Given a point of evaluation, computes the vector that allows us

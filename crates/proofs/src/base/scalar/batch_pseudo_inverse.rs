@@ -2,7 +2,6 @@ use curve25519_dalek::scalar::Scalar;
 use rayon::{iter::ParallelIterator, slice::ParallelSliceMut};
 
 // These constants can likely be tuned. There is no reason for the current values other that that they are sane.
-const NUMBER_OF_CHUNKS: usize = 16; // The number of chunks to split the inversion into for parallelization. This is the number of actual inverses required.
 const MIN_CHUNKING_SIZE: usize = 64; // The minimum size for which we should actually split into chunks.
 
 /// Given a slice of `input` scalars, compute their pseudo inverses in a batch and store the result in `res`.
@@ -34,9 +33,10 @@ pub fn batch_pseudo_invert(res: &mut [Scalar], input: &[Scalar]) {
     // note: this function can possibly allocate memory
 
     // we should break this up into chunks in order to parallelize it if there are enough non-zero elements
+    let number_of_chunks = rayon::current_num_threads();
     if count_non_zeros >= MIN_CHUNKING_SIZE {
         res[0..count_non_zeros]
-            .par_chunks_mut(1 + (count_non_zeros - 1) / NUMBER_OF_CHUNKS)
+            .par_chunks_mut(1 + (count_non_zeros - 1) / number_of_chunks)
             .for_each(|c| {
                 Scalar::batch_invert(c);
             });
