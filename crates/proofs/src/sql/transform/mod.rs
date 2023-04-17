@@ -24,3 +24,9 @@ pub use slice_expr::SliceExpr;
 
 #[cfg(test)]
 mod slice_expr_test;
+
+mod select_expr;
+pub use select_expr::SelectExpr;
+
+#[cfg(test)]
+mod select_expr_test;
