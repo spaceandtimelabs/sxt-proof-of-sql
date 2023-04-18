@@ -61,7 +61,7 @@ fn we_can_prove_a_query_with_a_single_non_selected_row() {
 }
 
 #[test]
-fn we_can_select_from_tables_with_an_always_true_where_caluse() {
+fn we_can_select_from_tables_with_an_always_true_where_clause() {
     test_random_tables_with_given_constant(true);
 }
 

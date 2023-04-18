@@ -1,6 +1,11 @@
+use super::make_sumcheck_term;
+
+use crate::base::polynomial::DenseMultilinearExtension;
 use crate::base::scalar::ToScalar;
 use curve25519_dalek::scalar::Scalar;
 use rayon::iter::*;
+use std::ffi::c_void;
+use std::rc::Rc;
 
 /// Interface for operating on multilinear extension's in-place
 pub trait MultilinearExtension {
@@ -10,6 +15,12 @@ pub trait MultilinearExtension {
 
     /// multiply and add the MLE to a scalar vector
     fn mul_add(&self, res: &mut [Scalar], multiplier: &Scalar);
+
+    /// convert the MLE to a form that can be used in sumcheck
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension>;
+
+    /// pointer to identify the slice forming the MLE
+    fn id(&self) -> *const c_void;
 }
 
 /// Treat scalar convertible columns as a multilinear extensions
@@ -40,5 +51,13 @@ impl<'a, T: ToScalar + Sync> MultilinearExtension for MultilinearExtensionImpl<'
             .for_each(|(res_i, data_i)| {
                 *res_i += multiplier * data_i.to_scalar();
             })
+    }
+
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
+        make_sumcheck_term(num_vars, self.data)
+    }
+
+    fn id(&self) -> *const c_void {
+        self.data.as_ptr() as *const c_void
     }
 }

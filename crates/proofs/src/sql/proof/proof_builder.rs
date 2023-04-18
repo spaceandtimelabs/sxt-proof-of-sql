@@ -1,5 +1,5 @@
 use super::{
-    make_sumcheck_term, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
+    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::CompositePolynomial;
@@ -18,7 +18,7 @@ pub struct ProofBuilder<'a> {
     result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
     commitment_descriptor: Vec<Sequence<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
-    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial>,
+    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a>>,
 }
 
 impl<'a> ProofBuilder<'a> {
@@ -77,7 +77,7 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_sumcheck_subpolynomial(&mut self, group: SumcheckSubpolynomial) {
+    pub fn produce_sumcheck_subpolynomial(&mut self, group: SumcheckSubpolynomial<'a>) {
         assert!(self.sumcheck_subpolynomials.len() < self.sumcheck_subpolynomials.capacity());
         self.sumcheck_subpolynomials.push(group);
     }
@@ -145,8 +145,7 @@ impl<'a> ProofBuilder<'a> {
             self.sumcheck_subpolynomials.len(),
             self.sumcheck_subpolynomials.capacity()
         );
-        let mut res = CompositePolynomial::new(self.num_sumcheck_variables);
-        let fr = make_sumcheck_term(
+        let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,
             &scalars.compute_entrywise_multipliers(),
         );
@@ -155,9 +154,9 @@ impl<'a> ProofBuilder<'a> {
             .iter()
             .zip(self.sumcheck_subpolynomials.iter())
         {
-            subpoly.mul_add(&mut res, fr.clone(), *multiplier);
+            subpoly.compose(&mut builder, *multiplier);
         }
-        res
+        builder.make_composite_polynomial()
     }
 
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except
