@@ -33,3 +33,9 @@ pub use select_expr::SelectExpr;
 
 #[cfg(test)]
 mod select_expr_test;
+
+mod group_by_expr;
+pub use group_by_expr::GroupByExpr;
+
+#[cfg(test)]
+mod group_by_expr_test;
