@@ -55,6 +55,21 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
                 DataType::Int64
             }
+            // This code handles a specific case where a Polars DataFrame has an unsigned 64-bit integer (u64) data type,
+            // which only occurs when using the `count` function for aggregation.
+            polars::datatypes::DataType::UInt64 => {
+                // Retrieve the column as a contiguous slice of u64 values.
+                let col = series.u64().unwrap().cont_slice().unwrap();
+
+                // Cast the column to a supported i64 data type.
+                // Note that this operation should never overflow
+                // unless the database has around 2^64 rows, which is unfeasible.
+                let col = col.iter().map(|v| *v as i64).collect::<Vec<_>>();
+
+                columns.push(Arc::new(Int64Array::from(col)));
+
+                DataType::Int64
+            }
             polars::datatypes::DataType::Utf8 => {
                 let col: Vec<_> = series
                     .utf8()
@@ -67,7 +82,7 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
                 DataType::Utf8
             }
-            _ => unimplemented!(),
+            _ => unimplemented!("Datatype not supported: {:?}", field.data_type()),
         };
 
         column_fields.push(Field::new(field.name().as_str(), dt, false));
