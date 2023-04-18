@@ -2,7 +2,7 @@ use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, 
 use crate::base::scalar::ToScalar;
 use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
-    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
+    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
 };
 
@@ -114,21 +114,20 @@ fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone 
     });
 
     // add sumcheck term for col * selection
-    let terms = vec![
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
         (
             Scalar::one(),
-            vec![make_sumcheck_term(counts.sumcheck_variables, selected_vals)],
+            vec![Box::new(MultilinearExtensionImpl::new(selected_vals))],
         ),
         (
             -Scalar::one(),
             vec![
-                make_sumcheck_term(counts.sumcheck_variables, col_scalars),
-                make_sumcheck_term(counts.sumcheck_variables, selection),
+                Box::new(MultilinearExtensionImpl::new(col_scalars)),
+                Box::new(MultilinearExtensionImpl::new(selection)),
             ],
         ),
-    ];
+    ]));
 
     // add MLE for result column
     builder.produce_anchored_mle(col_scalars);
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
 }

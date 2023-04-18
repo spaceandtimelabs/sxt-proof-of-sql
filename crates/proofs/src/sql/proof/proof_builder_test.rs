@@ -1,6 +1,6 @@
 use super::{
-    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts,
-    SumcheckRandomScalars, SumcheckSubpolynomial,
+    make_sumcheck_term, DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder,
+    ProofCounts, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 
 use crate::base::database::{ColumnField, ColumnType};
@@ -91,17 +91,14 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
 
-    let poly = SumcheckSubpolynomial::new(vec![(
-        -Scalar::from(1u64),
-        vec![make_sumcheck_term(2, &mle1)],
-    )]);
-    builder.produce_sumcheck_subpolynomial(poly);
-
-    let poly = SumcheckSubpolynomial::new(vec![(
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+        -Scalar::one(),
+        vec![Box::new(MultilinearExtensionImpl::new(&mle1))],
+    )]));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
         -Scalar::from(10u64),
-        vec![make_sumcheck_term(2, &mle2)],
-    )]);
-    builder.produce_sumcheck_subpolynomial(poly);
+        vec![Box::new(MultilinearExtensionImpl::new(&mle2))],
+    )]));
 
     let multipliers = [
         Scalar::from(5u64),

@@ -2,7 +2,7 @@ use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor}
 use crate::base::scalar::ToScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
-    make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
+    MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
 use crate::base::scalar::batch_pseudo_invert;
@@ -61,30 +61,28 @@ impl EqualsExpr {
         let selection = alloc.alloc_slice_fill_with(counts.table_length, |i| !selection_not[i]);
 
         // subpolynomial: selection * lhs
-        let terms = vec![(
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
             Scalar::one(),
             vec![
-                make_sumcheck_term(counts.sumcheck_variables, lhs),
-                make_sumcheck_term(counts.sumcheck_variables, selection),
+                Box::new(MultilinearExtensionImpl::new(lhs)),
+                Box::new(MultilinearExtensionImpl::new(selection)),
             ],
-        )];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        )]));
 
         // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-        let terms = vec![
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
             (
                 Scalar::one(),
-                vec![make_sumcheck_term(counts.sumcheck_variables, selection_not)],
+                vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
             ),
             (
                 -Scalar::one(),
                 vec![
-                    make_sumcheck_term(counts.sumcheck_variables, lhs),
-                    make_sumcheck_term(counts.sumcheck_variables, lhs_pseudo_inv),
+                    Box::new(MultilinearExtensionImpl::new(lhs)),
+                    Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
                 ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         selection
     }

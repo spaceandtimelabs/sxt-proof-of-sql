@@ -1,5 +1,5 @@
 use super::{
-    make_sumcheck_term, DenseProvableResultColumn, ProofBuilder, ProofCounts, ProofExpr,
+    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts, ProofExpr,
     QueryProof, SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
@@ -35,11 +35,10 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
             Scalar::one(),
-            vec![make_sumcheck_term(counts.sumcheck_variables, col)],
-        )];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+            vec![Box::new(MultilinearExtensionImpl::new(col))],
+        )]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -106,8 +105,10 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+            Scalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(col))],
+        )]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -149,8 +150,10 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+            Scalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(col))],
+        )]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -193,8 +196,10 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+            Scalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(col))],
+        )]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -237,8 +242,10 @@ fn verify_fails_if_counts_dont_match() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        let terms = vec![(Scalar::one(), vec![make_sumcheck_term(1, col)])];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+            Scalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(col))],
+        )]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -285,14 +292,19 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -376,14 +388,19 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -432,14 +449,19 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -493,24 +515,34 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &Z)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // poly2
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &Z), make_sumcheck_term(1, &Z)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -605,24 +637,34 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &Z)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // poly2
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &Z), make_sumcheck_term(1, &Z)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -686,24 +728,34 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &Z)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // poly2
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &Z), make_sumcheck_term(1, &Z)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -772,24 +824,34 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &Z)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // poly2
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &Z), make_sumcheck_term(1, &Z)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
@@ -853,24 +915,34 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &Z)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &X), make_sumcheck_term(1, &X)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                    Box::new(MultilinearExtensionImpl::new(&X)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // poly2
-        let terms = vec![
-            (Scalar::one(), vec![make_sumcheck_term(1, &RES)]),
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+            (
+                Scalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+            ),
             (
                 -Scalar::one(),
-                vec![make_sumcheck_term(1, &Z), make_sumcheck_term(1, &Z)],
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                    Box::new(MultilinearExtensionImpl::new(&Z)),
+                ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder,
