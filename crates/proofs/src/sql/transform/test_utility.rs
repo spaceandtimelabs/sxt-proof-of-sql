@@ -1,8 +1,9 @@
-use super::{OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
+use super::{GroupByExpr, OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
 use crate::sql::transform::CompositionExpr;
 use crate::sql::transform::DataFrameExpr;
 
-use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection, ResultColumn};
+use proofs_sql::intermediate_ast::ResultColumn;
+use proofs_sql::intermediate_ast::{AggExpr, OrderBy, OrderByDirection};
 use proofs_sql::Identifier;
 
 pub fn result() -> Box<ResultExpr> {
@@ -46,6 +47,23 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFra
 
 pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
     Box::new(SliceExpr::new(limit, offset))
+}
+
+pub fn groupby(
+    by_exprs: Vec<(&str, Option<&str>)>,
+    agg_exprs: Vec<AggExpr>,
+) -> Box<dyn DataFrameExpr> {
+    let by_exprs = by_exprs
+        .iter()
+        .map(|(name, alias)| {
+            (
+                name.parse().unwrap(),
+                alias.as_ref().map(|alias| alias.parse().unwrap()),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    Box::new(GroupByExpr::new(by_exprs, agg_exprs))
 }
 
 pub fn select(columns: &[(&str, &str)]) -> Box<dyn DataFrameExpr> {
