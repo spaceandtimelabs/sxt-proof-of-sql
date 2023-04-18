@@ -16,6 +16,11 @@ pub use proof_builder::ProofBuilder;
 #[cfg(test)]
 mod proof_builder_test;
 
+mod composite_polynomial_builder;
+pub use composite_polynomial_builder::CompositePolynomialBuilder;
+#[cfg(test)]
+mod composite_polynomial_builder_test;
+
 mod proof_counts;
 pub use proof_counts::ProofCounts;
 

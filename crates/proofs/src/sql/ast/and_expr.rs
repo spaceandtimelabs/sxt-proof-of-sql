@@ -1,7 +1,7 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
-    make_sumcheck_term, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
+    MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
 use bumpalo::Bump;
@@ -56,20 +56,19 @@ impl BoolExpr for AndExpr {
         builder.produce_intermediate_mle(lhs_and_rhs);
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
-        let terms = vec![
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
             (
                 Scalar::one(),
-                vec![make_sumcheck_term(counts.sumcheck_variables, lhs_and_rhs)],
+                vec![Box::new(MultilinearExtensionImpl::new(lhs_and_rhs))],
             ),
             (
                 -Scalar::one(),
                 vec![
-                    make_sumcheck_term(counts.sumcheck_variables, lhs),
-                    make_sumcheck_term(counts.sumcheck_variables, rhs),
+                    Box::new(MultilinearExtensionImpl::new(lhs)),
+                    Box::new(MultilinearExtensionImpl::new(rhs)),
                 ],
             ),
-        ];
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+        ]));
 
         // selection
         lhs_and_rhs
