@@ -20,7 +20,7 @@ pub enum SetExpression {
 }
 
 /// Representation of a single result column
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResultColumn {
     /// The name of the column
     pub name: Identifier,

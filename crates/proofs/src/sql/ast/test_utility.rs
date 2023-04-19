@@ -41,13 +41,8 @@ pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
-pub fn col_result(
-    tab: TableRef,
-    name: &str,
-    out_name: &str,
-    accessor: &TestAccessor,
-) -> FilterResultExpr {
-    FilterResultExpr::new(col(tab, name, accessor), out_name.parse().unwrap())
+pub fn col_result(tab: TableRef, name: &str, accessor: &TestAccessor) -> FilterResultExpr {
+    FilterResultExpr::new(col(tab, name, accessor))
 }
 
 pub fn cols_result(
@@ -57,7 +52,7 @@ pub fn cols_result(
 ) -> Vec<FilterResultExpr> {
     names
         .iter()
-        .map(|name| col_result(tab, name, name, accessor))
+        .map(|name| col_result(tab, name, accessor))
         .collect()
 }
 

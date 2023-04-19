@@ -8,7 +8,6 @@ use crate::sql::proof::{
 
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
-use proofs_sql::Identifier;
 use std::cmp::max;
 
 /// Provable expression for a result column within a filter SQL expression
@@ -17,16 +16,12 @@ use std::cmp::max;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
-    column_alias_name: Identifier,
 }
 
 impl FilterResultExpr {
     /// Create a new filter result expression
-    pub fn new(column_ref: ColumnRef, column_alias_name: Identifier) -> Self {
-        Self {
-            column_ref,
-            column_alias_name,
-        }
+    pub fn new(column_ref: ColumnRef) -> Self {
+        Self { column_ref }
     }
 
     /// Return the column referenced by this FilterResultExpr
@@ -34,13 +29,9 @@ impl FilterResultExpr {
         self.column_ref
     }
 
-    pub fn get_column_alias_name(&self) -> Identifier {
-        self.column_alias_name
-    }
-
     /// Wrap the column output name and its type within the ColumnField
     pub fn get_column_field(&self) -> ColumnField {
-        ColumnField::new(self.column_alias_name, *self.column_ref.column_type())
+        ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
     }
 
     /// Count the number of proof terms needed by this expression
