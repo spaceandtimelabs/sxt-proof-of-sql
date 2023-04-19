@@ -4,7 +4,7 @@ use crate::sql::ast::test_utility::{
     and, col_result, cols_result, const_v, equal, filter, not, or, tab,
 };
 use crate::sql::parse::{Converter, QueryExpr};
-use crate::sql::transform::test_utility::{composite_result, orders, result, slice};
+use crate::sql::transform::test_utility::{composite_result, orders, result, select, slice};
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
 use arrow::record_batch::RecordBatch;
@@ -47,7 +47,80 @@ fn we_can_convert_an_ast_with_one_column() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => ["abc"]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", "abc", &accessor),
+        ),
+        result(&[("a", "a")]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_convert_an_ast_with_duplicate_aliases() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [3],
+            "b" => [4]
+        ),
+        0,
+    );
+    invalid_query_to_provable_ast(
+        t,
+        "select a as c, b as c from sxt_tab where a = 3",
+        &accessor,
+    );
+    invalid_query_to_provable_ast(t, "select a as b, b from sxt_tab where a = 3", &accessor);
+    invalid_query_to_provable_ast(
+        t,
+        "select a as b, a as b from sxt_tab where a = 3",
+        &accessor,
+    );
+    invalid_query_to_provable_ast(t, "select a, a from sxt_tab where a = 3", &accessor);
+}
+
+#[test]
+fn we_dont_have_duplicate_filter_result_expressions() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [3]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select a as b, a as c from sxt_tab where a = 3",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", 3, &accessor),
+        ),
+        result(&[("a", "b"), ("a", "c")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -71,7 +144,7 @@ fn we_can_convert_an_ast_with_two_columns() {
             tab(t),
             equal(t, "c", 123, &accessor),
         ),
-        result(),
+        result(&[("a", "a"), ("b", "b")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -90,35 +163,11 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(
-            cols_result(t, &["b", "a"], &accessor),
+            cols_result(t, &["a", "b"], &accessor),
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(),
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_parse_all_result_columns_with_more_complex_select_star() {
-    let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "b" => [5, 6],
-            "a" => [3, 2],
-            "c" => [78, 8]
-        ),
-        0_usize,
-    );
-    let ast = query_to_provable_ast(t, "select a, *, b,* from sxt_tab where a = 3", &accessor);
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_result(t, &["a", "b", "a", "c", "b", "b", "a", "c"], &accessor),
-            tab(t),
-            equal(t, "a", 3, &accessor),
-        ),
-        result(),
+        result(&[("b", "b"), ("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -141,7 +190,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
             tab(t),
             equal(t, "b", 4, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -164,7 +213,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
             tab(t),
             not(equal(t, "b", 4, &accessor)),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -187,7 +236,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             tab(t),
             equal(t, "b", -4, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -215,7 +264,7 @@ fn we_can_convert_an_ast_with_cond_and() {
             tab(t),
             and(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -243,7 +292,7 @@ fn we_can_convert_an_ast_with_cond_or() {
             tab(t),
             or(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -274,7 +323,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 not(equal(t, "c", -2, &accessor)),
             ),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -306,7 +355,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 equal(t, "b", 3, &accessor),
             )),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -332,7 +381,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
             tab(t),
             equal(t, "a", i64::MIN, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -358,13 +407,13 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
             tab(t),
             equal(t, "a", i64::MAX, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
-fn we_can_convert_an_ast_using_as_rename_keyword() {
+fn we_can_convert_an_ast_using_an_aliased_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -381,11 +430,11 @@ fn we_can_convert_an_ast_using_as_rename_keyword() {
     );
     let expected_ast = QueryExpr::new(
         filter(
-            vec![col_result(t, "a", "b_rename", &accessor)],
+            vec![col_result(t, "a", &accessor)],
             tab(t),
             equal(t, "b", 4, &accessor),
         ),
-        result(),
+        result(&[("a", "b_rename")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -433,7 +482,7 @@ fn we_can_convert_an_ast_with_a_schema() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(),
+        result(&[("a", "a")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -450,7 +499,7 @@ fn we_can_convert_an_ast_without_any_filter() {
     );
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        result(),
+        result(&[("a", "a")]),
     );
     let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
     for query in queries {
@@ -476,11 +525,14 @@ fn we_can_parse_order_by_with_a_single_column() {
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
     let expected_ast = QueryExpr::new(
         filter(
-            cols_result(t, &["b", "a"], &accessor),
+            cols_result(t, &["a", "b"], &accessor),
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(vec![orders(&["b"], &[Asc])]),
+        composite_result(vec![
+            select(&[("b", "b"), ("a", "a")]),
+            orders(&["b"], &[Asc]),
+        ]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -507,7 +559,10 @@ fn we_can_parse_order_by_with_multiple_columns() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(vec![orders(&["b", "a"], &[Desc, Asc])]),
+        composite_result(vec![
+            select(&[("a", "a"), ("b", "b")]),
+            orders(&["b", "a"], &[Desc, Asc]),
+        ]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -532,13 +587,16 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
     let expected_ast = QueryExpr::new(
         filter(
             vec![
-                col_result(t, "salary", "s", &accessor),
-                col_result(t, "name", "salary", &accessor),
+                col_result(t, "name", &accessor),
+                col_result(t, "salary", &accessor),
             ],
             tab(t),
             equal(t, "salary", 5, &accessor),
         ),
-        composite_result(vec![orders(&["salary"], &[Desc])]),
+        composite_result(vec![
+            select(&[("salary", "s"), ("name", "salary")]),
+            orders(&["salary"], &[Desc]),
+        ]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -560,11 +618,11 @@ fn we_can_parse_order_by_remapping_the_column_name_reference_to_an_existing_alia
     );
     let expected_ast = QueryExpr::new(
         filter(
-            vec![col_result(t, "salary", "s", &accessor)],
+            vec![col_result(t, "salary", &accessor)],
             tab(t),
             const_v(true),
         ),
-        composite_result(vec![orders(&["s"], &[Asc])]),
+        composite_result(vec![select(&[("salary", "s")]), orders(&["s"], &[Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -668,14 +726,16 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
     let expected_ast = QueryExpr::new(
         filter(
             vec![
-                col_result(t, "salary", "s", &accessor),
-                col_result(t, "name", "name", &accessor),
-                col_result(t, "salary", "d", &accessor),
+                col_result(t, "name", &accessor),
+                col_result(t, "salary", &accessor),
             ],
             tab(t),
             const_v(true),
         ),
-        composite_result(vec![orders(&["s"], &[Desc])]),
+        composite_result(vec![
+            select(&[("salary", "s"), ("name", "name"), ("salary", "d")]),
+            orders(&["s"], &[Desc]),
+        ]),
     );
     assert_eq!(ast, expected_ast);
 
@@ -688,13 +748,6 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
 
     let intermediate_ast = SelectStatementParser::new()
         .parse("select salary as s, name, salary as d from sxt_tab order by d desc")
-        .unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
-        .is_ok());
-
-    let intermediate_ast = SelectStatementParser::new()
-        .parse("select salary as s, name, salary as s from sxt_tab order by s desc")
         .unwrap();
     assert!(Converter::default()
         .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
@@ -719,7 +772,26 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![slice(3, 0)]),
+        composite_result(vec![select(&[("a", "a")]), slice(3, 0)]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        composite_result(vec![select(&[("a", "a")])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -738,7 +810,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![slice(u64::MAX, 7)]),
+        composite_result(vec![select(&[("a", "a")]), slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -757,7 +829,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![slice(u64::MAX, -7)]),
+        composite_result(vec![select(&[("a", "a")]), slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -776,7 +848,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![slice(55, 3)]),
+        composite_result(vec![select(&[("a", "a")]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -807,7 +879,11 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             tab(t),
             equal(t, "a", -3, &accessor),
         ),
-        composite_result(vec![orders(&["a"], &[Desc]), slice(55, 3)]),
+        composite_result(vec![
+            select(&[("a", "a")]),
+            orders(&["a"], &[Desc]),
+            slice(55, 3),
+        ]),
     );
     assert_eq!(ast, expected_ast);
 }

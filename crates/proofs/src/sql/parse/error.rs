@@ -14,8 +14,8 @@ pub enum ConversionError {
     MismatchTypeError(String),
     #[error("The specified column alias '{0}' referenced by the 'order by' clause does not exist in the '{1}' table.")]
     InvalidOrderByError(String, String),
-    #[error("The 'order by' clause '{0}' is ambiguous because multiple result columns with the same alias have been found.")]
-    AmbiguousOrderByError(String),
+    #[error("Multiple result columns with the same alias '{0}' have been found.")]
+    DuplicateColumnAlias(String),
 }
 
 pub type ConversionResult<T> = std::result::Result<T, ConversionError>;

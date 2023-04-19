@@ -7,7 +7,7 @@ use std::fmt;
 use std::str::FromStr;
 
 /// Top-level unique identifier.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
 pub struct Identifier {
     name: ArrayString<64>,
 }

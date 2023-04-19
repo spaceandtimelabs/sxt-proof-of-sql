@@ -18,22 +18,16 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let provable_ast = FilterExpr::new(
         vec![
-            FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("a").unwrap(),
-                    ColumnType::BigInt,
-                ),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
                 Identifier::try_new("a").unwrap(),
-            ),
-            FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("b").unwrap(),
-                    ColumnType::BigInt,
-                ),
+                ColumnType::BigInt,
+            )),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
                 Identifier::try_new("b").unwrap(),
-            ),
+                ColumnType::BigInt,
+            )),
         ],
         TableExpr { table_ref },
         Box::new(EqualsExpr::new(
@@ -67,22 +61,16 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let provable_ast = FilterExpr::new(
         vec![
-            FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("a").unwrap(),
-                    ColumnType::BigInt,
-                ),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
                 Identifier::try_new("a").unwrap(),
-            ),
-            FilterResultExpr::new(
-                ColumnRef::new(
-                    table_ref,
-                    Identifier::try_new("f").unwrap(),
-                    ColumnType::BigInt,
-                ),
+                ColumnType::BigInt,
+            )),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
                 Identifier::try_new("f").unwrap(),
-            ),
+                ColumnType::BigInt,
+            )),
         ],
         TableExpr { table_ref },
         Box::new(NotExpr::new(Box::new(AndExpr::new(

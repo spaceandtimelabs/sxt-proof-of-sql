@@ -12,6 +12,20 @@ fn we_can_filter_out_record_batch_columns() {
 }
 
 #[test]
+#[should_panic]
+fn result_expr_panics_with_batches_containing_duplicate_columns() {
+    let data = record_batch!("a" => [-5, 1, -56, 2], "a" => [-5, 1, -56, 2]);
+    let result_expr = ResultExpr::new_with_transformation(select(&[("a", "a2"), ("a", "a3")]));
+    result_expr.transform_results(data);
+}
+
+#[test]
+#[should_panic]
+fn we_cant_construct_select_expressions_with_duplicate_aliases() {
+    select(&[("a", "a2"), ("a", "a2")]);
+}
+
+#[test]
 fn we_can_reorder_the_record_batch_columns_without_changing_their_names() {
     let data = record_batch!("c" => [-5, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
     let result_expr = ResultExpr::new_with_transformation(select(&[("a", "a"), ("c", "c")]));

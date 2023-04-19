@@ -1,35 +1,42 @@
-use crate::sql::ast::FilterResultExpr;
+use crate::sql::parse::{ConversionError, ConversionResult};
 
 use indexmap::set::IndexSet;
+use proofs_sql::intermediate_ast::ResultColumn;
 use proofs_sql::Identifier;
 use std::collections::HashMap;
 
 /// A graph that maps column names to their aliases and vice versa.
 pub struct ResultColumnAliasGraph {
-    /// Maps a column alias to all of its names.
-    alias_to_names: HashMap<Identifier, IndexSet<Identifier>>,
+    /// Maps a column alias to its corresponding name.
+    alias_to_names: HashMap<Identifier, Identifier>,
     /// Maps a column name to all of its aliases.
     name_to_aliases: HashMap<Identifier, IndexSet<Identifier>>,
 }
 
 impl ResultColumnAliasGraph {
     /// Creates a new `ResultColumnAliasGraph` from the given result columns.
-    pub fn new(columns: &[FilterResultExpr]) -> Self {
-        let mut alias_to_names = HashMap::<Identifier, IndexSet<Identifier>>::new();
+    pub fn new(columns: &[ResultColumn]) -> ConversionResult<Self> {
+        let mut alias_to_names = HashMap::<Identifier, Identifier>::new();
         let mut name_to_aliases = HashMap::<Identifier, IndexSet<Identifier>>::new();
 
         for column in columns {
-            let alias = column.get_column_alias_name();
-            let name = column.get_column_reference().column_id();
+            let name = column.name;
+            let alias = column.alias;
 
-            alias_to_names.entry(alias).or_default().insert(name);
             name_to_aliases.entry(name).or_default().insert(alias);
+
+            // we don't allow duplicate aliases
+            if alias_to_names.insert(alias, name).is_some() {
+                return Err(ConversionError::DuplicateColumnAlias(
+                    alias.name().to_string(),
+                ));
+            }
         }
 
-        Self {
+        Ok(Self {
             alias_to_names,
             name_to_aliases,
-        }
+        })
     }
 
     /// Returns the set of aliases for the given column name.
@@ -37,8 +44,8 @@ impl ResultColumnAliasGraph {
         self.name_to_aliases.get(name)
     }
 
-    /// Returns the set of names for the given column alias.
-    pub fn get_alias_mapping(&self, alias: &Identifier) -> Option<&IndexSet<Identifier>> {
+    /// Returns the associated column name for the given column alias.
+    pub fn get_alias_mapping(&self, alias: &Identifier) -> Option<&Identifier> {
         self.alias_to_names.get(alias)
     }
 }
