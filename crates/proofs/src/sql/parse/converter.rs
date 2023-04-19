@@ -9,17 +9,18 @@ use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr, ResultExpr
 use crate::sql::transform::ResultExpr;
 
 use curve25519_dalek::scalar::Scalar;
-use proofs_sql::intermediate_ast::OrderBy;
 use proofs_sql::intermediate_ast::{
-    Expression, Literal, ResultColumn, ResultColumnExpr, SetExpression, TableExpression,
+    Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression, TableExpression,
 };
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
+use std::collections::HashSet;
 use std::ops::Deref;
 
 #[derive(Default)]
 pub struct Converter {
     /// The current table in context
     current_table: Option<TableRef>,
+    result_schema: Vec<ResultColumn>,
     result_column_alias_graph: Option<ResultColumnAliasGraph>,
 }
 
@@ -54,9 +55,6 @@ impl Converter {
     ) -> ConversionResult<QueryExpr> {
         let filter_expr =
             self.visit_set_expression(ast.expr.deref(), schema_accessor, default_schema)?;
-
-        self.result_column_alias_graph =
-            Some(ResultColumnAliasGraph::new(filter_expr.get_results()));
 
         let result_expr = self.build_result_expr(ast)?;
 
@@ -138,24 +136,6 @@ impl Converter {
 
 /// Utilities methods
 impl Converter {
-    fn check_ambiguous_alias_name(&self, alias_name: &Identifier) -> ConversionResult<()> {
-        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
-
-        if result_column_alias_graph
-            .get_alias_mapping(alias_name)
-            .expect("alias name must exist at this point")
-            .len()
-            != 1
-        {
-            // multiple column names associated with the same alias are not allowed
-            return Err(ConversionError::AmbiguousOrderByError(
-                alias_name.to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
     fn try_to_remap_column_name_name_to_alias(
         &self,
         column_name: &Identifier,
@@ -205,9 +185,23 @@ impl Converter {
 /// Build result expr
 impl Converter {
     fn build_result_expr(&self, ast: &SelectStatement) -> ConversionResult<ResultExpr> {
+        let order_by = self.visit_order_by(&ast.order_by[..])?;
+
         let mut result_expr_builder = ResultExprBuilder::default();
 
-        result_expr_builder.add_order_by(self.visit_order_by(&ast.order_by[..])?);
+        // this step must be done after the above order by step
+        if order_by.is_empty() && ast.slice.is_none() {
+            // we need to apply a projection if there is no transformations
+            return Ok(ResultExpr::new_with_result_schema(
+                self.result_schema.to_vec(),
+            ));
+        }
+
+        // select must be applied before order by as
+        // it references aliases defined in the select clause
+        result_expr_builder.add_select(self.result_schema.to_vec());
+
+        result_expr_builder.add_order_by(order_by);
 
         if let Some(slice) = &ast.slice {
             result_expr_builder.add_slice(slice.number_rows, slice.offset_value);
@@ -228,10 +222,6 @@ impl Converter {
                 // - if it's a column name, we need to remap it to the alias name used in the result record batch
                 let alias_name = self.maybe_remap_column_name_to_alias(&by_expr.expr)?;
 
-                // check that the alias name is not ambiguous
-                // (i.e. that it's not associated with multiple and different column names)
-                self.check_ambiguous_alias_name(&alias_name)?;
-
                 // return a new `OrderBy` with the correct alias name
                 Ok(OrderBy {
                     expr: alias_name,
@@ -246,75 +236,86 @@ impl Converter {
 
 /// Result expression
 impl Converter {
-    /// Convert a `ResultColumnExpr::All` into a `Vec<FilterResultExpr>`
-    fn visit_result_column_all(
+    fn get_table_schema(
         &self,
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ConversionResult<Vec<FilterResultExpr>> {
+    ) -> Vec<(Identifier, ColumnType)> {
         let current_table = *self
             .current_table
             .as_ref()
             .expect("Some table should've already been processed at this point");
-        let columns = schema_accessor.lookup_schema(current_table);
 
-        Ok(columns
+        schema_accessor.lookup_schema(current_table)
+    }
+
+    fn visit_result_column_all(&self, schema_accessor: &dyn SchemaAccessor) -> Vec<ResultColumn> {
+        let table_schema = self.get_table_schema(schema_accessor);
+
+        table_schema
             .into_iter()
-            .map(|(column_name_id, column_type)| {
-                FilterResultExpr::new(
-                    ColumnRef::new(current_table, column_name_id, column_type),
-                    column_name_id,
-                )
+            .map(|(name, _)| ResultColumn { name, alias: name })
+            .collect()
+    }
+
+    fn visit_result_column_expressions(
+        &self,
+        result_columns: &[ResultColumnExpr],
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> Vec<ResultColumn> {
+        result_columns
+            .iter()
+            .map(|result_column| match result_column {
+                ResultColumnExpr::AllColumns => self.visit_result_column_all(schema_accessor),
+                ResultColumnExpr::SimpleColumn(result_column) => vec![result_column.clone()],
+                _ => todo!(),
             })
-            .collect())
-    }
-
-    /// Convert a `ResultColumnExpr::Expr` into a `FilterResultExpr`
-    fn visit_result_column_expression(
-        &self,
-        column_name: Identifier,
-        output_name: Identifier,
-        schema_accessor: &dyn SchemaAccessor,
-    ) -> ConversionResult<FilterResultExpr> {
-        let result_expr = self.visit_column_identifier(column_name, schema_accessor)?;
-        Ok(FilterResultExpr::new(result_expr, output_name))
-    }
-
-    /// Convert a `ResultColumnExpr` into a `Vec<FilterResultExpr>`
-    fn visit_result_column(
-        &self,
-        result_column: &ResultColumnExpr,
-        schema_accessor: &dyn SchemaAccessor,
-    ) -> ConversionResult<Vec<FilterResultExpr>> {
-        match result_column {
-            ResultColumnExpr::AllColumns => self.visit_result_column_all(schema_accessor),
-            ResultColumnExpr::SimpleColumn(ResultColumn { name, alias }) => {
-                Ok(vec![self.visit_result_column_expression(
-                    *name,
-                    *alias,
-                    schema_accessor,
-                )?])
-            }
-            _ => todo!(),
-        }
+            .collect::<Vec<_>>()
+            .into_iter()
+            .flatten()
+            .collect()
     }
 
     /// Convert a `ResultColumnExpr slice` into a `Vec<FilterResultExpr>`
     fn visit_result_columns(
-        &self,
+        &mut self,
         result_columns: &[ResultColumnExpr],
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<FilterResultExpr>> {
         assert!(!result_columns.is_empty());
 
-        let results = result_columns
-            .iter()
-            .map(|result_column| self.visit_result_column(result_column.deref(), schema_accessor))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .collect();
+        // Gather all the result columns
+        self.result_schema = self.visit_result_column_expressions(result_columns, schema_accessor);
 
-        Ok(results)
+        // Generate the alias graph. This code also checks for duplicate aliases.
+        self.result_column_alias_graph =
+            Some(ResultColumnAliasGraph::new(&self.result_schema[..])?);
+
+        // Get the HashSet of all column names in the result schema
+        let non_duplicate_result_columns = self
+            .result_schema
+            .iter()
+            .map(|result_column| result_column.name)
+            .collect::<HashSet<_>>();
+
+        // Convert the hash_set to a vector and sort it
+        let mut non_duplicate_result_columns =
+            non_duplicate_result_columns.into_iter().collect::<Vec<_>>();
+
+        // Sorting is required to make the relative order of the columns deterministic
+        // `Unstable sort` is used as it's more efficient than `Sort`.
+        non_duplicate_result_columns.sort_unstable();
+
+        // Convert the column names vector into a vector of FilterResultExpr
+        let non_duplicate_filter_result_columns = non_duplicate_result_columns
+            .into_iter()
+            .map(|name| {
+                Ok(FilterResultExpr::new(
+                    self.visit_column_identifier(name, schema_accessor)?,
+                ))
+            })
+            .collect::<ConversionResult<Vec<_>>>()?;
+
+        Ok(non_duplicate_filter_result_columns)
     }
 }
 

@@ -4,12 +4,9 @@ use crate::sql::transform::DataFrameExpr;
 
 use proofs_sql::intermediate_ast::ResultColumn;
 use proofs_sql::intermediate_ast::{AggExpr, OrderBy, OrderByDirection};
-use proofs_sql::Identifier;
 
-pub fn result() -> Box<ResultExpr> {
-    let composition = CompositionExpr::default();
-
-    Box::new(ResultExpr::new_with_transformation(Box::new(composition)))
+pub fn result(result_schema: &[(&str, &str)]) -> Box<ResultExpr> {
+    Box::new(ResultExpr::new_with_result_schema(schema(result_schema)))
 }
 
 pub fn schema(columns: &[(&str, &str)]) -> Vec<ResultColumn> {
@@ -66,14 +63,6 @@ pub fn groupby(
     Box::new(GroupByExpr::new(by_exprs, agg_exprs))
 }
 
-pub fn select(columns: &[(&str, &str)]) -> Box<dyn DataFrameExpr> {
-    let columns = columns
-        .iter()
-        .map(|(name, alias)| ResultColumn {
-            name: name.parse::<Identifier>().unwrap(),
-            alias: alias.parse::<Identifier>().unwrap(),
-        })
-        .collect::<Vec<_>>();
-
-    Box::new(SelectExpr::new(columns))
+pub fn select(result_schema: &[(&str, &str)]) -> Box<dyn DataFrameExpr> {
+    Box::new(SelectExpr::new(schema(result_schema)))
 }

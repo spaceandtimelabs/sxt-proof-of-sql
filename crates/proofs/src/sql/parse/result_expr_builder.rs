@@ -1,6 +1,6 @@
 use crate::sql::transform::ResultExpr;
-use crate::sql::transform::{CompositionExpr, OrderByExprs, SliceExpr};
-use proofs_sql::intermediate_ast::OrderBy;
+use crate::sql::transform::{CompositionExpr, OrderByExprs, SelectExpr, SliceExpr};
+use proofs_sql::intermediate_ast::{OrderBy, ResultColumn};
 
 /// A builder for `ResultExpr` nodes.
 #[derive(Default)]
@@ -18,6 +18,12 @@ impl ResultExprBuilder {
         self.composition.add(Box::new(OrderByExprs::new(by_exprs)));
     }
 
+    /// Chain a new `SelectExpr` to the current `ResultExpr`.
+    pub fn add_select(&mut self, columns: Vec<ResultColumn>) {
+        assert!(!columns.is_empty());
+        self.composition.add(Box::new(SelectExpr::new(columns)));
+    }
+
     /// Chain a new `SliceExpr` to the current `ResultExpr`.
     pub fn add_slice(&mut self, number_rows: u64, offset_value: i64) {
         // we don't need to add a slice transformation if
@@ -32,9 +38,6 @@ impl ResultExprBuilder {
 
     /// Build a `ResultExpr` from the current state of the builder.
     pub fn build(self) -> ResultExpr {
-        // TODO: add `assert!(!self.composition.is_empty());` here
-        // when we actually start using `result_schema` in the Converter code
-
         ResultExpr::new_with_transformation(Box::new(self.composition))
     }
 }
