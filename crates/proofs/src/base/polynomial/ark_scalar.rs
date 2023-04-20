@@ -1,13 +1,13 @@
-use ark_ff::fields::{Fp256, MontBackend, MontConfig};
+use ark_ff::fields::MontConfig;
 use ark_ff::{BigInt, BigInteger};
 use byte_slice_cast::AsMutByteSlice;
 use curve25519_dalek::scalar::Scalar;
 
-#[derive(MontConfig)]
-#[modulus = "7237005577332262213973186563042994240857116359379907606001950938285454250989"]
-#[generator = "2"]
-pub struct ArkScalarConfig;
-pub type ArkScalar = Fp256<MontBackend<ArkScalarConfig, 4>>;
+#[cfg(test)]
+pub type ArkScalarConfig = ark_curve25519::FrConfig;
+#[cfg(not(test))]
+type ArkScalarConfig = ark_curve25519::FrConfig;
+pub type ArkScalar = ark_curve25519::Fr;
 
 pub fn to_ark_scalar(x: &Scalar) -> ArkScalar {
     let mut values: [u64; 4] = [0; 4];
