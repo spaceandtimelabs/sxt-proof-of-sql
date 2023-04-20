@@ -10,6 +10,7 @@ exclude = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ark-curve25519 = { workspace = true }
 ark-ff = { workspace = true }
 ark-poly = { workspace = true }
 ark-std = { workspace = true }
