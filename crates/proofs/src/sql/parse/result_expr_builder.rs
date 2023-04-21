@@ -1,6 +1,7 @@
 use crate::sql::transform::ResultExpr;
-use crate::sql::transform::{CompositionExpr, OrderByExprs, SelectExpr, SliceExpr};
-use proofs_sql::intermediate_ast::{OrderBy, ResultColumn};
+use crate::sql::transform::{CompositionExpr, GroupByExpr, OrderByExprs, SelectExpr, SliceExpr};
+use proofs_sql::intermediate_ast::{AggExpr, OrderBy, ResultColumn};
+use proofs_sql::Identifier;
 
 /// A builder for `ResultExpr` nodes.
 #[derive(Default)]
@@ -11,11 +12,20 @@ pub struct ResultExprBuilder {
 impl ResultExprBuilder {
     /// Chain a new `OrderByExprs` to the current `ResultExpr`.
     pub fn add_order_by(&mut self, by_exprs: Vec<OrderBy>) {
-        if by_exprs.is_empty() {
-            return;
+        if !by_exprs.is_empty() {
+            self.composition.add(Box::new(OrderByExprs::new(by_exprs)));
         }
+    }
 
-        self.composition.add(Box::new(OrderByExprs::new(by_exprs)));
+    pub fn add_group_by(
+        &mut self,
+        by_exprs: Vec<(Identifier, Option<Identifier>)>,
+        agg_exprs: Vec<AggExpr>,
+    ) {
+        if !by_exprs.is_empty() {
+            self.composition
+                .add(Box::new(GroupByExpr::new(by_exprs, agg_exprs)));
+        }
     }
 
     /// Chain a new `SelectExpr` to the current `ResultExpr`.

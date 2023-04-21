@@ -46,6 +46,25 @@ pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
     Box::new(SliceExpr::new(limit, offset))
 }
 
+pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> AggExpr {
+    match agg_type {
+        "max" => AggExpr::Max(ResultColumn {
+            name: name.parse().unwrap(),
+            alias: alias.parse().unwrap(),
+        }),
+        "min" => AggExpr::Min(ResultColumn {
+            name: name.parse().unwrap(),
+            alias: alias.parse().unwrap(),
+        }),
+        "count" => AggExpr::Count(ResultColumn {
+            name: name.parse().unwrap(),
+            alias: alias.parse().unwrap(),
+        }),
+        "countall" => AggExpr::CountAll(alias.parse().unwrap()),
+        &_ => todo!(),
+    }
+}
+
 pub fn groupby(
     by_exprs: Vec<(&str, Option<&str>)>,
     agg_exprs: Vec<AggExpr>,
