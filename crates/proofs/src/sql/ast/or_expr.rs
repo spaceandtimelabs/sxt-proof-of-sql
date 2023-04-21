@@ -1,4 +1,5 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::polynomial::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
@@ -74,21 +75,21 @@ impl BoolExpr for OrExpr {
         alloc.alloc_slice_fill_with(n, |i| lhs[i] || rhs[i])
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-    ) -> Scalar {
-        let lhs = self.lhs.verifier_evaluate(builder, counts, accessor);
-        let rhs = self.rhs.verifier_evaluate(builder, counts, accessor);
+    ) -> ArkScalar {
+        let lhs = self.lhs.verifier_evaluate_ark(builder, counts, accessor);
+        let rhs = self.rhs.verifier_evaluate_ark(builder, counts, accessor);
 
         // lhs_and_rhs
-        let lhs_and_rhs = builder.consume_intermediate_mle();
+        let lhs_and_rhs = builder.consume_intermediate_mle_ark();
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
-        let eval = builder.mle_evaluations.random_evaluation * (lhs_and_rhs - lhs * rhs);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        let eval = builder.mle_evaluations.get_random_evaluation_ark() * (lhs_and_rhs - lhs * rhs);
+        builder.produce_sumcheck_subpolynomial_evaluation_ark(&eval);
 
         // selection
         lhs + rhs - lhs_and_rhs

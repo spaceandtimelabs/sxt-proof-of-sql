@@ -1,4 +1,5 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::polynomial::{to_ark_scalar, ArkScalar};
 use crate::base::scalar::ToScalar;
 use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
@@ -64,21 +65,33 @@ impl FilterResultExpr {
 
     /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
     /// add components needed to verify this filter result expression
+    #[cfg_attr(not(test), deprecated = "use `verifier_evaluate_ark()` instead")]
     pub fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder,
+        counts: &ProofCounts,
+        accessor: &dyn CommitmentAccessor,
+        selection_eval: &Scalar,
+    ) {
+        self.verifier_evaluate_ark(builder, counts, accessor, &to_ark_scalar(selection_eval))
+    }
+    /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
+    /// add components needed to verify this filter result expression
+    pub fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         _counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-        selection_eval: &Scalar,
+        selection_eval: &ArkScalar,
     ) {
         let col_commit = accessor.get_commitment(self.column_ref);
 
-        let result_eval = builder.consume_result_mle();
-        let col_eval = builder.consume_anchored_mle(&col_commit);
+        let result_eval = builder.consume_result_mle_ark();
+        let col_eval = builder.consume_anchored_mle_ark(&col_commit);
 
-        let poly_eval =
-            builder.mle_evaluations.random_evaluation * (result_eval - col_eval * selection_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&poly_eval);
+        let poly_eval = builder.mle_evaluations.get_random_evaluation_ark()
+            * (result_eval - col_eval * selection_eval);
+        builder.produce_sumcheck_subpolynomial_evaluation_ark(&poly_eval);
     }
 }
 
