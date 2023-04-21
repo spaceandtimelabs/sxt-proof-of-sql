@@ -1,9 +1,10 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::polynomial::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
+use num_traits::Zero;
 
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use std::collections::HashSet;
 
@@ -48,16 +49,16 @@ impl BoolExpr for ConstBoolExpr {
         alloc.alloc_slice_fill_copy(counts.table_length, self.value)
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
-    ) -> Scalar {
+    ) -> ArkScalar {
         if self.value {
-            builder.mle_evaluations.one_evaluation
+            builder.mle_evaluations.get_one_evaluation_ark()
         } else {
-            Scalar::zero()
+            ArkScalar::zero()
         }
     }
 

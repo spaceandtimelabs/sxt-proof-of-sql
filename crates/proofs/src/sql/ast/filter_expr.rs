@@ -111,9 +111,9 @@ impl ProofExpr for FilterExpr {
     ) {
         let selection_eval = self
             .where_clause
-            .verifier_evaluate(builder, counts, accessor);
+            .verifier_evaluate_ark(builder, counts, accessor);
         for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, counts, accessor, &selection_eval);
+            expr.verifier_evaluate_ark(builder, counts, accessor, &selection_eval);
         }
     }
 

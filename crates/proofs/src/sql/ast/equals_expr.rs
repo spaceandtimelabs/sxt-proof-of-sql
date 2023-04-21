@@ -1,4 +1,5 @@
 use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::polynomial::ArkScalar;
 use crate::base::scalar::ToScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
@@ -116,12 +117,12 @@ impl BoolExpr for EqualsExpr {
         }
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-    ) -> Scalar {
+    ) -> ArkScalar {
         let one_commit = get_one_commit((counts.table_length + counts.offset_generators) as u64)
             - get_one_commit(counts.offset_generators as u64);
 
@@ -129,19 +130,20 @@ impl BoolExpr for EqualsExpr {
         let lhs_commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;
 
         // consume mle evaluations
-        let lhs_eval = builder.consume_anchored_mle(&lhs_commit);
-        let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
-        let selection_not_eval = builder.consume_intermediate_mle();
-        let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
+        let lhs_eval = builder.consume_anchored_mle_ark(&lhs_commit);
+        let lhs_pseudo_inv_eval = builder.consume_intermediate_mle_ark();
+        let selection_not_eval = builder.consume_intermediate_mle_ark();
+        let selection_eval = builder.mle_evaluations.get_one_evaluation_ark() - selection_not_eval;
 
         // subpolynomial: selection * lhs
-        let eval = builder.mle_evaluations.random_evaluation * (selection_eval * lhs_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        let eval =
+            builder.mle_evaluations.get_random_evaluation_ark() * (selection_eval * lhs_eval);
+        builder.produce_sumcheck_subpolynomial_evaluation_ark(&eval);
 
         // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-        let eval = builder.mle_evaluations.random_evaluation
+        let eval = builder.mle_evaluations.get_random_evaluation_ark()
             * (selection_not_eval - lhs_eval * lhs_pseudo_inv_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        builder.produce_sumcheck_subpolynomial_evaluation_ark(&eval);
 
         selection_eval
     }

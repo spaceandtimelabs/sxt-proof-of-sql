@@ -1,9 +1,9 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::polynomial::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use std::collections::HashSet;
 
@@ -41,14 +41,14 @@ impl BoolExpr for NotExpr {
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
     }
 
-    fn verifier_evaluate(
+    fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-    ) -> Scalar {
-        let eval = self.expr.verifier_evaluate(builder, counts, accessor);
-        builder.mle_evaluations.one_evaluation - eval
+    ) -> ArkScalar {
+        let eval = self.expr.verifier_evaluate_ark(builder, counts, accessor);
+        builder.mle_evaluations.get_one_evaluation_ark() - eval
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
