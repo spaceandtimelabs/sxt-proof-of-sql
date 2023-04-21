@@ -1,10 +1,8 @@
 use crate::base::database::{TableRef, TestAccessor};
 use crate::record_batch;
-use crate::sql::ast::test_utility::{
-    and, col_result, cols_result, const_v, equal, filter, not, or, tab,
-};
+use crate::sql::ast::test_utility::*;
 use crate::sql::parse::{Converter, QueryExpr};
-use crate::sql::transform::test_utility::{composite_result, orders, result, select, slice};
+use crate::sql::transform::test_utility::*;
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
 use arrow::record_batch::RecordBatch;
@@ -602,7 +600,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
 }
 
 #[test]
-fn we_can_parse_order_by_remapping_the_column_name_reference_to_an_existing_alias() {
+fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -611,20 +609,11 @@ fn we_can_parse_order_by_remapping_the_column_name_reference_to_an_existing_alia
         ),
         0,
     );
-    let ast = query_to_provable_ast(
+    invalid_query_to_provable_ast(
         t,
         "select salary as s from sxt_tab order by salary",
         &accessor,
     );
-    let expected_ast = QueryExpr::new(
-        filter(
-            vec![col_result(t, "salary", &accessor)],
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![select(&[("salary", "s")]), orders(&["s"], &[Asc])]),
-    );
-    assert_eq!(ast, expected_ast);
 }
 
 #[test]
@@ -718,40 +707,28 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
         0,
     );
 
-    let ast = query_to_provable_ast(
-        t,
-        "select salary as s, name, salary as d from sxt_tab order by salary desc",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            vec![
-                col_result(t, "name", &accessor),
-                col_result(t, "salary", &accessor),
-            ],
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![
-            select(&[("salary", "s"), ("name", "name"), ("salary", "d")]),
-            orders(&["s"], &[Desc]),
-        ]),
-    );
-    assert_eq!(ast, expected_ast);
-
-    let intermediate_ast = SelectStatementParser::new()
-        .parse("select salary as s, name, salary as d from sxt_tab order by s desc")
-        .unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
-        .is_ok());
-
-    let intermediate_ast = SelectStatementParser::new()
-        .parse("select salary as s, name, salary as d from sxt_tab order by d desc")
-        .unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, &accessor, t.schema_id())
-        .is_ok());
+    for order_by in ["s", "d"] {
+        let ast = query_to_provable_ast(
+            t,
+            &("select salary as s, name, salary as d from sxt_tab order by ".to_owned() + order_by),
+            &accessor,
+        );
+        let expected_ast = QueryExpr::new(
+            filter(
+                vec![
+                    col_result(t, "name", &accessor),
+                    col_result(t, "salary", &accessor),
+                ],
+                tab(t),
+                const_v(true),
+            ),
+            composite_result(vec![
+                select(&[("salary", "s"), ("name", "name"), ("salary", "d")]),
+                orders(&[order_by], &[Asc]),
+            ]),
+        );
+        assert_eq!(ast, expected_ast);
+    }
 }
 
 /////////////////////////
@@ -883,6 +860,482 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             select(&[("a", "a")]),
             orders(&["a"], &[Desc]),
             slice(55, 3),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+///////////////////////////
+// Group By Expressions
+///////////////////////////
+#[test]
+fn we_can_group_by_without_using_aggregate_functions() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select department from employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["department"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(vec![("department", Some("department"))], vec![]),
+            select(&[("department", "department")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_group_by_and_then_use_a_single_aggregate_function() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "SELECT max(salary) from employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["department", "salary"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", None)],
+                vec![agg_expr("max", "salary", "__max__")],
+            ),
+            select(&[("__max__", "__max__")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_have_multiple_group_by_and_then_use_multiple_aggregate_functions() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => [-7]
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "SELECT max(salary) as max_sal, department as d, count(department) from employees group by department, bonus",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["bonus", "department", "salary"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", Some("d")), ("bonus", None)],
+                vec![
+                    agg_expr("max", "salary", "max_sal"),
+                    agg_expr("count", "department", "__count__"),
+                ],
+            ),
+            select(&[
+                ("max_sal", "max_sal"),
+                ("d", "d"),
+                ("__count__", "__count__"),
+            ]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_alias_result() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => [-7]
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "SELECT max(salary) as max_sal, department as d, count(department) from employees group by department, bonus order by max_sal",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["bonus", "department", "salary"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", Some("d")), ("bonus", None)],
+                vec![
+                    agg_expr("max", "salary", "max_sal"),
+                    agg_expr("count", "department", "__count__"),
+                ],
+            ),
+            select(&[
+                ("max_sal", "max_sal"),
+                ("d", "d"),
+                ("__count__", "__count__"),
+            ]),
+            orders(&["max_sal"], &[Asc]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_parse_non_aggregated_or_group_by_columns_in_select_clause() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+    invalid_query_to_provable_ast(
+        t,
+        "select department, salary from sxt.employees group by department",
+        &accessor,
+    );
+}
+
+#[test]
+fn aggregate_functions_are_not_allowed_in_the_group_by() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+    invalid_query_to_provable_ast(
+        t,
+        "select department, min(salary) as min_salary from employees group by min_salary",
+        &accessor,
+    );
+}
+
+#[test]
+fn order_by_cannot_reference_an_invalid_group_by_column() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department as d from sxt.employees group by department order by department",
+        &accessor,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department, min(salary) from sxt.employees group by department order by salary",
+        &accessor,
+    );
+}
+
+#[test]
+fn group_by_column_cannot_be_a_column_result_alias() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+        ),
+        0,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select min(salary) as min_sal from sxt.employees group by min_sal",
+        &accessor,
+    );
+}
+
+#[test]
+fn we_cannot_have_aggregate_functions_without_a_group_by_clause() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+
+    invalid_query_to_provable_ast(t, "select count(bonus) from sxt.employees", &accessor);
+}
+
+#[test]
+fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_expression() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select count(bonus) department from sxt.employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["bonus", "department"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", None)],
+                vec![agg_expr("count", "bonus", "department")],
+            ),
+            select(&[("department", "department")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn min_and_max_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department, max(bonus) from sxt.employees group by department",
+        &accessor,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department, min(bonus) from sxt.employees group by department",
+        &accessor,
+    );
+}
+
+#[test]
+fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select department, count(bonus), count(department) as dep from sxt.employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["bonus", "department"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", Some("department"))],
+                vec![
+                    agg_expr("count", "bonus", "__count__"),
+                    agg_expr("count", "department", "dep"),
+                ],
+            ),
+            select(&[
+                ("department", "department"),
+                ("__count__", "__count__"),
+                ("dep", "dep"),
+            ]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select count(*) from sxt.employees where salary = 4 group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["department"], &accessor),
+            tab(t),
+            equal(t, "salary", 4, &accessor),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", None)],
+                vec![agg_expr("countall", "department", "__count__")],
+            ),
+            select(&[("__count__", "__count__")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn aggregate_result_columns_cannot_reference_invalid_columns() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => ["abc"]
+        ),
+        0,
+    );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department, max(non_existent) from sxt.employees group by department",
+        &accessor,
+    );
+}
+
+#[test]
+fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_with_group_by() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => [-7]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "SELECT department as d1, department as d2 from employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["department"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![("department", Some("d1")), ("department", Some("d2"))],
+                vec![],
+            ),
+            select(&[("d1", "d1"), ("d2", "d2")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_use_multiple_group_by_clauses() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4],
+            "department" => [5],
+            "bonus" => [-7]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select department as d1, max(salary), department as d2 from employees group by department, bonus, department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["bonus", "department", "salary"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![
+                    ("department", Some("d1")),
+                    ("department", Some("d2")),
+                    ("bonus", None),
+                ],
+                vec![agg_expr("max", "salary", "__max__")],
+            ),
+            select(&[("d1", "d1"), ("__max__", "__max__"), ("d2", "d2")]),
         ]),
     );
     assert_eq!(ast, expected_ast);

@@ -1,4 +1,3 @@
-use super::ResultColumnAliasGraph;
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
 use crate::base::scalar::ToScalar;
 use crate::sql::ast::{
@@ -10,7 +9,8 @@ use crate::sql::transform::ResultExpr;
 
 use curve25519_dalek::scalar::Scalar;
 use proofs_sql::intermediate_ast::{
-    Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression, TableExpression,
+    AggExpr, Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression,
+    TableExpression,
 };
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::collections::HashSet;
@@ -20,8 +20,14 @@ use std::ops::Deref;
 pub struct Converter {
     /// The current table in context
     current_table: Option<TableRef>,
+    /// The result schema of the query
     result_schema: Vec<ResultColumn>,
-    result_column_alias_graph: Option<ResultColumnAliasGraph>,
+    /// The aggregation columns appearing in the result schema
+    aggregation_columns: Vec<AggExpr>,
+    /// The non-aggregation columns appearing in the result schema
+    non_aggregate_columns: Vec<ResultColumn>,
+    /// The group by expressions appearing in the query
+    group_by_exprs: Vec<(Identifier, Option<Identifier>)>,
 }
 
 impl Converter {
@@ -76,20 +82,27 @@ impl Converter {
                 columns,
                 from,
                 where_expr,
-                group_by: _,
+                group_by,
             } => {
-                // we should always visit table_expr first, as we need to know the current table name
+                // we always visit table_expr first, as we need to know the current table name during the next steps.
                 let table = self.visit_table_expressions(&from[..], default_schema);
 
+                // gather the non-duplicate references columns from the `group by` and the `result columns`.
                 let filter_result_expr_list =
-                    self.visit_result_columns(&columns[..], schema_accessor)?;
+                    self.visit_result_columns(&columns[..], group_by, schema_accessor)?;
 
+                // build the filter expression tree out of the `where` clause
                 let where_clause = match where_expr {
                     Some(where_expr) => {
                         self.visit_bool_expression(where_expr.deref(), schema_accessor)?
                     }
                     None => Box::new(ConstBoolExpr::new(true)),
                 };
+
+                // Populate the group by expressions with their possible respective aliases (when they appear in the result schema)
+                //
+                // Note: we need to visit the group by expressions after visiting the result columns.
+                self.group_by_exprs = self.visit_group_by(group_by)?;
 
                 Ok(FilterExpr::new(
                     filter_result_expr_list,
@@ -134,74 +147,48 @@ impl Converter {
     }
 }
 
-/// Utilities methods
-impl Converter {
-    fn try_to_remap_column_name_name_to_alias(
-        &self,
-        column_name: &Identifier,
-    ) -> ConversionResult<Identifier> {
-        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
-
-        // the same column name can be associated with multiple aliases
-        // this is the case when we have a `select a as b, c, a as d from T order by a`
-        // we pick the first alias available as order by should have the same effect in both cases
-        let alias_name = result_column_alias_graph
-            .get_name_mapping(column_name)
-            .map(|v| *v.iter().next().unwrap());
-
-        // we return an error if the `column_name` is not associated with any existing column name
-        alias_name.ok_or(ConversionError::InvalidOrderByError(
-            column_name.name().to_string(),
-            self.current_table.unwrap().table_id().name().to_string(),
-        ))
-    }
-
-    fn maybe_remap_column_name_to_alias(
-        &self,
-        maybe_column_name_or_alias: &Identifier,
-    ) -> ConversionResult<Identifier> {
-        let result_column_alias_graph = self.result_column_alias_graph.as_ref().unwrap();
-
-        // Check if `maybe_column_name_or_alias` is already associated with an alias name.
-        match result_column_alias_graph.get_alias_mapping(maybe_column_name_or_alias) {
-            Some(_) => {
-                // `maybe_column_name_or_alias` is an alias name.
-                // so it will reference the correct column in the result record batch.
-                let alias_name = *maybe_column_name_or_alias;
-
-                Ok(alias_name)
-            }
-            None => {
-                // `maybe_column_name_or_alias` may be a column name.
-                let maybe_column_name = maybe_column_name_or_alias;
-
-                // thus, we try to remap it to the alias name associated with column name.
-                self.try_to_remap_column_name_name_to_alias(maybe_column_name)
-            }
-        }
-    }
-}
-
 /// Build result expr
 impl Converter {
     fn build_result_expr(&self, ast: &SelectStatement) -> ConversionResult<ResultExpr> {
-        let order_by = self.visit_order_by(&ast.order_by[..])?;
+        self.check_order_by(&ast.order_by[..])?;
 
         let mut result_expr_builder = ResultExprBuilder::default();
 
-        // this step must be done after the above order by step
-        if order_by.is_empty() && ast.slice.is_none() {
+        if self.group_by_exprs.is_empty() && ast.order_by.is_empty() && ast.slice.is_none() {
             // we need to apply a projection if there is no transformations
             return Ok(ResultExpr::new_with_result_schema(
                 self.result_schema.to_vec(),
             ));
         }
 
-        // select must be applied before order by as
-        // it references aliases defined in the select clause
-        result_expr_builder.add_select(self.result_schema.to_vec());
+        if self.group_by_exprs.is_empty() {
+            // select must be applied before order by as
+            // it references aliases defined in the select clause
+            result_expr_builder.add_select(self.result_schema.to_vec());
+        } else {
+            result_expr_builder.add_group_by(
+                self.group_by_exprs.to_vec(),
+                self.aggregation_columns.to_vec(),
+            );
 
-        result_expr_builder.add_order_by(order_by);
+            // Group by modifies the result schema order and name so that
+            // only aliases exist in the final lazy frame.
+            //
+            // Therefore, we need to re-map the select expression to reflect
+            // the group by changes.
+            let result_schema = self
+                .result_schema
+                .iter()
+                .map(|col| ResultColumn {
+                    name: col.alias,
+                    alias: col.alias,
+                })
+                .collect::<Vec<_>>();
+
+            result_expr_builder.add_select(result_schema);
+        }
+
+        result_expr_builder.add_order_by(ast.order_by.to_vec());
 
         if let Some(slice) = &ast.slice {
             result_expr_builder.add_slice(slice.number_rows, slice.offset_value);
@@ -211,26 +198,67 @@ impl Converter {
     }
 }
 
+// Group By
+impl Converter {
+    /// Convert a `GroupBy` into a `Vec<(Identifier, Option<Identifier>)>`
+    ///
+    /// Group by names are always propagated to the first element of the tuple.
+    /// Thus they always need to reference a valid column name existing in the table.
+    /// When the group by name is part of the result schema, the second element
+    /// is set as the respective result alias name. Otherwise, it is set to `None`.
+    fn visit_group_by(
+        &self,
+        group_by_exprs: &[Identifier],
+    ) -> ConversionResult<Vec<(Identifier, Option<Identifier>)>> {
+        if group_by_exprs.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // We need to remap the group by column names so that we can easily know if
+        // they are part of the result schema.
+        let mut transform_group_by_exprs = Vec::new();
+
+        // We need to add the group by columns that are part of the result schema.
+        for col in self.non_aggregate_columns.iter() {
+            // We need to check that each non aggregated result column is referenced in the group by clause.
+            if group_by_exprs.iter().any(|group_by| *group_by == col.name) {
+                // note: `col.alias` here implies that this group by will appear in the result schema using `col.alias`.
+                transform_group_by_exprs.push((col.name, Some(col.alias)));
+            } else {
+                return Err(ConversionError::InvalidGroupByResultColumnError);
+            }
+        }
+
+        // We need to add the group by columns that are not part of the result schema.
+        for group_by in group_by_exprs.iter() {
+            if !self
+                .non_aggregate_columns
+                .iter()
+                .any(|col| col.name == *group_by)
+            {
+                // note: `None` here implies that the this group by will be filtered out of the result schema.
+                transform_group_by_exprs.push((*group_by, None))
+            }
+        }
+
+        Ok(transform_group_by_exprs)
+    }
+}
+
 // Order By
 impl Converter {
-    fn visit_order_by(&self, by_exprs: &[OrderBy]) -> ConversionResult<Vec<OrderBy>> {
-        let by_exprs = by_exprs
-            .iter()
-            .map(|by_expr| {
-                // `by_expr.expr` can be either an alias or a column name
-                // - if it's an alias, it will already be associated with the correct column
-                // - if it's a column name, we need to remap it to the alias name used in the result record batch
-                let alias_name = self.maybe_remap_column_name_to_alias(&by_expr.expr)?;
-
-                // return a new `OrderBy` with the correct alias name
-                Ok(OrderBy {
-                    expr: alias_name,
-                    direction: by_expr.direction.clone(),
-                })
-            })
-            .collect::<ConversionResult<Vec<_>>>()?;
-
-        Ok(by_exprs)
+    /// Check that each order by expression is associated with an existing column alias.
+    /// Order by values associated with result column names are not allowed.
+    fn check_order_by(&self, by_exprs: &[OrderBy]) -> ConversionResult<()> {
+        for by_expr in by_exprs {
+            self.result_schema
+                .iter()
+                .find(|col| col.alias == by_expr.expr)
+                .ok_or(ConversionError::InvalidOrderByError(
+                    by_expr.expr.as_str().to_string(),
+                ))?;
+        }
+        Ok(())
     }
 }
 
@@ -257,44 +285,148 @@ impl Converter {
             .collect()
     }
 
-    fn visit_result_column_expressions(
-        &self,
-        result_columns: &[ResultColumnExpr],
+    fn visit_result_aggregation_expression(
+        &mut self,
+        agg_expr: &AggExpr,
+        group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
-    ) -> Vec<ResultColumn> {
-        result_columns
+    ) -> ConversionResult<Vec<ResultColumn>> {
+        // We can't aggregate without specifying a group by column
+        if group_by_exprs.is_empty() {
+            return Err(ConversionError::MissingGroupByError);
+        }
+
+        match &agg_expr {
+            AggExpr::Max(result_column) => {
+                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
+
+                // We only support max aggregation on numeric columns
+                if column.column_type() != &ColumnType::BigInt {
+                    return Err(ConversionError::NonNumericColumnAggregation("max"));
+                }
+
+                Ok(vec![result_column.clone()])
+            }
+            AggExpr::Min(result_column) => {
+                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
+
+                // We only support min aggregation on numeric columns
+                if column.column_type() != &ColumnType::BigInt {
+                    return Err(ConversionError::NonNumericColumnAggregation("min"));
+                }
+
+                Ok(vec![result_column.clone()])
+            }
+            AggExpr::Count(result_column) => Ok(vec![result_column.clone()]),
+            AggExpr::CountAll(alias) => {
+                // Here we could use any column available in the table.
+                // But due to efficiency reasons, we pick the first
+                // column in the group by clause as it'll already
+                // be available in the result record batch.
+                let name = group_by_exprs[0];
+
+                let result_column = ResultColumn {
+                    name,
+                    alias: *alias,
+                };
+
+                Ok(vec![result_column])
+            }
+        }
+    }
+
+    fn check_result_columns_has_unique_aliases(
+        &self,
+        result_columns: &[ResultColumn],
+    ) -> ConversionResult<()> {
+        let mut aliases_set = HashSet::new();
+        for column in result_columns {
+            let alias = column.alias;
+
+            // we don't allow duplicate aliases
+            if !aliases_set.insert(alias) {
+                return Err(ConversionError::DuplicateColumnAlias(
+                    alias.name().to_string(),
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn visit_result_column_expressions(
+        &mut self,
+        result_columns: &[ResultColumnExpr],
+        group_by_exprs: &[Identifier],
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> ConversionResult<Vec<ResultColumn>> {
+        self.aggregation_columns = vec![];
+        self.non_aggregate_columns = vec![];
+
+        let result_columns = result_columns
             .iter()
             .map(|result_column| match result_column {
-                ResultColumnExpr::AllColumns => self.visit_result_column_all(schema_accessor),
-                ResultColumnExpr::SimpleColumn(result_column) => vec![result_column.clone()],
-                _ => todo!(),
+                ResultColumnExpr::AllColumns => {
+                    let result_column_all = self.visit_result_column_all(schema_accessor);
+
+                    // we need to keep track of the non-aggregate columns
+                    // as they are used to build the GroupByExpr node.
+                    self.non_aggregate_columns
+                        .extend_from_slice(&result_column_all);
+
+                    Ok(result_column_all)
+                }
+                ResultColumnExpr::SimpleColumn(result_column) => {
+                    // we need to keep track of the non-aggregate columns
+                    // as they are used to build the GroupByExpr node.
+                    self.non_aggregate_columns.push(result_column.clone());
+
+                    Ok(vec![result_column.clone()])
+                }
+                ResultColumnExpr::AggColumn(agg_expr) => {
+                    // We need to keep track of the aggregate expressions
+                    // as they are used to build the GroupByExpr node.
+                    self.aggregation_columns.push(agg_expr.clone());
+
+                    self.visit_result_aggregation_expression(
+                        agg_expr,
+                        group_by_exprs,
+                        schema_accessor,
+                    )
+                }
             })
-            .collect::<Vec<_>>()
-            .into_iter()
-            .flatten()
-            .collect()
+            .collect::<ConversionResult<Vec<_>>>()?;
+
+        let result_columns = result_columns.into_iter().flatten().collect::<Vec<_>>();
+
+        self.check_result_columns_has_unique_aliases(&result_columns)?;
+
+        Ok(result_columns)
     }
 
     /// Convert a `ResultColumnExpr slice` into a `Vec<FilterResultExpr>`
     fn visit_result_columns(
         &mut self,
         result_columns: &[ResultColumnExpr],
+        group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<FilterResultExpr>> {
         assert!(!result_columns.is_empty());
 
         // Gather all the result columns
-        self.result_schema = self.visit_result_column_expressions(result_columns, schema_accessor);
-
-        // Generate the alias graph. This code also checks for duplicate aliases.
-        self.result_column_alias_graph =
-            Some(ResultColumnAliasGraph::new(&self.result_schema[..])?);
+        self.result_schema =
+            self.visit_result_column_expressions(result_columns, group_by_exprs, schema_accessor)?;
 
         // Get the HashSet of all column names in the result schema
+        //
+        // Note: we chain the group by expressions as their respective
+        // columns need to be available in the result record batch
+        // during post-processing.
         let non_duplicate_result_columns = self
             .result_schema
             .iter()
-            .map(|result_column| result_column.name)
+            .map(|col| &col.name)
+            .chain(group_by_exprs.iter())
             .collect::<HashSet<_>>();
 
         // Convert the hash_set to a vector and sort it
@@ -309,8 +441,12 @@ impl Converter {
         let non_duplicate_filter_result_columns = non_duplicate_result_columns
             .into_iter()
             .map(|name| {
+                // Note: during the `visit_column_identifier`, we also check
+                // if the column name `*name` is present in the table schema.
+                // This check ensures that either result columns or group by
+                // expressions have valid column names.
                 Ok(FilterResultExpr::new(
-                    self.visit_column_identifier(name, schema_accessor)?,
+                    self.visit_column_identifier(*name, schema_accessor)?,
                 ))
             })
             .collect::<ConversionResult<Vec<_>>>()?;
