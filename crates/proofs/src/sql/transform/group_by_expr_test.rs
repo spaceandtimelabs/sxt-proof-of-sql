@@ -16,7 +16,7 @@ fn we_can_transform_batch_using_simple_group_by_with_an_alias() {
 
 #[test]
 #[should_panic]
-fn we_cannot_transform_batch_using_a_sing_group_by_without_an_alias() {
+fn we_cannot_transform_batch_using_a_single_group_by_without_an_alias_or_aggregation_columns() {
     composite_result(vec![groupby(vec![("a", None)], vec![])]);
 }
 
@@ -216,6 +216,16 @@ fn we_cannot_transform_batch_using_the_same_non_aliased_group_by_multiple_times(
 fn we_cannot_transform_batch_using_the_same_aliased_group_by_multiple_times() {
     let by_exprs = vec![("a", Some("a2")), ("a", Some("a2"))];
     composite_result(vec![groupby(by_exprs, vec![])]);
+}
+
+#[test]
+fn we_can_transform_batch_using_different_aliases_associated_with_the_same_group_by_column() {
+    let data = record_batch!("a" => ["a", "b"], "d" => [523, -25]);
+    let by_exprs = vec![("a", Some("a1")), ("a", Some("a2"))];
+    let result_expr = composite_result(vec![groupby(by_exprs, vec![])]);
+    let data = result_expr.transform_results(data);
+    let expected_data = record_batch!("a1" => ["a", "b"], "a2" => ["a", "b"]);
+    assert_eq!(data, expected_data);
 }
 
 #[test]
