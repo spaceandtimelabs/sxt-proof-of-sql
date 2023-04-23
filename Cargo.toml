@@ -22,7 +22,7 @@ dyn_partial_eq = { version = "0.1.2" }
 hashbrown = { version = "0.11.2" }
 indexmap = { version = "1.9" }
 integer-encoding = { version = "3.0.4" }
-lalrpop-util = { version = "0.19.8" }
+lalrpop-util = { version = "0.19.9" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
 polars = { version = "0.25.1" }
