@@ -23,7 +23,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
         ..Default::default()
     };
     let mle1 = [1, 2];
-    let mle2 = [10, 20];
+    let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
@@ -44,7 +44,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
         ..Default::default()
     };
     let mle1 = [1, 2];
-    let mle2 = [10, 20];
+    let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
@@ -65,7 +65,7 @@ fn we_can_evaluate_pre_result_mles() {
         ..Default::default()
     };
     let mle1 = [1, 2];
-    let mle2 = [10, 20];
+    let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
@@ -86,7 +86,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
         ..Default::default()
     };
     let mle1 = [1, 2, -1];
-    let mle2 = [10, 20, 100, 30];
+    let mle2 = [10u32, 20, 100, 30];
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
@@ -171,7 +171,7 @@ fn we_can_fold_pre_result_mles() {
         ..Default::default()
     };
     let mle1 = [1, 2];
-    let mle2 = [10, 20];
+    let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
