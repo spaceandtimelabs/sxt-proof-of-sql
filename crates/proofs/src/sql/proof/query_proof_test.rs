@@ -490,7 +490,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     //     res_i = z_i * z_i
     // where the commitment for x is known
     static RES: [i64; 2] = [81, 625];
-    static Z: [i64; 2] = [9, 25];
+    static Z: [u64; 2] = [9, 25];
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
@@ -612,7 +612,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     //     res_i = z_i * z_i
     // where the commitment for x is known
     static RES: [i64; 2] = [81, 625];
-    static Z: [i64; 2] = [9, 25];
+    static Z: [u64; 2] = [9, 25];
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
@@ -703,7 +703,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     //     res_i = z_i * z_i
     // where the commitment for x is known
     static RES: [i64; 2] = [81, 625];
-    static Z: [i64; 2] = [9, 25];
+    static Z: [u64; 2] = [9, 25];
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
@@ -799,7 +799,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     //     z_i != x_i * x_i
     // for some i
     static RES: [i64; 2] = [81, 625];
-    static Z: [i64; 2] = [9, 25];
+    static Z: [u64; 2] = [9, 25];
     static X: [i64; 2] = [3, 4];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
@@ -890,7 +890,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     //     res_i != z_i * z_i
     // for some i
     static RES: [i64; 2] = [81, 624];
-    static Z: [i64; 2] = [9, 25];
+    static Z: [u64; 2] = [9, 25];
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {

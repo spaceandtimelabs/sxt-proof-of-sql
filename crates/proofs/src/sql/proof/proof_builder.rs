@@ -58,15 +58,13 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_intermediate_mle<T: ToScalar + Sync>(&mut self, data: &'a [T]) {
+    pub fn produce_intermediate_mle<T: ToScalar + Sync>(&mut self, data: &'a [T])
+    where
+        &'a [T]: Into<DenseSequence<'a>>,
+    {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
-        let len = data.len() * std::mem::size_of::<T>();
-        let slice = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, len) };
         self.commitment_descriptor
-            .push(Sequence::Dense(DenseSequence {
-                data_slice: slice,
-                element_size: std::mem::size_of::<T>(),
-            }));
+            .push(Sequence::Dense(data.into()));
         self.produce_anchored_mle(data);
     }
 

@@ -28,7 +28,7 @@ num-traits = { version = "0.2" }
 polars = { version = "0.25.1" }
 postcard = { version = "1.0" }
 proofs = { path = "crates/proofs" } # We automatically update this line during release. So do not modify it!
-proofs-gpu = { version = "7", registry = "artifactory" }
+proofs-gpu = { version = "7.3.0", registry = "artifactory" }
 proofs-sql = { path = "crates/proofs-sql" } # We automatically update this line during release. So do not modify it!
 rand = { version = "0.7" }
 rayon = { version = "1.5" }
