@@ -14,5 +14,10 @@ pub use inner_product::inner_product;
 mod to_scalar;
 pub use to_scalar::ToScalar;
 
+mod to_ark_scalar;
+pub use to_ark_scalar::ToArkScalar;
+#[cfg(test)]
+mod to_ark_scalar_test;
+
 mod batch_pseudo_inverse;
 pub use batch_pseudo_inverse::batch_pseudo_invert;
