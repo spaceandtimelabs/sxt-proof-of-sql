@@ -65,25 +65,24 @@ uint_to_scalar!(u8);
 uint_to_scalar!(u16);
 uint_to_scalar!(u32);
 uint_to_scalar!(u64);
+uint_to_scalar!(u128);
 int_to_scalar!(i8, u8);
 int_to_scalar!(i16, u16);
 int_to_scalar!(i32, u32);
 int_to_scalar!(i64, u64);
+int_to_scalar!(i128, u128);
 
 macro_rules! byte_array_to_scalar {
     ($it:ty) => {
         impl ToScalar for $it {
             fn to_scalar(&self) -> Scalar {
                 if self.is_empty() {
-                    return Scalar::default();
+                    return Scalar::zero();
                 }
 
                 let hash = blake3::hash(self);
-                let mut bytes = hash.as_bytes()[..].to_vec();
+                let mut bytes: [u8; 32] = hash.into();
                 bytes[31] &= 0b00001111_u8;
-                let bytes: [u8; 32] = bytes
-                    .try_into()
-                    .expect("The `bytes` array should have 32 bytes.");
 
                 Scalar::from_canonical_bytes(bytes)
                     .expect("The remaining four bits from `bytes` should be 0.")
@@ -145,30 +144,30 @@ mod tests {
     }
 
     #[test]
-    fn the_empty_string_will_be_mapped_to_the_default_scalar() {
-        assert_eq!("".to_scalar(), Scalar::default());
-        assert_eq!(<&str>::default().to_scalar(), Scalar::default());
+    fn the_empty_string_will_be_mapped_to_the_zero_scalar() {
+        assert_eq!("".to_scalar(), Scalar::zero());
+        assert_eq!(<&str>::default().to_scalar(), Scalar::zero());
     }
 
     #[test]
     fn two_different_strings_map_to_different_scalars() {
         let s = "abc12";
-        assert_ne!(s.to_scalar(), Scalar::default());
+        assert_ne!(s.to_scalar(), Scalar::zero());
         assert_ne!(s.to_scalar(), "abc123".to_scalar());
     }
 
     #[test]
-    fn the_empty_buffer_will_be_mapped_to_the_default_scalar() {
-        assert_eq!([].to_scalar(), Scalar::default());
-        assert_eq!([].to_scalar(), Scalar::default());
-        assert_eq!(Vec::default().to_scalar(), Scalar::default());
-        assert_eq!(<Vec<u8>>::default().to_scalar(), Scalar::default());
+    fn the_empty_buffer_will_be_mapped_to_the_zero_scalar() {
+        assert_eq!([].to_scalar(), Scalar::zero());
+        assert_eq!([].to_scalar(), Scalar::zero());
+        assert_eq!(Vec::default().to_scalar(), Scalar::zero());
+        assert_eq!(<Vec<u8>>::default().to_scalar(), Scalar::zero());
     }
 
     #[test]
     fn byte_arrays_with_the_same_content_but_different_types_map_to_different_scalars() {
         let array = [1_u8, 2_u8, 34_u8];
-        assert_ne!(array.as_byte_slice().to_scalar(), Scalar::default());
+        assert_ne!(array.as_byte_slice().to_scalar(), Scalar::zero());
         assert_ne!(
             array.as_byte_slice().to_scalar(),
             [1_u32, 2_u32, 34_u32].as_byte_slice().to_scalar()
