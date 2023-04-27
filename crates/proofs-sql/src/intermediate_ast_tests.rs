@@ -886,18 +886,6 @@ fn we_cannot_parse_a_query_with_filter_le() {
 }
 
 #[test]
-fn we_cannot_parse_a_query_summing_the_result_columns() {
-    assert!("select sum(a) from tab".parse::<SelectStatement>().is_err());
-}
-
-#[test]
-fn we_cannot_parse_a_query_with_group_by_keyword() {
-    assert!("select b, sum(a) from tab group by b"
-        .parse::<SelectStatement>()
-        .is_err());
-}
-
-#[test]
 fn we_cannot_parse_a_query_with_inner_join_keyword() {
     assert!(
         "select tab1.a from tab1 join tab2 on tab1.c = tab2.c where tab2.b > 4"
@@ -1040,7 +1028,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations() {
 #[test]
 fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_order_by_and_limit()
 {
-    let ast = "select min(a), max(a) as max_a, count(a), count(*) count_all from tab where d = 3 group by a, b order by b limit 2"
+    let ast = "select min(a), max(a) as max_a, sum(c), count(a), count(*) count_all from tab where d = 3 group by a, b order by b limit 2"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1048,6 +1036,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_
             vec![
                 min_res("a", "__min__"),
                 max_res("a", "max_a"),
+                sum_res("c", "__sum__"),
                 count_res("a", "__count__"),
                 count_all_res("count_all"),
             ],
@@ -1102,4 +1091,5 @@ fn we_can_parse_a_aggregations_without_group_by_although_it_is_semantically_inco
 fn we_cannot_parse_a_non_count_aggregations_with_wildcard() {
     assert!("select min(*) from tab".parse::<SelectStatement>().is_err());
     assert!("select max(*) from tab".parse::<SelectStatement>().is_err());
+    assert!("select sum(*) from tab".parse::<SelectStatement>().is_err());
 }

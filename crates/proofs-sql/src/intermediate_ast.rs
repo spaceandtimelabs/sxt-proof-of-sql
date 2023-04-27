@@ -46,6 +46,8 @@ pub enum AggExpr {
     Max(ResultColumn),
     /// An aggregation expression associated with min(expr)
     Min(ResultColumn),
+    /// An aggregation expression associated with sum(expr)
+    Sum(ResultColumn),
     /// An aggregation expression associated with count(expr)
     Count(ResultColumn),
     /// An aggregation expression associated with count(*)

@@ -1172,6 +1172,12 @@ fn min_and_max_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
         "select department, min(bonus) from sxt.employees group by department",
         &accessor,
     );
+
+    invalid_query_to_provable_ast(
+        t,
+        "select department, sum(bonus) from sxt.employees group by department",
+        &accessor,
+    );
 }
 
 #[test]
@@ -1317,7 +1323,7 @@ fn we_can_use_multiple_group_by_clauses() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select department as d1, max(salary), department as d2 from employees group by department, bonus, department",
+        "select department as d1, max(salary), department as d2, sum(bonus) as sum_bonus from employees group by department, bonus, department",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
@@ -1333,9 +1339,17 @@ fn we_can_use_multiple_group_by_clauses() {
                     ("department", Some("d2")),
                     ("bonus", None),
                 ],
-                vec![agg_expr("max", "salary", "__max__")],
+                vec![
+                    agg_expr("max", "salary", "__max__"),
+                    agg_expr("sum", "bonus", "sum_bonus"),
+                ],
             ),
-            select(&[("d1", "d1"), ("__max__", "__max__"), ("d2", "d2")]),
+            select(&[
+                ("d1", "d1"),
+                ("__max__", "__max__"),
+                ("d2", "d2"),
+                ("sum_bonus", "sum_bonus"),
+            ]),
         ]),
     );
     assert_eq!(ast, expected_ast);

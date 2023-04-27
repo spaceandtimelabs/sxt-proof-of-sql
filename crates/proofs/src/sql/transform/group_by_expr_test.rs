@@ -69,6 +69,33 @@ fn we_can_transform_batch_using_simple_group_by_with_min_aggregation() {
 }
 
 #[test]
+fn we_can_transform_batch_using_simple_group_by_with_sum_aggregation() {
+    let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
+    let by_exprs = vec![("a", None)];
+    let agg_exprs = vec![AggExpr::Sum(ResultColumn {
+        name: "c".parse::<Identifier>().unwrap(),
+        alias: "c".parse::<Identifier>().unwrap(),
+    })];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    let data = result_expr.transform_results(data);
+    let expected_data = record_batch!("#$a" => ["a", "d", "b"], "c" => [8, -5, -1]);
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+#[should_panic]
+fn sum_aggregation_can_overflow() {
+    let data = record_batch!("c" => [i64::MAX, 1], "a" => ["a", "a"]);
+    let by_exprs = vec![("a", None)];
+    let agg_exprs = vec![AggExpr::Sum(ResultColumn {
+        name: "c".parse::<Identifier>().unwrap(),
+        alias: "c".parse::<Identifier>().unwrap(),
+    })];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    result_expr.transform_results(data);
+}
+
+#[test]
 fn we_can_transform_batch_using_simple_group_by_with_count_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", Some("a_col"))];
