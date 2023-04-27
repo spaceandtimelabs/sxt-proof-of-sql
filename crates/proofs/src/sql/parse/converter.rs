@@ -317,6 +317,16 @@ impl Converter {
 
                 Ok(vec![result_column.clone()])
             }
+            AggExpr::Sum(result_column) => {
+                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
+
+                // We only support sum aggregation on numeric columns
+                if column.column_type() != &ColumnType::BigInt {
+                    return Err(ConversionError::NonNumericColumnAggregation("sum"));
+                }
+
+                Ok(vec![result_column.clone()])
+            }
             AggExpr::Count(result_column) => Ok(vec![result_column.clone()]),
             AggExpr::CountAll(alias) => {
                 // Here we could use any column available in the table.

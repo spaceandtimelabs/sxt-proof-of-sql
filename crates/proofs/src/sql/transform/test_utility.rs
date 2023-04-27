@@ -56,6 +56,10 @@ pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> AggExpr {
             name: name.parse().unwrap(),
             alias: alias.parse().unwrap(),
         }),
+        "sum" => AggExpr::Sum(ResultColumn {
+            name: name.parse().unwrap(),
+            alias: alias.parse().unwrap(),
+        }),
         "count" => AggExpr::Count(ResultColumn {
             name: name.parse().unwrap(),
             alias: alias.parse().unwrap(),
