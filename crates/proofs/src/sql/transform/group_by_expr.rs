@@ -116,6 +116,12 @@ fn agg_exprs_to_polars_exprs(agg_exprs: Vec<AggExpr>, by_exprs_set: &HashSet<Str
                 AggExpr::Min(ResultColumn { name, alias }) => {
                     (col(name.as_str()).min().alias(alias.as_str()), alias)
                 }
+                AggExpr::Sum(ResultColumn { name, alias }) => {
+                    // Note that the following aggregation `sum` may result in overflow.
+                    // In debug mode, Polars will raise a panic if an overflow occurs,
+                    // while in release mode, it will silently return the overflowed result.
+                    (col(name.as_str()).sum().alias(alias.as_str()), alias)
+                }
                 AggExpr::Count(ResultColumn { name, alias }) => {
                     (col(name.as_str()).count().alias(alias.as_str()), alias)
                 }

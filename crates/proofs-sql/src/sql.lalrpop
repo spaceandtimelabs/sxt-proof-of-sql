@@ -129,6 +129,12 @@ AggExpr: intermediate_ast::AggExpr = {
             intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__min__")) }
         ),
 
+    // TODO: for now, we use alias `__sum__` instead of `sum` because `sum` is a reserved word.
+    "sum" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AggExpr::Sum(
+            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__sum__")) }
+        ),
+
     // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
     "count" "(" "*" ")" <alias: ("as"? <Identifier>)?>  =>
         intermediate_ast::AggExpr::CountAll(alias.unwrap_or(identifier::Identifier::new("__count__"))),
@@ -300,6 +306,7 @@ match {
     r"[mM][iI][nN]" => "min",
     r"[mM][aA][xX]" => "max",
     r"[cC][oO][uU][nN][tT]" => "count",
+    r"[sS][uU][mM]" => "sum",
 
     "," => ",",
     "." => ".",

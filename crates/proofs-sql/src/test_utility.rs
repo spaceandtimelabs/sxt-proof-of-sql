@@ -65,6 +65,13 @@ pub fn max_res(name: &str, alias: &str) -> ResultColumnExpr {
     }))
 }
 
+pub fn sum_res(name: &str, alias: &str) -> ResultColumnExpr {
+    ResultColumnExpr::AggColumn(AggExpr::Sum(ResultColumn {
+        name: name.parse().unwrap(),
+        alias: alias.parse().unwrap(),
+    }))
+}
+
 pub fn count_res(name: &str, alias: &str) -> ResultColumnExpr {
     ResultColumnExpr::AggColumn(AggExpr::Count(ResultColumn {
         name: name.parse().unwrap(),
