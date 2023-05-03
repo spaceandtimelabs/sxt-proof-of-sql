@@ -1,3 +1,4 @@
+import re
 from html_generator import *
 from plot_generator import *
 from system_utilities import *
@@ -94,7 +95,10 @@ class BenchmarkExecutor:
                 # `WARN: Using pippenger cpu instead of naive gpu backend.`
                 # when a GPU host is not available.
                 # This message would not be shown with a GPU host.
-                _, mean_time, _  = run_process(run_cmd).split('\n')
+                res = run_process(run_cmd)
+                regex_match = re.search(r"\d+\.\d+seconds", res).group(0)
+                print("Result: ", res, "; Regex: ", regex_match)
+                mean_time = float(regex_match.replace('seconds', ''))
 
                 execution_times.append(float(mean_time))
             

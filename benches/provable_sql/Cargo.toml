@@ -7,10 +7,13 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+lib-tracing = { version = "5", registry = "artifactory" }
 proofs = { path = "../../crates/proofs", features = ["test"] }
 proofs-gpu = { version = "7", registry = "artifactory" }
 proofs-sql = { path = "../../crates/proofs-sql" }
 rand = "0.7"
+tokio = { version = "1.0", features = ["rt-multi-thread"] }
+tracing = { version = "0.1.36", features = ["attributes"] }
 
 [build-dependencies]
 cc = { version = "1.0", optional = true }

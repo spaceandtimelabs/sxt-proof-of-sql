@@ -2,8 +2,9 @@ use clap::Parser;
 use proofs::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
+use proofs::base::proof::ProofError;
 use proofs::sql::parse::{Converter, QueryExpr};
-use proofs::sql::proof::VerifiableQueryResult;
+use proofs::sql::proof::{QueryResult, VerifiableQueryResult};
 use proofs_gpu::compute::{init_backend_with_config, BackendConfig};
 use proofs_sql::sql::SelectStatementParser;
 use proofs_sql::Identifier;
@@ -83,7 +84,7 @@ fn generate_accessor(
     (table_ref.table_id().name().to_owned(), accessor)
 }
 
-fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, TestAccessor) {
+fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, TestAccessor, String) {
     init_backend_with_config(BackendConfig {
         num_precomputed_generators: args.table_length as u64,
     });
@@ -103,31 +104,40 @@ fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, Tes
         + " where "
         + args.where_expr.as_str();
 
-    let provable_ast = parse_query(query, &accessor);
+    let provable_ast = parse_query(query.clone(), &accessor);
 
-    (provable_ast, accessor)
+    (provable_ast, accessor, query)
 }
 
-fn main() {
+#[tracing::instrument(skip(provable_ast, accessor))]
+fn process_query(
+    provable_ast: &QueryExpr,
+    accessor: &TestAccessor,
+    _args: &Args,
+    query: &str,
+    sample_iter: usize,
+) -> Result<QueryResult, ProofError> {
+    // generate and verify proof
+    let verifiable_result = VerifiableQueryResult::new(provable_ast, accessor);
+
+    verifiable_result.verify(provable_ast, accessor)
+}
+
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
     let offset_generators = 0_usize;
 
-    let (provable_ast, accessor) = generate_input_data(&args, offset_generators);
+    let (provable_ast, accessor, query) = generate_input_data(&args, offset_generators);
+
+    let _config_guards = lib_tracing::ConfigGuards::new("proofs-benchmark-server");
 
     let mut mean_time: f64 = 0.0;
 
     toggle_collect();
-    for _ in 0..args.num_samples {
+    for iter in 0..args.num_samples {
         let before = Instant::now();
-
-        // generate and verify proof
-        let verifiable_result = VerifiableQueryResult::new(&provable_ast, &accessor);
-
-        verifiable_result
-            .verify(&provable_ast, &accessor)
-            .unwrap()
-            .unwrap();
-
+        let _res = process_query(&provable_ast, &accessor, &args, &query, iter);
         mean_time += before.elapsed().as_secs_f64();
     }
     toggle_collect();
@@ -135,5 +145,5 @@ fn main() {
     // convert from seconds to milliseconds
     mean_time = (mean_time / (args.num_samples as f64)) * 1e3;
 
-    println!("{:.4?}", mean_time);
+    println!("{:.4?}seconds", mean_time);
 }
