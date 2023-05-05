@@ -1,3 +1,5 @@
+use crate::base::polynomial::DenseMultilinearExtension;
+use ark_poly::MultilinearExtension;
 /**
  * Adopted from arkworks
  *
@@ -9,7 +11,7 @@ use ark_std::vec::Vec;
 use curve25519_dalek::scalar::Scalar;
 use hashbrown::HashMap;
 
-use crate::base::polynomial::DenseMultilinearExtension;
+use super::{from_ark_scalar, to_ark_scalar, ArkScalar};
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
@@ -79,7 +81,7 @@ impl CompositePolynomial {
         self.max_multiplicands = max(self.max_multiplicands, product.len());
         for m in product {
             assert_eq!(
-                m.ark_impl.num_vars, self.num_variables,
+                m.num_vars, self.num_variables,
                 "product has a multiplicand with wrong number of variables"
             );
             let m_ptr: *const DenseMultilinearExtension = Rc::as_ptr(&m);
@@ -97,14 +99,17 @@ impl CompositePolynomial {
 
     /// Evaluate the polynomial at point `point`
     pub fn evaluate(&self, point: &[Scalar]) -> Scalar {
-        self.products
+        let point: Vec<ArkScalar> = point.iter().map(to_ark_scalar).collect();
+        let result = self
+            .products
             .iter()
             .map(|(c, p)| {
-                *c * p
-                    .iter()
-                    .map(|&i| self.flattened_ml_extensions[i].evaluate(point).unwrap())
-                    .product::<Scalar>()
+                to_ark_scalar(c)
+                    * p.iter()
+                        .map(|&i| self.flattened_ml_extensions[i].evaluate(&point).unwrap())
+                        .product::<ArkScalar>()
             })
-            .sum()
+            .sum();
+        from_ark_scalar(&result)
     }
 }

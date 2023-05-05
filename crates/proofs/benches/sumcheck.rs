@@ -3,7 +3,7 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use proofs::{
-    base::polynomial::{CompositePolynomial, DenseMultilinearExtension},
+    base::polynomial::{to_ark_scalar, ArkScalar, CompositePolynomial, DenseMultilinearExtension},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
@@ -16,6 +16,7 @@ fn random_mle_with_num_vars<R: Rng>(v: usize, rng: &mut R) -> (Scalar, DenseMult
         .collect();
 
     let sum = scalars.iter().sum();
+    let scalars: Vec<ArkScalar> = scalars.iter().map(to_ark_scalar).collect();
     let mle = DenseMultilinearExtension::from_evaluations_slice(v, scalars.as_slice());
 
     (sum, mle)

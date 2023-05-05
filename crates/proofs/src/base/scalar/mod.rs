@@ -21,3 +21,6 @@ mod to_ark_scalar_test;
 
 mod batch_pseudo_inverse;
 pub use batch_pseudo_inverse::batch_pseudo_invert;
+
+mod identities;
+pub use identities::{One, Zero};

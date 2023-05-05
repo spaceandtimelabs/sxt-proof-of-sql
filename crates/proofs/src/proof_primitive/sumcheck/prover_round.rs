@@ -73,8 +73,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
 
                     // The third loop is the loop over the factors/multiplicand in the product term.
                     for &multiplicand_index in multiplicand_indices {
-                        let table =
-                            &prover_state.flattened_ml_extensions[multiplicand_index].ark_impl;
+                        let table = &prover_state.flattened_ml_extensions[multiplicand_index];
 
                         // This third+final loop give an efficient way of computing
                         // products[t] *= table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field;
@@ -106,15 +105,12 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
 ///                };
 /// Only it does it in place
 fn in_place_fix_variable(multiplicand: &mut DenseMultilinearExtension, r_as_field: ArkScalar) {
-    assert!(
-        multiplicand.ark_impl.num_vars > 0,
-        "invalid size of partial point"
-    );
-    multiplicand.ark_impl.num_vars -= 1;
-    for b in 0..(1 << multiplicand.ark_impl.num_vars) {
-        let left: ArkScalar = multiplicand.ark_impl.evaluations[b << 1];
-        let right: ArkScalar = multiplicand.ark_impl.evaluations[(b << 1) + 1];
-        multiplicand.ark_impl.evaluations[b] = left + r_as_field * (right - left);
+    assert!(multiplicand.num_vars > 0, "invalid size of partial point");
+    multiplicand.num_vars -= 1;
+    for b in 0..(1 << multiplicand.num_vars) {
+        let left: ArkScalar = multiplicand.evaluations[b << 1];
+        let right: ArkScalar = multiplicand.evaluations[(b << 1) + 1];
+        multiplicand.evaluations[b] = left + r_as_field * (right - left);
     }
 }
 
