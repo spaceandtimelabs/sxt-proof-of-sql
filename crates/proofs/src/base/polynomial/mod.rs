@@ -5,8 +5,8 @@ pub use ark_scalar::{
     convert_ark_scalar_slice_to_data_slice, from_ark_scalar, to_ark_scalar, ArkScalar,
 };
 
-mod dense_multilinear_extension;
-pub use dense_multilinear_extension::DenseMultilinearExtension;
+pub type DenseMultilinearExtension =
+    ark_poly::DenseMultilinearExtension<crate::base::polynomial::ArkScalar>;
 
 mod composite_polynomial;
 pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};

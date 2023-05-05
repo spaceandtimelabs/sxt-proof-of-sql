@@ -1,3 +1,5 @@
+use crate::base::polynomial::from_ark_scalar;
+use crate::base::polynomial::to_ark_scalar;
 /**
  * Adopted from arkworks
  *
@@ -8,10 +10,12 @@ use crate::proof_primitive::sumcheck::proof::*;
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
+use num_traits::One;
+use num_traits::Zero;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
+use crate::base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension};
 use crate::base::proof::{MessageLabel, TranscriptProtocol};
 
 #[test]
@@ -21,7 +25,7 @@ fn test_create_verify_proof() {
 
     // create a proof
     let mut poly = CompositePolynomial::new(num_vars);
-    let a_vec: [Scalar; 2] = [Scalar::from(123u64), Scalar::from(456u64)];
+    let a_vec: [ArkScalar; 2] = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
     let fa = Rc::new(DenseMultilinearExtension::from_evaluations_slice(
         num_vars, &a_vec,
     ));
@@ -65,17 +69,17 @@ fn random_product(
     nv: usize,
     num_multiplicands: usize,
     rng: &mut ThreadRng,
-) -> (Vec<Rc<DenseMultilinearExtension>>, Scalar) {
+) -> (Vec<Rc<DenseMultilinearExtension>>, ArkScalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
         multiplicands.push(Vec::with_capacity(1 << nv))
     }
-    let mut sum = Scalar::zero();
+    let mut sum = ArkScalar::zero();
 
     for _ in 0..(1 << nv) {
-        let mut product = Scalar::one();
+        let mut product = ArkScalar::one();
         for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
-            let val = Scalar::random(rng);
+            let val = to_ark_scalar(&Scalar::random(rng));
             multiplicand.push(val);
             product *= val;
         }
@@ -104,7 +108,7 @@ fn random_polynomial(
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
         let coefficient = Scalar::random(rng);
         poly.add_product(product.into_iter(), coefficient);
-        sum += product_sum * coefficient;
+        sum += from_ark_scalar(&product_sum) * coefficient;
     }
 
     (poly, sum)

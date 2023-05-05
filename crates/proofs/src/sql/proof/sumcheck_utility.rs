@@ -25,7 +25,7 @@ pub fn make_sumcheck_term<T: ToScalar + Sync>(
         .map(|val| to_ark_scalar(&val.to_scalar()))
         .chain(rayon::iter::repeatn(ArkScalar::zero(), n - values.len()))
         .collect();
-    Rc::new(DenseMultilinearExtension {
-        ark_impl: ark_poly::DenseMultilinearExtension::from_evaluations_vec(num_vars, scalars),
-    })
+    Rc::new(DenseMultilinearExtension::from_evaluations_vec(
+        num_vars, scalars,
+    ))
 }
