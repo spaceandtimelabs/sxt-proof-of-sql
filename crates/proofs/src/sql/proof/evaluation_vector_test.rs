@@ -1,9 +1,10 @@
 use super::compute_evaluation_vector;
 
-use curve25519_dalek::scalar::Scalar;
-
-use crate::base::polynomial::DenseMultilinearExtension;
+use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
 use crate::base::scalar::inner_product;
+use crate::base::scalar::Zero;
+use ark_poly::MultilinearExtension;
+use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn we_compute_the_correct_evaluation_vector_for_a_small_example() {
@@ -43,21 +44,21 @@ fn we_compute_the_evaluation_vectors_not_a_power_of_2() {
 #[test]
 fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
     let xs = [
-        Scalar::from(3u64),
-        Scalar::from(7u64),
-        Scalar::from(2u64),
-        Scalar::from(9u64),
-        Scalar::from(21u64),
-        Scalar::from(10u64),
-        Scalar::from(5u64),
-        Scalar::from(92u64),
+        ArkScalar::from(3u64),
+        ArkScalar::from(7u64),
+        ArkScalar::from(2u64),
+        ArkScalar::from(9u64),
+        ArkScalar::from(21u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(5u64),
+        ArkScalar::from(92u64),
     ];
     let point = [
-        Scalar::from(81u64),
-        Scalar::from(33u64),
-        Scalar::from(22u64),
+        ArkScalar::from(81u64),
+        ArkScalar::from(33u64),
+        ArkScalar::from(22u64),
     ];
-    let mut v = [Scalar::zero(); 8];
+    let mut v = [ArkScalar::zero(); 8];
     compute_evaluation_vector(&mut v, &point);
     let eval = inner_product(&xs, &v);
 

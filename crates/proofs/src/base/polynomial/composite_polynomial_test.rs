@@ -1,26 +1,28 @@
+use crate::base::polynomial::ArkScalar;
+
 use super::{CompositePolynomial, DenseMultilinearExtension};
 use ark_std::rc::Rc;
 use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn test_composite_polynomial_evaluation() {
-    let a: Vec<Scalar> = vec![
-        -Scalar::from(7u32),
-        Scalar::from(2u32),
-        -Scalar::from(6u32),
-        Scalar::from(17u32),
+    let a: Vec<ArkScalar> = vec![
+        -ArkScalar::from(7u32),
+        ArkScalar::from(2u32),
+        -ArkScalar::from(6u32),
+        ArkScalar::from(17u32),
     ];
-    let b: Vec<Scalar> = vec![
-        Scalar::from(2u32),
-        -Scalar::from(8u32),
-        Scalar::from(4u32),
-        Scalar::from(1u32),
+    let b: Vec<ArkScalar> = vec![
+        ArkScalar::from(2u32),
+        -ArkScalar::from(8u32),
+        ArkScalar::from(4u32),
+        ArkScalar::from(1u32),
     ];
-    let c: Vec<Scalar> = vec![
-        Scalar::from(1u32),
-        Scalar::from(3u32),
-        -Scalar::from(5u32),
-        -Scalar::from(9u32),
+    let c: Vec<ArkScalar> = vec![
+        ArkScalar::from(1u32),
+        ArkScalar::from(3u32),
+        -ArkScalar::from(5u32),
+        -ArkScalar::from(9u32),
     ];
     let fa = DenseMultilinearExtension::from_evaluations_slice(2, &a);
     let fb = DenseMultilinearExtension::from_evaluations_slice(2, &b);
