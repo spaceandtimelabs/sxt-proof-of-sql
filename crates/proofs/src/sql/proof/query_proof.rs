@@ -3,6 +3,8 @@ use super::{
     QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr, VerificationBuilder,
 };
 
+use crate::base::scalar::{ToArkScalar, Zero};
+use crate::base::slice_ops;
 use crate::base::{
     database::{CommitmentAccessor, DataAccessor},
     polynomial::CompositePolynomialInfo,
@@ -60,19 +62,21 @@ impl QueryProof {
         );
 
         // construct the sumcheck polynomial
-        let mut random_scalars = vec![Scalar::zero(); SumcheckRandomScalars::count(counts)];
+        let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
         transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let poly =
             builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(counts, &random_scalars));
 
         // create the sumcheck proof -- this is the main part of proving a query
-        let mut evaluation_point = vec![Scalar::zero(); poly.num_variables];
+        let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Scalar::zero(); counts.table_length];
+        let mut evaluation_vec = vec![Zero::zero(); counts.table_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-        let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
+        let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(
+            &slice_ops::slice_cast_with(&evaluation_vec, ToArkScalar::to_ark_scalar),
+        );
 
         // commit to the MLE evaluations
         transcript.append_scalars(
@@ -82,7 +86,7 @@ impl QueryProof {
 
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
-        let mut random_scalars = vec![Scalar::zero(); pre_result_mle_evaluations.len()];
+        let mut random_scalars = vec![Zero::zero(); pre_result_mle_evaluations.len()];
         transcript.challenge_scalars(
             &mut random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
@@ -142,7 +146,7 @@ impl QueryProof {
         let mut transcript = make_transcript(&self.commitments, &result.indexes, &result.data);
 
         // draw the random scalars for sumcheck
-        let mut random_scalars = vec![Scalar::zero(); SumcheckRandomScalars::count(counts)];
+        let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
         transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let sumcheck_random_scalars = SumcheckRandomScalars::new(counts, &random_scalars);
 
@@ -154,10 +158,10 @@ impl QueryProof {
         let subclaim = self.sumcheck_proof.verify_without_evaluation(
             &mut transcript,
             poly_info,
-            &Scalar::zero(),
+            &Zero::zero(),
         )?;
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Scalar::zero(); counts.table_length];
+        let mut evaluation_vec = vec![Zero::zero(); counts.table_length];
         compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
@@ -169,7 +173,7 @@ impl QueryProof {
         // draw the random scalars for the evaluation proof
         // (i.e. the folding/random linear combination of the pre_result_mles)
         let mut evaluation_random_scalars =
-            vec![Scalar::zero(); self.pre_result_mle_evaluations.len()];
+            vec![Zero::zero(); self.pre_result_mle_evaluations.len()];
         transcript.challenge_scalars(
             &mut evaluation_random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,

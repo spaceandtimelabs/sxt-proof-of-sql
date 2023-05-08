@@ -2,8 +2,9 @@ use super::{
     CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
-use crate::base::polynomial::CompositePolynomial;
-use crate::base::scalar::ToScalar;
+use crate::base::polynomial::{from_ark_scalar, ArkScalar, CompositePolynomial};
+use crate::base::scalar::ToArkScalar;
+use crate::base::scalar::Zero;
 use proofs_gpu::compute::compute_commitments;
 use proofs_gpu::sequences::{DenseSequence, Sequence};
 
@@ -43,7 +44,7 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_anchored_mle<T: ToScalar + Sync>(&mut self, data: &'a [T]) {
+    pub fn produce_anchored_mle<T: ToArkScalar + Sync>(&mut self, data: &'a [T]) {
         assert!(self.pre_result_mles.len() < self.pre_result_mles.capacity());
         self.pre_result_mles
             .push(Box::new(MultilinearExtensionImpl::new(data)));
@@ -58,7 +59,7 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_intermediate_mle<T: ToScalar + Sync>(&mut self, data: &'a [T])
+    pub fn produce_intermediate_mle<T: ToArkScalar + Sync>(&mut self, data: &'a [T])
     where
         &'a [T]: Into<DenseSequence<'a>>,
     {
@@ -152,7 +153,7 @@ impl<'a> ProofBuilder<'a> {
             .iter()
             .zip(self.sumcheck_subpolynomials.iter())
         {
-            subpoly.compose(&mut builder, *multiplier);
+            subpoly.compose(&mut builder, multiplier.to_ark_scalar());
         }
         builder.make_composite_polynomial()
     }
@@ -164,13 +165,13 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[Scalar]) -> Vec<Scalar> {
+    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[ArkScalar]) -> Vec<Scalar> {
         assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         let mut res = Vec::with_capacity(self.pre_result_mles.len());
         for evaluator in self.pre_result_mles.iter() {
-            res.push(evaluator.evaluate(evaluation_vec));
+            res.push(evaluator.inner_product(evaluation_vec));
         }
-        res
+        res.iter().map(from_ark_scalar).collect()
     }
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
@@ -183,10 +184,10 @@ impl<'a> ProofBuilder<'a> {
     pub fn fold_pre_result_mles(&self, multipliers: &[Scalar]) -> Vec<Scalar> {
         assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
-        let mut res = vec![Scalar::zero(); self.table_length];
+        let mut res = vec![Zero::zero(); self.table_length];
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
-            evaluator.mul_add(&mut res, multiplier);
+            evaluator.mul_add(&mut res, &multiplier.to_ark_scalar());
         }
-        res
+        res.iter().map(from_ark_scalar).collect()
     }
 }

@@ -1,3 +1,5 @@
+use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
+
 use super::{CompositePolynomialBuilder, MultilinearExtension};
 
 use curve25519_dalek::scalar::Scalar;
@@ -17,10 +19,11 @@ impl<'a> SumcheckSubpolynomial<'a> {
     pub fn compose(
         &self,
         composite_polynomial: &mut CompositePolynomialBuilder,
-        group_multiplier: Scalar,
+        group_multiplier: ArkScalar,
     ) {
         for (mult, term) in self.terms.iter() {
-            composite_polynomial.produce_fr_multiplicand(&(mult * group_multiplier), term);
+            composite_polynomial
+                .produce_fr_multiplicand(&(mult.to_ark_scalar() * group_multiplier), term);
         }
     }
 }

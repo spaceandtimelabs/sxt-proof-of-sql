@@ -1,8 +1,8 @@
 use super::compute_evaluation_vector;
 
 use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
-use crate::base::scalar::inner_product;
 use crate::base::scalar::Zero;
+use crate::base::slice_ops;
 use ark_poly::MultilinearExtension;
 use curve25519_dalek::scalar::Scalar;
 
@@ -60,7 +60,7 @@ fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
     ];
     let mut v = [ArkScalar::zero(); 8];
     compute_evaluation_vector(&mut v, &point);
-    let eval = inner_product(&xs, &v);
+    let eval = slice_ops::inner_product(&xs, &v);
 
     let poly = DenseMultilinearExtension::from_evaluations_slice(3, &xs);
     let expected_eval = poly.evaluate(&point).unwrap();

@@ -1,12 +1,13 @@
 use super::{
-    make_sumcheck_term, DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder,
-    ProofCounts, SumcheckRandomScalars, SumcheckSubpolynomial,
+    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,
+    SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 
 use crate::base::database::{ColumnField, ColumnType};
-use crate::base::polynomial::CompositePolynomial;
-use crate::base::scalar::compute_commitment_for_testing;
-use crate::sql::proof::compute_evaluation_vector;
+use crate::base::polynomial::{ArkScalar, CompositePolynomial};
+use crate::base::scalar::{compute_commitment_for_testing, ToArkScalar, Zero};
+use crate::base::slice_ops;
+use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
 
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
@@ -70,7 +71,10 @@ fn we_can_evaluate_pre_result_mles() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let evaluation_vec = [Scalar::from(100u64), Scalar::from(10u64)];
-    let evals = builder.evaluate_pre_result_mles(&evaluation_vec);
+    let evals = builder.evaluate_pre_result_mles(&slice_ops::slice_cast_with(
+        &evaluation_vec,
+        ToArkScalar::to_ark_scalar,
+    ));
     let expected_evals = [Scalar::from(120u64), Scalar::from(1200u64)];
     assert_eq!(evals, expected_evals);
 }
@@ -107,21 +111,24 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
         Scalar::from(25u64),
     ];
 
-    let mut evaluation_vector = vec![Scalar::zero(); 4];
+    let mut evaluation_vector = vec![Zero::zero(); 4];
     compute_evaluation_vector(&mut evaluation_vector, &multipliers[..2]);
 
     let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&counts, &multipliers));
     let mut expected_poly = CompositePolynomial::new(2);
-    let fr = make_sumcheck_term(2, &evaluation_vector);
+    let fr = MultilinearExtensionImpl::new(&evaluation_vector).to_sumcheck_term(2);
     expected_poly.add_product(
-        [fr.clone(), make_sumcheck_term(2, &mle1)],
-        -Scalar::from(1u64) * multipliers[2],
+        [
+            fr.clone(),
+            MultilinearExtensionImpl::new(&mle1).to_sumcheck_term(2),
+        ],
+        -ArkScalar::from(1u64) * multipliers[2].to_ark_scalar(),
     );
     expected_poly.add_product(
-        [fr, make_sumcheck_term(2, &mle2)],
-        -Scalar::from(10u64) * multipliers[3],
+        [fr, MultilinearExtensionImpl::new(&mle2).to_sumcheck_term(2)],
+        -ArkScalar::from(10u64) * multipliers[3].to_ark_scalar(),
     );
-    let random_point = [Scalar::from(123u64), Scalar::from(101112u64)];
+    let random_point = [ArkScalar::from(123u64), ArkScalar::from(101112u64)];
     let eval = poly.evaluate(&random_point);
     let expected_eval = expected_poly.evaluate(&random_point);
     assert_eq!(eval, expected_eval);

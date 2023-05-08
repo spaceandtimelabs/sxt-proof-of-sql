@@ -1,8 +1,6 @@
-use super::make_sumcheck_term;
-
-use crate::base::polynomial::DenseMultilinearExtension;
-use crate::base::scalar::ToScalar;
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
+use crate::base::scalar::{ToArkScalar, Zero};
+use crate::base::slice_ops;
 use rayon::iter::*;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -11,10 +9,10 @@ use std::rc::Rc;
 pub trait MultilinearExtension {
     /// Given an evaluation vector, compute the evaluation of the multilinear
     /// extension
-    fn evaluate(&self, evaluation_vec: &[Scalar]) -> Scalar;
+    fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar;
 
     /// multiply and add the MLE to a scalar vector
-    fn mul_add(&self, res: &mut [Scalar], multiplier: &Scalar);
+    fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar);
 
     /// convert the MLE to a form that can be used in sumcheck
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension>;
@@ -24,37 +22,45 @@ pub trait MultilinearExtension {
 }
 
 /// Treat scalar convertible columns as a multilinear extensions
-pub struct MultilinearExtensionImpl<'a, T: ToScalar> {
+pub struct MultilinearExtensionImpl<'a, T: ToArkScalar> {
     data: &'a [T],
 }
 
-impl<'a, T: ToScalar> MultilinearExtensionImpl<'a, T> {
+impl<'a, T: ToArkScalar> MultilinearExtensionImpl<'a, T> {
     /// Create MLE from slice
     pub fn new(data: &'a [T]) -> Self {
         Self { data }
     }
 }
 
-impl<'a, T: ToScalar + Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
-    fn evaluate(&self, evaluation_vec: &[Scalar]) -> Scalar {
-        self.data
-            .par_iter()
-            .zip(evaluation_vec)
-            .map(|(xi, yi)| xi.to_scalar() * yi)
-            .reduce(Scalar::zero, std::ops::Add::add)
+impl<'a, T: ToArkScalar + Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
+    fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar {
+        slice_ops::inner_product(
+            evaluation_vec,
+            &slice_ops::slice_cast_with(self.data, ToArkScalar::to_ark_scalar),
+        )
     }
 
-    fn mul_add(&self, res: &mut [Scalar], multiplier: &Scalar) {
-        assert!(res.len() >= self.data.len());
-        res.par_iter_mut()
-            .zip(self.data)
-            .for_each(|(res_i, data_i)| {
-                *res_i += multiplier * data_i.to_scalar();
-            })
+    fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar) {
+        slice_ops::mul_add_assign(
+            res,
+            *multiplier,
+            &slice_ops::slice_cast_with(self.data, ToArkScalar::to_ark_scalar),
+        );
     }
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
-        make_sumcheck_term(num_vars, self.data)
+        let values = self.data;
+        let n = 1 << num_vars;
+        assert!(n >= values.len());
+        let scalars = values
+            .par_iter()
+            .map(|val| val.to_ark_scalar())
+            .chain(rayon::iter::repeatn(Zero::zero(), n - values.len()))
+            .collect();
+        Rc::new(DenseMultilinearExtension::from_evaluations_vec(
+            num_vars, scalars,
+        ))
     }
 
     fn id(&self) -> *const c_void {
