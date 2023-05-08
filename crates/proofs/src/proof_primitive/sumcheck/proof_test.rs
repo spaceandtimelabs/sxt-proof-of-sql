@@ -1,5 +1,6 @@
 use crate::base::polynomial::from_ark_scalar;
-use crate::base::polynomial::to_ark_scalar;
+use crate::base::scalar::ToArkScalar;
+use crate::base::slice_ops;
 /**
  * Adopted from arkworks
  *
@@ -29,7 +30,7 @@ fn test_create_verify_proof() {
     let fa = Rc::new(DenseMultilinearExtension::from_evaluations_slice(
         num_vars, &a_vec,
     ));
-    poly.add_product([fa], Scalar::from(1u64));
+    poly.add_product([fa], ArkScalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
     let mut proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
@@ -40,8 +41,11 @@ fn test_create_verify_proof() {
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
-        poly.evaluate(&evaluation_point),
-        subclaim.expected_evaluation
+        poly.evaluate(&slice_ops::slice_cast_with(
+            &evaluation_point,
+            ToArkScalar::to_ark_scalar,
+        )),
+        subclaim.expected_evaluation.to_ark_scalar()
     );
 
     // we return a different evaluation point if we start with a different transcript
@@ -79,7 +83,7 @@ fn random_product(
     for _ in 0..(1 << nv) {
         let mut product = ArkScalar::one();
         for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
-            let val = to_ark_scalar(&Scalar::random(rng));
+            let val = Scalar::random(rng).to_ark_scalar();
             multiplicand.push(val);
             product *= val;
         }
@@ -107,7 +111,7 @@ fn random_polynomial(
         let num_multiplicands = rng.gen_range(num_multiplicands_range.0, num_multiplicands_range.1);
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
         let coefficient = Scalar::random(rng);
-        poly.add_product(product.into_iter(), coefficient);
+        poly.add_product(product.into_iter(), coefficient.to_ark_scalar());
         sum += from_ark_scalar(&product_sum) * coefficient;
     }
 
@@ -132,8 +136,11 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
-        poly.evaluate(&evaluation_point),
-        subclaim.expected_evaluation
+        poly.evaluate(&slice_ops::slice_cast_with(
+            &evaluation_point,
+            ToArkScalar::to_ark_scalar,
+        )),
+        subclaim.expected_evaluation.to_ark_scalar()
     );
 }
 

@@ -7,9 +7,8 @@ use curve25519_dalek::scalar::Scalar;
 use num_traits::Zero;
 use rayon::prelude::*;
 
-use crate::base::polynomial::{
-    from_ark_scalar, to_ark_scalar, ArkScalar, DenseMultilinearExtension,
-};
+use crate::base::polynomial::{from_ark_scalar, ArkScalar, DenseMultilinearExtension};
+use crate::base::scalar::ToArkScalar;
 use crate::proof_primitive::sumcheck::ProverState;
 
 #[tracing::instrument(
@@ -25,7 +24,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         prover_state.randomness.push(*r);
 
         // fix argument
-        let r_as_field = to_ark_scalar(&prover_state.randomness[prover_state.round - 1]);
+        let r_as_field = prover_state.randomness[prover_state.round - 1].to_ark_scalar();
         prover_state
             .flattened_ml_extensions
             .par_iter_mut()
@@ -62,14 +61,12 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         .list_of_products
         .par_iter()
         .map(|(coefficient, multiplicand_indices)| {
-            let arkcoeff = to_ark_scalar(coefficient); // It is desirable to do this conversion in the outermost loop to save time. If we remove this conversion, this may not be the appropriate outer loop.
-
             // The second loop is the loop over the row (b) in 0..round_length
             (0..round_length)
                 .into_par_iter()
                 .map(|b| {
                     // We add a vector of products, which takes a bit of extra memory. The reason for this is for the efficient modification described below
-                    let mut products = vec![arkcoeff; degree + 1];
+                    let mut products = vec![*coefficient; degree + 1];
 
                     // The third loop is the loop over the factors/multiplicand in the product term.
                     for &multiplicand_index in multiplicand_indices {

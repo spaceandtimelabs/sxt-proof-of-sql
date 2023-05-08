@@ -1,12 +1,12 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::polynomial::{to_ark_scalar, ArkScalar};
-use crate::base::scalar::ToScalar;
+use crate::base::scalar::One;
+use crate::base::scalar::ToArkScalar;
 use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
     DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,
     SumcheckSubpolynomial, VerificationBuilder,
 };
-
 use bumpalo::Bump;
 use curve25519_dalek::scalar::Scalar;
 use std::cmp::max;
@@ -95,7 +95,11 @@ impl FilterResultExpr {
     }
 }
 
-fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone + Default + Sync>(
+fn prover_evaluate_impl<
+    'a,
+    T: EncodeProvableResultElement,
+    S: ToArkScalar + Clone + Default + Sync,
+>(
     builder: &mut ProofBuilder<'a>,
     alloc: &'a Bump,
     counts: &ProofCounts,
@@ -120,7 +124,7 @@ fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: ToScalar + Clone 
     // add sumcheck term for col * selection
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
         (
-            Scalar::one(),
+            One::one(),
             vec![Box::new(MultilinearExtensionImpl::new(selected_vals))],
         ),
         (

@@ -2,6 +2,7 @@ use ark_std::rc::Rc;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
+use proofs::base::scalar::One;
 use proofs::{
     base::polynomial::{to_ark_scalar, ArkScalar, CompositePolynomial, DenseMultilinearExtension},
     proof_primitive::sumcheck::SumcheckProof,
@@ -39,7 +40,7 @@ pub fn bench_sumcheck_prove_degree(c: &mut Criterion) {
         mles.push(Rc::new(new_mle));
 
         let mut polynomial = CompositePolynomial::new(num_vars);
-        polynomial.add_product(mles.clone(), Scalar::one());
+        polynomial.add_product(mles.clone(), One::one());
 
         let mut transcript = Transcript::new(b"sumcheck_degree");
         let mut zero_evaluation_point = zero_evaluation_point.clone();
@@ -78,7 +79,7 @@ pub fn bench_sumcheck_verify_degree(c: &mut Criterion) {
         mles.push(Rc::new(new_mle));
 
         let mut polynomial = CompositePolynomial::new(num_vars);
-        polynomial.add_product(mles.clone(), Scalar::one());
+        polynomial.add_product(mles.clone(), One::one());
 
         // Create proof
         let mut transcript = Transcript::new(b"sumcheck_degree");
@@ -116,7 +117,7 @@ pub fn bench_sumcheck_prove_terms(c: &mut Criterion) {
     let mut group = c.benchmark_group("sumcheck_prove_terms");
     for terms in 1..=16 {
         let (_, new_mle) = random_mle_with_num_vars(num_vars, &mut rng);
-        polynomial.add_product([Rc::new(new_mle)], Scalar::one());
+        polynomial.add_product([Rc::new(new_mle)], One::one());
 
         let mut transcript = Transcript::new(b"sumcheck_terms");
         let mut zero_evaluation_point = zero_evaluation_point.clone();
@@ -151,7 +152,7 @@ pub fn bench_sumcheck_verify_terms(c: &mut Criterion) {
     let mut group = c.benchmark_group("sumcheck_verify_terms");
     for terms in 1..=16 {
         let (new_sum, new_mle) = random_mle_with_num_vars(num_vars, &mut rng);
-        polynomial.add_product([Rc::new(new_mle)], Scalar::one());
+        polynomial.add_product([Rc::new(new_mle)], One::one());
         expected_sum += new_sum;
 
         // Create proof
@@ -193,7 +194,7 @@ pub fn bench_sumcheck_prove_rows(c: &mut Criterion) {
 
         let mut polynomial = CompositePolynomial::new(num_vars);
 
-        polynomial.add_product([Rc::new(mle.clone())], Scalar::one());
+        polynomial.add_product([Rc::new(mle.clone())], One::one());
 
         let mut transcript = Transcript::new(b"sumcheck_rows");
         let mut zero_evaluation_point = vec![Scalar::zero(); num_vars];
@@ -225,7 +226,7 @@ pub fn bench_sumcheck_verify_rows(c: &mut Criterion) {
         let rows = 2u32.pow(num_vars as u32);
 
         let mut polynomial = CompositePolynomial::new(num_vars);
-        polynomial.add_product([Rc::new(mle.clone())], Scalar::one());
+        polynomial.add_product([Rc::new(mle.clone())], One::one());
 
         // Create proof
         let mut transcript = Transcript::new(b"sumcheck_rows");

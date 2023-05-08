@@ -6,11 +6,6 @@ pub use byte_slice::as_byte_slice;
 mod commitment_utility;
 pub use commitment_utility::compute_commitment_for_testing;
 
-mod inner_product;
-#[cfg(test)]
-mod inner_product_test;
-pub use inner_product::inner_product;
-
 mod to_scalar;
 pub use to_scalar::ToScalar;
 

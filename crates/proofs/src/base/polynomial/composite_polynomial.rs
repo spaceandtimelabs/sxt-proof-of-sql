@@ -8,10 +8,9 @@ use ark_poly::MultilinearExtension;
 use ark_std::cmp::max;
 use ark_std::rc::Rc;
 use ark_std::vec::Vec;
-use curve25519_dalek::scalar::Scalar;
 use hashbrown::HashMap;
 
-use super::{from_ark_scalar, to_ark_scalar, ArkScalar};
+use super::ArkScalar;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
@@ -33,7 +32,7 @@ pub struct CompositePolynomial {
     /// number of variables of the polynomial
     pub num_variables: usize,
     /// list of reference to products (as usize) of multilinear extension
-    pub products: Vec<(Scalar, Vec<usize>)>,
+    pub products: Vec<(ArkScalar, Vec<usize>)>,
     /// Stores multilinear extensions in which product multiplicand can refer to.
     pub flattened_ml_extensions: Vec<Rc<DenseMultilinearExtension>>,
     raw_pointers_lookup_table: HashMap<*const DenseMultilinearExtension, usize>,
@@ -73,7 +72,7 @@ impl CompositePolynomial {
     pub fn add_product(
         &mut self,
         product: impl IntoIterator<Item = Rc<DenseMultilinearExtension>>,
-        coefficient: Scalar,
+        coefficient: ArkScalar,
     ) {
         let product: Vec<Rc<DenseMultilinearExtension>> = product.into_iter().collect();
         let mut indexed_product = Vec::with_capacity(product.len());
@@ -98,18 +97,17 @@ impl CompositePolynomial {
     }
 
     /// Evaluate the polynomial at point `point`
-    pub fn evaluate(&self, point: &[Scalar]) -> Scalar {
-        let point: Vec<ArkScalar> = point.iter().map(to_ark_scalar).collect();
+    pub fn evaluate(&self, point: &[ArkScalar]) -> ArkScalar {
         let result = self
             .products
             .iter()
             .map(|(c, p)| {
-                to_ark_scalar(c)
-                    * p.iter()
-                        .map(|&i| self.flattened_ml_extensions[i].evaluate(&point).unwrap())
-                        .product::<ArkScalar>()
+                *c * p
+                    .iter()
+                    .map(|&i| self.flattened_ml_extensions[i].evaluate(point).unwrap())
+                    .product::<ArkScalar>()
             })
             .sum();
-        from_ark_scalar(&result)
+        result
     }
 }

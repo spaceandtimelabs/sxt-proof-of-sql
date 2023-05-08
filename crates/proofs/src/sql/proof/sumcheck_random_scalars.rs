@@ -1,5 +1,6 @@
-use super::{compute_evaluation_vector, ProofCounts};
+use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar, slice_ops};
 
+use super::{compute_evaluation_vector, ProofCounts};
 use curve25519_dalek::scalar::Scalar;
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
@@ -21,9 +22,12 @@ impl<'a> SumcheckRandomScalars<'a> {
         }
     }
 
-    pub fn compute_entrywise_multipliers(&self) -> Vec<Scalar> {
-        let mut v = vec![Scalar::zero(); self.table_length];
-        compute_evaluation_vector(&mut v, self.entrywise_point);
+    pub fn compute_entrywise_multipliers(&self) -> Vec<ArkScalar> {
+        let mut v = vec![Default::default(); self.table_length];
+        compute_evaluation_vector(
+            &mut v,
+            &slice_ops::slice_cast_with(self.entrywise_point, ToArkScalar::to_ark_scalar),
+        );
         v
     }
 

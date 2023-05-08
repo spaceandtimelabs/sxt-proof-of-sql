@@ -59,9 +59,6 @@ pub use query_result::{QueryError, QueryResult};
 mod sumcheck_subpolynomial;
 pub use sumcheck_subpolynomial::SumcheckSubpolynomial;
 
-mod sumcheck_utility;
-pub use sumcheck_utility::make_sumcheck_term;
-
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;
 #[cfg(test)]
