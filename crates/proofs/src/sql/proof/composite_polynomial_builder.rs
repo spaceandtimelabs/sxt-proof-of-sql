@@ -1,7 +1,7 @@
-use super::{make_sumcheck_term, MultilinearExtension};
+use super::{MultilinearExtension, MultilinearExtensionImpl};
 
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension};
+use crate::base::scalar::{One, Zero};
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -9,20 +9,20 @@ use std::rc::Rc;
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder {
     num_sumcheck_variables: usize,
-    fr_multiplicands_degree1: Vec<Scalar>,
-    fr_multiplicands_rest: Vec<(Scalar, Vec<Rc<DenseMultilinearExtension>>)>,
+    fr_multiplicands_degree1: Vec<ArkScalar>,
+    fr_multiplicands_rest: Vec<(ArkScalar, Vec<Rc<DenseMultilinearExtension>>)>,
     fr: Rc<DenseMultilinearExtension>,
     mles: HashMap<*const c_void, Rc<DenseMultilinearExtension>>,
 }
 
 impl CompositePolynomialBuilder {
-    pub fn new(num_sumcheck_variables: usize, fr: &[Scalar]) -> Self {
+    pub fn new(num_sumcheck_variables: usize, fr: &[ArkScalar]) -> Self {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {
             num_sumcheck_variables,
-            fr_multiplicands_degree1: vec![Scalar::zero(); fr.len()],
+            fr_multiplicands_degree1: vec![Zero::zero(); fr.len()],
             fr_multiplicands_rest: vec![],
-            fr: make_sumcheck_term(num_sumcheck_variables, fr),
+            fr: MultilinearExtensionImpl::new(fr).to_sumcheck_term(num_sumcheck_variables),
             mles: HashMap::new(),
         }
     }
@@ -32,7 +32,7 @@ impl CompositePolynomialBuilder {
     /// where f_r is an MLE of random scalars
     pub fn produce_fr_multiplicand(
         &mut self,
-        mult: &Scalar,
+        mult: &ArkScalar,
         terms: &[Box<dyn MultilinearExtension + '_>],
     ) {
         assert!(!terms.is_empty());
@@ -61,9 +61,10 @@ impl CompositePolynomialBuilder {
         res.add_product(
             [
                 self.fr.clone(),
-                make_sumcheck_term(self.num_sumcheck_variables, &self.fr_multiplicands_degree1),
+                MultilinearExtensionImpl::new(&self.fr_multiplicands_degree1)
+                    .to_sumcheck_term(self.num_sumcheck_variables),
             ],
-            Scalar::one(),
+            One::one(),
         );
         for (mult, terms) in self.fr_multiplicands_rest.iter() {
             let fr_iter = std::iter::once(self.fr.clone());
