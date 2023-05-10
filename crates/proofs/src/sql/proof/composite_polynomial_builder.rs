@@ -71,6 +71,9 @@ impl CompositePolynomialBuilder {
             let terms_iter = terms.iter().cloned();
             res.add_product(fr_iter.chain(terms_iter), *mult)
         }
+
+        res.annotate_trace();
+
         res
     }
 }
