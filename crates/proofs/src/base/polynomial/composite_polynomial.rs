@@ -1,4 +1,5 @@
 use crate::base::polynomial::DenseMultilinearExtension;
+use ark_ff::{BigInteger, PrimeField};
 use ark_poly::MultilinearExtension;
 /**
  * Adopted from arkworks
@@ -109,5 +110,32 @@ impl CompositePolynomial {
             })
             .sum();
         result
+    }
+
+    #[tracing::instrument(
+        name = "proofs.sql.proof.composite_polynomial.annotate_trace",
+        level = "debug",
+        skip_all
+    )]
+    pub fn annotate_trace(&self) {
+        for i in 0..self.products.len() {
+            let data = self.products[i].0.into_bigint().to_bytes_be();
+            let data_as_string = data
+                .iter()
+                .map(|b| format!("{:02X}", b))
+                .collect::<String>();
+
+            let mut coefficient_string = String::from("0x");
+            coefficient_string.push_str(&data_as_string[0..4]);
+            coefficient_string.push_str("...");
+            coefficient_string.push_str(&data_as_string[data_as_string.len() - 4..]);
+
+            tracing::info!(
+                "Product #{:?}: {} * {:?}",
+                i,
+                coefficient_string,
+                self.products[i].1
+            );
+        }
     }
 }
