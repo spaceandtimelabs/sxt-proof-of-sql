@@ -1,117 +1,66 @@
+use crate::base::scalar::{Inverse, One, Zero};
+use core::cmp::PartialEq;
 /**
- * Adopted from arkworks
+ * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
-use curve25519_dalek::scalar::Scalar;
+use core::ops::{AddAssign, Mul, MulAssign, SubAssign};
 
-use crate::base::math::{scalar_factorial, u128_factorial, u64_factorial};
-
-/// interpolate a uni-variate degree-`p_i.len()-1` polynomial and evaluate this
-/// polynomial at `eval_at`:
-///   \sum_{i=0}^len p_i * (\prod_{j!=i} (eval_at - j)/(i-j))
-pub fn interpolate_uni_poly(p_i: &[Scalar], eval_at: Scalar) -> Scalar {
-    let len = p_i.len();
-
-    let mut evals = vec![];
-
-    let mut prod = eval_at;
-    evals.push(eval_at);
-
-    // `prod = \prod_{j} (eval_at - j)`
-    for e in 1..len {
-        let tmp = eval_at - Scalar::from(e as u64);
-        evals.push(tmp);
-        prod *= tmp;
+/// Interpolate a uni-variate degree-`polynomial.len()-1` polynomial and evaluate this
+/// polynomial at `x`:
+///
+/// For any polynomial, `f(x)`, with degree less than or equal to `d`, we have that:
+/// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
+/// unless x is one of 0,1,...,d, in which case, f(x) is already known.
+pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
+where
+    F: Copy
+        + Inverse
+        + One
+        + Zero
+        + AddAssign
+        + Mul<Output = F>
+        + MulAssign
+        + SubAssign
+        + PartialEq,
+{
+    if polynomial.is_empty() {
+        return F::zero();
     }
-    let mut res = Scalar::zero();
-    // we want to compute \prod (j!=i) (i-j) for a given i
-    //
-    // we start from the last step, which is
-    //  denom[len-1] = (len-1) * (len-2) *... * 2 * 1
-    // the step before that is
-    //  denom[len-2] = (len-2) * (len-3) * ... * 2 * 1 * -1
-    // and the step before that is
-    //  denom[len-3] = (len-3) * (len-4) * ... * 2 * 1 * -1 * -2
-    //
-    // i.e., for any i, the one before this will be derived from
-    //  denom[i-1] = - denom[i] * (len-i) / i
-    //
-    // that is, we only need to store
-    // - the last denom for i = len-1, and
-    // - the ratio between the current step and the last step, which is the
-    //   product of -(len-i) / i from all previous steps and we store
-    //   this product as a fraction number to reduce field divisions.
+    let degree = polynomial.len() - 1;
 
-    // We know
-    //  - 2^61 < factorial(20) < 2^62
-    //  - 2^122 < factorial(33) < 2^123
-    // so we will be able to compute the ratio
-    //  - for len <= 20 with i64
-    //  - for len <= 33 with i128
-    //  - for len >  33 with BigInt
-    if p_i.len() <= 20 {
-        let last_denom = Scalar::from(u64_factorial(len - 1));
-        let mut ratio_numerator = 1i64;
-        let mut ratio_enumerator = 1u64;
-
-        for i in (0..len).rev() {
-            let ratio_numerator_f = if ratio_numerator < 0 {
-                -Scalar::from((-ratio_numerator) as u64)
-            } else {
-                Scalar::from(ratio_numerator as u64)
-            };
-
-            res += p_i[i]
-                * prod
-                * Scalar::from(ratio_enumerator)
-                * (last_denom * ratio_numerator_f * evals[i]).invert();
-
-            // compute ratio for the next step which is current_ratio * -(len-i)/i
-            if i != 0 {
-                ratio_numerator *= -(len as i64 - i as i64);
-                ratio_enumerator *= i as u64;
-            }
+    // Construct a vector of factorials, where `factorials[i] = i!`.
+    let mut factorials: Vec<F> = Vec::with_capacity(degree + 1);
+    let mut factorial = F::one();
+    let mut i = F::zero();
+    for eval in polynomial {
+        factorials.push(factorial);
+        if i == x {
+            return *eval;
         }
-    } else if p_i.len() <= 33 {
-        let last_denom = Scalar::from(u128_factorial(len - 1));
-        let mut ratio_numerator = 1i128;
-        let mut ratio_enumerator = 1u128;
-
-        for i in (0..len).rev() {
-            let ratio_numerator_f = if ratio_numerator < 0 {
-                -Scalar::from((-ratio_numerator) as u128)
-            } else {
-                Scalar::from(ratio_numerator as u128)
-            };
-
-            res += p_i[i]
-                * prod
-                * Scalar::from(ratio_enumerator)
-                * (last_denom * ratio_numerator_f * evals[i]).invert();
-
-            // compute ratio for the next step which is current_ratio * -(len-i)/i
-            if i != 0 {
-                ratio_numerator *= -(len as i128 - i as i128);
-                ratio_enumerator *= i as u128;
-            }
-        }
-    } else {
-        // since we are using field operations, we can merge
-        // `last_denom` and `ratio_numerator` into a single field element.
-        let mut denom_up = scalar_factorial(len - 1);
-        let mut denom_down = Scalar::one();
-
-        for i in (0..len).rev() {
-            res += p_i[i] * prod * denom_down * (denom_up * evals[i]).invert();
-
-            // compute denom for the next step is -current_denom * (len-i)/i
-            if i != 0 {
-                denom_up *= -Scalar::from((len - i) as u64);
-                denom_down *= Scalar::from(i as u64);
-            }
-        }
+        i += F::one();
+        factorial *= i;
     }
 
-    res
+    // This will become `sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i)))`.
+    let mut sum = F::zero();
+    // This will become `prod_{i=0}^{d} (x-i)`.
+    let mut product = F::one();
+    // This will be `x-i`.
+    let mut x_minus_i = x;
+    for i in 0..=degree {
+        // This is `f(i) / (i! * (d-i)! * (x-i))`
+        let new_term =
+            polynomial[i] * (factorials[i] * factorials[degree - i] * x_minus_i).inverse();
+        // This handles the (-1)^(d-i) sign.
+        if (degree - i) % 2 == 0 {
+            sum += new_term;
+        } else {
+            sum -= new_term;
+        }
+        product *= x_minus_i;
+        x_minus_i -= F::one();
+    }
+    sum * product
 }

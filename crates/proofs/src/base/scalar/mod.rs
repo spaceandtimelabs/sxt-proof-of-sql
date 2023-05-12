@@ -19,3 +19,6 @@ pub use batch_pseudo_inverse::batch_pseudo_invert;
 
 mod identities;
 pub use identities::{One, Zero};
+
+mod inverse;
+pub use inverse::Inverse;

@@ -1,4 +1,7 @@
-use crate::base::scalar::as_byte_slice;
+use crate::base::polynomial::{from_ark_scalar, ArkScalar};
+use crate::base::scalar::ToArkScalar;
+use crate::base::slice_ops;
+use ark_serialize::CanonicalSerialize;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
@@ -46,14 +49,27 @@ pub trait TranscriptProtocol {
     /// Append some scalars to the transcript under a specific label.
     ///
     /// For most types, prefer to include it as part of the message with append_auto.
+    /// But ArkScalars are not Serialize, so you must use this method instead, creating a separate message.
+    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]);
+
+    /// Append some scalars to the transcript under a specific label.
+    ///
+    /// For most types, prefer to include it as part of the message with append_auto.
     /// But Scalars are not Serialize, so you must use this method instead, creating a separate message.
-    fn append_scalars(&mut self, label: MessageLabel, scalars: &[Scalar]);
+    fn append_scalars(&mut self, label: MessageLabel, scalars: &[Scalar]) {
+        self.append_ark_scalars(
+            label,
+            &slice_ops::slice_cast_with(scalars, ToArkScalar::to_ark_scalar),
+        );
+    }
 
     /// Append a Compressed RistrettoPoint with a specific label.
     ///
     /// For most types, prefer to include it as part of the message with append_auto instead,
     /// because using this method creates a need for more labels
-    fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto);
+    fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto) {
+        self.append_points(label, core::slice::from_ref(point));
+    }
 
     /// Append Compressed RistrettoPoint's with a specific label.
     ///
@@ -62,10 +78,30 @@ pub trait TranscriptProtocol {
     fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
 
     /// Compute a challenge variable (which requires a label).
-    fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar;
+    fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar {
+        let mut buf = [Default::default(); 1];
+        self.challenge_scalars(&mut buf, label);
+        buf[0]
+    }
 
     /// Compute multiple challenge variables (which requires a label).
-    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel);
+    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel) {
+        let mut buf = vec![Default::default(); scalars.len()];
+        self.challenge_ark_scalars(&mut buf, label);
+        for (scalar, ark_scalar) in scalars.iter_mut().zip(buf.iter()) {
+            *scalar = from_ark_scalar(ark_scalar);
+        }
+    }
+
+    /// Compute multiple challenge variables (which requires a label).
+    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel);
+
+    /// Compute a challenge variable (which requires a label).
+    fn challenge_ark_scalar(&mut self, label: MessageLabel) -> ArkScalar {
+        let mut buf = [Default::default(); 1];
+        self.challenge_ark_scalars(&mut buf, label);
+        buf[0]
+    }
 }
 
 impl TranscriptProtocol for Transcript {
@@ -73,47 +109,46 @@ impl TranscriptProtocol for Transcript {
         self.append_message(label.as_bytes(), &postcard::to_allocvec(message).unwrap());
     }
 
-    fn append_scalars(&mut self, label: MessageLabel, scalars: &[Scalar]) {
-        self.append_message(label.as_bytes(), as_byte_slice(scalars));
-    }
-
-    fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto) {
-        self.append_message(label.as_bytes(), point.as_bytes());
+    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]) {
+        let mut buf = vec![Default::default(); scalars.compressed_size()];
+        scalars.serialize_compressed(&mut buf).unwrap();
+        self.append_message(label.as_bytes(), &buf);
     }
 
     fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]) {
         self.append_message(label.as_bytes(), points_as_byte_slice(points));
     }
 
-    fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar {
-        let mut buf = [0u8; 64];
-        self.challenge_bytes(label.as_bytes(), &mut buf);
-
-        Scalar::from_bytes_mod_order_wide(&buf)
-    }
-
     #[tracing::instrument(
-        name = "proofs.base.proof.transcript_protocol.challenge_scalars",
+        name = "proofs.base.proof.transcript_protocol.challenge_ark_scalars",
         level = "info",
         skip_all
     )]
-    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel) {
-        let n = scalars.len();
-
-        let mut buf = vec![0u8; n * 64];
-        let span = tracing::span!(
-            tracing::Level::INFO,
-            "proofs.base.proof.transcript_protocol.challenge_scalars.challenge_bytes"
-        )
-        .entered();
-        self.challenge_bytes(label.as_bytes(), &mut buf);
-        span.exit();
-        for (i, scalar) in scalars.iter_mut().enumerate().take(n) {
-            let s = i * 64;
-            let t = s + 64;
-
-            let bytes: [u8; 64] = buf[s..t].try_into().unwrap();
-            *scalar = Scalar::from_bytes_mod_order_wide(&bytes);
+    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel) {
+        self.append_message(label.as_bytes(), &[]);
+        struct TranscriptProtocolRng<'a>(&'a mut Transcript);
+        impl<'a> ark_std::rand::RngCore for TranscriptProtocolRng<'a> {
+            fn next_u32(&mut self) -> u32 {
+                let mut buf = [0u8; 4];
+                self.fill_bytes(&mut buf);
+                u32::from_le_bytes(buf)
+            }
+            fn next_u64(&mut self) -> u64 {
+                let mut buf = [0u8; 8];
+                self.fill_bytes(&mut buf);
+                u64::from_le_bytes(buf)
+            }
+            fn fill_bytes(&mut self, dest: &mut [u8]) {
+                self.0.challenge_bytes(&[], dest);
+            }
+            fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), ark_std::rand::Error> {
+                self.fill_bytes(dest);
+                Ok(())
+            }
+        }
+        let rng = &mut TranscriptProtocolRng(self);
+        for scalar in scalars.iter_mut() {
+            *scalar = ark_ff::UniformRand::rand(rng);
         }
     }
 }

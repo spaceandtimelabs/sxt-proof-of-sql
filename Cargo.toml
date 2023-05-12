@@ -11,6 +11,7 @@ version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
 ark-curve25519 = { version = "0.4.0" }
 ark-ff = { version = "0.4.0" }
 ark-poly = { version = "0.4.0" }
+ark-serialize = { version = "0.4.0" }
 ark-std = { version = "0.4.0" }
 arrayvec = { version = "0.7" }
 arrow = { version = "36.0" }

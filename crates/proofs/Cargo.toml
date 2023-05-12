@@ -13,6 +13,7 @@ exclude = { workspace = true }
 ark-curve25519 = { workspace = true }
 ark-ff = { workspace = true }
 ark-poly = { workspace = true }
+ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true }
 blake3 = { workspace = true }
