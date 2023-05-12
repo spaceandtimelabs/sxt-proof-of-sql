@@ -1,4 +1,5 @@
-use curve25519_dalek::scalar::Scalar;
+use crate::base::scalar::{One, Zero};
+use core::ops::{Add, Mul, Sub};
 
 /// Given the points a and b with length nu, we can evaluate the lagrange basis of length 2^nu at the two points.
 /// This is what [super::compute_evaluation_vector] does.
@@ -9,35 +10,37 @@ use curve25519_dalek::scalar::Scalar;
 /// (1-a[0])(a[1])...(1-a[nu-1]) * (1-b[0])(b[1])...(1-b[nu-1]) +
 /// (a[0])(a[1])...(1-a[nu-1]) * (b[0])(b[1])...(1-b[nu-1]) + ...
 /// ```
-pub fn compute_truncated_lagrange_basis_inner_product(
-    length: usize,
-    a: &[Scalar],
-    b: &[Scalar],
-) -> Scalar {
+pub fn compute_truncated_lagrange_basis_inner_product<F>(length: usize, a: &[F], b: &[F]) -> F
+where
+    F: One + Zero + Mul<Output = F> + Add<Output = F> + Sub<Output = F> + Copy,
+{
     compute_truncated_lagrange_basis_inner_product_impl(length, a, b).0
 }
 
 // The returned value from this function is (part, full).
 // The full value is what the result would be if it were not truncated. (In other words, if length==2^nu.)
 // This can be iteratively used to compute the actual result.
-fn compute_truncated_lagrange_basis_inner_product_impl(
+fn compute_truncated_lagrange_basis_inner_product_impl<F>(
     part_length: usize,
-    a: &[Scalar],
-    b: &[Scalar],
-) -> (Scalar, Scalar) {
+    a: &[F],
+    b: &[F],
+) -> (F, F)
+where
+    F: One + Zero + Mul<Output = F> + Add<Output = F> + Sub<Output = F> + Copy,
+{
     let nu = a.len();
     assert_eq!(nu, b.len());
     if nu == 0 {
         assert!(part_length <= 1);
         if part_length == 1 {
-            (Scalar::one(), Scalar::one())
+            (F::one(), F::one())
         } else {
-            (Scalar::zero(), Scalar::one())
+            (F::zero(), F::one())
         }
     } else {
         // We split the imaginary full evaluation vector in half.
         // This is the value that needs to be multiplied by every element in the first half.
-        let first_half_term = (Scalar::one() - a[nu - 1]) * (Scalar::one() - b[nu - 1]);
+        let first_half_term = (F::one() - a[nu - 1]) * (F::one() - b[nu - 1]);
         // This is the value that needs to be multiplied by every element in the second half.
         let second_half_term = a[nu - 1] * b[nu - 1];
         let half_full_length = 1 << (nu - 1);
@@ -75,20 +78,23 @@ fn compute_truncated_lagrange_basis_inner_product_impl(
 /// (1-a[0])(a[1])...(1-a[nu-1]) +
 /// (a[0])(a[1])...(1-a[nu-1]) + ...
 /// ```
-pub fn compute_truncated_lagrange_basis_sum(length: usize, point: &[Scalar]) -> Scalar {
+pub fn compute_truncated_lagrange_basis_sum<F>(length: usize, point: &[F]) -> F
+where
+    F: One + Zero + Mul<Output = F> + Add<Output = F> + Sub<Output = F> + Copy,
+{
     let nu = point.len();
     if nu == 0 {
         assert!(length <= 1);
         if length == 1 {
-            Scalar::one()
+            F::one()
         } else {
-            Scalar::zero()
+            F::zero()
         }
     } else {
         // Note: this is essentially the same as the inner production version.
         // The only different is that the full sum is always 1, regardless of any inputs.
 
-        let first_half_term = Scalar::one() - point[nu - 1];
+        let first_half_term = F::one() - point[nu - 1];
         let second_half_term = point[nu - 1];
         let half_full_length = 1 << (nu - 1);
         let sub_part_length = if length >= half_full_length {

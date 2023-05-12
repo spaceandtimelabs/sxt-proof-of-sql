@@ -15,7 +15,7 @@ use curve25519_dalek::scalar::Scalar;
 use crate::base::polynomial::{from_ark_scalar, ArkScalar};
 
 #[test]
-fn test_interpolate_uni_poly() {
+fn test_interpolate_uni_poly_for_random_polynomials() {
     let mut prng = ark_std::test_rng();
 
     // test a polynomial with 20 known points, i.e., with degree 19
@@ -47,4 +47,61 @@ fn test_interpolate_uni_poly() {
     let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
     let expected_value = from_ark_scalar(&poly.evaluate(&query));
     assert_eq!(value, expected_value);
+}
+
+#[test]
+fn interpolate_uni_poly_gives_zero_for_no_evaluations() {
+    let evaluations = vec![];
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(10)),
+        ArkScalar::from(0)
+    );
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(100)),
+        ArkScalar::from(0)
+    );
+}
+
+#[test]
+fn interpolate_uni_poly_gives_constant_for_degree_0_polynomial() {
+    let evaluations = vec![ArkScalar::from(77)];
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(10)),
+        ArkScalar::from(77)
+    );
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(100)),
+        ArkScalar::from(77)
+    );
+}
+
+#[test]
+fn interpolate_uni_poly_gives_correct_result_for_linear_polynomial() {
+    let evaluations = vec![ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4)];
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(10)),
+        ArkScalar::from(12)
+    );
+    assert_eq!(
+        interpolate_uni_poly(&evaluations, ArkScalar::from(100)),
+        ArkScalar::from(102)
+    );
+}
+
+#[test]
+fn interpolate_uni_poly_gives_correct_value_for_known_evaluation() {
+    let evaluations = vec![
+        ArkScalar::from(777),
+        ArkScalar::from(123),
+        ArkScalar::from(2357),
+        ArkScalar::from(1),
+        ArkScalar::from(2),
+        ArkScalar::from(3),
+    ];
+    for i in 0..evaluations.len() {
+        assert_eq!(
+            interpolate_uni_poly(&evaluations, ArkScalar::from(i as u32)),
+            evaluations[i]
+        );
+    }
 }
