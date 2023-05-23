@@ -1,5 +1,4 @@
-use crate::base::scalar::Zero;
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 use std::iter;
 
 use crate::{
@@ -329,13 +328,10 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
 
 #[test]
 fn compute_truncated_lagrange_basis_sum_matches_sum_of_result_from_compute_evaluation_vector() {
-    use ark_std::{
-        rand::{
-            distributions::{Distribution, Uniform},
-            rngs::StdRng,
-            SeedableRng,
-        },
-        UniformRand,
+    use ark_std::rand::{
+        distributions::{Distribution, Uniform},
+        rngs::StdRng,
+        SeedableRng,
     };
 
     let mut rng = StdRng::from_seed([0u8; 32]);
@@ -351,7 +347,7 @@ fn compute_truncated_lagrange_basis_sum_matches_sum_of_result_from_compute_evalu
         // ---------------- This is the actual test --------------------
         assert_eq!(
             compute_truncated_lagrange_basis_sum(length, &point),
-            eval_vec.iter().sum()
+            eval_vec.into_iter().sum()
         );
         // -----------------------------------------------------------
     }
@@ -360,13 +356,10 @@ fn compute_truncated_lagrange_basis_sum_matches_sum_of_result_from_compute_evalu
 #[test]
 fn compute_truncated_lagrange_basis_inner_product_matches_inner_product_of_results_compute_evaluation_vector(
 ) {
-    use ark_std::{
-        rand::{
-            distributions::{Distribution, Uniform},
-            rngs::StdRng,
-            SeedableRng,
-        },
-        UniformRand,
+    use ark_std::rand::{
+        distributions::{Distribution, Uniform},
+        rngs::StdRng,
+        SeedableRng,
     };
 
     let mut rng = StdRng::from_seed([0u8; 32]);
@@ -388,8 +381,8 @@ fn compute_truncated_lagrange_basis_inner_product_matches_inner_product_of_resul
         assert_eq!(
             compute_truncated_lagrange_basis_inner_product(length, &a, &b),
             eval_vec_a
-                .iter()
-                .zip(eval_vec_b.iter())
+                .into_iter()
+                .zip(eval_vec_b.into_iter())
                 .map(|(x, y)| x * y)
                 .sum()
         );

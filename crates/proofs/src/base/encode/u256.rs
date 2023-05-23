@@ -1,4 +1,4 @@
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 /// U256 represents an unsigned 256-bits integer number
 ///

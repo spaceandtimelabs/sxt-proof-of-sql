@@ -20,6 +20,7 @@ blake3 = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
 byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
+derive_more = { workspace = true }
 dyn_partial_eq = { workspace = true }
 hashbrown = { workspace = true }
 indexmap = { workspace = true }

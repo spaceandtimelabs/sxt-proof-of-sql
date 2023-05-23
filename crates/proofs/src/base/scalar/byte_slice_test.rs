@@ -1,6 +1,6 @@
 use crate::base::scalar::byte_slice::*;
 
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 #[test]
 fn test_as_byte_slice() {

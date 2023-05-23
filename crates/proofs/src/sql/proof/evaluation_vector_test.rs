@@ -1,10 +1,9 @@
 use super::compute_evaluation_vector;
 
-use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
-use crate::base::scalar::Zero;
+use crate::base::polynomial::ArkScalar;
+use crate::base::polynomial::Scalar;
 use crate::base::slice_ops;
 use ark_poly::MultilinearExtension;
-use curve25519_dalek::scalar::Scalar;
 
 #[test]
 fn we_compute_the_correct_evaluation_vector_for_a_small_example() {
@@ -62,7 +61,10 @@ fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
     compute_evaluation_vector(&mut v, &point);
     let eval = slice_ops::inner_product(&xs, &v);
 
-    let poly = DenseMultilinearExtension::from_evaluations_slice(3, &xs);
-    let expected_eval = poly.evaluate(&point).unwrap();
+    let poly = ark_poly::DenseMultilinearExtension::from_evaluations_slice(
+        3,
+        &ArkScalar::unwrap_slice(&xs),
+    );
+    let expected_eval = ArkScalar(poly.evaluate(&ArkScalar::unwrap_slice(&point)).unwrap());
     assert_eq!(eval, expected_eval);
 }

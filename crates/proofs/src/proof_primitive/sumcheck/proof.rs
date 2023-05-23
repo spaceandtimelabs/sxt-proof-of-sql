@@ -1,10 +1,10 @@
+use crate::base::polynomial::Scalar;
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use ark_std::vec::Vec;
-use curve25519_dalek::scalar::Scalar;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::{MessageLabel, ProofError, TranscriptProtocol};

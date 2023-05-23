@@ -2,7 +2,7 @@ use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
 
 use super::{CompositePolynomialBuilder, MultilinearExtension};
 
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 /// A polynomial that sums to zero across binary values and can be aggregated
 /// into a single sumcheck polynomial

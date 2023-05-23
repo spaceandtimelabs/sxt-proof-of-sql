@@ -1,8 +1,9 @@
-use crate::base::polynomial::{from_ark_scalar, to_ark_scalar, ArkScalar};
+use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
 
 use super::SumcheckMleEvaluations;
 
-use curve25519_dalek::{ristretto::RistrettoPoint, scalar::Scalar, traits::Identity};
+use crate::base::polynomial::Scalar;
+use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a> {
@@ -50,7 +51,7 @@ impl<'a> VerificationBuilder<'a> {
     /// An anchored MLE is an MLE where the verifier has access to the commitment
     pub fn consume_anchored_mle_ark(&mut self, commitment: &RistrettoPoint) -> ArkScalar {
         #[allow(deprecated)]
-        to_ark_scalar(&self.consume_anchored_mle(commitment))
+        ToArkScalar::to_ark_scalar(&self.consume_anchored_mle(commitment))
     }
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
@@ -71,7 +72,7 @@ impl<'a> VerificationBuilder<'a> {
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     pub fn consume_intermediate_mle_ark(&mut self) -> ArkScalar {
         #[allow(deprecated)]
-        to_ark_scalar(&self.consume_intermediate_mle())
+        ToArkScalar::to_ark_scalar(&self.consume_intermediate_mle())
     }
     /// Consume the evaluation of an intermediate MLE used in sumcheck
     ///
@@ -87,7 +88,7 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation of the MLE for a result column used in sumcheck
     pub fn consume_result_mle_ark(&mut self) -> ArkScalar {
         #[allow(deprecated)]
-        to_ark_scalar(&self.consume_result_mle())
+        ToArkScalar::to_ark_scalar(&self.consume_result_mle())
     }
     /// Consume the evaluation of the MLE for a result column used in sumcheck
     #[cfg_attr(not(test), deprecated = "use `consume_result_mle_ark()` instead")]
@@ -100,7 +101,7 @@ impl<'a> VerificationBuilder<'a> {
     /// Produce the evaluation of a subpolynomial used in sumcheck
     pub fn produce_sumcheck_subpolynomial_evaluation_ark(&mut self, eval: &ArkScalar) {
         #[allow(deprecated)]
-        self.produce_sumcheck_subpolynomial_evaluation(&from_ark_scalar(eval));
+        self.produce_sumcheck_subpolynomial_evaluation(&eval.into_scalar());
     }
     /// Produce the evaluation of a subpolynomial used in sumcheck
     #[cfg_attr(
@@ -109,7 +110,7 @@ impl<'a> VerificationBuilder<'a> {
     )]
     pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &Scalar) {
         self.sumcheck_evaluation +=
-            self.subpolynomial_multipliers[self.produced_subpolynomials] * eval;
+            self.subpolynomial_multipliers[self.produced_subpolynomials] * *eval;
         self.produced_subpolynomials += 1;
     }
 

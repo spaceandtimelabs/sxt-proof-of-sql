@@ -1,4 +1,4 @@
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 use crate::base::polynomial::ArkScalar;
 

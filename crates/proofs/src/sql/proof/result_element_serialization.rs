@@ -2,7 +2,7 @@ use crate::base::encode::read_scalar_varint;
 use crate::base::scalar::ToScalar;
 use integer_encoding::VarInt;
 
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 pub trait EncodeProvableResultElement {
     fn required_bytes(&self) -> usize;

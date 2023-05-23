@@ -1,7 +1,7 @@
 use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar, slice_ops};
 
 use super::{compute_evaluation_vector, ProofCounts};
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
 pub struct SumcheckRandomScalars<'a> {

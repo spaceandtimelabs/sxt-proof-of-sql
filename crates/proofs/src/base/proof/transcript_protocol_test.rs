@@ -1,6 +1,7 @@
 use crate::base::{polynomial::ArkScalar, proof::transcript_protocol::*};
 
-use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
+use crate::base::polynomial::Scalar;
+use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 #[test]

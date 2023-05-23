@@ -1,12 +1,10 @@
-pub mod ark_scalar;
+mod ark_scalar;
 #[cfg(test)]
 mod ark_scalar_test;
-pub use ark_scalar::{
-    convert_ark_scalar_slice_to_data_slice, from_ark_scalar, to_ark_scalar, ArkScalar,
-};
+pub use ark_scalar::ArkScalar;
 
-pub type DenseMultilinearExtension =
-    ark_poly::DenseMultilinearExtension<crate::base::polynomial::ArkScalar>;
+pub type Scalar = curve25519_dalek::scalar::Scalar;
+pub type DenseMultilinearExtension = Vec<ArkScalar>;
 
 mod composite_polynomial;
 pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};

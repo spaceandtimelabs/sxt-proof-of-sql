@@ -1,4 +1,3 @@
-use crate::base::polynomial::from_ark_scalar;
 use crate::base::scalar::ToArkScalar;
 use crate::base::slice_ops;
 /**
@@ -8,11 +7,9 @@ use crate::base::slice_ops;
  */
 use crate::proof_primitive::sumcheck::proof::*;
 
+use crate::base::polynomial::Scalar;
 use ark_std::rc::Rc;
-use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
-use num_traits::One;
-use num_traits::Zero;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 
@@ -27,9 +24,7 @@ fn test_create_verify_proof() {
     // create a proof
     let mut poly = CompositePolynomial::new(num_vars);
     let a_vec: [ArkScalar; 2] = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
-    let fa = Rc::new(DenseMultilinearExtension::from_evaluations_slice(
-        num_vars, &a_vec,
-    ));
+    let fa = Rc::new(a_vec.to_vec());
     poly.add_product([fa], ArkScalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
     let mut proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
@@ -90,13 +85,7 @@ fn random_product(
         sum += product;
     }
 
-    (
-        multiplicands
-            .into_iter()
-            .map(|x| Rc::new(DenseMultilinearExtension::from_evaluations_slice(nv, &x)))
-            .collect(),
-        sum,
-    )
+    (multiplicands.into_iter().map(Rc::new).collect(), sum)
 }
 
 fn random_polynomial(
@@ -112,7 +101,7 @@ fn random_polynomial(
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
         let coefficient = Scalar::random(rng);
         poly.add_product(product.into_iter(), coefficient.to_ark_scalar());
-        sum += from_ark_scalar(&product_sum) * coefficient;
+        sum += product_sum.into_scalar() * coefficient;
     }
 
     (poly, sum)

@@ -5,10 +5,10 @@ use super::{
 };
 use crate::base::database::{ColumnField, ColumnType};
 
+use crate::base::polynomial::Scalar;
 use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
-use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

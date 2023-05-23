@@ -2,7 +2,6 @@ use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::polynomial::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
-use num_traits::Zero;
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;

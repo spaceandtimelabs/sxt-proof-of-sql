@@ -2,13 +2,16 @@ use super::{
     CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
-use crate::base::polynomial::{from_ark_scalar, ArkScalar, CompositePolynomial};
+use crate::base::polynomial::{ArkScalar, CompositePolynomial};
 use crate::base::scalar::ToArkScalar;
 use crate::base::scalar::Zero;
+use crate::base::slice_ops;
+use bumpalo::Bump;
 use proofs_gpu::compute::compute_commitments;
 use proofs_gpu::sequences::{DenseSequence, Sequence};
 
-use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar, traits::Identity};
+use crate::base::polynomial::Scalar;
+use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 
 /// Track components used to form a query's proof
 #[allow(dead_code)]
@@ -66,6 +69,31 @@ impl<'a> ProofBuilder<'a> {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         self.commitment_descriptor
             .push(Sequence::Dense(data.into()));
+        self.produce_anchored_mle(data);
+    }
+
+    /// Produce an MLE for a intermediate computed column of `ArkScalar`s that we can reference in sumcheck.
+    ///
+    /// Because the verifier doesn't have access to the MLE's commitment, we will need to
+    /// commit to the MLE before we form the sumcheck polynomial.
+    ///
+    /// This method differs from `produce_intermediate_mle` in that it takes `ArkScalar`s as input. This is needed because a
+    /// slice of `ArkScalar`s does not implement `Into<DenseSequence>`.
+    #[tracing::instrument(
+        name = "proofs.sql.proof.proof_builder.produce_intermediate_mle_from_ark_scalars",
+        level = "debug",
+        skip_all
+    )]
+    pub fn produce_intermediate_mle_from_ark_scalars(
+        &mut self,
+        data: &'a [ArkScalar],
+        alloc: &'a Bump,
+    ) {
+        assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
+        let cast_data: &mut [[u64; 4]] = alloc.alloc_slice_fill_default(data.len());
+        slice_ops::slice_cast_mut_with(data, cast_data, |x| x.into_bigint().0);
+        self.commitment_descriptor
+            .push(Sequence::Dense(cast_data[..].into()));
         self.produce_anchored_mle(data);
     }
 
@@ -171,7 +199,7 @@ impl<'a> ProofBuilder<'a> {
         for evaluator in self.pre_result_mles.iter() {
             res.push(evaluator.inner_product(evaluation_vec));
         }
-        res.iter().map(from_ark_scalar).collect()
+        res.iter().map(|s| s.into_scalar()).collect()
     }
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
@@ -188,6 +216,6 @@ impl<'a> ProofBuilder<'a> {
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
             evaluator.mul_add(&mut res, &multiplier.to_ark_scalar());
         }
-        res.iter().map(from_ark_scalar).collect()
+        res.iter().map(|s| s.into_scalar()).collect()
     }
 }

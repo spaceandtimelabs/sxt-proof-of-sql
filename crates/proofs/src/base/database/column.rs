@@ -1,6 +1,6 @@
 use super::TableRef;
+use crate::base::polynomial::Scalar;
 use arrow::datatypes::{DataType, Field};
-use curve25519_dalek::scalar::Scalar;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 

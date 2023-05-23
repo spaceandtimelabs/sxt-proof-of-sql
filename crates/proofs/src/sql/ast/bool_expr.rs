@@ -1,9 +1,9 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
-use crate::base::polynomial::{from_ark_scalar, ArkScalar};
+use crate::base::polynomial::ArkScalar;
+use crate::base::polynomial::Scalar;
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::dyn_partial_eq;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -34,7 +34,8 @@ pub trait BoolExpr: Debug + Send + Sync {
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> Scalar {
-        from_ark_scalar(&self.verifier_evaluate_ark(builder, counts, accessor))
+        self.verifier_evaluate_ark(builder, counts, accessor)
+            .into_scalar()
     }
 
     /// Compute the evaluation of a multilinear extension from this boolean expression

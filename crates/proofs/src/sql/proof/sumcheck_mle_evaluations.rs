@@ -2,8 +2,9 @@ use super::{
     compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
     SumcheckRandomScalars,
 };
-use crate::base::polynomial::{to_ark_scalar, ArkScalar};
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::ArkScalar;
+use crate::base::polynomial::Scalar;
+use crate::base::scalar::ToArkScalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
 pub struct SumcheckMleEvaluations<'a> {
@@ -31,11 +32,11 @@ impl<'a> SumcheckMleEvaluations<'a> {
     )]
     pub fn get_one_evaluation_ark(&self) -> ArkScalar {
         #[allow(deprecated)]
-        to_ark_scalar(&self.one_evaluation)
+        ToArkScalar::to_ark_scalar(&self.one_evaluation)
     }
     pub fn get_random_evaluation_ark(&self) -> ArkScalar {
         #[allow(deprecated)]
-        to_ark_scalar(&self.random_evaluation)
+        ToArkScalar::to_ark_scalar(&self.random_evaluation)
     }
     pub fn new(
         table_length: usize,

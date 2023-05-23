@@ -1,10 +1,10 @@
 use ark_std::rc::Rc;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
-use proofs::base::scalar::One;
+use proofs::base::polynomial::Scalar;
+use proofs::base::scalar::{One, ToArkScalar};
 use proofs::{
-    base::polynomial::{to_ark_scalar, ArkScalar, CompositePolynomial, DenseMultilinearExtension},
+    base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
@@ -17,8 +17,8 @@ fn random_mle_with_num_vars<R: Rng>(v: usize, rng: &mut R) -> (Scalar, DenseMult
         .collect();
 
     let sum = scalars.iter().sum();
-    let scalars: Vec<ArkScalar> = scalars.iter().map(to_ark_scalar).collect();
-    let mle = DenseMultilinearExtension::from_evaluations_slice(v, scalars.as_slice());
+    let scalars: Vec<ArkScalar> = scalars.iter().map(ToArkScalar::to_ark_scalar).collect();
+    let mle = scalars;
 
     (sum, mle)
 }
