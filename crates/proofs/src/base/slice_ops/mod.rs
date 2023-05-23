@@ -18,3 +18,6 @@ mod slice_cast_test;
 pub use inner_product::*;
 pub use mul_add_assign::*;
 pub use slice_cast::*;
+
+mod batch_inverse;
+pub use batch_inverse::*;

@@ -1,5 +1,7 @@
 use crate::base::polynomial::DenseMultilinearExtension;
-use ark_ff::{BigInteger, PrimeField};
+
+use ark_ff::BigInteger;
+#[cfg(test)]
 use ark_poly::MultilinearExtension;
 /**
  * Adopted from arkworks
@@ -80,10 +82,6 @@ impl CompositePolynomial {
         assert!(!product.is_empty());
         self.max_multiplicands = max(self.max_multiplicands, product.len());
         for m in product {
-            assert_eq!(
-                m.num_vars, self.num_variables,
-                "product has a multiplicand with wrong number of variables"
-            );
             let m_ptr: *const DenseMultilinearExtension = Rc::as_ptr(&m);
             if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
                 indexed_product.push(*index)
@@ -98,6 +96,7 @@ impl CompositePolynomial {
     }
 
     /// Evaluate the polynomial at point `point`
+    #[cfg(test)]
     pub fn evaluate(&self, point: &[ArkScalar]) -> ArkScalar {
         let result = self
             .products
@@ -105,7 +104,16 @@ impl CompositePolynomial {
             .map(|(c, p)| {
                 *c * p
                     .iter()
-                    .map(|&i| self.flattened_ml_extensions[i].evaluate(point).unwrap())
+                    .map(|&i| {
+                        ArkScalar(
+                            ark_poly::DenseMultilinearExtension::from_evaluations_vec(
+                                self.num_variables,
+                                ArkScalar::unwrap_slice(&self.flattened_ml_extensions[i]),
+                            )
+                            .evaluate(&ArkScalar::unwrap_slice(point))
+                            .unwrap(),
+                        )
+                    })
                     .product::<ArkScalar>()
             })
             .sum();

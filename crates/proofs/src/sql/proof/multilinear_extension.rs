@@ -58,9 +58,7 @@ impl<'a, T: ToArkScalar + Sync> MultilinearExtension for MultilinearExtensionImp
             .map(|val| val.to_ark_scalar())
             .chain(rayon::iter::repeatn(Zero::zero(), n - values.len()))
             .collect();
-        Rc::new(DenseMultilinearExtension::from_evaluations_vec(
-            num_vars, scalars,
-        ))
+        Rc::new(scalars)
     }
 
     fn id(&self) -> *const c_void {

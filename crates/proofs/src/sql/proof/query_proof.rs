@@ -13,9 +13,10 @@ use crate::base::{
 use crate::proof_primitive::sumcheck::SumcheckProof;
 use proofs_gpu::proof::InnerProductProof;
 
+use crate::base::polynomial::Scalar;
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
-use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 

@@ -1,5 +1,6 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::polynomial::{to_ark_scalar, ArkScalar};
+use crate::base::polynomial::ArkScalar;
+use crate::base::polynomial::Scalar;
 use crate::base::scalar::One;
 use crate::base::scalar::ToArkScalar;
 use crate::sql::proof::EncodeProvableResultElement;
@@ -8,7 +9,6 @@ use crate::sql::proof::{
     SumcheckSubpolynomial, VerificationBuilder,
 };
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use std::cmp::max;
 
 /// Provable expression for a result column within a filter SQL expression
@@ -73,7 +73,12 @@ impl FilterResultExpr {
         accessor: &dyn CommitmentAccessor,
         selection_eval: &Scalar,
     ) {
-        self.verifier_evaluate_ark(builder, counts, accessor, &to_ark_scalar(selection_eval))
+        self.verifier_evaluate_ark(
+            builder,
+            counts,
+            accessor,
+            &ToArkScalar::to_ark_scalar(selection_eval),
+        )
     }
     /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
     /// add components needed to verify this filter result expression
@@ -90,7 +95,7 @@ impl FilterResultExpr {
         let col_eval = builder.consume_anchored_mle_ark(&col_commit);
 
         let poly_eval = builder.mle_evaluations.get_random_evaluation_ark()
-            * (result_eval - col_eval * selection_eval);
+            * (result_eval - col_eval * *selection_eval);
         builder.produce_sumcheck_subpolynomial_evaluation_ark(&poly_eval);
     }
 }

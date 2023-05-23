@@ -5,8 +5,8 @@ use crate::sql::proof::{
     MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
+use crate::base::polynomial::Scalar;
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use dyn_partial_eq::DynPartialEq;
 use std::cmp::max;
 use std::collections::HashSet;

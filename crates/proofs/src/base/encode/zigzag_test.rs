@@ -1,6 +1,6 @@
 use crate::base::encode::ZigZag;
 use crate::base::encode::U256;
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 #[test]
 fn small_scalars_are_encoded_as_positive_zigzag_values() {

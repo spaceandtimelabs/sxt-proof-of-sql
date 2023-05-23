@@ -1,6 +1,7 @@
 use super::{SumcheckMleEvaluations, VerificationBuilder};
 
-use curve25519_dalek::{ristretto::RistrettoPoint, scalar::Scalar, traits::Identity};
+use crate::base::polynomial::Scalar;
+use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use rand_core::OsRng;
 
 #[test]

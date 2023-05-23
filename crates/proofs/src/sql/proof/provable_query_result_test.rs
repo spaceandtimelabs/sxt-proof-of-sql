@@ -1,10 +1,10 @@
 use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
 use crate::base::database::{ColumnField, ColumnType};
 
+use crate::base::polynomial::Scalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
-use curve25519_dalek::scalar::Scalar;
 use std::sync::Arc;
 
 #[test]
