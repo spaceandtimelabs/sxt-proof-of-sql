@@ -1,10 +1,10 @@
 use crate::base::database::Column;
 use crate::base::scalar::ToScalar;
 
+use crate::base::polynomial::Scalar;
 use arrow::array::{Array, ArrayRef, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use bumpalo::Bump;
-use curve25519_dalek::scalar::Scalar;
 use std::ops::Range;
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)

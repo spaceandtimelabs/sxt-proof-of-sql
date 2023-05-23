@@ -4,49 +4,32 @@
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::polynomial::interpolate::*;
-
-use ark_poly::univariate::DensePolynomial;
-use ark_poly::DenseUVPolynomial;
-use ark_poly::Polynomial;
-use ark_std::vec::Vec;
-use ark_std::UniformRand;
-use curve25519_dalek::scalar::Scalar;
-
-use crate::base::polynomial::{from_ark_scalar, ArkScalar};
+use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::Zero;
 
 #[test]
 fn test_interpolate_uni_poly_for_random_polynomials() {
     let mut prng = ark_std::test_rng();
 
-    // test a polynomial with 20 known points, i.e., with degree 19
-    let poly = DensePolynomial::<ArkScalar>::rand(20 - 1, &mut prng);
-    let evals = (0..20)
-        .map(|i| from_ark_scalar(&poly.evaluate(&ArkScalar::from(i as u64))))
-        .collect::<Vec<Scalar>>();
-    let query = ArkScalar::rand(&mut prng);
-    let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
-    let expected_value = from_ark_scalar(&poly.evaluate(&query));
-    assert_eq!(value, expected_value);
+    let num_points = vec![0, 1, 2, 3, 4, 5, 10, 20, 32, 33, 64, 65];
 
-    // test a polynomial with 33 known points, i.e., with degree 32
-    let poly = DensePolynomial::<ArkScalar>::rand(33 - 1, &mut prng);
-    let evals = (0..33)
-        .map(|i| from_ark_scalar(&poly.evaluate(&ArkScalar::from(i as u64))))
-        .collect::<Vec<Scalar>>();
-    let query = ArkScalar::rand(&mut prng);
-    let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
-    let expected_value = from_ark_scalar(&poly.evaluate(&query));
-    assert_eq!(value, expected_value);
-
-    // test a polynomial with 64 known points, i.e., with degree 63
-    let poly = DensePolynomial::<ArkScalar>::rand(64 - 1, &mut prng);
-    let evals = (0..64)
-        .map(|i| from_ark_scalar(&poly.evaluate(&ArkScalar::from(i as u64))))
-        .collect::<Vec<Scalar>>();
-    let query = ArkScalar::rand(&mut prng);
-    let value = interpolate_uni_poly(&evals, from_ark_scalar(&query));
-    let expected_value = from_ark_scalar(&poly.evaluate(&query));
-    assert_eq!(value, expected_value);
+    for n in num_points {
+        let poly = std::iter::repeat_with(|| ArkScalar::rand(&mut prng))
+            .take(n)
+            .collect::<Vec<_>>();
+        let evals = (0..n)
+            .map(|i| {
+                let x: ArkScalar = (i as u64).into();
+                poly.iter().fold(Zero::zero(), |acc, &c| acc * x + c)
+            })
+            .collect::<Vec<_>>();
+        let query = ArkScalar::rand(&mut prng);
+        let value = interpolate_uni_poly(&evals, query);
+        let expected_value = poly
+            .iter()
+            .fold(ArkScalar::zero(), |acc, &c| acc * query + c);
+        assert_eq!(value, expected_value);
+    }
 }
 
 #[test]

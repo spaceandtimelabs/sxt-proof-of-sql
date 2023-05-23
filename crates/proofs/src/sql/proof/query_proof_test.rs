@@ -4,12 +4,13 @@ use super::{
 };
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::math::log2_up;
+use crate::base::polynomial::Scalar;
 use crate::base::scalar::compute_commitment_for_testing;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
-use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use std::sync::Arc;
 
 fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {

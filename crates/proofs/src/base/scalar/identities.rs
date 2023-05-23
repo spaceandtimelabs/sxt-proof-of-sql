@@ -7,6 +7,7 @@
 pub trait Zero {
     /// Returns the zero element of the type.
     fn zero() -> Self;
+    fn is_zero(&self) -> bool;
 }
 /// This trait is used to define the one identity element of field elements (or other types).
 pub trait One {
@@ -30,6 +31,9 @@ where
     fn zero() -> Self {
         num_traits::Zero::zero()
     }
+    fn is_zero(&self) -> bool {
+        num_traits::Zero::is_zero(self)
+    }
 }
 impl IdentityMarker for bool {}
 impl IdentityMarker for u8 {}
@@ -47,6 +51,8 @@ impl IdentityMarker for isize {}
 
 impl<P: ark_ff::FpConfig<N>, const N: usize> IdentityMarker for ark_ff::Fp<P, N> {}
 
+impl IdentityMarker for crate::base::polynomial::ArkScalar {}
+
 impl One for curve25519_dalek::scalar::Scalar {
     fn one() -> Self {
         curve25519_dalek::scalar::Scalar::one()
@@ -55,5 +61,8 @@ impl One for curve25519_dalek::scalar::Scalar {
 impl Zero for curve25519_dalek::scalar::Scalar {
     fn zero() -> Self {
         curve25519_dalek::scalar::Scalar::zero()
+    }
+    fn is_zero(&self) -> bool {
+        self == &curve25519_dalek::scalar::Scalar::zero()
     }
 }

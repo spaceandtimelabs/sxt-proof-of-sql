@@ -6,8 +6,8 @@ use super::{
 use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
+use crate::base::polynomial::Scalar;
 use curve25519_dalek::ristretto::CompressedRistretto;
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
 
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that

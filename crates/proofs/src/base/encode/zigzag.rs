@@ -1,5 +1,5 @@
 use crate::base::encode::U256;
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 /// A trait for enabling zig-zag encoding
 ///

@@ -1,5 +1,5 @@
+use crate::base::polynomial::Scalar;
 use core::{mem, slice};
-use curve25519_dalek::scalar::Scalar;
 
 pub fn as_byte_slice(slice: &[Scalar]) -> &[u8] {
     let slice = slice;

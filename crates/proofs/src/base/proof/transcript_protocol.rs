@@ -1,9 +1,9 @@
-use crate::base::polynomial::{from_ark_scalar, ArkScalar};
+use crate::base::polynomial::ArkScalar;
+use crate::base::polynomial::Scalar;
 use crate::base::scalar::ToArkScalar;
 use crate::base::slice_ops;
 use ark_serialize::CanonicalSerialize;
 use curve25519_dalek::ristretto::CompressedRistretto;
-use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 
 /// Merlin Transcripts, for non-interactive proofs.
@@ -12,10 +12,10 @@ use merlin::Transcript;
 /// When adding data to it, the opaque state will change in a pseudorandom way.
 /// The provers and verifiers should be able to add the same data in the same order, and achieve the same state.
 ///
-/// In most cases, you would use this in PipVerify and PipProve, where they would look like this:
+/// In most cases it looks like this:
 /// ```ignore
 /// use proofs::base::proof::{Commitment, MessageLabel, transcript::Transcript};
-/// use curve25519_dalek::scalar::Scalar;
+/// use crate::base::polynomial::Scalar;
 /// let mut transcript = Transcript::new(b"my-protocol-name");
 ///
 /// // Begin your proof with message specific to your operation using the MessageLabel enum.
@@ -89,7 +89,7 @@ pub trait TranscriptProtocol {
         let mut buf = vec![Default::default(); scalars.len()];
         self.challenge_ark_scalars(&mut buf, label);
         for (scalar, ark_scalar) in scalars.iter_mut().zip(buf.iter()) {
-            *scalar = from_ark_scalar(ark_scalar);
+            *scalar = ark_scalar.into_scalar();
         }
     }
 
@@ -148,7 +148,7 @@ impl TranscriptProtocol for Transcript {
         }
         let rng = &mut TranscriptProtocolRng(self);
         for scalar in scalars.iter_mut() {
-            *scalar = ark_ff::UniformRand::rand(rng);
+            *scalar = ArkScalar(ark_ff::UniformRand::rand(rng));
         }
     }
 }

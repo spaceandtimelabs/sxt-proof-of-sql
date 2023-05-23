@@ -1,7 +1,4 @@
 use crate::base::polynomial::ArkScalar;
-use ark_ff::PrimeField;
-use curve25519_dalek::scalar::Scalar;
-use num_traits::Zero;
 
 /// Provides conversion to [ArkScalar].
 ///
@@ -34,9 +31,12 @@ macro_rules! impl_to_ark_scalar_for_type_supported_by_from {
     };
 }
 
-impl ToArkScalar for Scalar {
+impl ToArkScalar for curve25519_dalek::scalar::Scalar {
     fn to_ark_scalar(&self) -> ArkScalar {
-        crate::base::polynomial::to_ark_scalar(self)
+        let mut values: [u64; 4] = [0; 4];
+        byte_slice_cast::AsMutByteSlice::as_mut_byte_slice(&mut values)
+            .clone_from_slice(self.as_bytes());
+        ArkScalar::from_bigint(ark_ff::BigInt::new(values)).unwrap()
     }
 }
 

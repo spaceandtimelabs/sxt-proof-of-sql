@@ -1,5 +1,5 @@
 use crate::base::encode::{ZigZag, U256};
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 use std::cmp::max;
 use std::cmp::Ordering;
 

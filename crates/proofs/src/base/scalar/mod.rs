@@ -3,7 +3,9 @@ mod byte_slice;
 mod byte_slice_test;
 pub use byte_slice::as_byte_slice;
 
+#[cfg(any(test, feature = "test"))]
 mod commitment_utility;
+#[cfg(any(test, feature = "test"))]
 pub use commitment_utility::compute_commitment_for_testing;
 
 mod to_scalar;

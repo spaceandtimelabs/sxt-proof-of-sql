@@ -1,7 +1,6 @@
 use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
-use ark_ff::{BigInteger, PrimeField};
+use ark_ff::BigInteger;
 use byte_slice_cast::AsByteSlice;
-use num_traits::Zero;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

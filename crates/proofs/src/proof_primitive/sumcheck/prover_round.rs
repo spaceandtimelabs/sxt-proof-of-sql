@@ -3,11 +3,10 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use curve25519_dalek::scalar::Scalar;
-use num_traits::Zero;
+use crate::base::polynomial::Scalar;
 use rayon::prelude::*;
 
-use crate::base::polynomial::{from_ark_scalar, ArkScalar, DenseMultilinearExtension};
+use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
 use crate::base::scalar::ToArkScalar;
 use crate::proof_primitive::sumcheck::ProverState;
 
@@ -29,7 +28,11 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
             .flattened_ml_extensions
             .par_iter_mut()
             .for_each(|multiplicand| {
-                in_place_fix_variable(multiplicand, r_as_field);
+                in_place_fix_variable(
+                    multiplicand,
+                    r_as_field,
+                    prover_state.num_vars - prover_state.round,
+                );
             });
     } else if prover_state.round > 0 {
         panic!("verifier message is empty");
@@ -93,7 +96,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
         })
         .reduce(|| vec![ArkScalar::zero(); degree + 1], vec_elementwise_add);
 
-    result.into_iter().map(|a| from_ark_scalar(&a)).collect()
+    result.into_iter().map(|a| a.into_scalar()).collect()
 }
 
 /// This is equivalent to
@@ -101,13 +104,16 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> 
 ///                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
 ///                };
 /// Only it does it in place
-fn in_place_fix_variable(multiplicand: &mut DenseMultilinearExtension, r_as_field: ArkScalar) {
-    assert!(multiplicand.num_vars > 0, "invalid size of partial point");
-    multiplicand.num_vars -= 1;
-    for b in 0..(1 << multiplicand.num_vars) {
-        let left: ArkScalar = multiplicand.evaluations[b << 1];
-        let right: ArkScalar = multiplicand.evaluations[(b << 1) + 1];
-        multiplicand.evaluations[b] = left + r_as_field * (right - left);
+fn in_place_fix_variable(
+    multiplicand: &mut DenseMultilinearExtension,
+    r_as_field: ArkScalar,
+    num_vars: usize,
+) {
+    assert!(num_vars > 0, "invalid size of partial point");
+    for b in 0..(1 << num_vars) {
+        let left: ArkScalar = multiplicand[b << 1];
+        let right: ArkScalar = multiplicand[(b << 1) + 1];
+        multiplicand[b] = left + r_as_field * (right - left);
     }
 }
 

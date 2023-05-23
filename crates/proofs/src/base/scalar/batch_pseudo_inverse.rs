@@ -1,8 +1,8 @@
-use curve25519_dalek::scalar::Scalar;
-use rayon::{iter::ParallelIterator, slice::ParallelSliceMut};
+use core::ops::{Mul, MulAssign};
 
-// These constants can likely be tuned. There is no reason for the current values other that that they are sane.
-const MIN_CHUNKING_SIZE: usize = 64; // The minimum size for which we should actually split into chunks.
+use crate::base::slice_ops;
+
+use super::{Inverse, One, Zero};
 
 /// Given a slice of `input` scalars, compute their pseudo inverses in a batch and store the result in `res`.
 ///
@@ -17,61 +17,23 @@ const MIN_CHUNKING_SIZE: usize = 64; // The minimum size for which we should act
     level = "info",
     skip_all
 )]
-pub fn batch_pseudo_invert(res: &mut [Scalar], input: &[Scalar]) {
+pub fn batch_pseudo_invert<F>(res: &mut [F], input: &[F])
+where
+    F: One + Zero + MulAssign + Inverse + Mul<Output = F> + Send + Sync + Copy,
+{
     assert_eq!(res.len(), input.len());
-
-    // we copy the non-zero elements from input into res
-    let mut count_non_zeros = 0_usize;
-    for input_val in input.iter() {
-        if *input_val != Scalar::zero() {
-            res[count_non_zeros] = *input_val;
-            count_non_zeros += 1;
-        }
-    }
-
-    // we invert only the non-zero elements from input
-    // note: this function can possibly allocate memory
-
-    // we should break this up into chunks in order to parallelize it if there are enough non-zero elements
-    let number_of_chunks = rayon::current_num_threads();
-    if count_non_zeros >= MIN_CHUNKING_SIZE {
-        res[0..count_non_zeros]
-            .par_chunks_mut(1 + (count_non_zeros - 1) / number_of_chunks)
-            .for_each(|c| {
-                Scalar::batch_invert(c);
-            });
-    } else {
-        Scalar::batch_invert(&mut res[0..count_non_zeros]);
-    }
-
-    // we can stop here in case all the elements from `res` are already non-zero
-    if count_non_zeros == input.len() {
-        return;
-    }
-
-    // we then copy the zero elements to res,
-    // shifting the previous non-zero elements
-    // from `res` to a higher index
-    for index_rev_input in (0..input.len()).rev() {
-        let input_val = &input[index_rev_input];
-
-        if *input_val != Scalar::zero() {
-            count_non_zeros -= 1;
-            res[index_rev_input] = res[count_non_zeros];
-        } else {
-            res[index_rev_input] = Scalar::zero();
-        }
-    }
+    res.copy_from_slice(input);
+    slice_ops::batch_inversion(res);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::scalar::to_scalar::ToScalar;
+    use crate::base::{polynomial::Scalar, scalar::to_scalar::ToScalar};
 
     #[test]
     fn we_can_pseudo_invert_empty_arrays() {
-        let input = Vec::new();
+        let input: Vec<Scalar> = Vec::new();
         let mut res = Vec::new();
         batch_pseudo_invert(&mut res[..], &input[..]);
     }
@@ -129,7 +91,7 @@ mod tests {
         ]
         .into_iter()
         .cycle()
-        .take(MIN_CHUNKING_SIZE * 10)
+        .take(slice_ops::MIN_RAYON_LEN * 10)
         .collect();
 
         let mut res = vec![Scalar::from(0_u32); input.len()];
@@ -158,7 +120,7 @@ mod tests {
         ]
         .into_iter()
         .cycle()
-        .take(MIN_CHUNKING_SIZE - 1)
+        .take(slice_ops::MIN_RAYON_LEN - 1)
         .collect();
 
         let mut res = vec![Scalar::from(0_u32); input.len()];

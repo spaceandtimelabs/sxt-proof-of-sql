@@ -2,7 +2,7 @@ use crate::sql::proof::{ProofCounts, SumcheckRandomScalars};
 
 use super::SumcheckMleEvaluations;
 
-use curve25519_dalek::scalar::Scalar;
+use crate::base::polynomial::Scalar;
 
 #[test]
 fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
