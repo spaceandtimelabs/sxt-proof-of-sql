@@ -5,7 +5,6 @@ use crate::sql::proof::{
     MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
-use crate::base::polynomial::Scalar;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use std::cmp::max;
@@ -59,11 +58,11 @@ impl BoolExpr for AndExpr {
         // subpolynomial: lhs_and_rhs - lhs * rhs
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
             (
-                Scalar::one(),
+                ArkScalar::one(),
                 vec![Box::new(MultilinearExtensionImpl::new(lhs_and_rhs))],
             ),
             (
-                -Scalar::one(),
+                -ArkScalar::one(),
                 vec![
                     Box::new(MultilinearExtensionImpl::new(lhs)),
                     Box::new(MultilinearExtensionImpl::new(rhs)),

@@ -1,4 +1,4 @@
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 
 /// Provides conversion to [Scalar].
 ///
@@ -18,21 +18,21 @@ use crate::base::polynomial::Scalar;
 /// 2. There may be already-existing conversions for Scalar on types we *don't* want to support.
 /// A new trait allows us to be explicit about the types we want to support.
 pub trait ToScalar {
-    fn to_scalar(&self) -> Scalar;
+    fn to_scalar(&self) -> ArkScalar;
 }
 
-impl ToScalar for Scalar {
-    fn to_scalar(&self) -> Scalar {
+impl ToScalar for ArkScalar {
+    fn to_scalar(&self) -> ArkScalar {
         *self
     }
 }
 
 impl ToScalar for bool {
-    fn to_scalar(&self) -> Scalar {
+    fn to_scalar(&self) -> ArkScalar {
         if *self {
-            Scalar::one()
+            ArkScalar::one()
         } else {
-            Scalar::zero()
+            ArkScalar::zero()
         }
     }
 }
@@ -40,8 +40,8 @@ impl ToScalar for bool {
 macro_rules! uint_to_scalar {
     ($tt:ty) => {
         impl ToScalar for $tt {
-            fn to_scalar(&self) -> Scalar {
-                Scalar::from(*self)
+            fn to_scalar(&self) -> ArkScalar {
+                ArkScalar::from(*self)
             }
         }
     };
@@ -50,11 +50,11 @@ macro_rules! uint_to_scalar {
 macro_rules! int_to_scalar {
     ($it:ty, $ut:ty) => {
         impl ToScalar for $it {
-            fn to_scalar(&self) -> Scalar {
+            fn to_scalar(&self) -> ArkScalar {
                 if *self >= 0 {
-                    Scalar::from(*self as $ut)
+                    ArkScalar::from(*self as $ut)
                 } else {
-                    -Scalar::from(-(*self as i128) as $ut)
+                    -ArkScalar::from(-(*self as i128) as $ut)
                 }
             }
         }
@@ -75,16 +75,16 @@ int_to_scalar!(i128, u128);
 macro_rules! byte_array_to_scalar {
     ($it:ty) => {
         impl ToScalar for $it {
-            fn to_scalar(&self) -> Scalar {
+            fn to_scalar(&self) -> ArkScalar {
                 if self.is_empty() {
-                    return Scalar::zero();
+                    return ArkScalar::zero();
                 }
 
                 let hash = blake3::hash(self);
                 let mut bytes: [u8; 32] = hash.into();
                 bytes[31] &= 0b00001111_u8;
 
-                Scalar::from_canonical_bytes(bytes)
+                ArkScalar::from_canonical_bytes(bytes)
                     .expect("The remaining four bits from `bytes` should be 0.")
             }
         }
@@ -97,7 +97,7 @@ byte_array_to_scalar!(&[u8]);
 macro_rules! string_to_scalar {
     ($tt:ty) => {
         impl ToScalar for $tt {
-            fn to_scalar(&self) -> Scalar {
+            fn to_scalar(&self) -> ArkScalar {
                 self.as_bytes().to_scalar()
             }
         }
@@ -121,53 +121,53 @@ mod tests {
 
     #[test]
     fn we_can_convert_unsigned_integers_to_scalars() {
-        assert_eq!(0_u8.to_scalar(), Scalar::from(0_u8));
-        assert_eq!(1_u16.to_scalar(), Scalar::from(1_u16));
-        assert_eq!(1234_u32.to_scalar(), Scalar::from(1234_u32));
-        assert_eq!(u64::MAX.to_scalar(), Scalar::from(u64::MAX));
+        assert_eq!(0_u8.to_scalar(), ArkScalar::from(0_u8));
+        assert_eq!(1_u16.to_scalar(), ArkScalar::from(1_u16));
+        assert_eq!(1234_u32.to_scalar(), ArkScalar::from(1234_u32));
+        assert_eq!(u64::MAX.to_scalar(), ArkScalar::from(u64::MAX));
     }
 
     #[test]
     fn we_can_convert_signed_positive_integers_to_scalars() {
-        assert_eq!(0_i8.to_scalar(), Scalar::from(0_u8));
-        assert_eq!(1_i16.to_scalar(), Scalar::from(1_u16));
-        assert_eq!(1234_i32.to_scalar(), Scalar::from(1234_u32));
-        assert_eq!(i64::MAX.to_scalar(), Scalar::from(i64::MAX as u64));
+        assert_eq!(0_i8.to_scalar(), ArkScalar::from(0_u8));
+        assert_eq!(1_i16.to_scalar(), ArkScalar::from(1_u16));
+        assert_eq!(1234_i32.to_scalar(), ArkScalar::from(1234_u32));
+        assert_eq!(i64::MAX.to_scalar(), ArkScalar::from(i64::MAX as u64));
     }
 
     #[test]
     fn we_can_convert_signed_negative_integers_to_scalars() {
-        assert_eq!((-1_i16).to_scalar(), -Scalar::from(1_i16 as u16));
-        assert_eq!((-1234_i32).to_scalar(), -Scalar::from(1234_i32 as u32));
-        assert_eq!((-i64::MAX).to_scalar(), -Scalar::from(i64::MAX as u64));
-        assert_eq!(i64::MIN.to_scalar(), -Scalar::from(1_u64 << 63));
+        assert_eq!((-1_i16).to_scalar(), -ArkScalar::from(1_i16 as u16));
+        assert_eq!((-1234_i32).to_scalar(), -ArkScalar::from(1234_i32 as u32));
+        assert_eq!((-i64::MAX).to_scalar(), -ArkScalar::from(i64::MAX as u64));
+        assert_eq!(i64::MIN.to_scalar(), -ArkScalar::from(1_u64 << 63));
     }
 
     #[test]
     fn the_empty_string_will_be_mapped_to_the_zero_scalar() {
-        assert_eq!("".to_scalar(), Scalar::zero());
-        assert_eq!(<&str>::default().to_scalar(), Scalar::zero());
+        assert_eq!("".to_scalar(), ArkScalar::zero());
+        assert_eq!(<&str>::default().to_scalar(), ArkScalar::zero());
     }
 
     #[test]
     fn two_different_strings_map_to_different_scalars() {
         let s = "abc12";
-        assert_ne!(s.to_scalar(), Scalar::zero());
+        assert_ne!(s.to_scalar(), ArkScalar::zero());
         assert_ne!(s.to_scalar(), "abc123".to_scalar());
     }
 
     #[test]
     fn the_empty_buffer_will_be_mapped_to_the_zero_scalar() {
-        assert_eq!([].to_scalar(), Scalar::zero());
-        assert_eq!([].to_scalar(), Scalar::zero());
-        assert_eq!(Vec::default().to_scalar(), Scalar::zero());
-        assert_eq!(<Vec<u8>>::default().to_scalar(), Scalar::zero());
+        assert_eq!([].to_scalar(), ArkScalar::zero());
+        assert_eq!([].to_scalar(), ArkScalar::zero());
+        assert_eq!(Vec::default().to_scalar(), ArkScalar::zero());
+        assert_eq!(<Vec<u8>>::default().to_scalar(), ArkScalar::zero());
     }
 
     #[test]
     fn byte_arrays_with_the_same_content_but_different_types_map_to_different_scalars() {
         let array = [1_u8, 2_u8, 34_u8];
-        assert_ne!(array.as_byte_slice().to_scalar(), Scalar::zero());
+        assert_ne!(array.as_byte_slice().to_scalar(), ArkScalar::zero());
         assert_ne!(
             array.as_byte_slice().to_scalar(),
             [1_u32, 2_u32, 34_u32].as_byte_slice().to_scalar()

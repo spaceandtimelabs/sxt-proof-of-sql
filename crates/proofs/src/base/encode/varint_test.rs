@@ -1,14 +1,14 @@
 use crate::base::encode::U256;
 use crate::base::encode::{read_scalar_varint, scalar_varint_size, write_scalar_varint};
 use crate::base::encode::{read_scalar_varints, scalar_varints_size, write_scalar_varints};
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 
 #[test]
 fn small_scalars_are_encoded_as_positive_varints_and_consume_few_bytes() {
-    assert!(scalar_varint_size(&Scalar::from(0_u64)) == 1);
-    assert!(scalar_varint_size(&Scalar::from(1_u64)) == 1);
-    assert!(scalar_varint_size(&Scalar::from(2_u64)) == 1);
-    assert!(scalar_varint_size(&Scalar::from(1000_u64)) == 2);
+    assert!(scalar_varint_size(&ArkScalar::from(0_u64)) == 1);
+    assert!(scalar_varint_size(&ArkScalar::from(1_u64)) == 1);
+    assert!(scalar_varint_size(&ArkScalar::from(2_u64)) == 1);
+    assert!(scalar_varint_size(&ArkScalar::from(1000_u64)) == 2);
 }
 
 #[test]
@@ -16,12 +16,12 @@ fn big_scalars_with_small_additive_inverses_are_encoded_as_negative_varints_and_
 {
     // x = p - 1 (p is the ristretto group order)
     // y = -x = 1
-    let val = -Scalar::from(1_u64);
+    let val = -ArkScalar::from(1_u64);
     assert!(scalar_varint_size(&val) == 1);
 
     // x = p - 1000 (p is the ristretto group order)
     // y = -x = 1000
-    let val = -Scalar::from(1000_u64);
+    let val = -ArkScalar::from(1000_u64);
     assert!(scalar_varint_size(&val) == 2);
 }
 
@@ -30,7 +30,7 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_posi
 ) {
     // x = (p - 1) / 10 (p is the ristretto group order)
     // y = -x = (p + 1) / 10
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0x9bafe5c976b25c7bd59b704f6fb22eca,
         0x1999999999999999999999999999999,
     ))
@@ -43,7 +43,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
 ) {
     // x = (p + 1) / 10 (p is the ristretto group order)
     // y = -x = (p - 1) / 10
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0x9bafe5c976b25c7bd59b704f6fb22ecb,
         0x1999999999999999999999999999999,
     ))
@@ -56,7 +56,7 @@ fn the_maximum_positive_and_negative_encoded_scalars_consume_the_maximum_amount_
     // maximum negative encoded scalar
     // x = (p + 1) / 2 (p is the ristretto group order)
     // y = -x = (p - 1) / 2
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0xa6f7cef517bce6b2c09318d2e7ae9f7,
         0x8000000000000000000000000000000,
     ))
@@ -66,7 +66,7 @@ fn the_maximum_positive_and_negative_encoded_scalars_consume_the_maximum_amount_
     // maximum positive encoded scalar
     // x = (p - 1) / 2 (p is the ristretto group order)
     // y = -x = (p + 1) / 2
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0xa6f7cef517bce6b2c09318d2e7ae9f6,
         0x8000000000000000000000000000000,
     ))
@@ -78,23 +78,23 @@ fn the_maximum_positive_and_negative_encoded_scalars_consume_the_maximum_amount_
 #[test]
 fn scalar_slices_consumes_the_correct_amount_of_bytes() {
     // x = (p - 1)
-    let val1 = -Scalar::from(1_u64);
+    let val1 = -ArkScalar::from(1_u64);
 
     // x = (p + 1) / 2
-    let val2: Scalar = (&U256::from_words(
+    let val2: ArkScalar = (&U256::from_words(
         0xa6f7cef517bce6b2c09318d2e7ae9f7,
         0x8000000000000000000000000000000,
     ))
         .into();
 
-    assert!(scalar_varints_size(&[Scalar::from(1000_u64)]) == 2);
+    assert!(scalar_varints_size(&[ArkScalar::from(1000_u64)]) == 2);
 
     assert!(
         scalar_varints_size(&[
-            Scalar::from(1000_u64),
-            Scalar::from(0_u64),
+            ArkScalar::from(1000_u64),
+            ArkScalar::from(0_u64),
             val1,
-            Scalar::from(2_u64),
+            ArkScalar::from(2_u64),
             val2
         ]) == 42
     );
@@ -105,19 +105,19 @@ fn small_scalars_are_correctly_encoded_and_decoded_as_positive_varints() {
     let mut buf = vec![0_u8; 38];
 
     // x = 0, which is encoded as 2 * 0 = 0
-    assert!(write_scalar_varint(&mut buf[..], &Scalar::from(0_u64)) == 1);
+    assert!(write_scalar_varint(&mut buf[..], &ArkScalar::from(0_u64)) == 1);
     assert!(buf[0] == 0);
-    assert!(read_scalar_varint(&buf[..]).unwrap() == (Scalar::from(0_u64), 1));
+    assert!(read_scalar_varint(&buf[..]).unwrap() == (ArkScalar::from(0_u64), 1));
 
     // x = 1, which is encoded as 2 * 1 = 2
-    assert!(write_scalar_varint(&mut buf[..], &Scalar::from(1_u64)) == 1);
+    assert!(write_scalar_varint(&mut buf[..], &ArkScalar::from(1_u64)) == 1);
     assert!(buf[0] == 2);
-    assert!(read_scalar_varint(&buf[..]).unwrap() == (Scalar::from(1_u64), 1));
+    assert!(read_scalar_varint(&buf[..]).unwrap() == (ArkScalar::from(1_u64), 1));
 
     // x = 2, which is encoded as 2 * x = 4
-    assert!(write_scalar_varint(&mut buf[..], &Scalar::from(2_u64)) == 1);
+    assert!(write_scalar_varint(&mut buf[..], &ArkScalar::from(2_u64)) == 1);
     assert!(buf[0] == 4);
-    assert!(read_scalar_varint(&buf[..]).unwrap() == (Scalar::from(2_u64), 1));
+    assert!(read_scalar_varint(&buf[..]).unwrap() == (ArkScalar::from(2_u64), 1));
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as
     // x = p - 1 (p is the ristretto group order)
     // y = -x = 1
     // which is encoded as -y, or as 2 * y - 1 = 1
-    let val = -Scalar::from(1u64);
+    let val = -ArkScalar::from(1u64);
     assert!(write_scalar_varint(&mut buf[..], &val) == 1);
     assert!(buf[0] == 1);
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 1));
@@ -136,7 +136,7 @@ fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as
     // x = p - 2 (p is the ristretto group order)
     // y = -x = 2
     // which is encoded as -y, or as 2 * y - 1 = 3
-    let val = -Scalar::from(2u64);
+    let val = -ArkScalar::from(2u64);
     assert!(write_scalar_varint(&mut buf[..], &val) == 1);
     assert!(buf[0] == 3);
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 1));
@@ -149,7 +149,7 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encod
 
     // (p - 1) / 2 (p is the ristretto group order)
     // y = -x = (p + 1) / 2 (which is bigger than x)
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0xa6f7cef517bce6b2c09318d2e7ae9f6,
         0x8000000000000000000000000000000,
     ))
@@ -168,7 +168,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 
     // x = (p + 1) / 2 (p is the group order)
     // y = -x = (p - 1) / 2 (which is smaller than x)
-    let val: Scalar = (&U256::from_words(
+    let val: ArkScalar = (&U256::from_words(
         0xa6f7cef517bce6b2c09318d2e7ae9f7,
         0x8000000000000000000000000000000,
     ))
@@ -193,7 +193,7 @@ fn valid_varint_encoded_input_that_map_to_scalars_smaller_than_the_p_field_order
     // buf represents the number 2^252 - 1
     // removing the varint encoding, we would have y = ((2^252 - 1) // 2 + 1) % p
     // since we want x, we would have x = -y
-    let expected_x = -Scalar::from(&U256::from_words(
+    let expected_x = -ArkScalar::from(&U256::from_words(
         0x00000000000000000000000000000000,
         0x8000000000000000000000000000000,
     ));
@@ -214,7 +214,7 @@ fn valid_varint_encoded_input_that_map_to_scalars_bigger_than_the_p_field_order_
     // at this point, buf represents the number 2^256 - 2,
     // which has 256 bit-length, where 255 bits are set to 1
     // also, `expected_val` is simply x = ((2^256 - 2) >> 1) % p
-    let expected_val: Scalar = (&U256::from_words(
+    let expected_val: ArkScalar = (&U256::from_words(
         0x6de72ae98b3ab623977f4a4775473484,
         0xfffffffffffffffffffffffffffffff,
     ))
@@ -257,12 +257,12 @@ fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the
     assert!(read_scalar_varint(&buf[..38]).is_none());
 }
 
-fn write_read_and_compare_encoding(expected_scals: &[Scalar]) {
+fn write_read_and_compare_encoding(expected_scals: &[ArkScalar]) {
     let mut buf_vec = vec![0_u8; 37 * expected_scals.len()];
     let total_bytes_read = write_scalar_varints(&mut buf_vec[..], expected_scals);
 
     let buf = &buf_vec[0..total_bytes_read];
-    let mut scals = vec![Scalar::from_bytes_mod_order([0_u8; 32]); expected_scals.len()];
+    let mut scals = vec![ArkScalar::from_bytes_mod_order([0_u8; 32]); expected_scals.len()];
     read_scalar_varints(&mut scals[..], buf).unwrap();
 
     for (scal, expected_scal) in scals.iter().zip(expected_scals.iter()) {
@@ -272,27 +272,27 @@ fn write_read_and_compare_encoding(expected_scals: &[Scalar]) {
 
 #[test]
 fn scalar_slices_are_correctly_encoded_and_decoded() {
-    write_read_and_compare_encoding(&[Scalar::from(0_u128)]);
-    write_read_and_compare_encoding(&[Scalar::from(1_u64), Scalar::from(4_u32)]);
+    write_read_and_compare_encoding(&[ArkScalar::from(0_u128)]);
+    write_read_and_compare_encoding(&[ArkScalar::from(1_u64), ArkScalar::from(4_u32)]);
     write_read_and_compare_encoding(&[
-        Scalar::from(1_u64),
-        Scalar::from(u128::MAX),
-        Scalar::from(0_u128),
-        Scalar::from(5_u16),
-        Scalar::from(u128::MAX),
+        ArkScalar::from(1_u64),
+        ArkScalar::from(u128::MAX),
+        ArkScalar::from(0_u128),
+        ArkScalar::from(5_u16),
+        ArkScalar::from(u128::MAX),
     ]);
 
     // x = p - 1 (where p is the ristretto group_order)
-    let val = -Scalar::from(1_u64);
+    let val = -ArkScalar::from(1_u64);
 
     write_read_and_compare_encoding(&[
-        Scalar::from(u128::MAX),
-        Scalar::from(0_u64),
+        ArkScalar::from(u128::MAX),
+        ArkScalar::from(0_u64),
         val,
-        Scalar::from(5_u16),
-        Scalar::from(1_u64),
-        Scalar::from(0_u64),
-        Scalar::from(u128::MAX),
+        ArkScalar::from(5_u16),
+        ArkScalar::from(1_u64),
+        ArkScalar::from(0_u64),
+        ArkScalar::from(u128::MAX),
     ]);
 
     // some random scalar
@@ -303,14 +303,14 @@ fn scalar_slices_are_correctly_encoded_and_decoded() {
     ];
 
     write_read_and_compare_encoding(&[
-        Scalar::from(u128::MAX),
-        Scalar::from(0_u64),
-        Scalar::from_canonical_bytes(bytes).unwrap(),
-        Scalar::from(5_u16),
-        Scalar::from_canonical_bytes(bytes).unwrap(),
-        Scalar::from(1_u64),
-        Scalar::from(0_u64),
-        Scalar::from(u128::MAX),
+        ArkScalar::from(u128::MAX),
+        ArkScalar::from(0_u64),
+        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from(5_u16),
+        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from(1_u64),
+        ArkScalar::from(0_u64),
+        ArkScalar::from(u128::MAX),
     ]);
 
     // some random scalar
@@ -321,13 +321,13 @@ fn scalar_slices_are_correctly_encoded_and_decoded() {
     ];
 
     write_read_and_compare_encoding(&[
-        Scalar::from(u128::MAX),
-        Scalar::from(0_u64),
-        Scalar::from_canonical_bytes(bytes).unwrap(),
-        Scalar::from(5_u16),
-        Scalar::from_canonical_bytes(bytes).unwrap(),
-        Scalar::from(1_u64),
-        Scalar::from(0_u64),
-        Scalar::from(u128::MAX),
+        ArkScalar::from(u128::MAX),
+        ArkScalar::from(0_u64),
+        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from(5_u16),
+        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from(1_u64),
+        ArkScalar::from(0_u64),
+        ArkScalar::from(u128::MAX),
     ]);
 }

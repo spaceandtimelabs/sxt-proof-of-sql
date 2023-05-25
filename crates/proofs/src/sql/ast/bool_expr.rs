@@ -2,7 +2,6 @@ use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use crate::base::polynomial::ArkScalar;
-use crate::base::polynomial::Scalar;
 use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
 use std::collections::HashSet;
@@ -33,7 +32,7 @@ pub trait BoolExpr: Debug + Send + Sync {
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-    ) -> Scalar {
+    ) -> ArkScalar {
         self.verifier_evaluate_ark(builder, counts, accessor)
             .into_scalar()
     }

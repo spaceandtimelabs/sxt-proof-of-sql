@@ -7,19 +7,19 @@ use crate::base::slice_ops;
  */
 use crate::proof_primitive::sumcheck::proof::*;
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use ark_std::rc::Rc;
 use merlin::Transcript;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 
-use crate::base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension};
+use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 use crate::base::proof::{MessageLabel, TranscriptProtocol};
 
 #[test]
 fn test_create_verify_proof() {
     let num_vars = 1;
-    let mut evaluation_point: [Scalar; 1] = [Scalar::zero(); 1];
+    let mut evaluation_point: [ArkScalar; 1] = [ArkScalar::zero(); 1];
 
     // create a proof
     let mut poly = CompositePolynomial::new(num_vars);
@@ -32,7 +32,7 @@ fn test_create_verify_proof() {
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
     let subclaim = proof
-        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
+        .verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64))
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
@@ -47,20 +47,20 @@ fn test_create_verify_proof() {
     let mut transcript = Transcript::new(b"sumchecktest");
     transcript.append_auto(MessageLabel::SumcheckChallenge, &123u64);
     let subclaim = proof
-        .verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64))
+        .verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64))
         .expect("verify failed");
     assert_ne!(subclaim.evaluation_point, evaluation_point);
 
     // verify fails if sum is wrong
     let mut transcript = Transcript::new(b"sumchecktest");
     let subclaim =
-        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(123u64));
+        proof.verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(123u64));
     assert!(subclaim.is_err());
 
     // verify fails if evaluations are changed
-    proof.evaluations[0][1] += Scalar::from(3u64);
+    proof.evaluations[0][1] += ArkScalar::from(3u64);
     let subclaim =
-        proof.verify_without_evaluation(&mut transcript, poly.info(), &Scalar::from(579u64));
+        proof.verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64));
     assert!(subclaim.is_err());
 }
 
@@ -78,7 +78,7 @@ fn random_product(
     for _ in 0..(1 << nv) {
         let mut product = ArkScalar::one();
         for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
-            let val = Scalar::random(rng).to_ark_scalar();
+            let val = ArkScalar::random(rng).to_ark_scalar();
             multiplicand.push(val);
             product *= val;
         }
@@ -93,13 +93,13 @@ fn random_polynomial(
     num_multiplicands_range: (usize, usize),
     num_products: usize,
     rng: &mut ThreadRng,
-) -> (CompositePolynomial, Scalar) {
-    let mut sum = Scalar::zero();
+) -> (CompositePolynomial, ArkScalar) {
+    let mut sum = ArkScalar::zero();
     let mut poly = CompositePolynomial::new(nv);
     for _ in 0..num_products {
         let num_multiplicands = rng.gen_range(num_multiplicands_range.0, num_multiplicands_range.1);
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
-        let coefficient = Scalar::random(rng);
+        let coefficient = ArkScalar::random(rng);
         poly.add_product(product.into_iter(), coefficient.to_ark_scalar());
         sum += product_sum.into_scalar() * coefficient;
     }
@@ -115,7 +115,7 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
 
     // create a proof
     let mut transcript = Transcript::new(b"sumchecktest");
-    let mut evaluation_point = vec![Scalar::zero(); poly_info.num_variables];
+    let mut evaluation_point = vec![ArkScalar::zero(); poly_info.num_variables];
     let proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
     // verify proof

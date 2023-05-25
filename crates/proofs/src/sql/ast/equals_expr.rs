@@ -6,7 +6,6 @@ use crate::sql::proof::{
     MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
 };
 
-use crate::base::polynomial::Scalar;
 use crate::base::scalar::batch_pseudo_invert;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
@@ -23,13 +22,13 @@ use std::collections::HashSet;
 /// ```
 #[derive(Debug, DynPartialEq, PartialEq, Eq)]
 pub struct EqualsExpr {
-    value: Scalar,
+    value: ArkScalar,
     column_ref: ColumnRef,
 }
 
 impl EqualsExpr {
     /// Create a new equals expression
-    pub fn new(column_ref: ColumnRef, value: Scalar) -> Self {
+    pub fn new(column_ref: ColumnRef, value: ArkScalar) -> Self {
         Self { value, column_ref }
     }
 
@@ -48,14 +47,14 @@ impl EqualsExpr {
         builder.produce_anchored_mle(lhs);
 
         // lhs_pseudo_inv
-        let lhs_pseudo_inv = alloc.alloc_slice_fill_default::<Scalar>(counts.table_length);
+        let lhs_pseudo_inv = alloc.alloc_slice_fill_default::<ArkScalar>(counts.table_length);
         batch_pseudo_invert(lhs_pseudo_inv, lhs);
 
-        builder.produce_intermediate_mle(lhs_pseudo_inv);
+        builder.produce_intermediate_mle_from_ark_scalars(lhs_pseudo_inv, alloc);
 
         // selection_not
         let selection_not =
-            alloc.alloc_slice_fill_with(counts.table_length, |i| lhs[i] != Scalar::zero());
+            alloc.alloc_slice_fill_with(counts.table_length, |i| lhs[i] != ArkScalar::zero());
         builder.produce_intermediate_mle(selection_not);
 
         // selection
@@ -63,7 +62,7 @@ impl EqualsExpr {
 
         // subpolynomial: selection * lhs
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            Scalar::one(),
+            ArkScalar::one(),
             vec![
                 Box::new(MultilinearExtensionImpl::new(lhs)),
                 Box::new(MultilinearExtensionImpl::new(selection)),
@@ -73,11 +72,11 @@ impl EqualsExpr {
         // subpolynomial: selection_not - lhs * lhs_pseudo_inv
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
             (
-                Scalar::one(),
+                ArkScalar::one(),
                 vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
             ),
             (
-                -Scalar::one(),
+                -ArkScalar::one(),
                 vec![
                     Box::new(MultilinearExtensionImpl::new(lhs)),
                     Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),

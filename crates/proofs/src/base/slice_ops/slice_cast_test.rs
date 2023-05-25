@@ -1,5 +1,3 @@
-use crate::base::polynomial::Scalar;
-
 use crate::base::polynomial::ArkScalar;
 
 use super::*;
@@ -16,8 +14,8 @@ fn test_slice_map_to_vec() {
 #[test]
 fn test_slice_cast_with_from_ark_scalar_to_scalar() {
     let a: Vec<ArkScalar> = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
-    let b: Vec<Scalar> = vec![Scalar::from(1u64), Scalar::from(2u64)];
-    let a: Vec<Scalar> = slice_cast_with(&a, |s| s.into_scalar());
+    let b: Vec<ArkScalar> = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
+    let a: Vec<ArkScalar> = slice_cast_with(&a, |s| s.into_scalar());
     assert_eq!(a, b);
 }
 

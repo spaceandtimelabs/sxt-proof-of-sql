@@ -3,23 +3,23 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 
 use crate::base::polynomial::interpolate_uni_poly;
 use crate::base::proof::ProofError;
 
 pub struct Subclaim {
-    pub evaluation_point: Vec<Scalar>,
-    pub expected_evaluation: Scalar,
+    pub evaluation_point: Vec<ArkScalar>,
+    pub expected_evaluation: ArkScalar,
 }
 
 impl Subclaim {
     #[allow(unused_variables)]
     pub fn create(
-        evaluation_point: Vec<Scalar>,
-        evaluations: &Vec<Vec<Scalar>>,
+        evaluation_point: Vec<ArkScalar>,
+        evaluations: &Vec<Vec<ArkScalar>>,
         max_multiplicands: usize,
-        claimed_sum: &Scalar,
+        claimed_sum: &ArkScalar,
     ) -> Result<Subclaim, ProofError> {
         let num_vars = evaluation_point.len();
         assert!(max_multiplicands > 0);

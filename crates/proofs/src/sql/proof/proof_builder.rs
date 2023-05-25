@@ -10,7 +10,6 @@ use bumpalo::Bump;
 use proofs_gpu::compute::compute_commitments;
 use proofs_gpu::sequences::{DenseSequence, Sequence};
 
-use crate::base::polynomial::Scalar;
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 
 /// Track components used to form a query's proof
@@ -193,7 +192,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[ArkScalar]) -> Vec<Scalar> {
+    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[ArkScalar]) -> Vec<ArkScalar> {
         assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         let mut res = Vec::with_capacity(self.pre_result_mles.len());
         for evaluator in self.pre_result_mles.iter() {
@@ -209,7 +208,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn fold_pre_result_mles(&self, multipliers: &[Scalar]) -> Vec<Scalar> {
+    pub fn fold_pre_result_mles(&self, multipliers: &[ArkScalar]) -> Vec<ArkScalar> {
         assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];

@@ -3,7 +3,6 @@ mod ark_scalar;
 mod ark_scalar_test;
 pub use ark_scalar::ArkScalar;
 
-pub type Scalar = curve25519_dalek::scalar::Scalar;
 pub type DenseMultilinearExtension = Vec<ArkScalar>;
 
 mod composite_polynomial;

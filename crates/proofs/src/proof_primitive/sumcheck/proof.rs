@@ -1,4 +1,4 @@
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 /**
  * Adopted from arkworks
  *
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof {
-    pub(super) evaluations: Vec<Vec<Scalar>>,
+    pub(super) evaluations: Vec<Vec<ArkScalar>>,
 }
 
 impl SumcheckProof {
@@ -25,7 +25,7 @@ impl SumcheckProof {
     )]
     pub fn create(
         transcript: &mut Transcript,
-        evaluation_point: &mut [Scalar],
+        evaluation_point: &mut [ArkScalar],
         polynomial: &CompositePolynomial,
     ) -> SumcheckProof {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
@@ -56,7 +56,7 @@ impl SumcheckProof {
         &self,
         transcript: &mut Transcript,
         polynomial_info: CompositePolynomialInfo,
-        claimed_sum: &Scalar,
+        claimed_sum: &ArkScalar,
     ) -> Result<Subclaim, ProofError> {
         transcript.append_auto(
             MessageLabel::Sumcheck,
