@@ -6,7 +6,7 @@ use super::{
 use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::traits::Identity;
 
@@ -33,7 +33,7 @@ pub fn exercise_verification(
     // try changing MLE evaluations
     for i in 0..proof.pre_result_mle_evaluations.len() {
         let mut res_p = res.clone();
-        res_p.proof.as_mut().unwrap().pre_result_mle_evaluations[i] += Scalar::one();
+        res_p.proof.as_mut().unwrap().pre_result_mle_evaluations[i] += ArkScalar::one();
         assert!(res_p.verify(expr, accessor).is_err());
     }
 

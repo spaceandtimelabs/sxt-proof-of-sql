@@ -1,14 +1,13 @@
 use crate::base::{polynomial::ArkScalar, proof::transcript_protocol::*};
 
-use crate::base::polynomial::Scalar;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 #[test]
 fn test_challenge_scalars() {
-    let zero = Scalar::from(0u64);
+    let zero = ArkScalar::from(0u64);
     let mut transcript = Transcript::new(b"multiplicationtest");
-    let mut v: [Scalar; 3] = [zero; 3];
+    let mut v: [ArkScalar; 3] = [zero; 3];
     transcript.challenge_scalars(&mut v, MessageLabel::SumcheckChallenge);
     assert_ne!(v[0], zero);
     assert_ne!(v[1], zero);

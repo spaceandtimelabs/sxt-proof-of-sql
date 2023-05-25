@@ -1,5 +1,3 @@
-use crate::base::polynomial::Scalar;
-
 use crate::base::polynomial::ArkScalar;
 
 use super::*;
@@ -22,17 +20,21 @@ fn test_inner_product_different_lengths() {
 /// test inner producr with scalar
 #[test]
 fn test_inner_product_scalar() {
-    let a = vec![Scalar::from(1u64), Scalar::from(2u64)];
-    let b = vec![Scalar::from(2u64), Scalar::from(3u64)];
-    assert_eq!(Scalar::from(8u64), inner_product(&a, &b));
+    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
+    let b = vec![ArkScalar::from(2u64), ArkScalar::from(3u64)];
+    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
 }
 
 /// test uneven inner product with scalars
 #[test]
 fn test_inner_product_scalar_uneven() {
-    let a = vec![Scalar::from(1u64), Scalar::from(2u64)];
-    let b = vec![Scalar::from(2u64), Scalar::from(3u64), Scalar::from(4u64)];
-    assert_eq!(Scalar::from(8u64), inner_product(&a, &b));
+    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
+    let b = vec![
+        ArkScalar::from(2u64),
+        ArkScalar::from(3u64),
+        ArkScalar::from(4u64),
+    ];
+    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
 }
 
 /// test inner product with arkscalar

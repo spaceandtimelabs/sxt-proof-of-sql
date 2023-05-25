@@ -1,5 +1,4 @@
 use crate::base::polynomial::ArkScalar;
-use crate::base::polynomial::Scalar;
 use crate::base::scalar::ToArkScalar;
 use crate::base::slice_ops;
 use ark_serialize::CanonicalSerialize;
@@ -56,7 +55,7 @@ pub trait TranscriptProtocol {
     ///
     /// For most types, prefer to include it as part of the message with append_auto.
     /// But Scalars are not Serialize, so you must use this method instead, creating a separate message.
-    fn append_scalars(&mut self, label: MessageLabel, scalars: &[Scalar]) {
+    fn append_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]) {
         self.append_ark_scalars(
             label,
             &slice_ops::slice_cast_with(scalars, ToArkScalar::to_ark_scalar),
@@ -78,14 +77,14 @@ pub trait TranscriptProtocol {
     fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
 
     /// Compute a challenge variable (which requires a label).
-    fn challenge_scalar(&mut self, label: MessageLabel) -> Scalar {
+    fn challenge_scalar(&mut self, label: MessageLabel) -> ArkScalar {
         let mut buf = [Default::default(); 1];
         self.challenge_scalars(&mut buf, label);
         buf[0]
     }
 
     /// Compute multiple challenge variables (which requires a label).
-    fn challenge_scalars(&mut self, scalars: &mut [Scalar], label: MessageLabel) {
+    fn challenge_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel) {
         let mut buf = vec![Default::default(); scalars.len()];
         self.challenge_ark_scalars(&mut buf, label);
         for (scalar, ark_scalar) in scalars.iter_mut().zip(buf.iter()) {

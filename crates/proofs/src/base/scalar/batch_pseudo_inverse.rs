@@ -29,27 +29,27 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{polynomial::Scalar, scalar::to_scalar::ToScalar};
+    use crate::base::{polynomial::ArkScalar, scalar::to_scalar::ToScalar};
 
     #[test]
     fn we_can_pseudo_invert_empty_arrays() {
-        let input: Vec<Scalar> = Vec::new();
+        let input: Vec<ArkScalar> = Vec::new();
         let mut res = Vec::new();
         batch_pseudo_invert(&mut res[..], &input[..]);
     }
 
     #[test]
     fn we_can_pseudo_invert_arrays_of_length_1_with_non_zero() {
-        let input = vec![Scalar::from(2_u32)];
-        let mut res = vec![Scalar::from(0_u32)];
+        let input = vec![ArkScalar::from(2_u32)];
+        let mut res = vec![ArkScalar::from(0_u32)];
         batch_pseudo_invert(&mut res[..], &input[..]);
         assert!(res == vec![input[0].invert()]);
     }
 
     #[test]
     fn we_can_pseudo_invert_arrays_of_length_1_with_zero() {
-        let input = vec![Scalar::from(0_u32)];
-        let mut res = vec![Scalar::from(0_u32)];
+        let input = vec![ArkScalar::from(0_u32)];
+        let mut res = vec![ArkScalar::from(0_u32)];
         batch_pseudo_invert(&mut res[..], &input[..]);
         assert!(res == vec![input[0]]);
     }
@@ -57,22 +57,22 @@ mod tests {
     #[test]
     fn we_can_pseudo_invert_arrays_of_length_bigger_than_1_with_zeros_and_non_zeros() {
         let input = vec![
-            Scalar::from(0_u32),
-            Scalar::from(2_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(2_u32),
             (-33_i32).to_scalar(),
-            Scalar::from(0_u32),
-            Scalar::from(45_u32),
-            Scalar::from(0_u32),
-            Scalar::from(47_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(45_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(47_u32),
         ];
-        let mut res = vec![Scalar::from(0_u32); input.len()];
+        let mut res = vec![ArkScalar::from(0_u32); input.len()];
         batch_pseudo_invert(&mut res[..], &input[..]);
 
         for (input_val, res_val) in input.iter().zip(res) {
-            if *input_val != Scalar::zero() {
+            if *input_val != ArkScalar::zero() {
                 assert!(input_val.invert() == res_val);
             } else {
-                assert!(Scalar::zero() == res_val);
+                assert!(ArkScalar::zero() == res_val);
             }
         }
     }
@@ -81,27 +81,27 @@ mod tests {
     fn we_can_pseudo_invert_arrays_with_nonzero_count_bigger_than_min_chunking_size_with_zeros_and_non_zeros(
     ) {
         let input: Vec<_> = vec![
-            Scalar::from(0_u32),
-            Scalar::from(2_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(2_u32),
             (-33_i32).to_scalar(),
-            Scalar::from(0_u32),
-            Scalar::from(45_u32),
-            Scalar::from(0_u32),
-            Scalar::from(47_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(45_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(47_u32),
         ]
         .into_iter()
         .cycle()
         .take(slice_ops::MIN_RAYON_LEN * 10)
         .collect();
 
-        let mut res = vec![Scalar::from(0_u32); input.len()];
+        let mut res = vec![ArkScalar::from(0_u32); input.len()];
         batch_pseudo_invert(&mut res[..], &input[..]);
 
         for (input_val, res_val) in input.iter().zip(res) {
-            if *input_val != Scalar::zero() {
+            if *input_val != ArkScalar::zero() {
                 assert!(input_val.invert() == res_val);
             } else {
-                assert!(Scalar::zero() == res_val);
+                assert!(ArkScalar::zero() == res_val);
             }
         }
     }
@@ -110,27 +110,27 @@ mod tests {
     fn we_can_pseudo_invert_arrays_with_nonzero_count_smaller_than_min_chunking_size_with_zeros_and_non_zeros(
     ) {
         let input: Vec<_> = vec![
-            Scalar::from(0_u32),
-            Scalar::from(2_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(2_u32),
             (-33_i32).to_scalar(),
-            Scalar::from(0_u32),
-            Scalar::from(45_u32),
-            Scalar::from(0_u32),
-            Scalar::from(47_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(45_u32),
+            ArkScalar::from(0_u32),
+            ArkScalar::from(47_u32),
         ]
         .into_iter()
         .cycle()
         .take(slice_ops::MIN_RAYON_LEN - 1)
         .collect();
 
-        let mut res = vec![Scalar::from(0_u32); input.len()];
+        let mut res = vec![ArkScalar::from(0_u32); input.len()];
         batch_pseudo_invert(&mut res[..], &input[..]);
 
         for (input_val, res_val) in input.iter().zip(res) {
-            if *input_val != Scalar::zero() {
+            if *input_val != ArkScalar::zero() {
                 assert!(input_val.invert() == res_val);
             } else {
-                assert!(Scalar::zero() == res_val);
+                assert!(ArkScalar::zero() == res_val);
             }
         }
     }

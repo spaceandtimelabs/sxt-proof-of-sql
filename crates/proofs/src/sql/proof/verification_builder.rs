@@ -2,18 +2,17 @@ use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
 
 use super::SumcheckMleEvaluations;
 
-use crate::base::polynomial::Scalar;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a> {
     pub mle_evaluations: SumcheckMleEvaluations<'a>,
     intermediate_commitments: &'a [RistrettoPoint],
-    subpolynomial_multipliers: &'a [Scalar],
-    inner_product_multipliers: &'a [Scalar],
-    sumcheck_evaluation: Scalar,
+    subpolynomial_multipliers: &'a [ArkScalar],
+    inner_product_multipliers: &'a [ArkScalar],
+    sumcheck_evaluation: ArkScalar,
     folded_pre_result_commitment: RistrettoPoint,
-    folded_pre_result_evaluation: Scalar,
+    folded_pre_result_evaluation: ArkScalar,
     consumed_result_mles: usize,
     consumed_pre_result_mles: usize,
     consumed_intermediate_mles: usize,
@@ -24,8 +23,8 @@ impl<'a> VerificationBuilder<'a> {
     pub fn new(
         mle_evaluations: SumcheckMleEvaluations<'a>,
         intermediate_commitments: &'a [RistrettoPoint],
-        subpolynomial_multipliers: &'a [Scalar],
-        inner_product_multipliers: &'a [Scalar],
+        subpolynomial_multipliers: &'a [ArkScalar],
+        inner_product_multipliers: &'a [ArkScalar],
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
@@ -36,9 +35,9 @@ impl<'a> VerificationBuilder<'a> {
             intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
-            sumcheck_evaluation: Scalar::zero(),
+            sumcheck_evaluation: ArkScalar::zero(),
             folded_pre_result_commitment: RistrettoPoint::identity(),
-            folded_pre_result_evaluation: Scalar::zero(),
+            folded_pre_result_evaluation: ArkScalar::zero(),
             consumed_result_mles: 0,
             consumed_pre_result_mles: 0,
             consumed_intermediate_mles: 0,
@@ -57,7 +56,7 @@ impl<'a> VerificationBuilder<'a> {
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
     #[cfg_attr(not(test), deprecated = "use `consume_intermediate_mle_ark()` instead")]
-    pub fn consume_anchored_mle(&mut self, commitment: &RistrettoPoint) -> Scalar {
+    pub fn consume_anchored_mle(&mut self, commitment: &RistrettoPoint) -> ArkScalar {
         let index = self.consumed_pre_result_mles;
         let multiplier = self.inner_product_multipliers[index];
         self.folded_pre_result_commitment += multiplier * commitment;
@@ -78,7 +77,7 @@ impl<'a> VerificationBuilder<'a> {
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     #[cfg_attr(not(test), deprecated = "use `consume_intermediate_mle_ark()` instead")]
-    pub fn consume_intermediate_mle(&mut self) -> Scalar {
+    pub fn consume_intermediate_mle(&mut self) -> ArkScalar {
         let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
         self.consumed_intermediate_mles += 1;
         #[allow(deprecated)]
@@ -92,7 +91,7 @@ impl<'a> VerificationBuilder<'a> {
     }
     /// Consume the evaluation of the MLE for a result column used in sumcheck
     #[cfg_attr(not(test), deprecated = "use `consume_result_mle_ark()` instead")]
-    pub fn consume_result_mle(&mut self) -> Scalar {
+    pub fn consume_result_mle(&mut self) -> ArkScalar {
         let index = self.consumed_result_mles;
         self.consumed_result_mles += 1;
         self.mle_evaluations.result_evaluations[index]
@@ -108,14 +107,14 @@ impl<'a> VerificationBuilder<'a> {
         not(test),
         deprecated = "use `produce_sumcheck_subpolynomial_evaluation_ark()` instead"
     )]
-    pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &Scalar) {
+    pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &ArkScalar) {
         self.sumcheck_evaluation +=
             self.subpolynomial_multipliers[self.produced_subpolynomials] * *eval;
         self.produced_subpolynomials += 1;
     }
 
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
-    pub fn sumcheck_evaluation(&self) -> Scalar {
+    pub fn sumcheck_evaluation(&self) -> ArkScalar {
         assert!(self.completed());
         self.sumcheck_evaluation
     }
@@ -129,7 +128,7 @@ impl<'a> VerificationBuilder<'a> {
 
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pre_result_evaluation(&self) -> Scalar {
+    pub fn folded_pre_result_evaluation(&self) -> ArkScalar {
         assert!(self.completed());
         self.folded_pre_result_evaluation
     }

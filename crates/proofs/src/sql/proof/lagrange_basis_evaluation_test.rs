@@ -1,12 +1,9 @@
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use std::iter;
 
-use crate::{
-    base::polynomial::ArkScalar,
-    sql::proof::{
-        compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
-        compute_truncated_lagrange_basis_sum,
-    },
+use crate::sql::proof::{
+    compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
+    compute_truncated_lagrange_basis_sum,
 };
 
 #[test]
@@ -109,42 +106,46 @@ fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_3_variables() 
 
 #[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_3_variables_using_dalek_scalar() {
-    let point = vec![Scalar::from(2u8), Scalar::from(5u8), Scalar::from(7u8)];
+    let point = vec![
+        ArkScalar::from(2u8),
+        ArkScalar::from(5u8),
+        ArkScalar::from(7u8),
+    ];
     assert_eq!(
         compute_truncated_lagrange_basis_sum(8, &point),
-        Scalar::from(1u8)
+        ArkScalar::from(1u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(7, &point),
-        -Scalar::from(69u8)
+        -ArkScalar::from(69u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(6, &point),
-        -Scalar::from(34u8)
+        -ArkScalar::from(34u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(5, &point),
-        Scalar::from(22u8)
+        ArkScalar::from(22u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(4, &point),
-        -Scalar::from(6u8)
+        -ArkScalar::from(6u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(3, &point),
-        Scalar::from(54u8)
+        ArkScalar::from(54u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(2, &point),
-        Scalar::from(24u8)
+        ArkScalar::from(24u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(1, &point),
-        -Scalar::from(24u8)
+        -ArkScalar::from(24u8)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_sum(0, &point),
-        Scalar::from(0u8)
+        ArkScalar::from(0u8)
     );
 }
 
@@ -246,43 +247,51 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
 #[test]
 fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_variables_using_dalek_scalar(
 ) {
-    let a = vec![Scalar::from(2u8), Scalar::from(5u8), Scalar::from(7u8)];
-    let b = vec![Scalar::from(3u8), Scalar::from(11u8), Scalar::from(13u8)];
+    let a = vec![
+        ArkScalar::from(2u8),
+        ArkScalar::from(5u8),
+        ArkScalar::from(7u8),
+    ];
+    let b = vec![
+        ArkScalar::from(3u8),
+        ArkScalar::from(11u8),
+        ArkScalar::from(13u8),
+    ];
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(8, &a, &b),
-        Scalar::from(123880u32)
+        ArkScalar::from(123880u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(7, &a, &b),
-        Scalar::from(93850u32)
+        ArkScalar::from(93850u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(6, &a, &b),
-        Scalar::from(83840u32)
+        ArkScalar::from(83840u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(5, &a, &b),
-        Scalar::from(62000u32)
+        ArkScalar::from(62000u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(4, &a, &b),
-        Scalar::from(54720u32)
+        ArkScalar::from(54720u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(3, &a, &b),
-        Scalar::from(30960u32)
+        ArkScalar::from(30960u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(2, &a, &b),
-        Scalar::from(23040u32)
+        ArkScalar::from(23040u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(1, &a, &b),
-        Scalar::from(5760u32)
+        ArkScalar::from(5760u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(0, &a, &b),
-        Scalar::from(0u32)
+        ArkScalar::from(0u32)
     );
 }
 

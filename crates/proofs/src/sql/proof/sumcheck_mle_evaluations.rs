@@ -3,7 +3,6 @@ use super::{
     SumcheckRandomScalars,
 };
 use crate::base::polynomial::ArkScalar;
-use crate::base::polynomial::Scalar;
 use crate::base::scalar::ToArkScalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
@@ -12,16 +11,16 @@ pub struct SumcheckMleEvaluations<'a> {
     ///     x_i = 1, if i < table_length;
     ///         = 0, otherwise
     #[cfg_attr(not(test), deprecated = "use `get_one_evaluation_ark()` instead")]
-    pub one_evaluation: Scalar,
+    pub one_evaluation: ArkScalar,
 
     /// The evaluation of the MLE formed from entrywise random scalars.
     ///
     /// This is used within sumcheck to establish that a given expression
     /// is zero across all entries.
     #[cfg_attr(not(test), deprecated = "use `get_random_evaluation_ark()` instead")]
-    pub random_evaluation: Scalar,
-    pub pre_result_evaluations: &'a [Scalar],
-    pub result_evaluations: &'a [Scalar],
+    pub random_evaluation: ArkScalar,
+    pub pre_result_evaluations: &'a [ArkScalar],
+    pub result_evaluations: &'a [ArkScalar],
 }
 
 impl<'a> SumcheckMleEvaluations<'a> {
@@ -40,10 +39,10 @@ impl<'a> SumcheckMleEvaluations<'a> {
     }
     pub fn new(
         table_length: usize,
-        evaluation_point: &[Scalar],
+        evaluation_point: &[ArkScalar],
         sumcheck_random_scalars: &SumcheckRandomScalars,
-        pre_result_evaluations: &'a [Scalar],
-        result_evaluations: &'a [Scalar],
+        pre_result_evaluations: &'a [ArkScalar],
+        result_evaluations: &'a [ArkScalar],
     ) -> Self {
         assert_eq!(
             evaluation_point.len(),

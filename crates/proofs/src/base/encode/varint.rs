@@ -1,5 +1,5 @@
 use crate::base::encode::{ZigZag, U256};
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use std::cmp::max;
 use std::cmp::Ordering;
 
@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 ///
 /// crash:
 /// - in case N is bigger than buf.len()
-pub fn write_scalar_varint(buf: &mut [u8], x: &Scalar) -> usize {
+pub fn write_scalar_varint(buf: &mut [u8], x: &ArkScalar) -> usize {
     let mut pos = 0;
     let mut zig_x = x.zigzag();
 
@@ -55,7 +55,7 @@ pub fn write_scalar_varint(buf: &mut [u8], x: &Scalar) -> usize {
 ///  Since read-scalar stores the buf into a U256 type, which can only
 ///  hold up to 256 bit numbers, the non-continuation bits
 ///  257 up to 259 from buf are ignored.
-pub fn read_scalar_varint(buf: &[u8]) -> Option<(Scalar, usize)> {
+pub fn read_scalar_varint(buf: &[u8]) -> Option<(ArkScalar, usize)> {
     // The decoded value representing a u256 integer
     let mut val = U256::from_words(0, 0);
 
@@ -103,7 +103,7 @@ pub fn read_scalar_varint(buf: &[u8]) -> Option<(Scalar, usize)> {
 ///
 /// error:
 /// - in case buf has not enough space to hold all the scalars encoding.
-pub fn write_scalar_varints(buf: &mut [u8], scals: &[Scalar]) -> usize {
+pub fn write_scalar_varints(buf: &mut [u8], scals: &[ArkScalar]) -> usize {
     let mut total_bytes_written = 0;
 
     for scal in scals.iter() {
@@ -122,7 +122,7 @@ pub fn write_scalar_varints(buf: &mut [u8], scals: &[Scalar]) -> usize {
 ///
 /// error:
 /// - in case it's not possible to read all specified scalars from `input_buf`
-pub fn read_scalar_varints(scals_buf: &mut [Scalar], input_buf: &[u8]) -> Option<()> {
+pub fn read_scalar_varints(scals_buf: &mut [ArkScalar], input_buf: &[u8]) -> Option<()> {
     let mut buf = input_buf;
 
     for scal_buf in scals_buf.iter_mut() {
@@ -139,7 +139,7 @@ pub fn read_scalar_varints(scals_buf: &mut [Scalar], input_buf: &[u8]) -> Option
 ///
 /// This function should be used to get an upper bound on the buffer size
 /// used by the `write_scalar_varint` function.
-pub fn scalar_varint_size(x: &Scalar) -> usize {
+pub fn scalar_varint_size(x: &ArkScalar) -> usize {
     let zig_x: U256 = x.zigzag();
 
     let zigzag_size = if zig_x.high == 0 {
@@ -157,7 +157,7 @@ pub fn scalar_varint_size(x: &Scalar) -> usize {
 ///
 /// This function should be used to get an upper bound on the buffer size
 /// used by the `write_scalar_varints` function.
-pub fn scalar_varints_size(scals: &[Scalar]) -> usize {
+pub fn scalar_varints_size(scals: &[ArkScalar]) -> usize {
     let mut all_size: usize = 0;
 
     for x in scals.iter() {

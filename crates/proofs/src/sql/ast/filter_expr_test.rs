@@ -7,7 +7,7 @@ use crate::sql::ast::{AndExpr, NotExpr, OrExpr};
 use crate::sql::proof::ProofExpr;
 use proofs_sql::{Identifier, ResourceId};
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use arrow::datatypes::Field;
 use arrow::datatypes::Schema;
 use std::collections::HashSet;
@@ -36,7 +36,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt,
             ),
-            Scalar::from(123_u64),
+            ArkScalar::from(123_u64),
         )),
     );
 
@@ -81,7 +81,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    Scalar::from(45_u64),
+                    ArkScalar::from(45_u64),
                 )),
                 Box::new(EqualsExpr::new(
                     ColumnRef::new(
@@ -89,7 +89,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    -Scalar::from(2_u64),
+                    -ArkScalar::from(2_u64),
                 )),
             )),
             Box::new(EqualsExpr::new(
@@ -98,7 +98,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
-                Scalar::from(3_u64),
+                ArkScalar::from(3_u64),
             )),
         )))),
     );

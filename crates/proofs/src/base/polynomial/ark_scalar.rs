@@ -58,7 +58,7 @@ impl ArkScalar {
         Self(ark_curve25519::Fr::from_le_bytes_mod_order(bytes))
     }
     /// Prefer `into_scalar` unless you are absolutely sure you need dalek.
-    pub fn into_dalek_scalar(self) -> curve25519_dalek::scalar::Scalar {
+    pub fn into_dalek_scalar(&self) -> curve25519_dalek::scalar::Scalar {
         let x = self.into_bigint();
         let bytes = ark_ff::BigInteger::to_bytes_le(&x);
         curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
@@ -81,8 +81,8 @@ impl ArkScalar {
     pub fn zero() -> Self {
         num_traits::Zero::zero()
     }
-    pub fn into_scalar(self) -> super::Scalar {
-        self.into_dalek_scalar()
+    pub fn into_scalar(self) -> super::ArkScalar {
+        self
     }
     pub fn invert(self) -> Self {
         self.inv()

@@ -1,41 +1,43 @@
 use super::compute_evaluation_vector;
 
 use crate::base::polynomial::ArkScalar;
-use crate::base::polynomial::Scalar;
 use crate::base::slice_ops;
 use ark_poly::MultilinearExtension;
 
 #[test]
 fn we_compute_the_correct_evaluation_vector_for_a_small_example() {
-    let mut v = [Scalar::zero(); 2];
-    compute_evaluation_vector(&mut v, &[Scalar::from(3u64)]);
-    let expected_v = [Scalar::one() - Scalar::from(3u64), Scalar::from(3u64)];
+    let mut v = [ArkScalar::zero(); 2];
+    compute_evaluation_vector(&mut v, &[ArkScalar::from(3u64)]);
+    let expected_v = [
+        ArkScalar::one() - ArkScalar::from(3u64),
+        ArkScalar::from(3u64),
+    ];
     assert_eq!(v, expected_v);
 
-    let mut v = [Scalar::zero(); 4];
-    compute_evaluation_vector(&mut v, &[Scalar::from(3u64), Scalar::from(4u64)]);
+    let mut v = [ArkScalar::zero(); 4];
+    compute_evaluation_vector(&mut v, &[ArkScalar::from(3u64), ArkScalar::from(4u64)]);
     let expected_v = [
-        (Scalar::one() - Scalar::from(4u64)) * (Scalar::one() - Scalar::from(3u64)),
-        (Scalar::one() - Scalar::from(4u64)) * Scalar::from(3u64),
-        Scalar::from(4u64) * (Scalar::one() - Scalar::from(3u64)),
-        Scalar::from(4u64) * Scalar::from(3u64),
+        (ArkScalar::one() - ArkScalar::from(4u64)) * (ArkScalar::one() - ArkScalar::from(3u64)),
+        (ArkScalar::one() - ArkScalar::from(4u64)) * ArkScalar::from(3u64),
+        ArkScalar::from(4u64) * (ArkScalar::one() - ArkScalar::from(3u64)),
+        ArkScalar::from(4u64) * ArkScalar::from(3u64),
     ];
     assert_eq!(v, expected_v);
 }
 
 #[test]
 fn we_compute_the_evaluation_vectors_not_a_power_of_2() {
-    let mut v = [Scalar::zero(); 1];
-    compute_evaluation_vector(&mut v, &[Scalar::from(3u64)]);
-    let expected_v = [Scalar::one() - Scalar::from(3u64)];
+    let mut v = [ArkScalar::zero(); 1];
+    compute_evaluation_vector(&mut v, &[ArkScalar::from(3u64)]);
+    let expected_v = [ArkScalar::one() - ArkScalar::from(3u64)];
     assert_eq!(v, expected_v);
 
-    let mut v = [Scalar::zero(); 3];
-    compute_evaluation_vector(&mut v, &[Scalar::from(3u64), Scalar::from(4u64)]);
+    let mut v = [ArkScalar::zero(); 3];
+    compute_evaluation_vector(&mut v, &[ArkScalar::from(3u64), ArkScalar::from(4u64)]);
     let expected_v = [
-        (Scalar::one() - Scalar::from(4u64)) * (Scalar::one() - Scalar::from(3u64)),
-        (Scalar::one() - Scalar::from(4u64)) * Scalar::from(3u64),
-        Scalar::from(4u64) * (Scalar::one() - Scalar::from(3u64)),
+        (ArkScalar::one() - ArkScalar::from(4u64)) * (ArkScalar::one() - ArkScalar::from(3u64)),
+        (ArkScalar::one() - ArkScalar::from(4u64)) * ArkScalar::from(3u64),
+        ArkScalar::from(4u64) * (ArkScalar::one() - ArkScalar::from(3u64)),
     ];
     assert_eq!(v, expected_v);
 }

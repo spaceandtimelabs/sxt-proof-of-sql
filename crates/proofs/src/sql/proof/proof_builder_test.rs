@@ -9,7 +9,6 @@ use crate::base::scalar::{compute_commitment_for_testing, ToArkScalar, Zero};
 use crate::base::slice_ops;
 use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
 
-use crate::base::polynomial::Scalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -70,12 +69,12 @@ fn we_can_evaluate_pre_result_mles() {
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
-    let evaluation_vec = [Scalar::from(100u64), Scalar::from(10u64)];
+    let evaluation_vec = [ArkScalar::from(100u64), ArkScalar::from(10u64)];
     let evals = builder.evaluate_pre_result_mles(&slice_ops::slice_cast_with(
         &evaluation_vec,
         ToArkScalar::to_ark_scalar,
     ));
-    let expected_evals = [Scalar::from(120u64), Scalar::from(1200u64)];
+    let expected_evals = [ArkScalar::from(120u64), ArkScalar::from(1200u64)];
     assert_eq!(evals, expected_evals);
 }
 
@@ -96,19 +95,19 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     builder.produce_intermediate_mle(&mle2);
 
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-        -Scalar::one(),
+        -ArkScalar::one(),
         vec![Box::new(MultilinearExtensionImpl::new(&mle1))],
     )]));
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-        -Scalar::from(10u64),
+        -ArkScalar::from(10u64),
         vec![Box::new(MultilinearExtensionImpl::new(&mle2))],
     )]));
 
     let multipliers = [
-        Scalar::from(5u64),
-        Scalar::from(2u64),
-        Scalar::from(50u64),
-        Scalar::from(25u64),
+        ArkScalar::from(5u64),
+        ArkScalar::from(2u64),
+        ArkScalar::from(50u64),
+        ArkScalar::from(25u64),
     ];
 
     let mut evaluation_vector = vec![Zero::zero(); 4];
@@ -182,8 +181,8 @@ fn we_can_fold_pre_result_mles() {
     let mut builder = ProofBuilder::new(&counts);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
-    let multipliers = [Scalar::from(100u64), Scalar::from(2u64)];
+    let multipliers = [ArkScalar::from(100u64), ArkScalar::from(2u64)];
     let z = builder.fold_pre_result_mles(&multipliers);
-    let expected_z = [Scalar::from(120u64), Scalar::from(240u64)];
+    let expected_z = [ArkScalar::from(120u64), ArkScalar::from(240u64)];
     assert_eq!(z, expected_z);
 }

@@ -5,7 +5,7 @@ use super::{
 };
 use crate::base::database::{ColumnField, ColumnType};
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -58,9 +58,9 @@ impl ProvableQueryResult {
     )]
     pub fn evaluate(
         &self,
-        evaluation_vec: &[Scalar],
+        evaluation_vec: &[ArkScalar],
         column_result_fields: &[ColumnField],
-    ) -> Option<Vec<Scalar>> {
+    ) -> Option<Vec<ArkScalar>> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
         if !are_indexes_valid(&self.indexes, evaluation_vec.len()) {
@@ -71,7 +71,7 @@ impl ProvableQueryResult {
         let mut res = Vec::with_capacity(self.num_columns as usize);
 
         for field in column_result_fields {
-            let mut val = Scalar::zero();
+            let mut val = ArkScalar::zero();
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
                     ColumnType::BigInt => <i64>::decode_to_scalar(&self.data[offset..]),

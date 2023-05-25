@@ -3,13 +3,13 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 
-use crate::base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension};
+use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 
 pub struct ProverState {
     /// sampled randomness given by the verifier
-    pub randomness: Vec<Scalar>,
+    pub randomness: Vec<ArkScalar>,
     /// Stores the list of products that is meant to be added together. Each multiplicand is represented by
     /// the index in flattened_ml_extensions
     pub list_of_products: Vec<(ArkScalar, Vec<usize>)>,

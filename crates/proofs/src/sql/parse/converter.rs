@@ -7,7 +7,7 @@ use crate::sql::ast::{
 use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr, ResultExprBuilder};
 use crate::sql::transform::ResultExpr;
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use proofs_sql::intermediate_ast::{
     AggExpr, Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression,
     TableExpression,
@@ -521,7 +521,7 @@ impl Converter {
 
 /// Tokens (literals and id's)
 impl Converter {
-    fn visit_literal(&self, literal: &Literal) -> (Scalar, ColumnType) {
+    fn visit_literal(&self, literal: &Literal) -> (ArkScalar, ColumnType) {
         match literal {
             Literal::BigInt(val) => (val.to_scalar(), ColumnType::BigInt),
             Literal::VarChar(val) => (val.to_scalar(), ColumnType::VarChar),
