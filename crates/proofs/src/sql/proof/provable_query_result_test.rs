@@ -1,7 +1,7 @@
 use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
 use crate::base::database::{ColumnField, ColumnType};
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
@@ -29,17 +29,18 @@ fn we_can_evaluate_result_columns_as_mles() {
         [Box::new(DenseProvableResultColumn::new(&values))];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
 
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    #[allow(clippy::possible_missing_comma)]
     let expected_evals =
-        [Scalar::from(10u64) * evaluation_vec[0] - Scalar::from(12u64) * evaluation_vec[2]];
+        [ArkScalar::from(10u64) * evaluation_vec[0] - ArkScalar::from(12u64) * evaluation_vec[2]];
     assert_eq!(evals, expected_evals);
 }
 
@@ -51,15 +52,15 @@ fn we_can_evaluate_result_columns_with_no_rows() {
         [Box::new(DenseProvableResultColumn::new(&values))];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
-    let expected_evals = [Scalar::zero()];
+    let expected_evals = [ArkScalar::zero()];
     assert_eq!(evals, expected_evals);
 }
 
@@ -74,17 +75,17 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     ];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
-        Scalar::from(10u64) * evaluation_vec[0] + Scalar::from(12u64) * evaluation_vec[2],
-        Scalar::from(5u64) * evaluation_vec[0] + Scalar::from(9u64) * evaluation_vec[2],
+        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
+        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -98,10 +99,10 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.indexes[1] = 20;
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -116,10 +117,10 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
         [Box::new(DenseProvableResultColumn::new(&values))];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -135,10 +136,10 @@ fn evaluation_fails_if_extra_data_is_included() {
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data.push(3u8);
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -154,10 +155,10 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     };
     res.data[37] = 0b00000001_u8;
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];
@@ -173,10 +174,10 @@ fn evaluation_fails_if_data_is_missing() {
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.num_columns = 3;
     let evaluation_vec = [
-        Scalar::from(10u64),
-        Scalar::from(100u64),
-        Scalar::from(1000u64),
-        Scalar::from(10000u64),
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];

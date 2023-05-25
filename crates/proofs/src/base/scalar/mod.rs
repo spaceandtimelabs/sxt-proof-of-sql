@@ -1,8 +1,3 @@
-mod byte_slice;
-#[cfg(test)]
-mod byte_slice_test;
-pub use byte_slice::as_byte_slice;
-
 #[cfg(any(test, feature = "test"))]
 mod commitment_utility;
 #[cfg(any(test, feature = "test"))]

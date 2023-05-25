@@ -1,5 +1,5 @@
 use super::TableRef;
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use arrow::datatypes::{DataType, Field};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ pub enum Column<'a> {
     /// Byte columns (such as &[&[u8]] or &[&str.as_bytes()])
     ///  - the first element maps to the byte values.
     ///  - the second element maps to the byte hashes (see [crate::base::scalar::ToScalar] trait).
-    HashedBytes((&'a [&'a [u8]], &'a [Scalar])),
+    HashedBytes((&'a [&'a [u8]], &'a [ArkScalar])),
 }
 
 /// Provides the column type associated with the column

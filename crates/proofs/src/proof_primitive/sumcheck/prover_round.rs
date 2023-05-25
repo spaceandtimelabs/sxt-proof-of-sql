@@ -3,10 +3,10 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use rayon::prelude::*;
 
-use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
+use crate::base::polynomial::DenseMultilinearExtension;
 use crate::base::scalar::ToArkScalar;
 use crate::proof_primitive::sumcheck::ProverState;
 
@@ -15,7 +15,7 @@ use crate::proof_primitive::sumcheck::ProverState;
     level = "info",
     skip_all
 )]
-pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<Scalar>) -> Vec<Scalar> {
+pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) -> Vec<ArkScalar> {
     if let Some(r) = r_maybe {
         if prover_state.round == 0 {
             panic!("first round should be prover first.");

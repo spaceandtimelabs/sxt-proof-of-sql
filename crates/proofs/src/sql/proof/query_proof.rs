@@ -13,7 +13,7 @@ use crate::base::{
 use crate::proof_primitive::sumcheck::SumcheckProof;
 use proofs_gpu::proof::InnerProductProof;
 
-use crate::base::polynomial::Scalar;
+use crate::base::polynomial::ArkScalar;
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 pub struct QueryProof {
     pub commitments: Vec<CompressedRistretto>,
     pub sumcheck_proof: SumcheckProof,
-    pub pre_result_mle_evaluations: Vec<Scalar>,
+    pub pre_result_mle_evaluations: Vec<ArkScalar>,
     pub evaluation_proof: InnerProductProof,
 }
 
@@ -97,8 +97,8 @@ impl QueryProof {
         // finally, form the inner product proof of the MLEs' evaluations
         let evaluation_proof = InnerProductProof::create(
             &mut transcript,
-            &folded_mle,
-            &evaluation_vec,
+            &slice_ops::slice_cast_with(&folded_mle, ArkScalar::into_dalek_scalar),
+            &slice_ops::slice_cast_with(&evaluation_vec, ArkScalar::into_dalek_scalar),
             counts.offset_generators as u64,
         );
 
@@ -222,8 +222,8 @@ impl QueryProof {
             .verify(
                 &mut transcript,
                 &expected_commit,
-                &product,
-                &evaluation_vec,
+                &product.into_dalek_scalar(),
+                &slice_ops::slice_cast_with(&evaluation_vec, ArkScalar::into_dalek_scalar),
                 counts.offset_generators as u64,
             )
             .map_err(|_e| {

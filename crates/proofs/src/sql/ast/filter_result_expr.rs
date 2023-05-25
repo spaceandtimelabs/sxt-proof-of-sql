@@ -1,6 +1,5 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::polynomial::ArkScalar;
-use crate::base::polynomial::Scalar;
 use crate::base::scalar::One;
 use crate::base::scalar::ToArkScalar;
 use crate::sql::proof::EncodeProvableResultElement;
@@ -71,7 +70,7 @@ impl FilterResultExpr {
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
-        selection_eval: &Scalar,
+        selection_eval: &ArkScalar,
     ) {
         self.verifier_evaluate_ark(
             builder,
@@ -133,7 +132,7 @@ fn prover_evaluate_impl<
             vec![Box::new(MultilinearExtensionImpl::new(selected_vals))],
         ),
         (
-            -Scalar::one(),
+            -ArkScalar::one(),
             vec![
                 Box::new(MultilinearExtensionImpl::new(col_scalars)),
                 Box::new(MultilinearExtensionImpl::new(selection)),
