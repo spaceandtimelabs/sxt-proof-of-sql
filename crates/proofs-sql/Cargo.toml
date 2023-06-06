@@ -9,6 +9,9 @@ description = "Parse provable SQL queries into Intermediate ASTs"
 exclude = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+doctest = true
+test = true
 
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }

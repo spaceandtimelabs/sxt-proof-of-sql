@@ -6,9 +6,9 @@ use crate::base::polynomial::{ArkScalar, CompositePolynomial};
 use crate::base::scalar::ToArkScalar;
 use crate::base::scalar::Zero;
 use crate::base::slice_ops;
+use blitzar::compute::compute_commitments;
+use blitzar::sequences::{DenseSequence, Sequence};
 use bumpalo::Bump;
-use proofs_gpu::compute::compute_commitments;
-use proofs_gpu::sequences::{DenseSequence, Sequence};
 
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 

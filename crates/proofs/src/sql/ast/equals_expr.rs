@@ -7,9 +7,9 @@ use crate::sql::proof::{
 };
 
 use crate::base::scalar::batch_pseudo_invert;
+use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
-use proofs_gpu::compute::get_one_commit;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::cmp::max;
 use std::collections::HashSet;

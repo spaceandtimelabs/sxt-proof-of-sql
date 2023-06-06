@@ -11,7 +11,7 @@ use crate::base::{
     proof::{MessageLabel, ProofError, TranscriptProtocol},
 };
 use crate::proof_primitive::sumcheck::SumcheckProof;
-use proofs_gpu::proof::InnerProductProof;
+use blitzar::proof::InnerProductProof;
 
 use crate::base::polynomial::ArkScalar;
 use bumpalo::Bump;
