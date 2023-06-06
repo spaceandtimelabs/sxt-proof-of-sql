@@ -8,6 +8,9 @@ description = "Generates and verifies cryptographic proofs for SxT OLTP queries.
 exclude = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+doctest = true
+test = true
 
 [dependencies]
 ark-curve25519 = { workspace = true }
@@ -17,6 +20,7 @@ ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true }
 blake3 = { workspace = true }
+blitzar = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
 byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
@@ -29,7 +33,6 @@ merlin = { workspace = true }
 num-traits = { workspace = true }
 polars = { workspace = true, features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex", "bigidx"] }
 postcard = { workspace = true, features = ["alloc"] }
-proofs-gpu = { workspace = true }
 proofs-sql = { workspace = true }
 rand = { workspace = true, optional = true }
 rayon = { workspace = true }

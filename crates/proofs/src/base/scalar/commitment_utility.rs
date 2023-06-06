@@ -1,6 +1,6 @@
 use super::ToScalar;
+use blitzar::compute::compute_commitments;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use proofs_gpu::compute::compute_commitments;
 
 /// Compute the commitment of a sequence of values.
 ///

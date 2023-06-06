@@ -3,7 +3,7 @@
     "version": "0.0.0-development",
     "devDependencies": {
         "conventional-changelog-conventionalcommits": "^5.0.0",
-        "semantic-release": "^19.0.2"
+        "semantic-release": "^21.0.2"
     },
     "release": {
         "branches": [
@@ -37,7 +37,7 @@
             [
                 "@semantic-release/exec",
                 {
-                    "prepareCmd": "bash ci/create_assets.sh ${nextRelease.version} && bash ci/publish_crates.sh ${nextRelease.version}"
+                    "prepareCmd": "bash ci/create_assets.sh ${nextRelease.version}"
                 }
             ],
             [
