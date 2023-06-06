@@ -1,3 +1,4 @@
+use blitzar::compute::{init_backend_with_config, BackendConfig};
 use clap::Parser;
 use proofs::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
@@ -5,7 +6,6 @@ use proofs::base::database::{
 use proofs::base::proof::ProofError;
 use proofs::sql::parse::{Converter, QueryExpr};
 use proofs::sql::proof::{QueryResult, VerifiableQueryResult};
-use proofs_gpu::compute::{init_backend_with_config, BackendConfig};
 use proofs_sql::sql::SelectStatementParser;
 use proofs_sql::Identifier;
 use rand::rngs::StdRng;
@@ -123,14 +123,11 @@ fn process_query(
     verifiable_result.verify(provable_ast, accessor)
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Args::parse();
     let offset_generators = 0_usize;
 
     let (provable_ast, accessor, query) = generate_input_data(&args, offset_generators);
-
-    let _config_guards = lib_tracing::ConfigGuards::new("proofs-benchmark-server");
 
     let mut mean_time: f64 = 0.0;
 

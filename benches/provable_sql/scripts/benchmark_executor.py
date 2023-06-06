@@ -15,7 +15,7 @@ class BenchmarkExecutor:
         self.tar_tgz_data_file = 'all_benchmark_data.tgz'
         self.table_lengths = self.args.plot_table_lengths.copy()
         self.binary_file = build_binary(self.args.force_build)
-        self.exported_libs = "LD_LIBRARY_PATH='" + run_process('echo $(pwd)/$(dirname $(ci/find_lib.sh target/release/build/ libproofs-gpu.so))/')[:-1] + "'"
+        self.exported_libs = "LD_LIBRARY_PATH='" + run_process('echo $(pwd)/$(dirname $(ci/find_lib.sh target/release/build/ libblitzar.so))/')[:-1] + "'"
 
     def build_bench_setting(self, query_idx, where_expr, num_result_cols, num_table_cols):
         return BenchmarkSetting(
