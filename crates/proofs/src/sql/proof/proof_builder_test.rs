@@ -5,9 +5,9 @@ use super::{
 
 use crate::base::database::{ColumnField, ColumnType};
 use crate::base::polynomial::{ArkScalar, CompositePolynomial};
-use crate::base::scalar::{compute_commitment_for_testing, ToArkScalar, Zero};
-use crate::base::slice_ops;
+use crate::base::scalar::compute_commitment_for_testing;
 use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
+use num_traits::{One, Zero};
 
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
@@ -70,10 +70,7 @@ fn we_can_evaluate_pre_result_mles() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let evaluation_vec = [ArkScalar::from(100u64), ArkScalar::from(10u64)];
-    let evals = builder.evaluate_pre_result_mles(&slice_ops::slice_cast_with(
-        &evaluation_vec,
-        ToArkScalar::to_ark_scalar,
-    ));
+    let evals = builder.evaluate_pre_result_mles(&evaluation_vec);
     let expected_evals = [ArkScalar::from(120u64), ArkScalar::from(1200u64)];
     assert_eq!(evals, expected_evals);
 }
@@ -121,11 +118,11 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
             fr.clone(),
             MultilinearExtensionImpl::new(&mle1).to_sumcheck_term(2),
         ],
-        -ArkScalar::from(1u64) * multipliers[2].to_ark_scalar(),
+        -ArkScalar::from(1u64) * multipliers[2],
     );
     expected_poly.add_product(
         [fr, MultilinearExtensionImpl::new(&mle2).to_sumcheck_term(2)],
-        -ArkScalar::from(10u64) * multipliers[3].to_ark_scalar(),
+        -ArkScalar::from(10u64) * multipliers[3],
     );
     let random_point = [ArkScalar::from(123u64), ArkScalar::from(101112u64)];
     let eval = poly.evaluate(&random_point);

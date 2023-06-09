@@ -1,4 +1,4 @@
-use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
+use crate::base::polynomial::ArkScalar;
 
 use super::{CompositePolynomialBuilder, MultilinearExtension};
 
@@ -20,8 +20,7 @@ impl<'a> SumcheckSubpolynomial<'a> {
         group_multiplier: ArkScalar,
     ) {
         for (mult, term) in self.terms.iter() {
-            composite_polynomial
-                .produce_fr_multiplicand(&(mult.to_ark_scalar() * group_multiplier), term);
+            composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term);
         }
     }
 }

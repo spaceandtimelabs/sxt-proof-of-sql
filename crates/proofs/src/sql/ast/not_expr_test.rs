@@ -1,7 +1,7 @@
 use crate::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
-use crate::base::scalar::ToScalar;
+use crate::base::polynomial::ArkScalar;
 use crate::record_batch;
 use crate::sql::ast::test_expr::TestExprNode;
 use crate::sql::ast::test_utility::{equal, not};
@@ -14,7 +14,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_not_expr<T: ToScalar + Copy + Literal>(
+fn create_test_not_expr<T: Into<ArkScalar> + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,

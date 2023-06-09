@@ -3,7 +3,6 @@ use super::{
     QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr, VerificationBuilder,
 };
 
-use crate::base::scalar::{ToArkScalar, Zero};
 use crate::base::slice_ops;
 use crate::base::{
     database::{CommitmentAccessor, DataAccessor},
@@ -12,6 +11,7 @@ use crate::base::{
 };
 use crate::proof_primitive::sumcheck::SumcheckProof;
 use blitzar::proof::InnerProductProof;
+use num_traits::Zero;
 
 use crate::base::polynomial::ArkScalar;
 use bumpalo::Bump;
@@ -64,7 +64,7 @@ impl QueryProof {
 
         // construct the sumcheck polynomial
         let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
-        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let poly =
             builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(counts, &random_scalars));
 
@@ -75,12 +75,10 @@ impl QueryProof {
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); counts.table_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-        let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(
-            &slice_ops::slice_cast_with(&evaluation_vec, ToArkScalar::to_ark_scalar),
-        );
+        let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
-        transcript.append_scalars(
+        transcript.append_ark_scalars(
             MessageLabel::QueryMleEvaluations,
             &pre_result_mle_evaluations,
         );
@@ -88,7 +86,7 @@ impl QueryProof {
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
         let mut random_scalars = vec![Zero::zero(); pre_result_mle_evaluations.len()];
-        transcript.challenge_scalars(
+        transcript.challenge_ark_scalars(
             &mut random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
@@ -97,8 +95,8 @@ impl QueryProof {
         // finally, form the inner product proof of the MLEs' evaluations
         let evaluation_proof = InnerProductProof::create(
             &mut transcript,
-            &slice_ops::slice_cast_with(&folded_mle, ArkScalar::into_dalek_scalar),
-            &slice_ops::slice_cast_with(&evaluation_vec, ArkScalar::into_dalek_scalar),
+            &slice_ops::slice_cast(&folded_mle),
+            &slice_ops::slice_cast(&evaluation_vec),
             counts.offset_generators as u64,
         );
 
@@ -148,7 +146,7 @@ impl QueryProof {
 
         // draw the random scalars for sumcheck
         let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
-        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let sumcheck_random_scalars = SumcheckRandomScalars::new(counts, &random_scalars);
 
         // verify sumcheck up to the evaluation check
@@ -166,7 +164,7 @@ impl QueryProof {
         compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
-        transcript.append_scalars(
+        transcript.append_ark_scalars(
             MessageLabel::QueryMleEvaluations,
             &self.pre_result_mle_evaluations,
         );
@@ -175,7 +173,7 @@ impl QueryProof {
         // (i.e. the folding/random linear combination of the pre_result_mles)
         let mut evaluation_random_scalars =
             vec![Zero::zero(); self.pre_result_mle_evaluations.len()];
-        transcript.challenge_scalars(
+        transcript.challenge_ark_scalars(
             &mut evaluation_random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
@@ -222,8 +220,8 @@ impl QueryProof {
             .verify(
                 &mut transcript,
                 &expected_commit,
-                &product.into_dalek_scalar(),
-                &slice_ops::slice_cast_with(&evaluation_vec, ArkScalar::into_dalek_scalar),
+                &product.into(),
+                &slice_ops::slice_cast(&evaluation_vec),
                 counts.offset_generators as u64,
             )
             .map_err(|_e| {

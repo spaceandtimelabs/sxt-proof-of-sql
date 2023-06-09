@@ -4,19 +4,6 @@ use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 #[test]
-fn test_challenge_scalars() {
-    let zero = ArkScalar::from(0u64);
-    let mut transcript = Transcript::new(b"multiplicationtest");
-    let mut v: [ArkScalar; 3] = [zero; 3];
-    transcript.challenge_scalars(&mut v, MessageLabel::SumcheckChallenge);
-    assert_ne!(v[0], zero);
-    assert_ne!(v[1], zero);
-    assert_ne!(v[2], zero);
-    assert_ne!(v[0], v[1]);
-    assert_ne!(v[1], v[2]);
-}
-
-#[test]
 fn test_challenge_ark_scalars() {
     let zero = ArkScalar::from(0u64);
     let mut transcript = Transcript::new(b"multiplicationtest");
@@ -64,11 +51,11 @@ fn we_can_append_ristretto_points() {
     let pts = [CompressedRistretto(bytes1), CompressedRistretto(bytes2)];
     let mut transcript1 = Transcript::new(b"ristrettotest");
     transcript1.append_points(MessageLabel::InnerProduct, &pts[..1]);
-    let scalar1 = transcript1.challenge_scalar(MessageLabel::InnerProductChallenge);
+    let scalar1 = transcript1.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
 
     let mut transcript2 = Transcript::new(b"ristrettotest");
     transcript2.append_points(MessageLabel::InnerProduct, &pts);
-    let scalar2 = transcript2.challenge_scalar(MessageLabel::InnerProductChallenge);
+    let scalar2 = transcript2.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
 
     assert_ne!(scalar1, scalar2);
 }

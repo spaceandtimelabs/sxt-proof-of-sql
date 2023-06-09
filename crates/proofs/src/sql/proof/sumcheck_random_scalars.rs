@@ -1,4 +1,4 @@
-use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar, slice_ops};
+use crate::base::polynomial::ArkScalar;
 
 use super::{compute_evaluation_vector, ProofCounts};
 
@@ -23,10 +23,7 @@ impl<'a> SumcheckRandomScalars<'a> {
 
     pub fn compute_entrywise_multipliers(&self) -> Vec<ArkScalar> {
         let mut v = vec![Default::default(); self.table_length];
-        compute_evaluation_vector(
-            &mut v,
-            &slice_ops::slice_cast_with(self.entrywise_point, ToArkScalar::to_ark_scalar),
-        );
+        compute_evaluation_vector(&mut v, self.entrywise_point);
         v
     }
 

@@ -1,4 +1,5 @@
 use crate::base::polynomial::ArkScalar;
+use num_traits::Zero;
 use std::iter;
 
 use crate::sql::proof::{

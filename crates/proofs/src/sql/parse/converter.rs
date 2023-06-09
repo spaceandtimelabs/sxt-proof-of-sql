@@ -1,5 +1,4 @@
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
-use crate::base::scalar::ToScalar;
 use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
@@ -523,8 +522,8 @@ impl Converter {
 impl Converter {
     fn visit_literal(&self, literal: &Literal) -> (ArkScalar, ColumnType) {
         match literal {
-            Literal::BigInt(val) => (val.to_scalar(), ColumnType::BigInt),
-            Literal::VarChar(val) => (val.to_scalar(), ColumnType::VarChar),
+            Literal::BigInt(val) => (val.into(), ColumnType::BigInt),
+            Literal::VarChar(val) => (val.into(), ColumnType::VarChar),
         }
     }
 
