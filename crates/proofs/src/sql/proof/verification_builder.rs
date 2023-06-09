@@ -1,8 +1,9 @@
-use crate::base::{polynomial::ArkScalar, scalar::ToArkScalar};
+use crate::base::polynomial::ArkScalar;
 
 use super::SumcheckMleEvaluations;
 
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
+use num_traits::Zero;
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a> {
@@ -48,14 +49,6 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle_ark(&mut self, commitment: &RistrettoPoint) -> ArkScalar {
-        #[allow(deprecated)]
-        ToArkScalar::to_ark_scalar(&self.consume_anchored_mle(commitment))
-    }
-    /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
-    ///
-    /// An anchored MLE is an MLE where the verifier has access to the commitment
-    #[cfg_attr(not(test), deprecated = "use `consume_intermediate_mle_ark()` instead")]
     pub fn consume_anchored_mle(&mut self, commitment: &RistrettoPoint) -> ArkScalar {
         let index = self.consumed_pre_result_mles;
         let multiplier = self.inner_product_multipliers[index];
@@ -69,28 +62,13 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation of an intermediate MLE used in sumcheck
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle_ark(&mut self) -> ArkScalar {
-        #[allow(deprecated)]
-        ToArkScalar::to_ark_scalar(&self.consume_intermediate_mle())
-    }
-    /// Consume the evaluation of an intermediate MLE used in sumcheck
-    ///
-    /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    #[cfg_attr(not(test), deprecated = "use `consume_intermediate_mle_ark()` instead")]
     pub fn consume_intermediate_mle(&mut self) -> ArkScalar {
         let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
         self.consumed_intermediate_mles += 1;
-        #[allow(deprecated)]
         self.consume_anchored_mle(commitment)
     }
 
     /// Consume the evaluation of the MLE for a result column used in sumcheck
-    pub fn consume_result_mle_ark(&mut self) -> ArkScalar {
-        #[allow(deprecated)]
-        ToArkScalar::to_ark_scalar(&self.consume_result_mle())
-    }
-    /// Consume the evaluation of the MLE for a result column used in sumcheck
-    #[cfg_attr(not(test), deprecated = "use `consume_result_mle_ark()` instead")]
     pub fn consume_result_mle(&mut self) -> ArkScalar {
         let index = self.consumed_result_mles;
         self.consumed_result_mles += 1;
@@ -98,15 +76,6 @@ impl<'a> VerificationBuilder<'a> {
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn produce_sumcheck_subpolynomial_evaluation_ark(&mut self, eval: &ArkScalar) {
-        #[allow(deprecated)]
-        self.produce_sumcheck_subpolynomial_evaluation(&eval.into_scalar());
-    }
-    /// Produce the evaluation of a subpolynomial used in sumcheck
-    #[cfg_attr(
-        not(test),
-        deprecated = "use `produce_sumcheck_subpolynomial_evaluation_ark()` instead"
-    )]
     pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &ArkScalar) {
         self.sumcheck_evaluation +=
             self.subpolynomial_multipliers[self.produced_subpolynomials] * *eval;

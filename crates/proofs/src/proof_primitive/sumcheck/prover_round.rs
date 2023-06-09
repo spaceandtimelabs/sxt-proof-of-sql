@@ -7,8 +7,8 @@ use crate::base::polynomial::ArkScalar;
 use rayon::prelude::*;
 
 use crate::base::polynomial::DenseMultilinearExtension;
-use crate::base::scalar::ToArkScalar;
 use crate::proof_primitive::sumcheck::ProverState;
+use num_traits::Zero;
 
 #[tracing::instrument(
     name = "proofs.proof_primitive.sumcheck.prover_round.prove_round",
@@ -23,7 +23,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) 
         prover_state.randomness.push(*r);
 
         // fix argument
-        let r_as_field = prover_state.randomness[prover_state.round - 1].to_ark_scalar();
+        let r_as_field = prover_state.randomness[prover_state.round - 1];
         prover_state
             .flattened_ml_extensions
             .par_iter_mut()
@@ -96,7 +96,7 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) 
         })
         .reduce(|| vec![ArkScalar::zero(); degree + 1], vec_elementwise_add);
 
-    result.into_iter().map(|a| a.into_scalar()).collect()
+    result
 }
 
 /// This is equivalent to

@@ -1,5 +1,4 @@
 use crate::base::database::Column;
-use crate::base::scalar::ToScalar;
 
 use crate::base::polynomial::ArkScalar;
 use arrow::array::{Array, ArrayRef, Int64Array, StringArray};
@@ -12,7 +11,7 @@ pub trait ArrayRefExt {
     /// Convert an ArrayRef into a proofs Vec<Scalar>
     ///
     /// Note: this function must not be called from unsupported arrays or arrays with nulls.
-    fn to_scalars(&self) -> Vec<ArkScalar>;
+    fn to_ark_scalars(&self) -> Vec<ArkScalar>;
 
     /// Convert an ArrayRef into a proofs Column type
     ///
@@ -36,14 +35,14 @@ pub trait ArrayRefExt {
 }
 
 impl ArrayRefExt for ArrayRef {
-    fn to_scalars(&self) -> Vec<ArkScalar> {
+    fn to_ark_scalars(&self) -> Vec<ArkScalar> {
         assert!(self.null_count() == 0);
 
         match self.data_type() {
             DataType::Int64 => self
                 .as_any()
                 .downcast_ref::<Int64Array>()
-                .map(|array| array.values().iter().map(|v| v.to_scalar()).collect())
+                .map(|array| array.values().iter().map(|v| v.into()).collect())
                 .unwrap(),
             DataType::Utf8 => self
                 .as_any()
@@ -51,7 +50,7 @@ impl ArrayRefExt for ArrayRef {
                 .map(|array| {
                     array
                         .iter()
-                        .map(|v| v.expect("null elements are invalid").to_scalar())
+                        .map(|v| v.expect("null elements are invalid").into())
                         .collect()
                 })
                 .unwrap(),
@@ -92,8 +91,7 @@ impl ArrayRefExt for ArrayRef {
                     // This `else` is just to simplify implementations at higher code levels.
                     // However, as the caller can always pass the correct scalar slice,
                     // this convenience `else` here may be dropped in the future.
-                    alloc
-                        .alloc_slice_fill_with(vals.len(), |i| -> ArkScalar { vals[i].to_scalar() })
+                    alloc.alloc_slice_fill_with(vals.len(), |i| -> ArkScalar { vals[i].into() })
                 };
 
                 Column::HashedBytes((vals, scals))
@@ -126,7 +124,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.to_scalar()).collect();
+        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
         assert_eq!(
@@ -152,7 +150,7 @@ mod tests {
     {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34", "ehfh43"];
-        let scals: Vec<_> = data.iter().map(|v| v.to_scalar()).collect();
+        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
@@ -170,7 +168,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.to_scalar()).collect();
+        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
         assert_eq!(
@@ -183,7 +181,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_with_zero_size() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.to_scalar()).collect();
+        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
         assert_eq!(
@@ -206,10 +204,8 @@ mod tests {
         let data = vec![1, -3];
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(data.clone()));
         assert_eq!(
-            array.to_scalars(),
-            data.iter()
-                .map(|v| v.to_scalar())
-                .collect::<Vec<ArkScalar>>()
+            array.to_ark_scalars(),
+            data.iter().map(|v| v.into()).collect::<Vec<ArkScalar>>()
         );
     }
 
@@ -218,10 +214,8 @@ mod tests {
         let data = vec!["ab", "-f34"];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_scalars(),
-            data.iter()
-                .map(|v| v.to_scalar())
-                .collect::<Vec<ArkScalar>>()
+            array.to_ark_scalars(),
+            data.iter().map(|v| v.into()).collect::<Vec<ArkScalar>>()
         );
     }
 }

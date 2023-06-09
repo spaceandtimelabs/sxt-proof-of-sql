@@ -1,5 +1,5 @@
-use crate::base::scalar::{One, Zero};
 use core::ops::{Add, Mul, Sub};
+use num_traits::{One, Zero};
 
 /// Given the points a and b with length nu, we can evaluate the lagrange basis of length 2^nu at the two points.
 /// This is what [super::compute_evaluation_vector] does.

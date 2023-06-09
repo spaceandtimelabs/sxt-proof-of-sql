@@ -5,7 +5,7 @@
  */
 use crate::base::polynomial::interpolate::*;
 use crate::base::polynomial::ArkScalar;
-use crate::base::scalar::Zero;
+use num_traits::Zero;
 
 #[test]
 fn test_interpolate_uni_poly_for_random_polynomials() {

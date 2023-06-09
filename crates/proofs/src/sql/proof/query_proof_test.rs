@@ -11,6 +11,7 @@ use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::CompressedRistretto;
+use num_traits::{One, Zero};
 use std::sync::Arc;
 
 fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {

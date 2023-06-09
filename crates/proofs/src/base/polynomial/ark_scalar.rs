@@ -1,18 +1,14 @@
-use ark_ff::BigInt;
 use ark_ff::Field;
 use ark_ff::PrimeField;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::iter::Sum;
 use derive_more::{
-    Add, AddAssign, Div, DivAssign, From, Mul, MulAssign, Neg, Product, Sub, SubAssign, Sum,
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Product, Sub, SubAssign, Sum,
 };
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-
-use crate::base::scalar::ToArkScalar;
-use num_traits::Inv;
 
 #[derive(
     Add,
@@ -27,7 +23,6 @@ use num_traits::Inv;
     Copy,
     Debug,
     Neg,
-    From,
     PartialEq,
     Sum,
     Product,
@@ -41,51 +36,19 @@ use num_traits::Inv;
 #[div(forward)]
 #[mul_assign(forward)]
 #[div_assign(forward)]
-#[from(forward)]
 /// A wrapper struct around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
 ///
 /// Using traits rather than this struct is encouraged to allow for easier switching of the underlying field.
 pub struct ArkScalar(pub ark_curve25519::Fr);
 
 impl ArkScalar {
-    pub fn from_bigint(repr: BigInt<4>) -> Option<Self> {
-        ark_curve25519::Fr::from_bigint(repr).map(Self)
-    }
-    pub fn into_bigint(self) -> BigInt<4> {
-        self.0.into_bigint()
-    }
     pub fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         Self(ark_curve25519::Fr::from_le_bytes_mod_order(bytes))
     }
-    /// Prefer `into_scalar` unless you are absolutely sure you need dalek.
-    pub fn into_dalek_scalar(&self) -> curve25519_dalek::scalar::Scalar {
-        let x = self.into_bigint();
-        let bytes = ark_ff::BigInteger::to_bytes_le(&x);
-        curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
-    }
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.into_dalek_scalar().as_bytes().to_vec()
-    }
-    pub fn from_bytes_mod_order(bytes: [u8; 32]) -> Self {
-        ToArkScalar::to_ark_scalar(&curve25519_dalek::scalar::Scalar::from_bytes_mod_order(
-            bytes,
-        ))
-    }
-    pub fn from_canonical_bytes(bytes: [u8; 32]) -> Option<Self> {
-        curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes)
-            .map(|x| ToArkScalar::to_ark_scalar(&x))
-    }
-    pub fn one() -> Self {
-        num_traits::One::one()
-    }
-    pub fn zero() -> Self {
-        num_traits::Zero::zero()
-    }
-    pub fn into_scalar(self) -> super::ArkScalar {
-        self
-    }
-    pub fn invert(self) -> Self {
-        self.inv()
+    #[cfg(test)]
+    pub fn to_bytes_le(&self) -> Vec<u8> {
+        use ark_ff::BigInteger;
+        self.0.into_bigint().to_bytes_le()
     }
     /// Convenience function for generating random values. Should not be used outside of tests. Instead, use a transcript.
     #[cfg(test)]
@@ -102,34 +65,30 @@ impl ArkScalar {
     pub fn unwrap_slice(slice: &[Self]) -> Vec<ark_curve25519::Fr> {
         slice.iter().map(|x| x.0).collect()
     }
-    #[cfg(test)]
-    pub fn random<R: rand_core::RngCore + rand_core::CryptoRng>(rng: &mut R) -> Self {
-        ToArkScalar::to_ark_scalar(&curve25519_dalek::scalar::Scalar::random(rng))
-    }
 }
 
 impl core::ops::Mul<curve25519_dalek::ristretto::RistrettoPoint> for ArkScalar {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
-        self.into_dalek_scalar() * rhs
+        curve25519_dalek::scalar::Scalar::from(self) * rhs
     }
 }
 impl core::ops::Mul<ArkScalar> for curve25519_dalek::ristretto::RistrettoPoint {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: ArkScalar) -> Self::Output {
-        self * rhs.into_dalek_scalar()
+        self * curve25519_dalek::scalar::Scalar::from(rhs)
     }
 }
 impl core::ops::Mul<&curve25519_dalek::ristretto::RistrettoPoint> for ArkScalar {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: &curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
-        self.into_dalek_scalar() * rhs
+        curve25519_dalek::scalar::Scalar::from(self) * rhs
     }
 }
 impl core::ops::Mul<ArkScalar> for &curve25519_dalek::ristretto::RistrettoPoint {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: ArkScalar) -> Self::Output {
-        self * rhs.into_dalek_scalar()
+        self * curve25519_dalek::scalar::Scalar::from(rhs)
     }
 }
 
@@ -177,5 +136,29 @@ impl core::ops::Neg for &ArkScalar {
     type Output = ArkScalar;
     fn neg(self) -> Self::Output {
         ArkScalar(-self.0)
+    }
+}
+impl From<ArkScalar> for curve25519_dalek::scalar::Scalar {
+    fn from(value: ArkScalar) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&ArkScalar> for curve25519_dalek::scalar::Scalar {
+    fn from(value: &ArkScalar) -> Self {
+        let bytes = ark_ff::BigInteger::to_bytes_le(&value.0.into_bigint());
+        curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
+    }
+}
+
+impl From<ArkScalar> for [u64; 4] {
+    fn from(value: ArkScalar) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&ArkScalar> for [u64; 4] {
+    fn from(value: &ArkScalar) -> Self {
+        value.0.into_bigint().0
     }
 }

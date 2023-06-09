@@ -1,7 +1,7 @@
 use super::{CompositePolynomialBuilder, MultilinearExtensionImpl};
 
 use crate::base::polynomial::ArkScalar;
-use crate::base::scalar::{One, ToArkScalar};
+use num_traits::One;
 
 #[test]
 fn we_combine_single_degree_fr_multiplicands() {
@@ -23,8 +23,8 @@ fn we_combine_single_degree_fr_multiplicands() {
     let pt = [ArkScalar::from(9268764u64)];
     let m0 = ArkScalar::one() - pt[0];
     let m1 = pt[0];
-    let eval1 = mle1[0].to_ark_scalar() * m0 + mle1[1].to_ark_scalar() * m1;
-    let eval2 = mle2[0].to_ark_scalar() * m0 + mle2[1].to_ark_scalar() * m1;
+    let eval1 = ArkScalar::from(mle1[0]) * m0 + ArkScalar::from(mle1[1]) * m1;
+    let eval2 = ArkScalar::from(mle2[0]) * m0 + ArkScalar::from(mle2[1]) * m1;
     let eval_fr = fr[0] * m0 + fr[1] * m1;
     let expected = eval_fr * (eval1 - eval2);
     assert_eq!(p.evaluate(&pt), expected);
@@ -56,8 +56,8 @@ fn we_dont_duplicate_repeated_mles() {
     let pt = [ArkScalar::from(9268764u64)];
     let m0 = ArkScalar::one() - pt[0];
     let m1 = pt[0];
-    let eval1 = mle1[0].to_ark_scalar() * m0 + mle1[1].to_ark_scalar() * m1;
-    let eval2 = mle2[0].to_ark_scalar() * m0 + mle2[1].to_ark_scalar() * m1;
+    let eval1 = ArkScalar::from(mle1[0]) * m0 + ArkScalar::from(mle1[1]) * m1;
+    let eval2 = ArkScalar::from(mle2[0]) * m0 + ArkScalar::from(mle2[1]) * m1;
     let eval_fr = fr[0] * m0 + fr[1] * m1;
     let expected = eval_fr * (eval1 * eval1 + eval1 * eval2);
     assert_eq!(p.evaluate(&pt), expected);

@@ -1,6 +1,6 @@
 use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
-use crate::base::scalar::{ToArkScalar, Zero};
 use crate::base::slice_ops;
+use num_traits::Zero;
 use rayon::iter::*;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -22,31 +22,33 @@ pub trait MultilinearExtension {
 }
 
 /// Treat scalar convertible columns as a multilinear extensions
-pub struct MultilinearExtensionImpl<'a, T: ToArkScalar> {
+pub struct MultilinearExtensionImpl<'a, T>
+where
+    &'a T: Into<ArkScalar>,
+{
     data: &'a [T],
 }
 
-impl<'a, T: ToArkScalar> MultilinearExtensionImpl<'a, T> {
+impl<'a, T> MultilinearExtensionImpl<'a, T>
+where
+    &'a T: Into<ArkScalar>,
+{
     /// Create MLE from slice
     pub fn new(data: &'a [T]) -> Self {
         Self { data }
     }
 }
 
-impl<'a, T: ToArkScalar + Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T> {
+impl<'a, T: Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T>
+where
+    &'a T: Into<ArkScalar>,
+{
     fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar {
-        slice_ops::inner_product(
-            evaluation_vec,
-            &slice_ops::slice_cast_with(self.data, ToArkScalar::to_ark_scalar),
-        )
+        slice_ops::inner_product(evaluation_vec, &slice_ops::slice_cast(self.data))
     }
 
     fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar) {
-        slice_ops::mul_add_assign(
-            res,
-            *multiplier,
-            &slice_ops::slice_cast_with(self.data, ToArkScalar::to_ark_scalar),
-        );
+        slice_ops::mul_add_assign(res, *multiplier, &slice_ops::slice_cast(self.data));
     }
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
@@ -55,7 +57,7 @@ impl<'a, T: ToArkScalar + Sync> MultilinearExtension for MultilinearExtensionImp
         assert!(n >= values.len());
         let scalars = values
             .par_iter()
-            .map(|val| val.to_ark_scalar())
+            .map(|val| val.into())
             .chain(rayon::iter::repeatn(Zero::zero(), n - values.len()))
             .collect();
         Rc::new(scalars)

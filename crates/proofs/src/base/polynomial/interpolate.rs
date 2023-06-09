@@ -1,4 +1,3 @@
-use crate::base::scalar::{Inverse, One, Zero};
 use core::cmp::PartialEq;
 /**
  * Adapted from arkworks
@@ -6,6 +5,7 @@ use core::cmp::PartialEq;
  * See third_party/license/arkworks.LICENSE
  */
 use core::ops::{AddAssign, Mul, MulAssign, SubAssign};
+use num_traits::{Inv, One, Zero};
 
 /// Interpolate a uni-variate degree-`polynomial.len()-1` polynomial and evaluate this
 /// polynomial at `x`:
@@ -16,7 +16,7 @@ use core::ops::{AddAssign, Mul, MulAssign, SubAssign};
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
-        + Inverse
+        + Inv<Output = F>
         + One
         + Zero
         + AddAssign
@@ -51,8 +51,7 @@ where
     let mut x_minus_i = x;
     for i in 0..=degree {
         // This is `f(i) / (i! * (d-i)! * (x-i))`
-        let new_term =
-            polynomial[i] * (factorials[i] * factorials[degree - i] * x_minus_i).inverse();
+        let new_term = polynomial[i] * (factorials[i] * factorials[degree - i] * x_minus_i).inv();
         // This handles the (-1)^(d-i) sign.
         if (degree - i) % 2 == 0 {
             sum += new_term;

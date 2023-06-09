@@ -3,7 +3,6 @@ use super::{
     SchemaAccessor, TestAccessor,
 };
 use crate::base::scalar::compute_commitment_for_testing;
-use crate::base::scalar::ToScalar;
 use crate::record_batch;
 
 use arrow::array::Int64Array;
@@ -74,10 +73,7 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     let col_slice: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.as_bytes()).collect();
-    let col_scalars: Vec<_> = ["a", "bc", "d", "e"]
-        .iter()
-        .map(|v| v.to_scalar())
-        .collect();
+    let col_scalars: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.into()).collect();
     let column = ColumnRef::new(table_ref_2, "d".parse().unwrap(), ColumnType::VarChar);
     match accessor.get_column(column) {
         Column::HashedBytes((col, scals)) => {

@@ -20,11 +20,9 @@ impl U256 {
 /// This trait converts a dalek scalar into a U256 integer
 impl From<&ArkScalar> for U256 {
     fn from(val: &ArkScalar) -> Self {
-        let bytes = val.as_bytes();
-
-        let low = u128::from_le_bytes(bytes[0..16].try_into().unwrap());
-        let high = u128::from_le_bytes(bytes[16..32].try_into().unwrap());
-
+        let buf: [u64; 4] = val.into();
+        let low: u128 = (buf[0] as u128) | (buf[1] as u128) << 64;
+        let high: u128 = (buf[2] as u128) | (buf[3] as u128) << 64;
         U256::from_words(low, high)
     }
 }
@@ -32,10 +30,7 @@ impl From<&ArkScalar> for U256 {
 /// This trait converts a U256 integer into a dalek scalar
 impl From<&U256> for ArkScalar {
     fn from(val: &U256) -> Self {
-        let bytes_low = val.low.to_le_bytes();
-        let bytes_high = val.high.to_le_bytes();
-        let bytes: [u8; 32] = [bytes_low, bytes_high].concat().try_into().unwrap();
-
-        ArkScalar::from_bytes_mod_order(bytes)
+        let bytes = [val.low.to_le_bytes(), val.high.to_le_bytes()].concat();
+        ArkScalar::from_le_bytes_mod_order(&bytes)
     }
 }

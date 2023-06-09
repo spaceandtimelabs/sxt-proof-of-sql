@@ -71,7 +71,7 @@ impl TestAccessor {
             .map(|(k, v)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&v.to_scalars()[..], table_offset),
+                    compute_commitment_for_testing(&v.to_ark_scalars()[..], table_offset),
                 )
             })
             .collect();
@@ -98,7 +98,7 @@ impl TestAccessor {
             .map(|(k, col)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&col.to_scalars()[..], new_offset),
+                    compute_commitment_for_testing(&col.to_ark_scalars()[..], new_offset),
                 )
             })
             .collect();

@@ -1,13 +1,12 @@
-use ark_std::rc::Rc;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use merlin::Transcript;
-use proofs::base::scalar::{One, ToArkScalar};
+use num_traits::{One, Zero};
 use proofs::{
     base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
-use std::time::Duration;
+use std::{rc::Rc, time::Duration};
 
 fn random_mle_with_num_vars<R: Rng>(
     v: usize,
@@ -19,10 +18,8 @@ fn random_mle_with_num_vars<R: Rng>(
         .collect();
 
     let sum = scalars.iter().sum();
-    let scalars: Vec<ArkScalar> = scalars.iter().map(ToArkScalar::to_ark_scalar).collect();
-    let mle = scalars;
 
-    (sum, mle)
+    (sum, scalars)
 }
 
 pub fn bench_sumcheck_prove_degree(c: &mut Criterion) {
