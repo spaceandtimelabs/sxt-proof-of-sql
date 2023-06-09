@@ -5,6 +5,7 @@ use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use num_traits::Zero;
 use std::collections::HashSet;
 
 /// Provable logical CONST expression
@@ -48,14 +49,14 @@ impl BoolExpr for ConstBoolExpr {
         alloc.alloc_slice_fill_copy(counts.table_length, self.value)
     }
 
-    fn verifier_evaluate_ark(
+    fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
         _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
         if self.value {
-            builder.mle_evaluations.get_one_evaluation_ark()
+            builder.mle_evaluations.one_evaluation
         } else {
             ArkScalar::zero()
         }

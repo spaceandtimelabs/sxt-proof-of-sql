@@ -1,17 +1,14 @@
 use crate::base::polynomial::DenseMultilinearExtension;
 
-use ark_ff::BigInteger;
-#[cfg(test)]
-use ark_poly::MultilinearExtension;
+use hashbrown::HashMap;
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
-use ark_std::cmp::max;
-use ark_std::rc::Rc;
-use ark_std::vec::Vec;
-use hashbrown::HashMap;
+use std::cmp::max;
+use std::rc::Rc;
+use std::vec::Vec;
 
 use super::ArkScalar;
 
@@ -98,6 +95,7 @@ impl CompositePolynomial {
     /// Evaluate the polynomial at point `point`
     #[cfg(test)]
     pub fn evaluate(&self, point: &[ArkScalar]) -> ArkScalar {
+        use ark_poly::MultilinearExtension;
         let result = self
             .products
             .iter()
@@ -126,8 +124,9 @@ impl CompositePolynomial {
         skip_all
     )]
     pub fn annotate_trace(&self) {
+        use ark_ff::{BigInteger, PrimeField};
         for i in 0..self.products.len() {
-            let data = self.products[i].0.into_bigint().to_bytes_be();
+            let data = self.products[i].0 .0.into_bigint().to_bytes_be();
             let data_as_string = data
                 .iter()
                 .map(|b| format!("{:02X}", b))

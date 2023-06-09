@@ -21,3 +21,6 @@ pub use slice_cast::*;
 
 mod batch_inverse;
 pub use batch_inverse::*;
+
+#[cfg(test)]
+mod batch_inverse_test;

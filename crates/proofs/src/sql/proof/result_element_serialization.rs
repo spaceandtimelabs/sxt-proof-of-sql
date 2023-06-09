@@ -1,5 +1,4 @@
 use crate::base::encode::read_scalar_varint;
-use crate::base::scalar::ToScalar;
 use integer_encoding::VarInt;
 
 use crate::base::polynomial::ArkScalar;
@@ -9,11 +8,11 @@ pub trait EncodeProvableResultElement {
     fn encode(&self, out: &mut [u8]) -> usize;
 }
 
-pub trait DecodeProvableResultElement<'a>: ToScalar {
+pub trait DecodeProvableResultElement<'a> {
     fn decode(data: &'a [u8]) -> Option<(Self, usize)>
     where
         Self: Sized;
-    fn decode_to_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)>;
+    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)>;
 }
 
 /// Implement encode and decode for integer types
@@ -34,7 +33,7 @@ macro_rules! impl_provable_result_integer_elements {
                 <$tt>::decode_var(data)
             }
 
-            fn decode_to_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
+            fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
                 read_scalar_varint(data)
             }
         }
@@ -96,9 +95,9 @@ impl<'a> DecodeProvableResultElement<'a> for &'a [u8] {
         Some((&data[sizeof_usize..bytes_read], bytes_read))
     }
 
-    fn decode_to_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
+    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
         let (val, read_bytes) = Self::decode(data)?;
-        Some((val.to_scalar(), read_bytes))
+        Some((val.into(), read_bytes))
     }
 }
 
@@ -119,9 +118,9 @@ impl<'a> DecodeProvableResultElement<'a> for &'a str {
         Some((std::str::from_utf8(data).ok()?, bytes_read))
     }
 
-    fn decode_to_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
+    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
         let (decoded_buf, bytes_read) = <&str>::decode(data)?;
-        Some((decoded_buf.to_scalar(), bytes_read))
+        Some((decoded_buf.into(), bytes_read))
     }
 }
 
@@ -211,9 +210,9 @@ mod tests {
         let value = 123_i64;
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <i64>::decode_to_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
-        assert_eq!(decoded_value, value.to_scalar());
+        assert_eq!(decoded_value, value.into());
     }
 
     #[test]
@@ -221,9 +220,9 @@ mod tests {
         let value = "test string";
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <&str>::decode_to_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = <&str>::decode_to_ark_scalar(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
-        assert_eq!(decoded_value, value.to_scalar());
+        assert_eq!(decoded_value, value.into());
     }
 
     #[test]
@@ -231,9 +230,9 @@ mod tests {
         let value = &[1_u8, 3_u8, 5_u8][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <&[u8]>::decode_to_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = <&[u8]>::decode_to_ark_scalar(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
-        assert_eq!(decoded_value, value.to_scalar());
+        assert_eq!(decoded_value, value.into());
     }
 
     #[test]
@@ -251,9 +250,9 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = <i64>::decode_to_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, value.to_scalar());
+            assert_eq!(decoded_value, value.into());
         }
     }
 
@@ -276,9 +275,9 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, str_slice);
 
-            let (decoded_value, read_bytes) = <&str>::decode_to_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = <&str>::decode_to_ark_scalar(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, str_slice.to_scalar());
+            assert_eq!(decoded_value, str_slice.into());
         }
     }
 
@@ -300,9 +299,9 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value_slice);
 
-            let (decoded_value, read_bytes) = <&[u8]>::decode_to_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = <&[u8]>::decode_to_ark_scalar(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, value_slice.to_scalar());
+            assert_eq!(decoded_value, value_slice.into());
         }
     }
 

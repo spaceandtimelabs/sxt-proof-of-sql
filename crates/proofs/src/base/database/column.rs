@@ -16,7 +16,7 @@ pub enum Column<'a> {
     BigInt(&'a [i64]),
     /// Byte columns (such as &[&[u8]] or &[&str.as_bytes()])
     ///  - the first element maps to the byte values.
-    ///  - the second element maps to the byte hashes (see [crate::base::scalar::ToScalar] trait).
+    ///  - the second element maps to the byte hashes (see [crate::base::polynomial::ArkScalar]).
     HashedBytes((&'a [&'a [u8]], &'a [ArkScalar])),
 }
 

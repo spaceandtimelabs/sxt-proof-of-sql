@@ -9,6 +9,7 @@ use crate::base::polynomial::ArkScalar;
 use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -74,8 +75,8 @@ impl ProvableQueryResult {
             let mut val = ArkScalar::zero();
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
-                    ColumnType::BigInt => <i64>::decode_to_scalar(&self.data[offset..]),
-                    ColumnType::VarChar => <&str>::decode_to_scalar(&self.data[offset..]),
+                    ColumnType::BigInt => <i64>::decode_to_ark_scalar(&self.data[offset..]),
+                    ColumnType::VarChar => <&str>::decode_to_ark_scalar(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[*index as usize] * x;

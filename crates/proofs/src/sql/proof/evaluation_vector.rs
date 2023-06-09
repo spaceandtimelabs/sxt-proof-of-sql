@@ -1,5 +1,5 @@
-use crate::base::scalar::One;
 use core::ops::{Mul, MulAssign, Sub};
+use num_traits::One;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 const MIN_PARALLEL_LEN: usize = 16; // The minimum size for which we should actually parallelize the compute.

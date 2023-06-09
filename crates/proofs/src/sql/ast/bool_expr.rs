@@ -26,21 +26,7 @@ pub trait BoolExpr: Debug + Send + Sync {
     /// Compute the evaluation of a multilinear extension from this boolean expression
     /// at the random sumcheck point and adds components needed to verify the expression to
     /// VerificationBuilder
-    #[cfg_attr(not(test), deprecated = "use `verifier_evaluate_ark()` instead")]
     fn verifier_evaluate(
-        &self,
-        builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
-        accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar {
-        self.verifier_evaluate_ark(builder, counts, accessor)
-            .into_scalar()
-    }
-
-    /// Compute the evaluation of a multilinear extension from this boolean expression
-    /// at the random sumcheck point and adds components needed to verify the expression to
-    /// VerificationBuilder
-    fn verifier_evaluate_ark(
         &self,
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,

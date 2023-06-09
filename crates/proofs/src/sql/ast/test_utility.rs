@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::database::SchemaAccessor;
 use crate::base::database::{ColumnRef, TableRef, TestAccessor};
-use crate::base::scalar::ToScalar;
+use crate::base::polynomial::ArkScalar;
 
 pub fn col(tab: TableRef, name: &str, accessor: &TestAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -12,13 +12,13 @@ pub fn col(tab: TableRef, name: &str, accessor: &TestAccessor) -> ColumnRef {
     ColumnRef::new(tab, name, type_col)
 }
 
-pub fn equal<T: ToScalar>(
+pub fn equal<T: Into<ArkScalar>>(
     tab: TableRef,
     name: &str,
     val: T,
     accessor: &TestAccessor,
 ) -> Box<dyn BoolExpr> {
-    Box::new(EqualsExpr::new(col(tab, name, accessor), val.to_scalar()))
+    Box::new(EqualsExpr::new(col(tab, name, accessor), val.into()))
 }
 
 pub fn not(expr: Box<dyn BoolExpr>) -> Box<dyn BoolExpr> {

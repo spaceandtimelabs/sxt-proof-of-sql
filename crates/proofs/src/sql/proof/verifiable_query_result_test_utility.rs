@@ -9,6 +9,7 @@ use crate::base::scalar::compute_commitment_for_testing;
 use crate::base::polynomial::ArkScalar;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::traits::Identity;
+use num_traits::One;
 
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
 /// verification fails.

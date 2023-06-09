@@ -3,6 +3,7 @@ use crate::sql::proof::{ProofCounts, SumcheckRandomScalars};
 use super::SumcheckMleEvaluations;
 
 use crate::base::polynomial::ArkScalar;
+use num_traits::One;
 
 #[test]
 fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {

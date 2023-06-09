@@ -41,14 +41,14 @@ impl BoolExpr for NotExpr {
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
     }
 
-    fn verifier_evaluate_ark(
+    fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
         counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
-        let eval = self.expr.verifier_evaluate_ark(builder, counts, accessor);
-        builder.mle_evaluations.get_one_evaluation_ark() - eval
+        let eval = self.expr.verifier_evaluate(builder, counts, accessor);
+        builder.mle_evaluations.one_evaluation - eval
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {

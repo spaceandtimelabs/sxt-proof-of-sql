@@ -1,17 +1,14 @@
-use crate::base::scalar::ToArkScalar;
-use crate::base::slice_ops;
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use crate::proof_primitive::sumcheck::proof::*;
+use num_traits::{One, Zero};
 
 use crate::base::polynomial::ArkScalar;
-use ark_std::rc::Rc;
 use merlin::Transcript;
-use rand::rngs::ThreadRng;
-use rand::Rng;
+use std::rc::Rc;
 
 use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 use crate::base::proof::{MessageLabel, TranscriptProtocol};
@@ -36,11 +33,8 @@ fn test_create_verify_proof() {
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
-        poly.evaluate(&slice_ops::slice_cast_with(
-            &evaluation_point,
-            ToArkScalar::to_ark_scalar,
-        )),
-        subclaim.expected_evaluation.to_ark_scalar()
+        poly.evaluate(&evaluation_point),
+        subclaim.expected_evaluation
     );
 
     // we return a different evaluation point if we start with a different transcript
@@ -67,7 +61,7 @@ fn test_create_verify_proof() {
 fn random_product(
     nv: usize,
     num_multiplicands: usize,
-    rng: &mut ThreadRng,
+    rng: &mut ark_std::rand::rngs::StdRng,
 ) -> (Vec<Rc<DenseMultilinearExtension>>, ArkScalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
@@ -78,7 +72,7 @@ fn random_product(
     for _ in 0..(1 << nv) {
         let mut product = ArkScalar::one();
         for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
-            let val = ArkScalar::random(rng).to_ark_scalar();
+            let val = ArkScalar::rand(rng);
             multiplicand.push(val);
             product *= val;
         }
@@ -92,23 +86,24 @@ fn random_polynomial(
     nv: usize,
     num_multiplicands_range: (usize, usize),
     num_products: usize,
-    rng: &mut ThreadRng,
+    rng: &mut ark_std::rand::rngs::StdRng,
 ) -> (CompositePolynomial, ArkScalar) {
+    use ark_std::rand::Rng;
     let mut sum = ArkScalar::zero();
     let mut poly = CompositePolynomial::new(nv);
     for _ in 0..num_products {
-        let num_multiplicands = rng.gen_range(num_multiplicands_range.0, num_multiplicands_range.1);
+        let num_multiplicands = rng.gen_range(num_multiplicands_range.0..num_multiplicands_range.1);
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
-        let coefficient = ArkScalar::random(rng);
-        poly.add_product(product.into_iter(), coefficient.to_ark_scalar());
-        sum += product_sum.into_scalar() * coefficient;
+        let coefficient = ArkScalar::rand(rng);
+        poly.add_product(product.into_iter(), coefficient);
+        sum += product_sum * coefficient;
     }
 
     (poly, sum)
 }
 
 fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_products: usize) {
-    let mut rng = rand::thread_rng();
+    let mut rng = <ark_std::rand::rngs::StdRng as ark_std::rand::SeedableRng>::from_seed([0u8; 32]);
     let (poly, asserted_sum) =
         random_polynomial(nv, num_multiplicands_range, num_products, &mut rng);
     let poly_info = poly.info();
@@ -125,11 +120,8 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
-        poly.evaluate(&slice_ops::slice_cast_with(
-            &evaluation_point,
-            ToArkScalar::to_ark_scalar,
-        )),
-        subclaim.expected_evaluation.to_ark_scalar()
+        poly.evaluate(&evaluation_point),
+        subclaim.expected_evaluation
     );
 }
 

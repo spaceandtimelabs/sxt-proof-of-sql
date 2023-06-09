@@ -182,7 +182,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
+fn valid_varint_encoded_input_that_map_to_ark_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
 ) {
     let mut buf = vec![0b11111111_u8; 36];
 
@@ -202,7 +202,7 @@ fn valid_varint_encoded_input_that_map_to_scalars_smaller_than_the_p_field_order
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
+fn valid_varint_encoded_input_that_map_to_ark_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
 ) {
     let mut buf = vec![0b11111111_u8; 37];
 
@@ -262,7 +262,7 @@ fn write_read_and_compare_encoding(expected_scals: &[ArkScalar]) {
     let total_bytes_read = write_scalar_varints(&mut buf_vec[..], expected_scals);
 
     let buf = &buf_vec[0..total_bytes_read];
-    let mut scals = vec![ArkScalar::from_bytes_mod_order([0_u8; 32]); expected_scals.len()];
+    let mut scals = vec![ArkScalar::from_le_bytes_mod_order(&[0_u8; 32]); expected_scals.len()];
     read_scalar_varints(&mut scals[..], buf).unwrap();
 
     for (scal, expected_scal) in scals.iter().zip(expected_scals.iter()) {
@@ -305,9 +305,9 @@ fn scalar_slices_are_correctly_encoded_and_decoded() {
     write_read_and_compare_encoding(&[
         ArkScalar::from(u128::MAX),
         ArkScalar::from(0_u64),
-        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from_le_bytes_mod_order(&bytes),
         ArkScalar::from(5_u16),
-        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from_le_bytes_mod_order(&bytes),
         ArkScalar::from(1_u64),
         ArkScalar::from(0_u64),
         ArkScalar::from(u128::MAX),
@@ -323,9 +323,9 @@ fn scalar_slices_are_correctly_encoded_and_decoded() {
     write_read_and_compare_encoding(&[
         ArkScalar::from(u128::MAX),
         ArkScalar::from(0_u64),
-        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from_le_bytes_mod_order(&bytes),
         ArkScalar::from(5_u16),
-        ArkScalar::from_canonical_bytes(bytes).unwrap(),
+        ArkScalar::from_le_bytes_mod_order(&bytes),
         ArkScalar::from(1_u64),
         ArkScalar::from(0_u64),
         ArkScalar::from(u128::MAX),

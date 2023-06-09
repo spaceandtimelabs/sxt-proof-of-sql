@@ -3,12 +3,11 @@ use super::{
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::{ArkScalar, CompositePolynomial};
-use crate::base::scalar::ToArkScalar;
-use crate::base::scalar::Zero;
 use crate::base::slice_ops;
 use blitzar::compute::compute_commitments;
 use blitzar::sequences::{DenseSequence, Sequence};
 use bumpalo::Bump;
+use num_traits::Zero;
 
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 
@@ -46,7 +45,10 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_anchored_mle<T: ToArkScalar + Sync>(&mut self, data: &'a [T]) {
+    pub fn produce_anchored_mle<T: Sync>(&mut self, data: &'a [T])
+    where
+        &'a T: Into<ArkScalar>,
+    {
         assert!(self.pre_result_mles.len() < self.pre_result_mles.capacity());
         self.pre_result_mles
             .push(Box::new(MultilinearExtensionImpl::new(data)));
@@ -61,9 +63,10 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_intermediate_mle<T: ToArkScalar + Sync>(&mut self, data: &'a [T])
+    pub fn produce_intermediate_mle<T: Sync>(&mut self, data: &'a [T])
     where
         &'a [T]: Into<DenseSequence<'a>>,
+        &'a T: Into<ArkScalar>,
     {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         self.commitment_descriptor
@@ -90,7 +93,7 @@ impl<'a> ProofBuilder<'a> {
     ) {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         let cast_data: &mut [[u64; 4]] = alloc.alloc_slice_fill_default(data.len());
-        slice_ops::slice_cast_mut_with(data, cast_data, |x| x.into_bigint().0);
+        slice_ops::slice_cast_mut(data, cast_data);
         self.commitment_descriptor
             .push(Sequence::Dense(cast_data[..].into()));
         self.produce_anchored_mle(data);
@@ -180,7 +183,7 @@ impl<'a> ProofBuilder<'a> {
             .iter()
             .zip(self.sumcheck_subpolynomials.iter())
         {
-            subpoly.compose(&mut builder, multiplier.to_ark_scalar());
+            subpoly.compose(&mut builder, *multiplier);
         }
         builder.make_composite_polynomial()
     }
@@ -198,7 +201,7 @@ impl<'a> ProofBuilder<'a> {
         for evaluator in self.pre_result_mles.iter() {
             res.push(evaluator.inner_product(evaluation_vec));
         }
-        res.iter().map(|s| s.into_scalar()).collect()
+        res
     }
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
@@ -213,8 +216,8 @@ impl<'a> ProofBuilder<'a> {
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
-            evaluator.mul_add(&mut res, &multiplier.to_ark_scalar());
+            evaluator.mul_add(&mut res, multiplier);
         }
-        res.iter().map(|s| s.into_scalar()).collect()
+        res
     }
 }

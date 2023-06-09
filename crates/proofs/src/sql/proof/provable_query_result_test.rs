@@ -5,6 +5,7 @@ use crate::base::polynomial::ArkScalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
+use num_traits::Zero;
 use std::sync::Arc;
 
 #[test]

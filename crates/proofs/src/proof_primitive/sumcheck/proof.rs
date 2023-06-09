@@ -4,7 +4,7 @@ use crate::base::polynomial::ArkScalar;
  *
  * See third_party/license/arkworks.LICENSE
  */
-use ark_std::vec::Vec;
+use std::vec::Vec;
 
 use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
 use crate::base::proof::{MessageLabel, ProofError, TranscriptProtocol};
@@ -38,9 +38,10 @@ impl SumcheckProof {
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
         for scalar in evaluation_point.iter_mut().take(polynomial.num_variables) {
             let round_evaluations = prove_round(&mut state, &r);
-            transcript.append_scalars(MessageLabel::SumcheckRoundEvaluation, &round_evaluations);
+            transcript
+                .append_ark_scalars(MessageLabel::SumcheckRoundEvaluation, &round_evaluations);
             evaluations.push(round_evaluations);
-            *scalar = transcript.challenge_scalar(MessageLabel::SumcheckChallenge);
+            *scalar = transcript.challenge_ark_scalar(MessageLabel::SumcheckChallenge);
             r = Some(*scalar);
         }
 
@@ -72,11 +73,11 @@ impl SumcheckProof {
         }
         let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
         for round_index in 0..polynomial_info.num_variables {
-            transcript.append_scalars(
+            transcript.append_ark_scalars(
                 MessageLabel::SumcheckRoundEvaluation,
                 &self.evaluations[round_index],
             );
-            evaluation_point.push(transcript.challenge_scalar(MessageLabel::SumcheckChallenge));
+            evaluation_point.push(transcript.challenge_ark_scalar(MessageLabel::SumcheckChallenge));
         }
         Subclaim::create(
             evaluation_point,
