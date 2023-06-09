@@ -37,3 +37,22 @@ fn test_mod() {
     let xp1 = x + one;
     assert_eq!(xp1, zero);
 }
+
+#[test]
+fn test_ark_scalar_serialization() {
+    let s = [
+        ArkScalar::from(1u8),
+        -ArkScalar::from(1u8),
+        ArkScalar::from(123),
+        ArkScalar::from(0),
+        ArkScalar::from(255),
+        ArkScalar::from(1234),
+        ArkScalar::from(12345),
+        ArkScalar::from(2357),
+        ArkScalar::from(999),
+        ArkScalar::from(123456789),
+    ];
+    let serialized = serde_json::to_string(&s).unwrap();
+    let deserialized: [ArkScalar; 10] = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(s, deserialized);
+}

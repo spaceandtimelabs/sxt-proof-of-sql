@@ -118,7 +118,7 @@ impl num_traits::Inv for ArkScalar {
 }
 impl Serialize for ArkScalar {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut bytes = vec![0u8; self.0.compressed_size()];
+        let mut bytes = Vec::with_capacity(self.0.compressed_size());
         self.0
             .serialize_compressed(&mut bytes)
             .map_err(serde::ser::Error::custom)?;
@@ -132,6 +132,7 @@ impl<'de> Deserialize<'de> for ArkScalar {
             .map(Self)
     }
 }
+
 impl core::ops::Neg for &ArkScalar {
     type Output = ArkScalar;
     fn neg(self) -> Self::Output {
