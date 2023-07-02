@@ -5,7 +5,7 @@ use super::{
 use crate::base::polynomial::{ArkScalar, CompositePolynomial};
 use crate::base::slice_ops;
 use blitzar::compute::compute_commitments;
-use blitzar::sequences::{DenseSequence, Sequence};
+use blitzar::sequence::Sequence;
 use bumpalo::Bump;
 use num_traits::Zero;
 
@@ -65,12 +65,11 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn produce_intermediate_mle<T: Sync>(&mut self, data: &'a [T])
     where
-        &'a [T]: Into<DenseSequence<'a>>,
+        &'a [T]: Into<Sequence<'a>>,
         &'a T: Into<ArkScalar>,
     {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
-        self.commitment_descriptor
-            .push(Sequence::Dense(data.into()));
+        self.commitment_descriptor.push(data.into());
         self.produce_anchored_mle(data);
     }
 
@@ -94,8 +93,7 @@ impl<'a> ProofBuilder<'a> {
         assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         let cast_data: &mut [[u64; 4]] = alloc.alloc_slice_fill_default(data.len());
         slice_ops::slice_cast_mut(data, cast_data);
-        self.commitment_descriptor
-            .push(Sequence::Dense(cast_data[..].into()));
+        self.commitment_descriptor.push(cast_data.into());
         self.produce_anchored_mle(data);
     }
 
