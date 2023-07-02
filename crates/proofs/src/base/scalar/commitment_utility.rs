@@ -14,7 +14,7 @@ pub fn compute_commitment_for_testing<T: Into<ArkScalar> + Clone + Sync>(
     offset_generators: usize,
 ) -> RistrettoPoint {
     let vals = iter_cast::<ArkScalar, [u64; 4]>(slice_cast_to_iter(vals));
-    let table = [&vals[..]; 1];
+    let table = [vals.as_slice().into()];
     let mut commitments = [CompressedRistretto::from_slice(&[0_u8; 32])];
     compute_commitments(&mut commitments, &table, offset_generators as u64);
     commitments[0].decompress().unwrap()
