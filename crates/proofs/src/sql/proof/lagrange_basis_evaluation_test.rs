@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use num_traits::Zero;
 use std::iter;
 

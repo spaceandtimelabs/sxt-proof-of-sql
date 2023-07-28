@@ -4,8 +4,8 @@ use super::{
 };
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::math::log2_up;
-use crate::base::polynomial::ArkScalar;
 use crate::base::scalar::compute_commitment_for_testing;
+use crate::base::scalar::ArkScalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;

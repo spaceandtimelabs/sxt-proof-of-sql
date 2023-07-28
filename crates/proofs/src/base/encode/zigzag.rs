@@ -1,5 +1,5 @@
 use crate::base::encode::U256;
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 /// A trait for enabling zig-zag encoding
 ///

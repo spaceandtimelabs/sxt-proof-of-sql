@@ -1,7 +1,7 @@
 use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
 use crate::base::database::{ColumnField, ColumnType};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use arrow::array::Int64Array;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;

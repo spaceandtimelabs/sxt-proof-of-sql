@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use ark_serialize::CanonicalSerialize;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;

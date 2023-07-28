@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 /// U256 represents an unsigned 256-bits integer number
 ///

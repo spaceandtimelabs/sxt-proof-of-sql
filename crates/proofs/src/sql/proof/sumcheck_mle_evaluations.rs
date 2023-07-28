@@ -2,7 +2,7 @@ use super::{
     compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
     SumcheckRandomScalars,
 };
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
 pub struct SumcheckMleEvaluations<'a> {

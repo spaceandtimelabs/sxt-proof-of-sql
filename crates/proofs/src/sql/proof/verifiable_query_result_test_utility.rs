@@ -6,7 +6,7 @@ use super::{
 use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use curve25519_dalek::traits::Identity;
 use num_traits::One;

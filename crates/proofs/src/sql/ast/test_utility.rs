@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::database::SchemaAccessor;
 use crate::base::database::{ColumnRef, TableRef, TestAccessor};
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 pub fn col(tab: TableRef, name: &str, accessor: &TestAccessor) -> ColumnRef {
     let name = name.parse().unwrap();

@@ -2,7 +2,8 @@ use super::{
     CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
-use crate::base::polynomial::{ArkScalar, CompositePolynomial};
+use crate::base::polynomial::CompositePolynomial;
+use crate::base::scalar::ArkScalar;
 use crate::base::slice_ops;
 use blitzar::compute::compute_commitments;
 use blitzar::sequence::Sequence;

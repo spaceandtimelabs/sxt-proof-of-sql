@@ -1,6 +1,6 @@
 use crate::base::encode::ZigZag;
 use crate::base::encode::U256;
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 #[test]
 fn small_scalars_are_encoded_as_positive_zigzag_values() {

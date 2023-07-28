@@ -5,7 +5,7 @@ use super::{
 };
 use crate::base::database::{ColumnField, ColumnType};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use arrow::array::{Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;

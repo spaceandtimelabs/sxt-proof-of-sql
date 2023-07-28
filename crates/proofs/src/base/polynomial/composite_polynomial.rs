@@ -10,7 +10,7 @@ use std::cmp::max;
 use std::rc::Rc;
 use std::vec::Vec;
 
-use super::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///

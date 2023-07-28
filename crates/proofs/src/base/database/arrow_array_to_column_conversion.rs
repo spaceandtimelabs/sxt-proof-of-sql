@@ -1,6 +1,6 @@
 use crate::base::database::Column;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use arrow::array::{Array, ArrayRef, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use bumpalo::Bump;
