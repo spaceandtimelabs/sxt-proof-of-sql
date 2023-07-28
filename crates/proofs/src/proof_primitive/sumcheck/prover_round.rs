@@ -3,7 +3,7 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use rayon::prelude::*;
 
 use crate::base::polynomial::DenseMultilinearExtension;

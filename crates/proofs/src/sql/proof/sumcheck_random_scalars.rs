@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 use super::{compute_evaluation_vector, ProofCounts};
 

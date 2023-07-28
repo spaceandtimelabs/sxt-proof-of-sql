@@ -1,6 +1,6 @@
 use super::{CompositePolynomialBuilder, MultilinearExtensionImpl};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use num_traits::One;
 
 #[test]

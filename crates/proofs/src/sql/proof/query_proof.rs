@@ -13,7 +13,7 @@ use crate::proof_primitive::sumcheck::SumcheckProof;
 use blitzar::proof::InnerProductProof;
 use num_traits::Zero;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
 use curve25519_dalek::ristretto::CompressedRistretto;

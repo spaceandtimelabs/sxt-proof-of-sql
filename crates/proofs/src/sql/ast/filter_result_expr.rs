@@ -1,5 +1,5 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
     DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,

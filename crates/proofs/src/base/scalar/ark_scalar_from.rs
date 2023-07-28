@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use num_traits::Zero;
 
 macro_rules! impl_from_for_ark_scalar_for_type_supported_by_from {

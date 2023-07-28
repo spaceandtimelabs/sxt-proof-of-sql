@@ -2,7 +2,7 @@ use crate::sql::proof::{ProofCounts, SumcheckRandomScalars};
 
 use super::SumcheckMleEvaluations;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use num_traits::One;
 
 #[test]

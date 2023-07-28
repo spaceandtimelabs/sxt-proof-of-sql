@@ -6,7 +6,7 @@
 use crate::proof_primitive::sumcheck::proof::*;
 use num_traits::{One, Zero};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use merlin::Transcript;
 use std::rc::Rc;
 

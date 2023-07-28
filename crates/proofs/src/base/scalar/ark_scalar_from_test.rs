@@ -1,4 +1,4 @@
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use byte_slice_cast::AsByteSlice;
 use num_traits::{One, Zero};
 use rand::{

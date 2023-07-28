@@ -1,6 +1,7 @@
 use super::{MultilinearExtension, MultilinearExtensionImpl};
 
-use crate::base::polynomial::{ArkScalar, CompositePolynomial, DenseMultilinearExtension};
+use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
+use crate::base::scalar::ArkScalar;
 use num_traits::{One, Zero};
 use std::collections::HashMap;
 use std::ffi::c_void;

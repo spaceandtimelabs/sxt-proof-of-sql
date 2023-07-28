@@ -1,7 +1,7 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
 use std::collections::HashSet;

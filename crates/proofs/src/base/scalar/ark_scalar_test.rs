@@ -1,4 +1,4 @@
-use crate::base::polynomial::ark_scalar::*;
+use crate::base::scalar::ark_scalar::*;
 use ark_ff::BigInt;
 
 #[test]

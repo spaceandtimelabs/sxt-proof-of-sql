@@ -1,4 +1,5 @@
-use crate::base::polynomial::{ArkScalar, DenseMultilinearExtension};
+use crate::base::polynomial::DenseMultilinearExtension;
+use crate::base::scalar::ArkScalar;
 use crate::base::slice_ops;
 use num_traits::Zero;
 use rayon::iter::*;

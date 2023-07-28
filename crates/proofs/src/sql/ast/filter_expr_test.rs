@@ -7,7 +7,7 @@ use crate::sql::ast::{AndExpr, NotExpr, OrExpr};
 use crate::sql::proof::ProofExpr;
 use proofs_sql::{Identifier, ResourceId};
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use arrow::datatypes::Field;
 use arrow::datatypes::Schema;
 use std::collections::HashSet;

@@ -1,6 +1,6 @@
 use super::compute_evaluation_vector;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use crate::base::slice_ops;
 use ark_poly::MultilinearExtension;
 use num_traits::{One, Zero};
