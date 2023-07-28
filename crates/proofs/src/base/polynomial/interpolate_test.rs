@@ -4,7 +4,7 @@
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::polynomial::interpolate::*;
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use num_traits::Zero;
 
 #[test]

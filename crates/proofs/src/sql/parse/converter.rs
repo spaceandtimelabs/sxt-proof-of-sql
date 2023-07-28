@@ -6,7 +6,7 @@ use crate::sql::ast::{
 use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr, ResultExprBuilder};
 use crate::sql::transform::ResultExpr;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use proofs_sql::intermediate_ast::{
     AggExpr, Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression,
     TableExpression,

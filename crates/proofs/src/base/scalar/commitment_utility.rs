@@ -1,5 +1,5 @@
 use crate::base::{
-    polynomial::ArkScalar,
+    scalar::ArkScalar,
     slice_ops::{iter_cast, slice_cast_to_iter},
 };
 use blitzar::compute::compute_commitments;

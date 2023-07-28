@@ -4,8 +4,8 @@ use super::{
 };
 
 use crate::base::database::{ColumnField, ColumnType};
-use crate::base::polynomial::{ArkScalar, CompositePolynomial};
-use crate::base::scalar::compute_commitment_for_testing;
+use crate::base::polynomial::CompositePolynomial;
+use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
 use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
 use num_traits::{One, Zero};
 

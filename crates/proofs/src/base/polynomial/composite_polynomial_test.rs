@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 
 use super::CompositePolynomial;
 

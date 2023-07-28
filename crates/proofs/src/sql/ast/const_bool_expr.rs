@@ -1,5 +1,5 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::polynomial::ArkScalar;
+use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
 
