@@ -1,6 +1,7 @@
 use super::{
-    compute_evaluation_vector, ProofBuilder, ProofCounts, ProofExpr, ProvableQueryResult,
-    QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr, VerificationBuilder,
+    compute_evaluation_vector, CountBuilder, ProofBuilder, ProofCounts, ProofExpr,
+    ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr,
+    VerificationBuilder,
 };
 
 use crate::base::slice_ops;
@@ -13,12 +14,14 @@ use crate::proof_primitive::sumcheck::SumcheckProof;
 use blitzar::proof::InnerProductProof;
 use num_traits::Zero;
 
+use crate::base::math::log2_up;
 use crate::base::scalar::ArkScalar;
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
+use std::cmp;
 
 /// The proof for a query.
 ///
@@ -35,22 +38,20 @@ pub struct QueryProof {
 
 impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
-    pub fn new(
-        expr: &impl ProofExpr,
-        accessor: &dyn DataAccessor,
-        counts: &ProofCounts,
-    ) -> (Self, ProvableQueryResult) {
-        assert!(counts.sumcheck_variables > 0);
+    pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> (Self, ProvableQueryResult) {
+        let table_length = expr.get_length(accessor);
+        let generator_offset = expr.get_offset(accessor);
+        let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
+        assert!(num_sumcheck_variables > 0);
+
         let alloc = Bump::new();
 
-        counts.annotate_trace();
-
         // pass over provable AST to fill in the proof builder
-        let mut builder = ProofBuilder::new(counts);
-        expr.prover_evaluate(&mut builder, &alloc, counts, accessor);
+        let mut builder = ProofBuilder::new(table_length, num_sumcheck_variables);
+        expr.prover_evaluate(&mut builder, &alloc, accessor);
 
         // commit to any intermediate MLEs
-        let commitments = builder.commit_intermediate_mles(counts.offset_generators);
+        let commitments = builder.commit_intermediate_mles(generator_offset);
 
         // compute the query's result
         let provable_result = builder.make_provable_query_result();
@@ -63,17 +64,21 @@ impl QueryProof {
         );
 
         // construct the sumcheck polynomial
-        let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
+        let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
+        let mut random_scalars = vec![Zero::zero(); num_random_scalars];
         transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
-        let poly =
-            builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(counts, &random_scalars));
+        let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
+            &random_scalars,
+            table_length,
+            num_sumcheck_variables,
+        ));
 
         // create the sumcheck proof -- this is the main part of proving a query
         let mut evaluation_point = vec![Zero::zero(); poly.num_variables];
         let sumcheck_proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Zero::zero(); counts.table_length];
+        let mut evaluation_vec = vec![Zero::zero(); table_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
         let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
 
@@ -97,7 +102,7 @@ impl QueryProof {
             &mut transcript,
             &slice_ops::slice_cast(&folded_mle),
             &slice_ops::slice_cast(&evaluation_vec),
-            counts.offset_generators as u64,
+            generator_offset as u64,
         );
 
         let proof = Self {
@@ -119,13 +124,22 @@ impl QueryProof {
         &self,
         expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
-        counts: &ProofCounts,
         result: &ProvableQueryResult,
     ) -> Result<QueryResult, ProofError> {
-        assert!(counts.sumcheck_variables > 0);
+        let table_length = expr.get_length(accessor);
+        let generator_offset = expr.get_offset(accessor);
+        let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
+        assert!(num_sumcheck_variables > 0);
+
+        // count terms
+        let counts = {
+            let mut builder = CountBuilder::new();
+            expr.count(&mut builder, accessor)?;
+            builder.counts()
+        }?;
 
         // verify sizes
-        if !self.validate_sizes(counts, result) {
+        if !self.validate_sizes(&counts, result) {
             return Err(ProofError::VerificationError("invalid proof size"));
         }
 
@@ -145,14 +159,16 @@ impl QueryProof {
         let mut transcript = make_transcript(&self.commitments, &result.indexes, &result.data);
 
         // draw the random scalars for sumcheck
-        let mut random_scalars = vec![Zero::zero(); SumcheckRandomScalars::count(counts)];
+        let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
+        let mut random_scalars = vec![Zero::zero(); num_random_scalars];
         transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
-        let sumcheck_random_scalars = SumcheckRandomScalars::new(counts, &random_scalars);
+        let sumcheck_random_scalars =
+            SumcheckRandomScalars::new(&random_scalars, table_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
             max_multiplicands: counts.sumcheck_max_multiplicands,
-            num_variables: counts.sumcheck_variables,
+            num_variables: num_sumcheck_variables,
         };
         let subclaim = self.sumcheck_proof.verify_without_evaluation(
             &mut transcript,
@@ -160,7 +176,7 @@ impl QueryProof {
             &Zero::zero(),
         )?;
         // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Zero::zero(); counts.table_length];
+        let mut evaluation_vec = vec![Zero::zero(); table_length];
         compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
@@ -192,19 +208,20 @@ impl QueryProof {
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
-            counts.table_length,
+            table_length,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pre_result_mle_evaluations,
             &result_evaluations,
         );
         let mut builder = VerificationBuilder::new(
+            generator_offset,
             sumcheck_evaluations,
             &commitments,
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
         );
-        expr.verifier_evaluate(&mut builder, counts, accessor);
+        expr.verifier_evaluate(&mut builder, accessor);
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
@@ -222,7 +239,7 @@ impl QueryProof {
                 &expected_commit,
                 &product.into(),
                 &slice_ops::slice_cast(&evaluation_vec),
-                counts.offset_generators as u64,
+                generator_offset as u64,
             )
             .map_err(|_e| {
                 ProofError::VerificationError("Inner product proof of MLE evaluations failed")

@@ -10,7 +10,6 @@ use std::sync::Arc;
 #[test]
 fn we_can_verify_queries_on_an_empty_table() {
     let counts = ProofCounts {
-        sumcheck_variables: 0,
         result_columns: 1,
         ..Default::default()
     };
@@ -31,7 +30,6 @@ fn we_can_verify_queries_on_an_empty_table() {
 #[test]
 fn empty_verification_fails_if_the_result_contains_non_null_members() {
     let counts = ProofCounts {
-        sumcheck_variables: 0,
         result_columns: 1,
         ..Default::default()
     };
@@ -45,35 +43,4 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
     assert!(res.verify(&expr, &accessor).is_err());
-}
-
-#[test]
-#[should_panic]
-fn prove_panics_if_the_expr_has_no_result_columns() {
-    let counts = ProofCounts {
-        result_columns: 0,
-        ..Default::default()
-    };
-    let expr = TestQueryExpr {
-        counts,
-        ..Default::default()
-    };
-    let accessor = TestAccessor::new();
-    let _res = VerifiableQueryResult::new(&expr, &accessor);
-}
-
-#[test]
-#[should_panic]
-fn verify_panics_if_the_expr_has_no_result_columns() {
-    let counts = ProofCounts {
-        result_columns: 0,
-        ..Default::default()
-    };
-    let expr = TestQueryExpr {
-        counts,
-        ..Default::default()
-    };
-    let accessor = TestAccessor::new();
-    let res: VerifiableQueryResult = Default::default();
-    let _res = res.verify(&expr, &accessor);
 }

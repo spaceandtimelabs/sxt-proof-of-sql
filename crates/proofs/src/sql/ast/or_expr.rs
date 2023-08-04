@@ -1,14 +1,16 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
-    MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
+    CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
+    VerificationBuilder,
 };
 use num_traits::One;
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
-use std::cmp::max;
+
 use std::collections::HashSet;
 
 /// Provable logical OR expression
@@ -26,13 +28,13 @@ impl OrExpr {
 }
 
 impl BoolExpr for OrExpr {
-    fn count(&self, counts: &mut ProofCounts) {
-        self.lhs.count(counts);
-        self.rhs.count(counts);
-
-        counts.sumcheck_subpolynomials += 1;
-        counts.intermediate_mles += 1;
-        counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        self.lhs.count(builder)?;
+        self.rhs.count(builder)?;
+        builder.count_subpolynomials(1);
+        builder.count_intermediate_mles(1);
+        builder.count_degree(3);
+        Ok(())
     }
 
     #[tracing::instrument(
@@ -44,11 +46,10 @@ impl BoolExpr for OrExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let lhs = self.lhs.prover_evaluate(builder, alloc, counts, accessor);
-        let rhs = self.rhs.prover_evaluate(builder, alloc, counts, accessor);
+        let lhs = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs = self.rhs.prover_evaluate(builder, alloc, accessor);
         let n = lhs.len();
         assert_eq!(n, rhs.len());
 
@@ -78,11 +79,10 @@ impl BoolExpr for OrExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
-        let lhs = self.lhs.verifier_evaluate(builder, counts, accessor);
-        let rhs = self.rhs.verifier_evaluate(builder, counts, accessor);
+        let lhs = self.lhs.verifier_evaluate(builder, accessor);
+        let rhs = self.rhs.verifier_evaluate(builder, accessor);
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.consume_intermediate_mle();

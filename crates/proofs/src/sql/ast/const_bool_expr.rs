@@ -1,7 +1,8 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
-use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
+use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
@@ -32,7 +33,9 @@ impl ConstBoolExpr {
 }
 
 impl BoolExpr for ConstBoolExpr {
-    fn count(&self, _counts: &mut ProofCounts) {}
+    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
+        Ok(())
+    }
 
     #[tracing::instrument(
         name = "proofs.sql.ast.const_bool_expr.prover_evaluate",
@@ -41,18 +44,16 @@ impl BoolExpr for ConstBoolExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        _builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        alloc.alloc_slice_fill_copy(counts.table_length, self.value)
+        alloc.alloc_slice_fill_copy(builder.table_length(), self.value)
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
         _accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
         if self.value {

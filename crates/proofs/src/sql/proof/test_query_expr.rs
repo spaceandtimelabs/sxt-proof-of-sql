@@ -1,57 +1,73 @@
-use super::{ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder};
+use super::{
+    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder,
+};
 use std::collections::HashSet;
 
 use crate::base::database::{
     ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
 };
+use crate::base::proof::ProofError;
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use std::fmt;
 use std::fmt::Debug;
 
-type ProveFn = Box<
-    dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &ProofCounts, &'a dyn DataAccessor)
-        + Send
-        + Sync,
->;
+type ProveFn =
+    Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;
 
-type VerifyFn =
-    Box<dyn Fn(&mut VerificationBuilder, &ProofCounts, &dyn CommitmentAccessor) + Send + Sync>;
+type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor) + Send + Sync>;
 
 /// A query expression that can mock desired behavior for testing
 #[derive(Default, DynPartialEq)]
 pub struct TestQueryExpr {
+    pub table_length: usize,
+    pub offset_generators: usize,
     pub counts: ProofCounts,
     pub prover_fn: Option<ProveFn>,
     pub verifier_fn: Option<VerifyFn>,
 }
 
 impl ProofExpr for TestQueryExpr {
-    fn count(&self, counts: &mut ProofCounts, _accessor: &dyn MetadataAccessor) {
-        *counts = self.counts;
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        _accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
+        builder.count_degree(self.counts.sumcheck_max_multiplicands);
+        builder.count_result_columns(self.counts.result_columns);
+        builder.count_anchored_mles(self.counts.anchored_mles);
+        builder.count_intermediate_mles(self.counts.intermediate_mles);
+        builder.count_subpolynomials(self.counts.sumcheck_subpolynomials);
+        Ok(())
+    }
+
+    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
+        self.table_length
+    }
+
+    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
+        self.offset_generators
     }
 
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) {
         if let Some(f) = &self.prover_fn {
-            f(builder, alloc, counts, accessor);
+            f(builder, alloc, accessor);
         }
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
         if let Some(f) = &self.verifier_fn {
-            f(builder, counts, accessor);
+            f(builder, accessor);
         }
     }
 

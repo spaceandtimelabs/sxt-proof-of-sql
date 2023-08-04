@@ -1,6 +1,7 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
+use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
 
+use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
@@ -11,7 +12,7 @@ use std::fmt::Debug;
 #[dyn_partial_eq]
 pub trait BoolExpr: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
-    fn count(&self, counts: &mut ProofCounts);
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of boolean values
@@ -19,7 +20,6 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool];
 
@@ -29,7 +29,6 @@ pub trait BoolExpr: Debug + Send + Sync {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar;
 

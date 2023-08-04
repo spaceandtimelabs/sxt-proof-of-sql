@@ -1,13 +1,11 @@
 use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::scalar::ArkScalar;
-use crate::sql::proof::EncodeProvableResultElement;
 use crate::sql::proof::{
-    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,
-    SumcheckSubpolynomial, VerificationBuilder,
+    CountBuilder, DenseProvableResultColumn, EncodeProvableResultElement, MultilinearExtensionImpl,
+    ProofBuilder, SumcheckSubpolynomial, VerificationBuilder,
 };
 use bumpalo::Bump;
 use num_traits::One;
-use std::cmp::max;
 
 /// Provable expression for a result column within a filter SQL expression
 ///
@@ -34,11 +32,11 @@ impl FilterResultExpr {
     }
 
     /// Count the number of proof terms needed by this expression
-    pub fn count(&self, counts: &mut ProofCounts) {
-        counts.result_columns += 1;
-        counts.sumcheck_subpolynomials += 1;
-        counts.anchored_mles += 1;
-        counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
+    pub fn count(&self, builder: &mut CountBuilder) {
+        builder.count_result_columns(1);
+        builder.count_subpolynomials(1);
+        builder.count_anchored_mles(1);
+        builder.count_degree(3);
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
@@ -47,16 +45,13 @@ impl FilterResultExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
-            Column::BigInt(col) => {
-                prover_evaluate_impl(builder, alloc, counts, selection, col, col)
-            }
+            Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col, col),
             Column::HashedBytes((col, scals)) => {
-                prover_evaluate_impl(builder, alloc, counts, selection, col, scals)
+                prover_evaluate_impl(builder, alloc, selection, col, scals)
             }
         };
     }
@@ -66,7 +61,6 @@ impl FilterResultExpr {
     pub fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
         selection_eval: &ArkScalar,
     ) {
@@ -84,7 +78,6 @@ impl FilterResultExpr {
 fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: Clone + Default + Sync>(
     builder: &mut ProofBuilder<'a>,
     alloc: &'a Bump,
-    counts: &ProofCounts,
     selection: &'a [bool],
     col_data: &'a [T],
     col_scalars: &'a [S],
@@ -97,7 +90,7 @@ fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: Clone + Default +
     builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col_data)));
 
     // make a column of selected result values only
-    let selected_vals = alloc.alloc_slice_fill_with(counts.table_length, |i| {
+    let selected_vals = alloc.alloc_slice_fill_with(builder.table_length(), |i| {
         if selection[i] {
             col_scalars[i].clone()
         } else {

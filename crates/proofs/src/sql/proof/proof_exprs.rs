@@ -1,6 +1,8 @@
-use super::{ProofBuilder, ProofCounts, VerificationBuilder};
-use crate::base::database::{ColumnField, ColumnRef};
-use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
+use super::{CountBuilder, ProofBuilder, VerificationBuilder};
+use crate::base::database::{
+    ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+};
+use crate::base::proof::ProofError;
 
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -11,7 +13,19 @@ use std::fmt::Debug;
 #[dyn_partial_eq]
 pub trait ProofExpr: Debug + Send + Sync {
     /// Count terms used within the Query's proof
-    fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor);
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError>;
+
+    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
+
+    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
+
+    fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
+        self.get_length(accessor) == 0
+    }
 
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
@@ -23,7 +37,6 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     );
 
@@ -31,7 +44,6 @@ pub trait ProofExpr: Debug + Send + Sync {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     );
 
