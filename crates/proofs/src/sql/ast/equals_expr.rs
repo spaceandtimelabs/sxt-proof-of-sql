@@ -1,9 +1,11 @@
 use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use crate::base::slice_ops;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
-    MultilinearExtensionImpl, ProofBuilder, ProofCounts, SumcheckSubpolynomial, VerificationBuilder,
+    CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
+    VerificationBuilder,
 };
 
 use blitzar::compute::get_one_commit;
@@ -11,7 +13,7 @@ use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
-use std::cmp::max;
+
 use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
@@ -36,15 +38,16 @@ impl EqualsExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         col: &'a [T],
     ) -> &'a [bool]
     where
         &'a T: Into<ArkScalar>,
         &'a ArkScalar: Into<ArkScalar>,
     {
+        let table_length = builder.table_length();
+
         // lhs
-        let lhs = alloc.alloc_slice_fill_default(counts.table_length);
+        let lhs = alloc.alloc_slice_fill_default(table_length);
         lhs.par_iter_mut()
             .zip(col)
             .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
@@ -58,11 +61,11 @@ impl EqualsExpr {
 
         // selection_not
         let selection_not =
-            alloc.alloc_slice_fill_with(counts.table_length, |i| lhs[i] != ArkScalar::zero());
+            alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != ArkScalar::zero());
         builder.produce_intermediate_mle(selection_not);
 
         // selection
-        let selection = alloc.alloc_slice_fill_with(counts.table_length, |i| !selection_not[i]);
+        let selection = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
 
         // subpolynomial: selection * lhs
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
@@ -93,11 +96,12 @@ impl EqualsExpr {
 }
 
 impl BoolExpr for EqualsExpr {
-    fn count(&self, counts: &mut ProofCounts) {
-        counts.sumcheck_subpolynomials += 2;
-        counts.anchored_mles += 1;
-        counts.intermediate_mles += 2;
-        counts.sumcheck_max_multiplicands = max(counts.sumcheck_max_multiplicands, 3);
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        builder.count_subpolynomials(2);
+        builder.count_anchored_mles(1);
+        builder.count_intermediate_mles(2);
+        builder.count_degree(3);
+        Ok(())
     }
 
     #[tracing::instrument(
@@ -109,25 +113,23 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
-            Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, counts, col),
-            Column::HashedBytes((_, scals)) => {
-                self.prover_evaluate_impl(builder, alloc, counts, scals)
-            }
+            Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
+            Column::HashedBytes((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
         }
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
-        let one_commit = get_one_commit((counts.table_length + counts.offset_generators) as u64)
-            - get_one_commit(counts.offset_generators as u64);
+        let table_length = builder.table_length();
+        let generator_offset = builder.generator_offset();
+        let one_commit = get_one_commit((table_length + generator_offset) as u64)
+            - get_one_commit(generator_offset as u64);
 
         // lhs_commit
         let lhs_commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;

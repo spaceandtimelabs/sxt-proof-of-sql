@@ -85,16 +85,15 @@ fn tamper_no_result(
     // add a proof
     let mut res_p = res.clone();
     let counts = ProofCounts {
-        table_length: 1,
-        sumcheck_variables: 1,
         ..Default::default()
     };
     let expr_p = TestQueryExpr {
+        table_length: 1,
         counts,
         ..Default::default()
     };
     let accessor_p = TestAccessor::new();
-    let (proof, _result) = QueryProof::new(&expr_p, &accessor_p, &counts);
+    let (proof, _result) = QueryProof::new(&expr_p, &accessor_p);
     res_p.proof = Some(proof);
     assert!(res_p.verify(expr, accessor).is_err());
 }

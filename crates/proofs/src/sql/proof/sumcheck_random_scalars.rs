@@ -1,6 +1,6 @@
 use crate::base::scalar::ArkScalar;
 
-use super::{compute_evaluation_vector, ProofCounts};
+use super::compute_evaluation_vector;
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
 pub struct SumcheckRandomScalars<'a> {
@@ -10,14 +10,16 @@ pub struct SumcheckRandomScalars<'a> {
 }
 
 impl<'a> SumcheckRandomScalars<'a> {
-    pub fn new(counts: &ProofCounts, scalars: &'a [ArkScalar]) -> Self {
-        assert_eq!(scalars.len(), SumcheckRandomScalars::count(counts));
-        let (entrywise_point, subpolynomial_multipliers) =
-            scalars.split_at(counts.sumcheck_variables);
+    pub fn new(
+        scalars: &'a [ArkScalar],
+        table_length: usize,
+        num_sumcheck_variables: usize,
+    ) -> Self {
+        let (entrywise_point, subpolynomial_multipliers) = scalars.split_at(num_sumcheck_variables);
         Self {
             entrywise_point,
             subpolynomial_multipliers,
-            table_length: counts.table_length,
+            table_length,
         }
     }
 
@@ -25,10 +27,5 @@ impl<'a> SumcheckRandomScalars<'a> {
         let mut v = vec![Default::default(); self.table_length];
         compute_evaluation_vector(&mut v, self.entrywise_point);
         v
-    }
-
-    /// Count the number of random scalars required for sumcheck
-    pub fn count(counts: &ProofCounts) -> usize {
-        counts.sumcheck_variables + counts.sumcheck_subpolynomials
     }
 }

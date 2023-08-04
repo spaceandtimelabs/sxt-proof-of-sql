@@ -1,5 +1,5 @@
 use super::{
-    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofCounts,
+    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::polynomial::CompositePolynomial;
@@ -13,7 +13,6 @@ use num_traits::Zero;
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 
 /// Track components used to form a query's proof
-#[allow(dead_code)]
 pub struct ProofBuilder<'a> {
     table_length: usize,
     num_sumcheck_variables: usize,
@@ -26,16 +25,28 @@ pub struct ProofBuilder<'a> {
 
 impl<'a> ProofBuilder<'a> {
     #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
-    pub fn new(counts: &ProofCounts) -> Self {
+    pub fn new(table_length: usize, num_sumcheck_variables: usize) -> Self {
         Self {
-            table_length: counts.table_length,
-            num_sumcheck_variables: counts.sumcheck_variables,
+            table_length,
+            num_sumcheck_variables,
             result_index_vector: &[],
-            result_columns: Vec::with_capacity(counts.result_columns),
-            commitment_descriptor: Vec::with_capacity(counts.intermediate_mles),
-            pre_result_mles: Vec::with_capacity(counts.anchored_mles + counts.intermediate_mles),
-            sumcheck_subpolynomials: Vec::with_capacity(counts.sumcheck_subpolynomials),
+            result_columns: Vec::new(),
+            commitment_descriptor: Vec::new(),
+            pre_result_mles: Vec::new(),
+            sumcheck_subpolynomials: Vec::new(),
         }
+    }
+
+    pub fn table_length(&self) -> usize {
+        self.table_length
+    }
+
+    pub fn num_sumcheck_subpolynomials(&self) -> usize {
+        self.sumcheck_subpolynomials.len()
+    }
+
+    pub fn num_result_columns(&self) -> usize {
+        self.result_columns.len()
     }
 
     /// Produce an anchored MLE that we can reference in sumcheck.
@@ -50,7 +61,6 @@ impl<'a> ProofBuilder<'a> {
     where
         &'a T: Into<ArkScalar>,
     {
-        assert!(self.pre_result_mles.len() < self.pre_result_mles.capacity());
         self.pre_result_mles
             .push(Box::new(MultilinearExtensionImpl::new(data)));
     }
@@ -69,7 +79,6 @@ impl<'a> ProofBuilder<'a> {
         &'a [T]: Into<Sequence<'a>>,
         &'a T: Into<ArkScalar>,
     {
-        assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         self.commitment_descriptor.push(data.into());
         self.produce_anchored_mle(data);
     }
@@ -91,7 +100,6 @@ impl<'a> ProofBuilder<'a> {
         data: &'a [ArkScalar],
         alloc: &'a Bump,
     ) {
-        assert!(self.commitment_descriptor.len() < self.commitment_descriptor.capacity());
         let cast_data: &mut [[u64; 4]] = alloc.alloc_slice_fill_default(data.len());
         slice_ops::slice_cast_mut(data, cast_data);
         self.commitment_descriptor.push(cast_data.into());
@@ -106,7 +114,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn produce_sumcheck_subpolynomial(&mut self, group: SumcheckSubpolynomial<'a>) {
-        assert!(self.sumcheck_subpolynomials.len() < self.sumcheck_subpolynomials.capacity());
         self.sumcheck_subpolynomials.push(group);
     }
 
@@ -127,7 +134,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn produce_result_column(&mut self, col: Box<dyn ProvableResultColumn + 'a>) {
-        assert!(self.result_columns.len() < self.result_columns.capacity());
         self.result_columns.push(col);
     }
 
@@ -138,10 +144,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn commit_intermediate_mles(&self, offset_generators: usize) -> Vec<CompressedRistretto> {
-        assert_eq!(
-            self.commitment_descriptor.len(),
-            self.commitment_descriptor.capacity()
-        );
         let mut res = vec![CompressedRistretto::identity(); self.commitment_descriptor.len()];
         compute_commitments(
             &mut res,
@@ -169,10 +171,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn make_sumcheck_polynomial(&self, scalars: &SumcheckRandomScalars) -> CompositePolynomial {
-        assert_eq!(
-            self.sumcheck_subpolynomials.len(),
-            self.sumcheck_subpolynomials.capacity()
-        );
         let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,
             &scalars.compute_entrywise_multipliers(),
@@ -195,7 +193,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[ArkScalar]) -> Vec<ArkScalar> {
-        assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         let mut res = Vec::with_capacity(self.pre_result_mles.len());
         for evaluator in self.pre_result_mles.iter() {
             res.push(evaluator.inner_product(evaluation_vec));
@@ -211,7 +208,6 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn fold_pre_result_mles(&self, multipliers: &[ArkScalar]) -> Vec<ArkScalar> {
-        assert_eq!(self.pre_result_mles.len(), self.pre_result_mles.capacity());
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {

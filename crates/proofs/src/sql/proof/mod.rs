@@ -3,6 +3,9 @@ pub use evaluation_vector::compute_evaluation_vector;
 #[cfg(test)]
 mod evaluation_vector_test;
 
+mod count_builder;
+pub use count_builder::CountBuilder;
+
 mod index_utility;
 pub use index_utility::are_indexes_valid;
 #[cfg(test)]
