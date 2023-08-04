@@ -1,6 +1,6 @@
 use super::{
-    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts,
-    SumcheckRandomScalars, SumcheckSubpolynomial,
+    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, SumcheckRandomScalars,
+    SumcheckSubpolynomial,
 };
 
 use crate::base::database::{ColumnField, ColumnType};
@@ -16,15 +16,9 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
-    let counts = ProofCounts {
-        sumcheck_variables: 1,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        ..Default::default()
-    };
     let mle1 = [1, 2];
     let mle2 = [10u32, 20];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(2, 1);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let offset_generators = 0_usize;
@@ -37,15 +31,9 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
-    let counts = ProofCounts {
-        sumcheck_variables: 1,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        ..Default::default()
-    };
     let mle1 = [1, 2];
     let mle2 = [10u32, 20];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(2, 1);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let offset_generators = 123_usize;
@@ -58,15 +46,9 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_evaluate_pre_result_mles() {
-    let counts = ProofCounts {
-        sumcheck_variables: 1,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        ..Default::default()
-    };
     let mle1 = [1, 2];
     let mle2 = [10u32, 20];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(2, 1);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let evaluation_vec = [ArkScalar::from(100u64), ArkScalar::from(10u64)];
@@ -77,17 +59,9 @@ fn we_can_evaluate_pre_result_mles() {
 
 #[test]
 fn we_can_form_an_aggregated_sumcheck_polynomial() {
-    let counts = ProofCounts {
-        sumcheck_variables: 2,
-        sumcheck_subpolynomials: 2,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        table_length: 4,
-        ..Default::default()
-    };
     let mle1 = [1, 2, -1];
     let mle2 = [10u32, 20, 100, 30];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(4, 2);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
 
@@ -110,7 +84,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let mut evaluation_vector = vec![Zero::zero(); 4];
     compute_evaluation_vector(&mut evaluation_vector, &multipliers[..2]);
 
-    let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&counts, &multipliers));
+    let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&multipliers, 4, 2));
     let mut expected_poly = CompositePolynomial::new(2);
     let fr = MultilinearExtensionImpl::new(&evaluation_vector).to_sumcheck_term(2);
     expected_poly.add_product(
@@ -132,23 +106,17 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 
 #[test]
 fn we_can_form_the_provable_query_result() {
-    let counts = ProofCounts {
-        sumcheck_variables: 2,
-        result_columns: 2,
-        ..Default::default()
-    };
     let result_indexes = [1, 2];
     let col1 = [10, 11, 12];
     let col2 = [-2, -3, -4];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(3, 2);
     builder.set_result_indexes(&result_indexes);
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
 
     let res = builder.make_provable_query_result();
 
-    let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); counts.result_columns];
+    let column_fields = vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); 2];
     let res = res.into_query_result(&column_fields).unwrap();
     let column_fields = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
@@ -166,16 +134,9 @@ fn we_can_form_the_provable_query_result() {
 
 #[test]
 fn we_can_fold_pre_result_mles() {
-    let counts = ProofCounts {
-        sumcheck_variables: 1,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        table_length: 2,
-        ..Default::default()
-    };
     let mle1 = [1, 2];
     let mle2 = [10u32, 20];
-    let mut builder = ProofBuilder::new(&counts);
+    let mut builder = ProofBuilder::new(2, 1);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
     let multipliers = [ArkScalar::from(100u64), ArkScalar::from(2u64)];

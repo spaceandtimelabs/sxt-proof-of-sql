@@ -6,6 +6,8 @@ use crate::base::scalar::ArkScalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
 pub struct SumcheckMleEvaluations<'a> {
+    pub table_length: usize,
+    pub num_sumcheck_variables: usize,
     /// The evaluation of an MLE {x_i} where
     ///     x_i = 1, if i < table_length;
     ///         = 0, otherwise
@@ -46,6 +48,8 @@ impl<'a> SumcheckMleEvaluations<'a> {
         let one_evaluation = compute_truncated_lagrange_basis_sum(table_length, evaluation_point);
 
         Self {
+            table_length,
+            num_sumcheck_variables: evaluation_point.len(),
             one_evaluation,
             random_evaluation,
             pre_result_evaluations,

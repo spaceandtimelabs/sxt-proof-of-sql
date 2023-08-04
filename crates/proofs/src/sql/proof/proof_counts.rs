@@ -3,9 +3,6 @@ use std::fmt::Debug;
 /// Counters for different terms used within a proof
 #[derive(Default, Debug, Clone, Copy)]
 pub struct ProofCounts {
-    pub table_length: usize,
-    pub offset_generators: usize,
-    pub sumcheck_variables: usize,
     pub sumcheck_max_multiplicands: usize,
     pub result_columns: usize,
     pub anchored_mles: usize,
@@ -20,8 +17,6 @@ impl ProofCounts {
         skip_all
     )]
     pub fn annotate_trace(&self) {
-        tracing::info!("table_length = {:?}", self.table_length);
-        tracing::info!("sumcheck_variables = {:?}", self.sumcheck_variables);
         tracing::info!(
             "sumcheck_max_multiplicands = {:?}",
             self.sumcheck_max_multiplicands

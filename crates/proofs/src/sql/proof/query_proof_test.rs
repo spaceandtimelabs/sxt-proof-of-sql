@@ -2,8 +2,8 @@ use super::{
     DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts, ProofExpr,
     QueryProof, SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
+
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
-use crate::base::math::log2_up;
 use crate::base::scalar::compute_commitment_for_testing;
 use crate::base::scalar::ArkScalar;
 use arrow::array::Int64Array;
@@ -15,13 +15,9 @@ use num_traits::{One, Zero};
 use std::sync::Arc;
 
 fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {
-    let num_sumcheck_variables = std::cmp::max(log2_up(n), 1);
     // prove and verify an artificial polynomial where we prove
     // that every entry in the result is zero
     let counts = ProofCounts {
-        table_length: n,
-        offset_generators,
-        sumcheck_variables: num_sumcheck_variables,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -30,10 +26,9 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
-        let col = alloc.alloc_slice_fill_copy(counts.table_length, 0i64);
+        let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
@@ -42,25 +37,20 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
             vec![Box::new(MultilinearExtensionImpl::new(col))],
         )]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
     let expr = TestQueryExpr {
+        table_length: n,
+        offset_generators,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    let result = proof
-        .verify(&expr, &accessor, &counts, &result)
-        .unwrap()
-        .unwrap();
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
     let column_fields = expr
         .get_column_result_fields()
         .iter()
@@ -90,8 +80,6 @@ fn we_can_verify_a_trivial_query_proof_with_a_non_zero_offset() {
 fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     // set up a proof for an artificial polynomial that doesn't sum to zero
     let counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -100,7 +88,6 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
@@ -112,22 +99,20 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
             vec![Box::new(MultilinearExtensionImpl::new(col))],
         )]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -135,8 +120,6 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     // set up a proof for an artificial polynomial and specify an evaluation that won't
     // match the evaluation from sumcheck
     let counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -145,7 +128,6 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -157,23 +139,21 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
             vec![Box::new(MultilinearExtensionImpl::new(col))],
         )]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         // specify an arbitrary evaluation so that verify fails
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::from(123u64));
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -181,8 +161,6 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     // prove and try to verify an artificial polynomial where we prove
     // that every entry in the result is zero
     let counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -191,7 +169,6 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -203,23 +180,21 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
             vec![Box::new(MultilinearExtensionImpl::new(col))],
         )]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, mut result) = QueryProof::new(&expr, &accessor, &counts);
+    let (proof, mut result) = QueryProof::new(&expr, &accessor);
     result.indexes.pop();
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -227,8 +202,6 @@ fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
     let mut counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 2,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -237,7 +210,6 @@ fn verify_fails_if_counts_dont_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
@@ -249,23 +221,21 @@ fn verify_fails_if_counts_dont_match() {
             vec![Box::new(MultilinearExtensionImpl::new(col))],
         )]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
+    counts.anchored_mles += 1;
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    counts.anchored_mles += 1;
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators: usize) {
@@ -276,9 +246,6 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -288,7 +255,6 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -308,28 +274,23 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
-        let x_commit = compute_commitment_for_testing(&X, counts.offset_generators);
+        let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    let result = proof
-        .verify(&expr, &accessor, &counts, &result)
-        .unwrap()
-        .unwrap();
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
     let column_fields = expr
         .get_column_result_fields()
         .iter()
@@ -341,15 +302,15 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     assert_eq!(result, expected_result);
 
     // invalid offset will fail to verify
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    let invalid_counts = {
-        let mut counts = counts;
-        counts.offset_generators += 1;
-        counts
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: offset_generators + 1,
+        counts,
+        prover_fn: Some(Box::new(prover_eval)),
+        verifier_fn: Some(Box::new(verifier_eval)),
     };
-    assert!(proof
-        .verify(&expr, &accessor, &invalid_counts, &result)
-        .is_err());
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -373,8 +334,6 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -384,7 +343,6 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -404,11 +362,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -416,13 +370,15 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -434,8 +390,6 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 1,
@@ -445,7 +399,6 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -465,11 +418,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
         let x_commit = ArkScalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -477,13 +426,15 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_generators: usize) {
@@ -496,9 +447,6 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 2,
@@ -508,7 +456,6 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -546,12 +493,8 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
-        let x_commit = compute_commitment_for_testing(&X, counts.offset_generators);
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+        let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let z_eval = builder.consume_intermediate_mle();
@@ -565,16 +508,15 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    let result = proof
-        .verify(&expr, &accessor, &counts, &result)
-        .unwrap()
-        .unwrap();
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
     let column_fields = expr
         .get_column_result_fields()
         .iter()
@@ -586,15 +528,20 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     assert_eq!(result, expected_result);
 
     // invalid offset will fail to verify
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    let invalid_counts = {
-        let mut counts = counts;
-        counts.offset_generators += 1;
-        counts
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    // let invalid_counts = {
+    //     let mut counts = counts;
+    //     counts.offset_generators += 1;
+    //     counts
+    // };
+    let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: offset_generators + 1,
+        counts,
+        prover_fn: Some(Box::new(prover_eval)),
+        verifier_fn: Some(Box::new(verifier_eval)),
     };
-    assert!(proof
-        .verify(&expr, &accessor, &invalid_counts, &result)
-        .is_err());
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -618,9 +565,6 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators: 0,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 2,
@@ -630,7 +574,6 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -668,11 +611,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -687,15 +626,17 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (mut proof, result) = QueryProof::new(&expr, &accessor, &counts);
+    let (mut proof, result) = QueryProof::new(&expr, &accessor);
     proof.commitments[0] =
         (proof.commitments[0].decompress().unwrap() * ArkScalar::from(2u64)).compress();
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -709,9 +650,6 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators: 0,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 2,
@@ -721,7 +659,6 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -759,11 +696,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -778,18 +711,20 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (mut proof, result) = QueryProof::new(&expr, &accessor, &counts);
+    let (mut proof, result) = QueryProof::new(&expr, &accessor);
     let mut bytes = [0u8; 32];
     bytes[31] = 1u8;
     let commit = CompressedRistretto::from_slice(&bytes);
     assert!(commit.decompress().is_none());
     proof.commitments[0] = commit;
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -805,9 +740,6 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     static X: [i64; 2] = [3, 4];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators: 0,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 2,
@@ -817,7 +749,6 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -855,11 +786,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -874,13 +801,15 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
 #[test]
@@ -896,9 +825,6 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     static X: [i64; 2] = [3, 5];
     static INDEXES: [u64; 2] = [0u64, 1u64];
     let counts = ProofCounts {
-        table_length: 2,
-        offset_generators: 0,
-        sumcheck_variables: 1,
         sumcheck_max_multiplicands: 3,
         result_columns: 1,
         sumcheck_subpolynomials: 2,
@@ -908,7 +834,6 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _counts: &ProofCounts,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(&INDEXES);
@@ -946,11 +871,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
             ),
         ]));
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder,
-        _counts: &ProofCounts,
-        _accessor: &dyn CommitmentAccessor,
-    ) {
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -965,11 +886,13 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
     let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: 0,
         counts,
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
     let accessor = TestAccessor::new();
-    let (proof, result) = QueryProof::new(&expr, &accessor, &counts);
-    assert!(proof.verify(&expr, &accessor, &counts, &result).is_err());
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
 }

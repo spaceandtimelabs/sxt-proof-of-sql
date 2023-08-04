@@ -8,12 +8,14 @@ use rand_core::OsRng;
 #[test]
 fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
+        table_length: 1,
+        num_sumcheck_variables: 1,
         one_evaluation: ArkScalar::zero(),
         random_evaluation: ArkScalar::zero(),
         pre_result_evaluations: &[][..],
         result_evaluations: &[][..],
     };
-    let builder = VerificationBuilder::new(mle_evaluations, &[][..], &[][..], &[][..]);
+    let builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..]);
     assert_eq!(builder.sumcheck_evaluation(), ArkScalar::zero());
     assert_eq!(
         builder.folded_pre_result_commitment(),
@@ -24,6 +26,8 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
 #[test]
 fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations() {
     let mle_evaluations = SumcheckMleEvaluations {
+        table_length: 1,
+        num_sumcheck_variables: 1,
         one_evaluation: ArkScalar::zero(),
         random_evaluation: ArkScalar::zero(),
         pre_result_evaluations: &[][..],
@@ -31,6 +35,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
     };
     let subpolynomial_multipliers = [ArkScalar::from(10u64), ArkScalar::from(100u64)];
     let mut builder = VerificationBuilder::new(
+        0,
         mle_evaluations,
         &[][..],
         &subpolynomial_multipliers,
@@ -47,6 +52,8 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 fn we_build_up_the_folded_pre_result_commitment() {
     let pre_result_evaluations = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
     let mle_evaluations = SumcheckMleEvaluations {
+        table_length: 1,
+        num_sumcheck_variables: 1,
         one_evaluation: ArkScalar::zero(),
         random_evaluation: ArkScalar::zero(),
         pre_result_evaluations: &pre_result_evaluations,
@@ -58,6 +65,7 @@ fn we_build_up_the_folded_pre_result_commitment() {
     let intermediate_commitments = [commit2];
     let inner_product_multipliers = [ArkScalar::from(10u64), ArkScalar::from(100u64)];
     let mut builder = VerificationBuilder::new(
+        0,
         mle_evaluations,
         &intermediate_commitments,
         &[][..],
@@ -85,12 +93,14 @@ fn we_build_up_the_folded_pre_result_commitment() {
 fn we_can_consume_result_evaluations() {
     let result_evaluations = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
     let mle_evaluations = SumcheckMleEvaluations {
+        table_length: 1,
+        num_sumcheck_variables: 1,
         one_evaluation: ArkScalar::zero(),
         random_evaluation: ArkScalar::zero(),
         pre_result_evaluations: &[][..],
         result_evaluations: &result_evaluations,
     };
-    let mut builder = VerificationBuilder::new(mle_evaluations, &[][..], &[][..], &[][..]);
+    let mut builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..]);
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(123u64));
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(456u64));
 }

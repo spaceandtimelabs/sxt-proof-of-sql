@@ -4,12 +4,11 @@ use std::collections::HashSet;
 use crate::base::database::{
     ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
 };
-use crate::base::math::log2_up;
-use crate::sql::proof::{ProofBuilder, ProofCounts, ProofExpr, VerificationBuilder};
+use crate::base::proof::ProofError;
+use crate::sql::proof::{CountBuilder, ProofBuilder, ProofExpr, VerificationBuilder};
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
-use std::cmp;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -44,20 +43,24 @@ impl FilterExpr {
 }
 
 impl ProofExpr for FilterExpr {
-    #[tracing::instrument(name = "proofs.sql.ast.filter_expr.count", level = "debug", skip_all)]
-    fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor) {
-        let n = accessor.get_length(self.table.table_ref);
-        counts.table_length = n;
-        counts.offset_generators = accessor.get_offset(self.table.table_ref);
-        if n > 0 {
-            counts.sumcheck_variables = cmp::max(log2_up(n), 1);
-        } else {
-            counts.sumcheck_variables = 0;
-        }
-        self.where_clause.count(counts);
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        _accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
+        self.where_clause.count(builder)?;
         for expr in self.results.iter() {
-            expr.count(counts);
+            expr.count(builder);
         }
+        Ok(())
+    }
+
+    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
+        accessor.get_length(self.table.table_ref)
+    }
+
+    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
+        accessor.get_offset(self.table.table_ref)
     }
 
     #[tracing::instrument(
@@ -69,13 +72,10 @@ impl ProofExpr for FilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) {
         // evaluate where clause
-        let selection = self
-            .where_clause
-            .prover_evaluate(builder, alloc, counts, accessor);
+        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
 
         // set result indexes
         let mut cnt: usize = 0;
@@ -94,7 +94,7 @@ impl ProofExpr for FilterExpr {
 
         // evaluate result columns
         for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, counts, accessor, selection);
+            expr.prover_evaluate(builder, alloc, accessor, selection);
         }
     }
 
@@ -106,14 +106,11 @@ impl ProofExpr for FilterExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
-        let selection_eval = self
-            .where_clause
-            .verifier_evaluate(builder, counts, accessor);
+        let selection_eval = self.where_clause.verifier_evaluate(builder, accessor);
         for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, counts, accessor, &selection_eval);
+            expr.verifier_evaluate(builder, accessor, &selection_eval);
         }
     }
 

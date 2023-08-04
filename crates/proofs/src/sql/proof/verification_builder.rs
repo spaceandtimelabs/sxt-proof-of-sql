@@ -8,6 +8,7 @@ use num_traits::Zero;
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a> {
     pub mle_evaluations: SumcheckMleEvaluations<'a>,
+    generator_offset: usize,
     intermediate_commitments: &'a [RistrettoPoint],
     subpolynomial_multipliers: &'a [ArkScalar],
     inner_product_multipliers: &'a [ArkScalar],
@@ -22,6 +23,7 @@ pub struct VerificationBuilder<'a> {
 
 impl<'a> VerificationBuilder<'a> {
     pub fn new(
+        generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a>,
         intermediate_commitments: &'a [RistrettoPoint],
         subpolynomial_multipliers: &'a [ArkScalar],
@@ -33,6 +35,7 @@ impl<'a> VerificationBuilder<'a> {
         );
         Self {
             mle_evaluations,
+            generator_offset,
             intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
@@ -44,6 +47,14 @@ impl<'a> VerificationBuilder<'a> {
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
         }
+    }
+
+    pub fn table_length(&self) -> usize {
+        self.mle_evaluations.table_length
+    }
+
+    pub fn generator_offset(&self) -> usize {
+        self.generator_offset
     }
 
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE

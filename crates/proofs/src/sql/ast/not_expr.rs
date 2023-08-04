@@ -1,7 +1,8 @@
 use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
+use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
-use crate::sql::proof::{ProofBuilder, ProofCounts, VerificationBuilder};
+use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
@@ -21,8 +22,8 @@ impl NotExpr {
 }
 
 impl BoolExpr for NotExpr {
-    fn count(&self, counts: &mut ProofCounts) {
-        self.expr.count(counts);
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        self.expr.count(builder)
     }
 
     #[tracing::instrument(
@@ -34,20 +35,18 @@ impl BoolExpr for NotExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) -> &'a [bool] {
-        let selection = self.expr.prover_evaluate(builder, alloc, counts, accessor);
+        let selection = self.expr.prover_evaluate(builder, alloc, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) -> ArkScalar {
-        let eval = self.expr.verifier_evaluate(builder, counts, accessor);
+        let eval = self.expr.verifier_evaluate(builder, accessor);
         builder.mle_evaluations.one_evaluation - eval
     }
 

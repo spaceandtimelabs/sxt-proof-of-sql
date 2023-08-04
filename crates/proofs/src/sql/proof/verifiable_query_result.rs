@@ -1,4 +1,4 @@
-use super::{ProofCounts, ProofExpr, ProvableQueryResult, QueryProof, TransformExpr};
+use super::{ProofExpr, ProvableQueryResult, QueryProof, TransformExpr};
 use crate::base::database::ColumnType;
 
 use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
@@ -78,22 +78,18 @@ impl VerifiableQueryResult {
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> VerifiableQueryResult {
-        let mut counts: ProofCounts = Default::default();
-        expr.count(&mut counts, accessor);
-
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
-        assert!(counts.result_columns > 0);
 
         // handle the empty case
-        if counts.sumcheck_variables == 0 {
+        if expr.is_empty(accessor) {
             return VerifiableQueryResult {
                 provable_result: None,
                 proof: None,
             };
         }
 
-        let (proof, res) = QueryProof::new(expr, accessor, &counts);
+        let (proof, res) = QueryProof::new(expr, accessor);
         Self {
             provable_result: Some(res),
             proof: Some(proof),
@@ -110,15 +106,11 @@ impl VerifiableQueryResult {
         expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
     ) -> Result<QueryResult, ProofError> {
-        let mut counts: ProofCounts = Default::default();
-        expr.count(&mut counts, accessor);
-
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
-        assert!(counts.result_columns > 0);
 
         // handle the empty case
-        if counts.sumcheck_variables == 0 {
+        if expr.is_empty(accessor) {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError(
                     "zero sumcheck variables but non-empty result",
@@ -126,7 +118,6 @@ impl VerifiableQueryResult {
             }
 
             let result_fields = expr.get_column_result_fields();
-            assert_eq!(counts.result_columns, result_fields.len());
 
             return Ok(make_empty_query_result(result_fields));
         }
@@ -137,12 +128,10 @@ impl VerifiableQueryResult {
             ));
         }
 
-        self.proof.as_ref().unwrap().verify(
-            expr,
-            accessor,
-            &counts,
-            self.provable_result.as_ref().unwrap(),
-        )
+        self.proof
+            .as_ref()
+            .unwrap()
+            .verify(expr, accessor, self.provable_result.as_ref().unwrap())
     }
 }
 

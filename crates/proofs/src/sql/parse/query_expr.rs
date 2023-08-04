@@ -1,8 +1,11 @@
-use crate::sql::proof::{ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder};
+use crate::sql::proof::{
+    CountBuilder, ProofBuilder, ProofExpr, TransformExpr, VerificationBuilder,
+};
 use std::collections::HashSet;
 
 use crate::base::database::{ColumnField, ColumnRef};
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
+use crate::base::proof::ProofError;
 
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -30,28 +33,37 @@ impl QueryExpr {
 }
 
 impl ProofExpr for QueryExpr {
-    fn count(&self, counts: &mut ProofCounts, accessor: &dyn MetadataAccessor) {
-        self.filter.count(counts, accessor)
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
+        self.filter.count(builder, accessor)
+    }
+
+    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
+        self.filter.get_length(accessor)
+    }
+
+    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
+        self.filter.get_offset(accessor)
     }
 
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        counts: &ProofCounts,
         accessor: &'a dyn DataAccessor,
     ) {
-        self.filter
-            .prover_evaluate(builder, alloc, counts, accessor)
+        self.filter.prover_evaluate(builder, alloc, accessor)
     }
 
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        counts: &ProofCounts,
         accessor: &dyn CommitmentAccessor,
     ) {
-        self.filter.verifier_evaluate(builder, counts, accessor)
+        self.filter.verifier_evaluate(builder, accessor)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
