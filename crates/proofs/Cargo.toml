@@ -19,6 +19,7 @@ ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true }
+bit-iter = { workspace = true }
 blake3 = { workspace = true }
 blitzar = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
@@ -30,6 +31,7 @@ half = { workspace = true } # This can be removed when we bump to rust version 1
 hashbrown = { workspace = true }
 indexmap = { workspace = true }
 integer-encoding = { workspace = true }
+lazy_static = { workspace = true }
 merlin = { workspace = true }
 num-traits = { workspace = true }
 polars = { workspace = true, features = ["lazy", "csv-file", "strings", "temporal", "dtype-duration", "dtype-categorical", "concat_str", "list_eval", "rank", "lazy_regex", "bigidx"] }

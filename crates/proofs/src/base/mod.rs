@@ -1,3 +1,4 @@
+pub mod bit;
 pub mod database;
 pub mod encode;
 pub mod math;
