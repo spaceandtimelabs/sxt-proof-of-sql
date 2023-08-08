@@ -42,6 +42,9 @@ use serde::Serializer;
 pub struct ArkScalar(pub ark_curve25519::Fr);
 
 impl ArkScalar {
+    pub fn from_bigint(vals: [u64; 4]) -> Self {
+        Self(ark_curve25519::Fr::from_bigint(ark_ff::BigInt(vals)).unwrap())
+    }
     pub fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         Self(ark_curve25519::Fr::from_le_bytes_mod_order(bytes))
     }
