@@ -20,7 +20,7 @@ pub enum SetExpression {
 }
 
 /// Representation of a single result column
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResultColumn {
     /// The name of the column
     pub name: Identifier,
@@ -40,7 +40,7 @@ pub enum ResultColumnExpr {
 }
 
 /// Representation of an aggregation expression
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Clone)]
 pub enum AggExpr {
     /// An aggregation expression associated with max(expr)
     Max(ResultColumn),

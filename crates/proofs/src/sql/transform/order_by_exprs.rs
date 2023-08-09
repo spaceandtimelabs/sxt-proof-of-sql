@@ -23,6 +23,7 @@ impl DataFrameExpr for OrderByExprs {
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
         assert!(!self.by_exprs.is_empty());
 
+        let maintain_order = true;
         let nulls_last = false;
         let reverse: Vec<_> = self
             .by_exprs
@@ -31,6 +32,6 @@ impl DataFrameExpr for OrderByExprs {
             .collect();
         let by_column: Vec<_> = self.by_exprs.iter().map(|v| col(v.expr.name())).collect();
 
-        lazy_frame.sort_by_exprs(by_column, reverse, nulls_last)
+        lazy_frame.sort_by_exprs(by_column, reverse, nulls_last, maintain_order)
     }
 }
