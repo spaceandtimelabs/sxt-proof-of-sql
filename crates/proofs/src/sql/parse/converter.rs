@@ -289,7 +289,7 @@ impl Converter {
         agg_expr: &AggExpr,
         group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ConversionResult<Vec<ResultColumn>> {
+    ) -> ConversionResult<(AggExpr, ResultColumn)> {
         // We can't aggregate without specifying a group by column
         if group_by_exprs.is_empty() {
             return Err(ConversionError::MissingGroupByError);
@@ -304,7 +304,7 @@ impl Converter {
                     return Err(ConversionError::NonNumericColumnAggregation("max"));
                 }
 
-                Ok(vec![result_column.clone()])
+                Ok((*agg_expr, *result_column))
             }
             AggExpr::Min(result_column) => {
                 let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
@@ -314,7 +314,7 @@ impl Converter {
                     return Err(ConversionError::NonNumericColumnAggregation("min"));
                 }
 
-                Ok(vec![result_column.clone()])
+                Ok((*agg_expr, *result_column))
             }
             AggExpr::Sum(result_column) => {
                 let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
@@ -324,9 +324,9 @@ impl Converter {
                     return Err(ConversionError::NonNumericColumnAggregation("sum"));
                 }
 
-                Ok(vec![result_column.clone()])
+                Ok((*agg_expr, *result_column))
             }
-            AggExpr::Count(result_column) => Ok(vec![result_column.clone()]),
+            AggExpr::Count(result_column) => Ok((*agg_expr, *result_column)),
             AggExpr::CountAll(alias) => {
                 // Here we could use any column available in the table.
                 // But due to efficiency reasons, we pick the first
@@ -339,7 +339,7 @@ impl Converter {
                     alias: *alias,
                 };
 
-                Ok(vec![result_column])
+                Ok((AggExpr::Count(result_column), result_column))
             }
         }
     }
@@ -388,20 +388,22 @@ impl Converter {
                 ResultColumnExpr::SimpleColumn(result_column) => {
                     // we need to keep track of the non-aggregate columns
                     // as they are used to build the GroupByExpr node.
-                    self.non_aggregate_columns.push(result_column.clone());
+                    self.non_aggregate_columns.push(*result_column);
 
-                    Ok(vec![result_column.clone()])
+                    Ok(vec![*result_column])
                 }
                 ResultColumnExpr::AggColumn(agg_expr) => {
-                    // We need to keep track of the aggregate expressions
-                    // as they are used to build the GroupByExpr node.
-                    self.aggregation_columns.push(agg_expr.clone());
-
-                    self.visit_result_aggregation_expression(
+                    let (agg_expr, result_column) = self.visit_result_aggregation_expression(
                         agg_expr,
                         group_by_exprs,
                         schema_accessor,
-                    )
+                    )?;
+
+                    // We need to keep track of the aggregate expressions
+                    // as they are used to build the GroupByExpr node.
+                    self.aggregation_columns.push(agg_expr);
+
+                    Ok(vec![result_column])
                 }
             })
             .collect::<ConversionResult<Vec<_>>>()?;

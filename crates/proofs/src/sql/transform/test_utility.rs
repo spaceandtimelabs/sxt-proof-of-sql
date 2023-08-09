@@ -64,8 +64,7 @@ pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> AggExpr {
             name: name.parse().unwrap(),
             alias: alias.parse().unwrap(),
         }),
-        "countall" => AggExpr::CountAll(alias.parse().unwrap()),
-        &_ => todo!(),
+        _ => panic!("Unsupported agg type"),
     }
 }
 
