@@ -125,7 +125,7 @@ fn agg_exprs_to_polars_exprs(agg_exprs: Vec<AggExpr>, by_exprs_set: &HashSet<Str
                 AggExpr::Count(ResultColumn { name, alias }) => {
                     (col(name.as_str()).count().alias(alias.as_str()), alias)
                 }
-                AggExpr::CountAll(alias) => (col("*").count().alias(alias.as_str()), alias),
+                _ => panic!("Unsupported aggregation expression: {:#?}", agg_expr),
             };
 
             assert!(

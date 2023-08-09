@@ -50,3 +50,12 @@ fn we_can_transform_a_result_ordering_by_the_second_column_then_the_first_column
     );
     assert_eq!(data, expected_data);
 }
+
+#[test]
+fn order_by_preserve_order_with_equal_elements() {
+    let data = record_batch!("c" => [1, -5, 1, 2], "a" => ["f", "d", "a", "b"]);
+    let result_expr = composite_result(vec![orders(&["c"], &[Desc])]);
+    let data = result_expr.transform_results(data);
+    let expected_data = record_batch!("c" => [2, 1, 1, -5], "a" => ["b", "f", "a", "d"]);
+    assert_eq!(data, expected_data);
+}

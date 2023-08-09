@@ -1149,7 +1149,7 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
 }
 
 #[test]
-fn min_and_max_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
+fn min_max_sum_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -1247,7 +1247,7 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
         composite_result(vec![
             groupby(
                 vec![("department", None)],
-                vec![agg_expr("countall", "department", "__count__")],
+                vec![agg_expr("count", "department", "__count__")],
             ),
             select(&[("__count__", "__count__")]),
         ]),
