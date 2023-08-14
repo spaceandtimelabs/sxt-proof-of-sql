@@ -45,7 +45,7 @@ tracing = { workspace = true, features = ["attributes"] }
 
 [dev_dependencies]
 criterion = "0.4"
-polars = { version = "0.31.1", features = ["lazy"] }
+polars = { version = "0.32.0", features = ["lazy"] }
 rand = { version = "0.7" }
 rand_core = { version = "0.5" }
 serde_json = "1"
