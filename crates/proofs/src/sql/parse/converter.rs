@@ -1,15 +1,14 @@
 use crate::base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef};
+use crate::base::scalar::ArkScalar;
 use crate::sql::ast::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
 };
 use crate::sql::parse::{ConversionError, ConversionResult, QueryExpr, ResultExprBuilder};
 use crate::sql::transform::ResultExpr;
-
-use crate::base::scalar::ArkScalar;
 use proofs_sql::intermediate_ast::{
-    AggExpr, Expression, Literal, OrderBy, ResultColumn, ResultColumnExpr, SetExpression,
-    TableExpression,
+    AggExpr, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, ResultColumn,
+    SelectResultExpr, SetExpression, TableExpression, UnaryOperator,
 };
 use proofs_sql::{Identifier, ResourceId, SelectStatement};
 use std::collections::HashSet;
@@ -22,7 +21,7 @@ pub struct Converter {
     /// The result schema of the query
     result_schema: Vec<ResultColumn>,
     /// The aggregation columns appearing in the result schema
-    aggregation_columns: Vec<AggExpr>,
+    aggregation_columns: Vec<AliasedResultExpr>,
     /// The non-aggregation columns appearing in the result schema
     non_aggregate_columns: Vec<ResultColumn>,
     /// The group by expressions appearing in the query
@@ -78,7 +77,7 @@ impl Converter {
     ) -> ConversionResult<FilterExpr> {
         match expr {
             SetExpression::Query {
-                columns,
+                result_columns,
                 from,
                 where_expr,
                 group_by,
@@ -88,7 +87,7 @@ impl Converter {
 
                 // gather the non-duplicate references columns from the `group by` and the `result columns`.
                 let filter_result_expr_list =
-                    self.visit_result_columns(&columns[..], group_by, schema_accessor)?;
+                    self.visit_result_columns(&result_columns[..], group_by, schema_accessor)?;
 
                 // build the filter expression tree out of the `where` clause
                 let where_clause = match where_expr {
@@ -289,57 +288,49 @@ impl Converter {
         agg_expr: &AggExpr,
         group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
-    ) -> ConversionResult<(AggExpr, ResultColumn)> {
+    ) -> ConversionResult<(AggExpr, Identifier)> {
         // We can't aggregate without specifying a group by column
         if group_by_exprs.is_empty() {
             return Err(ConversionError::MissingGroupByError);
         }
 
         match &agg_expr {
-            AggExpr::Max(result_column) => {
-                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
+            AggExpr::Max(expr) | AggExpr::Min(expr) | AggExpr::Sum(expr) => {
+                let column = match expr.deref() {
+                    Expression::Column(column) => {
+                        self.visit_column_identifier(*column, schema_accessor)?
+                    }
+                    _ => {
+                        panic!("Unsupported expression type. Must be rejected at the parser phase")
+                    }
+                };
 
                 // We only support max aggregation on numeric columns
                 if column.column_type() != &ColumnType::BigInt {
                     return Err(ConversionError::NonNumericColumnAggregation("max"));
                 }
 
-                Ok((*agg_expr, *result_column))
+                Ok((agg_expr.clone(), column.column_id()))
             }
-            AggExpr::Min(result_column) => {
-                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
+            AggExpr::Count(expr) => {
+                let column = match expr.deref() {
+                    Expression::Column(column) => {
+                        self.visit_column_identifier(*column, schema_accessor)?
+                    }
+                    _ => {
+                        panic!("Unsupported expression type. Must be rejected at the parser phase")
+                    }
+                };
 
-                // We only support min aggregation on numeric columns
-                if column.column_type() != &ColumnType::BigInt {
-                    return Err(ConversionError::NonNumericColumnAggregation("min"));
-                }
-
-                Ok((*agg_expr, *result_column))
+                Ok((agg_expr.clone(), column.column_id()))
             }
-            AggExpr::Sum(result_column) => {
-                let column = self.visit_column_identifier(result_column.name, schema_accessor)?;
-
-                // We only support sum aggregation on numeric columns
-                if column.column_type() != &ColumnType::BigInt {
-                    return Err(ConversionError::NonNumericColumnAggregation("sum"));
-                }
-
-                Ok((*agg_expr, *result_column))
-            }
-            AggExpr::Count(result_column) => Ok((*agg_expr, *result_column)),
-            AggExpr::CountAll(alias) => {
+            AggExpr::CountALL => {
                 // Here we could use any column available in the table.
                 // But due to efficiency reasons, we pick the first
                 // column in the group by clause as it'll already
                 // be available in the result record batch.
-                let name = group_by_exprs[0];
-
-                let result_column = ResultColumn {
-                    name,
-                    alias: *alias,
-                };
-
-                Ok((AggExpr::Count(result_column), result_column))
+                let name: Identifier = group_by_exprs[0];
+                Ok((AggExpr::Count(Box::new(Expression::Column(name))), name))
             }
         }
     }
@@ -365,7 +356,7 @@ impl Converter {
 
     fn visit_result_column_expressions(
         &mut self,
-        result_columns: &[ResultColumnExpr],
+        result_columns: &[SelectResultExpr],
         group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<ResultColumn>> {
@@ -375,33 +366,53 @@ impl Converter {
         let result_columns = result_columns
             .iter()
             .map(|result_column| match result_column {
-                ResultColumnExpr::AllColumns => {
+                SelectResultExpr::ALL => {
                     let result_column_all = self.visit_result_column_all(schema_accessor);
 
-                    // we need to keep track of the non-aggregate columns
-                    // as they are used to build the GroupByExpr node.
+                    // We need to know which group by expressions will be part of
+                    // select result clause. To help with that, we need to keep
+                    // track of the non-aggregate columns.
                     self.non_aggregate_columns
                         .extend_from_slice(&result_column_all);
 
                     Ok(result_column_all)
                 }
-                ResultColumnExpr::SimpleColumn(result_column) => {
-                    // we need to keep track of the non-aggregate columns
-                    // as they are used to build the GroupByExpr node.
-                    self.non_aggregate_columns.push(*result_column);
+                SelectResultExpr::AliasedResultExpr(aliased_expr) => {
+                    let result_column = match &aliased_expr.expr {
+                        proofs_sql::intermediate_ast::ResultExpr::NonAgg(column_expr) => {
+                            let column = match column_expr.deref() {
+                                Expression::Column(column) => {
+                                    self.visit_column_identifier(*column, schema_accessor)?;
+                                    column
+                                }
+                                _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
+                            };
 
-                    Ok(vec![*result_column])
-                }
-                ResultColumnExpr::AggColumn(agg_expr) => {
-                    let (agg_expr, result_column) = self.visit_result_aggregation_expression(
-                        agg_expr,
-                        group_by_exprs,
-                        schema_accessor,
-                    )?;
+                            let result_column = ResultColumn {name: *column, alias: aliased_expr.alias};
 
-                    // We need to keep track of the aggregate expressions
-                    // as they are used to build the GroupByExpr node.
-                    self.aggregation_columns.push(agg_expr);
+                            // We need to know which group by expressions will be part of
+                            // select result clause. To help with that, we need to keep
+                            // track of the non-aggregate columns.
+                            self.non_aggregate_columns.push(result_column);
+
+                            result_column
+                        }
+                        proofs_sql::intermediate_ast::ResultExpr::Agg(agg_expr) => {
+                            let (agg_expr, column) = self.visit_result_aggregation_expression(
+                                agg_expr,
+                                group_by_exprs,
+                                schema_accessor,
+                            )?;
+
+                            let result_column = ResultColumn { name: column, alias: aliased_expr.alias};
+                            let agg_aliased_expr = AliasedResultExpr { expr: proofs_sql::intermediate_ast::ResultExpr::Agg(agg_expr), alias: aliased_expr.alias};
+                            // We need to keep track of the aggregate expressions
+                            // as they are used to build the GroupByExpr node.
+                            self.aggregation_columns.push(agg_aliased_expr);
+
+                            result_column
+                        }
+                    };
 
                     Ok(vec![result_column])
                 }
@@ -418,7 +429,7 @@ impl Converter {
     /// Convert a `ResultColumnExpr slice` into a `Vec<FilterResultExpr>`
     fn visit_result_columns(
         &mut self,
-        result_columns: &[ResultColumnExpr],
+        result_columns: &[SelectResultExpr],
         group_by_exprs: &[Identifier],
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Vec<FilterResultExpr>> {
@@ -475,48 +486,61 @@ impl Converter {
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Box<dyn BoolExpr>> {
         match expression {
-            Expression::Not { expr } => Ok(Box::new(NotExpr::new(
-                self.visit_bool_expression(expr.deref(), schema_accessor)?,
-            ))),
-
-            Expression::And { left, right } => Ok(Box::new(AndExpr::new(
-                self.visit_bool_expression(left.deref(), schema_accessor)?,
-                self.visit_bool_expression(right.deref(), schema_accessor)?,
-            ))),
-
-            Expression::Or { left, right } => Ok(Box::new(OrExpr::new(
-                self.visit_bool_expression(left.deref(), schema_accessor)?,
-                self.visit_bool_expression(right.deref(), schema_accessor)?,
-            ))),
-
-            Expression::Equal { left, right } => {
-                self.visit_equals_expression(*left, right, schema_accessor)
-            }
+            Expression::Unary { op, expr } => match &op {
+                UnaryOperator::Not => Ok(Box::new(NotExpr::new(
+                    self.visit_bool_expression(expr.deref(), schema_accessor)?,
+                ))),
+            },
+            Expression::Binary { op, left, right } => match op {
+                BinaryOperator::And => {
+                    let left = self.visit_bool_expression(left.deref(), schema_accessor)?;
+                    let right = self.visit_bool_expression(right.deref(), schema_accessor)?;
+                    Ok(Box::new(AndExpr::new(left, right)))
+                }
+                BinaryOperator::Or => {
+                    let left = self.visit_bool_expression(left.deref(), schema_accessor)?;
+                    let right = self.visit_bool_expression(right.deref(), schema_accessor)?;
+                    Ok(Box::new(OrExpr::new(left, right)))
+                }
+                BinaryOperator::Equal => {
+                    self.visit_equal_expression(*op, left.deref(), right.deref(), schema_accessor)
+                }
+            },
+            _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
         }
     }
 
     /// Convert an `Expression` into an EqualsExpr
-    fn visit_equals_expression(
+    fn visit_equal_expression(
         &self,
-        left: Identifier,
-        right: &Literal,
+        op: BinaryOperator,
+        left: &Expression,
+        right: &Expression,
         schema_accessor: &dyn SchemaAccessor,
     ) -> ConversionResult<Box<dyn BoolExpr>> {
-        let (scalar, dtype) = self.visit_literal(right.deref());
-        let column_ref = self.visit_column_identifier(left, schema_accessor)?;
+        assert_eq!(op, BinaryOperator::Equal);
 
-        if *column_ref.column_type() != dtype {
+        let (literal, literal_dtype) = match right {
+            Expression::Literal(literal) => self.visit_literal(literal),
+            _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
+        };
+        let column_ref = match left {
+            Expression::Column(column) => self.visit_column_identifier(*column, schema_accessor)?,
+            _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
+        };
+
+        if *column_ref.column_type() != literal_dtype {
             return Err(ConversionError::MismatchTypeError(format!(
                 "Literal \"{:?}\" has type {:?} but column \"{:?}\" from table \"{:?}\" has type {:?}",
-                right.deref(),
-                dtype,
+                literal,
+                literal_dtype,
                 column_ref.column_id(),
                 column_ref.table_ref(),
                 column_ref.column_type()
             )));
         }
 
-        Ok(Box::new(EqualsExpr::new(column_ref, scalar)))
+        Ok(Box::new(EqualsExpr::new(column_ref, literal)))
     }
 }
 

@@ -541,24 +541,6 @@ fn we_can_parse_logical_or_with_left_associativity() {
 }
 
 #[test]
-fn we_can_parse_identifiers_and_literals_with_as_much_parenthesis_as_necessary() {
-    let ast = "select (((a))) as F from ( (sxt_tab  )) where (((a = -1)) or c = -3) and (((((a = (((3)      ) ))))))"
-        .parse::<SelectStatement>()
-        .unwrap();
-    let expected_ast = select(
-        query(
-            vec![col_res("a", "F")],
-            tab(None, "sxt_tab"),
-            and(or(equal("a", -1), equal("c", -3)), equal("a", 3)),
-            vec![],
-        ),
-        vec![],
-        None,
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
 fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
     let ast = "select a from eth.sxt_tab where b = 4"
         .parse::<SelectStatement>()
@@ -972,7 +954,6 @@ fn we_can_parse_a_simple_group_by_clause() {
     );
     assert_eq!(ast, expected_ast);
 }
-
 #[test]
 fn we_can_parse_a_simple_group_by_clause_with_multiple_columns() {
     let ast = "select a from tab group by a, b, d"

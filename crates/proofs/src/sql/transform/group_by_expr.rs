@@ -1,7 +1,7 @@
 use super::DataFrameExpr;
 // use polars::lazy::dsl::AggExpr;
 use proofs_sql::{
-    intermediate_ast::{AggExpr, ResultColumn},
+    intermediate_ast::{AggExpr, AliasedResultExpr, Expression, ResultExpr},
     Identifier,
 };
 
@@ -42,7 +42,10 @@ impl GroupByExpr {
     /// - `agg_exprs`: A list of aggregation expressions.
     ///
     /// Note: Duplicated aliases are not allowed.
-    pub fn new(by_exprs: Vec<(Identifier, Option<Identifier>)>, agg_exprs: Vec<AggExpr>) -> Self {
+    pub fn new(
+        by_exprs: Vec<(Identifier, Option<Identifier>)>,
+        agg_exprs: Vec<AliasedResultExpr>,
+    ) -> Self {
         let (by_exprs, by_exprs_set, count_by_expr_aliased) = by_exprs_to_polars_exprs(by_exprs);
 
         assert!(
@@ -102,34 +105,45 @@ fn by_exprs_to_polars_exprs(
     (by_exprs, by_exprs_set, count_by_expr_aliased)
 }
 
+fn fetch_agg_col_name(expr: &Expression) -> Expr {
+    match expr {
+        Expression::Column(col_name) => col(col_name.as_str()),
+        _ => panic!("Unsupported expression"),
+    }
+}
+
 /// Convert a list of aggregation expressions to a list of polars aggregation expressions
-fn agg_exprs_to_polars_exprs(agg_exprs: Vec<AggExpr>, by_exprs_set: &HashSet<String>) -> Vec<Expr> {
+fn agg_exprs_to_polars_exprs(
+    agg_exprs: Vec<AliasedResultExpr>,
+    by_exprs_set: &HashSet<String>,
+) -> Vec<Expr> {
     let mut agg_exprs_set = HashSet::new();
 
     let agg_exprs = agg_exprs
         .iter()
         .map(|agg_expr| {
-            let (agg_expr_col, alias) = match agg_expr {
-                AggExpr::Max(ResultColumn { name, alias }) => {
-                    (col(name.as_str()).max().alias(alias.as_str()), alias)
+            let alias = agg_expr.alias;
+            let agg_expr_col = match &agg_expr.expr {
+                ResultExpr::Agg(AggExpr::Max(expr)) => {
+                    fetch_agg_col_name(expr).max().alias(alias.as_str())
                 }
-                AggExpr::Min(ResultColumn { name, alias }) => {
-                    (col(name.as_str()).min().alias(alias.as_str()), alias)
+                ResultExpr::Agg(AggExpr::Min(expr)) => {
+                    fetch_agg_col_name(expr).min().alias(alias.as_str())
                 }
-                AggExpr::Sum(ResultColumn { name, alias }) => {
+                ResultExpr::Agg(AggExpr::Sum(expr)) => {
                     // Note that the following aggregation `sum` may result in overflow.
                     // In debug mode, Polars will raise a panic if an overflow occurs,
                     // while in release mode, it will silently return the overflowed result.
-                    (col(name.as_str()).sum().alias(alias.as_str()), alias)
+                    fetch_agg_col_name(expr).sum().alias(alias.as_str())
                 }
-                AggExpr::Count(ResultColumn { name, alias }) => {
-                    (col(name.as_str()).count().alias(alias.as_str()), alias)
+                ResultExpr::Agg(AggExpr::Count(expr)) => {
+                    fetch_agg_col_name(expr).count().alias(alias.as_str())
                 }
                 _ => panic!("Unsupported aggregation expression: {:#?}", agg_expr),
             };
 
             assert!(
-                agg_exprs_set.insert(*alias),
+                agg_exprs_set.insert(alias),
                 "Duplicated aggregation alias not allowed: {alias}"
             );
             assert!(

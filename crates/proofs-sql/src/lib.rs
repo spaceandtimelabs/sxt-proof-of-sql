@@ -2,6 +2,7 @@
 extern crate lalrpop_util;
 
 pub mod intermediate_ast;
+
 #[cfg(test)]
 mod intermediate_ast_tests;
 
