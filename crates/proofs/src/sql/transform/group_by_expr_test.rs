@@ -1,8 +1,6 @@
 use crate::record_batch;
 use crate::sql::proof::TransformExpr;
-use crate::sql::transform::test_utility::{composite_result, groupby};
-use proofs_sql::intermediate_ast::{AggExpr, ResultColumn};
-use proofs_sql::Identifier;
+use crate::sql::transform::test_utility::*;
 
 #[test]
 fn we_can_transform_batch_using_simple_group_by_with_an_alias() {
@@ -44,10 +42,7 @@ fn we_can_transform_batch_using_different_group_bys_with_different_aliases() {
 fn we_can_transform_batch_using_simple_group_by_with_max_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", None)];
-    let agg_exprs = vec![AggExpr::Max(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("max", "c", "c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$a" => ["a", "d", "b"], "c" => [7, -5, 2]);
@@ -58,10 +53,7 @@ fn we_can_transform_batch_using_simple_group_by_with_max_aggregation() {
 fn we_can_transform_batch_using_simple_group_by_with_min_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", None)];
-    let agg_exprs = vec![AggExpr::Min(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("min", "c", "c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$a" => ["a", "d", "b"], "c" => [1, -5, -3]);
@@ -72,10 +64,7 @@ fn we_can_transform_batch_using_simple_group_by_with_min_aggregation() {
 fn we_can_transform_batch_using_simple_group_by_with_sum_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", None)];
-    let agg_exprs = vec![AggExpr::Sum(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("sum", "c", "c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$a" => ["a", "d", "b"], "c" => [8, -5, -1]);
@@ -87,10 +76,7 @@ fn we_can_transform_batch_using_simple_group_by_with_sum_aggregation() {
 fn sum_aggregation_can_overflow() {
     let data = record_batch!("c" => [i64::MAX, 1], "a" => ["a", "a"]);
     let by_exprs = vec![("a", None)];
-    let agg_exprs = vec![AggExpr::Sum(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("sum", "c", "c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     result_expr.transform_results(data);
 }
@@ -99,10 +85,7 @@ fn sum_aggregation_can_overflow() {
 fn we_can_transform_batch_using_simple_group_by_with_count_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", Some("a_col"))];
-    let agg_exprs = vec![AggExpr::Count(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c_col".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("count", "c", "c_col")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("a_col" => ["a", "d", "b"], "c_col" => [2, 1, 2]);
@@ -110,25 +93,10 @@ fn we_can_transform_batch_using_simple_group_by_with_count_aggregation() {
 }
 
 #[test]
-#[should_panic]
-fn we_cannot_transform_batch_using_simple_group_by_with_count_all_aggregation() {
-    let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
-    let by_exprs = vec![("a", Some("a_col"))];
-    let agg_exprs = vec![AggExpr::CountAll(
-        "count_all".parse::<Identifier>().unwrap(),
-    )];
-    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let _ = result_expr.transform_results(data);
-}
-
-#[test]
 fn we_can_transform_batch_using_group_by_with_the_same_name_as_the_aggregation_expression() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2, 1], "a" => ["a", "d", "b", "a", "b", "f"]);
     let by_exprs = vec![("c", None)];
-    let agg_exprs = vec![AggExpr::Min(ResultColumn {
-        name: "c".parse::<Identifier>().unwrap(),
-        alias: "c".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("min", "c", "c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$c" => [1, -5, -3, 7, 2], "c" => [1, -5, -3, 7, 2]);
@@ -140,10 +108,7 @@ fn we_can_transform_batch_using_min_aggregation_with_non_numeric_columns() {
     let data =
         record_batch!("c" => [1, -5, -3, 7, 2, 1], "a" => ["abd", "d", "b", "a", "b", "abc"]);
     let by_exprs = vec![("c", None)];
-    let agg_exprs = vec![AggExpr::Min(ResultColumn {
-        name: "a".parse::<Identifier>().unwrap(),
-        alias: "a_min".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("min", "a", "a_min")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data =
@@ -156,10 +121,7 @@ fn we_can_transform_batch_using_max_aggregation_with_non_numeric_columns() {
     let data =
         record_batch!("c" => [1, -5, -3, 7, -5, 1], "a" => ["abd", "a", "b", "a", "aa", "abc"]);
     let by_exprs = vec![("c", None)];
-    let agg_exprs = vec![AggExpr::Max(ResultColumn {
-        name: "a".parse::<Identifier>().unwrap(),
-        alias: "a_max".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("max", "a", "a_max")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$c" => [1, -5, -3, 7], "a_max" => ["abd", "aa", "b", "a"]);
@@ -170,10 +132,7 @@ fn we_can_transform_batch_using_max_aggregation_with_non_numeric_columns() {
 fn we_can_transform_batch_using_count_aggregation_with_non_numeric_columns() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2, 1], "a" => ["a", "d", "b", "a", "b", "f"]);
     let by_exprs = vec![("c", None)];
-    let agg_exprs = vec![AggExpr::Count(ResultColumn {
-        name: "a".parse::<Identifier>().unwrap(),
-        alias: "a_count".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("count", "a", "a_count")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("#$c" => [1, -5, -3, 7, 2], "a_count" => [2, 1, 1, 1, 1]);
@@ -184,16 +143,7 @@ fn we_can_transform_batch_using_count_aggregation_with_non_numeric_columns() {
 fn we_can_transform_batch_using_simple_group_by_with_multiple_aggregations() {
     let data = record_batch!("c" => [1, -5, -3, 7, 2], "a" => ["a", "d", "b", "a", "b"]);
     let by_exprs = vec![("a", None)];
-    let agg_exprs = vec![
-        AggExpr::Max(ResultColumn {
-            name: "c".parse::<Identifier>().unwrap(),
-            alias: "c_max".parse::<Identifier>().unwrap(),
-        }),
-        AggExpr::Min(ResultColumn {
-            name: "c".parse::<Identifier>().unwrap(),
-            alias: "c_min".parse::<Identifier>().unwrap(),
-        }),
-    ];
+    let agg_exprs = vec![agg_expr("max", "c", "c_max"), agg_expr("min", "c", "c_min")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data =
@@ -205,10 +155,7 @@ fn we_can_transform_batch_using_simple_group_by_with_multiple_aggregations() {
 fn we_can_transform_batch_using_multiple_group_by_with_single_aggregation() {
     let data = record_batch!("c" => [1, -5, -3, 7, -3], "a" => ["a", "d", "b", "a", "b"], "d" => [523, -25, 343, -7, 435]);
     let by_exprs = vec![("a", Some("a_group")), ("c", None)];
-    let agg_exprs = vec![AggExpr::Max(ResultColumn {
-        name: "d".parse::<Identifier>().unwrap(),
-        alias: "d_max".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("max", "d", "d_max")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("a_group" => ["a", "d", "b", "a"], "#$c" => [1, -5, -3, 7], "d_max" => [523, -25, 435, -7]);
@@ -220,14 +167,8 @@ fn we_can_transform_batch_using_multiple_group_by_with_multiple_aggregations() {
     let data = record_batch!("c" => [1, -5, -3, 7, -3], "a" => ["a", "d", "b", "a", "b"], "d" => [523, -25, 343, -7, 435]);
     let by_exprs = vec![("a", Some("a_group")), ("c", None)];
     let agg_exprs = vec![
-        AggExpr::Max(ResultColumn {
-            name: "d".parse::<Identifier>().unwrap(),
-            alias: "d_max".parse::<Identifier>().unwrap(),
-        }),
-        AggExpr::Count(ResultColumn {
-            name: "c".parse::<Identifier>().unwrap(),
-            alias: "c_count".parse::<Identifier>().unwrap(),
-        }),
+        agg_expr("max", "d", "d_max"),
+        agg_expr("count", "c", "c_count"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
@@ -263,19 +204,13 @@ fn we_can_transform_batch_using_different_aliases_associated_with_the_same_group
 #[should_panic]
 fn we_cannot_transform_batch_using_the_same_aliased_group_by_in_the_aggregation_expression() {
     let by_exprs = vec![("a", Some("a2"))];
-    let agg_exprs = vec![AggExpr::Max(ResultColumn {
-        name: "b".parse::<Identifier>().unwrap(),
-        alias: "a2".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("max", "b", "a2")];
     composite_result(vec![groupby(by_exprs, agg_exprs)]);
 }
 
 #[test]
 #[should_panic]
 fn we_cannot_transform_batch_using_an_empty_group_by_expression() {
-    let agg_exprs = vec![AggExpr::Max(ResultColumn {
-        name: "b".parse::<Identifier>().unwrap(),
-        alias: "a2".parse::<Identifier>().unwrap(),
-    })];
+    let agg_exprs = vec![agg_expr("max", "b", "a2")];
     composite_result(vec![groupby(vec![], agg_exprs)]);
 }

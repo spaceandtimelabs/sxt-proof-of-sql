@@ -3,22 +3,34 @@ use crate::Identifier;
 use crate::SelectStatement;
 
 pub fn equal<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
-    Box::new(Expression::Equal {
-        left: name.parse().unwrap(),
-        right: Box::new(literal.into()),
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Equal,
+        left: Box::new(Expression::Column(name.parse().unwrap())),
+        right: Box::new(Expression::Literal(literal.into())),
     })
 }
 
 pub fn not(expr: Box<Expression>) -> Box<Expression> {
-    Box::new(Expression::Not { expr })
+    Box::new(Expression::Unary {
+        op: UnaryOperator::Not,
+        expr,
+    })
 }
 
 pub fn and(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
-    Box::new(Expression::And { left, right })
+    Box::new(Expression::Binary {
+        op: BinaryOperator::And,
+        left,
+        right,
+    })
 }
 
 pub fn or(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
-    Box::new(Expression::Or { left, right })
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Or,
+        left,
+        right,
+    })
 }
 
 pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
@@ -28,69 +40,80 @@ pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     })
 }
 
-pub fn col_res_all() -> ResultColumnExpr {
-    ResultColumnExpr::AllColumns
+pub fn col(name: &str) -> Box<Expression> {
+    Box::new(Expression::Column(name.parse().unwrap()))
 }
 
-pub fn col_res(name: &str, out_name: &str) -> ResultColumnExpr {
-    ResultColumnExpr::SimpleColumn(ResultColumn {
-        name: name.parse().unwrap(),
-        alias: out_name.parse().unwrap(),
+pub fn lit(literal: Literal) -> Box<Expression> {
+    Box::new(Expression::Literal(literal))
+}
+
+pub fn col_res_all() -> SelectResultExpr {
+    SelectResultExpr::ALL
+}
+
+pub fn col_res(name: &str, alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::NonAgg(Box::new(Expression::Column(name.parse().unwrap()))),
+        alias: alias.parse().unwrap(),
     })
 }
 
-pub fn cols_res(names: &[&str]) -> Vec<ResultColumnExpr> {
-    names
-        .iter()
-        .map(|name| {
-            ResultColumnExpr::SimpleColumn(ResultColumn {
-                name: name.parse().unwrap(),
-                alias: name.parse().unwrap(),
-            })
-        })
-        .collect()
+pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
+    names.iter().map(|name| col_res(name, name)).collect()
 }
 
-pub fn min_res(name: &str, alias: &str) -> ResultColumnExpr {
-    ResultColumnExpr::AggColumn(AggExpr::Min(ResultColumn {
-        name: name.parse().unwrap(),
+pub fn min_res(name: &str, alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::Agg(AggExpr::Min(Box::new(Expression::Column(
+            name.parse().unwrap(),
+        )))),
         alias: alias.parse().unwrap(),
-    }))
+    })
 }
 
-pub fn max_res(name: &str, alias: &str) -> ResultColumnExpr {
-    ResultColumnExpr::AggColumn(AggExpr::Max(ResultColumn {
-        name: name.parse().unwrap(),
+pub fn max_res(name: &str, alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::Agg(AggExpr::Max(Box::new(Expression::Column(
+            name.parse().unwrap(),
+        )))),
         alias: alias.parse().unwrap(),
-    }))
+    })
 }
 
-pub fn sum_res(name: &str, alias: &str) -> ResultColumnExpr {
-    ResultColumnExpr::AggColumn(AggExpr::Sum(ResultColumn {
-        name: name.parse().unwrap(),
+pub fn sum_res(name: &str, alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::Agg(AggExpr::Sum(Box::new(Expression::Column(
+            name.parse().unwrap(),
+        )))),
         alias: alias.parse().unwrap(),
-    }))
+    })
 }
 
-pub fn count_res(name: &str, alias: &str) -> ResultColumnExpr {
-    ResultColumnExpr::AggColumn(AggExpr::Count(ResultColumn {
-        name: name.parse().unwrap(),
+pub fn count_res(name: &str, alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::Agg(AggExpr::Count(Box::new(Expression::Column(
+            name.parse().unwrap(),
+        )))),
         alias: alias.parse().unwrap(),
-    }))
+    })
 }
 
-pub fn count_all_res(alias: &str) -> ResultColumnExpr {
-    ResultColumnExpr::AggColumn(AggExpr::CountAll(alias.parse::<Identifier>().unwrap()))
+pub fn count_all_res(alias: &str) -> SelectResultExpr {
+    SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
+        expr: ResultExpr::Agg(AggExpr::CountALL),
+        alias: alias.parse().unwrap(),
+    })
 }
 
 pub fn query(
-    columns: Vec<ResultColumnExpr>,
+    result_columns: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
     where_expr: Box<Expression>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
-        columns,
+        result_columns,
         from: vec![tab],
         where_expr: Some(where_expr),
         group_by,
@@ -98,12 +121,12 @@ pub fn query(
 }
 
 pub fn query_all(
-    columns: Vec<ResultColumnExpr>,
+    result_columns: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
-        columns,
+        result_columns,
         from: vec![tab],
         where_expr: None,
         group_by,
