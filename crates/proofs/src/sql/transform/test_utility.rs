@@ -3,7 +3,9 @@ use crate::sql::transform::CompositionExpr;
 use crate::sql::transform::DataFrameExpr;
 
 use proofs_sql::intermediate_ast::ResultColumn;
-use proofs_sql::intermediate_ast::{AggExpr, OrderBy, OrderByDirection};
+use proofs_sql::intermediate_ast::{
+    AggExpr, AliasedResultExpr, Expression, OrderBy, OrderByDirection,
+};
 
 pub fn result(result_schema: &[(&str, &str)]) -> Box<ResultExpr> {
     Box::new(ResultExpr::new_with_result_schema(schema(result_schema)))
@@ -46,31 +48,39 @@ pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
     Box::new(SliceExpr::new(limit, offset))
 }
 
-pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> AggExpr {
+pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> AliasedResultExpr {
     match agg_type {
-        "max" => AggExpr::Max(ResultColumn {
-            name: name.parse().unwrap(),
+        "max" => AliasedResultExpr {
+            expr: proofs_sql::intermediate_ast::ResultExpr::Agg(AggExpr::Max(Box::new(
+                Expression::Column(name.parse().unwrap()),
+            ))),
             alias: alias.parse().unwrap(),
-        }),
-        "min" => AggExpr::Min(ResultColumn {
-            name: name.parse().unwrap(),
+        },
+        "min" => AliasedResultExpr {
+            expr: proofs_sql::intermediate_ast::ResultExpr::Agg(AggExpr::Min(Box::new(
+                Expression::Column(name.parse().unwrap()),
+            ))),
             alias: alias.parse().unwrap(),
-        }),
-        "sum" => AggExpr::Sum(ResultColumn {
-            name: name.parse().unwrap(),
+        },
+        "sum" => AliasedResultExpr {
+            expr: proofs_sql::intermediate_ast::ResultExpr::Agg(AggExpr::Sum(Box::new(
+                Expression::Column(name.parse().unwrap()),
+            ))),
             alias: alias.parse().unwrap(),
-        }),
-        "count" => AggExpr::Count(ResultColumn {
-            name: name.parse().unwrap(),
+        },
+        "count" => AliasedResultExpr {
+            expr: proofs_sql::intermediate_ast::ResultExpr::Agg(AggExpr::Count(Box::new(
+                Expression::Column(name.parse().unwrap()),
+            ))),
             alias: alias.parse().unwrap(),
-        }),
+        },
         _ => panic!("Unsupported agg type"),
     }
 }
 
 pub fn groupby(
     by_exprs: Vec<(&str, Option<&str>)>,
-    agg_exprs: Vec<AggExpr>,
+    agg_exprs: Vec<AliasedResultExpr>,
 ) -> Box<dyn DataFrameExpr> {
     let by_exprs = by_exprs
         .iter()

@@ -12,14 +12,20 @@ use crate::Identifier;
 pub enum SetExpression {
     /// Query result as `SetExpression`
     Query {
-        columns: Vec<ResultColumnExpr>,
+        result_columns: Vec<SelectResultExpr>,
         from: Vec<Box<TableExpression>>,
         where_expr: Option<Box<Expression>>,
         group_by: Vec<Identifier>,
     },
 }
 
-/// Representation of a single result column
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum SelectResultExpr {
+    ALL,
+    AliasedResultExpr(AliasedResultExpr),
+}
+
+// TODO: this struct will soon be removed
 #[derive(Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResultColumn {
     /// The name of the column
@@ -28,30 +34,30 @@ pub struct ResultColumn {
     pub alias: Identifier,
 }
 
-/// Representation of a single result column specification
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum ResultColumnExpr {
-    /// All column expressions
-    AllColumns,
-    /// A simple column expression
-    SimpleColumn(ResultColumn),
-    /// An aggregation expression
-    AggColumn(AggExpr),
+pub struct AliasedResultExpr {
+    pub expr: ResultExpr,
+    pub alias: Identifier,
 }
 
-/// Representation of an aggregation expression
-#[derive(Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum ResultExpr {
+    Agg(AggExpr),
+    NonAgg(Box<Expression>),
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum AggExpr {
     /// An aggregation expression associated with max(expr)
-    Max(ResultColumn),
+    Max(Box<Expression>),
     /// An aggregation expression associated with min(expr)
-    Min(ResultColumn),
+    Min(Box<Expression>),
     /// An aggregation expression associated with sum(expr)
-    Sum(ResultColumn),
+    Sum(Box<Expression>),
     /// An aggregation expression associated with count(expr)
-    Count(ResultColumn),
+    Count(Box<Expression>),
     /// An aggregation expression associated with count(*)
-    CountAll(Identifier),
+    CountALL,
 }
 
 /// Representations of base queries
@@ -65,30 +71,46 @@ pub enum TableExpression {
     },
 }
 
-/// Boolean expressions
+/// Binary operators for simple expressions
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum BinaryOperator {
+    /// Logical And
+    And,
+
+    /// Logical Or
+    Or,
+
+    /// Comparison =
+    Equal,
+}
+
+/// Possible unary operators for simple expressions
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum UnaryOperator {
+    /// Logical inversion
+    Not,
+}
+
+/// Boolean Expressions
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
-    // not (expr)
-    Not {
+    /// Literal
+    Literal(Literal),
+
+    /// Column
+    Column(Identifier),
+
+    /// Unary operation
+    Unary {
+        op: UnaryOperator,
         expr: Box<Expression>,
     },
 
-    // left and right
-    And {
+    /// Binary operation
+    Binary {
+        op: BinaryOperator,
         left: Box<Expression>,
         right: Box<Expression>,
-    },
-
-    // left or right
-    Or {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-
-    /// left == right
-    Equal {
-        left: Identifier,
-        right: Box<Literal>,
     },
 }
 

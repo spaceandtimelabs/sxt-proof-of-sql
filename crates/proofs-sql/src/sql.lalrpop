@@ -22,8 +22,10 @@ pub SelectStatement: select_statement::SelectStatement = {
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "select" <columns: ResultColumnList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
-        Box::new(intermediate_ast::SetExpression::Query { columns, from, where_expr, group_by: group_by.unwrap_or(vec![]) }),
+    "select" <result_columns: SelectResultExprList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
+        Box::new(intermediate_ast::SetExpression::Query {
+            result_columns, from, where_expr, group_by: group_by.unwrap_or(vec![])
+        }),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,66 +101,77 @@ GroupByCore: identifier::Identifier = {
 // Result Columns
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-ResultColumnList: Vec<intermediate_ast::ResultColumnExpr> = {
-    ResultColumnExpr => vec![<>],
+SelectResultExprList: Vec<intermediate_ast::SelectResultExpr> = {
+    SelectResultExpr => vec![<>],
 
-    <columns: ResultColumnList> "," <column: ResultColumnExpr> => intermediate_ast::append(columns, column),
+    <columns: SelectResultExprList> "," <column: SelectResultExpr> => intermediate_ast::append(columns, column),
 };
 
-ResultColumnExpr: intermediate_ast::ResultColumnExpr = {
-    "*" => intermediate_ast::ResultColumnExpr::AllColumns,
+SelectResultExpr: intermediate_ast::SelectResultExpr = {
+    "*" => intermediate_ast::SelectResultExpr::ALL,
 
-    <name: QualifiedColumnIdentifier> <alias: ("as"? <Identifier>)?>  =>
-            intermediate_ast::ResultColumnExpr::SimpleColumn(
-                intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(name) }),
+    <non_agg_expr: NonAggregationExpr> => intermediate_ast::SelectResultExpr::AliasedResultExpr(non_agg_expr),
 
-    <agg_expr: AggExpr> => intermediate_ast::ResultColumnExpr::AggColumn(agg_expr),
+    <agg_expr: AggregationExpr> => intermediate_ast::SelectResultExpr::AliasedResultExpr(agg_expr),
+};
+
+NonAggregationExpr: intermediate_ast::AliasedResultExpr = {
+    <name: QualifiedColumnIdentifier> <alias: ("as"? <Identifier>)?> => intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::NonAgg(Box::new(intermediate_ast::Expression::Column(name))),
+                 alias: alias.unwrap_or(name),
+             }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Aggregation Expressions
 ////////////////////////////////////////////////////////////////////////////////////////////////
-AggExpr: intermediate_ast::AggExpr = {
+AggregationExpr: intermediate_ast::AliasedResultExpr = {
     // TODO: for now, we use alias `__max__` instead of `max` because `max` is a reserved word.
-    "max" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
-        intermediate_ast::AggExpr::Max(intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__max__")) }),
+    "max" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Max(expr)),
+                 alias: alias.unwrap_or(identifier::Identifier::new("__max__")),
+        },
 
     // TODO: for now, we use alias `__min__` instead of `min` because `min` is a reserved word.
-    "min" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
-        intermediate_ast::AggExpr::Min(
-            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__min__")) }
-        ),
+    "min" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Min(expr)),
+                 alias: alias.unwrap_or(identifier::Identifier::new("__min__")),
+        },
 
     // TODO: for now, we use alias `__sum__` instead of `sum` because `sum` is a reserved word.
-    "sum" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
-        intermediate_ast::AggExpr::Sum(
-            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__sum__")) }
-        ),
+    "sum" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Sum(expr)),
+                 alias: alias.unwrap_or(identifier::Identifier::new("__sum__")),
+        },
+
+    // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
+    "count" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+        intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Count(expr)),
+                 alias: alias.unwrap_or(identifier::Identifier::new("__count__")),
+        },
 
     // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
     "count" "(" "*" ")" <alias: ("as"? <Identifier>)?>  =>
-        intermediate_ast::AggExpr::CountAll(alias.unwrap_or(identifier::Identifier::new("__count__"))),
+        intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::Agg(
+                    intermediate_ast::AggExpr::CountALL
+                 ),
+                 alias: alias.unwrap_or(identifier::Identifier::new("__count__")),
+        },
+};
 
-    // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
-    "count" "(" <name: QualifiedColumnIdentifier> ")" <alias: ("as"? <Identifier>)?>  => 
-        intermediate_ast::AggExpr::Count(
-            intermediate_ast::ResultColumn { name, alias: alias.unwrap_or(identifier::Identifier::new("__count__")) }
-        ),
+ResultColumnExpr: Box<intermediate_ast::Expression> = {
+    <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // QualifiedColumnIdentifier (used by result column and where_expr columns)
 ////////////////////////////////////////////////////////////////////////////////////////////////
-
-// Note: we are adding a new `QualifiedColumnIdentifierParen` rule
-// solely for the purpose of overcoming LALRPOP restrictions.
-// For instance, see this thread:
-// [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
-QualifiedColumnIdentifierParen: identifier::Identifier = "(" <QualifiedColumnIdentifier> ")";
 QualifiedColumnIdentifier: identifier::Identifier = {
-    #[precedence(level="0")]
-    QualifiedColumnIdentifierParen,
-
     #[precedence(level="1")]
     Identifier,
 };
@@ -196,6 +209,10 @@ WhereClause: Box<intermediate_ast::Expression> = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Expressions
 ////////////////////////////////////////////////////////////////////////////////////////////////
+// Note: we are adding a new `ExprParen` rule
+// solely for the purpose of overcoming LALRPOP restrictions.
+// For instance, see this thread:
+// [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
 ExprParen: Box<intermediate_ast::Expression> = "(" <Expression> ")";
 Expression: Box<intermediate_ast::Expression> = {
     #[precedence(level="0")]
@@ -205,40 +222,64 @@ Expression: Box<intermediate_ast::Expression> = {
     ComparativeExpression,
 
     #[precedence(level="2")] #[assoc(side="right")]
-    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Not { expr }),
+    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Unary {
+        op: intermediate_ast::UnaryOperator::Not, expr
+    }),
 
     #[precedence(level="3")] #[assoc(side="left")]
     <left: Expression> "and" <right: Expression> =>
-        Box::new(intermediate_ast::Expression::And { left, right }),
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::And,
+            left,
+            right, 
+        }),
 
     #[precedence(level="4")] #[assoc(side="left")]
     <left: Expression> "or" <right: Expression> =>
-        Box::new(intermediate_ast::Expression::Or { left, right }),
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Or,
+            left,
+            right, 
+        }),
 };
 
 ComparativeExpression: Box<intermediate_ast::Expression> = {
     <left: QualifiedColumnIdentifier> "=" <right: LiteralValue> =>
-        Box::new(intermediate_ast::Expression::Equal { left, right }),
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Equal,
+            left: Box::new(intermediate_ast::Expression::Column(left)),
+            right: Box::new(intermediate_ast::Expression::Literal(*right)), 
+        }),
 
     <left: LiteralValue> "=" <right: QualifiedColumnIdentifier> =>
-        Box::new(intermediate_ast::Expression::Equal { left: right, right: left }),
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Equal,
+            left: Box::new(intermediate_ast::Expression::Column(right)),
+            right: Box::new(intermediate_ast::Expression::Literal(*left)), 
+        }),
 
     <left: QualifiedColumnIdentifier> "!=" <right: LiteralValue> =>
-        Box::new(intermediate_ast::Expression::Not {
-            expr: Box::new(intermediate_ast::Expression::Equal { left, right })
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::Equal,
+                left: Box::new(intermediate_ast::Expression::Column(left)),
+                right: Box::new(intermediate_ast::Expression::Literal(*right)), 
+            }), 
         }),
 
     <left: LiteralValue> "!=" <right: QualifiedColumnIdentifier> =>
-        Box::new(intermediate_ast::Expression::Not {
-            expr: Box::new(intermediate_ast::Expression::Equal { left: right, right: left })
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::Equal,
+                left: Box::new(intermediate_ast::Expression::Column(right)),
+                right: Box::new(intermediate_ast::Expression::Literal(*left)), 
+            }), 
         }),
 };
 
-UnaryNumericLiteralParen: i64 = "(" <UnaryNumericLiteral> ")";
 UnaryNumericLiteral: i64 = {
-    #[precedence(level="0")]
-    UnaryNumericLiteralParen,
-
     #[precedence(level="1")]
     SignedNumericLiteral,
 
@@ -247,11 +288,7 @@ UnaryNumericLiteral: i64 = {
     "-" <expr: UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
 };
 
-StringLiteralParen: String = "(" <StringLiteral> ")";
 pub StringLiteral: String = {
-    #[precedence(level="0")]
-    StringLiteralParen,
-
     STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
 };
 

@@ -51,7 +51,7 @@ impl SelectStatement {
 
         match set_expression {
             SetExpression::Query {
-                columns: _,
+                result_columns: _,
                 from,
                 where_expr: _,
                 group_by: _,
