@@ -45,7 +45,7 @@ pub trait ProofExpr: Debug + Send + Sync {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    );
+    ) -> Result<(), ProofError>;
 
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;

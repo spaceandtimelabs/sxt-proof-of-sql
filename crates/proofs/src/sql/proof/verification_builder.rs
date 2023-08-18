@@ -2,6 +2,7 @@ use crate::base::scalar::ArkScalar;
 
 use super::SumcheckMleEvaluations;
 
+use crate::base::bit::BitDistribution;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::Zero;
 
@@ -13,6 +14,7 @@ pub struct VerificationBuilder<'a> {
     subpolynomial_multipliers: &'a [ArkScalar],
     inner_product_multipliers: &'a [ArkScalar],
     sumcheck_evaluation: ArkScalar,
+    bit_distributions: &'a [BitDistribution],
     folded_pre_result_commitment: RistrettoPoint,
     folded_pre_result_evaluation: ArkScalar,
     consumed_result_mles: usize,
@@ -25,6 +27,7 @@ impl<'a> VerificationBuilder<'a> {
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a>,
+        bit_distributions: &'a [BitDistribution],
         intermediate_commitments: &'a [RistrettoPoint],
         subpolynomial_multipliers: &'a [ArkScalar],
         inner_product_multipliers: &'a [ArkScalar],
@@ -36,6 +39,7 @@ impl<'a> VerificationBuilder<'a> {
         Self {
             mle_evaluations,
             generator_offset,
+            bit_distributions,
             intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
@@ -67,6 +71,14 @@ impl<'a> VerificationBuilder<'a> {
         self.consumed_pre_result_mles += 1;
         let res = self.mle_evaluations.pre_result_evaluations[index];
         self.folded_pre_result_evaluation += multiplier * res;
+        res
+    }
+
+    /// Consume a bit distribution that describes which bits are constant
+    /// and which bits varying in a column of data
+    pub fn consume_bit_distribution(&mut self) -> BitDistribution {
+        let res = self.bit_distributions[0].clone();
+        self.bit_distributions = &self.bit_distributions[1..];
         res
     }
 
@@ -115,7 +127,8 @@ impl<'a> VerificationBuilder<'a> {
 
     /// Check that the verification builder is completely built up
     fn completed(&self) -> bool {
-        self.produced_subpolynomials == self.subpolynomial_multipliers.len()
+        self.bit_distributions.is_empty()
+            && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
             && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pre_result_mles == self.mle_evaluations.pre_result_evaluations.len()
             && self.consumed_result_mles == self.mle_evaluations.result_evaluations.len()

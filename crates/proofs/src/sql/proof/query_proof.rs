@@ -6,6 +6,7 @@ use super::{
 
 use crate::base::slice_ops;
 use crate::base::{
+    bit::BitDistribution,
     database::{CommitmentAccessor, DataAccessor},
     polynomial::CompositePolynomialInfo,
     proof::{MessageLabel, ProofError, TranscriptProtocol},
@@ -30,6 +31,7 @@ use std::cmp;
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProof {
+    pub bit_distributions: Vec<BitDistribution>,
     pub commitments: Vec<CompressedRistretto>,
     pub sumcheck_proof: SumcheckProof,
     pub pre_result_mle_evaluations: Vec<ArkScalar>,
@@ -61,6 +63,7 @@ impl QueryProof {
             &commitments,
             &provable_result.indexes,
             &provable_result.data,
+            builder.bit_distributions(),
         );
 
         // construct the sumcheck polynomial
@@ -106,6 +109,7 @@ impl QueryProof {
         );
 
         let proof = Self {
+            bit_distributions: builder.bit_distributions().to_vec(),
             commitments,
             sumcheck_proof,
             pre_result_mle_evaluations,
@@ -131,9 +135,16 @@ impl QueryProof {
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
         assert!(num_sumcheck_variables > 0);
 
+        // validate bit decompositions
+        for dist in self.bit_distributions.iter() {
+            if !dist.is_valid() {
+                return Err(ProofError::VerificationError("invalid bit distributions"));
+            }
+        }
+
         // count terms
         let counts = {
-            let mut builder = CountBuilder::new();
+            let mut builder = CountBuilder::new(&self.bit_distributions);
             expr.count(&mut builder, accessor)?;
             builder.counts()
         }?;
@@ -156,7 +167,12 @@ impl QueryProof {
         }
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(&self.commitments, &result.indexes, &result.data);
+        let mut transcript = make_transcript(
+            &self.commitments,
+            &result.indexes,
+            &result.data,
+            &self.bit_distributions,
+        );
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -217,11 +233,12 @@ impl QueryProof {
         let mut builder = VerificationBuilder::new(
             generator_offset,
             sumcheck_evaluations,
+            &self.bit_distributions,
             &commitments,
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
         );
-        expr.verifier_evaluate(&mut builder, accessor);
+        expr.verifier_evaluate(&mut builder, accessor)?;
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
@@ -267,6 +284,7 @@ fn make_transcript(
     commitments: &[CompressedRistretto],
     result_indexes: &[u64],
     result_data: &[u8],
+    bit_distributions: &[BitDistribution],
 ) -> merlin::Transcript {
     let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
     transcript.append_points(MessageLabel::QueryCommit, commitments);
@@ -274,6 +292,7 @@ fn make_transcript(
         MessageLabel::QueryResultIndexes.as_bytes(),
         result_indexes.as_byte_slice(),
     );
+    transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
     transcript.append_message(MessageLabel::QueryResultData.as_bytes(), result_data);
     transcript
 }

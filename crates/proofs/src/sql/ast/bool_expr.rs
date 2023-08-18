@@ -30,7 +30,7 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar;
+    ) -> Result<ArkScalar, ProofError>;
 
     // Insert in the HashSet `columns` all the column
     // references in the BoolExpr or forwards the call to some
