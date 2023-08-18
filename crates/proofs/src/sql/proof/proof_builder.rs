@@ -2,6 +2,7 @@ use super::{
     CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
+use crate::base::bit::BitDistribution;
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::ArkScalar;
 use crate::base::slice_ops;
@@ -16,6 +17,7 @@ use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 pub struct ProofBuilder<'a> {
     table_length: usize,
     num_sumcheck_variables: usize,
+    bit_distributions: Vec<BitDistribution>,
     result_index_vector: &'a [u64],
     result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
     commitment_descriptor: Vec<Sequence<'a>>,
@@ -29,6 +31,7 @@ impl<'a> ProofBuilder<'a> {
         Self {
             table_length,
             num_sumcheck_variables,
+            bit_distributions: Vec::new(),
             result_index_vector: &[],
             result_columns: Vec::new(),
             commitment_descriptor: Vec::new(),
@@ -47,6 +50,12 @@ impl<'a> ProofBuilder<'a> {
 
     pub fn num_result_columns(&self) -> usize {
         self.result_columns.len()
+    }
+
+    /// Produce a bit distribution that describes which bits are constant
+    /// and which bits varying in a column of data
+    pub fn produce_bit_distribution(&mut self, dist: BitDistribution) {
+        self.bit_distributions.push(dist);
     }
 
     /// Produce an anchored MLE that we can reference in sumcheck.
@@ -214,5 +223,9 @@ impl<'a> ProofBuilder<'a> {
             evaluator.mul_add(&mut res, multiplier);
         }
         res
+    }
+
+    pub fn bit_distributions(&self) -> &[BitDistribution] {
+        &self.bit_distributions
     }
 }

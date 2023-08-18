@@ -107,11 +107,12 @@ impl ProofExpr for FilterExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) {
-        let selection_eval = self.where_clause.verifier_evaluate(builder, accessor);
+    ) -> Result<(), ProofError> {
+        let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         for expr in self.results.iter() {
             expr.verifier_evaluate(builder, accessor, &selection_eval);
         }
+        Ok(())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

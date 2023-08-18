@@ -62,7 +62,7 @@ impl ProofExpr for QueryExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) {
+    ) -> Result<(), ProofError> {
         self.filter.verifier_evaluate(builder, accessor)
     }
 
