@@ -65,10 +65,11 @@ impl ProofExpr for TestQueryExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) {
+    ) -> Result<(), ProofError> {
         if let Some(f) = &self.verifier_fn {
             f(builder, accessor);
         }
+        Ok(())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

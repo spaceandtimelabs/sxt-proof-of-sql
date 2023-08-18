@@ -125,7 +125,7 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar {
+    ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();
         let generator_offset = builder.generator_offset();
         let one_commit = get_one_commit((table_length + generator_offset) as u64)
@@ -149,7 +149,7 @@ impl BoolExpr for EqualsExpr {
             * (selection_not_eval - lhs_eval * lhs_pseudo_inv_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
 
-        selection_eval
+        Ok(selection_eval)
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {

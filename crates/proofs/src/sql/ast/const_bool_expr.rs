@@ -55,11 +55,11 @@ impl BoolExpr for ConstBoolExpr {
         &self,
         builder: &mut VerificationBuilder,
         _accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar {
+    ) -> Result<ArkScalar, ProofError> {
         if self.value {
-            builder.mle_evaluations.one_evaluation
+            Ok(builder.mle_evaluations.one_evaluation)
         } else {
-            ArkScalar::zero()
+            Ok(ArkScalar::zero())
         }
     }
 

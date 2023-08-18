@@ -7,6 +7,11 @@ pub use filter_expr::FilterExpr;
 #[cfg(test)]
 mod filter_expr_test;
 
+mod bitwise_verification;
+pub use bitwise_verification::*;
+#[cfg(test)]
+mod bitwise_verification_test;
+
 mod bool_expr;
 pub use bool_expr::BoolExpr;
 
@@ -34,6 +39,11 @@ mod equals_expr;
 pub use equals_expr::EqualsExpr;
 #[cfg(test)]
 mod equals_expr_test;
+
+mod sign_expr;
+pub use sign_expr::SignExpr;
+#[cfg(test)]
+mod sign_expr_test;
 
 mod table_expr;
 pub use table_expr::TableExpr;

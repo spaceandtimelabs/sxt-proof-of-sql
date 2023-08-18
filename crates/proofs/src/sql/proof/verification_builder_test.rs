@@ -15,7 +15,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         pre_result_evaluations: &[][..],
         result_evaluations: &[][..],
     };
-    let builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..]);
+    let builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);
     assert_eq!(builder.sumcheck_evaluation(), ArkScalar::zero());
     assert_eq!(
         builder.folded_pre_result_commitment(),
@@ -37,6 +37,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
     let mut builder = VerificationBuilder::new(
         0,
         mle_evaluations,
+        &[][..],
         &[][..],
         &subpolynomial_multipliers,
         &[][..],
@@ -67,6 +68,7 @@ fn we_build_up_the_folded_pre_result_commitment() {
     let mut builder = VerificationBuilder::new(
         0,
         mle_evaluations,
+        &[][..],
         &intermediate_commitments,
         &[][..],
         &inner_product_multipliers,
@@ -100,7 +102,8 @@ fn we_can_consume_result_evaluations() {
         pre_result_evaluations: &[][..],
         result_evaluations: &result_evaluations,
     };
-    let mut builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..]);
+    let mut builder =
+        VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(123u64));
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(456u64));
 }

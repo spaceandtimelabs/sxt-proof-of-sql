@@ -80,9 +80,9 @@ impl BoolExpr for OrExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar {
-        let lhs = self.lhs.verifier_evaluate(builder, accessor);
-        let rhs = self.rhs.verifier_evaluate(builder, accessor);
+    ) -> Result<ArkScalar, ProofError> {
+        let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
+        let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
 
         // lhs_and_rhs
         let lhs_and_rhs = builder.consume_intermediate_mle();
@@ -92,7 +92,7 @@ impl BoolExpr for OrExpr {
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
 
         // selection
-        lhs + rhs - lhs_and_rhs
+        Ok(lhs + rhs - lhs_and_rhs)
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {

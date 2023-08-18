@@ -41,7 +41,7 @@ pub trait TranscriptProtocol {
     /// so that only the RistrettoPoint is included, and not the length.
     ///
     /// The message is encoded with Postcard v1, chosen for its simplicity and stability.
-    fn append_auto(&mut self, label: MessageLabel, message: &impl serde::Serialize);
+    fn append_auto(&mut self, label: MessageLabel, message: &(impl serde::Serialize + ?Sized));
 
     /// Append some scalars to the transcript under a specific label.
     ///
@@ -75,7 +75,7 @@ pub trait TranscriptProtocol {
 }
 
 impl TranscriptProtocol for Transcript {
-    fn append_auto(&mut self, label: MessageLabel, message: &impl serde::Serialize) {
+    fn append_auto(&mut self, label: MessageLabel, message: &(impl serde::Serialize + ?Sized)) {
         self.append_message(label.as_bytes(), &postcard::to_allocvec(message).unwrap());
     }
 
@@ -138,6 +138,7 @@ pub enum MessageLabel {
     QueryMleEvaluationsChallenge,
     QueryResultIndexes,
     QueryResultData,
+    QueryBitDistributions,
     QuerySumcheckChallenge,
 }
 impl MessageLabel {
@@ -156,6 +157,7 @@ impl MessageLabel {
             MessageLabel::QueryCommit => b"querycommit v1",
             MessageLabel::QueryResultIndexes => b"queryresultindexes v1",
             MessageLabel::QueryResultData => b"queryresultdata v1",
+            MessageLabel::QueryBitDistributions => b"querybitdistributions v1",
             MessageLabel::QueryMleEvaluations => b"querymleevaluations v1",
             MessageLabel::QueryMleEvaluationsChallenge => b"querymleevaluationschallenge v1",
             MessageLabel::QuerySumcheckChallenge => b"querysumcheckchallenge v1",

@@ -1,17 +1,36 @@
 use crate::sql::proof::ProofCounts;
 
+use crate::base::bit::BitDistribution;
 use crate::base::proof::ProofError;
 use std::cmp::max;
 
-/// State used to count the number of components in a proof
-pub struct CountBuilder {
+/// Track the number of components expected for in a query's proof
+pub struct CountBuilder<'a> {
+    bit_distributions: &'a [BitDistribution],
     counts: ProofCounts,
 }
 
-impl CountBuilder {
-    pub fn new() -> Self {
+impl<'a> CountBuilder<'a> {
+    pub fn new(bit_distributions: &'a [BitDistribution]) -> Self {
         Self {
-            counts: ProofCounts::default(),
+            bit_distributions,
+            counts: Default::default(),
+        }
+    }
+
+    /// Proof counts can be dependent on how bits are distributed in a column of data.
+    ///
+    /// This method provides access to the bit distributions of a proof during the counting
+    /// pass of verification.
+    pub fn consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofError> {
+        if self.bit_distributions.is_empty() {
+            Err(ProofError::VerificationError(
+                "expected prover to provide bit distribution",
+            ))
+        } else {
+            let res = self.bit_distributions[0].clone();
+            self.bit_distributions = &self.bit_distributions[1..];
+            Ok(res)
         }
     }
 
@@ -37,14 +56,11 @@ impl CountBuilder {
     }
 
     pub fn counts(&self) -> Result<ProofCounts, ProofError> {
-        // Note: in future PRs, this will be able to error
-        // if state is not valid.
+        if !self.bit_distributions.is_empty() {
+            return Err(ProofError::VerificationError(
+                "incorrect number of bit distributions provided",
+            ));
+        }
         Ok(self.counts)
-    }
-}
-
-impl Default for CountBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }

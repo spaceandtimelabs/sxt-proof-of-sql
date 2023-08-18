@@ -45,9 +45,9 @@ impl BoolExpr for NotExpr {
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
-    ) -> ArkScalar {
-        let eval = self.expr.verifier_evaluate(builder, accessor);
-        builder.mle_evaluations.one_evaluation - eval
+    ) -> Result<ArkScalar, ProofError> {
+        let eval = self.expr.verifier_evaluate(builder, accessor)?;
+        Ok(builder.mle_evaluations.one_evaluation - eval)
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
