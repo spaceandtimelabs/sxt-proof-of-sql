@@ -6,7 +6,7 @@ use super::{
 use crate::base::database::{ColumnField, ColumnType};
 
 use crate::base::scalar::ArkScalar;
-use arrow::array::{Array, Int64Array, StringArray};
+use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use num_traits::Zero;
@@ -77,6 +77,7 @@ impl ProvableQueryResult {
                 let (x, sz) = match field.data_type() {
                     ColumnType::BigInt => <i64>::decode_to_ark_scalar(&self.data[offset..]),
                     ColumnType::VarChar => <&str>::decode_to_ark_scalar(&self.data[offset..]),
+                    ColumnType::Int128 => <i128>::decode_to_ark_scalar(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[*index as usize] * x;
@@ -93,6 +94,12 @@ impl ProvableQueryResult {
     }
 
     /// Convert the intermediate query result into a final query result
+    ///
+    /// The result is essentially an Arrow RecordBatch.
+    /// Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
+    /// This is because there is no `Int128` type in Arrow.
+    /// This does not check that the values are less than 39 digits.
+    /// However, the actual backing `i128` is the correct value.
     #[tracing::instrument(
         name = "proofs.sql.proof.provable_query_result.into_query_result",
         level = "debug",
@@ -114,6 +121,16 @@ impl ProvableQueryResult {
 
                     columns.push(Arc::new(Int64Array::from(col)));
 
+                    Ok(num_read)
+                }
+                ColumnType::Int128 => {
+                    let (col, num_read) = decode_multiple_elements::<i128>(&self.data[offset..], n)
+                        .ok_or(QueryError::Overflow)?;
+                    columns.push(Arc::new(
+                        Decimal128Array::from(col)
+                            .with_precision_and_scale(38, 0)
+                            .unwrap(),
+                    ));
                     Ok(num_read)
                 }
                 ColumnType::VarChar => {

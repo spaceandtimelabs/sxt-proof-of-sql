@@ -49,15 +49,15 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let data = record_batch!(
-        "a" => [123],
-        "b" => [0],
+        "a" => [123_i64],
+        "b" => [0_i64],
         "d" => ["abc"]
     );
     let test_expr = create_test_equals_expr("sxt.t", &["d", "a"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
         "d" => ["abc"],
-        "a" => [123],
+        "a" => [123_i64],
     );
     assert_eq!(res, expected_res);
 }
@@ -65,8 +65,8 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let data = record_batch!(
-        "a" => [123],
-        "b" => [55],
+        "a" => [123_i64],
+        "b" => [55_i64],
         "d" => ["abc"]
     );
     let test_expr = create_test_equals_expr("sxt.t", &["a", "d"], "b", 0_i64, data, 0);
@@ -81,14 +81,14 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
+        "a" => [1_i64, 2, 3, 4],
         "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0, 5, 0, 5],
+        "b" => [0_i64, 5, 0, 5],
     );
     let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [1, 3],
+        "a" => [1_i64, 3],
         "c" => ["t", "jj"],
     );
     assert_eq!(res, expected_res);
@@ -97,14 +97,14 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4, 5],
-        "b" => [123, 5, 123, 5, 0],
+        "a" => [1_i64, 2, 3, 4, 5],
+        "b" => [123_i64, 5, 123, 5, 0],
         "c" => ["t", "ghi", "jj", "f", "abc"],
     );
     let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 123_u64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [1, 3],
+        "a" => [1_i64, 3],
         "c" => ["t", "jj"],
     );
     assert_eq!(res, expected_res);
@@ -113,15 +113,15 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 #[test]
 fn we_can_prove_an_equality_query_with_a_string_comparison() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4, 5],
-        "b" => [123, 5, 123, 5, 0],
+        "a" => [1_i64, 2, 3, 4, 5],
+        "b" => [123_i64, 5, 123, 5, 0],
         "c" => ["t", "ghi", "jj", "f", "ghi"],
     );
     let test_expr = create_test_equals_expr("sxt.t", &["a", "b"], "c", "ghi", data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [2, 5],
-        "b" => [5, 0],
+        "a" => [2_i64, 5],
+        "b" => [5_i64, 0],
     );
     assert_eq!(res, expected_res);
 }
@@ -129,16 +129,16 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
 #[test]
 fn verify_fails_if_data_between_prover_and_verifier_differ() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
+        "a" => [1_i64, 2, 3, 4],
         "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0, 5, 0, 5],
+        "b" => [0_i64, 5, 0, 5],
     );
     let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
+        "a" => [1_i64, 2, 3, 4],
         "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0, 2, 0, 5],
+        "b" => [0_i64, 2, 0, 5],
     );
     let tampered_test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 

@@ -4,7 +4,7 @@ use crate::base::database::ColumnType;
 use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::QueryResult;
-use arrow::array::{Array, Int64Array, StringArray};
+use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
@@ -142,6 +142,7 @@ fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
     for field in result_fields.iter() {
         let col: Arc<dyn Array> = match field.data_type() {
             ColumnType::BigInt => Arc::new(Int64Array::from(Vec::<i64>::new())),
+            ColumnType::Int128 => Arc::new(Decimal128Array::from(Vec::<i128>::new())),
             ColumnType::VarChar => Arc::new(StringArray::from(Vec::<String>::new())),
         };
 

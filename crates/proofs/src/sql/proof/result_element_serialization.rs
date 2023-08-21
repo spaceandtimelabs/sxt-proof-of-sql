@@ -42,6 +42,39 @@ macro_rules! impl_provable_result_integer_elements {
 
 impl_provable_result_integer_elements!(i64);
 
+/// The i128 type is not supported by integer_encoding::VarInt.
+/// So we need to implement encode and decode for it manually.
+/// We split the i128 into two i64 and encode them separately.
+impl EncodeProvableResultElement for i128 {
+    fn required_bytes(&self) -> usize {
+        let low_part: i64 = (*self) as i64;
+        let high_part = ((*self) >> 64) as i64;
+        low_part.required_bytes() + high_part.required_bytes()
+    }
+
+    fn encode(&self, out: &mut [u8]) -> usize {
+        let low_part: i64 = (*self) as i64;
+        let high_part = ((*self) >> 64) as i64;
+        let low_len = low_part.encode(out);
+        let high_len = high_part.encode(&mut out[low_len..]);
+        low_len + high_len
+    }
+}
+impl DecodeProvableResultElement<'_> for i128 {
+    fn decode(data: &[u8]) -> Option<(i128, usize)> {
+        let (low_part, low_len) = <i64>::decode(data)?;
+        let (high_part, high_len) = <i64>::decode(&data[low_len..])?;
+        Some((
+            (high_part as i128) << 64 | (low_part as u64 as i128),
+            low_len + high_len,
+        ))
+    }
+
+    fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
+        <i128>::decode(data).map(|(val, read_bytes)| (val.into(), read_bytes))
+    }
+}
+
 /// Implement encode for u8 buffer arrays
 macro_rules! impl_provable_result_byte_elements {
     ($tt:ty) => {
@@ -186,6 +219,16 @@ mod tests {
     }
 
     #[test]
+    fn we_can_encode_and_decode_a_128_bit_integer() {
+        let value = 123_i128;
+        let mut out = vec![0_u8; value.required_bytes()];
+        value.encode(&mut out[..]);
+        let (decoded_value, read_bytes) = <i128>::decode(&out[..]).unwrap();
+        assert_eq!(read_bytes, out.len());
+        assert_eq!(decoded_value, value);
+    }
+
+    #[test]
     fn we_can_encode_and_decode_a_simple_string() {
         let value = "test string";
         let mut out = vec![0_u8; value.required_bytes()];
@@ -251,6 +294,27 @@ mod tests {
             assert_eq!(decoded_value, value);
 
             let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, value.into());
+        }
+    }
+
+    #[test]
+    fn arbitrary_encoded_128_bit_integers_are_correctly_decoded() {
+        let mut rng = StdRng::from_seed([0u8; 32]);
+        let dist = Uniform::new(i128::MIN, i128::MAX);
+
+        for _ in 0..100 {
+            let value = dist.sample(&mut rng);
+
+            let mut out = vec![0_u8; value.required_bytes()];
+            value.encode(&mut out[..]);
+
+            let (decoded_value, read_bytes) = <i128>::decode(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, value);
+
+            let (decoded_value, read_bytes) = <i128>::decode_to_ark_scalar(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value.into());
         }
@@ -323,6 +387,17 @@ mod tests {
         let out = encode_multiple_rows(&data);
         let (decoded_data, decoded_bytes) =
             decode_multiple_elements::<i64>(&out[..], data.len()).unwrap();
+
+        assert_eq!(decoded_data, data);
+        assert_eq!(decoded_bytes, out.len());
+    }
+
+    #[test]
+    fn multiple_128_bit_integer_rows_are_correctly_encoded_and_decoded() {
+        let data = [121_i128, -345_i128, 666_i128, 0_i128];
+        let out = encode_multiple_rows(&data);
+        let (decoded_data, decoded_bytes) =
+            decode_multiple_elements::<i128>(&out[..], data.len()).unwrap();
 
         assert_eq!(decoded_data, data);
         assert_eq!(decoded_bytes, out.len());

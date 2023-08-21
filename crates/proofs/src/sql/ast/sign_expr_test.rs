@@ -10,8 +10,28 @@ use crate::sql::proof::VerifiableQueryResult;
 #[test]
 fn we_handle_the_sign_decomposition_of_a_constant_column() {
     let data = record_batch!(
-        "a" => [123, 123, 123],
-        "b" => [1, 2, 3],
+        "a" => [123_i64, 123, 123],
+        "b" => [1_i64, 2, 3],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(t, data, 0);
+    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
+    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = res.verify(&expr, &accessor).unwrap().unwrap();
+    let expected_res = record_batch!(
+        "b" => &[] as &[i64],
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[ignore]
+#[test]
+fn we_handle_the_sign_decomposition_of_a_constant_column_with_i128_data() {
+    let data = record_batch!(
+        "a" => [123_i128, 123, 123],
+        "b" => [1_i128, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -29,8 +49,8 @@ fn we_handle_the_sign_decomposition_of_a_constant_column() {
 #[test]
 fn verification_fails_on_values_outside_of_the_acceptable_range() {
     let data = record_batch!(
-        "a" => [123, 123, 123],
-        "b" => [1, 2, 3],
+        "a" => [123_i64, 123, 123],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -45,8 +65,8 @@ fn verification_fails_on_values_outside_of_the_acceptable_range() {
 #[test]
 fn we_handle_the_sign_decomposition_of_a_constant_column_of_negative_numbers() {
     let data = record_batch!(
-        "a" => [-123, -123, -123],
-        "b" => [1, 2, 3],
+        "a" => [-123_i64, -123, -123],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -56,7 +76,7 @@ fn we_handle_the_sign_decomposition_of_a_constant_column_of_negative_numbers() {
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().unwrap();
     let expected_res = record_batch!(
-        "b" => [1, 2, 3],
+        "b" => [1_i64, 2, 3],
     );
     assert_eq!(res, expected_res);
 }
@@ -64,8 +84,8 @@ fn we_handle_the_sign_decomposition_of_a_constant_column_of_negative_numbers() {
 #[test]
 fn verification_of_a_constant_sign_decomposition_fails_if_commitments_dont_match() {
     let data = record_batch!(
-        "a" => [123, 123, 123],
-        "b" => [1, 2, 3],
+        "a" => [123_i64, 123, 123],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -75,8 +95,8 @@ fn verification_of_a_constant_sign_decomposition_fails_if_commitments_dont_match
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     let data = record_batch!(
-        "a" => [1234, 1234, 1234],
-        "b" => [1, 2, 3],
+        "a" => [1234_i64, 1234, 1234],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -89,8 +109,8 @@ fn verification_of_a_constant_sign_decomposition_fails_if_commitments_dont_match
 #[test]
 fn verification_of_a_constant_sign_decomposition_fails_if_signs_dont_match() {
     let data = record_batch!(
-        "a" => [123, 123, 123],
-        "b" => [1, 2, 3],
+        "a" => [123_i64, 123, 123],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -100,8 +120,8 @@ fn verification_of_a_constant_sign_decomposition_fails_if_signs_dont_match() {
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     let data = record_batch!(
-        "a" => [-123, -123, -123],
-        "b" => [1, 2, 3],
+        "a" => [-123_i64, -123, -123],
+        "b" => [1_i64, 2, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
@@ -114,8 +134,8 @@ fn verification_of_a_constant_sign_decomposition_fails_if_signs_dont_match() {
 #[test]
 fn verification_fails_if_a_bit_distribution_is_invalid() {
     let data = record_batch!(
-        "a" => [1, 1],
-        "b" => [1, 3],
+        "a" => [1_i64, 1],
+        "b" => [1_i64, 3],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();

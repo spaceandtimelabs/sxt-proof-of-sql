@@ -34,7 +34,7 @@ fn we_can_convert_an_ast_with_one_column() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3]
+            "a" => [3_i64]
         ),
         0,
     );
@@ -44,6 +44,29 @@ fn we_can_convert_an_ast_with_one_column() {
             cols_result(t, &["a"], &accessor),
             tab(t),
             equal(t, "a", 3, &accessor),
+        ),
+        result(&[("a", "a")]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[ignore = "not yet implemented"]
+#[test]
+fn we_can_convert_an_ast_with_one_column_and_i128_data() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [3_i128]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a"], &accessor),
+            tab(t),
+            equal(t, "a", 3_i128, &accessor),
         ),
         result(&[("a", "a")]),
     );
@@ -78,8 +101,8 @@ fn we_cannot_convert_an_ast_with_duplicate_aliases() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3],
-            "b" => [4]
+            "a" => [3_i64],
+            "b" => [4_i64]
         ),
         0,
     );
@@ -103,7 +126,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3]
+            "a" => [3_i64]
         ),
         0,
     );
@@ -153,8 +176,8 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "b" => [5, 6],
-            "a" => [3, 2],
+            "b" => [5_i64, 6],
+            "a" => [3_i64, 2],
         ),
         0_usize,
     );
@@ -364,7 +387,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3],
+            "a" => [3_i64],
         ),
         0,
     );
@@ -390,7 +413,7 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3],
+            "a" => [3_i64],
         ),
         0,
     );
@@ -443,7 +466,7 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "b" => [3],
+            "b" => [3_i64],
         ),
         0,
     );
@@ -469,7 +492,7 @@ fn we_can_convert_an_ast_with_a_schema() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3],
+            "a" => [3_i64],
         ),
         0,
     );
@@ -491,7 +514,7 @@ fn we_can_convert_an_ast_without_any_filter() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [3],
+            "a" => [3_i64],
         ),
         0,
     );
@@ -515,8 +538,8 @@ fn we_can_parse_order_by_with_a_single_column() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "b" => [5, 6],
-            "a" => [3, 2],
+            "b" => [5_i64, 6],
+            "a" => [3_i64, 2],
         ),
         0_usize,
     );
@@ -541,8 +564,8 @@ fn we_can_parse_order_by_with_multiple_columns() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "b" => [5, 6, -7],
-            "a" => [3, 2, 3],
+            "b" => [5_i64, 6, -7],
+            "a" => [3_i64, 2, 3],
         ),
         0_usize,
     );
@@ -572,7 +595,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [5, 6],
+            "salary" => [5_i64, 6],
             "name" => ["abc", "ed"],
         ),
         0,
@@ -605,7 +628,7 @@ fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [5, 6],
+            "salary" => [5_i64, 6],
         ),
         0,
     );
@@ -623,7 +646,7 @@ fn we_cannot_parse_order_by_referencing_an_alias_associated_with_column_b_but_wi
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [5, 6],
+            "salary" => [5_i64, 6],
             "name" => ["abc", "ed"],
         ),
         0,
@@ -642,8 +665,8 @@ fn we_cannot_parse_order_by_referencing_an_existing_column_not_appearing_in_the_
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "b" => [5, 6],
-            "a" => [3, 2],
+            "b" => [5_i64, 6],
+            "a" => [3_i64, 2],
         ),
         0,
     );
@@ -658,7 +681,7 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [5, 6],
+            "salary" => [5_i64, 6],
             "name" => ["abc", "ed"],
         ),
         0,
@@ -701,7 +724,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [5, 6],
+            "salary" => [5_i64, 6],
             "name" => ["abc", "ed"],
         ),
         0,
@@ -741,7 +764,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -760,7 +783,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -779,7 +802,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -798,7 +821,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -817,7 +840,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -840,7 +863,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "a" => [5],
+            "a" => [5_i64],
         ),
         0,
     );
@@ -874,8 +897,8 @@ fn we_can_group_by_without_using_aggregate_functions() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -905,8 +928,8 @@ fn we_can_group_by_and_then_use_a_single_aggregate_function() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -939,9 +962,9 @@ fn we_can_have_multiple_group_by_and_then_use_multiple_aggregate_functions() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
-            "bonus" => [-7]
+            "salary" => [4_i64],
+            "department" => [5_i64],
+            "bonus" => [-7_i64]
         ),
         0,
     );
@@ -981,9 +1004,9 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
-            "bonus" => [-7]
+            "salary" => [4_i64],
+            "department" => [5_i64],
+            "bonus" => [-7_i64]
         ),
         0,
     );
@@ -1024,8 +1047,8 @@ fn we_cannot_parse_non_aggregated_or_group_by_columns_in_select_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -1042,8 +1065,8 @@ fn aggregate_functions_are_not_allowed_in_the_group_by() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -1060,8 +1083,8 @@ fn order_by_cannot_reference_an_invalid_group_by_column() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -1085,8 +1108,8 @@ fn group_by_column_cannot_be_a_column_result_alias() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
         ),
         0,
     );
@@ -1104,8 +1127,8 @@ fn we_cannot_have_aggregate_functions_without_a_group_by_clause() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1120,8 +1143,8 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1154,8 +1177,8 @@ fn min_max_sum_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1186,8 +1209,8 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1227,8 +1250,8 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1261,8 +1284,8 @@ fn aggregate_result_columns_cannot_reference_invalid_columns() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
+            "salary" => [4_i64],
+            "department" => [5_i64],
             "bonus" => ["abc"]
         ),
         0,
@@ -1281,9 +1304,9 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
-            "bonus" => [-7]
+            "salary" => [4_i64],
+            "department" => [5_i64],
+            "bonus" => [-7_i64]
         ),
         0,
     );
@@ -1315,9 +1338,9 @@ fn we_can_use_multiple_group_by_clauses() {
     let accessor = record_batch_to_accessor(
         t,
         record_batch!(
-            "salary" => [4],
-            "department" => [5],
-            "bonus" => [-7]
+            "salary" => [4_i64],
+            "department" => [5_i64],
+            "bonus" => [-7_i64]
         ),
         0,
     );
