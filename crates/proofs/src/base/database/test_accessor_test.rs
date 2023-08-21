@@ -18,16 +18,16 @@ fn we_can_query_the_length_of_a_table() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [4, 5, 6]
+        "a" => [1_i64, 2, 3],
+        "b" => [4_i64, 5, 6]
     );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     assert_eq!(accessor.get_length(table_ref_1), 3);
 
     let data2 = record_batch!(
-        "a" => [1, 2, 3, 4],
-        "b" => [4, 5, 6, 5],
+        "a" => [1_i64, 2, 3, 4],
+        "b" => [4_i64, 5, 6, 5],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -42,8 +42,8 @@ fn we_can_access_the_columns_of_a_table() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [4, 5, 6],
+        "a" => [1_i64, 2, 3],
+        "b" => [4_i64, 5, 6],
     );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -54,9 +54,10 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     let data2 = record_batch!(
-        "a" => [1, 2, 3, 4],
+        "a" => [1_i64, 2, 3, 4],
         "d" => ["a", "bc", "d", "e"],
-        "b" => [4, 5, 6, 5],
+        "b" => [4_i64, 5, 6, 5],
+        "c128" => [1_i128, 2, 3, 4],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -69,6 +70,12 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
     match accessor.get_column(column) {
         Column::BigInt(col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
+        _ => panic!("Invalid column type"),
+    };
+
+    let column = ColumnRef::new(table_ref_2, "c128".parse().unwrap(), ColumnType::Int128);
+    match accessor.get_column(column) {
+        Column::Int128(col) => assert_eq!(col.to_vec(), vec![1, 2, 3, 4]),
         _ => panic!("Invalid column type"),
     };
 
@@ -91,8 +98,8 @@ fn we_can_access_the_commitments_of_table_columns() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [4, 5, 6],
+        "a" => [1_i64, 2, 3],
+        "b" => [4_i64, 5, 6],
     );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -103,8 +110,8 @@ fn we_can_access_the_commitments_of_table_columns() {
     );
 
     let data2 = record_batch!(
-        "a" => [1, 2, 3, 4],
-        "b" => [4, 5, 6, 5],
+        "a" => [1_i64, 2, 3, 4],
+        "b" => [4_i64, 5, 6, 5],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -128,8 +135,8 @@ fn we_can_access_the_type_of_table_columns() {
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [4, 5, 6],
+        "a" => [1_i64, 2, 3],
+        "b" => [4_i64, 5, 6],
     );
     accessor.add_table(table_ref_1, data1, 0_usize);
 
@@ -145,8 +152,8 @@ fn we_can_access_the_type_of_table_columns() {
         .is_none());
 
     let data2 = record_batch!(
-        "a" => [1, 2, 3, 4],
-        "b" => [4, 5, 6, 5],
+        "a" => [1_i64, 2, 3, 4],
+        "b" => [4_i64, 5, 6, 5],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -174,8 +181,8 @@ fn we_can_run_arbitrary_queries_on_a_table() {
     let table_ref_1 = "sxt.test".parse().unwrap();
 
     let data = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [123, 5, 123],
+        "a" => [1_i64, 2, 3],
+        "b" => [123_i64, 5, 123],
     );
     accessor.add_table(table_ref_1, data, 0_usize);
     let res = accessor.query_table(table_ref_1, |df| {
@@ -198,8 +205,8 @@ fn we_can_correctly_update_offsets() {
     let table_ref = "sxt.test".parse().unwrap();
 
     let data = record_batch!(
-        "a" => [1, 2, 3],
-        "b" => [123, 5, 123],
+        "a" => [1_i64, 2, 3],
+        "b" => [123_i64, 5, 123],
     );
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 

@@ -1,7 +1,7 @@
 use crate::base::database::Column;
 
 use crate::base::scalar::ArkScalar;
-use arrow::array::{Array, ArrayRef, Int64Array, StringArray};
+use arrow::array::{Array, ArrayRef, Decimal128Array, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use bumpalo::Bump;
 use std::ops::Range;
@@ -44,6 +44,11 @@ impl ArrayRefExt for ArrayRef {
                 .downcast_ref::<Int64Array>()
                 .map(|array| array.values().iter().map(|v| v.into()).collect())
                 .unwrap(),
+            DataType::Decimal128(38, 0) => self
+                .as_any()
+                .downcast_ref::<Decimal128Array>()
+                .map(|array| array.values().iter().map(|v| v.into()).collect())
+                .unwrap(),
             DataType::Utf8 => self
                 .as_any()
                 .downcast_ref::<StringArray>()
@@ -71,6 +76,13 @@ impl ArrayRefExt for ArrayRef {
                 &self
                     .as_any()
                     .downcast_ref::<Int64Array>()
+                    .map(|array| array.values())
+                    .unwrap()[range.start..range.end],
+            ),
+            DataType::Decimal128(38, 0) => Column::Int128(
+                &self
+                    .as_any()
+                    .downcast_ref::<Decimal128Array>()
                     .map(|array| array.values())
                     .unwrap()[range.start..range.end],
             ),

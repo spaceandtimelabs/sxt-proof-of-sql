@@ -1,6 +1,6 @@
 use crate::base::database::ColumnType;
 
-use arrow::array::{Array, Int64Array, StringArray};
+use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use rand::{
@@ -49,6 +49,16 @@ pub fn make_random_test_accessor_data(
 
                 columns.push(Arc::new(Int64Array::from(values.to_vec())));
             }
+            ColumnType::Int128 => {
+                column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
+
+                let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
+                columns.push(Arc::new(
+                    Decimal128Array::from(values.to_vec())
+                        .with_precision_and_scale(38, 0)
+                        .unwrap(),
+                ));
+            }
             ColumnType::VarChar => {
                 let col = &values
                     .iter()
@@ -78,7 +88,11 @@ mod tests {
     fn we_can_construct_a_random_test_data() {
         let descriptor = RandomTestAccessorDescriptor::default();
         let mut rng = StdRng::from_seed([0u8; 32]);
-        let cols = [("a", ColumnType::BigInt), ("b", ColumnType::VarChar)];
+        let cols = [
+            ("a", ColumnType::BigInt),
+            ("b", ColumnType::VarChar),
+            ("c", ColumnType::Int128),
+        ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
         let data2 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
@@ -94,8 +108,16 @@ mod tests {
             max_value: -2,
         };
         let mut rng = StdRng::from_seed([0u8; 32]);
-        let cols = [("b", ColumnType::BigInt), ("a", ColumnType::VarChar)];
+        let cols = [
+            ("b", ColumnType::BigInt),
+            ("a", ColumnType::VarChar),
+            ("c", ColumnType::Int128),
+        ];
         let data = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
-        assert_eq!(data, record_batch!("b" => [-2_i64], "a" => ["s-2"]));
+
+        assert_eq!(
+            data,
+            record_batch!("b" => [-2_i64], "a" => ["s-2"], "c" => [-2_i128])
+        );
     }
 }

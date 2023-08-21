@@ -41,14 +41,29 @@ fn create_test_or_expr<
 #[test]
 fn we_can_prove_a_simple_or_query() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
+        "a" => [1_i64, 2, 3, 4],
         "d" => ["ab", "t", "g", "efg"],
-        "b" => [0, 1, 0, 2],
+        "b" => [0_i64, 1, 0, 2],
     );
     let test_expr = create_test_or_expr("sxt.t", &["a"], ("b", 1), ("d", "efgh"), data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [2],
+        "a" => [2_i64],
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_prove_a_simple_or_query_with_i128_data() {
+    let data = record_batch!(
+        "a" => [1_i128, 2, 3, 4],
+        "d" => ["ab", "t", "g", "efg"],
+        "b" => [0_i128, 1, 0, 2],
+    );
+    let test_expr = create_test_or_expr("sxt.t", &["a"], ("b", 1), ("d", "efgh"), data, 0);
+    let res = test_expr.verify_expr();
+    let expected_res = record_batch!(
+        "a" => [2_i128],
     );
     assert_eq!(res, expected_res);
 }
@@ -56,9 +71,9 @@ fn we_can_prove_a_simple_or_query() {
 #[test]
 fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
-        "b" => [0, 1, 0, 1],
-        "c" => [0, 2, 2, 0],
+        "a" => [1_i64, 2, 3, 4],
+        "b" => [0_i64, 1, 0, 1],
+        "c" => [0_i64, 2, 2, 0],
         "d" => ["ab", "t", "g", "efg"],
     );
     let test_expr = create_test_or_expr("sxt.t", &["d"], ("b", 1), ("d", "g"), data, 0);
