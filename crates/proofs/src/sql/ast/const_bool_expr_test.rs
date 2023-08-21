@@ -45,7 +45,7 @@ fn test_random_tables_with_given_constant(value: bool) {
 
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
-    let data = record_batch!("a" => [123]);
+    let data = record_batch!("a" => [123_i64]);
     let test_expr = create_test_const_bool_expr("sxt.t", &["a"], true, data.clone(), 0);
     let res = test_expr.verify_expr();
     assert_eq!(res, data);
@@ -53,7 +53,7 @@ fn we_can_prove_a_query_with_a_single_selected_row() {
 
 #[test]
 fn we_can_prove_a_query_with_a_single_non_selected_row() {
-    let data = record_batch!("a" => [123]);
+    let data = record_batch!("a" => [123_i64]);
     let test_expr = create_test_const_bool_expr("sxt.t", &["a"], false, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!("a" => Vec::<i64>::new());

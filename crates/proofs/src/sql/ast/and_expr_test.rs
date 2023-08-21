@@ -41,15 +41,32 @@ fn create_test_and_expr<
 #[test]
 fn we_can_prove_a_simple_and_query() {
     let data = record_batch!(
-        "a" => [1, 2, 3, 4],
-        "b" => [0, 1, 0, 1],
+        "a" => [1_i64, 2, 3, 4],
+        "b" => [0_i64, 1, 0, 1],
         "d" => ["ab", "t", "efg", "g"],
-        "c" => [0, 2, 2, 0],
+        "c" => [0_i64, 2, 2, 0],
     );
     let test_expr = create_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [2],
+        "a" => [2_i64],
+        "d" => ["t"]
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_prove_a_simple_and_query_with_128_bits() {
+    let data = record_batch!(
+        "a" => [1_i128, 2, 3, 4],
+        "b" => [0_i128, 1, 0, 1],
+        "d" => ["ab", "t", "efg", "g"],
+        "c" => [0_i128, 2, 2, 0],
+    );
+    let test_expr = create_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
+    let res = test_expr.verify_expr();
+    let expected_res = record_batch!(
+        "a" => [2_i128],
         "d" => ["t"]
     );
     assert_eq!(res, expected_res);

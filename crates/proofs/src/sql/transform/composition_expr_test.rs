@@ -8,13 +8,13 @@ use proofs_sql::intermediate_ast::OrderByDirection::Desc;
 fn we_can_chain_expressions() {
     let limit = 2;
     let offset = 1;
-    let data = record_batch!("c" => [-5, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
+    let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
     let mut composition = CompositionExpr::new(orders(&["c"], &[Desc]));
     composition.add(slice(limit, offset));
 
     let result_expr = composite_result(vec![Box::new(composition)]);
     let data = result_expr.transform_results(data);
-    let expected_data = record_batch!("c" => [1, -5], "a" => ["a", "d"]);
+    let expected_data = record_batch!("c" => [1_i64, -5], "a" => ["a", "d"]);
     assert_eq!(data, expected_data);
 }
 
@@ -22,7 +22,7 @@ fn we_can_chain_expressions() {
 fn the_order_that_we_chain_expressions_is_relevant() {
     let limit = 2;
     let offset = 1;
-    let data = record_batch!("c" => [-5, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
+    let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
 
     let mut composition1 = CompositionExpr::new(orders(&["c"], &[Desc]));
     composition1.add(slice(limit, offset));
@@ -36,9 +36,9 @@ fn the_order_that_we_chain_expressions_is_relevant() {
 
     assert_ne!(data1, data2);
 
-    let expected_data1 = record_batch!("c" => [1, -5], "a" => ["a", "d"]);
+    let expected_data1 = record_batch!("c" => [1_i64, -5], "a" => ["a", "d"]);
     assert_eq!(data1, expected_data1);
 
-    let expected_data2 = record_batch!("c" => [1, -56], "a" => ["a", "f"]);
+    let expected_data2 = record_batch!("c" => [1_i64, -56], "a" => ["a", "f"]);
     assert_eq!(data2, expected_data2);
 }

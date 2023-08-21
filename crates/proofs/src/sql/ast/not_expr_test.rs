@@ -33,14 +33,14 @@ fn create_test_not_expr<T: Into<ArkScalar> + Copy + Literal>(
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
     let data = record_batch!(
-        "a" => [123, 456],
-        "b" => [0, 1],
+        "a" => [123_i64, 456],
+        "b" => [0_i64, 1],
         "d" => ["alfa", "gama"]
     );
     let test_expr = create_test_not_expr("sxt.t", &["a", "d"], "b", 1_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
-        "a" => [123],
+        "a" => [123_i64],
         "d" => ["alfa"]
     );
     assert_eq!(res, expected_res);

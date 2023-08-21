@@ -27,6 +27,20 @@ int_to_arrow_array!(
     arrow::array::Int64Array
 );
 
+impl ToArrow for Vec<i128> {
+    fn to_type(&self) -> arrow::datatypes::DataType {
+        arrow::datatypes::DataType::Decimal128(38, 0)
+    }
+
+    fn to_array(self) -> Arc<dyn arrow::array::Array> {
+        Arc::new(
+            arrow::array::Decimal128Array::from(self)
+                .with_precision_and_scale(38, 0)
+                .unwrap(),
+        )
+    }
+}
+
 macro_rules! string_to_arrow_array {
     ($tt:ty, $dtt:expr, $att:ty) => {
         impl ToArrow for Vec<$tt> {
@@ -88,18 +102,45 @@ mod tests {
     fn test_record_batch_macro() {
         let batch = record_batch!(
             "f" => ["abc", "t", "fg"],
-            "ghisi" => [-99, 1230, 222]
+            "ghisi" => [-99_i64, 1230, 222]
         );
 
         let arrays: Vec<Arc<dyn arrow::array::Array>> = vec![
             Arc::new(arrow::array::StringArray::from(["abc", "t", "fg"].to_vec())),
-            Arc::new(arrow::array::Int64Array::from([-99, 1230, 222].to_vec())),
+            Arc::new(arrow::array::Int64Array::from(
+                [-99_i64, 1230, 222].to_vec(),
+            )),
         ];
 
         let schema = Arc::new(Schema::new(vec![
             Field::new("f", arrow::datatypes::DataType::Utf8, false),
             Field::new("ghisi", arrow::datatypes::DataType::Int64, false),
         ]));
+
+        let expected_batch = RecordBatch::try_new(schema, arrays).unwrap();
+
+        assert_eq!(batch, expected_batch);
+    }
+
+    #[test]
+    fn we_can_create_a_record_batch_with_i128_values() {
+        let batch = record_batch!(
+            "ghisi" => [-99_i128, 1230, 222, i128::MAX, i128::MIN]
+        );
+
+        let arrays: Vec<Arc<dyn arrow::array::Array>> = vec![Arc::new(
+            arrow::array::Decimal128Array::from(
+                [-99_i128, 1230, 222, i128::MAX, i128::MIN].to_vec(),
+            )
+            .with_precision_and_scale(38, 0)
+            .unwrap(),
+        )];
+
+        let schema = Arc::new(Schema::new(vec![Field::new(
+            "ghisi",
+            arrow::datatypes::DataType::Decimal128(38, 0),
+            false,
+        )]));
 
         let expected_batch = RecordBatch::try_new(schema, arrays).unwrap();
 

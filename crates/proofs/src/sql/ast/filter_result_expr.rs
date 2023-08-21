@@ -50,6 +50,7 @@ impl FilterResultExpr {
     ) {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col, col),
+            Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col, col),
             Column::HashedBytes((col, scals)) => {
                 prover_evaluate_impl(builder, alloc, selection, col, scals)
             }

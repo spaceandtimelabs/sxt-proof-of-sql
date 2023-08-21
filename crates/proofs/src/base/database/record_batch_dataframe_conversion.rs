@@ -1,12 +1,13 @@
-use arrow::array::{Array, Int64Array, StringArray};
+use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use polars::frame::DataFrame;
-use polars::prelude::NamedFrom;
-use polars::series::Series;
+use polars::prelude::{ChunkedArray, NamedFrom};
+use polars::series::{IntoSeries, Series};
 use std::sync::Arc;
 
 /// Convert a RecordBatch to a polars DataFrame
+/// Note: this explicitly does not check that Decimal128(38,0) values are 38 digits.
 pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> DataFrame {
     let series: Vec<Series> = record_batch
         .schema()
@@ -32,6 +33,18 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> DataFrame {
 
                 Series::new(f.name(), data)
             }
+            arrow::datatypes::DataType::Decimal128(38, 0) => {
+                let data = col
+                    .as_any()
+                    .downcast_ref::<arrow::array::Decimal128Array>()
+                    .map(|array| array.values())
+                    .unwrap();
+
+                ChunkedArray::from_vec(f.name(), data.to_vec())
+                    .into_decimal_unchecked(Some(38), 0)
+                    // Note: we make this unchecked because if record batch has values that overflow 38 digits, so should the data frame.
+                    .into_series()
+            }
             _ => unimplemented!(),
         })
         .collect();
@@ -40,6 +53,7 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> DataFrame {
 }
 
 /// Convert a polars DataFrame to a RecordBatch
+/// Note: this does not check that Decimal128(38,0) values are 38 digits.
 pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
     assert!(!data.is_empty());
 
@@ -82,6 +96,17 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
                 DataType::Utf8
             }
+            polars::datatypes::DataType::Decimal(Some(38), Some(0)) => {
+                let col = series.decimal().unwrap().cont_slice().unwrap();
+
+                columns.push(Arc::new(
+                    Decimal128Array::from(col.to_vec())
+                        .with_precision_and_scale(38, 0)
+                        .unwrap(),
+                ));
+
+                DataType::Decimal128(38, 0)
+            }
             _ => unimplemented!("Datatype not supported: {:?}", field.data_type()),
         };
 
@@ -95,27 +120,40 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::record_batch;
 
     #[test]
-    fn we_can_convert_dataframes_to_record_batches() {
-        let dataframe =
-            record_batch_to_dataframe(record_batch!("a" => [3214, 34], "bc" => ["a", "fg"]));
-        assert_eq!(
-            dataframe,
-            polars::df!("a" => [3214_i64, 34_i64], "bc" => ["a", "fg"]).unwrap()
-        );
+    fn we_can_convert_record_batches_to_dataframes() {
+        let recordbatch = record_batch!("a" => [3214_i64, 34,999,888], "bc" => ["a", "fg","zzz","yyy"], "d" => [123_i128, 1010,i128::MAX,i128::MIN + 1]); //Note: to_string() can't handle i128:MIN within a dataframe.
+        let mut dataframe =
+            polars::df!("a" => [3214_i64, 34_i64,999,888], "bc" => ["a", "fg","zzz","yyy"])
+                .unwrap();
+        dataframe
+            .with_column(
+                ChunkedArray::from_vec("d", vec![123_i128, 1010, i128::MAX, i128::MIN + 1]) //Note: to_string() can't handle i128:MIN within a dataframe.
+                    .into_decimal_unchecked(Some(38), 0)
+                    .into_series(),
+            )
+            .unwrap();
+        let df = record_batch_to_dataframe(recordbatch);
+        assert_eq!(dataframe.to_string(), df.to_string());
     }
 
     #[test]
-    fn we_can_convert_record_batches_to_dataframes() {
-        let dataframe = dataframe_to_record_batch(
-            polars::df!("a" => [3214_i64, 34_i64], "bc" => ["a", "fg"]).unwrap(),
-        );
-        assert_eq!(
-            dataframe,
-            record_batch!("a" => [3214, 34], "bc" => ["a", "fg"])
-        );
+    fn we_can_convert_dataframes_to_record_batches() {
+        let recordbatch = record_batch!("a" => [3214_i64, 34,999,888], "bc" => ["a", "fg","zzz","yyy"], "d" => [123_i128, 1010,i128::MAX,i128::MIN]);
+        let mut dataframe =
+            polars::df!("a" => [3214_i64, 34_i64,999,888], "bc" => ["a", "fg","zzz","yyy"])
+                .unwrap();
+        dataframe
+            .with_column(
+                ChunkedArray::from_vec("d", vec![123_i128, 1010, i128::MAX, i128::MIN])
+                    .into_decimal_unchecked(Some(38), 0)
+                    .into_series(),
+            )
+            .unwrap();
+        assert_eq!(dataframe_to_record_batch(dataframe), recordbatch);
     }
 }

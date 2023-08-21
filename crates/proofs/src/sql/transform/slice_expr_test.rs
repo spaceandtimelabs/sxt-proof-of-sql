@@ -6,7 +6,7 @@ use crate::sql::transform::test_utility::{composite_result, slice};
 fn we_can_slice_a_lazy_frame_using_only_a_positive_limit_value() {
     let limit = 3_usize;
 
-    let data_a = vec![123, 342, -234, 777, 123, 34];
+    let data_a = vec![123_i64, 342, -234, 777, 123, 34];
     let data_d = vec!["alfa", "beta", "abc", "f", "kl", "f"];
     let data_frame = record_batch!(
         "a" => data_a.to_vec(),
@@ -29,7 +29,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_positive_limit_value() {
 fn we_can_slice_a_lazy_frame_using_only_a_zero_limit_value() {
     let limit = 0;
 
-    let data_a = vec![123, 342, -234, 777, 123, 34];
+    let data_a = vec![123_i64, 342, -234, 777, 123, 34];
     let data_d = vec!["alfa", "beta", "abc", "f", "kl", "f"];
     let data_frame = record_batch!(
         "a" => data_a.to_vec(),
@@ -52,7 +52,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_zero_limit_value() {
 fn we_can_slice_a_lazy_frame_using_only_a_positive_offset_value() {
     let offset = 3;
 
-    let data_a = vec![123, 342, -234, 777, 123, 34];
+    let data_a = vec![123_i64, 342, -234, 777, 123, 34];
     let data_d = vec!["alfa", "beta", "abc", "f", "kl", "f"];
     let data_frame = record_batch!(
         "a" => data_a.to_vec(),
@@ -75,7 +75,7 @@ fn we_can_slice_a_lazy_frame_using_only_a_positive_offset_value() {
 fn we_can_slice_a_lazy_frame_using_only_a_negative_offset_value() {
     let offset = -2;
 
-    let data_a = vec![123, 342, -234, 777, 123, 34];
+    let data_a = vec![123_i64, 342, -234, 777, 123, 34];
     let data_d = vec!["alfa", "beta", "abc", "f", "kl", "f"];
     let data_frame = record_batch!(
         "a" => data_a.to_vec(),
@@ -99,7 +99,7 @@ fn we_can_slice_a_lazy_frame_using_both_limit_and_offset_values() {
     let offset = -2;
     let limit = 1_usize;
 
-    let data_a = vec![123, 342, -234, 777, 123, 34];
+    let data_a = vec![123_i64, 342, -234, 777, 123, 34];
     let data_d = vec!["alfa", "beta", "abc", "f", "kl", "f"];
     let data_frame = record_batch!(
         "a" => data_a.to_vec(),
