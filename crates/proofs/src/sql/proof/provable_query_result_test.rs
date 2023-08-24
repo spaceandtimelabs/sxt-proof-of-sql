@@ -133,7 +133,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
         ArkScalar::from(1000u64),
         ArkScalar::from(10000u64),
     ];
-    let column_fields = vec![
+    let column_fields = [
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("a".parse().unwrap(), ColumnType::Int128),
     ];
