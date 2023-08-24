@@ -161,7 +161,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
     {
         let alloc = Bump::new();
-        let data = vec!["ab", "-f34", "ehfh43"];
+        let data = ["ab", "-f34", "ehfh43"];
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
 

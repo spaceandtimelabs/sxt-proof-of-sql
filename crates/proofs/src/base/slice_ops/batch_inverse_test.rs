@@ -13,7 +13,7 @@ fn we_can_pseudo_invert_empty_arrays() {
 
 #[test]
 fn we_can_pseudo_invert_arrays_of_length_1_with_non_zero() {
-    let input = vec![ArkScalar::from(2_u32)];
+    let input = [ArkScalar::from(2_u32)];
     let mut res = vec![ArkScalar::from(0_u32)];
     assert_eq!(res.len(), input.len());
     res.copy_from_slice(&input[..]);
@@ -24,7 +24,7 @@ fn we_can_pseudo_invert_arrays_of_length_1_with_non_zero() {
 
 #[test]
 fn we_can_pseudo_invert_arrays_of_length_1_with_zero() {
-    let input = vec![ArkScalar::from(0_u32)];
+    let input = [ArkScalar::from(0_u32)];
     let mut res = vec![ArkScalar::from(0_u32)];
     assert_eq!(res.len(), input.len());
     res.copy_from_slice(&input[..]);
