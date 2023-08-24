@@ -1,148 +1,105 @@
-use super::SignExpr;
+use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
+
+use crate::base::bit::BitDistribution;
 use crate::base::database::TestAccessor;
-
-use super::FilterExpr;
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
 use crate::record_batch;
-use crate::sql::ast::test_utility::{col, cols_result, tab};
-use crate::sql::proof::VerifiableQueryResult;
+
+use crate::sql::proof::{
+    CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+};
+use blitzar::compute::get_one_commit;
+use bumpalo::Bump;
+use num_traits::Zero;
 
 #[test]
-fn we_handle_the_sign_decomposition_of_a_constant_column() {
-    let data = record_batch!(
-        "a" => [123_i64, 123, 123],
-        "b" => [1_i64, 2, 3],
-    );
+fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
+    let data = [123_i64, 123, 123];
+    let dist = BitDistribution::new(&data);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let expected_res = record_batch!(
-        "b" => &[] as &[i64],
-    );
-    assert_eq!(res, expected_res);
-}
+    accessor.add_table(t, record_batch!("a" => data), 0);
 
-#[ignore]
-#[test]
-fn we_handle_the_sign_decomposition_of_a_constant_column_with_i128_data() {
-    let data = record_batch!(
-        "a" => [123_i128, 123, 123],
-        "b" => [1_i128, 2, 3],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let expected_res = record_batch!(
-        "b" => &[] as &[i64],
-    );
-    assert_eq!(res, expected_res);
+    let alloc = Bump::new();
+    let data: Vec<ArkScalar> = data.into_iter().map(ArkScalar::from).collect();
+    let mut builder = ProofBuilder::new(3, 2);
+    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
+    assert_eq!(sign, [false; 3]);
+    assert_eq!(builder.bit_distributions(), [dist]);
 }
 
 #[test]
-fn verification_fails_on_values_outside_of_the_acceptable_range() {
-    let data = record_batch!(
-        "a" => [123_i64, 123, 123],
-        "b" => [1_i64, 2, 3],
-    );
+fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_column() {
+    let data = [-123_i64, -123, -123];
+    let dist = BitDistribution::new(&data);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let bigval = ArkScalar::from(3) * ArkScalar::from(u64::MAX);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), bigval));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    assert!(res.verify(&expr, &accessor).is_err());
+    accessor.add_table(t, record_batch!("a" => data), 0);
+
+    let alloc = Bump::new();
+    let data: Vec<ArkScalar> = data.into_iter().map(ArkScalar::from).collect();
+    let mut builder = ProofBuilder::new(3, 2);
+    let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
+    assert_eq!(sign, [true; 3]);
+    assert_eq!(builder.bit_distributions(), [dist]);
 }
 
 #[test]
-fn we_handle_the_sign_decomposition_of_a_constant_column_of_negative_numbers() {
-    let data = record_batch!(
-        "a" => [-123_i64, -123, -123],
-        "b" => [1_i64, 2, 3],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
-    let expected_res = record_batch!(
-        "b" => [1_i64, 2, 3],
-    );
-    assert_eq!(res, expected_res);
+fn count_fails_if_a_bit_distribution_is_out_of_range() {
+    let dists = [BitDistribution::new(&[
+        ArkScalar::from(3) * ArkScalar::from(u64::MAX)
+    ])];
+    let mut builder = CountBuilder::new(&dists);
+    assert!(count_sign(&mut builder).is_err());
 }
 
 #[test]
-fn verification_of_a_constant_sign_decomposition_fails_if_commitments_dont_match() {
-    let data = record_batch!(
-        "a" => [123_i64, 123, 123],
-        "b" => [1_i64, 2, 3],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-
-    let data = record_batch!(
-        "a" => [1234_i64, 1234, 1234],
-        "b" => [1_i64, 2, 3],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+fn count_fails_if_no_bit_distribution_is_available() {
+    let mut builder = CountBuilder::new(&[]);
+    assert!(count_sign(&mut builder).is_err());
 }
 
 #[test]
-fn verification_of_a_constant_sign_decomposition_fails_if_signs_dont_match() {
-    let data = record_batch!(
-        "a" => [123_i64, 123, 123],
-        "b" => [1_i64, 2, 3],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+fn we_can_verify_a_constant_decomposition() {
+    let data = [123_i64, 123, 123];
+    let one_commit = get_one_commit(data.len() as u64);
 
-    let data = record_batch!(
-        "a" => [-123_i64, -123, -123],
-        "b" => [1_i64, 2, 3],
+    let dists = [BitDistribution::new(&data)];
+    let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
+    let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
+    let evaluation_point = [ArkScalar::from(324), ArkScalar::from(97)];
+    let sumcheck_evaluations = SumcheckMleEvaluations::new(
+        data.len(),
+        &evaluation_point,
+        &sumcheck_random_scalars,
+        &[],
+        &[],
     );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+
+    let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
+    let commit = compute_commitment_for_testing(&data, 0);
+    let eval = verifier_evaluate_sign(&mut builder, &commit, &one_commit).unwrap();
+    assert_eq!(eval, ArkScalar::zero());
 }
 
 #[test]
-fn verification_fails_if_a_bit_distribution_is_invalid() {
-    let data = record_batch!(
-        "a" => [1_i64, 1],
-        "b" => [1_i64, 3],
+fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_distribution() {
+    let data = [123_i64, 123, 123];
+    let one_commit = get_one_commit(data.len() as u64);
+
+    let dists = [BitDistribution::new(&data)];
+    let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
+    let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
+    let evaluation_point = [ArkScalar::from(324), ArkScalar::from(97)];
+    let sumcheck_evaluations = SumcheckMleEvaluations::new(
+        data.len(),
+        &evaluation_point,
+        &sumcheck_random_scalars,
+        &[],
+        &[],
     );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
-    accessor.add_table(t, data, 0);
-    let where_clause = Box::new(SignExpr::new(col(t, "a", &accessor), 5.into()));
-    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let mut res = VerifiableQueryResult::new(&expr, &accessor);
-    res.proof.as_mut().unwrap().bit_distributions[0].vary_mask[0] = 3;
-    assert!(res.verify(&expr, &accessor).is_err());
+
+    let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
+    let commit = ArkScalar::from(2) * compute_commitment_for_testing(&data, 0);
+    assert!(verifier_evaluate_sign(&mut builder, &commit, &one_commit).is_err());
 }

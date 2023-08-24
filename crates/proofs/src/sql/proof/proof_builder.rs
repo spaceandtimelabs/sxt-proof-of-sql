@@ -44,6 +44,10 @@ impl<'a> ProofBuilder<'a> {
         self.table_length
     }
 
+    pub fn num_sumcheck_variables(&self) -> usize {
+        self.num_sumcheck_variables
+    }
+
     pub fn num_sumcheck_subpolynomials(&self) -> usize {
         self.sumcheck_subpolynomials.len()
     }

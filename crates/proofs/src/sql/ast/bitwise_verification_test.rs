@@ -5,6 +5,13 @@ use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
 use blitzar::compute::get_one_commit;
 
 #[test]
+fn zero_is_within_range() {
+    let data: Vec<ArkScalar> = vec![ArkScalar::from(0)];
+    let dist = BitDistribution::new(&data);
+    assert!(is_within_acceptable_range(&dist));
+}
+
+#[test]
 fn the_sum_of_two_signed_64_bit_numbers_is_within_range() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(i64::MIN) + ArkScalar::from(i64::MIN)];
     let dist = BitDistribution::new(&data);

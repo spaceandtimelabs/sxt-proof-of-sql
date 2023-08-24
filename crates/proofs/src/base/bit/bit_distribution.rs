@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::Into;
 
 /// Describe the distribution of bit values in a table column
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct BitDistribution {
     /// We use two arrays to track which bits vary
     /// and the constant bit values. If

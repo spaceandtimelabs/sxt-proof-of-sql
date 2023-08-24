@@ -1,6 +1,8 @@
 use crate::base::bit::BitDistribution;
 use crate::base::proof::ProofError;
+use crate::base::scalar::ArkScalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
+use num_traits::Zero;
 
 /// In order to avoid cases with large numbers where there can be both a positive and negative
 /// representation, we restrict the range of bit distributions that we accept.
@@ -8,6 +10,11 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 /// Currently this is set to be the minimal value that will include the sum of two signed 64-bit
 /// integers. The range will likely be expanded in the future as we support additional expressions.
 pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
+    // handle the case of everything zero
+    if dist.num_varying_bits() == 0 && dist.constant_part() == ArkScalar::zero() {
+        return true;
+    }
+
     // signed 64 bit numbers range from
     //      -2^63 to 2^63-1
     // the maximum absolute value of the sum of two signed 64-integers is
