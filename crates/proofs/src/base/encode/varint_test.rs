@@ -102,7 +102,7 @@ fn scalar_slices_consumes_the_correct_amount_of_bytes() {
 
 #[test]
 fn small_scalars_are_correctly_encoded_and_decoded_as_positive_varints() {
-    let mut buf = vec![0_u8; 38];
+    let mut buf = [0_u8; 38];
 
     // x = 0, which is encoded as 2 * 0 = 0
     assert!(write_scalar_varint(&mut buf[..], &ArkScalar::from(0_u64)) == 1);
@@ -123,7 +123,7 @@ fn small_scalars_are_correctly_encoded_and_decoded_as_positive_varints() {
 #[test]
 fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as_negative_varints()
 {
-    let mut buf = vec![0_u8; 38];
+    let mut buf = [0_u8; 38];
 
     // x = p - 1 (p is the ristretto group order)
     // y = -x = 1
@@ -145,7 +145,7 @@ fn big_scalars_with_small_additive_inverses_are_correctly_encoded_and_decoded_as
 #[test]
 fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encoded_and_decoded_as_positive_varints(
 ) {
-    let mut buf = vec![0_u8; 38];
+    let mut buf = [0_u8; 38];
 
     // (p - 1) / 2 (p is the ristretto group order)
     // y = -x = (p + 1) / 2 (which is bigger than x)
@@ -164,7 +164,7 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encod
 #[test]
 fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_encoded_and_decoded_as_negative_varints(
 ) {
-    let mut buf = vec![0_u8; 38];
+    let mut buf = [0_u8; 38];
 
     // x = (p + 1) / 2 (p is the group order)
     // y = -x = (p - 1) / 2 (which is smaller than x)
@@ -184,7 +184,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 #[test]
 fn valid_varint_encoded_input_that_map_to_ark_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
 ) {
-    let mut buf = vec![0b11111111_u8; 36];
+    let mut buf = [0b11111111_u8; 36];
 
     // 252 bits set is fine (252 bits = 36 * 7 as
     //  each byte can hold only 7 bits in the varint encoding)
@@ -204,7 +204,7 @@ fn valid_varint_encoded_input_that_map_to_ark_scalars_smaller_than_the_p_field_o
 #[test]
 fn valid_varint_encoded_input_that_map_to_ark_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
 ) {
-    let mut buf = vec![0b11111111_u8; 37];
+    let mut buf = [0b11111111_u8; 37];
 
     // we set the first bit to 0 so that we have a positive varint encoding
     buf[0] = 0b11111110;
@@ -235,7 +235,7 @@ fn valid_varint_encoded_input_that_map_to_ark_scalars_bigger_than_the_p_field_or
 
 #[test]
 fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out() {
-    let buf = vec![0b11111111_u8; 5];
+    let buf = [0b11111111_u8; 5];
 
     // varint numbers that do not terminate will fail out
     assert!(read_scalar_varint(&buf[..]).is_none());
@@ -244,7 +244,7 @@ fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out(
 #[test]
 fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the_read_scalar_to_error_out(
 ) {
-    let mut buf = vec![0b11111111_u8; 38];
+    let mut buf = [0b11111111_u8; 38];
 
     // a varint with 260 bit-length will fail (260 bits = 37 * 7 + 1 as
     //  each byte can hold only 7 bits in the varint encoding)
