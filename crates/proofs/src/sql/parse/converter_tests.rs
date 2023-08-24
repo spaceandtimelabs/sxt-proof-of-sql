@@ -6,6 +6,7 @@ use crate::sql::transform::test_utility::*;
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
 use arrow::record_batch::RecordBatch;
+use polars::prelude::col as pcol;
 use proofs_sql::sql::SelectStatementParser;
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
@@ -551,7 +552,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             equal(t, "a", 3, &accessor),
         ),
         composite_result(vec![
-            select(&[("b", "b"), ("a", "a")]),
+            select(&[pcol("b").alias("b"), pcol("a").alias("a")]),
             orders(&["b"], &[Asc]),
         ]),
     );
@@ -581,7 +582,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
             equal(t, "a", 3, &accessor),
         ),
         composite_result(vec![
-            select(&[("a", "a"), ("b", "b")]),
+            select(&[pcol("a").alias("a"), pcol("b").alias("b")]),
             orders(&["b", "a"], &[Desc, Asc]),
         ]),
     );
@@ -615,7 +616,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
             equal(t, "salary", 5, &accessor),
         ),
         composite_result(vec![
-            select(&[("salary", "s"), ("name", "salary")]),
+            select(&[pcol("salary").alias("s"), pcol("name").alias("salary")]),
             orders(&["salary"], &[Desc]),
         ]),
     );
@@ -746,7 +747,11 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
                 const_v(true),
             ),
             composite_result(vec![
-                select(&[("salary", "s"), ("name", "name"), ("salary", "d")]),
+                select(&[
+                    pcol("salary").alias("s"),
+                    pcol("name").alias("name"),
+                    pcol("salary").alias("d"),
+                ]),
                 orders(&[order_by], &[Asc]),
             ]),
         );
@@ -772,7 +777,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[("a", "a")]), slice(3, 0)]),
+        composite_result(vec![select(&[pcol("a").alias("a")]), slice(3, 0)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -791,7 +796,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[("a", "a")])]),
+        composite_result(vec![select(&[pcol("a").alias("a")])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -810,7 +815,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[("a", "a")]), slice(u64::MAX, 7)]),
+        composite_result(vec![select(&[pcol("a").alias("a")]), slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -829,7 +834,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[("a", "a")]), slice(u64::MAX, -7)]),
+        composite_result(vec![select(&[pcol("a").alias("a")]), slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -848,7 +853,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[("a", "a")]), slice(55, 3)]),
+        composite_result(vec![select(&[pcol("a").alias("a")]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -880,7 +885,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             equal(t, "a", -3, &accessor),
         ),
         composite_result(vec![
-            select(&[("a", "a")]),
+            select(&[pcol("a").alias("a")]),
             orders(&["a"], &[Desc]),
             slice(55, 3),
         ]),
@@ -915,8 +920,8 @@ fn we_can_group_by_without_using_aggregate_functions() {
             const_v(true),
         ),
         composite_result(vec![
-            groupby(vec![("department", Some("department"))], vec![]),
-            select(&[("department", "department")]),
+            groupby(vec![pcol("department").alias("department")], vec![]),
+            select(&[pcol("department")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -947,10 +952,10 @@ fn we_can_group_by_and_then_use_a_single_aggregate_function() {
         ),
         composite_result(vec![
             groupby(
-                vec![("department", None)],
+                vec![pcol("department").alias("#$department")],
                 vec![agg_expr("max", "salary", "__max__")],
             ),
-            select(&[("__max__", "__max__")]),
+            select(&[pcol("__max__")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -982,17 +987,16 @@ fn we_can_have_multiple_group_by_and_then_use_multiple_aggregate_functions() {
         ),
         composite_result(vec![
             groupby(
-                vec![("department", Some("d")), ("bonus", None)],
+                vec![
+                    pcol("department").alias("d"),
+                    pcol("bonus").alias("#$bonus"),
+                ],
                 vec![
                     agg_expr("max", "salary", "max_sal"),
                     agg_expr("count", "department", "__count__"),
                 ],
             ),
-            select(&[
-                ("max_sal", "max_sal"),
-                ("d", "d"),
-                ("__count__", "__count__"),
-            ]),
+            select(&[pcol("max_sal"), pcol("d"), pcol("__count__")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1024,17 +1028,16 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
         ),
         composite_result(vec![
             groupby(
-                vec![("department", Some("d")), ("bonus", None)],
+                vec![
+                    pcol("department").alias("d"),
+                    pcol("bonus").alias("#$bonus"),
+                ],
                 vec![
                     agg_expr("max", "salary", "max_sal"),
                     agg_expr("count", "department", "__count__"),
                 ],
             ),
-            select(&[
-                ("max_sal", "max_sal"),
-                ("d", "d"),
-                ("__count__", "__count__"),
-            ]),
+            select(&[pcol("max_sal"), pcol("d"), pcol("__count__")]),
             orders(&["max_sal"], &[Asc]),
         ]),
     );
@@ -1162,10 +1165,10 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
         ),
         composite_result(vec![
             groupby(
-                vec![("department", None)],
+                vec![pcol("department").alias("#$department")],
                 vec![agg_expr("count", "bonus", "department")],
             ),
-            select(&[("department", "department")]),
+            select(&[pcol("department")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1228,17 +1231,13 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
         ),
         composite_result(vec![
             groupby(
-                vec![("department", Some("department"))],
+                vec![pcol("department").alias("department")],
                 vec![
                     agg_expr("count", "bonus", "__count__"),
                     agg_expr("count", "department", "dep"),
                 ],
             ),
-            select(&[
-                ("department", "department"),
-                ("__count__", "__count__"),
-                ("dep", "dep"),
-            ]),
+            select(&[pcol("department"), pcol("__count__"), pcol("dep")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1269,10 +1268,10 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
         ),
         composite_result(vec![
             groupby(
-                vec![("department", None)],
+                vec![pcol("department").alias("#$department")],
                 vec![agg_expr("count", "department", "__count__")],
             ),
-            select(&[("__count__", "__count__")]),
+            select(&[pcol("__count__")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1323,10 +1322,13 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
         ),
         composite_result(vec![
             groupby(
-                vec![("department", Some("d1")), ("department", Some("d2"))],
+                vec![
+                    pcol("department").alias("d1"),
+                    pcol("department").alias("d2"),
+                ],
                 vec![],
             ),
-            select(&[("d1", "d1"), ("d2", "d2")]),
+            select(&[pcol("d1"), pcol("d2")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1358,21 +1360,16 @@ fn we_can_use_multiple_group_by_clauses() {
         composite_result(vec![
             groupby(
                 vec![
-                    ("department", Some("d1")),
-                    ("department", Some("d2")),
-                    ("bonus", None),
+                    pcol("department").alias("d1"),
+                    pcol("department").alias("d2"),
+                    pcol("bonus").alias("#$bonus"),
                 ],
                 vec![
                     agg_expr("max", "salary", "__max__"),
                     agg_expr("sum", "bonus", "sum_bonus"),
                 ],
             ),
-            select(&[
-                ("d1", "d1"),
-                ("__max__", "__max__"),
-                ("d2", "d2"),
-                ("sum_bonus", "sum_bonus"),
-            ]),
+            select(&[pcol("d1"), pcol("__max__"), pcol("d2"), pcol("sum_bonus")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
