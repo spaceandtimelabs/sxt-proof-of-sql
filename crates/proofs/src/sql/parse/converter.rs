@@ -150,49 +150,26 @@ impl Converter {
     fn build_result_expr(&self, ast: &SelectStatement) -> ConversionResult<ResultExpr> {
         self.check_order_by(&ast.order_by[..])?;
 
-        let mut result_expr_builder = ResultExprBuilder::default();
+        let result_schema = self
+            .result_schema
+            .iter()
+            .map(|col| AliasedResultExpr {
+                expr: proofs_sql::intermediate_ast::ResultExpr::NonAgg(Box::new(
+                    Expression::Column(col.name),
+                )),
+                alias: col.alias,
+            })
+            .collect();
 
-        if self.group_by_exprs.is_empty() && ast.order_by.is_empty() && ast.slice.is_none() {
-            // we need to apply a projection if there is no transformations
-            return Ok(ResultExpr::new_with_result_schema(
-                self.result_schema.to_vec(),
-            ));
-        }
-
-        if self.group_by_exprs.is_empty() {
-            // select must be applied before order by as
-            // it references aliases defined in the select clause
-            result_expr_builder.add_select(self.result_schema.to_vec());
-        } else {
-            result_expr_builder.add_group_by(
+        Ok(ResultExprBuilder::default()
+            .add_group_by(
                 self.group_by_exprs.to_vec(),
                 self.aggregation_columns.to_vec(),
-            );
-
-            // Group by modifies the result schema order and name so that
-            // only aliases exist in the final lazy frame.
-            //
-            // Therefore, we need to re-map the select expression to reflect
-            // the group by changes.
-            let result_schema = self
-                .result_schema
-                .iter()
-                .map(|col| ResultColumn {
-                    name: col.alias,
-                    alias: col.alias,
-                })
-                .collect::<Vec<_>>();
-
-            result_expr_builder.add_select(result_schema);
-        }
-
-        result_expr_builder.add_order_by(ast.order_by.to_vec());
-
-        if let Some(slice) = &ast.slice {
-            result_expr_builder.add_slice(slice.number_rows, slice.offset_value);
-        }
-
-        Ok(result_expr_builder.build())
+            )
+            .add_select(result_schema)
+            .add_order_by(ast.order_by.to_vec())
+            .add_slice(&ast.slice)
+            .build())
     }
 }
 
