@@ -42,15 +42,23 @@ impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
-        let generator_offset = expr.get_offset(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
+        let generator_offset = expr.get_offset(accessor);
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
-
-        // pass over provable AST to fill in the proof builder
         let mut builder = ProofBuilder::new(table_length, num_sumcheck_variables);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
+
+        QueryProof::new_from_builder(builder, generator_offset)
+    }
+
+    pub fn new_from_builder(
+        builder: ProofBuilder,
+        generator_offset: usize,
+    ) -> (Self, ProvableQueryResult) {
+        let num_sumcheck_variables = builder.num_sumcheck_variables();
+        let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(generator_offset);
