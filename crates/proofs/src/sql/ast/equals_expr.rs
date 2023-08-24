@@ -1,19 +1,20 @@
 use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
-use crate::base::slice_ops;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
     VerificationBuilder,
 };
 
+use crate::base::slice_ops;
 use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
-use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
+use curve25519_dalek::ristretto::RistrettoPoint;
+use num_traits::{One, Zero};
 use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
@@ -51,56 +52,13 @@ impl EqualsExpr {
         lhs.par_iter_mut()
             .zip(col)
             .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
-        builder.produce_anchored_mle(lhs);
-
-        // lhs_pseudo_inv
-        let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
-        slice_ops::batch_inversion(lhs_pseudo_inv);
-
-        builder.produce_intermediate_mle_from_ark_scalars(lhs_pseudo_inv, alloc);
-
-        // selection_not
-        let selection_not =
-            alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != ArkScalar::zero());
-        builder.produce_intermediate_mle(selection_not);
-
-        // selection
-        let selection = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
-
-        // subpolynomial: selection * lhs
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![
-                Box::new(MultilinearExtensionImpl::new(lhs)),
-                Box::new(MultilinearExtensionImpl::new(selection)),
-            ],
-        )]));
-
-        // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(lhs)),
-                    Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
-                ],
-            ),
-        ]));
-
-        selection
+        prover_evaluate_equals_zero(builder, alloc, lhs)
     }
 }
 
 impl BoolExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_subpolynomials(2);
-        builder.count_anchored_mles(1);
-        builder.count_intermediate_mles(2);
-        builder.count_degree(3);
+        count_equals_zero(builder);
         Ok(())
     }
 
@@ -135,25 +93,89 @@ impl BoolExpr for EqualsExpr {
         // lhs_commit
         let lhs_commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;
 
-        // consume mle evaluations
-        let lhs_eval = builder.consume_anchored_mle(&lhs_commit);
-        let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
-        let selection_not_eval = builder.consume_intermediate_mle();
-        let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
-
-        // subpolynomial: selection * lhs
-        let eval = builder.mle_evaluations.random_evaluation * (selection_eval * lhs_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-
-        // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-        let eval = builder.mle_evaluations.random_evaluation
-            * (selection_not_eval - lhs_eval * lhs_pseudo_inv_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-
-        Ok(selection_eval)
+        Ok(verifier_evaluate_equals_zero(builder, &lhs_commit))
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         columns.insert(self.column_ref);
     }
+}
+
+pub fn prover_evaluate_equals_zero<'a>(
+    builder: &mut ProofBuilder<'a>,
+    alloc: &'a Bump,
+    lhs: &'a [ArkScalar],
+) -> &'a [bool] {
+    let table_length = builder.table_length();
+
+    // lhs
+    builder.produce_anchored_mle(lhs);
+
+    // lhs_pseudo_inv
+    let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
+    slice_ops::batch_inversion(lhs_pseudo_inv);
+
+    builder.produce_intermediate_mle_from_ark_scalars(lhs_pseudo_inv, alloc);
+
+    // selection_not
+    let selection_not = alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != ArkScalar::zero());
+    builder.produce_intermediate_mle(selection_not);
+
+    // selection
+    let selection = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
+
+    // subpolynomial: selection * lhs
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
+        ArkScalar::one(),
+        vec![
+            Box::new(MultilinearExtensionImpl::new(lhs)),
+            Box::new(MultilinearExtensionImpl::new(selection)),
+        ],
+    )]));
+
+    // subpolynomial: selection_not - lhs * lhs_pseudo_inv
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
+        (
+            ArkScalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
+        ),
+        (
+            -ArkScalar::one(),
+            vec![
+                Box::new(MultilinearExtensionImpl::new(lhs)),
+                Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
+            ],
+        ),
+    ]));
+
+    selection
+}
+
+pub fn verifier_evaluate_equals_zero(
+    builder: &mut VerificationBuilder,
+    lhs_commit: &RistrettoPoint,
+) -> ArkScalar {
+    // consume mle evaluations
+    let lhs_eval = builder.consume_anchored_mle(lhs_commit);
+    let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
+    let selection_not_eval = builder.consume_intermediate_mle();
+    let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
+
+    // subpolynomial: selection * lhs
+    let eval = builder.mle_evaluations.random_evaluation * (selection_eval * lhs_eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+
+    // subpolynomial: selection_not - lhs * lhs_pseudo_inv
+    let eval = builder.mle_evaluations.random_evaluation
+        * (selection_not_eval - lhs_eval * lhs_pseudo_inv_eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+
+    selection_eval
+}
+
+pub fn count_equals_zero(builder: &mut CountBuilder) {
+    builder.count_subpolynomials(2);
+    builder.count_anchored_mles(1);
+    builder.count_intermediate_mles(2);
+    builder.count_degree(3);
 }

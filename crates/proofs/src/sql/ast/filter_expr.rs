@@ -15,7 +15,6 @@ use dyn_partial_eq::DynPartialEq;
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
 #[derive(Debug, DynPartialEq, PartialEq)]
-#[allow(dead_code)]
 pub struct FilterExpr {
     results: Vec<FilterResultExpr>,
     table: TableExpr,
