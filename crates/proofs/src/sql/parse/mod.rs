@@ -12,3 +12,6 @@ pub use query_expr::QueryExpr;
 
 mod result_expr_builder;
 pub use result_expr_builder::ResultExprBuilder;
+
+mod filter_expr_builder;
+pub use filter_expr_builder::FilterExprBuilder;
