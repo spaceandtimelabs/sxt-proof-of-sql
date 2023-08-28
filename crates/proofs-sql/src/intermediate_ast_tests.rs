@@ -382,15 +382,15 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
 }
 
 #[test]
-fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal() {
-    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i64::MIN.to_string())
+fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal() {
+    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i128::MIN.to_string())
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal("b", std::i64::MIN),
+            equal("b", std::i128::MIN),
             vec![],
         ),
         vec![],
@@ -398,14 +398,14 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
     );
     assert_eq!(ast, expected_ast);
 
-    let ast = "select a from sxt_tab where b = -9223372036854775808"
+    let ast = "select a from sxt_tab where b = -170141183460469231731687303715884105728"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal("b", std::i64::MIN),
+            equal("b", std::i128::MIN),
             vec![],
         ),
         vec![],
@@ -418,22 +418,22 @@ fn we_can_parse_a_query_with_the_minimum_i64_value_as_the_equal_filter_literal()
 fn we_cannot_parse_a_query_with_the_literals_overflowing() {
     // note: see the minus sign in front of the literal, causing the overflow
     assert!(
-        ("select a from sxt_tab where b = -".to_owned() + &std::i64::MIN.to_string())
+        ("select a from sxt_tab where b = -".to_owned() + &std::i128::MIN.to_string())
             .parse::<SelectStatement>()
             .is_err()
     );
 }
 
 #[test]
-fn we_can_parse_a_query_with_the_maximum_i64_value_as_the_equal_filter_literal() {
-    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i64::MAX.to_string())
+fn we_can_parse_a_query_with_the_maximum_i128_value_as_the_equal_filter_literal() {
+    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i128::MAX.to_string())
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal("b", std::i64::MAX),
+            equal("b", std::i128::MAX),
             vec![],
         ),
         vec![],
@@ -702,17 +702,21 @@ fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_a_filter_value_smaller_than_min_i64_as_it_will_overflow() {
-    assert!("select a from tab where b = -9223372036854775809"
-        .parse::<SelectStatement>()
-        .is_err());
+fn we_cannot_parse_a_query_with_a_filter_value_smaller_than_min_i128_as_it_will_overflow() {
+    assert!(
+        "select a from tab where b = -170141183460469231731687303715884105729"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_a_filter_value_bigger_than_max_i64_as_it_will_overflow() {
-    assert!("select a from schema.tab where b = 9223372036854775808"
-        .parse::<SelectStatement>()
-        .is_err());
+fn we_cannot_parse_a_query_with_a_filter_value_bigger_than_max_i128_as_it_will_overflow() {
+    assert!(
+        "select a from schema.tab where b = 170141183460469231731687303715884105728"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]

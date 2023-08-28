@@ -73,11 +73,11 @@ SliceClause: intermediate_ast::Slice = {
 
 LimitClause: u64 = {
     "limit" "all" => u64::MAX,
-    "limit" <number_rows: UnsignedNumericLiteral> => number_rows,
+    "limit" <number_rows: UInt64NumericLiteral> => number_rows,
 };
 
 OffsetClause: i64 = {
-    "offset" <offset: SignedNumericLiteral> => offset,
+    "offset" <offset: Int64NumericLiteral> => offset,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -279,13 +279,13 @@ ComparativeExpression: Box<intermediate_ast::Expression> = {
         }),
 };
 
-UnaryNumericLiteral: i64 = {
+Int128UnaryNumericLiteral: i128 = {
     #[precedence(level="1")]
-    SignedNumericLiteral,
+    Int128NumericLiteral,
 
     #[precedence(level="2")] #[assoc(side="right")]
-    "+" <expr: UnaryNumericLiteral> => expr,
-    "-" <expr: UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
+    "+" <expr: Int128UnaryNumericLiteral> => expr,
+    "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
 };
 
 pub StringLiteral: String = {
@@ -295,7 +295,7 @@ pub StringLiteral: String = {
 LiteralValue: Box<intermediate_ast::Literal> = {
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
 
-    <value: UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::BigInt(<>)),
+    <value: Int128UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::Int128(<>)),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,11 +312,15 @@ pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
     Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
 };
 
-SignedNumericLiteral: i64 = {
+Int128NumericLiteral: i128 = {
+    NUMERIC_LIT =>? <>.parse::<i128>().map_err(|_| User {error: "Integer out of range"}),
+};
+
+Int64NumericLiteral: i64 = {
     NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),
 };
 
-UnsignedNumericLiteral: u64 = {
+UInt64NumericLiteral: u64 = {
     NUMERIC_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "Integer out of range"}),
 };
 

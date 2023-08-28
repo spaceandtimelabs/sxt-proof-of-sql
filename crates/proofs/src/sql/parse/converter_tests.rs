@@ -51,7 +51,6 @@ fn we_can_convert_an_ast_with_one_column() {
     assert_eq!(ast, expected_ast);
 }
 
-#[ignore = "not yet implemented"]
 #[test]
 fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     let t = "sxt.sxt_tab".parse().unwrap();
@@ -383,7 +382,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
 }
 
 #[test]
-fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
+fn we_can_convert_an_ast_with_the_min_i128_filter_value() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -394,14 +393,14 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where a = -9223372036854775808",
+        "select a from sxt_tab where a = -170141183460469231731687303715884105728",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         filter(
             cols_result(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", i64::MIN, &accessor),
+            equal(t, "a", i128::MIN, &accessor),
         ),
         result(&[("a", "a")]),
     );
@@ -409,7 +408,7 @@ fn we_can_convert_an_ast_with_the_min_i64_filter_value() {
 }
 
 #[test]
-fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
+fn we_can_convert_an_ast_with_the_max_i128_filter_value() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -420,14 +419,14 @@ fn we_can_convert_an_ast_with_the_max_i64_filter_value() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where a = 9223372036854775807",
+        "select a from sxt_tab where a = 170141183460469231731687303715884105727",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         filter(
             cols_result(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", i64::MAX, &accessor),
+            equal(t, "a", i128::MAX, &accessor),
         ),
         result(&[("a", "a")]),
     );

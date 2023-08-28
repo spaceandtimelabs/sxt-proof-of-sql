@@ -506,15 +506,26 @@ impl Converter {
             _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
         };
 
-        if *column_ref.column_type() != literal_dtype {
-            return Err(ConversionError::MismatchTypeError(format!(
-                "Literal \"{:?}\" has type {:?} but column \"{:?}\" from table \"{:?}\" has type {:?}",
-                literal,
-                literal_dtype,
-                column_ref.column_id(),
-                column_ref.table_ref(),
-                column_ref.column_type()
-            )));
+        match literal_dtype {
+            ColumnType::Int128 => {
+                // Integer literal is compatible with any integeger column type other than VarChar
+                if column_ref.column_type() == &ColumnType::VarChar {
+                    return Err(ConversionError::MismatchTypeError(
+                        column_ref.column_id().to_string(),
+                        literal_dtype.to_string(),
+                    ));
+                }
+            }
+            ColumnType::VarChar => {
+                // Varchar literal is only compatible wtih VarChar column type
+                if column_ref.column_type() != &ColumnType::VarChar {
+                    return Err(ConversionError::MismatchTypeError(
+                        column_ref.column_id().to_string(),
+                        literal_dtype.to_string(),
+                    ));
+                }
+            }
+            _ => panic!("Unsupported expression type. Must be rejected at the parser phase"),
         }
 
         Ok(Box::new(EqualsExpr::new(column_ref, literal)))
@@ -525,7 +536,7 @@ impl Converter {
 impl Converter {
     fn visit_literal(&self, literal: &Literal) -> (ArkScalar, ColumnType) {
         match literal {
-            Literal::BigInt(val) => (val.into(), ColumnType::BigInt),
+            Literal::Int128(val) => (val.into(), ColumnType::Int128),
             Literal::VarChar(val) => (val.into(), ColumnType::VarChar),
         }
     }
