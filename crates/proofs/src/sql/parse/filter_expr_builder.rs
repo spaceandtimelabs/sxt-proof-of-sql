@@ -115,7 +115,7 @@ impl FilterExprBuilder {
 
         let right = match right {
             Expression::Literal(literal) => match literal {
-                Literal::BigInt(value) => value.into(),
+                Literal::Int128(value) => value.into(),
                 Literal::VarChar(value) => value.into(),
             },
             _ => panic!("The parser must ensure that the left side is a literal"),
