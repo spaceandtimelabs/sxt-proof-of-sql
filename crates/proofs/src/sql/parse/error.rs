@@ -10,8 +10,8 @@ pub enum ConversionError {
     #[error("Column missing")]
     MissingColumnError(String),
     /// This error occurs when the lhs column has a type different from the rhs literal in the equal expression
-    #[error("Column type mismatch from query expression")]
-    MismatchTypeError(String),
+    #[error("Left side has '{0}' type but right side has '{1}' type")]
+    MismatchTypeError(String, String),
     #[error(
         "The specified column alias '{0}' referenced by the 'order by' clause does not exist."
     )]

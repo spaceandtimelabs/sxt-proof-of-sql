@@ -148,7 +148,7 @@ pub struct Slice {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
     /// Numeric Literal
-    BigInt(i64),
+    Int128(i128),
     /// String Literal
     VarChar(String),
 }
@@ -157,7 +157,7 @@ macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
             fn from(val: $tt) -> Self {
-                Literal::BigInt(val as i64)
+                Literal::Int128(val as i128)
             }
         }
     };
@@ -170,6 +170,7 @@ impl_int_to_literal!(u16);
 impl_int_to_literal!(i32);
 impl_int_to_literal!(u32);
 impl_int_to_literal!(i64);
+impl_int_to_literal!(i128);
 
 macro_rules! impl_string_to_literal {
     ($tt:ty) => {
