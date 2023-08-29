@@ -82,13 +82,20 @@ impl<'a> VerificationBuilder<'a> {
         res
     }
 
+    /// Consume the evaluation and commitment of an intermediate MLE used in sumcheck
+    ///
+    /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
+    pub fn consume_intermediate_mle_with_commit(&mut self) -> (ArkScalar, RistrettoPoint) {
+        let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
+        self.consumed_intermediate_mles += 1;
+        (self.consume_anchored_mle(commitment), *commitment)
+    }
+
     /// Consume the evaluation of an intermediate MLE used in sumcheck
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     pub fn consume_intermediate_mle(&mut self) -> ArkScalar {
-        let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
-        self.consumed_intermediate_mles += 1;
-        self.consume_anchored_mle(commitment)
+        self.consume_intermediate_mle_with_commit().0
     }
 
     /// Consume the evaluation of the MLE for a result column used in sumcheck
