@@ -23,22 +23,31 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     dist.most_significant_abs_bit() <= 64
 }
 
-/// Given a bit distribution for a column of constant data, the commitment of a column of ones,
-/// and the constant column's commitment, verify that the bit distribution is correct.
-pub fn verify_constant_decomposition(
+/// Given a bit distribution for a column of data with a constant sign, the commitment of a column
+/// of ones, the constant column's commitment, and the commitment of varying absolute bits, verify
+/// that the bit distribution is correct.
+pub fn verify_constant_sign_decomposition(
     dist: &BitDistribution,
     commit: &RistrettoPoint,
     one_commit: &RistrettoPoint,
+    bit_commits: &[RistrettoPoint],
 ) -> Result<(), ProofError> {
-    assert!(dist.is_valid());
-    assert!(is_within_acceptable_range(dist));
-    assert_eq!(dist.num_varying_bits(), 0);
-    let equal = if dist.sign_bit() {
-        *commit == (-dist.constant_part()) * *one_commit
-    } else {
-        *commit == dist.constant_part() * *one_commit
-    };
-    if equal {
+    assert!(
+        dist.is_valid()
+            && is_within_acceptable_range(dist)
+            && dist.num_varying_bits() == bit_commits.len()
+            && !dist.has_varying_sign_bit()
+    );
+    let lhs = if dist.sign_bit() { -commit } else { *commit };
+    let mut rhs = dist.constant_part() * one_commit;
+    let mut vary_index = 0;
+    dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
+        let mut mult = [0u64; 4];
+        mult[int_index] = 1u64 << bit_index;
+        rhs += ArkScalar::from_bigint(mult) * bit_commits[vary_index];
+        vary_index += 1;
+    });
+    if lhs == rhs {
         Ok(())
     } else {
         Err(ProofError::VerificationError(
