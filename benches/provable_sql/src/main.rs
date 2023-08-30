@@ -4,10 +4,8 @@ use proofs::base::database::{
     make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
 };
 use proofs::base::proof::ProofError;
-use proofs::sql::parse::{Converter, QueryExpr};
+use proofs::sql::parse::QueryExpr;
 use proofs::sql::proof::{QueryResult, VerifiableQueryResult};
-use proofs_sql::sql::SelectStatementParser;
-use proofs_sql::Identifier;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::time::Instant;
@@ -40,15 +38,6 @@ struct Args {
     pub where_expr: String,
     #[clap(long)]
     pub result_columns: String,
-}
-
-fn parse_query(query: String, accessor: &TestAccessor) -> QueryExpr {
-    let default_schema = Identifier::try_new("sxt").unwrap();
-    let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
-
-    Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, accessor, default_schema)
-        .unwrap()
 }
 
 fn generate_accessor(
@@ -103,8 +92,10 @@ fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, Tes
         + table_name.as_str()
         + " where "
         + args.where_expr.as_str();
+    let ast = query.parse().unwrap();
+    let default_schema = "sxt".parse().unwrap();
 
-    let provable_ast = parse_query(query.clone(), &accessor);
+    let provable_ast = QueryExpr::try_new(ast, default_schema, &accessor).unwrap();
 
     (provable_ast, accessor, query)
 }

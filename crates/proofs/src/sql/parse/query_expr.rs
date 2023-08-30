@@ -3,9 +3,14 @@ use crate::sql::proof::{
 };
 use std::collections::HashSet;
 
-use crate::base::database::{ColumnField, ColumnRef};
+use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
+use crate::base::database::{ColumnField, ColumnRef, SchemaAccessor};
 use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
 use crate::base::proof::ProofError;
+use crate::sql::parse::ConversionResult;
+
+use proofs_sql::intermediate_ast::SetExpression;
+use proofs_sql::{Identifier, SelectStatement};
 
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -29,6 +34,46 @@ impl fmt::Debug for QueryExpr {
 impl QueryExpr {
     pub fn new(filter: Box<dyn ProofExpr>, result: Box<dyn TransformExpr>) -> Self {
         Self { filter, result }
+    }
+
+    pub fn try_new(
+        ast: SelectStatement,
+        default_schema: Identifier,
+        schema_accessor: &dyn SchemaAccessor,
+    ) -> ConversionResult<Self> {
+        let context = match *ast.expr {
+            SetExpression::Query {
+                result_columns,
+                from,
+                where_expr,
+                group_by,
+            } => QueryContextBuilder::new(schema_accessor)
+                .visit_table_expression(from, default_schema)
+                .visit_result_columns(result_columns)?
+                .visit_where_expr(where_expr)?
+                .visit_group_by(group_by)?
+                .visit_order_by(ast.order_by)
+                .visit_slice(ast.slice)
+                .build()?,
+        };
+
+        let filter = FilterExprBuilder::new(context.get_column_mapping())
+            .set_table(*context.current_table())
+            .set_where_clause(context.get_where_expr().clone())
+            .add_referenced_result_columns(context.get_referenced_columns())
+            .build();
+
+        let result = ResultExprBuilder::default()
+            .add_group_by(context.get_group_by()?, context.get_agg_result_exprs()?)
+            .add_select(context.get_result_schema()?)
+            .add_order_by(context.get_order_by()?)
+            .add_slice(context.get_slice())
+            .build();
+
+        Ok(Self {
+            filter: Box::new(filter),
+            result: Box::new(result),
+        })
     }
 }
 
