@@ -51,7 +51,29 @@ pub fn verify_constant_sign_decomposition(
         Ok(())
     } else {
         Err(ProofError::VerificationError(
-            "bitwise decomposition is invalid",
+            "constant sign bitwise decomposition is invalid",
+        ))
+    }
+}
+
+pub fn verify_constant_abs_decomposition(
+    dist: &BitDistribution,
+    commit: &RistrettoPoint,
+    one_commit: &RistrettoPoint,
+    sign_commit: &RistrettoPoint,
+) -> Result<(), ProofError> {
+    assert!(
+        dist.is_valid()
+            && is_within_acceptable_range(dist)
+            && dist.num_varying_bits() == 1
+            && dist.has_varying_sign_bit()
+    );
+    let t = one_commit - ArkScalar::from(2) * sign_commit;
+    if dist.constant_part() * t == *commit {
+        Ok(())
+    } else {
+        Err(ProofError::VerificationError(
+            "constant absolute bitwise decomposition is invalid",
         ))
     }
 }
