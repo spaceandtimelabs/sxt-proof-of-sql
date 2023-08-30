@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use proofs_sql::{Identifier, ResourceId};
+
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Error, Debug)]
 pub enum ConversionError {
@@ -7,10 +9,10 @@ pub enum ConversionError {
     #[error("Type error")]
     TypeError(String),
     /// This error occurs when a column doesn't exist
-    #[error("Column missing")]
-    MissingColumnError(String),
+    #[error("Column '{0}' was not found in table '{1}'")]
+    MissingColumnError(Box<Identifier>, Box<ResourceId>),
     /// This error occurs when the lhs column has a type different from the rhs literal in the equal expression
-    #[error("Left side has '{0}' type but right side has '{1}' type")]
+    #[error("Left side has '{1}' type but right side has '{0}' type")]
     MismatchTypeError(String, String),
     #[error(
         "The specified column alias '{0}' referenced by the 'order by' clause does not exist."

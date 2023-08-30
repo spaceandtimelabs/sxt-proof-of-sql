@@ -1,11 +1,8 @@
 mod error;
 pub use error::{ConversionError, ConversionResult};
 
-mod converter;
-pub use converter::Converter;
-
 #[cfg(test)]
-mod converter_tests;
+mod query_expr_tests;
 
 mod query_expr;
 pub use query_expr::QueryExpr;
@@ -15,3 +12,9 @@ pub use result_expr_builder::ResultExprBuilder;
 
 mod filter_expr_builder;
 pub use filter_expr_builder::FilterExprBuilder;
+
+pub mod query_context;
+pub use query_context::QueryContext;
+
+mod query_context_builder;
+pub use query_context_builder::QueryContextBuilder;
