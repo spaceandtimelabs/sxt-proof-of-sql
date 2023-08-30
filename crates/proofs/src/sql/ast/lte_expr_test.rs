@@ -48,6 +48,25 @@ fn we_can_compare_a_varying_column_with_constant_sign() {
 }
 
 #[test]
+fn we_can_compare_a_varying_column_with_constant_absolute_value() {
+    let data = record_batch!(
+        "a" => [-123_i64, 123, -123],
+        "b" => [1_i64, 2, 3],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(t, data, 0);
+    let where_clause = Box::new(LteExpr::new(col(t, "a", &accessor), 0.into()));
+    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = res.verify(&expr, &accessor).unwrap().unwrap();
+    let expected_res = record_batch!(
+        "b" => [1_i64, 3],
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[test]
 fn we_can_compare_a_constant_column_of_negative_columns() {
     let data = record_batch!(
         "a" => [-123_i64, -123, -123],
@@ -165,6 +184,31 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     let mut accessor = TestAccessor::new();
     accessor.add_table(t, data, 0);
     let where_clause = Box::new(LteExpr::new(col(t, "a", &accessor), 5.into()));
+    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    assert!(res.verify(&expr, &accessor).is_err());
+}
+
+#[test]
+fn verification_fails_if_commitments_dont_match_for_a_constant_absolute_column() {
+    let data = record_batch!(
+        "a" => [-123_i64, 123, -123],
+        "b" => [1_i64, 2, 3],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(t, data, 0);
+    let where_clause = Box::new(LteExpr::new(col(t, "a", &accessor), 0.into()));
+    let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+
+    let data = record_batch!(
+        "a" => [-321_i64, 321, -321],
+        "b" => [1_i64, 2, 3],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(t, data, 0);
+    let where_clause = Box::new(LteExpr::new(col(t, "a", &accessor), 0.into()));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     assert!(res.verify(&expr, &accessor).is_err());
 }

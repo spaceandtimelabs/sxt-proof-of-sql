@@ -1,4 +1,7 @@
-use super::{is_within_acceptable_range, verify_constant_sign_decomposition};
+use super::{
+    is_within_acceptable_range, verify_constant_abs_decomposition,
+    verify_constant_sign_decomposition,
+};
 use crate::base::bit::{compute_varying_bit_matrix, BitDistribution};
 
 use crate::base::proof::ProofError;
@@ -27,7 +30,7 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     builder.count_intermediate_mles(dist.num_varying_bits());
     builder.count_subpolynomials(dist.num_varying_bits());
     builder.count_degree(3);
-    if !dist.has_varying_sign_bit() {
+    if !dist.has_varying_sign_bit() || dist.num_varying_bits() == 1 {
         return Ok(());
     }
     todo!();
@@ -63,6 +66,10 @@ pub fn prover_evaluate_sign<'a>(
         return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
     }
 
+    if dist.num_varying_bits() == 1 {
+        return bits.last().unwrap();
+    }
+
     todo!();
 }
 
@@ -91,8 +98,15 @@ pub fn verifier_evaluate_sign(
     // establish that the bits are binary
     verify_bits_are_binary(builder, &bit_evals);
 
+    // handle the special case of the sign bit being constant
     if !dist.has_varying_sign_bit() {
         return verifier_const_sign_evaluate(builder, &dist, commit, one_commit, &bit_commits);
+    }
+
+    // handle the special case of the absolute part being constant
+    if dist.num_varying_bits() == 1 {
+        verify_constant_abs_decomposition(&dist, commit, one_commit, &bit_commits[0])?;
+        return Ok(bit_evals[0]);
     }
 
     todo!();
