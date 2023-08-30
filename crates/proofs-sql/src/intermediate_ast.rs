@@ -40,6 +40,25 @@ pub struct AliasedResultExpr {
     pub alias: Identifier,
 }
 
+impl AliasedResultExpr {
+    pub fn from_non_agg_expr(expr: Expression, alias: Identifier) -> Self {
+        Self {
+            expr: ResultExpr::NonAgg(Box::new(expr)),
+            alias,
+        }
+    }
+
+    pub fn try_as_identifier(&self) -> Option<&Identifier> {
+        match &self.expr {
+            ResultExpr::NonAgg(expr) => match expr.as_ref() {
+                Expression::Column(column) => Some(column),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum ResultExpr {
     Agg(AggExpr),

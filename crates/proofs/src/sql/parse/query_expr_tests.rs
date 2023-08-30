@@ -1,7 +1,7 @@
 use crate::base::database::{TableRef, TestAccessor};
 use crate::record_batch;
 use crate::sql::ast::test_utility::*;
-use crate::sql::parse::{Converter, QueryExpr};
+use crate::sql::parse::QueryExpr;
 use crate::sql::transform::test_utility::*;
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
@@ -11,16 +11,12 @@ use proofs_sql::sql::SelectStatementParser;
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, accessor, table.schema_id())
-        .unwrap()
+    QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
 fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    assert!(Converter::default()
-        .visit_intermediate_ast(&intermediate_ast, accessor, table.schema_id())
-        .is_err());
+    assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
 }
 
 pub fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
