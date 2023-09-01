@@ -13,26 +13,33 @@ use dyn_partial_eq::DynPartialEq;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::collections::HashSet;
 
-/// Provable AST expression for a less than or equals expression
-///
-/// Note: we are currently limited only to expressions of the form
+/// Provable AST expression for
 /// ```ignore
-///     <col> <= <constant>
+///    <col> <= <constant>
+/// ```
+/// or
+/// ```ignore
+///    <col> >= <constant>
 /// ```
 #[derive(Debug, DynPartialEq, PartialEq)]
-pub struct LteExpr {
+pub struct InequalityExpr {
     value: ArkScalar,
     column_ref: ColumnRef,
+    is_lte: bool,
 }
 
-impl LteExpr {
+impl InequalityExpr {
     /// Create a new less than or equal expression
-    pub fn new(column_ref: ColumnRef, value: ArkScalar) -> Self {
-        Self { value, column_ref }
+    pub fn new(column_ref: ColumnRef, value: ArkScalar, is_lte: bool) -> Self {
+        Self {
+            value,
+            column_ref,
+            is_lte,
+        }
     }
 }
 
-impl BoolExpr for LteExpr {
+impl BoolExpr for InequalityExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);
         count_sign(builder)?;
@@ -56,9 +63,15 @@ impl BoolExpr for LteExpr {
         // lhs
         let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
             let lhs = alloc.alloc_slice_fill_default(table_length);
-            lhs.par_iter_mut()
-                .zip(col)
-                .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+            if self.is_lte {
+                lhs.par_iter_mut()
+                    .zip(col)
+                    .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+            } else {
+                lhs.par_iter_mut()
+                    .zip(col)
+                    .for_each(|(a, b)| *a = self.value - Into::<ArkScalar>::into(b));
+            }
             lhs
         } else {
             panic!("invalid column type")
@@ -85,7 +98,11 @@ impl BoolExpr for LteExpr {
             - get_one_commit(generator_offset as u64);
 
         // commit
-        let commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;
+        let commit = if self.is_lte {
+            accessor.get_commitment(self.column_ref) - self.value * one_commit
+        } else {
+            self.value * one_commit - accessor.get_commitment(self.column_ref)
+        };
 
         // lhs == 0
         let equals_zero = verifier_evaluate_equals_zero(builder, &commit);

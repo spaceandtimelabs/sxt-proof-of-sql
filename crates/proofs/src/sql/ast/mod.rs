@@ -25,10 +25,10 @@ pub use and_expr::AndExpr;
 #[cfg(test)]
 mod and_expr_test;
 
-mod lte_expr;
-pub use lte_expr::*;
+mod inequality_expr;
+pub use inequality_expr::*;
 #[cfg(test)]
-mod lte_expr_test;
+mod inequality_expr_test;
 
 mod or_expr;
 pub use or_expr::*;
