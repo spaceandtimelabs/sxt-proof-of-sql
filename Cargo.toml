@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = ["crates/proofs", "crates/proofs-sql", "benches/provable_sql"]
 
 [workspace.package]

@@ -104,6 +104,7 @@ impl FilterExprBuilder {
                 Box::new(OrExpr::new(left, right))
             }
             BinaryOperator::Equal => self.visit_equal_expression(left, right),
+            _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
     }
 

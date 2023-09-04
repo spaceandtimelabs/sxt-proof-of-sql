@@ -1,9 +1,10 @@
-use polars::prelude::{col, Expr};
+use polars::prelude::{col, lit, DataType, Expr};
 
+use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use crate::sql::transform::{CompositionExpr, GroupByExpr, OrderByExprs, SelectExpr, SliceExpr};
 
 use proofs_sql::intermediate_ast::{
-    AggExpr, AliasedResultExpr, Expression, OrderBy, ResultExpr, Slice,
+    AggExpr, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, ResultExpr, Slice,
 };
 use proofs_sql::Identifier;
 
@@ -128,7 +129,25 @@ fn visit_result_expr(result_expr: ResultExpr) -> Expr {
 
 fn visit_expression(expr: proofs_sql::intermediate_ast::Expression) -> Expr {
     match expr {
+        Expression::Literal(literal) => match literal {
+            Literal::Int128(value) => lit(value.to_string()).cast(DataType::Decimal(
+                Some(INT128_PRECISION),
+                Some(INT128_SCALE),
+            )),
+            Literal::VarChar(value) => lit(value),
+        },
         Expression::Column(identifier) => col(identifier.as_str()),
+        Expression::Binary { op, left, right } => {
+            let left = visit_expression(*left);
+            let right = visit_expression(*right);
+
+            match op {
+                BinaryOperator::Add => left + right,
+                BinaryOperator::Subtract => left - right,
+                BinaryOperator::Multiply => left * right,
+                _ => panic!("Operation not supported yet"),
+            }
+        }
         _ => panic!("Operation not supported"),
     }
 }

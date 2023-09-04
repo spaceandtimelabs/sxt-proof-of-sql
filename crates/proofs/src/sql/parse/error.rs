@@ -3,7 +3,7 @@ use thiserror::Error;
 use proofs_sql::{Identifier, ResourceId};
 
 /// Errors from converting an intermediate AST into a provable AST.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum ConversionError {
     /// This error occurs when a part of the query is of a wrong type (e.g. applying + to booleans)
     #[error("Type error")]
@@ -26,6 +26,8 @@ pub enum ConversionError {
     InvalidGroupByResultColumnError,
     #[error("Cannot aggregate a non-numeric column with function '{0}'.")]
     NonNumericColumnAggregation(&'static str),
+    #[error("Invalid expression: {0}")]
+    InvalidExpression(String),
 }
 
 pub type ConversionResult<T> = std::result::Result<T, ConversionError>;
