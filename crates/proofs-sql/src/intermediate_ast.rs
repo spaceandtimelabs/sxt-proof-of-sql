@@ -25,15 +25,6 @@ pub enum SelectResultExpr {
     AliasedResultExpr(AliasedResultExpr),
 }
 
-// TODO: this struct will soon be removed
-#[derive(Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Clone, Hash)]
-pub struct ResultColumn {
-    /// The name of the column
-    pub name: Identifier,
-    /// The alias of the column
-    pub alias: Identifier,
-}
-
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct AliasedResultExpr {
     pub expr: ResultExpr,
@@ -93,6 +84,15 @@ pub enum TableExpression {
 /// Binary operators for simple expressions
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryOperator {
+    /// Numeric addition
+    Add,
+
+    /// Numeric subtraction
+    Subtract,
+
+    /// Numeric multiplication
+    Multiply,
+
     /// Logical And
     And,
 

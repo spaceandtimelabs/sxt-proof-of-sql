@@ -14,7 +14,9 @@ pub struct QueryContext {
     order_by: Vec<OrderBy>,
     table: Option<TableRef>,
     agg_result_exprs: Vec<usize>,
+    fixed_columns_counter: usize,
     non_agg_result_exprs: Vec<usize>,
+    referenced_columns_counter: usize,
     group_by_exprs: HashSet<Identifier>,
     where_expr: Option<Box<Expression>>,
     result_schema: Vec<AliasedResultExpr>,
@@ -47,6 +49,7 @@ impl QueryContext {
     }
 
     pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
+        self.referenced_columns_counter += 1;
         self.column_mapping.insert(column, column_ref);
     }
 
@@ -70,6 +73,20 @@ impl QueryContext {
 
     pub fn push_order_by(&mut self, order_by: OrderBy) {
         self.order_by.push(order_by);
+    }
+
+    pub fn fix_columns_counter(&mut self) {
+        self.fixed_columns_counter = self.referenced_columns_counter;
+    }
+
+    pub fn validate_columns_counter(&mut self) -> ConversionResult<()> {
+        if self.referenced_columns_counter == self.fixed_columns_counter {
+            return Err(ConversionError::InvalidExpression(
+                "At least one column must be referenced".to_string(),
+            ));
+        }
+        self.fix_columns_counter();
+        Ok(())
     }
 
     pub fn get_result_schema(&self) -> ConversionResult<Vec<AliasedResultExpr>> {

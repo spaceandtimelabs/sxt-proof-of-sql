@@ -1,12 +1,13 @@
+use super::{ConversionError, ConversionResult};
 use crate::base::database::{TableRef, TestAccessor};
 use crate::record_batch;
 use crate::sql::ast::test_utility::*;
 use crate::sql::parse::QueryExpr;
 use crate::sql::transform::test_utility::*;
-use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 
 use arrow::record_batch::RecordBatch;
 use polars::prelude::col as pcol;
+use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 use proofs_sql::sql::SelectStatementParser;
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
@@ -17,6 +18,15 @@ fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) 
 fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
+}
+
+fn invalid_query_to_provable_ast_err(
+    table: TableRef,
+    query: &str,
+    accessor: &TestAccessor,
+) -> ConversionResult<QueryExpr> {
+    let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
+    QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor)
 }
 
 pub fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
@@ -1368,4 +1378,172 @@ fn we_can_use_multiple_group_by_clauses() {
         ]),
     );
     assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [4_i64],
+            "f" => [5_i128],
+            "b" => [-7_i64],
+            "h" => [123_i128]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select a + b, 2 * f as f2, -77 - h as col, a + f as af from employees",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["a", "b", "f", "h"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![select(&[
+            (pcol("a") + pcol("b")).alias("__column__"),
+            (lit(2) * pcol("f")).alias("f2"),
+            (lit(-77) - pcol("h")).alias("col"),
+            (pcol("a") + pcol("f")).alias("af"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr(
+) {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "c" => [4_i64],
+            "f" => [5_i64],
+            "g" => [-7_i64],
+            "h" => [123_i64]
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select (2 + f) * (c + g + 2 * h), ((h - g) * 2 + c + g) * (f + 2) as d from employees",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["c", "f", "g", "h"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![select(&[
+            ((lit(2) + pcol("f")) * (pcol("c") + pcol("g") + lit(2) * pcol("h")))
+                .alias("__column__"),
+            (((pcol("h") - pcol("g")) * lit(2) + pcol("c") + pcol("g")) * (pcol("f") + lit(2)))
+                .alias("d"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "c" => [4_i64],
+            "f" => [5_i64],
+            "g" => [5_i64],
+            "k" => [5_i64],
+        ),
+        0,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select c, sum(2 * f + c - -7) as d from employees group by c",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        filter(
+            cols_result(t, &["c", "f"], &accessor),
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![
+            groupby(
+                vec![pcol("c").alias("c")],
+                vec![((lit(2) * pcol("f") + pcol("c") - lit(-7)).sum()).alias("d")],
+            ),
+            select(&[pcol("c"), pcol("d")]),
+        ]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_need_to_reference_at_least_one_column_in_the_result_expr() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => [4_i64],
+            "f" => [5_i64],
+            "b" => [-7_i64],
+            "h" => [123_i64]
+        ),
+        0,
+    );
+    assert_eq!(
+        invalid_query_to_provable_ast_err(t, "select a, -123 from employees", &accessor,),
+        Err(ConversionError::InvalidExpression(
+            "At least one column must be referenced".to_string()
+        ))
+    );
+}
+
+#[test]
+fn we_cannot_have_arithmetic_operations_with_varchar_columns() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "f" => ["5"],
+            "g" => [5_i64],
+        ),
+        0,
+    );
+    assert_eq!(
+        invalid_query_to_provable_ast_err(t, "select -123 * f from employees", &accessor,),
+        Err(ConversionError::MismatchTypeError(
+            "INT128".to_string(),
+            "VARCHAR".to_string()
+        ))
+    );
+    assert_eq!(
+        invalid_query_to_provable_ast_err(t, "select g - f from employees", &accessor,),
+        Err(ConversionError::MismatchTypeError(
+            "BIGINT".to_string(),
+            "VARCHAR".to_string()
+        ))
+    );
+}
+
+#[test]
+fn we_cannot_use_arithmetic_outside_agg_expressions_while_using_group_by() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "f" => [5_i64],
+        ),
+        0,
+    );
+    assert_eq!(
+        invalid_query_to_provable_ast_err(t, "select 2 * f from employees group by f", &accessor,),
+        Err(ConversionError::InvalidGroupByResultColumnError)
+    );
 }

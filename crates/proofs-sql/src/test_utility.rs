@@ -1,6 +1,7 @@
 use crate::intermediate_ast::*;
 use crate::Identifier;
 use crate::SelectStatement;
+use std::ops;
 
 pub fn equal<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
     Box::new(Expression::Binary {
@@ -44,48 +45,42 @@ pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
 }
 
-pub fn lit(literal: Literal) -> Box<Expression> {
-    Box::new(Expression::Literal(literal))
+pub fn lit<L: Into<Literal>>(literal: L) -> Box<Expression> {
+    Box::new(Expression::Literal(literal.into()))
 }
 
 pub fn col_res_all() -> SelectResultExpr {
     SelectResultExpr::ALL
 }
 
-pub fn col_res(name: &str, alias: &str) -> SelectResultExpr {
+pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::NonAgg(Box::new(Expression::Column(name.parse().unwrap()))),
+        expr: ResultExpr::NonAgg(col_val),
         alias: alias.parse().unwrap(),
     })
 }
 
 pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
-    names.iter().map(|name| col_res(name, name)).collect()
+    names.iter().map(|name| col_res(col(name), name)).collect()
 }
 
-pub fn min_res(name: &str, alias: &str) -> SelectResultExpr {
+pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Min(Box::new(Expression::Column(
-            name.parse().unwrap(),
-        )))),
+        expr: ResultExpr::Agg(AggExpr::Min(expr)),
         alias: alias.parse().unwrap(),
     })
 }
 
-pub fn max_res(name: &str, alias: &str) -> SelectResultExpr {
+pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Max(Box::new(Expression::Column(
-            name.parse().unwrap(),
-        )))),
+        expr: ResultExpr::Agg(AggExpr::Max(expr)),
         alias: alias.parse().unwrap(),
     })
 }
 
-pub fn sum_res(name: &str, alias: &str) -> SelectResultExpr {
+pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Sum(Box::new(Expression::Column(
-            name.parse().unwrap(),
-        )))),
+        expr: ResultExpr::Agg(AggExpr::Sum(expr)),
         alias: alias.parse().unwrap(),
     })
 }
@@ -171,4 +166,40 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
 
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()
+}
+
+impl ops::Add<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn add(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Add,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+
+impl ops::Mul<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn mul(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Multiply,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+
+impl ops::Sub<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn sub(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Subtract,
+            left: self,
+            right: rhs,
+        })
+    }
 }

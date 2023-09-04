@@ -232,3 +232,15 @@ fn we_cannot_transform_batch_using_an_empty_group_by_expression() {
     let result_expr = composite_result(vec![groupby(vec![], agg_exprs)]);
     result_expr.transform_results(data);
 }
+
+#[test]
+fn we_can_transform_batch_using_arithmetic_expressions_in_the_aggregation() {
+    let data = record_batch!("c" => [1_i64, -5, -3, 7, -3], "a" => ["a", "d", "b", "a", "b"], "d" => [523_i64, -25, 343, -7, 435]);
+    let by_exprs = vec![col("a").alias("a_group")];
+    let agg_exprs = vec![(col("d") * col("c")).sum().alias("cd_sum")];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    let data = result_expr.transform_results(data);
+    let expected_data =
+        record_batch!("a_group" => ["a", "d", "b"], "cd_sum" => [474_i64, 125, -2334]);
+    assert_eq!(data, expected_data);
+}

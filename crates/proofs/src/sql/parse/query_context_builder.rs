@@ -90,6 +90,15 @@ impl<'a> QueryContextBuilder<'a> {
                 self.visit_equal_expression(left, right)?;
                 Ok(None)
             }
+            BinaryOperator::Multiply | BinaryOperator::Subtract | BinaryOperator::Add => {
+                let left_dtype = self.visit_expression(left)?;
+                let right_dtype = self.visit_expression(right)?;
+                check_dtypes(
+                    left_dtype.expect("Must not be a boolean expression"),
+                    right_dtype.expect("Must not be a boolean expression"),
+                )?;
+                Ok(left_dtype)
+            }
         }
     }
 
@@ -185,17 +194,21 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_agg_expr(&mut self, agg_expr: AggExpr) -> ConversionResult<AggExpr> {
         match &agg_expr {
             AggExpr::Count(expr) => {
+                self.context.fix_columns_counter();
                 self.visit_expression(expr)?;
+                self.context.validate_columns_counter()?;
             }
             AggExpr::Sum(expr) | AggExpr::Min(expr) | AggExpr::Max(expr) => {
+                self.context.fix_columns_counter();
                 let expr_dtype = self
                     .visit_expression(expr)?
                     .expect("Expression cannot be bool yet");
 
                 // We only support sum/max/min aggregation on numeric columns
-                if expr_dtype != ColumnType::BigInt {
+                if expr_dtype == ColumnType::VarChar {
                     return Err(ConversionError::NonNumericColumnAggregation("max/min/sum"));
                 }
+                self.context.validate_columns_counter()?;
             }
             AggExpr::CountALL => {}
         }
@@ -224,16 +237,21 @@ impl<'a> QueryContextBuilder<'a> {
                         );
                     }
                 }
-                SelectResultExpr::AliasedResultExpr(aliased_expr) => match &aliased_expr.expr {
-                    ResultExpr::Agg(agg_expr) => {
-                        self.visit_agg_expr(agg_expr.clone())?;
-                        self.context.push_schema_column(aliased_expr, true);
-                    }
-                    ResultExpr::NonAgg(expr) => {
-                        self.visit_expression(expr)?;
-                        self.context.push_schema_column(aliased_expr, false);
-                    }
-                },
+                SelectResultExpr::AliasedResultExpr(aliased_expr) => {
+                    let is_agg = match &aliased_expr.expr {
+                        ResultExpr::Agg(agg_expr) => {
+                            self.visit_agg_expr(agg_expr.clone())?;
+                            true
+                        }
+                        ResultExpr::NonAgg(expr) => {
+                            self.context.fix_columns_counter();
+                            self.visit_expression(expr)?;
+                            self.context.validate_columns_counter()?;
+                            false
+                        }
+                    };
+                    self.context.push_schema_column(aliased_expr, is_agg);
+                }
             }
         }
 

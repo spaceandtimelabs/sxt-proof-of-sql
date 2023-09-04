@@ -33,6 +33,12 @@ impl Column<'_> {
     }
 }
 
+/// The precision for [ColumnType::INT128] values
+pub const INT128_PRECISION: usize = 38;
+
+/// The scale for [ColumnType::INT128] values
+pub const INT128_SCALE: usize = 0;
+
 /// Represents the supported data types of a column in an in-memory,
 /// column-oriented database.
 ///
