@@ -202,10 +202,10 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
     let expected_ast = select(
         query(
             vec![
-                col_res("a", "a"),
+                col_res(col("a"), "a"),
                 col_res_all(),
-                col_res("b", "b"),
-                col_res("c", "c"),
+                col_res(col("b"), "b"),
+                col_res(col("c"), "c"),
                 col_res_all(),
             ],
             tab(None, "sxt_tab"),
@@ -449,7 +449,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
         .unwrap();
     let expected_ast = select(
         query(
-            vec![col_res("a", "a_rename")],
+            vec![col_res(col("a"), "a_rename")],
             tab(None, "sxt_tab"),
             equal("b", 4),
             vec![],
@@ -467,7 +467,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
         .unwrap();
     let expected_ast = select(
         query(
-            vec![col_res("a", "a_rename")],
+            vec![col_res(col("a"), "a_rename")],
             tab(None, "sxt_tab"),
             equal("b", 4),
             vec![],
@@ -652,7 +652,7 @@ fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
-        query_all(vec![col_res("a", "asc")], tab(None, "tab"), vec![]),
+        query_all(vec![col_res(col("a"), "asc")], tab(None, "tab"), vec![]),
         orders(&["a"], &[Asc]),
         None,
     );
@@ -996,8 +996,8 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations() {
     let expected_ast = select(
         query_all(
             vec![
-                min_res("a", "__min__"),
-                max_res("a", "max_a"),
+                min_res(col("a"), "__min__"),
+                max_res(col("a"), "max_a"),
                 count_res("a", "__count__"),
                 count_all_res("count_all"),
             ],
@@ -1019,9 +1019,9 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_
     let expected_ast = select(
         query(
             vec![
-                min_res("a", "__min__"),
-                max_res("a", "max_a"),
-                sum_res("c", "__sum__"),
+                min_res(col("a"), "__min__"),
+                max_res(col("a"), "max_a"),
+                sum_res(col("c"), "__sum__"),
                 count_res("a", "__count__"),
                 count_all_res("count_all"),
             ],
@@ -1057,9 +1057,9 @@ fn we_can_parse_a_aggregations_without_group_by_although_it_is_semantically_inco
     let expected_ast = select(
         query_all(
             vec![
-                col_res("f", "f_col"),
-                min_res("a", "__min__"),
-                max_res("a", "max_a"),
+                col_res(col("f"), "f_col"),
+                min_res(col("a"), "__min__"),
+                max_res(col("a"), "max_a"),
                 count_res("a", "__count__"),
                 count_all_res("count_all"),
             ],
@@ -1077,4 +1077,134 @@ fn we_cannot_parse_a_non_count_aggregations_with_wildcard() {
     assert!("select min(*) from tab".parse::<SelectStatement>().is_err());
     assert!("select max(*) from tab".parse::<SelectStatement>().is_err());
     assert!("select sum(*) from tab".parse::<SelectStatement>().is_err());
+}
+
+#[test]
+fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr() {
+    let ast = "select a + b, 2 * f, -77 - h from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                col_res(col("a") + col("b"), "__column__"),
+                col_res(lit(2) * col("f"), "__column__"),
+                col_res(lit(-77) - col("h"), "__column__"),
+            ],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_single_literal_in_the_result_expr() {
+    let ast = "select -123 from tab".parse::<SelectStatement>().unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![col_res(lit(-123), "__column__")],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_parse_literals_outside_of_i128_range_in_the_result_expr() {
+    assert!("select 170141183460469231731687303715884105727 from tab"
+        .parse::<SelectStatement>()
+        .is_ok());
+    assert_eq!(
+        "select 170141183460469231731687303715884105728 from tab".parse::<SelectStatement>(),
+        Err(super::error::ParseError::QueryParseError(
+            "Integer out of range".to_string()
+        ))
+    );
+    assert!("select -170141183460469231731687303715884105728 from tab"
+        .parse::<SelectStatement>()
+        .is_ok());
+    assert_eq!(
+        "select -170141183460469231731687303715884105729 from tab".parse::<SelectStatement>(),
+        Err(super::error::ParseError::QueryParseError(
+            "Integer out of range".to_string()
+        ))
+    );
+}
+
+#[test]
+fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr(
+) {
+    let ast = "select (2 + f) * (c + g + 2 * h), ((h - g) * 2 + c + g) * (f + 2) as d from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                col_res(
+                    (lit(2) + col("f")) * (col("c") + col("g") + lit(2) * col("h")),
+                    "__column__",
+                ),
+                col_res(
+                    ((col("h") - col("g")) * lit(2) + col("c") + col("g")) * (col("f") + lit(2)),
+                    "d",
+                ),
+            ],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
+    let ast = "select sum(2 * f + c) as d from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![sum_res(lit(2) * col("f") + col("c"), "d")],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_in_the_result_expr()
+{
+    let ast = "select sum(2 * f + c) as d, g - k from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                sum_res(lit(2) * col("f") + col("c"), "d"),
+                col_res(col("g") - col("k"), "__column__"),
+            ],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_cannot_use_arithmetic_outside_aggregation_functions() {
+    assert!("select sum(f) + 2 from employees group by f"
+        .parse::<SelectStatement>()
+        .is_err());
 }

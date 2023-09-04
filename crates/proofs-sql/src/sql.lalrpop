@@ -109,16 +109,22 @@ SelectResultExprList: Vec<intermediate_ast::SelectResultExpr> = {
 
 SelectResultExpr: intermediate_ast::SelectResultExpr = {
     "*" => intermediate_ast::SelectResultExpr::ALL,
-
+    
     <non_agg_expr: NonAggregationExpr> => intermediate_ast::SelectResultExpr::AliasedResultExpr(non_agg_expr),
 
     <agg_expr: AggregationExpr> => intermediate_ast::SelectResultExpr::AliasedResultExpr(agg_expr),
 };
 
 NonAggregationExpr: intermediate_ast::AliasedResultExpr = {
-    <name: QualifiedColumnIdentifier> <alias: ("as"? <Identifier>)?> => intermediate_ast::AliasedResultExpr {
-                 expr: intermediate_ast::ResultExpr::NonAgg(Box::new(intermediate_ast::Expression::Column(name))),
-                 alias: alias.unwrap_or(name),
+    <expr: ArithmeticExpression> <alias: ("as"? <Identifier>)?> => intermediate_ast::AliasedResultExpr {
+                 expr: intermediate_ast::ResultExpr::NonAgg(expr.clone()),
+                 alias: alias.unwrap_or({
+                    if let intermediate_ast::Expression::Column(identifier) = *expr {
+                        identifier.clone()
+                    } else {
+                        identifier::Identifier::new("__column__")
+                    }
+                 }),
              }
 };
 
@@ -127,28 +133,28 @@ NonAggregationExpr: intermediate_ast::AliasedResultExpr = {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 AggregationExpr: intermediate_ast::AliasedResultExpr = {
     // TODO: for now, we use alias `__max__` instead of `max` because `max` is a reserved word.
-    "max" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+    "max" "(" <expr: ArithmeticExpression> ")" <alias: ("as"? <Identifier>)?>  => 
         intermediate_ast::AliasedResultExpr {
                  expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Max(expr)),
                  alias: alias.unwrap_or(identifier::Identifier::new("__max__")),
         },
 
     // TODO: for now, we use alias `__min__` instead of `min` because `min` is a reserved word.
-    "min" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+    "min" "(" <expr: ArithmeticExpression> ")" <alias: ("as"? <Identifier>)?>  => 
         intermediate_ast::AliasedResultExpr {
                  expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Min(expr)),
                  alias: alias.unwrap_or(identifier::Identifier::new("__min__")),
         },
 
     // TODO: for now, we use alias `__sum__` instead of `sum` because `sum` is a reserved word.
-    "sum" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+    "sum" "(" <expr: ArithmeticExpression> ")" <alias: ("as"? <Identifier>)?>  => 
         intermediate_ast::AliasedResultExpr {
                  expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Sum(expr)),
                  alias: alias.unwrap_or(identifier::Identifier::new("__sum__")),
         },
 
     // TODO: for now, we use alias `__count__` instead of `count` because `count` is a reserved word.
-    "count" "(" <expr: ResultColumnExpr> ")" <alias: ("as"? <Identifier>)?>  => 
+    "count" "(" <expr: ArithmeticExpression> ")" <alias: ("as"? <Identifier>)?>  => 
         intermediate_ast::AliasedResultExpr {
                  expr: intermediate_ast::ResultExpr::Agg(intermediate_ast::AggExpr::Count(expr)),
                  alias: alias.unwrap_or(identifier::Identifier::new("__count__")),
@@ -162,10 +168,6 @@ AggregationExpr: intermediate_ast::AliasedResultExpr = {
                  ),
                  alias: alias.unwrap_or(identifier::Identifier::new("__count__")),
         },
-};
-
-ResultColumnExpr: Box<intermediate_ast::Expression> = {
-    <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,6 +278,47 @@ ComparativeExpression: Box<intermediate_ast::Expression> = {
                 left: Box::new(intermediate_ast::Expression::Column(right)),
                 right: Box::new(intermediate_ast::Expression::Literal(*left)), 
             }), 
+        }),
+};
+
+ArithmeticExpressionParen: Box<intermediate_ast::Expression> = "(" <ArithmeticExpression> ")";
+ArithmeticExpression: Box<intermediate_ast::Expression> = {
+    #[precedence(level="0")]
+    ArithmeticExpressionParen,
+
+    #[precedence(level="1")]
+    <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
+
+    <literal: Int128UnaryNumericLiteral> => 
+        Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::Int128(literal))),
+
+    #[precedence(level="2")] #[assoc(side="right")]
+    <left: ArithmeticExpression> "*" <right: ArithmeticExpression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Multiply,
+            left,
+            right, 
+        }),
+
+    "-" "(" <expr: ArithmeticExpression> ")" => Box::new(intermediate_ast::Expression::Binary {
+        op: intermediate_ast::BinaryOperator::Multiply,
+        left: Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::Int128(-1))),
+        right: expr
+    }),
+
+    #[precedence(level="3")] #[assoc(side="left")]
+    <left: ArithmeticExpression> "+" <right: ArithmeticExpression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Add,
+            left,
+            right, 
+        }),
+
+    <left: ArithmeticExpression> "-" <right: ArithmeticExpression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Subtract,
+            left,
+            right, 
         }),
 };
 

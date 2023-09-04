@@ -1,11 +1,20 @@
 use super::{GroupByExpr, OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
+use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use crate::sql::proof::TransformExpr;
 use crate::sql::transform::CompositionExpr;
 use crate::sql::transform::DataFrameExpr;
 
+use polars::prelude::DataType;
 use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
 
 use polars::prelude::{col, Expr};
+
+pub fn lit(value: i128) -> Expr {
+    polars::prelude::lit(value.to_string()).cast(DataType::Decimal(
+        Some(INT128_PRECISION),
+        Some(INT128_SCALE),
+    ))
+}
 
 pub fn select(result_schema: &[Expr]) -> Box<dyn DataFrameExpr> {
     Box::new(SelectExpr::new(result_schema.to_vec()))

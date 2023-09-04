@@ -2,7 +2,7 @@ use crate::record_batch;
 use crate::sql::proof::TransformExpr;
 use crate::sql::transform::{test_utility::select, ResultExpr};
 
-use polars::prelude::col;
+use polars::prelude::{col, lit};
 
 #[test]
 fn we_can_filter_out_record_batch_columns() {
@@ -63,5 +63,14 @@ fn we_can_remap_the_record_batch_columns_to_new_columns() {
     ]));
     let data = result_expr.transform_results(data);
     let expected_data = record_batch!("abc" => [-5_i64, 1, -56, 2], "b_test" => ["d", "a", "f", "b"], "d2" => ["d", "a", "f", "b"], "c" => [-5_i64, 1, -56, 2]);
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn we_can_use_arithmetic_expressions() {
+    let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
+    let result_expr = ResultExpr::new(select(&[(lit(2) + col("c") * lit(3)).alias("c2")]));
+    let data = result_expr.transform_results(data);
+    let expected_data = record_batch!("c2" => [-13_i64, 5, -166, 8]);
     assert_eq!(data, expected_data);
 }
