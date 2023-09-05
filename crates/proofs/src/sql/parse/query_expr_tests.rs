@@ -1519,7 +1519,7 @@ fn we_cannot_have_arithmetic_operations_with_varchar_columns() {
     assert_eq!(
         invalid_query_to_provable_ast_err(t, "select -123 * f from employees", &accessor,),
         Err(ConversionError::MismatchTypeError(
-            "INT128".to_string(),
+            "DECIMAL".to_string(),
             "VARCHAR".to_string()
         ))
     );
