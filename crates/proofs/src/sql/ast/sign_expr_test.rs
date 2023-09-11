@@ -47,7 +47,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
 #[test]
 fn count_fails_if_a_bit_distribution_is_out_of_range() {
     let dists = [BitDistribution::new(&[
-        ArkScalar::from(3) * ArkScalar::from(u64::MAX)
+        ArkScalar::from(3) * ArkScalar::from(u128::MAX)
     ])];
     let mut builder = CountBuilder::new(&dists);
     assert!(count_sign(&mut builder).is_err());
