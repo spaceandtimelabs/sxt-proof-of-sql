@@ -15,8 +15,8 @@ fn zero_is_within_range() {
 }
 
 #[test]
-fn the_sum_of_two_signed_64_bit_numbers_is_within_range() {
-    let data: Vec<ArkScalar> = vec![ArkScalar::from(i64::MIN) + ArkScalar::from(i64::MIN)];
+fn the_sum_of_two_signed_128_bit_numbers_is_within_range() {
+    let data: Vec<ArkScalar> = vec![ArkScalar::from(i128::MIN) + ArkScalar::from(i128::MIN)];
     let dist = BitDistribution::new(&data);
     assert!(is_within_acceptable_range(&dist));
 }
@@ -24,7 +24,7 @@ fn the_sum_of_two_signed_64_bit_numbers_is_within_range() {
 #[test]
 fn we_reject_distributions_that_are_outside_of_maximum_range() {
     let data: Vec<ArkScalar> =
-        vec![ArkScalar::from(u64::MAX) + ArkScalar::from(u64::MAX) + ArkScalar::from(u64::MAX)];
+        vec![ArkScalar::from(u128::MAX) + ArkScalar::from(u128::MAX) + ArkScalar::from(u128::MAX)];
     let dist = BitDistribution::new(&data);
     assert!(!is_within_acceptable_range(&dist));
 }
