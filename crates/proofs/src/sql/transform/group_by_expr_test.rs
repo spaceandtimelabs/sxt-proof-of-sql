@@ -1,8 +1,10 @@
+use super::group_by_map_i128_to_utf8;
 use crate::record_batch;
 use crate::sql::proof::TransformExpr;
 use crate::sql::transform::test_utility::{agg_expr, composite_result, groupby};
 
 use polars::prelude::{col, lit};
+use rand::Rng;
 
 #[test]
 fn we_can_transform_batch_using_simple_group_by_with_an_alias() {
@@ -243,4 +245,56 @@ fn we_can_transform_batch_using_arithmetic_expressions_in_the_aggregation() {
     let expected_data =
         record_batch!("a_group" => ["a", "d", "b"], "cd_sum" => [474_i64, 125, -2334]);
     assert_eq!(data, expected_data);
+}
+
+#[test]
+fn we_can_use_decimal_columns_inside_group_by() {
+    let nines: i128 = "9".repeat(38).parse::<i128>().unwrap();
+    let data = record_batch!(
+        "h" => [-1_i128, 1, -nines, 0, -2, nines, -3, -1, -3, 1, 11],
+        "j" => [0_i64, 12, 5, 3, -2, -1, 4, 4, 100, 0, 31],
+    );
+    let by_exprs = vec![col("h")];
+    let agg_exprs = vec![(col("j") + col("h")).sum().alias("h_sum")];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    let data = result_expr.transform_results(data);
+    let expected_data: arrow::record_batch::RecordBatch = record_batch!(
+        "h" => [-1, 1, -nines, 0, -2, nines, -3, 11].into_iter().map(group_by_map_i128_to_utf8).collect::<Vec<_>>(),
+        "h_sum" => [2_i128, 14, -nines + 5, 3, -2 - 2, nines - 1, -6 + 100 + 4, 11 + 31],
+    );
+    assert_eq!(data, expected_data);
+}
+
+fn validate_group_by_map_i128_to_utf8(s: Vec<i128>) {
+    let expected_len = s.len();
+
+    // no collision happens
+    assert_eq!(
+        expected_len,
+        s.iter().collect::<std::collections::HashSet<_>>().len()
+    );
+
+    assert_eq!(
+        expected_len,
+        s.into_iter()
+            .map(group_by_map_i128_to_utf8)
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
+    );
+}
+
+#[test]
+fn group_by_with_consecutive_range_doesnt_have_collisions() {
+    validate_group_by_map_i128_to_utf8((-300000..300000).collect());
+}
+
+#[test]
+fn group_by_with_random_data_doesnt_have_collisions() {
+    let mut rng = rand::thread_rng();
+    let nines = "9".repeat(38).parse::<i128>().unwrap();
+    validate_group_by_map_i128_to_utf8(
+        (-300000..300000)
+            .map(|_| rng.gen_range(-nines, nines + 1))
+            .collect(),
+    );
 }
