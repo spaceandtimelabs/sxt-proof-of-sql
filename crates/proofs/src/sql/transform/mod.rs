@@ -35,4 +35,7 @@ mod group_by_expr;
 pub use group_by_expr::GroupByExpr;
 
 #[cfg(test)]
+pub(crate) use group_by_expr::group_by_map_i128_to_utf8;
+
+#[cfg(test)]
 mod group_by_expr_test;
