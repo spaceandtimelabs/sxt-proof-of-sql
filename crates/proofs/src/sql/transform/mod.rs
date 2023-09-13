@@ -19,6 +19,9 @@ pub use order_by_exprs::OrderByExprs;
 #[cfg(test)]
 mod order_by_exprs_test;
 
+#[cfg(test)]
+pub(crate) use order_by_exprs::order_by_map_i128_to_utf8;
+
 mod slice_expr;
 pub use slice_expr::SliceExpr;
 
