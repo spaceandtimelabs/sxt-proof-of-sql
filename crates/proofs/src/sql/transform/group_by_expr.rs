@@ -3,9 +3,10 @@ use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
+use serde::{Deserialize, Serialize};
 
 /// A group by expression
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr {
     /// A list of aggregation column expressions
     agg_exprs: Vec<Expr>,
@@ -29,6 +30,7 @@ impl GroupByExpr {
     }
 }
 
+#[typetag::serde]
 impl DataFrameExpr for GroupByExpr {
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
         let by_exprs: Vec<_> = self

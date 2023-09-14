@@ -6,9 +6,10 @@ use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
 
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
+use serde::{Deserialize, Serialize};
 
 /// A node representing a list of `OrderBy` expressions.
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct OrderByExprs {
     by_exprs: Vec<OrderBy>,
 }
@@ -20,6 +21,7 @@ impl OrderByExprs {
     }
 }
 
+#[typetag::serde]
 impl DataFrameExpr for OrderByExprs {
     /// Sort the `LazyFrame` by the `OrderBy` expressions.
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {

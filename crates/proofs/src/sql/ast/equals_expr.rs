@@ -15,6 +15,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelI
 
 use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::{One, Zero};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
@@ -23,7 +24,7 @@ use std::collections::HashSet;
 /// ```ignore
 ///     <col> = <constant>
 /// ```
-#[derive(Debug, DynPartialEq, PartialEq, Eq)]
+#[derive(Debug, DynPartialEq, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EqualsExpr {
     value: ArkScalar,
     column_ref: ColumnRef,
@@ -56,6 +57,7 @@ impl EqualsExpr {
     }
 }
 
+#[typetag::serde]
 impl BoolExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);

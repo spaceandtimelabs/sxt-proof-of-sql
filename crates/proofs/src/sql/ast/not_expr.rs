@@ -6,10 +6,11 @@ use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical NOT expression
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct NotExpr {
     expr: Box<dyn BoolExpr>,
 }
@@ -21,6 +22,7 @@ impl NotExpr {
     }
 }
 
+#[typetag::serde]
 impl BoolExpr for NotExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)

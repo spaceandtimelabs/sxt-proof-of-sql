@@ -60,6 +60,6 @@ pub fn filter(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
     where_clause: Box<dyn BoolExpr>,
-) -> Box<FilterExpr> {
-    Box::new(FilterExpr::new(results, table, where_clause))
+) -> FilterExpr {
+    FilterExpr::new(results, table, where_clause)
 }

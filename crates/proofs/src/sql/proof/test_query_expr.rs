@@ -10,6 +10,7 @@ use crate::base::proof::ProofError;
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::Debug;
 
@@ -19,12 +20,14 @@ type ProveFn =
 type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor) + Send + Sync>;
 
 /// A query expression that can mock desired behavior for testing
-#[derive(Default, DynPartialEq)]
+#[derive(Default, DynPartialEq, Serialize, Deserialize)]
 pub struct TestQueryExpr {
     pub table_length: usize,
     pub offset_generators: usize,
     pub counts: ProofCounts,
+    #[serde(skip)]
     pub prover_fn: Option<ProveFn>,
+    #[serde(skip)]
     pub verifier_fn: Option<VerifyFn>,
 }
 
