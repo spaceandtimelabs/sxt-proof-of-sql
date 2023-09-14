@@ -11,10 +11,11 @@ use num_traits::One;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical OR expression
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct OrExpr {
     lhs: Box<dyn BoolExpr>,
     rhs: Box<dyn BoolExpr>,
@@ -27,6 +28,7 @@ impl OrExpr {
     }
 }
 
+#[typetag::serde]
 impl BoolExpr for OrExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;

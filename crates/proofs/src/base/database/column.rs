@@ -108,7 +108,7 @@ impl std::str::FromStr for ColumnType {
 }
 
 /// Reference of a SQL column
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
 pub struct ColumnRef {
     column_id: Identifier,
     table_ref: TableRef,

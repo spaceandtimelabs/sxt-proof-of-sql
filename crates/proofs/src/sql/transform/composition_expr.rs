@@ -2,9 +2,10 @@ use crate::sql::transform::DataFrameExpr;
 use polars::prelude::LazyFrame;
 
 use dyn_partial_eq::DynPartialEq;
+use serde::{Deserialize, Serialize};
 
 /// A node representing a list of transformations to be applied to a `LazyFrame`.
-#[derive(Debug, Default, DynPartialEq, PartialEq)]
+#[derive(Debug, Default, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct CompositionExpr {
     transformations: Vec<Box<dyn DataFrameExpr>>,
 }
@@ -28,6 +29,7 @@ impl CompositionExpr {
     }
 }
 
+#[typetag::serde]
 impl DataFrameExpr for CompositionExpr {
     /// Apply the transformations to the `LazyFrame`.
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {

@@ -2,9 +2,10 @@ use super::DataFrameExpr;
 
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::LazyFrame;
+use serde::{Deserialize, Serialize};
 
 /// A `SliceExpr` represents a slice of a `LazyFrame`.
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct SliceExpr {
     /// number of rows to return
     ///
@@ -29,6 +30,7 @@ impl SliceExpr {
     }
 }
 
+#[typetag::serde]
 impl DataFrameExpr for SliceExpr {
     /// Apply the slice transformation to the given `LazyFrame`.
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {

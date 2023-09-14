@@ -1,6 +1,5 @@
 use super::{GroupByExpr, OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-use crate::sql::proof::TransformExpr;
 use crate::sql::transform::CompositionExpr;
 use crate::sql::transform::DataFrameExpr;
 
@@ -27,24 +26,24 @@ pub fn schema(columns: &[(&str, &str)]) -> Vec<Expr> {
         .collect()
 }
 
-pub fn result(columns: &[(&str, &str)]) -> Box<dyn TransformExpr> {
+pub fn result(columns: &[(&str, &str)]) -> ResultExpr {
     let mut composition = CompositionExpr::default();
     composition.add(Box::new(SelectExpr::new(schema(columns))));
-    Box::new(ResultExpr::new(Box::new(composition)))
+    ResultExpr::new(Box::new(composition))
 }
 
 pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
     Box::new(SliceExpr::new(limit, offset))
 }
 
-pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> Box<ResultExpr> {
+pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> ResultExpr {
     let mut composition = CompositionExpr::default();
 
     for transformation in transformations {
         composition.add(transformation);
     }
 
-    Box::new(ResultExpr::new(Box::new(composition)))
+    ResultExpr::new(Box::new(composition))
 }
 
 pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFrameExpr> {

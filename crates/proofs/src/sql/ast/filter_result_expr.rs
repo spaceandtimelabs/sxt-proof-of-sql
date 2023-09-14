@@ -6,11 +6,12 @@ use crate::sql::proof::{
 };
 use bumpalo::Bump;
 use num_traits::One;
+use serde::{Deserialize, Serialize};
 
 /// Provable expression for a result column within a filter SQL expression
 ///
 /// Note: this is currently limited to named column expressions.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct FilterResultExpr {
     column_ref: ColumnRef,
 }

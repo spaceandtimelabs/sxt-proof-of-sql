@@ -9,12 +9,13 @@ use crate::sql::proof::{CountBuilder, ProofBuilder, ProofExpr, VerificationBuild
 
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct FilterExpr {
     results: Vec<FilterResultExpr>,
     table: TableExpr,
