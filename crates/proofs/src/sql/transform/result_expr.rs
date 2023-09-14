@@ -5,12 +5,13 @@ use crate::sql::transform::DataFrameExpr;
 use arrow::record_batch::RecordBatch;
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::IntoLazy;
+use serde::{Deserialize, Serialize};
 
 /// The result expression is used to transform the results of a query
 ///
 /// Note: both the `transformation` and `result_schema` are
 /// mutually exclusive operations. So they must not be set at the same time.
-#[derive(Debug, DynPartialEq, PartialEq)]
+#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct ResultExpr {
     transformation: Box<dyn DataFrameExpr>,
 }

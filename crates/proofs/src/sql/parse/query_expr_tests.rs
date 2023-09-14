@@ -1,7 +1,7 @@
 use super::{ConversionError, ConversionResult};
 use crate::base::database::{TableRef, TestAccessor};
 use crate::record_batch;
-use crate::sql::ast::test_utility::*;
+use crate::sql::ast::{test_utility::*, FilterExpr};
 use crate::sql::parse::QueryExpr;
 use crate::sql::transform::test_utility::*;
 
@@ -1546,4 +1546,79 @@ fn we_cannot_use_arithmetic_outside_agg_expressions_while_using_group_by() {
         invalid_query_to_provable_ast_err(t, "select 2 * f from employees group by f", &accessor,),
         Err(ConversionError::InvalidGroupByResultColumnError)
     );
+}
+
+/// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
+fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
+    let schema_accessor = record_batch_to_accessor(
+        "test.table".parse().unwrap(),
+        record_batch!(
+                "bigint_column" => [5_i64],
+                "varchar_column" => ["example"],
+                "int128_column" => [10_i128],
+        ),
+        0,
+    );
+
+    let default_schema = "test".parse().unwrap();
+
+    let select_statement = SelectStatementParser::new().parse(sql_text).unwrap();
+
+    QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
+}
+
+/// Serializes and deserializes QueryExpr with flexbuffers and asserts that it remains the same.
+fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr) {
+    let serialized = flexbuffers::to_vec(&query_expr).unwrap();
+    let deserialized: QueryExpr = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    assert_eq!(deserialized, query_expr);
+}
+
+#[test]
+fn basic_query_expr_can_serialize_to_and_from_flex_buffers() {
+    let query_expr = query_expr_for_test_table("select * from table");
+    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+}
+
+#[test]
+fn query_expr_with_selected_columns_can_serialize_to_and_from_flex_buffers() {
+    let query_expr =
+        query_expr_for_test_table("select bigint_column, varchar_column, int128_column from table");
+    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+}
+
+#[test]
+fn query_expr_with_aggregation_can_serialize_to_and_from_flex_buffers() {
+    let query_expr = query_expr_for_test_table("select count(*) from table group by bigint_column");
+    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+}
+
+#[test]
+fn query_expr_with_filters_can_serialize_to_and_from_flex_buffers() {
+    let query_expr = query_expr_for_test_table(
+        "select * from table where bigint_column != 5 and varchar_column = 'example' or int128_column = 10",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+}
+
+#[test]
+fn query_expr_with_order_and_limits_can_serialize_to_and_from_flex_buffers() {
+    let query_expr = query_expr_for_test_table(
+        "select * from table order by int128_column desc limit 1 offset 1",
+    );
+    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+}
+
+#[test]
+fn we_can_serialize_list_of_filters_from_query_expr() {
+    let query_expr = query_expr_for_test_table("select * from table");
+
+    let filter_exprs: Vec<&FilterExpr> = vec![query_expr.filter()];
+
+    let serialized = flexbuffers::to_vec(&filter_exprs).unwrap();
+
+    let deserialized: Vec<FilterExpr> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized_as_ref: Vec<&FilterExpr> = deserialized.iter().collect();
+
+    assert_eq!(filter_exprs, deserialized_as_ref);
 }

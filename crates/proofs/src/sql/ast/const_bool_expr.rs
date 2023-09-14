@@ -7,6 +7,7 @@ use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use num_traits::Zero;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical CONST expression
@@ -20,7 +21,7 @@ use std::collections::HashSet;
 /// While this wouldn't be as efficient as using a new custom expression for
 /// such queries, it allows us to easily support projects with minimal code
 /// changes, and the performance is sufficient for present.
-#[derive(Debug, DynPartialEq, PartialEq, Eq)]
+#[derive(Debug, DynPartialEq, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConstBoolExpr {
     value: bool,
 }
@@ -32,6 +33,7 @@ impl ConstBoolExpr {
     }
 }
 
+#[typetag::serde]
 impl BoolExpr for ConstBoolExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())

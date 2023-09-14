@@ -42,3 +42,4 @@ regex = { version = "1" }
 serde = { version = "1" }
 thiserror = { version = "1" }
 tracing = { version = "0.1.36" }
+typetag = { version = "0.2.13" }

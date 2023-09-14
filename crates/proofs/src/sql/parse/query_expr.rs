@@ -1,6 +1,8 @@
+use crate::sql::ast::FilterExpr;
 use crate::sql::proof::{
     CountBuilder, ProofBuilder, ProofExpr, TransformExpr, VerificationBuilder,
 };
+use crate::sql::transform::ResultExpr;
 use std::collections::HashSet;
 
 use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
@@ -15,12 +17,13 @@ use proofs_sql::{Identifier, SelectStatement};
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(DynPartialEq, PartialEq)]
+#[derive(DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct QueryExpr {
-    filter: Box<dyn ProofExpr>,
-    result: Box<dyn TransformExpr>,
+    filter: FilterExpr,
+    result: ResultExpr,
 }
 
 // Implements fmt::Debug to aid in debugging QueryExpr.
@@ -32,7 +35,7 @@ impl fmt::Debug for QueryExpr {
 }
 
 impl QueryExpr {
-    pub fn new(filter: Box<dyn ProofExpr>, result: Box<dyn TransformExpr>) -> Self {
+    pub fn new(filter: FilterExpr, result: ResultExpr) -> Self {
         Self { filter, result }
     }
 
@@ -70,10 +73,17 @@ impl QueryExpr {
             .add_slice(context.get_slice())
             .build();
 
-        Ok(Self {
-            filter: Box::new(filter),
-            result: Box::new(result),
-        })
+        Ok(Self { filter, result })
+    }
+
+    /// Immutable access to this query's provable filter expression.
+    pub fn filter(&self) -> &FilterExpr {
+        &self.filter
+    }
+
+    /// Immutable access to this query's post-proof result transform expression.
+    pub fn result(&self) -> &ResultExpr {
+        &self.result
     }
 }
 

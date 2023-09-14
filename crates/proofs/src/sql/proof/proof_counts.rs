@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// Counters for different terms used within a proof
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ProofCounts {
     pub sumcheck_max_multiplicands: usize,
     pub result_columns: usize,
