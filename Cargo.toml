@@ -32,7 +32,7 @@ lalrpop-util = { version = "0.19.9" }
 lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
-polars = { version = "0.32.0" }
+polars = { version = "0.33.1" }
 postcard = { version = "1.0" }
 proofs = { path = "crates/proofs" } # We automatically update this line during release. So do not modify it!
 proofs-sql = { path = "crates/proofs-sql" } # We automatically update this line during release. So do not modify it!

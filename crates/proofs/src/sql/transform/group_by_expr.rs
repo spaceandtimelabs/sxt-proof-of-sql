@@ -44,7 +44,7 @@ impl DataFrameExpr for GroupByExpr {
 
         // We use `groupby_stable` instead of `groupby`
         // to avoid non-deterministic results with our tests.
-        lazy_frame.groupby_stable(&by_exprs).agg(&self.agg_exprs)
+        lazy_frame.group_by_stable(&by_exprs).agg(&self.agg_exprs)
     }
 }
 

@@ -6,10 +6,11 @@ use crate::sql::transform::DataFrameExpr;
 use polars::prelude::DataType;
 use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
 
-use polars::prelude::{col, Expr};
+use polars::prelude::{col, Expr, Literal, Series};
 
 pub fn lit(value: i128) -> Expr {
-    polars::prelude::lit(value.to_string()).cast(DataType::Decimal(
+    let literal = [value.to_string()].into_iter().collect::<Series>().lit();
+    literal.cast(DataType::Decimal(
         Some(INT128_PRECISION),
         Some(INT128_SCALE),
     ))
