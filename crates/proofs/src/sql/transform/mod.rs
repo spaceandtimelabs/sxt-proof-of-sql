@@ -42,3 +42,6 @@ pub(crate) use group_by_expr::group_by_map_i128_to_utf8;
 
 #[cfg(test)]
 mod group_by_expr_test;
+
+mod polars_conversions;
+pub use polars_conversions::LiteralConversion;
