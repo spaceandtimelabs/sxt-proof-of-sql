@@ -1087,9 +1087,9 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
     let expected_ast = select(
         query_all(
             vec![
-                col_res(col("a") + col("b"), "__column__"),
-                col_res(lit(2) * col("f"), "__column__"),
-                col_res(lit(-77) - col("h"), "__column__"),
+                col_res(col("a") + col("b"), "__expr__"),
+                col_res(lit(2) * col("f"), "__expr__"),
+                col_res(lit(-77) - col("h"), "__expr__"),
             ],
             tab(None, "tab"),
             vec![],
@@ -1105,7 +1105,7 @@ fn we_can_parse_a_single_literal_in_the_result_expr() {
     let ast = "select -123 from tab".parse::<SelectStatement>().unwrap();
     let expected_ast = select(
         query_all(
-            vec![col_res(lit(-123), "__column__")],
+            vec![col_res(lit(-123), "__expr__")],
             tab(None, "tab"),
             vec![],
         ),
@@ -1148,7 +1148,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
             vec![
                 col_res(
                     (lit(2) + col("f")) * (col("c") + col("g") + lit(2) * col("h")),
-                    "__column__",
+                    "__expr__",
                 ),
                 col_res(
                     ((col("h") - col("g")) * lit(2) + col("c") + col("g")) * (col("f") + lit(2)),
@@ -1191,7 +1191,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_i
         query_all(
             vec![
                 sum_res(lit(2) * col("f") + col("c"), "d"),
-                col_res(col("g") - col("k"), "__column__"),
+                col_res(col("g") - col("k"), "__expr__"),
             ],
             tab(None, "tab"),
             vec![],

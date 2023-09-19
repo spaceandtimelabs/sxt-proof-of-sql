@@ -1,7 +1,8 @@
-use polars::prelude::{col, lit, DataType, Expr, Literal, Series};
+use polars::prelude::{col, Expr};
 
-use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-use crate::sql::transform::{CompositionExpr, GroupByExpr, OrderByExprs, SelectExpr, SliceExpr};
+use crate::sql::transform::{
+    CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SelectExpr, SliceExpr,
+};
 
 use proofs_sql::intermediate_ast;
 use proofs_sql::intermediate_ast::{
@@ -12,82 +13,67 @@ use proofs_sql::Identifier;
 /// A builder for `ResultExpr` nodes.
 #[derive(Default)]
 pub struct ResultExprBuilder {
-    has_group_by: bool,
     composition: CompositionExpr,
 }
 
 impl ResultExprBuilder {
+    /// Chain a new `GroupByExpr` to the current `ResultExpr`.
+    pub fn add_group_by_exprs(
+        mut self,
+        by_exprs: &[Identifier],
+        aliased_exprs: &[AliasedResultExpr],
+    ) -> Self {
+        if by_exprs.is_empty() {
+            return self;
+        }
+
+        let polars_by_exprs: Vec<_> = by_exprs.iter().map(|id| col(id)).collect();
+        let polars_agg_exprs = aliased_exprs
+            .iter()
+            .map(|expr| visit_aliased_expr(expr, by_exprs))
+            .collect();
+
+        self.composition.add(Box::new(GroupByExpr::new(
+            polars_by_exprs,
+            polars_agg_exprs,
+        )));
+
+        self
+    }
+
+    /// Chain a new `SelectExpr` to the current `ResultExpr`.
+    pub fn add_select_exprs(mut self, aliased_exprs: &[AliasedResultExpr]) -> Self {
+        assert!(!aliased_exprs.is_empty());
+
+        let polars_exprs = aliased_exprs
+            .iter()
+            .map(|aliased_expr| {
+                if !self.composition.is_empty() {
+                    // The only transformation before a select is a group by.
+                    // GROUP BY modifies the schema, so we need to
+                    // update the code to reflect the changes.
+                    col(aliased_expr.alias.as_str())
+                } else {
+                    visit_aliased_expr(aliased_expr, &[])
+                }
+            })
+            .collect();
+
+        self.composition
+            .add(Box::new(SelectExpr::new(polars_exprs)));
+        self
+    }
+
     /// Chain a new `OrderByExprs` to the current `ResultExpr`.
-    pub fn add_order_by(mut self, by_exprs: Vec<OrderBy>) -> Self {
+    pub fn add_order_by_exprs(mut self, by_exprs: Vec<OrderBy>) -> Self {
         if !by_exprs.is_empty() {
             self.composition.add(Box::new(OrderByExprs::new(by_exprs)));
         }
         self
     }
 
-    /// Chain a new `GroupByExpr` to the current `ResultExpr`.
-    pub fn add_group_by(
-        mut self,
-        by_exprs: Vec<(Identifier, Option<Identifier>)>,
-        agg_exprs: Vec<proofs_sql::intermediate_ast::AliasedResultExpr>,
-    ) -> Self {
-        if by_exprs.is_empty() {
-            return self;
-        }
-
-        self.has_group_by = true;
-
-        // Prefix added to the group by columns not appearing in the select clause.
-        // This hides the column from the final select result.
-        const NON_RESULT_BY_EXPR_PREFIX: &str = "#$";
-
-        let by_exprs = by_exprs
-            .into_iter()
-            .map(|(expr, alias)| {
-                let default_alias = NON_RESULT_BY_EXPR_PREFIX.to_owned() + expr.as_str();
-                let alias = alias
-                    .as_ref()
-                    .map(|v| v.as_str())
-                    .unwrap_or(default_alias.as_str());
-                col(expr.as_str()).alias(alias)
-            })
-            .collect();
-        let agg_exprs = agg_exprs.into_iter().map(visit_aliased_expr).collect();
-
-        self.composition
-            .add(Box::new(GroupByExpr::new(by_exprs, agg_exprs)));
-
-        self
-    }
-
-    /// Chain a new `SelectExpr` to the current `ResultExpr`.
-    pub fn add_select(mut self, columns: Vec<AliasedResultExpr>) -> Self {
-        assert!(!columns.is_empty());
-
-        let columns = if self.has_group_by {
-            // Group by modifies the result schema order and name so that
-            // only aliases exist in the final lazy frame.
-            //
-            // Therefore, we need to re-map the select expression to reflect
-            // the group by changes.
-            //
-            // TODO: check the following case `select 2 * A, max(B) from T group by A`
-            columns
-                .iter()
-                .map(|expr| col(expr.alias.as_str()))
-                .collect::<Vec<_>>()
-        } else {
-            columns
-                .into_iter()
-                .map(visit_aliased_expr)
-                .collect::<Vec<_>>()
-        };
-        self.composition.add(Box::new(SelectExpr::new(columns)));
-        self
-    }
-
     /// Chain a new `SliceExpr` to the current `ResultExpr`.
-    pub fn add_slice(mut self, slice: &Option<Slice>) -> Self {
+    pub fn add_slice_expr(mut self, slice: &Option<Slice>) -> Self {
         let (number_rows, offset_value) = match slice {
             Some(Slice {
                 number_rows,
@@ -111,39 +97,40 @@ impl ResultExprBuilder {
     }
 }
 
-fn visit_aliased_expr(aliased_expr: AliasedResultExpr) -> Expr {
-    visit_result_expr(aliased_expr.expr).alias(aliased_expr.alias.as_str())
-}
-
-fn visit_result_expr(result_expr: ResultExpr) -> Expr {
-    match result_expr {
+fn visit_aliased_expr(aliased_expr: &AliasedResultExpr, group_by_exprs: &[Identifier]) -> Expr {
+    let expr = match &aliased_expr.expr {
         ResultExpr::Agg(agg_expr) => match agg_expr {
-            AggExpr::Max(expr) => visit_expression(*expr).max(),
-            AggExpr::Min(expr) => visit_expression(*expr).min(),
-            AggExpr::Sum(expr) => visit_expression(*expr).sum(),
-            AggExpr::Count(expr) => visit_expression(*expr).count(),
-            AggExpr::CountALL => panic!("CountALL must be remapped to 'count(col_id)'"),
+            AggExpr::Max(expr) => visit_expr(expr).max(),
+            AggExpr::Min(expr) => visit_expr(expr).min(),
+            AggExpr::Sum(expr) => visit_expr(expr).sum(),
+            AggExpr::Count(expr) => visit_expr(expr).count(),
+            AggExpr::CountALL => col(group_by_exprs.iter().next().unwrap()).count(),
         },
-        ResultExpr::NonAgg(expr) => visit_expression(*expr),
-    }
+        ResultExpr::NonAgg(expr) => {
+            let expr = visit_expr(expr);
+            if !group_by_exprs.is_empty() {
+                // Transforming the group by result columns into an expression is necessary
+                // to prevent Polars from returning lists for aggregation results.
+                expr.first()
+            } else {
+                expr
+            }
+        }
+    };
+
+    expr.alias(aliased_expr.alias.as_str())
 }
 
-fn visit_expression(expr: proofs_sql::intermediate_ast::Expression) -> Expr {
+fn visit_expr(expr: &Expression) -> Expr {
     match expr {
         Expression::Literal(literal) => match literal {
-            intermediate_ast::Literal::Int128(value) => {
-                let s = [value.to_string()].into_iter().collect::<Series>();
-                s.lit().cast(DataType::Decimal(
-                    Some(INT128_PRECISION),
-                    Some(INT128_SCALE),
-                ))
-            }
-            intermediate_ast::Literal::VarChar(value) => lit(value),
+            intermediate_ast::Literal::Int128(value) => value.to_lit(),
+            intermediate_ast::Literal::VarChar(_) => panic!("Not supported yet"),
         },
         Expression::Column(identifier) => col(identifier.as_str()),
         Expression::Binary { op, left, right } => {
-            let left = visit_expression(*left);
-            let right = visit_expression(*right);
+            let left = visit_expr(left);
+            let right = visit_expr(right);
 
             match op {
                 BinaryOperator::Add => left + right,

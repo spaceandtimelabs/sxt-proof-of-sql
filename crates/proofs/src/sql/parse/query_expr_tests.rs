@@ -1,13 +1,15 @@
-use super::{ConversionError, ConversionResult};
-use crate::base::database::{TableRef, TestAccessor};
+use super::ConversionError;
+use crate::base::database::{ColumnType, TableRef, TestAccessor};
 use crate::record_batch;
 use crate::sql::ast::{test_utility::*, FilterExpr};
 use crate::sql::parse::QueryExpr;
 use crate::sql::transform::test_utility::*;
+use crate::sql::transform::LiteralConversion;
 
 use arrow::record_batch::RecordBatch;
-use polars::prelude::col as pcol;
-use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
+use itertools::Itertools;
+use polars::prelude::col as pc;
+use proofs_sql::intermediate_ast::OrderByDirection::*;
 use proofs_sql::sql::SelectStatementParser;
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
@@ -20,19 +22,107 @@ fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAc
     assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
 }
 
-fn invalid_query_to_provable_ast_err(
-    table: TableRef,
-    query: &str,
-    accessor: &TestAccessor,
-) -> ConversionResult<QueryExpr> {
-    let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor)
-}
-
-pub fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
+fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
     let mut accessor = TestAccessor::new();
     accessor.add_table(table, data, offset);
     accessor
+}
+
+fn get_test_accessor() -> (TableRef, TestAccessor) {
+    let table = "sxt.t".parse().unwrap();
+    let data = record_batch!(
+        "s" => ["abc", ],
+        "i" => [1_i64, ],
+        "d" => [2_i128, ],
+
+        "s0" => ["abc", ],
+        "i0" => [1_i64, ],
+        "d0" => [2_i128, ],
+
+        "s1" => ["abc", ],
+        "i1" => [1_i64, ],
+        "d1" => [2_i128, ],
+    );
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(table, data, 0);
+    (table, accessor)
+}
+
+macro_rules! query {
+    (select: $select:expr $(, filter: $filter:expr)? $(, group: $groupby:expr)? $(, order: $orderby:expr)? $(, limit: $limit:expr)? $(, offset: $offset:expr)? $(, should_err: $should_err:tt)? $(,)?) => {{
+        let (t, accessor) = get_test_accessor();
+        let mut query = String::new();
+        query.push_str(&format!("select {} from t", $select.join(", ")));
+        macro_rules! filter_str {
+            () => {}; ($expr:expr) => { query.push_str(&format!(" where {}", $expr)) };
+        }
+        filter_str!($($filter)?);
+        macro_rules! groupby_str {
+            () => {}; ($expr:expr) => { query.push_str(&format!(" group by {}", $expr.clone().join(", "))) };
+        }
+        groupby_str!($($groupby)?);
+        macro_rules! orderby_str {
+            () => {}; ($expr:expr) => { query.push_str(&format!(" order by {}", $expr.clone().join(", "))) };
+        }
+        orderby_str!($($orderby)?);
+        macro_rules! limit_str {
+            () => {}; ($expr:expr) => { query.push_str(&format!(" limit {}", $expr.to_string())) };
+        }
+        limit_str!($($limit)?);
+        macro_rules! offset_str {
+            () => {}; ($expr:expr) => { query.push_str(&format!(" offset {}", $expr.to_string())) };
+        }
+        offset_str!($($offset)?);
+
+        let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
+        let query_expr = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+        macro_rules! expect_err_str {
+            () => { query_expr.unwrap() };
+            (true) => { query_expr.unwrap_err() };
+            (false) => { query_expr.unwrap() };
+        }
+        expect_err_str!($($should_err)?)
+    }};
+}
+
+macro_rules! expected_query {
+    (select: [cols = $result_columns:expr, exprs = $result_exprs:expr] $(, filter: $filter:expr)? $(, group: $group_by:expr)? $(, order: [by = $order_by:expr, dirs = $order_dirs:expr])? $(,)?) => {{
+        let (t, accessor) = get_test_accessor();
+        let mut result_vec = Vec::new();
+
+        macro_rules! groupby_macro {
+            (,$agg:expr) => {
+                result_vec.push(select(&$result_exprs.to_vec()));
+            };
+            ($by:expr, $agg:expr) => {
+                result_vec.push(groupby($by, $agg));
+                result_vec.push(select(&$result_exprs.into_iter().map(|expr| {
+                    match expr {
+                        polars::prelude::Expr::Alias(_, alias) => pc(&alias),
+                        _ => panic!("Invalid polars agg expression")
+                    }
+                }).collect::<Vec<_>>()));
+            };
+        }
+        groupby_macro!($($group_by)?, $result_exprs);
+
+        macro_rules! orderby_macro {
+            (,) => {};
+            ($order:expr, $dirs:expr) => {
+                assert_eq!($order.len(), $dirs.len());
+                result_vec.push(orders(&$order.to_vec(), &$dirs.to_vec()));
+            };
+        }
+        orderby_macro!($($order_by)?, $($order_dirs)?);
+
+        macro_rules! filter_macro {
+            () => {filter(cols_result(t, &$result_columns, &accessor), tab(t), const_v(true))};
+            ($expr:expr) => { filter(cols_result(t, &$result_columns, &accessor), tab(t), $expr) };
+        }
+        let filter = filter_macro!($($filter)?);
+
+        QueryExpr::new(filter, composite_result(result_vec))
+    }};
 }
 
 #[test]
@@ -557,7 +647,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             equal(t, "a", 3, &accessor),
         ),
         composite_result(vec![
-            select(&[pcol("b").alias("b"), pcol("a").alias("a")]),
+            select(&[pc("b").alias("b"), pc("a").alias("a")]),
             orders(&["b"], &[Asc]),
         ]),
     );
@@ -587,7 +677,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
             equal(t, "a", 3, &accessor),
         ),
         composite_result(vec![
-            select(&[pcol("a").alias("a"), pcol("b").alias("b")]),
+            select(&[pc("a").alias("a"), pc("b").alias("b")]),
             orders(&["b", "a"], &[Desc, Asc]),
         ]),
     );
@@ -621,7 +711,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
             equal(t, "salary", 5, &accessor),
         ),
         composite_result(vec![
-            select(&[pcol("salary").alias("s"), pcol("name").alias("salary")]),
+            select(&[pc("salary").alias("s"), pc("name").alias("salary")]),
             orders(&["salary"], &[Desc]),
         ]),
     );
@@ -646,27 +736,7 @@ fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
 }
 
 #[test]
-fn we_cannot_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_name_equals_column_a_not_renamed(
-) {
-    let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [5_i64, 6],
-            "name" => ["abc", "ed"],
-        ),
-        0,
-    );
-    invalid_query_to_provable_ast(
-        t,
-        "select salary, name as salary from sxt_tab where salary = 5 order by salary desc",
-        &accessor,
-    );
-}
-
-#[test]
-fn we_cannot_parse_order_by_referencing_an_existing_column_not_appearing_in_the_result_select_list()
-{
+fn we_cannot_parse_order_by_referencing_invalid_aliased_expressions() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -676,9 +746,11 @@ fn we_cannot_parse_order_by_referencing_an_existing_column_not_appearing_in_the_
         ),
         0,
     );
-
     // Note: While this operation is acceptable with PostgreSQL, we do not currently support it.
     invalid_query_to_provable_ast(t, "select a from sxt_tab order by b desc", &accessor);
+    invalid_query_to_provable_ast(t, "select a as b from sxt_tab order by a desc", &accessor);
+    invalid_query_to_provable_ast(t, "select sum(a) from sxt_tab order by a desc", &accessor);
+    invalid_query_to_provable_ast(t, "select 2 * a from sxt_tab order by a desc", &accessor);
 }
 
 #[test]
@@ -753,9 +825,9 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
             ),
             composite_result(vec![
                 select(&[
-                    pcol("salary").alias("s"),
-                    pcol("name").alias("name"),
-                    pcol("salary").alias("d"),
+                    pc("salary").alias("s"),
+                    pc("name").alias("name"),
+                    pc("salary").alias("d"),
                 ]),
                 orders(&[order_by], &[Asc]),
             ]),
@@ -782,7 +854,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[pcol("a").alias("a")]), slice(3, 0)]),
+        composite_result(vec![select(&[pc("a").alias("a")]), slice(3, 0)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -801,7 +873,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[pcol("a").alias("a")])]),
+        composite_result(vec![select(&[pc("a").alias("a")])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -820,7 +892,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[pcol("a").alias("a")]), slice(u64::MAX, 7)]),
+        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -839,7 +911,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[pcol("a").alias("a")]), slice(u64::MAX, -7)]),
+        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -858,7 +930,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
         filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
-        composite_result(vec![select(&[pcol("a").alias("a")]), slice(55, 3)]),
+        composite_result(vec![select(&[pc("a").alias("a")]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -890,7 +962,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             equal(t, "a", -3, &accessor),
         ),
         composite_result(vec![
-            select(&[pcol("a").alias("a")]),
+            select(&[pc("a").alias("a")]),
             orders(&["a"], &[Desc]),
             slice(55, 3),
         ]),
@@ -925,83 +997,11 @@ fn we_can_group_by_without_using_aggregate_functions() {
             const_v(true),
         ),
         composite_result(vec![
-            groupby(vec![pcol("department").alias("department")], vec![]),
-            select(&[pcol("department")]),
-        ]),
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_group_by_and_then_use_a_single_aggregate_function() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
-    );
-
-    let ast = query_to_provable_ast(
-        t,
-        "SELECT max(salary) from employees group by department",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_result(t, &["department", "salary"], &accessor),
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![
             groupby(
-                vec![pcol("department").alias("#$department")],
-                vec![agg_expr("max", "salary", "__max__")],
+                vec![pc("department")],
+                vec![pc("department").first().alias("department")],
             ),
-            select(&[pcol("__max__")]),
-        ]),
-    );
-    assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_can_have_multiple_group_by_and_then_use_multiple_aggregate_functions() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => [-7_i64]
-        ),
-        0,
-    );
-
-    let ast = query_to_provable_ast(
-        t,
-        "SELECT max(salary) as max_sal, department as d, count(department) from employees group by department, bonus",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_result(t, &["bonus", "department", "salary"], &accessor),
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![
-            groupby(
-                vec![
-                    pcol("department").alias("d"),
-                    pcol("bonus").alias("#$bonus"),
-                ],
-                vec![
-                    agg_expr("max", "salary", "max_sal"),
-                    agg_expr("count", "department", "__count__"),
-                ],
-            ),
-            select(&[pcol("max_sal"), pcol("d"), pcol("__count__")]),
+            select(&[pc("department")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1009,48 +1009,28 @@ fn we_can_have_multiple_group_by_and_then_use_multiple_aggregate_functions() {
 
 #[test]
 fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_alias_result() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => [-7_i64]
-        ),
-        0,
+    let query = query!(
+        select: ["max(i) max_sal", "i0 d", "count(i0)"],
+        group: ["i0", "i1"],
+        order: ["max_sal"]
     );
-
-    let ast = query_to_provable_ast(
-        t,
-        "SELECT max(salary) as max_sal, department as d, count(department) from employees group by department, bonus order by max_sal",
-        &accessor,
+    let expected_query = expected_query!(
+        select: [
+            cols = ["i", "i0", "i1"],
+            exprs = [
+                pc("i").max().alias("max_sal"),
+                pc("i0").first().alias("d"),
+                pc("i0").count().alias("__count__"),
+            ]
+        ],
+        group: [pc("i0"), pc("i1")],
+        order: [by = ["max_sal"], dirs = [Asc]]
     );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_result(t, &["bonus", "department", "salary"], &accessor),
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![
-            groupby(
-                vec![
-                    pcol("department").alias("d"),
-                    pcol("bonus").alias("#$bonus"),
-                ],
-                vec![
-                    agg_expr("max", "salary", "max_sal"),
-                    agg_expr("count", "department", "__count__"),
-                ],
-            ),
-            select(&[pcol("max_sal"), pcol("d"), pcol("__count__")]),
-            orders(&["max_sal"], &[Asc]),
-        ]),
-    );
-    assert_eq!(ast, expected_ast);
+    assert_eq!(query, expected_query);
 }
 
 #[test]
-fn we_cannot_parse_non_aggregated_or_group_by_columns_in_select_clause() {
+fn we_cannot_parse_non_aggregated_or_non_group_by_columns_in_the_select_clause() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -1068,7 +1048,7 @@ fn we_cannot_parse_non_aggregated_or_group_by_columns_in_select_clause() {
 }
 
 #[test]
-fn aggregate_functions_are_not_allowed_in_the_group_by() {
+fn alias_references_are_not_allowed_in_the_group_by() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -1081,6 +1061,11 @@ fn aggregate_functions_are_not_allowed_in_the_group_by() {
     invalid_query_to_provable_ast(
         t,
         "select department, min(salary) as min_salary from employees group by min_salary",
+        &accessor,
+    );
+    invalid_query_to_provable_ast(
+        t,
+        "select salary as min_salary from employees group by min_salary",
         &accessor,
     );
 }
@@ -1130,22 +1115,6 @@ fn group_by_column_cannot_be_a_column_result_alias() {
 }
 
 #[test]
-fn we_cannot_have_aggregate_functions_without_a_group_by_clause() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
-    );
-
-    invalid_query_to_provable_ast(t, "select count(bonus) from sxt.employees", &accessor);
-}
-
-#[test]
 fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_expression() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
@@ -1170,45 +1139,13 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
         ),
         composite_result(vec![
             groupby(
-                vec![pcol("department").alias("#$department")],
-                vec![agg_expr("count", "bonus", "department")],
+                vec![pc("department")],
+                vec![pc("bonus").count().alias("department")],
             ),
-            select(&[pcol("department")]),
+            select(&[pc("department")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn min_max_sum_aggregate_functions_cannot_be_used_with_non_numeric_columns() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
-    );
-
-    invalid_query_to_provable_ast(
-        t,
-        "select department, max(bonus) from sxt.employees group by department",
-        &accessor,
-    );
-
-    invalid_query_to_provable_ast(
-        t,
-        "select department, min(bonus) from sxt.employees group by department",
-        &accessor,
-    );
-
-    invalid_query_to_provable_ast(
-        t,
-        "select department, sum(bonus) from sxt.employees group by department",
-        &accessor,
-    );
 }
 
 #[test]
@@ -1236,13 +1173,14 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
         ),
         composite_result(vec![
             groupby(
-                vec![pcol("department").alias("department")],
+                vec![pc("department")],
                 vec![
-                    agg_expr("count", "bonus", "__count__"),
-                    agg_expr("count", "department", "dep"),
+                    pc("department").first().alias("department"),
+                    pc("bonus").count().alias("__count__"),
+                    pc("department").count().alias("dep"),
                 ],
             ),
-            select(&[pcol("department"), pcol("__count__"), pcol("dep")]),
+            select(&[pc("department"), pc("__count__"), pc("dep")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1273,10 +1211,10 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
         ),
         composite_result(vec![
             groupby(
-                vec![pcol("department").alias("#$department")],
-                vec![agg_expr("count", "department", "__count__")],
+                vec![pc("department")],
+                vec![pc("department").count().alias("__count__")],
             ),
-            select(&[pcol("__count__")]),
+            select(&[pc("__count__")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1327,55 +1265,36 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
         ),
         composite_result(vec![
             groupby(
+                vec![pc("department")],
                 vec![
-                    pcol("department").alias("d1"),
-                    pcol("department").alias("d2"),
+                    pc("department").first().alias("d1"),
+                    pc("department").first().alias("d2"),
                 ],
-                vec![],
             ),
-            select(&[pcol("d1"), pcol("d2")]),
+            select(&[pc("d1"), pc("d2")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
-fn we_can_use_multiple_group_by_clauses() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => [-7_i64]
-        ),
-        0,
+fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
+    let ast = query!(
+        select: ["i d1", "max(i1)", "i d2", "sum(i0) sum_bonus", "count(s) count_s"],
+        group: ["i", "i0", "i"]
     );
-    let ast = query_to_provable_ast(
-        t,
-        "select department as d1, max(salary), department as d2, sum(bonus) as sum_bonus from employees group by department, bonus, department",
-        &accessor,
-    );
-    let expected_ast = QueryExpr::new(
-        filter(
-            cols_result(t, &["bonus", "department", "salary"], &accessor),
-            tab(t),
-            const_v(true),
-        ),
-        composite_result(vec![
-            groupby(
-                vec![
-                    pcol("department").alias("d1"),
-                    pcol("department").alias("d2"),
-                    pcol("bonus").alias("#$bonus"),
-                ],
-                vec![
-                    agg_expr("max", "salary", "__max__"),
-                    agg_expr("sum", "bonus", "sum_bonus"),
-                ],
-            ),
-            select(&[pcol("d1"), pcol("__max__"), pcol("d2"), pcol("sum_bonus")]),
-        ]),
+    let expected_ast = expected_query!(
+        select: [
+            cols = ["i", "i0", "i1", "s"],
+            exprs = [
+                pc("i").first().alias("d1"),
+                pc("i1").max().alias("__max__"),
+                pc("i").first().alias("d2"),
+                pc("i0").sum().alias("sum_bonus"),
+                pc("s").count().alias("count_s"),
+            ]
+        ],
+        group: [pc("i"), pc("i0"), pc("i")]
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1405,10 +1324,10 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
             const_v(true),
         ),
         composite_result(vec![select(&[
-            (pcol("a") + pcol("b")).alias("__column__"),
-            (lit(2) * pcol("f")).alias("f2"),
-            (lit(-77) - pcol("h")).alias("col"),
-            (pcol("a") + pcol("f")).alias("af"),
+            (pc("a") + pc("b")).alias("__expr__"),
+            (lit(2) * pc("f")).alias("f2"),
+            ((-77_i128).to_lit() - pc("h")).alias("col"),
+            (pc("a") + pc("f")).alias("af"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
@@ -1440,10 +1359,8 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
             const_v(true),
         ),
         composite_result(vec![select(&[
-            ((lit(2) + pcol("f")) * (pcol("c") + pcol("g") + lit(2) * pcol("h")))
-                .alias("__column__"),
-            (((pcol("h") - pcol("g")) * lit(2) + pcol("c") + pcol("g")) * (pcol("f") + lit(2)))
-                .alias("d"),
+            ((lit(2) + pc("f")) * (pc("c") + pc("g") + lit(2) * pc("h"))).alias("__expr__"),
+            (((pc("h") - pc("g")) * lit(2) + pc("c") + pc("g")) * (pc("f") + lit(2))).alias("d"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
@@ -1475,10 +1392,13 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
         ),
         composite_result(vec![
             groupby(
-                vec![pcol("c").alias("c")],
-                vec![((lit(2) * pcol("f") + pcol("c") - lit(-7)).sum()).alias("d")],
+                vec![pc("c")],
+                vec![
+                    pc("c").first().alias("c"),
+                    ((2_i128.to_lit() * pc("f") + pc("c") - (-7_i128).to_lit()).sum()).alias("d"),
+                ],
             ),
-            select(&[pcol("c"), pcol("d")]),
+            select(&[pc("c"), pc("d")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1486,66 +1406,157 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 
 #[test]
 fn we_need_to_reference_at_least_one_column_in_the_result_expr() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "a" => [4_i64],
-            "f" => [5_i64],
-            "b" => [-7_i64],
-            "h" => [123_i64]
-        ),
-        0,
+    assert_eq!(
+        query!(select: ["i", "-123"], should_err: true),
+        ConversionError::InvalidExpression(
+            "at least one column must be referenced in the result expression".to_string()
+        )
     );
     assert_eq!(
-        invalid_query_to_provable_ast_err(t, "select a, -123 from employees", &accessor,),
-        Err(ConversionError::InvalidExpression(
-            "At least one column must be referenced".to_string()
+        query!(select: ["sum(-123)"], should_err: true),
+        ConversionError::InvalidExpression(
+            "at least one column must be referenced in the result expression".to_string()
+        )
+    );
+}
+
+#[test]
+fn we_cannot_use_non_grouped_columns_outside_agg() {
+    assert_eq!(
+        query!(select: ["i"], group: ["s"], should_err: true),
+        ConversionError::InvalidGroupByResultColumnError
+    );
+    assert_eq!(
+        query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
+        ConversionError::InvalidGroupByResultColumnError
+    );
+    assert_eq!(
+        query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
+        ConversionError::InvalidGroupByResultColumnError
+    );
+    assert_eq!(
+        query!(select: ["2 * i", "min(i)"], should_err: true),
+        ConversionError::MissingGroupByError
+    );
+    assert_eq!(
+        query!(select: ["sum(i)", "i"], should_err: true),
+        ConversionError::MissingGroupByError
+    );
+}
+
+#[test]
+fn varchar_column_is_not_compatible_with_integer_column() {
+    assert_eq!(
+        query!(select: ["-123 * s"], should_err: true),
+        ConversionError::DataTypeMismatch(
+            ColumnType::Int128.to_string(),
+            ColumnType::VarChar.to_string()
+        )
+    );
+    assert_eq!(
+        query!(select: ["i - s"], should_err: true),
+        ConversionError::DataTypeMismatch(
+            ColumnType::BigInt.to_string(),
+            ColumnType::VarChar.to_string()
+        )
+    );
+    assert_eq!(
+        query!(select: ["s"], filter: "'abc' = i", should_err: true),
+        ConversionError::DataTypeMismatch(
+            ColumnType::BigInt.to_string(),
+            ColumnType::VarChar.to_string()
+        )
+    );
+    assert_eq!(
+        query!(select: ["s"], filter: "'abc' != i", should_err: true),
+        ConversionError::DataTypeMismatch(
+            ColumnType::BigInt.to_string(),
+            ColumnType::VarChar.to_string()
+        )
+    );
+}
+
+#[test]
+fn arithmetic_operations_are_not_allowed_with_varchar_column() {
+    assert_eq!(
+        query!(select: ["s - s1"], should_err: true),
+        ConversionError::InvalidExpression(format!(
+            "arithmetic operations with data type {} is not supported",
+            ColumnType::VarChar
         ))
     );
 }
 
 #[test]
-fn we_cannot_have_arithmetic_operations_with_varchar_columns() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "f" => ["5"],
-            "g" => [5_i64],
-        ),
-        0,
+fn varchar_column_is_not_allowed_within_numeric_aggregations() {
+    assert_eq!(
+        query!(select: ["sum(s)"], should_err: true),
+        ConversionError::NonNumericColumnAggregation("max/min/sum")
     );
     assert_eq!(
-        invalid_query_to_provable_ast_err(t, "select -123 * f from employees", &accessor,),
-        Err(ConversionError::MismatchTypeError(
-            "DECIMAL".to_string(),
-            "VARCHAR".to_string()
-        ))
+        query!(select: ["max(s)"], should_err: true),
+        ConversionError::NonNumericColumnAggregation("max/min/sum")
     );
     assert_eq!(
-        invalid_query_to_provable_ast_err(t, "select g - f from employees", &accessor,),
-        Err(ConversionError::MismatchTypeError(
-            "BIGINT".to_string(),
-            "VARCHAR".to_string()
-        ))
+        query!(select: ["min(s)"], should_err: true),
+        ConversionError::NonNumericColumnAggregation("max/min/sum")
     );
 }
 
 #[test]
-fn we_cannot_use_arithmetic_outside_agg_expressions_while_using_group_by() {
-    let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
-        t,
-        record_batch!(
-            "f" => [5_i64],
-        ),
-        0,
+fn group_by_with_bigint_column_is_valid() {
+    let query = query!(select: ["i"], group: ["i"]);
+    let expected_query = expected_query!(
+        select: [cols = ["i"], exprs = [pc("i").first().alias("i")]], group: [pc("i")]
     );
-    assert_eq!(
-        invalid_query_to_provable_ast_err(t, "select 2 * f from employees group by f", &accessor,),
-        Err(ConversionError::InvalidGroupByResultColumnError)
+    assert_eq!(query, expected_query);
+}
+
+#[test]
+fn group_by_with_decimal_column_is_valid() {
+    let query = query!(select: ["d"], group: ["d"]);
+    let expected_query = expected_query!(
+        select: [cols = ["d"], exprs = [pc("d").first().alias("d")]], group: [pc("d")]
     );
+    assert_eq!(query, expected_query);
+}
+
+#[test]
+fn group_by_with_varchar_column_is_valid() {
+    let query = query!(select: ["s"], group: ["s"]);
+    let expected_query = expected_query!(
+        select: [cols = ["s"], exprs = [pc("s").first().alias("s")]], group: [pc("s")]
+    );
+    assert_eq!(query, expected_query);
+}
+
+#[test]
+fn select_group_and_order_by_preserve_the_column_order_reference() {
+    const N: usize = 4;
+    let base_cols: [&str; N] = ["i", "i0", "i1", "s"]; // sorted because of `select: [cols = ... ]`
+    let base_ordering = [Asc, Desc, Asc, Desc];
+    for (idx, perm_cols) in base_cols.into_iter().permutations(N).unique().enumerate() {
+        let group_cols = perm_cols.clone().into_iter().cycle().skip(1).take(N);
+        let order_cols = perm_cols.clone().into_iter().cycle().skip(2).take(N);
+        let ordering = base_ordering.into_iter().cycle().skip(idx).take(N);
+        let query = query!(
+            select: perm_cols,
+            group: group_cols.clone(),
+            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
+        );
+        let expected_query = expected_query!(
+            select: [
+                cols = base_cols.clone(),
+                exprs = perm_cols.iter().map(|c| pc(c).first().alias(c))
+            ],
+            group: group_cols.map(pc),
+            order: [
+                by = order_cols.clone().collect::<Vec<_>>(),
+                dirs = ordering.clone().collect::<Vec<_>>()
+            ]
+        );
+        assert_eq!(query, expected_query);
+    }
 }
 
 /// Creates a new QueryExpr, with the given select statement and a sample schema accessor.

@@ -102,13 +102,13 @@ pub fn count_all_res(alias: &str) -> SelectResultExpr {
 }
 
 pub fn query(
-    result_columns: Vec<SelectResultExpr>,
+    result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
     where_expr: Box<Expression>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
-        result_columns,
+        result_exprs,
         from: vec![tab],
         where_expr: Some(where_expr),
         group_by,
@@ -116,12 +116,12 @@ pub fn query(
 }
 
 pub fn query_all(
-    result_columns: Vec<SelectResultExpr>,
+    result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
     group_by: Vec<Identifier>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
-        result_columns,
+        result_exprs,
         from: vec![tab],
         where_expr: None,
         group_by,
@@ -152,7 +152,7 @@ pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
         .zip(directions.iter())
         .map(|(id, dir)| OrderBy {
             expr: id.parse().unwrap(),
-            direction: dir.clone(),
+            direction: *dir,
         })
         .collect::<Vec<_>>()
 }

@@ -29,7 +29,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    pub fn visit_table_expression(
+    pub fn visit_table_expr(
         mut self,
         table_expr: Vec<Box<TableExpression>>,
         default_schema: Identifier,
@@ -51,7 +51,7 @@ impl<'a> QueryContextBuilder<'a> {
         where_expr: Option<Box<Expression>>,
     ) -> ConversionResult<Self> {
         if let Some(expr) = &where_expr {
-            self.visit_expression(expr.deref())?;
+            self.visit_expr(expr.deref())?;
         }
         self.context.set_where_expr(where_expr);
         Ok(self)
@@ -59,21 +59,18 @@ impl<'a> QueryContextBuilder<'a> {
 
     /// Visit the expression and return the data type of the expression
     /// Returns None if the expression is a boolean expression
-    fn visit_expression(
-        &mut self,
-        expression: &Expression,
-    ) -> ConversionResult<Option<ColumnType>> {
+    fn visit_expr(&mut self, expression: &Expression) -> ConversionResult<Option<ColumnType>> {
         match expression {
             Expression::Literal(literal) => Ok(Some(self.visit_literal(literal.deref()))),
             Expression::Column(identifier) => Ok(Some(self.visit_column_identifier(*identifier)?)),
-            Expression::Unary { op, expr } => self.visit_unary_expression(op, expr),
+            Expression::Unary { op, expr } => self.visit_unary_expr(op, expr),
             Expression::Binary { op, left, right } => {
-                self.visit_binary_expression(op, left.deref(), right.deref())
+                self.visit_binary_expr(op, left.deref(), right.deref())
             }
         }
     }
 
-    fn visit_binary_expression(
+    fn visit_binary_expr(
         &mut self,
         op: &BinaryOperator,
         left: &Expression,
@@ -81,35 +78,50 @@ impl<'a> QueryContextBuilder<'a> {
     ) -> ConversionResult<Option<ColumnType>> {
         match op {
             BinaryOperator::And | BinaryOperator::Or => {
-                let left_dtype = self.visit_expression(left)?;
-                let right_dtype = self.visit_expression(right)?;
+                let left_dtype = self.visit_expr(left)?;
+                let right_dtype = self.visit_expr(right)?;
                 assert!(left_dtype.is_none() && right_dtype.is_none());
                 Ok(None)
             }
             BinaryOperator::Equal => {
-                self.visit_equal_expression(left, right)?;
+                self.visit_equal_expr(left, right)?;
                 Ok(None)
             }
             BinaryOperator::Multiply | BinaryOperator::Subtract | BinaryOperator::Add => {
-                let left_dtype = self.visit_expression(left)?;
-                let right_dtype = self.visit_expression(right)?;
-                check_dtypes(
-                    left_dtype.expect("Must not be a boolean expression"),
-                    right_dtype.expect("Must not be a boolean expression"),
-                )?;
-                Ok(left_dtype)
+                Ok(Some(self.visit_arithmetic_expr(left, right)?))
             }
         }
     }
 
-    fn visit_unary_expression(
+    fn visit_arithmetic_expr(
+        &mut self,
+        left: &Expression,
+        right: &Expression,
+    ) -> ConversionResult<ColumnType> {
+        let err_msg = "parser must prevent arithmetic operations with bool expresions";
+        let left_dtype = self.visit_expr(left)?.expect(err_msg);
+        let right_dtype = self.visit_expr(right)?.expect(err_msg);
+
+        check_dtypes(left_dtype, right_dtype)?;
+
+        if ColumnType::VarChar == left_dtype {
+            return Err(ConversionError::InvalidExpression(format!(
+                "arithmetic operations with data type {} is not supported",
+                left_dtype
+            )));
+        }
+
+        Ok(left_dtype)
+    }
+
+    fn visit_unary_expr(
         &mut self,
         op: &UnaryOperator,
         expr: &Expression,
     ) -> ConversionResult<Option<ColumnType>> {
         match op {
             UnaryOperator::Not => {
-                let dtype = self.visit_expression(expr)?;
+                let dtype = self.visit_expr(expr)?;
                 assert!(
                     dtype.is_none(),
                     "Unary not must be applied to a bool expression for now"
@@ -119,11 +131,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_equal_expression(
-        &mut self,
-        left: &Expression,
-        right: &Expression,
-    ) -> ConversionResult<()> {
+    fn visit_equal_expr(&mut self, left: &Expression, right: &Expression) -> ConversionResult<()> {
         let left_dtype = match left {
             Expression::Column(identifier) => self.visit_column_identifier(*identifier)?,
             _ => panic!("Left side of comparison expression must be a column"),
@@ -144,19 +152,17 @@ impl<'a> QueryContextBuilder<'a> {
     }
 
     fn visit_column_identifier(&mut self, column_name: Identifier) -> ConversionResult<ColumnType> {
-        let current_table = self.context.current_table();
-        let column_type = self
-            .schema_accessor
-            .lookup_column(*current_table, column_name);
+        let table_ref = self.context.get_table_ref();
+        let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
 
         let column_type = column_type.ok_or_else(|| {
             ConversionError::MissingColumnError(
                 Box::new(column_name),
-                Box::new(current_table.resource_id()),
+                Box::new(table_ref.resource_id()),
             )
         })?;
 
-        let column = ColumnRef::new(*current_table, column_name, column_type);
+        let column = ColumnRef::new(*table_ref, column_name, column_type);
 
         // We need to keep track of those columns to build the filter result expression
         if self.referencing_results {
@@ -168,19 +174,19 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(column_type)
     }
 
-    pub fn visit_order_by(mut self, order_by: Vec<OrderBy>) -> Self {
+    pub fn visit_order_by_exprs(mut self, order_by: Vec<OrderBy>) -> Self {
         for by in order_by {
-            self.context.push_order_by(by);
+            self.context.push_order_by_exprs(by);
         }
         self
     }
 
-    pub fn visit_slice(mut self, slice: Option<Slice>) -> Self {
+    pub fn visit_slice_expr(mut self, slice: Option<Slice>) -> Self {
         self.context.set_slice(slice);
         self
     }
 
-    pub fn visit_group_by(mut self, group_by: Vec<Identifier>) -> ConversionResult<Self> {
+    pub fn visit_group_by_exprs(mut self, group_by: Vec<Identifier>) -> ConversionResult<Self> {
         self.referencing_results = true;
         for identifier in group_by {
             self.visit_column_identifier(identifier)?;
@@ -195,19 +201,20 @@ impl<'a> QueryContextBuilder<'a> {
         match &agg_expr {
             AggExpr::Count(expr) => {
                 self.context.fix_columns_counter();
-                self.visit_expression(expr)?;
+                self.visit_expr(expr)?;
                 self.context.validate_columns_counter()?;
             }
             AggExpr::Sum(expr) | AggExpr::Min(expr) | AggExpr::Max(expr) => {
                 self.context.fix_columns_counter();
                 let expr_dtype = self
-                    .visit_expression(expr)?
+                    .visit_expr(expr)?
                     .expect("Expression cannot be bool yet");
 
                 // We only support sum/max/min aggregation on numeric columns
                 if expr_dtype == ColumnType::VarChar {
                     return Err(ConversionError::NonNumericColumnAggregation("max/min/sum"));
                 }
+
                 self.context.validate_columns_counter()?;
             }
             AggExpr::CountALL => {}
@@ -215,7 +222,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(agg_expr)
     }
 
-    pub fn visit_result_columns(
+    pub fn visit_result_exprs(
         mut self,
         result_columns: Vec<SelectResultExpr>,
     ) -> ConversionResult<Self> {
@@ -224,8 +231,8 @@ impl<'a> QueryContextBuilder<'a> {
         for column in result_columns {
             match column {
                 SelectResultExpr::ALL => {
-                    let current_table = self.context.current_table();
-                    let columns = self.schema_accessor.lookup_schema(*current_table);
+                    let table_ref = self.context.get_table_ref();
+                    let columns = self.schema_accessor.lookup_schema(*table_ref);
                     for (column_name, _) in columns {
                         self.visit_column_identifier(column_name)?;
                         self.context.push_schema_column(
@@ -245,7 +252,7 @@ impl<'a> QueryContextBuilder<'a> {
                         }
                         ResultExpr::NonAgg(expr) => {
                             self.context.fix_columns_counter();
-                            self.visit_expression(expr)?;
+                            self.visit_expr(expr)?;
                             self.context.validate_columns_counter()?;
                             false
                         }
@@ -270,7 +277,7 @@ pub fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> Conversi
         ColumnType::Int128 | ColumnType::BigInt => {
             // Integer literal is compatible with any integeger column type other than VarChar
             if left_dtype == ColumnType::VarChar {
-                return Err(ConversionError::MismatchTypeError(
+                return Err(ConversionError::DataTypeMismatch(
                     left_dtype.to_string(),
                     right_dtype.to_string(),
                 ));
@@ -279,7 +286,7 @@ pub fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> Conversi
         ColumnType::VarChar => {
             // Varchar literal is only compatible wtih VarChar column type
             if left_dtype != ColumnType::VarChar {
-                return Err(ConversionError::MismatchTypeError(
+                return Err(ConversionError::DataTypeMismatch(
                     left_dtype.to_string(),
                     right_dtype.to_string(),
                 ));
