@@ -53,23 +53,19 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFra
         .zip(directions.iter())
         .map(|(col, direction)| OrderBy {
             expr: col.parse().unwrap(),
-            direction: direction.clone(),
+            direction: *direction,
         })
         .collect();
 
     Box::new(OrderByExprs::new(by_exprs))
 }
 
-pub fn agg_expr(agg_type: &str, name: &str, alias: &str) -> Expr {
-    match agg_type {
-        "max" => col(name).max().alias(alias),
-        "min" => col(name).min().alias(alias),
-        "sum" => col(name).sum().alias(alias),
-        "count" => col(name).count().alias(alias),
-        _ => panic!("Unsupported agg type"),
-    }
-}
-
-pub fn groupby(by_exprs: Vec<Expr>, agg_exprs: Vec<Expr>) -> Box<dyn DataFrameExpr> {
-    Box::new(GroupByExpr::new(by_exprs, agg_exprs))
+pub fn groupby<T: IntoIterator<Item = Expr>, A: IntoIterator<Item = Expr>>(
+    by_exprs: T,
+    agg_exprs: A,
+) -> Box<dyn DataFrameExpr> {
+    Box::new(GroupByExpr::new(
+        by_exprs.into_iter().collect(),
+        agg_exprs.into_iter().collect(),
+    ))
 }

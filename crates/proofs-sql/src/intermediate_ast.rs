@@ -12,7 +12,7 @@ use crate::Identifier;
 pub enum SetExpression {
     /// Query result as `SetExpression`
     Query {
-        result_columns: Vec<SelectResultExpr>,
+        result_exprs: Vec<SelectResultExpr>,
         from: Vec<Box<TableExpression>>,
         where_expr: Option<Box<Expression>>,
         group_by: Vec<Identifier>,
@@ -141,10 +141,20 @@ pub struct OrderBy {
 }
 
 /// OrderByDirection values
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderByDirection {
     Asc,
     Desc,
+}
+
+impl std::fmt::Display for OrderByDirection {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            OrderByDirection::Asc => write!(f, "asc"),
+            OrderByDirection::Desc => write!(f, "desc"),
+        }
+    }
 }
 
 /// Limits for a limit clause
