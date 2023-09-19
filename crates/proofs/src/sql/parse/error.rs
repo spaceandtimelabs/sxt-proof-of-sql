@@ -13,7 +13,7 @@ pub enum ConversionError {
     MissingColumnError(Box<Identifier>, Box<ResourceId>),
     /// This error occurs when the lhs column has a type different from the rhs literal in the equal expression
     #[error("Left side has '{1}' type but right side has '{0}' type")]
-    MismatchTypeError(String, String),
+    DataTypeMismatch(String, String),
     #[error(
         "The specified column alias '{0}' referenced by the 'order by' clause does not exist."
     )]

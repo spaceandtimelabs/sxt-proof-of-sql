@@ -3,24 +3,22 @@ use std::collections::{HashMap, HashSet};
 use crate::base::database::{ColumnRef, TableRef};
 use crate::sql::parse::{ConversionError, ConversionResult};
 
-use proofs_sql::intermediate_ast::{
-    AggExpr, AliasedResultExpr, Expression, OrderBy, ResultExpr, Slice,
-};
+use proofs_sql::intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice};
 use proofs_sql::Identifier;
 
 #[derive(Default)]
 pub struct QueryContext {
     slice: Option<Slice>,
-    order_by: Vec<OrderBy>,
     table: Option<TableRef>,
+    col_ref_counter: usize,
+    order_by_exprs: Vec<OrderBy>,
     agg_result_exprs: Vec<usize>,
-    fixed_columns_counter: usize,
+    fixed_col_ref_counter: usize,
     non_agg_result_exprs: Vec<usize>,
-    referenced_columns_counter: usize,
-    group_by_exprs: HashSet<Identifier>,
+    group_by_exprs: Vec<Identifier>,
     where_expr: Option<Box<Expression>>,
-    result_schema: Vec<AliasedResultExpr>,
-    result_column_references: HashSet<Identifier>,
+    result_column_set: HashSet<Identifier>,
+    res_aliased_exprs: Vec<AliasedResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
 
@@ -30,7 +28,7 @@ impl QueryContext {
         self.table = Some(table);
     }
 
-    pub fn current_table(&self) -> &TableRef {
+    pub fn get_table_ref(&self) -> &TableRef {
         self.table
             .as_ref()
             .expect("Table should already have been set")
@@ -49,56 +47,57 @@ impl QueryContext {
     }
 
     pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
-        self.referenced_columns_counter += 1;
+        self.col_ref_counter += 1;
         self.column_mapping.insert(column, column_ref);
     }
 
     pub fn push_schema_column(&mut self, column: AliasedResultExpr, is_agg: bool) {
-        self.result_schema.push(column.clone());
+        self.res_aliased_exprs.push(column.clone());
 
         if is_agg {
-            self.agg_result_exprs.push(self.result_schema.len() - 1);
+            self.agg_result_exprs.push(self.res_aliased_exprs.len() - 1);
         } else {
-            self.non_agg_result_exprs.push(self.result_schema.len() - 1);
+            self.non_agg_result_exprs
+                .push(self.res_aliased_exprs.len() - 1);
         }
     }
 
     pub fn push_result_column_reference(&mut self, column: Identifier) {
-        self.result_column_references.insert(column);
+        self.result_column_set.insert(column);
     }
 
     pub fn push_group_by(&mut self, column: Identifier) {
-        self.group_by_exprs.insert(column);
+        self.group_by_exprs.push(column);
     }
 
-    pub fn push_order_by(&mut self, order_by: OrderBy) {
-        self.order_by.push(order_by);
+    pub fn push_order_by_exprs(&mut self, order_by_exprs: OrderBy) {
+        self.order_by_exprs.push(order_by_exprs);
     }
 
     pub fn fix_columns_counter(&mut self) {
-        self.fixed_columns_counter = self.referenced_columns_counter;
+        self.fixed_col_ref_counter = self.col_ref_counter;
     }
 
     pub fn validate_columns_counter(&mut self) -> ConversionResult<()> {
-        if self.referenced_columns_counter == self.fixed_columns_counter {
+        if self.col_ref_counter == self.fixed_col_ref_counter {
             return Err(ConversionError::InvalidExpression(
-                "At least one column must be referenced".to_string(),
+                "at least one column must be referenced in the result expression".to_string(),
             ));
         }
         self.fix_columns_counter();
         Ok(())
     }
 
-    pub fn get_result_schema(&self) -> ConversionResult<Vec<AliasedResultExpr>> {
+    pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
         assert!(
-            !self.result_schema.is_empty(),
+            !self.res_aliased_exprs.is_empty(),
             "Result schema must not be empty"
         );
 
         // We need to check that each column alias is unique
-        for col in &self.result_schema {
+        for col in &self.res_aliased_exprs {
             if self
-                .result_schema
+                .res_aliased_exprs
                 .iter()
                 .map(|c| (c.alias == col.alias) as u64)
                 .sum::<u64>()
@@ -108,13 +107,13 @@ impl QueryContext {
             }
         }
 
-        Ok(self.result_schema.clone())
+        Ok(&self.res_aliased_exprs)
     }
 
-    pub fn get_order_by(&self) -> ConversionResult<Vec<OrderBy>> {
+    pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderBy>> {
         // order by must reference only aliases in the result schema
-        for by_expr in &self.order_by {
-            self.result_schema
+        for by_expr in &self.order_by_exprs {
+            self.res_aliased_exprs
                 .iter()
                 .find(|col| col.alias == by_expr.expr)
                 .ok_or(ConversionError::InvalidOrderByError(
@@ -122,88 +121,46 @@ impl QueryContext {
                 ))?;
         }
 
-        Ok(self.order_by.clone())
+        Ok(self.order_by_exprs.clone())
     }
 
-    pub fn get_slice(&self) -> &Option<Slice> {
+    pub fn get_slice_expr(&self) -> &Option<Slice> {
         &self.slice
     }
 
-    pub fn get_agg_result_exprs(&self) -> ConversionResult<Vec<AliasedResultExpr>> {
-        if !self.agg_result_exprs.is_empty() {
-            // We can't aggregate without specifying a group by column yet
-            if self.group_by_exprs.is_empty() {
+    pub fn get_group_by_exprs(&self) -> ConversionResult<&[Identifier]> {
+        if self.group_by_exprs.is_empty() {
+            if !self.agg_result_exprs.is_empty() {
+                // We can't aggregate without specifying a group by column yet
                 return Err(ConversionError::MissingGroupByError);
             }
+
+            return Ok(&[]);
         }
-
-        // We need to remap count(*) to count(group_by_column)
-        // since polars has issues with duplicated aliases when using count(*)
-        Ok(self
-            .agg_result_exprs
-            .iter()
-            .map(|agg_idx| {
-                let agg = &self.result_schema[*agg_idx];
-                match agg.expr {
-                    ResultExpr::Agg(AggExpr::CountALL) => AliasedResultExpr {
-                        expr: ResultExpr::Agg(AggExpr::Count(Box::new(Expression::Column(
-                            *self.group_by_exprs.iter().next().unwrap(),
-                        )))),
-                        alias: agg.alias,
-                    },
-                    _ => agg.clone(),
-                }
-            })
-            .collect())
-    }
-
-    pub fn get_group_by(&self) -> ConversionResult<Vec<(Identifier, Option<Identifier>)>> {
-        if self.group_by_exprs.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let mut transform_group_by_exprs = Vec::new();
 
         // We need to add the group by columns that are part of the result schema.
         for col_idx in self.non_agg_result_exprs.iter() {
-            let col = &self.result_schema[*col_idx];
+            let col = &self.res_aliased_exprs[*col_idx];
             let col_id: Identifier = *col
                 .try_as_identifier()
                 .ok_or(ConversionError::InvalidGroupByResultColumnError)?;
 
             // We need to check that each non aggregated result column
             // is referenced in the group by clause.
-            if self
+            if !self
                 .group_by_exprs
                 .iter()
                 .any(|group_by| *group_by == col_id)
             {
-                // note: `col.alias` here implies that this group by will appear
-                // in the result schema using `col.alias`.
-                transform_group_by_exprs.push((col_id, Some(col.alias)));
-            } else {
                 return Err(ConversionError::InvalidGroupByResultColumnError);
             }
         }
 
-        // We need to add the group by columns that are not part of the result schema.
-        for group_by in self.group_by_exprs.iter() {
-            if !self
-                .non_agg_result_exprs
-                .iter()
-                .any(|col_idx| self.result_schema[*col_idx].try_as_identifier() == Some(group_by))
-            {
-                // note: `None` here implies that the this group by will be
-                // filtered out of the result schema.
-                transform_group_by_exprs.push((*group_by, None))
-            }
-        }
-
-        Ok(transform_group_by_exprs)
+        Ok(&self.group_by_exprs)
     }
 
-    pub fn get_referenced_columns(&self) -> HashSet<Identifier> {
-        self.result_column_references.clone()
+    pub fn get_result_column_set(&self) -> HashSet<Identifier> {
+        self.result_column_set.clone()
     }
 
     pub fn get_column_mapping(&self) -> HashMap<Identifier, ColumnRef> {

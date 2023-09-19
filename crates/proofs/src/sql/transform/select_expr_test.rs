@@ -74,3 +74,31 @@ fn we_can_use_arithmetic_expressions() {
     let expected_data = record_batch!("c2" => [-13_i64, 5, -166, 8]);
     assert_eq!(data, expected_data);
 }
+
+#[test]
+fn we_can_use_agg_with_select_expression() {
+    let data = record_batch!(
+        "c" => [1_i64, -5, -3, 7, -3],
+        "a" => [1_i64, 2, 3, 1, 3],
+        "d" => [523_i128, -25, 343, -7, 435],
+        "h" => [-1_i128, -2, -3, -1, -3],
+        "y" => ["a", "b", "c", "d", "e"]
+    );
+    let result_expr = ResultExpr::new(select(&[
+        col("c").sum().alias("c_sum"),
+        col("a").max().alias("a_max"),
+        col("d").min().alias("d_min"),
+        col("h").count().alias("h_count"),
+        (col("c").sum() * col("a").max() - col("d").min() + col("h").count() * lit(2) - lit(733))
+            .alias("expr"),
+    ]));
+    let data = result_expr.transform_results(data);
+    let expected_data = record_batch!(
+        "c_sum" => [-3_i64],
+        "a_max" => [3_i64],
+        "d_min" => [-25_i128],
+        "h_count" => [5_i64],
+        "expr" => [-707_i128],
+    );
+    assert_eq!(data, expected_data);
+}

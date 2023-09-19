@@ -2,7 +2,7 @@ use super::DataFrameExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 
 use dyn_partial_eq::DynPartialEq;
-use polars::prelude::{DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
+use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
 use serde::{Deserialize, Serialize};
 
 /// A group by expression
@@ -18,6 +18,7 @@ pub struct GroupByExpr {
 impl GroupByExpr {
     /// Create a new group by expression containing the group by and aggregation expressions
     pub fn new(by_exprs: Vec<Expr>, agg_exprs: Vec<Expr>) -> Self {
+        assert!(!agg_exprs.is_empty(), "Agg expressions must not be empty");
         assert!(
             !by_exprs.is_empty(),
             "Group by expressions must not be empty"
@@ -33,10 +34,18 @@ impl GroupByExpr {
 #[typetag::serde]
 impl DataFrameExpr for GroupByExpr {
     fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+        // Add invalid column aliases to group by expressions so that we can
+        // exclude them from the final result.
+        let by_expr_aliases = (0..self.by_exprs.len())
+            .map(|pos| "#$".to_owned() + pos.to_string().as_str())
+            .collect::<Vec<_>>();
+
         let by_exprs: Vec<_> = self
             .by_exprs
             .clone()
             .into_iter()
+            .zip(by_expr_aliases.iter())
+            .map(|(expr, alias)| expr.alias(alias.as_str()))
             // TODO: remove this mapping once Polars supports decimal columns inside group by
             // Issue created to track progress: https://github.com/pola-rs/polars/issues/11078
             .map(group_by_map_to_utf8_if_decimal)
@@ -44,7 +53,10 @@ impl DataFrameExpr for GroupByExpr {
 
         // We use `groupby_stable` instead of `groupby`
         // to avoid non-deterministic results with our tests.
-        lazy_frame.group_by_stable(&by_exprs).agg(&self.agg_exprs)
+        lazy_frame
+            .group_by_stable(&by_exprs)
+            .agg(&self.agg_exprs)
+            .select(&[col("*").exclude(by_expr_aliases)])
     }
 }
 

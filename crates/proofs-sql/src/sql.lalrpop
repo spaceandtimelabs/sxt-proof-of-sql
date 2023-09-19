@@ -22,9 +22,9 @@ pub SelectStatement: select_statement::SelectStatement = {
 };
 
 SelectCore: Box<intermediate_ast::SetExpression> = {
-    "select" <result_columns: SelectResultExprList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
+    "select" <result_exprs: SelectResultExprList> <from: FromClause> <where_expr: WhereClause?> <group_by: GroupByClause?> =>
         Box::new(intermediate_ast::SetExpression::Query {
-            result_columns, from, where_expr, group_by: group_by.unwrap_or(vec![])
+            result_exprs, from, where_expr, group_by: group_by.unwrap_or(vec![])
         }),
 };
 
@@ -122,7 +122,7 @@ NonAggregationExpr: intermediate_ast::AliasedResultExpr = {
                     if let intermediate_ast::Expression::Column(identifier) = *expr {
                         identifier.clone()
                     } else {
-                        identifier::Identifier::new("__column__")
+                        identifier::Identifier::new("__expr__")
                     }
                  }),
              }

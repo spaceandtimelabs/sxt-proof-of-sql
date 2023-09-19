@@ -87,6 +87,12 @@ impl TestAccessor {
         );
     }
 
+    pub fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
+        assert_eq!(self.tables.len(), 1);
+        let table = self.tables.get(&table_ref).unwrap();
+        table.columns.keys().map(|c| c.as_str()).collect()
+    }
+
     /// Update the table offset alongside its column commitments
     pub fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
         let table = self.tables.get_mut(&table_ref).unwrap();
