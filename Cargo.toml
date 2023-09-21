@@ -27,7 +27,7 @@ dyn_partial_eq = { version = "0.1.2" }
 half = { version = "=2.2.1" } # This can be removed when we bump to rust version 1.70
 hashbrown = { version = "0.11.2" }
 indexmap = { version = "1.9" }
-integer-encoding = { version = "3.0.4" }
+integer-encoding = { version = "4.0.0" }
 lalrpop-util = { version = "0.19.9" }
 lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
