@@ -3,7 +3,7 @@ use crate::base::database::{ColumnField, ColumnType};
 
 use crate::base::scalar::ArkScalar;
 use arrow::array::{Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
 use num_traits::Zero;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let res = ProvableQueryResult::new(&[][..], &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = res.into_query_result(&column_fields).unwrap();
-    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(Vec::<i64>::new()))]).unwrap();
@@ -248,7 +248,7 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = res.into_query_result(&column_fields).unwrap();
-    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
@@ -264,7 +264,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
     let res = res.into_query_result(&column_fields).unwrap();
-    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
         schema,
@@ -296,7 +296,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
         ColumnField::new("a3".parse().unwrap(), ColumnType::VarChar),
     ];
     let res = res.into_query_result(&column_fields).unwrap();
-    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     println!("{:?}", res);
     let expected_res = RecordBatch::try_new(

@@ -7,7 +7,7 @@ use crate::base::database::{ColumnField, ColumnType};
 
 use crate::base::scalar::ArkScalar;
 use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -110,7 +110,7 @@ impl ProvableQueryResult {
 
         let n = self.indexes.len();
         let mut offset: usize = 0;
-        let mut column_fields: Vec<_> = Vec::with_capacity(self.num_columns as usize);
+        let mut column_fields: Vec<Field> = Vec::with_capacity(self.num_columns as usize);
         let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(self.num_columns as usize);
 
         for field in column_result_fields {

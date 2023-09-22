@@ -7,7 +7,7 @@ use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 use crate::base::scalar::ArkScalar;
 use arrow::array::Int64Array;
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -51,7 +51,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
-    let column_fields = expr
+    let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()
         .map(|v| v.into())
@@ -291,7 +291,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
-    let column_fields = expr
+    let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()
         .map(|v| v.into())
@@ -517,7 +517,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
-    let column_fields = expr
+    let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()
         .map(|v| v.into())
