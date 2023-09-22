@@ -10,7 +10,7 @@ use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
 use num_traits::{One, Zero};
 
 use arrow::array::Int64Array;
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
 use std::sync::Arc;
 
@@ -118,7 +118,7 @@ fn we_can_form_the_provable_query_result() {
 
     let column_fields = vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); 2];
     let res = res.into_query_result(&column_fields).unwrap();
-    let column_fields = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(

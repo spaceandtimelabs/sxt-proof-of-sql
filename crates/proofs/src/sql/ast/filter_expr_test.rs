@@ -8,8 +8,7 @@ use crate::sql::proof::ProofExpr;
 use proofs_sql::{Identifier, ResourceId};
 
 use crate::base::scalar::ArkScalar;
-use arrow::datatypes::Field;
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -40,7 +39,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         )),
     );
 
-    let column_fields = provable_ast
+    let column_fields: Vec<Field> = provable_ast
         .get_column_result_fields()
         .iter()
         .map(|v| v.into())
