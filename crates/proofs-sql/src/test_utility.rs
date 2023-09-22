@@ -55,7 +55,7 @@ pub fn col_res_all() -> SelectResultExpr {
 
 pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::NonAgg(col_val),
+        expr: col_val,
         alias: alias.parse().unwrap(),
     })
 }
@@ -66,37 +66,54 @@ pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
 
 pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Min(expr)),
+        expr: Box::new(Expression::Aggregation {
+            op: AggregationOperator::Min,
+            expr,
+        }),
         alias: alias.parse().unwrap(),
     })
 }
 
 pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Max(expr)),
+        expr: Expression::Aggregation {
+            op: AggregationOperator::Max,
+            expr,
+        }
+        .into(),
         alias: alias.parse().unwrap(),
     })
 }
 
 pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Sum(expr)),
+        expr: Expression::Aggregation {
+            op: AggregationOperator::Sum,
+            expr,
+        }
+        .into(),
         alias: alias.parse().unwrap(),
     })
 }
 
-pub fn count_res(name: &str, alias: &str) -> SelectResultExpr {
+pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::Count(Box::new(Expression::Column(
-            name.parse().unwrap(),
-        )))),
+        expr: Expression::Aggregation {
+            op: AggregationOperator::Count,
+            expr,
+        }
+        .into(),
         alias: alias.parse().unwrap(),
     })
 }
 
 pub fn count_all_res(alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: ResultExpr::Agg(AggExpr::CountALL),
+        expr: Expression::Aggregation {
+            op: AggregationOperator::Count,
+            expr: Box::new(Expression::Wildcard),
+        }
+        .into(),
         alias: alias.parse().unwrap(),
     })
 }

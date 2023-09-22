@@ -998,7 +998,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations() {
             vec![
                 min_res(col("a"), "__min__"),
                 max_res(col("a"), "max_a"),
-                count_res("a", "__count__"),
+                count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
             tab(None, "tab"),
@@ -1022,7 +1022,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_
                 min_res(col("a"), "__min__"),
                 max_res(col("a"), "max_a"),
                 sum_res(col("c"), "__sum__"),
-                count_res("a", "__count__"),
+                count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
             tab(None, "tab"),
@@ -1060,7 +1060,7 @@ fn we_can_parse_a_aggregations_without_group_by_although_it_is_semantically_inco
                 col_res(col("f"), "f_col"),
                 min_res(col("a"), "__min__"),
                 max_res(col("a"), "max_a"),
-                count_res("a", "__count__"),
+                count_res(col("a"), "__count__"),
                 count_all_res("count_all"),
             ],
             tab(None, "tab"),
@@ -1184,7 +1184,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 #[test]
 fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_in_the_result_expr()
 {
-    let ast = "select sum(2 * f + c) as d, g - k from tab"
+    let ast = "select sum(2 * f + c) as d, g - k from tab group by g"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1194,7 +1194,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_i
                 col_res(col("g") - col("k"), "__expr__"),
             ],
             tab(None, "tab"),
-            vec![],
+            group_by(&["g"]),
         ),
         vec![],
         None,
@@ -1203,8 +1203,41 @@ fn we_can_parse_arithmetic_expression_within_aggregations_and_non_aggregations_i
 }
 
 #[test]
-fn we_cannot_use_arithmetic_outside_aggregation_functions() {
-    assert!("select sum(f) + 2 from employees group by f"
+fn we_can_use_arithmetic_outside_aggregation_functions() {
+    let ast = "select 2 * f - y, 3 * a - sum(f) * max(y) - min(d) + 2 from employees group by f"
         .parse::<SelectStatement>()
-        .is_err());
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                col_res(lit(2) * col("f") - col("y"), "__expr__"),
+                col_res(
+                    lit(3) * col("a") - col("f").sum() * col("y").max() - col("d").min() + lit(2),
+                    "__expr__",
+                ),
+            ],
+            tab(None, "employees"),
+            group_by(&["f"]),
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_use_aggregation_inside_another_aggregation() {
+    let ast = "select sum(max(2 * a)) from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![col_res((lit(2) * col("a")).max().sum(), "__sum__")],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
 }
