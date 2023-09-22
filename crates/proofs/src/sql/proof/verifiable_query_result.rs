@@ -5,7 +5,7 @@ use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
 use crate::base::proof::ProofError;
 use crate::sql::proof::QueryResult;
 use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::Schema;
+use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -136,7 +136,7 @@ impl VerifiableQueryResult {
 }
 
 fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
-    let mut column_fields = Vec::with_capacity(result_fields.len());
+    let mut column_fields: Vec<Field> = Vec::with_capacity(result_fields.len());
     let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(result_fields.len());
 
     for field in result_fields.iter() {
