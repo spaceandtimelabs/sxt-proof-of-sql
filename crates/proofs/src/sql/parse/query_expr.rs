@@ -68,7 +68,7 @@ impl QueryExpr {
 
         let result_aliased_exprs = context.get_aliased_result_exprs()?;
         let result = ResultExprBuilder::default()
-            .add_group_by_exprs(context.get_group_by_exprs()?, result_aliased_exprs)
+            .add_group_by_exprs(context.get_group_by_exprs(), result_aliased_exprs)
             .add_select_exprs(result_aliased_exprs)
             .add_order_by_exprs(context.get_order_by_exprs()?)
             .add_slice_expr(context.get_slice_expr())

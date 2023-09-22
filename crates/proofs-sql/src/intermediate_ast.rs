@@ -27,47 +27,24 @@ pub enum SelectResultExpr {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct AliasedResultExpr {
-    pub expr: ResultExpr,
+    pub expr: Box<Expression>,
     pub alias: Identifier,
 }
 
 impl AliasedResultExpr {
-    pub fn from_non_agg_expr(expr: Expression, alias: Identifier) -> Self {
+    pub fn new(expr: Expression, alias: Identifier) -> Self {
         Self {
-            expr: ResultExpr::NonAgg(Box::new(expr)),
+            expr: Box::new(expr),
             alias,
         }
     }
 
     pub fn try_as_identifier(&self) -> Option<&Identifier> {
-        match &self.expr {
-            ResultExpr::NonAgg(expr) => match expr.as_ref() {
-                Expression::Column(column) => Some(column),
-                _ => None,
-            },
+        match self.expr.as_ref() {
+            Expression::Column(column) => Some(column),
             _ => None,
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum ResultExpr {
-    Agg(AggExpr),
-    NonAgg(Box<Expression>),
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum AggExpr {
-    /// An aggregation expression associated with max(expr)
-    Max(Box<Expression>),
-    /// An aggregation expression associated with min(expr)
-    Min(Box<Expression>),
-    /// An aggregation expression associated with sum(expr)
-    Sum(Box<Expression>),
-    /// An aggregation expression associated with count(expr)
-    Count(Box<Expression>),
-    /// An aggregation expression associated with count(*)
-    CountALL,
 }
 
 /// Representations of base queries
@@ -110,6 +87,28 @@ pub enum UnaryOperator {
     Not,
 }
 
+// Aggregation operators
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum AggregationOperator {
+    Max,
+    Min,
+    Sum,
+    Count,
+    First,
+}
+
+impl std::fmt::Display for AggregationOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AggregationOperator::Max => write!(f, "max"),
+            AggregationOperator::Min => write!(f, "min"),
+            AggregationOperator::Sum => write!(f, "sum"),
+            AggregationOperator::Count => write!(f, "count"),
+            AggregationOperator::First => write!(f, "first"),
+        }
+    }
+}
+
 /// Boolean Expressions
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Expression {
@@ -131,6 +130,52 @@ pub enum Expression {
         left: Box<Expression>,
         right: Box<Expression>,
     },
+
+    /// * expression
+    Wildcard,
+
+    /// Aggregation operation
+    Aggregation {
+        op: AggregationOperator,
+        expr: Box<Expression>,
+    },
+}
+
+impl Expression {
+    pub fn sum(self) -> Box<Self> {
+        Box::new(Expression::Aggregation {
+            op: AggregationOperator::Sum,
+            expr: Box::new(self),
+        })
+    }
+
+    pub fn max(self) -> Box<Self> {
+        Box::new(Expression::Aggregation {
+            op: AggregationOperator::Max,
+            expr: Box::new(self),
+        })
+    }
+
+    pub fn min(self) -> Box<Self> {
+        Box::new(Expression::Aggregation {
+            op: AggregationOperator::Min,
+            expr: Box::new(self),
+        })
+    }
+
+    pub fn count(self) -> Box<Self> {
+        Box::new(Expression::Aggregation {
+            op: AggregationOperator::Count,
+            expr: Box::new(self),
+        })
+    }
+
+    pub fn first(self) -> Box<Self> {
+        Box::new(Expression::Aggregation {
+            op: AggregationOperator::First,
+            expr: Box::new(self),
+        })
+    }
 }
 
 /// OrderBy

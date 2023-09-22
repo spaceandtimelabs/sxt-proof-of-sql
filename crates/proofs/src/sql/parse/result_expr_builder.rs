@@ -4,9 +4,8 @@ use crate::sql::transform::{
     CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SelectExpr, SliceExpr,
 };
 
-use proofs_sql::intermediate_ast;
 use proofs_sql::intermediate_ast::{
-    AggExpr, AliasedResultExpr, BinaryOperator, Expression, OrderBy, ResultExpr, Slice,
+    AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, Slice,
 };
 use proofs_sql::Identifier;
 
@@ -27,12 +26,8 @@ impl ResultExprBuilder {
             return self;
         }
 
-        let polars_by_exprs: Vec<_> = by_exprs.iter().map(|id| col(id)).collect();
-        let polars_agg_exprs = aliased_exprs
-            .iter()
-            .map(|expr| visit_aliased_expr(expr, by_exprs))
-            .collect();
-
+        let polars_by_exprs: Vec<_> = by_exprs.iter().map(|id| col(id.as_str())).collect();
+        let polars_agg_exprs = aliased_exprs.iter().map(visit_aliased_expr).collect();
         self.composition.add(Box::new(GroupByExpr::new(
             polars_by_exprs,
             polars_agg_exprs,
@@ -54,7 +49,7 @@ impl ResultExprBuilder {
                     // update the code to reflect the changes.
                     col(aliased_expr.alias.as_str())
                 } else {
-                    visit_aliased_expr(aliased_expr, &[])
+                    visit_aliased_expr(aliased_expr)
                 }
             })
             .collect();
@@ -97,35 +92,15 @@ impl ResultExprBuilder {
     }
 }
 
-fn visit_aliased_expr(aliased_expr: &AliasedResultExpr, group_by_exprs: &[Identifier]) -> Expr {
-    let expr = match &aliased_expr.expr {
-        ResultExpr::Agg(agg_expr) => match agg_expr {
-            AggExpr::Max(expr) => visit_expr(expr).max(),
-            AggExpr::Min(expr) => visit_expr(expr).min(),
-            AggExpr::Sum(expr) => visit_expr(expr).sum(),
-            AggExpr::Count(expr) => visit_expr(expr).count(),
-            AggExpr::CountALL => col(group_by_exprs.iter().next().unwrap()).count(),
-        },
-        ResultExpr::NonAgg(expr) => {
-            let expr = visit_expr(expr);
-            if !group_by_exprs.is_empty() {
-                // Transforming the group by result columns into an expression is necessary
-                // to prevent Polars from returning lists for aggregation results.
-                expr.first()
-            } else {
-                expr
-            }
-        }
-    };
-
-    expr.alias(aliased_expr.alias.as_str())
+fn visit_aliased_expr(aliased_expr: &AliasedResultExpr) -> Expr {
+    visit_expr(aliased_expr.expr.as_ref()).alias(aliased_expr.alias.as_str())
 }
 
 fn visit_expr(expr: &Expression) -> Expr {
     match expr {
         Expression::Literal(literal) => match literal {
-            intermediate_ast::Literal::Int128(value) => value.to_lit(),
-            intermediate_ast::Literal::VarChar(_) => panic!("Not supported yet"),
+            Literal::Int128(value) => value.to_lit(),
+            Literal::VarChar(_) => panic!("Expression not supported"),
         },
         Expression::Column(identifier) => col(identifier.as_str()),
         Expression::Binary { op, left, right } => {
@@ -137,6 +112,17 @@ fn visit_expr(expr: &Expression) -> Expr {
                 BinaryOperator::Subtract => left - right,
                 BinaryOperator::Multiply => left * right,
                 _ => panic!("Operation not supported yet"),
+            }
+        }
+        Expression::Aggregation { op, expr } => {
+            let expr = visit_expr(expr);
+
+            match op {
+                AggregationOperator::Count => expr.count(),
+                AggregationOperator::Sum => expr.sum(),
+                AggregationOperator::Min => expr.min(),
+                AggregationOperator::Max => expr.max(),
+                AggregationOperator::First => expr.first(),
             }
         }
         _ => panic!("Operation not supported"),

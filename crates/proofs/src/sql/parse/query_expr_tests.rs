@@ -1115,6 +1115,22 @@ fn group_by_column_cannot_be_a_column_result_alias() {
 }
 
 #[test]
+fn we_can_have_aggregate_functions_without_a_group_by_clause() {
+    let ast = query!(
+        select: ["count(s)"],
+    );
+    let expected_ast = expected_query!(
+        select: [
+            cols = ["s"],
+            exprs = [
+                pc("s").count().alias("__count__"),
+            ]
+        ]
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_expression() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
@@ -1407,7 +1423,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 #[test]
 fn we_need_to_reference_at_least_one_column_in_the_result_expr() {
     assert_eq!(
-        query!(select: ["i", "-123"], should_err: true),
+        query!(select: ["i", "-123 "], should_err: true),
         ConversionError::InvalidExpression(
             "at least one column must be referenced in the result expression".to_string()
         )
@@ -1418,29 +1434,49 @@ fn we_need_to_reference_at_least_one_column_in_the_result_expr() {
             "at least one column must be referenced in the result expression".to_string()
         )
     );
+    assert_eq!(
+        query!(select: ["i + sum(-123)"], group: ["i"], should_err: true),
+        ConversionError::InvalidExpression(
+            "at least one column must be referenced in the result expression".to_string()
+        )
+    );
+    assert_eq!(
+        query!(select: ["sum(-123) + i"], group: ["i"], should_err: true),
+        ConversionError::InvalidExpression(
+            "at least one column must be referenced in the result expression".to_string()
+        )
+    );
 }
 
 #[test]
 fn we_cannot_use_non_grouped_columns_outside_agg() {
     assert_eq!(
         query!(select: ["i"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByResultColumnError
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
     );
     assert_eq!(
         query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByResultColumnError
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
+    );
+    assert_eq!(
+        query!(select: ["min(i) + i"], group: ["s"], should_err: true),
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
     );
     assert_eq!(
         query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByResultColumnError
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
     );
     assert_eq!(
         query!(select: ["2 * i", "min(i)"], should_err: true),
-        ConversionError::MissingGroupByError
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
     );
     assert_eq!(
         query!(select: ["sum(i)", "i"], should_err: true),
-        ConversionError::MissingGroupByError
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
+    );
+    assert_eq!(
+        query!(select: ["max(i) + 2 * i"], should_err: true),
+        ConversionError::InvalidGroupByColumnRef("i".to_string())
     );
 }
 
@@ -1491,15 +1527,15 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
 fn varchar_column_is_not_allowed_within_numeric_aggregations() {
     assert_eq!(
         query!(select: ["sum(s)"], should_err: true),
-        ConversionError::NonNumericColumnAggregation("max/min/sum")
+        ConversionError::non_numeric_expr_in_agg("varchar", "sum")
     );
     assert_eq!(
         query!(select: ["max(s)"], should_err: true),
-        ConversionError::NonNumericColumnAggregation("max/min/sum")
+        ConversionError::non_numeric_expr_in_agg("varchar", "max")
     );
     assert_eq!(
         query!(select: ["min(s)"], should_err: true),
-        ConversionError::NonNumericColumnAggregation("max/min/sum")
+        ConversionError::non_numeric_expr_in_agg("varchar", "min")
     );
 }
 
@@ -1528,6 +1564,86 @@ fn group_by_with_varchar_column_is_valid() {
         select: [cols = ["s"], exprs = [pc("s").first().alias("s")]], group: [pc("s")]
     );
     assert_eq!(query, expected_query);
+}
+
+#[test]
+fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
+    let query = query!(
+        select: ["2 * i + sum(i) - i1"],
+        group: ["i", "i1"]
+    );
+    let expected_query = expected_query!(
+        select: [
+            cols = ["i", "i1"],
+            exprs = [(lit(2) * (pc("i").first()) + pc("i").sum() - pc("i1").first()).alias("__expr__")]
+        ],
+        group: [pc("i"), pc("i1")]
+    );
+    assert_eq!(query, expected_query);
+}
+
+#[test]
+fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
+    let ast = query!(
+        select: ["7 + max(i) as max_i", "min(i + 777 * d) * -5 as min_d"],
+    );
+    let expected_ast = expected_query!(
+        select: [
+            cols = ["d", "i"],
+            exprs = [
+                (lit(7) + pc("i").max()).alias("max_i"),
+                ((pc("i") + 777_i128.to_lit() * pc("d")).min() * (-5).to_lit()).alias("min_d"),
+            ]
+        ]
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn count_aggregation_always_have_integer_type() {
+    let ast = query!(
+        select: ["7 + count(s) as cs", "count(i) * -5 as ci", "count(d)"]
+    );
+    let expected_ast = expected_query!(
+        select: [
+            cols = ["d", "i", "s"],
+            exprs = [
+                (7_i128.to_lit() + pc("s").count()).alias("cs"),
+                (pc("i").count() * (-5).to_lit()).alias("ci"),
+                pc("d").count().alias("__count__"),
+            ]
+        ]
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn select_wildcard_is_valid_with_group_by_exprs() {
+    let (t, accessor) = get_test_accessor();
+    let columns = accessor.get_column_names(t);
+    let ast = query!(
+        select: ["*"],
+        group: columns.clone()
+    );
+    let expected_ast = expected_query!(
+        select: [
+            cols = columns.clone().into_iter().sorted().collect::<Vec<_>>(),
+            exprs = columns.iter().map(|c| pc(c).first().alias(c))
+        ],
+        group: columns.iter().map(|c| pc(c))
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn nested_aggregations_are_not_supported() {
+    let supported_agg = ["max", "min", "sum", "count"];
+    for perm_aggs in supported_agg.iter().permutations(2) {
+        assert_eq!(
+            query!(select: [format!("{}({}(i))", perm_aggs[0], perm_aggs[1])], should_err: true),
+            ConversionError::InvalidExpression("nested aggregations are not supported".to_string())
+        );
+    }
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::base::database::{ColumnRef, TableRef};
+use crate::base::database::{ColumnRef, ColumnType, TableRef};
 use crate::sql::parse::{ConversionError, ConversionResult};
 
 use proofs_sql::intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice};
@@ -8,22 +8,25 @@ use proofs_sql::Identifier;
 
 #[derive(Default)]
 pub struct QueryContext {
-    slice: Option<Slice>,
-    table: Option<TableRef>,
+    in_agg_scope: bool,
+    agg_counter: usize,
+    slice_expr: Option<Slice>,
     col_ref_counter: usize,
+    table: Option<TableRef>,
+    in_result_scope: bool,
+    has_visited_group_by: bool,
     order_by_exprs: Vec<OrderBy>,
-    agg_result_exprs: Vec<usize>,
     fixed_col_ref_counter: usize,
-    non_agg_result_exprs: Vec<usize>,
     group_by_exprs: Vec<Identifier>,
     where_expr: Option<Box<Expression>>,
     result_column_set: HashSet<Identifier>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
+    first_result_col_out_agg_scope: Option<Identifier>,
 }
 
 impl QueryContext {
-    pub fn set_table(&mut self, table: TableRef) {
+    pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
         self.table = Some(table);
     }
@@ -42,57 +45,126 @@ impl QueryContext {
         &self.where_expr
     }
 
-    pub fn set_slice(&mut self, slice: Option<Slice>) {
-        self.slice = slice;
+    pub fn set_slice_expr(&mut self, slice_expr: Option<Slice>) {
+        self.slice_expr = slice_expr;
+    }
+
+    pub fn toggle_result_scope(&mut self) {
+        self.in_result_scope = !self.in_result_scope;
+    }
+
+    pub fn is_in_result_scope(&self) -> bool {
+        self.in_result_scope
+    }
+
+    pub fn set_in_agg_scope(&mut self, in_agg_scope: bool) -> ConversionResult<()> {
+        if !in_agg_scope {
+            assert!(
+                self.in_agg_scope,
+                "aggregation context needs to be set before exiting"
+            );
+            self.in_agg_scope = false;
+            return self.check_col_ref_counter();
+        }
+
+        if self.in_agg_scope {
+            return Err(ConversionError::InvalidExpression(
+                "nested aggregations are not supported".to_string(),
+            ));
+        }
+
+        self.agg_counter += 1;
+        self.in_agg_scope = true;
+
+        // Resetting the counter to ensure that the
+        // aggregation expression references at least one column.
+        self.fixed_col_ref_counter = self.col_ref_counter;
+
+        Ok(())
+    }
+
+    fn is_in_agg_scope(&self) -> bool {
+        self.in_agg_scope
     }
 
     pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
+        self.push_result_column_ref(column);
         self.column_mapping.insert(column, column_ref);
     }
 
-    pub fn push_schema_column(&mut self, column: AliasedResultExpr, is_agg: bool) {
-        self.res_aliased_exprs.push(column.clone());
+    fn push_result_column_ref(&mut self, column: Identifier) {
+        if self.is_in_result_scope() {
+            self.result_column_set.insert(column);
 
-        if is_agg {
-            self.agg_result_exprs.push(self.res_aliased_exprs.len() - 1);
-        } else {
-            self.non_agg_result_exprs
-                .push(self.res_aliased_exprs.len() - 1);
+            if !self.is_in_agg_scope() && self.first_result_col_out_agg_scope.is_none() {
+                self.first_result_col_out_agg_scope = Some(column);
+            }
         }
     }
 
-    pub fn push_result_column_reference(&mut self, column: Identifier) {
-        self.result_column_set.insert(column);
-    }
-
-    pub fn push_group_by(&mut self, column: Identifier) {
-        self.group_by_exprs.push(column);
-    }
-
-    pub fn push_order_by_exprs(&mut self, order_by_exprs: OrderBy) {
-        self.order_by_exprs.push(order_by_exprs);
-    }
-
-    pub fn fix_columns_counter(&mut self) {
-        self.fixed_col_ref_counter = self.col_ref_counter;
-    }
-
-    pub fn validate_columns_counter(&mut self) -> ConversionResult<()> {
+    fn check_col_ref_counter(&mut self) -> ConversionResult<()> {
         if self.col_ref_counter == self.fixed_col_ref_counter {
             return Err(ConversionError::InvalidExpression(
                 "at least one column must be referenced in the result expression".to_string(),
             ));
         }
-        self.fix_columns_counter();
+
         Ok(())
     }
 
+    pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
+        assert!(&self.has_visited_group_by, "Group by must be visited first");
+
+        self.check_col_ref_counter()?;
+        self.res_aliased_exprs.push(expr);
+
+        // Resetting the counter to ensure consecutive aliased
+        // expression references include at least one column.
+        self.fixed_col_ref_counter = self.col_ref_counter;
+
+        Ok(())
+    }
+
+    pub fn set_group_by_exprs(&mut self, exprs: Vec<Identifier>) {
+        self.group_by_exprs = exprs;
+
+        // Add the group by columns to the result column set
+        // to ensure their integrity in the filter expression.
+        for group_column in &self.group_by_exprs {
+            self.result_column_set.insert(*group_column);
+        }
+
+        self.has_visited_group_by = true;
+    }
+
+    pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderBy>) {
+        self.order_by_exprs = order_by_exprs;
+    }
+
+    pub fn get_any_result_column_ref(&self) -> Option<(Identifier, ColumnType)> {
+        self.result_column_set.iter().next().map(|c| {
+            let column = self.column_mapping[c];
+            (column.column_id(), *column.column_type())
+        })
+    }
+
+    pub fn is_in_group_by_exprs(&self, column: &Identifier) -> ConversionResult<bool> {
+        // Non-aggregated result column references must be included in the group by statement.
+        if self.group_by_exprs.is_empty() || self.is_in_agg_scope() || !self.is_in_result_scope() {
+            return Ok(false);
+        }
+
+        // Result column references outside aggregation must appear in the group by
+        self.group_by_exprs
+            .iter()
+            .find(|group_column| *group_column == column)
+            .map(|_| true)
+            .ok_or(ConversionError::InvalidGroupByColumnRef(column.to_string()))
+    }
+
     pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
-        assert!(
-            !self.res_aliased_exprs.is_empty(),
-            "Result schema must not be empty"
-        );
+        assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs");
 
         // We need to check that each column alias is unique
         for col in &self.res_aliased_exprs {
@@ -103,20 +175,30 @@ impl QueryContext {
                 .sum::<u64>()
                 != 1
             {
-                return Err(ConversionError::DuplicateColumnAlias(col.alias.to_string()));
+                return Err(ConversionError::DuplicateResultAlias(col.alias.to_string()));
             }
+        }
+
+        // We cannot have column references outside aggregations when there is no group by expressions
+        if self.group_by_exprs.is_empty()
+            && self.agg_counter > 0
+            && self.first_result_col_out_agg_scope.is_some()
+        {
+            return Err(ConversionError::InvalidGroupByColumnRef(
+                self.first_result_col_out_agg_scope.unwrap().to_string(),
+            ));
         }
 
         Ok(&self.res_aliased_exprs)
     }
 
     pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderBy>> {
-        // order by must reference only aliases in the result schema
+        // Order by must reference only aliases in the result schema
         for by_expr in &self.order_by_exprs {
             self.res_aliased_exprs
                 .iter()
                 .find(|col| col.alias == by_expr.expr)
-                .ok_or(ConversionError::InvalidOrderByError(
+                .ok_or(ConversionError::InvalidOrderBy(
                     by_expr.expr.as_str().to_string(),
                 ))?;
         }
@@ -125,38 +207,11 @@ impl QueryContext {
     }
 
     pub fn get_slice_expr(&self) -> &Option<Slice> {
-        &self.slice
+        &self.slice_expr
     }
 
-    pub fn get_group_by_exprs(&self) -> ConversionResult<&[Identifier]> {
-        if self.group_by_exprs.is_empty() {
-            if !self.agg_result_exprs.is_empty() {
-                // We can't aggregate without specifying a group by column yet
-                return Err(ConversionError::MissingGroupByError);
-            }
-
-            return Ok(&[]);
-        }
-
-        // We need to add the group by columns that are part of the result schema.
-        for col_idx in self.non_agg_result_exprs.iter() {
-            let col = &self.res_aliased_exprs[*col_idx];
-            let col_id: Identifier = *col
-                .try_as_identifier()
-                .ok_or(ConversionError::InvalidGroupByResultColumnError)?;
-
-            // We need to check that each non aggregated result column
-            // is referenced in the group by clause.
-            if !self
-                .group_by_exprs
-                .iter()
-                .any(|group_by| *group_by == col_id)
-            {
-                return Err(ConversionError::InvalidGroupByResultColumnError);
-            }
-        }
-
-        Ok(&self.group_by_exprs)
+    pub fn get_group_by_exprs(&self) -> &[Identifier] {
+        &self.group_by_exprs
     }
 
     pub fn get_result_column_set(&self) -> HashSet<Identifier> {
