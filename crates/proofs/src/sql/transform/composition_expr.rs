@@ -32,11 +32,11 @@ impl CompositionExpr {
 #[typetag::serde]
 impl DataFrameExpr for CompositionExpr {
     /// Apply the transformations to the `LazyFrame`.
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+    fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
         let mut lazy_frame = lazy_frame;
 
         for transformation in self.transformations.iter() {
-            lazy_frame = transformation.apply_transformation(lazy_frame);
+            lazy_frame = transformation.apply_transformation(lazy_frame, num_input_rows);
         }
 
         lazy_frame

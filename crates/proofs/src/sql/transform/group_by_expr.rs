@@ -33,7 +33,19 @@ impl GroupByExpr {
 
 #[typetag::serde]
 impl DataFrameExpr for GroupByExpr {
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+    fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
+        // TODO: polars currently lacks support for min/max aggregation in data frames
+        // with either zero or one element when a group by operation is applied.
+        // We remove the group by clause to temporarily work around this limitation.
+        // Issue created to track progress: https://github.com/pola-rs/polars/issues/11232
+        if num_input_rows == 0 {
+            return lazy_frame.select(&self.agg_exprs).limit(0);
+        }
+
+        if num_input_rows == 1 {
+            return lazy_frame.select(&self.agg_exprs);
+        }
+
         // Add invalid column aliases to group by expressions so that we can
         // exclude them from the final result.
         let by_expr_aliases = (0..self.by_exprs.len())
