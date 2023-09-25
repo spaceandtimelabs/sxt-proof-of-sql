@@ -38,6 +38,17 @@ fn transform_the_record_batch(
     let lazy_frame = record_batch_to_dataframe(result_batch).lazy();
     let lazy_frame = transformation.apply_transformation(lazy_frame);
 
+    // We're currently excluding NULLs in post-processing due to a lack of
+    // prover support, aiming to avoid future complexities.
+    // The drawback is that users won't get NULL results in aggregations on empty data.
+    // For example, the query `SELECT MAX(i), COUNT(i), SUM(i), MIN(i) FROM table WHERE s = 'nonexist'`
+    // will now omit the entire row (before, it would return `null, 0, 0, null`).
+    // This choice is acceptable, as `SELECT MAX(i), COUNT(i), SUM(i) FROM table WHERE s = 'nonexist' GROUP BY f`
+    // has the same outcome.
+    //
+    // TODO: Revisit if we add NULL support to the prover.
+    let lazy_frame = lazy_frame.drop_nulls(None);
+
     dataframe_to_record_batch(
         lazy_frame
             .collect()

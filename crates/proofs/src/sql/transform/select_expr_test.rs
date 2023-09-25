@@ -2,6 +2,7 @@ use crate::record_batch;
 use crate::sql::proof::TransformExpr;
 use crate::sql::transform::{test_utility::select, ResultExpr};
 
+use arrow::record_batch::RecordBatch;
 use polars::prelude::{col, lit};
 
 #[test]
@@ -100,5 +101,49 @@ fn we_can_use_agg_with_select_expression() {
         "h_count" => [5_i64],
         "expr" => [-707_i128],
     );
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn using_count_with_an_empty_batch_will_return_zero() {
+    let data = record_batch!("i" => [-5_i64], "d" => [3_i128], "s" => ["a"]);
+    let empty_data = RecordBatch::new_empty(data.schema());
+    let result_expr = ResultExpr::new(select(&[
+        col("i").count(),
+        col("d").count(),
+        col("s").count(),
+    ]));
+    let data = result_expr.transform_results(empty_data);
+    let expected_data = record_batch!("i" => [0_i64], "d" => [0_i64], "s" => [0_i64]);
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn using_sum_with_an_empty_batch_will_return_zero() {
+    let data = record_batch!("i" => [-5_i64], "d" => [3_i128]);
+    let empty_data = RecordBatch::new_empty(data.schema());
+    let result_expr = ResultExpr::new(select(&[col("i").sum(), col("d").sum()]));
+    let data = result_expr.transform_results(empty_data);
+    let expected_data = record_batch!("i" => [0_i64], "d" => [0_i128]);
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn using_min_with_an_empty_batch_will_return_empty_even_with_count_or_sum_in_the_result() {
+    let data = record_batch!("i" => [-5_i64], "d" => [3_i128], "i1" => [3_i64]);
+    let empty_data = RecordBatch::new_empty(data.schema());
+    let result_expr = ResultExpr::new(select(&[col("i").count(), col("d").sum(), col("i1").min()]));
+    let data = result_expr.transform_results(empty_data.clone());
+    let expected_data = empty_data;
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn using_max_with_an_empty_batch_will_return_empty_even_with_count_or_sum_in_the_result() {
+    let data = record_batch!("i" => [-5_i64], "d" => [3_i128], "i1" => [3_i64]);
+    let empty_data = RecordBatch::new_empty(data.schema());
+    let result_expr = ResultExpr::new(select(&[col("i").count(), col("d").sum(), col("i1").max()]));
+    let data = result_expr.transform_results(empty_data.clone());
+    let expected_data = empty_data;
     assert_eq!(data, expected_data);
 }
