@@ -209,6 +209,18 @@ impl ops::Mul<Box<Expression>> for Box<Expression> {
     }
 }
 
+impl ops::Div<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn div(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Division,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+
 impl ops::Sub<Box<Expression>> for Box<Expression> {
     type Output = Box<Expression>;
 

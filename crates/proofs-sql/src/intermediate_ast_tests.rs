@@ -1081,7 +1081,7 @@ fn we_cannot_parse_a_non_count_aggregations_with_wildcard() {
 
 #[test]
 fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr() {
-    let ast = "select a + b, 2 * f, -77 - h from tab"
+    let ast = "select a + b, 2 * f, -77 - h, sum(a) / sum(b) from tab"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1090,6 +1090,28 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
                 col_res(col("a") + col("b"), "__expr__"),
                 col_res(lit(2) * col("f"), "__expr__"),
                 col_res(lit(-77) - col("h"), "__expr__"),
+                col_res(col("a").sum() / col("b").sum(), "__expr__"),
+            ],
+            tab(None, "tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn mul_and_div_operators_have_the_same_precedence_and_left_expressions_are_always_parsed_first() {
+    let ast = "select a * b / c, (a * b) / c, a * (b / c) from tab"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                col_res(col("a") * col("b") / col("c"), "__expr__"),
+                col_res((col("a") * col("b")) / col("c"), "__expr__"),
+                col_res(col("a") * (col("b") / col("c")), "__expr__"),
             ],
             tab(None, "tab"),
             vec![],

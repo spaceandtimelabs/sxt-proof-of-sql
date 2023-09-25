@@ -268,10 +268,20 @@ ArithmeticExpression: Box<intermediate_ast::Expression> = {
             expr: agg.1,
         }),
 
-    #[precedence(level="3")] #[assoc(side="right")]
+    // To account for non-associative division (e.g., 'a * b / c' equals 
+    // '(a * b) / c' but differs from 'a * (b / c)'), it's essential to
+    // enforce left associativity for the '*' and '/' arithmetic operators.
+    #[precedence(level="3")] #[assoc(side="left")]
     <left: ArithmeticExpression> "*" <right: ArithmeticExpression> =>
         Box::new(intermediate_ast::Expression::Binary {
             op: intermediate_ast::BinaryOperator::Multiply,
+            left,
+            right, 
+        }),
+
+    <left: ArithmeticExpression> "/" <right: ArithmeticExpression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Division,
             left,
             right, 
         }),
@@ -375,6 +385,7 @@ match {
     "+" => "+",
     "-" => "-",
     "*" => "*",
+    "/" => "/",
     "=" => "=",
     r"(!=|<>)" => "!=",
 } else {

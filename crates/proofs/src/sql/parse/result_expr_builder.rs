@@ -1,7 +1,8 @@
 use polars::prelude::{col, Expr};
 
 use crate::sql::transform::{
-    CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SelectExpr, SliceExpr,
+    CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SafeDivision, SelectExpr,
+    SliceExpr,
 };
 
 use proofs_sql::intermediate_ast::{
@@ -111,6 +112,7 @@ fn visit_expr(expr: &Expression) -> Expr {
                 BinaryOperator::Add => left + right,
                 BinaryOperator::Subtract => left - right,
                 BinaryOperator::Multiply => left * right,
+                BinaryOperator::Division => left.checked_div(right),
                 _ => panic!("Operation not supported yet"),
             }
         }
