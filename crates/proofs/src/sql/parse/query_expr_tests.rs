@@ -1316,7 +1316,7 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
 }
 
 #[test]
-fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr() {
+fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_expr() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -1328,6 +1328,8 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
         ),
         0,
     );
+    // TODO: add `a / b as a_div_b` result expr once polars properly
+    // supports decimal division without panicking in production
     let ast = query_to_provable_ast(
         t,
         "select a + b, 2 * f as f2, -77 - h as col, a + f as af from employees",
@@ -1344,6 +1346,9 @@ fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr()
             (lit(2) * pc("f")).alias("f2"),
             ((-77_i128).to_lit() - pc("h")).alias("col"),
             (pc("a") + pc("f")).alias("af"),
+            // TODO: add `a / b as a_div_b` result expr once polars properly
+            // supports decimal division without panicking in production
+            // (pc("a") / pc("b")).alias("a_div_b"),
         ])]),
     );
     assert_eq!(ast, expected_ast);

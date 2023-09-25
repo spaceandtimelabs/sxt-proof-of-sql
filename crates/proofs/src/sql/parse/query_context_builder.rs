@@ -188,9 +188,10 @@ impl<'a> QueryContextBuilder<'a> {
                 self.visit_equal_expr(left, right)?;
                 Ok(None)
             }
-            BinaryOperator::Multiply | BinaryOperator::Subtract | BinaryOperator::Add => {
-                Ok(Some(self.visit_arithmetic_expr(left, right)?))
-            }
+            BinaryOperator::Multiply
+            | BinaryOperator::Division
+            | BinaryOperator::Subtract
+            | BinaryOperator::Add => Ok(Some(self.visit_arithmetic_expr(left, right)?)),
         }
     }
 
