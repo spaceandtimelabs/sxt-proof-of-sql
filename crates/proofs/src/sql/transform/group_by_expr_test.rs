@@ -3,6 +3,7 @@ use crate::record_batch;
 use crate::sql::proof::TransformExpr;
 use crate::sql::transform::test_utility::{composite_result, groupby};
 
+use arrow::record_batch::RecordBatch;
 use polars::prelude::{col, lit};
 use rand::Rng;
 
@@ -321,9 +322,44 @@ fn we_can_use_decimal_columns_inside_group_by() {
     let agg_exprs = vec![(col("j") + col("h")).sum().alias("h_sum")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
     let data = result_expr.transform_results(data);
-    let expected_data: arrow::record_batch::RecordBatch = record_batch!(
+    let expected_data = record_batch!(
         "h_sum" => [2_i128, 14, -nines + 5, 3, -2 - 2, nines - 1, -6 + 100 + 4, 11 + 31],
     );
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn transforming_a_batch_of_size_zero_with_min_max_agg_and_decimal_column_is_fine() {
+    let data = record_batch!("h" => [-1_i128], "i" => [2_i128], "j" => [2_i128], "k" => [2_i64]);
+    let empty_batch = RecordBatch::new_empty(data.schema().clone());
+    let by_exprs = vec![col("h")];
+    let agg_exprs = vec![
+        col("h").max().alias("h"),
+        col("i").min().alias("i"),
+        col("j").sum().alias("j"),
+        col("k").count().alias("k"),
+    ];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    let data = result_expr.transform_results(empty_batch.clone());
+    let expected_data = empty_batch;
+    assert_eq!(data, expected_data);
+}
+
+#[test]
+fn transforming_a_batch_of_size_one_with_min_max_agg_and_decimal_column_is_fine() {
+    let input_data =
+        record_batch!("h" => [-1_i128], "i" => [2_i128], "j" => [2_i128], "k" => [2_i128]);
+    let by_exprs = vec![col("h")];
+    let agg_exprs = vec![
+        col("h").max().alias("h"),
+        col("i").min().alias("i"),
+        col("j").sum().alias("j"),
+        col("k").count().alias("k"),
+    ];
+    let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
+    let data = result_expr.transform_results(input_data.clone());
+    let expected_data =
+        record_batch!("h" => [-1_i128], "i" => [2_i128], "j" => [2_i128], "k" => [1_i64]);
     assert_eq!(data, expected_data);
 }
 

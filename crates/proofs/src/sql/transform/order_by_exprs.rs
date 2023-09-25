@@ -24,7 +24,7 @@ impl OrderByExprs {
 #[typetag::serde]
 impl DataFrameExpr for OrderByExprs {
     /// Sort the `LazyFrame` by the `OrderBy` expressions.
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+    fn apply_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
         assert!(!self.by_exprs.is_empty());
 
         let maintain_order = true;

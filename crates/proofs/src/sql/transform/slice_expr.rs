@@ -33,7 +33,7 @@ impl SliceExpr {
 #[typetag::serde]
 impl DataFrameExpr for SliceExpr {
     /// Apply the slice transformation to the given `LazyFrame`.
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+    fn apply_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
         lazy_frame.slice(self.offset_value, self.number_rows)
     }
 }

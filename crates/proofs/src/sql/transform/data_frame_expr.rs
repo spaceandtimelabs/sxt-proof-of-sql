@@ -6,5 +6,5 @@ use std::fmt::Debug;
 #[typetag::serde(tag = "type")]
 #[dyn_partial_eq]
 pub trait DataFrameExpr: Debug + Send + Sync {
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame;
+    fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame;
 }
