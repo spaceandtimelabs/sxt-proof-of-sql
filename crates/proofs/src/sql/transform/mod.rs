@@ -45,3 +45,6 @@ mod group_by_expr_test;
 
 mod polars_conversions;
 pub use polars_conversions::LiteralConversion;
+
+mod polars_arithmetic;
+pub use polars_arithmetic::SafeDivision;

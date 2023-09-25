@@ -70,6 +70,9 @@ pub enum BinaryOperator {
     /// Numeric multiplication
     Multiply,
 
+    /// Numeric division
+    Division,
+
     /// Logical And
     And,
 

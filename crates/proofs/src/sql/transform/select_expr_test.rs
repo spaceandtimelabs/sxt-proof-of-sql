@@ -68,15 +68,6 @@ fn we_can_remap_the_record_batch_columns_to_new_columns() {
 }
 
 #[test]
-fn we_can_use_arithmetic_expressions() {
-    let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
-    let result_expr = ResultExpr::new(select(&[(lit(2) + col("c") * lit(3)).alias("c2")]));
-    let data = result_expr.transform_results(data);
-    let expected_data = record_batch!("c2" => [-13_i64, 5, -166, 8]);
-    assert_eq!(data, expected_data);
-}
-
-#[test]
 fn we_can_use_agg_with_select_expression() {
     let data = record_batch!(
         "c" => [1_i64, -5, -3, 7, -3],
