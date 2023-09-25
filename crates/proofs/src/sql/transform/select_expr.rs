@@ -21,7 +21,7 @@ impl SelectExpr {
 #[typetag::serde]
 impl DataFrameExpr for SelectExpr {
     /// Apply the select transformation to the lazy frame
-    fn apply_transformation(&self, lazy_frame: LazyFrame) -> LazyFrame {
+    fn apply_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
         lazy_frame.select(&self.result_schema)
     }
 }
