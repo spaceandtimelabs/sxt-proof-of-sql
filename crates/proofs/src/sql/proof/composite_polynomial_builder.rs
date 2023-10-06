@@ -12,6 +12,7 @@ pub struct CompositePolynomialBuilder {
     num_sumcheck_variables: usize,
     fr_multiplicands_degree1: Vec<ArkScalar>,
     fr_multiplicands_rest: Vec<(ArkScalar, Vec<Rc<DenseMultilinearExtension>>)>,
+    zerosum_multiplicands: Vec<(ArkScalar, Vec<Rc<DenseMultilinearExtension>>)>,
     fr: Rc<DenseMultilinearExtension>,
     mles: HashMap<*const c_void, Rc<DenseMultilinearExtension>>,
 }
@@ -23,6 +24,7 @@ impl CompositePolynomialBuilder {
             num_sumcheck_variables,
             fr_multiplicands_degree1: vec![Zero::zero(); fr.len()],
             fr_multiplicands_rest: vec![],
+            zerosum_multiplicands: vec![],
             fr: MultilinearExtensionImpl::new(fr).to_sumcheck_term(num_sumcheck_variables),
             mles: HashMap::new(),
         }
@@ -39,8 +41,27 @@ impl CompositePolynomialBuilder {
         assert!(!terms.is_empty());
         if terms.len() == 1 {
             terms[0].mul_add(&mut self.fr_multiplicands_degree1, mult);
-            return;
+        } else {
+            let multiplicand = self.create_multiplicand_with_deduplicated_mles(terms);
+            self.fr_multiplicands_rest.push((*mult, multiplicand));
         }
+    }
+    /// Produce a polynomial term of the form
+    ///    mult * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
+    pub fn produce_zerosum_multiplicand(
+        &mut self,
+        mult: &ArkScalar,
+        terms: &[Box<dyn MultilinearExtension + '_>],
+    ) {
+        assert!(!terms.is_empty());
+        let multiplicand = self.create_multiplicand_with_deduplicated_mles(terms);
+        self.zerosum_multiplicands.push((*mult, multiplicand));
+    }
+
+    fn create_multiplicand_with_deduplicated_mles(
+        &mut self,
+        terms: &[Box<dyn MultilinearExtension + '_>],
+    ) -> Vec<Rc<DenseMultilinearExtension>> {
         let mut terms_p = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
@@ -52,7 +73,7 @@ impl CompositePolynomialBuilder {
                 terms_p.push(term_p);
             }
         }
-        self.fr_multiplicands_rest.push((*mult, terms_p));
+        terms_p
     }
 
     /// Create a composite polynomial that is the sum of all of the
@@ -71,6 +92,10 @@ impl CompositePolynomialBuilder {
             let fr_iter = std::iter::once(self.fr.clone());
             let terms_iter = terms.iter().cloned();
             res.add_product(fr_iter.chain(terms_iter), *mult)
+        }
+        for (mult, terms) in self.zerosum_multiplicands.iter() {
+            let terms_iter = terms.iter().cloned();
+            res.add_product(terms_iter, *mult)
         }
 
         res.annotate_trace();

@@ -7,6 +7,7 @@ use hashbrown::HashMap;
  * See third_party/license/arkworks.LICENSE
  */
 use std::cmp::max;
+use std::fmt::Write;
 use std::rc::Rc;
 use std::vec::Vec;
 
@@ -127,10 +128,10 @@ impl CompositePolynomial {
         use ark_ff::{BigInteger, PrimeField};
         for i in 0..self.products.len() {
             let data = self.products[i].0 .0.into_bigint().to_bytes_be();
-            let data_as_string = data
-                .iter()
-                .map(|b| format!("{:02X}", b))
-                .collect::<String>();
+            let data_as_string: String = data.iter().fold(String::new(), |mut output, b| {
+                let _ = write!(output, "{b:02X}");
+                output
+            });
 
             let mut coefficient_string = String::from("0x");
             coefficient_string.push_str(&data_as_string[0..4]);

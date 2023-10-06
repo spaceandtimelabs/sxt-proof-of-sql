@@ -4,7 +4,7 @@ use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
-    VerificationBuilder,
+    SumcheckSubpolynomialType, VerificationBuilder,
 };
 use num_traits::One;
 
@@ -84,19 +84,22 @@ pub fn prover_evaluate_or<'a>(
     builder.produce_intermediate_mle(lhs_and_rhs);
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-        (
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(lhs_and_rhs))],
-        ),
-        (
-            -ArkScalar::one(),
-            vec![
-                Box::new(MultilinearExtensionImpl::new(lhs)),
-                Box::new(MultilinearExtensionImpl::new(rhs)),
-            ],
-        ),
-    ]));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(lhs_and_rhs))],
+            ),
+            (
+                -ArkScalar::one(),
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(lhs)),
+                    Box::new(MultilinearExtensionImpl::new(rhs)),
+                ],
+            ),
+        ],
+    ));
 
     // selection
     alloc.alloc_slice_fill_with(n, |i| lhs[i] || rhs[i])

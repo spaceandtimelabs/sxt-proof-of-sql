@@ -6,6 +6,7 @@ use super::{
 use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
 use crate::base::scalar::compute_commitment_for_testing;
 use crate::base::scalar::ArkScalar;
+use crate::sql::proof::SumcheckSubpolynomialType;
 use arrow::array::Int64Array;
 use arrow::datatypes::{Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -32,10 +33,13 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(col))],
-        )]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![(
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(col))],
+            )],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -94,10 +98,13 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(col))],
-        )]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![(
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(col))],
+            )],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -134,10 +141,13 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(col))],
-        )]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![(
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(col))],
+            )],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -175,10 +185,13 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(col))],
-        )]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![(
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(col))],
+            )],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -216,10 +229,13 @@ fn verify_fails_if_counts_dont_match() {
         let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-            ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(col))],
-        )]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![(
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(col))],
+            )],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -260,19 +276,22 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
@@ -348,19 +367,22 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
@@ -404,19 +426,22 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         builder.set_result_indexes(&INDEXES);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let res_eval = builder.consume_result_mle();
@@ -464,34 +489,40 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
 
         // poly2
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
@@ -582,34 +613,40 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
 
         // poly2
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -667,34 +704,40 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
 
         // poly2
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -757,34 +800,40 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
 
         // poly2
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -842,34 +891,40 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_intermediate_mle(&Z);
 
         // poly1
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&Z))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                    Box::new(MultilinearExtensionImpl::new(&X)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&Z))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
 
         // poly2
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(&RES))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                    Box::new(MultilinearExtensionImpl::new(&Z)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(&RES))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                        Box::new(MultilinearExtensionImpl::new(&Z)),
+                    ],
+                ),
+            ],
+        ));
     }
     fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);

@@ -6,7 +6,9 @@ use super::{
 use crate::base::database::{ColumnField, ColumnType};
 use crate::base::polynomial::CompositePolynomial;
 use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
-use crate::sql::proof::{compute_evaluation_vector, MultilinearExtension};
+use crate::sql::proof::{
+    compute_evaluation_vector, MultilinearExtension, SumcheckSubpolynomialType,
+};
 use num_traits::{One, Zero};
 
 use arrow::array::Int64Array;
@@ -61,24 +63,40 @@ fn we_can_evaluate_pre_result_mles() {
 fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let mle1 = [1, 2, -1];
     let mle2 = [10u32, 20, 100, 30];
+    let mle3 = [2000u32, 3000, 5000, 7000];
     let mut builder = ProofBuilder::new(4, 2);
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2);
+    builder.produce_intermediate_mle(&mle3);
 
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-        -ArkScalar::one(),
-        vec![Box::new(MultilinearExtensionImpl::new(&mle1))],
-    )]));
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-        -ArkScalar::from(10u64),
-        vec![Box::new(MultilinearExtensionImpl::new(&mle2))],
-    )]));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        vec![(
+            -ArkScalar::one(),
+            vec![Box::new(MultilinearExtensionImpl::new(&mle1))],
+        )],
+    ));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        vec![(
+            -ArkScalar::from(10u64),
+            vec![Box::new(MultilinearExtensionImpl::new(&mle2))],
+        )],
+    ));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::ZeroSum,
+        vec![(
+            ArkScalar::from(9876u64),
+            vec![Box::new(MultilinearExtensionImpl::new(&mle3))],
+        )],
+    ));
 
     let multipliers = [
         ArkScalar::from(5u64),
         ArkScalar::from(2u64),
         ArkScalar::from(50u64),
         ArkScalar::from(25u64),
+        ArkScalar::from(11u64),
     ];
 
     let mut evaluation_vector = vec![Zero::zero(); 4];
@@ -97,6 +115,10 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     expected_poly.add_product(
         [fr, MultilinearExtensionImpl::new(&mle2).to_sumcheck_term(2)],
         -ArkScalar::from(10u64) * multipliers[3],
+    );
+    expected_poly.add_product(
+        [MultilinearExtensionImpl::new(&mle3).to_sumcheck_term(2)],
+        ArkScalar::from(9876u64) * multipliers[4],
     );
     let random_point = [ArkScalar::from(123u64), ArkScalar::from(101112u64)];
     let eval = poly.evaluate(&random_point);
