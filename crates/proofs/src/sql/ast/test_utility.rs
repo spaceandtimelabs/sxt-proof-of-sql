@@ -2,9 +2,10 @@ use super::{
     AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
     TableExpr,
 };
-use crate::base::database::SchemaAccessor;
-use crate::base::database::{ColumnRef, TableRef, TestAccessor};
-use crate::base::scalar::ArkScalar;
+use crate::base::{
+    database::{ColumnRef, SchemaAccessor, TableRef, TestAccessor},
+    scalar::ArkScalar,
+};
 
 pub fn col(tab: TableRef, name: &str, accessor: &TestAccessor) -> ColumnRef {
     let name = name.parse().unwrap();

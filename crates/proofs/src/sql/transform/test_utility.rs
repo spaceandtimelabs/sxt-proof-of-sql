@@ -1,12 +1,10 @@
 use super::{GroupByExpr, OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
-use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-use crate::sql::transform::CompositionExpr;
-use crate::sql::transform::DataFrameExpr;
-
-use polars::prelude::DataType;
+use crate::{
+    base::database::{INT128_PRECISION, INT128_SCALE},
+    sql::transform::{CompositionExpr, DataFrameExpr},
+};
+use polars::prelude::{col, DataType, Expr, Literal, Series};
 use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
-
-use polars::prelude::{col, Expr, Literal, Series};
 
 pub fn lit(value: i128) -> Expr {
     let literal = [value.to_string()].into_iter().collect::<Series>().lit();

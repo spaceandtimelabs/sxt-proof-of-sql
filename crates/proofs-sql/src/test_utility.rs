@@ -1,6 +1,4 @@
-use crate::intermediate_ast::*;
-use crate::Identifier;
-use crate::SelectStatement;
+use crate::{intermediate_ast::*, Identifier, SelectStatement};
 use std::ops;
 
 pub fn equal<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {

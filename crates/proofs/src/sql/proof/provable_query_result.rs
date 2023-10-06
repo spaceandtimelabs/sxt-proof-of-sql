@@ -1,14 +1,16 @@
-use super::QueryError;
 use super::{
     are_indexes_valid, decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn,
-    QueryResult,
+    QueryError, QueryResult,
 };
-use crate::base::database::{ColumnField, ColumnType};
-
-use crate::base::scalar::ArkScalar;
-use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::{Field, Schema};
-use arrow::record_batch::RecordBatch;
+use crate::base::{
+    database::{ColumnField, ColumnType},
+    scalar::ArkScalar,
+};
+use arrow::{
+    array::{Array, Decimal128Array, Int64Array, StringArray},
+    datatypes::{Field, Schema},
+    record_batch::RecordBatch,
+};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

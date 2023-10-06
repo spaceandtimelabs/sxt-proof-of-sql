@@ -1,10 +1,7 @@
-use crate::base::polynomial::DenseMultilinearExtension;
-use crate::base::scalar::ArkScalar;
-use crate::base::slice_ops;
+use crate::base::{polynomial::DenseMultilinearExtension, scalar::ArkScalar, slice_ops};
 use num_traits::Zero;
 use rayon::iter::*;
-use std::ffi::c_void;
-use std::rc::Rc;
+use std::{ffi::c_void, rc::Rc};
 
 /// Interface for operating on multilinear extension's in-place
 pub trait MultilinearExtension {

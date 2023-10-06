@@ -92,10 +92,10 @@ macro_rules! record_batch {
 #[cfg(test)]
 mod tests {
     use crate::record_batch;
-
-    use arrow::datatypes::Field;
-    use arrow::datatypes::Schema;
-    use arrow::record_batch::RecordBatch;
+    use arrow::{
+        datatypes::{Field, Schema},
+        record_batch::RecordBatch,
+    };
     use std::sync::Arc;
 
     #[test]

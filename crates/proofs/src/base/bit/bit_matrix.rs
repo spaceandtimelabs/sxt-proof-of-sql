@@ -1,6 +1,7 @@
-use crate::base::bit::make_abs_bit_mask;
-use crate::base::bit::BitDistribution;
-use crate::base::scalar::ArkScalar;
+use crate::base::{
+    bit::{make_abs_bit_mask, BitDistribution},
+    scalar::ArkScalar,
+};
 use bumpalo::Bump;
 
 /// Let x1, ..., xn denote the values of a data column. Let

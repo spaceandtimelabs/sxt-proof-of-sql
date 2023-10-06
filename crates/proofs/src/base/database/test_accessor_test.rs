@@ -2,12 +2,12 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     SchemaAccessor, TestAccessor,
 };
-use crate::base::scalar::compute_commitment_for_testing;
-use crate::record_batch;
-
-use arrow::array::Int64Array;
-use arrow::datatypes::{DataType, Field, Schema};
-use arrow::record_batch::RecordBatch;
+use crate::{base::scalar::compute_commitment_for_testing, record_batch};
+use arrow::{
+    array::Int64Array,
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use polars::prelude::*;
 use std::sync::Arc;
 

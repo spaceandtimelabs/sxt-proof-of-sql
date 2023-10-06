@@ -1,7 +1,10 @@
-use crate::record_batch;
-use crate::sql::proof::TransformExpr;
-use crate::sql::transform::{test_utility::select, ResultExpr};
-
+use crate::{
+    record_batch,
+    sql::{
+        proof::TransformExpr,
+        transform::{test_utility::select, ResultExpr},
+    },
+};
 use arrow::record_batch::RecordBatch;
 use polars::prelude::{col, lit};
 

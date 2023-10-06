@@ -1,14 +1,14 @@
-use polars::prelude::{col, Expr};
-
 use crate::sql::transform::{
     CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SafeDivision, SelectExpr,
     SliceExpr,
 };
-
-use proofs_sql::intermediate_ast::{
-    AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, Slice,
+use polars::prelude::{col, Expr};
+use proofs_sql::{
+    intermediate_ast::{
+        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, Slice,
+    },
+    Identifier,
 };
-use proofs_sql::Identifier;
 
 /// A builder for `ResultExpr` nodes.
 #[derive(Default)]

@@ -1,8 +1,8 @@
-use crate::base::database::Column;
-
-use crate::base::scalar::ArkScalar;
-use arrow::array::{Array, ArrayRef, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::DataType;
+use crate::base::{database::Column, scalar::ArkScalar};
+use arrow::{
+    array::{Array, ArrayRef, Decimal128Array, Int64Array, StringArray},
+    datatypes::DataType,
+};
 use bumpalo::Bump;
 use std::ops::Range;
 
@@ -116,7 +116,6 @@ impl ArrayRefExt for ArrayRef {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use std::sync::Arc;
 
     #[test]

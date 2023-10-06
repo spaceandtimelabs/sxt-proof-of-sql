@@ -1,6 +1,4 @@
-use crate::base::bit::BitDistribution;
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
+use crate::base::{bit::BitDistribution, proof::ProofError, scalar::ArkScalar};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
 

@@ -3,10 +3,14 @@ use super::{
     prover_evaluate_sign, verifier_evaluate_equals_zero, verifier_evaluate_or,
     verifier_evaluate_sign, BoolExpr,
 };
-use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
-use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
+use crate::{
+    base::{
+        database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
+        proof::ProofError,
+        scalar::ArkScalar,
+    },
+    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+};
 use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;

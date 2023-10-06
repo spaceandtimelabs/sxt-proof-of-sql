@@ -1,5 +1,4 @@
 use crate::base::{proof::transcript_protocol::*, scalar::ArkScalar};
-
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 

@@ -1,8 +1,6 @@
-use std::rc::Rc;
-
-use crate::base::scalar::ArkScalar;
-
 use super::CompositePolynomial;
+use crate::base::scalar::ArkScalar;
+use std::rc::Rc;
 
 #[test]
 fn test_composite_polynomial_evaluation() {

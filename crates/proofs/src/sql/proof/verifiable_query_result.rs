@@ -1,12 +1,16 @@
 use super::{ProofExpr, ProvableQueryResult, QueryProof, TransformExpr};
-use crate::base::database::ColumnType;
-
-use crate::base::database::{ColumnField, CommitmentAccessor, DataAccessor};
-use crate::base::proof::ProofError;
-use crate::sql::proof::QueryResult;
-use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::{Field, Schema};
-use arrow::record_batch::RecordBatch;
+use crate::{
+    base::{
+        database::{ColumnField, ColumnType, CommitmentAccessor, DataAccessor},
+        proof::ProofError,
+    },
+    sql::proof::QueryResult,
+};
+use arrow::{
+    array::{Array, Decimal128Array, Int64Array, StringArray},
+    datatypes::{Field, Schema},
+    record_batch::RecordBatch,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

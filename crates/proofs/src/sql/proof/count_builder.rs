@@ -1,7 +1,7 @@
-use crate::sql::proof::ProofCounts;
-
-use crate::base::bit::BitDistribution;
-use crate::base::proof::ProofError;
+use crate::{
+    base::{bit::BitDistribution, proof::ProofError},
+    sql::proof::ProofCounts,
+};
 use std::cmp::max;
 
 /// Track the number of components expected for in a query's proof

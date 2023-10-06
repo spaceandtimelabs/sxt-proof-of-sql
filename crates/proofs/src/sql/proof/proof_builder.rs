@@ -2,16 +2,13 @@ use super::{
     CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
-use crate::base::bit::BitDistribution;
-use crate::base::polynomial::CompositePolynomial;
-use crate::base::scalar::ArkScalar;
-use crate::base::slice_ops;
-use blitzar::compute::compute_commitments;
-use blitzar::sequence::Sequence;
+use crate::base::{
+    bit::BitDistribution, polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops,
+};
+use blitzar::{compute::compute_commitments, sequence::Sequence};
 use bumpalo::Bump;
-use num_traits::Zero;
-
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
+use num_traits::Zero;
 
 /// Track components used to form a query's proof
 pub struct ProofBuilder<'a> {

@@ -1,8 +1,11 @@
 use super::group_by_map_i128_to_utf8;
-use crate::record_batch;
-use crate::sql::proof::TransformExpr;
-use crate::sql::transform::test_utility::{composite_result, groupby};
-
+use crate::{
+    record_batch,
+    sql::{
+        proof::TransformExpr,
+        transform::test_utility::{composite_result, groupby},
+    },
+};
 use arrow::record_batch::RecordBatch;
 use polars::prelude::{col, lit};
 use rand::Rng;

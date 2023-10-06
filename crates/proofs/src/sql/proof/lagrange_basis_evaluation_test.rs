@@ -1,11 +1,12 @@
-use crate::base::scalar::ArkScalar;
+use crate::{
+    base::scalar::ArkScalar,
+    sql::proof::{
+        compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
+        compute_truncated_lagrange_basis_sum,
+    },
+};
 use num_traits::Zero;
 use std::iter;
-
-use crate::sql::proof::{
-    compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
-    compute_truncated_lagrange_basis_sum,
-};
 
 #[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_0_variables() {

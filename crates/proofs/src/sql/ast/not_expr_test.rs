@@ -1,12 +1,17 @@
-use crate::base::database::{
-    make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+use crate::{
+    base::{
+        database::{
+            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+        },
+        scalar::ArkScalar,
+    },
+    record_batch,
+    sql::ast::{
+        test_expr::TestExprNode,
+        test_utility::{equal, not},
+    },
 };
-use crate::base::scalar::ArkScalar;
-use crate::record_batch;
-use crate::sql::ast::test_expr::TestExprNode;
-use crate::sql::ast::test_utility::{equal, not};
 use arrow::record_batch::RecordBatch;
-
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},

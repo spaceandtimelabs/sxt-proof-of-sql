@@ -1,5 +1,7 @@
-use polars::error::ErrString;
-use polars::prelude::{DataType, Expr, GetOutput, PolarsError, PolarsResult, Series};
+use polars::{
+    error::ErrString,
+    prelude::{DataType, Expr, GetOutput, PolarsError, PolarsResult, Series},
+};
 
 fn series_to_i64_slice(series: &Series) -> &[i64] {
     series
@@ -70,14 +72,15 @@ impl SafeDivision for Expr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::record_batch as batch;
-    use crate::sql::proof::TransformExpr;
-    use crate::sql::transform::polars_conversions::LiteralConversion;
-    use crate::sql::transform::{test_utility::select, ResultExpr};
-
+    use crate::{
+        record_batch as batch,
+        sql::{
+            proof::TransformExpr,
+            transform::{polars_conversions::LiteralConversion, test_utility::select, ResultExpr},
+        },
+    };
     use polars::prelude::col;
-    use rand::distributions::Uniform;
-    use rand::Rng;
+    use rand::{distributions::Uniform, Rng};
 
     const MAX_I64: i128 = i64::MAX as i128;
     const MIN_I64: i128 = i64::MIN as i128;

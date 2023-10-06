@@ -1,5 +1,4 @@
 use super::*;
-
 use crate::base::scalar::ArkScalar;
 use num_traits::{One, Zero};
 

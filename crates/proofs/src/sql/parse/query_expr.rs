@@ -1,24 +1,25 @@
-use crate::sql::ast::FilterExpr;
-use crate::sql::proof::{
-    CountBuilder, ProofBuilder, ProofExpr, TransformExpr, VerificationBuilder,
-};
-use crate::sql::transform::ResultExpr;
-use std::collections::HashSet;
-
 use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
-use crate::base::database::{ColumnField, ColumnRef, SchemaAccessor};
-use crate::base::database::{CommitmentAccessor, DataAccessor, MetadataAccessor};
-use crate::base::proof::ProofError;
-use crate::sql::parse::ConversionResult;
-
-use proofs_sql::intermediate_ast::SetExpression;
-use proofs_sql::{Identifier, SelectStatement};
-
+use crate::{
+    base::{
+        database::{
+            ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            SchemaAccessor,
+        },
+        proof::ProofError,
+    },
+    sql::{
+        ast::FilterExpr,
+        parse::ConversionResult,
+        proof::{CountBuilder, ProofBuilder, ProofExpr, TransformExpr, VerificationBuilder},
+        transform::ResultExpr,
+    },
+};
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
+use proofs_sql::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 #[derive(DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct QueryExpr {

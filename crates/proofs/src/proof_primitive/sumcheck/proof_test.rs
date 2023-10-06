@@ -1,17 +1,17 @@
+use crate::base::{
+    polynomial::{CompositePolynomial, DenseMultilinearExtension},
+    proof::{MessageLabel, TranscriptProtocol},
+    scalar::ArkScalar,
+};
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use crate::proof_primitive::sumcheck::proof::*;
-use num_traits::{One, Zero};
-
-use crate::base::scalar::ArkScalar;
 use merlin::Transcript;
+use num_traits::{One, Zero};
 use std::rc::Rc;
-
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
-use crate::base::proof::{MessageLabel, TranscriptProtocol};
 
 #[test]
 fn test_create_verify_proof() {
