@@ -166,7 +166,6 @@ impl MessageLabel {
 }
 
 fn points_as_byte_slice(slice: &[CompressedRistretto]) -> &[u8] {
-    let slice = slice;
     let len = std::mem::size_of_val(slice);
     unsafe { core::slice::from_raw_parts(slice.as_ptr() as *const u8, len) }
 }

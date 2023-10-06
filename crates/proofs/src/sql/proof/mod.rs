@@ -60,7 +60,7 @@ mod query_result;
 pub use query_result::{QueryError, QueryResult};
 
 mod sumcheck_subpolynomial;
-pub use sumcheck_subpolynomial::SumcheckSubpolynomial;
+pub use sumcheck_subpolynomial::{SumcheckSubpolynomial, SumcheckSubpolynomialType};
 
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;
