@@ -1,11 +1,10 @@
 use super::{MultilinearExtension, MultilinearExtensionImpl};
-
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
-use crate::base::scalar::ArkScalar;
+use crate::base::{
+    polynomial::{CompositePolynomial, DenseMultilinearExtension},
+    scalar::ArkScalar,
+};
 use num_traits::{One, Zero};
-use std::collections::HashMap;
-use std::ffi::c_void;
-use std::rc::Rc;
+use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder {

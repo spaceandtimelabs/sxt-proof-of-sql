@@ -3,24 +3,24 @@ use super::{
     ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr,
     VerificationBuilder,
 };
-
-use crate::base::slice_ops;
-use crate::base::{
-    bit::BitDistribution,
-    database::{CommitmentAccessor, DataAccessor},
-    polynomial::CompositePolynomialInfo,
-    proof::{MessageLabel, ProofError, TranscriptProtocol},
+use crate::{
+    base::{
+        bit::BitDistribution,
+        database::{CommitmentAccessor, DataAccessor},
+        math::log2_up,
+        polynomial::CompositePolynomialInfo,
+        proof::{MessageLabel, ProofError, TranscriptProtocol},
+        scalar::ArkScalar,
+        slice_ops,
+    },
+    proof_primitive::sumcheck::SumcheckProof,
 };
-use crate::proof_primitive::sumcheck::SumcheckProof;
 use blitzar::proof::InnerProductProof;
-use num_traits::Zero;
-
-use crate::base::math::log2_up;
-use crate::base::scalar::ArkScalar;
 use bumpalo::Bump;
 use byte_slice_cast::AsByteSlice;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::cmp;
 

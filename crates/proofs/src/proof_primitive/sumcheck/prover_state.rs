@@ -1,11 +1,10 @@
+use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::ArkScalar;
-
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
 
 pub struct ProverState {
     /// sampled randomness given by the verifier

@@ -1,16 +1,17 @@
 use super::ConversionError;
-use crate::base::database::{ColumnType, TableRef, TestAccessor};
-use crate::record_batch;
-use crate::sql::ast::{test_utility::*, FilterExpr};
-use crate::sql::parse::QueryExpr;
-use crate::sql::transform::test_utility::*;
-use crate::sql::transform::LiteralConversion;
-
+use crate::{
+    base::database::{ColumnType, TableRef, TestAccessor},
+    record_batch,
+    sql::{
+        ast::{test_utility::*, FilterExpr},
+        parse::QueryExpr,
+        transform::{test_utility::*, LiteralConversion},
+    },
+};
 use arrow::record_batch::RecordBatch;
 use itertools::Itertools;
 use polars::prelude::col as pc;
-use proofs_sql::intermediate_ast::OrderByDirection::*;
-use proofs_sql::sql::SelectStatementParser;
+use proofs_sql::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
 
 fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();

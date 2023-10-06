@@ -2,18 +2,20 @@ use super::{
     DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, SumcheckRandomScalars,
     SumcheckSubpolynomial,
 };
-
-use crate::base::database::{ColumnField, ColumnType};
-use crate::base::polynomial::CompositePolynomial;
-use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
-use crate::sql::proof::{
-    compute_evaluation_vector, MultilinearExtension, SumcheckSubpolynomialType,
+use crate::{
+    base::{
+        database::{ColumnField, ColumnType},
+        polynomial::CompositePolynomial,
+        scalar::{compute_commitment_for_testing, ArkScalar},
+    },
+    sql::proof::{compute_evaluation_vector, MultilinearExtension, SumcheckSubpolynomialType},
+};
+use arrow::{
+    array::Int64Array,
+    datatypes::{Field, Schema},
+    record_batch::RecordBatch,
 };
 use num_traits::{One, Zero};
-
-use arrow::array::Int64Array;
-use arrow::datatypes::{Field, Schema};
-use arrow::record_batch::RecordBatch;
 use std::sync::Arc;
 
 #[test]

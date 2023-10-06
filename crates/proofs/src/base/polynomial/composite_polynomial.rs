@@ -1,5 +1,4 @@
-use crate::base::polynomial::DenseMultilinearExtension;
-
+use crate::base::{polynomial::DenseMultilinearExtension, scalar::ArkScalar};
 use hashbrown::HashMap;
 /**
  * Adopted from arkworks
@@ -7,11 +6,7 @@ use hashbrown::HashMap;
  * See third_party/license/arkworks.LICENSE
  */
 use std::cmp::max;
-use std::fmt::Write;
-use std::rc::Rc;
-use std::vec::Vec;
-
-use crate::base::scalar::ArkScalar;
+use std::{fmt::Write, rc::Rc, vec::Vec};
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///

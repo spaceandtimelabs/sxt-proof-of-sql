@@ -1,10 +1,6 @@
+use crate::{sql::IdentifierParser, ParseError, ParseResult};
 use arrayvec::ArrayString;
-
-use crate::sql::IdentifierParser;
-use crate::{ParseError, ParseResult};
-use std::cmp::Ordering;
-use std::fmt;
-use std::str::FromStr;
+use std::{cmp::Ordering, fmt, str::FromStr};
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]

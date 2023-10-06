@@ -1,5 +1,4 @@
-use crate::sql::ResourceIdParser;
-use crate::{impl_serde_from_str, Identifier, ParseError, ParseResult};
+use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
 use std::{
     fmt::{self, Display},
     str::FromStr,

@@ -1,13 +1,9 @@
-use super::{dataframe_to_record_batch, record_batch_to_dataframe};
 use super::{
-    ArrayRefExt, Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-    SchemaAccessor, TableRef,
+    dataframe_to_record_batch, record_batch_to_dataframe, ArrayRefExt, Column, ColumnRef,
+    ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
 };
 use crate::base::scalar::compute_commitment_for_testing;
-
-use arrow::array::ArrayRef;
-use arrow::datatypes::DataType;
-use arrow::record_batch::RecordBatch;
+use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use indexmap::IndexMap;

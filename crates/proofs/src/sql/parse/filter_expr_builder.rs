@@ -1,12 +1,14 @@
-use crate::base::database::{ColumnRef, TableRef};
-use crate::sql::ast::{
-    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
-    TableExpr,
+use crate::{
+    base::database::{ColumnRef, TableRef},
+    sql::ast::{
+        AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr,
+        OrExpr, TableExpr,
+    },
 };
-
-use proofs_sql::intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator};
-use proofs_sql::Identifier;
-
+use proofs_sql::{
+    intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
+    Identifier,
+};
 use std::collections::{HashMap, HashSet};
 
 pub struct FilterExprBuilder {

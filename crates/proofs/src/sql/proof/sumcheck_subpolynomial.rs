@@ -1,6 +1,5 @@
-use crate::base::scalar::ArkScalar;
-
 use super::{CompositePolynomialBuilder, MultilinearExtension};
+use crate::base::scalar::ArkScalar;
 
 pub enum SumcheckSubpolynomialType {
     Identity,

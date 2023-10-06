@@ -2,14 +2,18 @@ use super::{
     DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, ProofCounts, ProofExpr,
     QueryProof, SumcheckSubpolynomial, TestQueryExpr, VerificationBuilder,
 };
-
-use crate::base::database::{CommitmentAccessor, DataAccessor, TestAccessor};
-use crate::base::scalar::compute_commitment_for_testing;
-use crate::base::scalar::ArkScalar;
-use crate::sql::proof::SumcheckSubpolynomialType;
-use arrow::array::Int64Array;
-use arrow::datatypes::{Field, Schema};
-use arrow::record_batch::RecordBatch;
+use crate::{
+    base::{
+        database::{CommitmentAccessor, DataAccessor, TestAccessor},
+        scalar::{compute_commitment_for_testing, ArkScalar},
+    },
+    sql::proof::SumcheckSubpolynomialType,
+};
+use arrow::{
+    array::Int64Array,
+    datatypes::{Field, Schema},
+    record_batch::RecordBatch,
+};
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use num_traits::{One, Zero};

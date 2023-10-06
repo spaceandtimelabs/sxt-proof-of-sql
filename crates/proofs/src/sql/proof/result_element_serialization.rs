@@ -1,7 +1,5 @@
-use crate::base::encode::read_scalar_varint;
+use crate::base::{encode::read_scalar_varint, scalar::ArkScalar};
 use integer_encoding::VarInt;
-
-use crate::base::scalar::ArkScalar;
 
 pub trait EncodeProvableResultElement {
     fn required_bytes(&self) -> usize;

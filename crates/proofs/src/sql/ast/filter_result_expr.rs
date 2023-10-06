@@ -1,8 +1,13 @@
-use crate::base::database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::scalar::ArkScalar;
-use crate::sql::proof::{
-    CountBuilder, DenseProvableResultColumn, EncodeProvableResultElement, MultilinearExtensionImpl,
-    ProofBuilder, SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+use crate::{
+    base::{
+        database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor},
+        scalar::ArkScalar,
+    },
+    sql::proof::{
+        CountBuilder, DenseProvableResultColumn, EncodeProvableResultElement,
+        MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial, SumcheckSubpolynomialType,
+        VerificationBuilder,
+    },
 };
 use bumpalo::Bump;
 use num_traits::One;

@@ -1,6 +1,5 @@
-use std::str::FromStr;
-
 use proofs_sql::{impl_serde_from_str, Identifier, ResourceId};
+use std::str::FromStr;
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]

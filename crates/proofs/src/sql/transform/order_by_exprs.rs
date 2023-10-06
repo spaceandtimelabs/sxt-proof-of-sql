@@ -1,11 +1,9 @@
 use super::DataFrameExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-
 use arrow::datatypes::ArrowNativeTypeOp;
-use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
-
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
+use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
 use serde::{Deserialize, Serialize};
 
 /// A node representing a list of `OrderBy` expressions.

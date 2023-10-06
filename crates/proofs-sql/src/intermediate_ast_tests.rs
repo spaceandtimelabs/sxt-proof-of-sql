@@ -1,7 +1,9 @@
-use crate::intermediate_ast::OrderByDirection::{Asc, Desc};
-use crate::sql::*;
-use crate::test_utility::*;
-use crate::SelectStatement;
+use crate::{
+    intermediate_ast::OrderByDirection::{Asc, Desc},
+    sql::*,
+    test_utility::*,
+    SelectStatement,
+};
 
 // Sting parser tests
 #[test]

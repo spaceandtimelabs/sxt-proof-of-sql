@@ -2,9 +2,10 @@ use super::{
     is_within_acceptable_range, verify_constant_abs_decomposition,
     verify_constant_sign_decomposition,
 };
-
-use crate::base::bit::BitDistribution;
-use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
+use crate::base::{
+    bit::BitDistribution,
+    scalar::{compute_commitment_for_testing, ArkScalar},
+};
 use blitzar::compute::get_one_commit;
 
 #[test]

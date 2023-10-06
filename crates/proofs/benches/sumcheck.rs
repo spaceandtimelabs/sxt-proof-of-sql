@@ -2,8 +2,10 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use merlin::Transcript;
 use num_traits::{One, Zero};
 use proofs::{
-    base::polynomial::{CompositePolynomial, DenseMultilinearExtension},
-    base::scalar::ArkScalar,
+    base::{
+        polynomial::{CompositePolynomial, DenseMultilinearExtension},
+        scalar::ArkScalar,
+    },
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};

@@ -1,8 +1,9 @@
 use crate::base::database::ColumnType;
-
-use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
-use arrow::record_batch::RecordBatch;
+use arrow::{
+    array::{Array, Decimal128Array, Int64Array, StringArray},
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
@@ -81,7 +82,6 @@ pub fn make_random_test_accessor_data(
 mod tests {
     use super::*;
     use crate::record_batch;
-
     use rand_core::SeedableRng;
 
     #[test]

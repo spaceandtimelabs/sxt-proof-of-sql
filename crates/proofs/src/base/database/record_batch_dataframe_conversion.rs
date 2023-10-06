@@ -1,9 +1,13 @@
-use arrow::array::{Array, Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
-use arrow::record_batch::RecordBatch;
-use polars::frame::DataFrame;
-use polars::prelude::{ChunkedArray, NamedFrom};
-use polars::series::{IntoSeries, Series};
+use arrow::{
+    array::{Array, Decimal128Array, Int64Array, StringArray},
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
+use polars::{
+    frame::DataFrame,
+    prelude::{ChunkedArray, NamedFrom},
+    series::{IntoSeries, Series},
+};
 use std::sync::Arc;
 
 /// Convert a RecordBatch to a polars DataFrame

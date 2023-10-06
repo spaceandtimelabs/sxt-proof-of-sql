@@ -1,7 +1,6 @@
+use super::*;
 use crate::base::scalar::ArkScalar;
 use curve25519_dalek::scalar::Scalar;
-
-use super::*;
 
 #[test]
 fn test_slice_map_to_vec() {

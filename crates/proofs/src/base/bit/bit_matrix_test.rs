@@ -1,7 +1,5 @@
 use super::*;
-
-use crate::base::bit::BitDistribution;
-use crate::base::scalar::ArkScalar;
+use crate::base::{bit::BitDistribution, scalar::ArkScalar};
 use bumpalo::Bump;
 use num_traits::{One, Zero};
 

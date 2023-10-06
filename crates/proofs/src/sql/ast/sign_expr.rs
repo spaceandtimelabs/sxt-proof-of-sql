@@ -2,17 +2,18 @@ use super::{
     is_within_acceptable_range, verify_constant_abs_decomposition,
     verify_constant_sign_decomposition,
 };
-use crate::base::bit::{compute_varying_bit_matrix, BitDistribution};
-
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
-use crate::sql::proof::{
-    CountBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofBuilder,
-    SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+use crate::{
+    base::{
+        bit::{compute_varying_bit_matrix, BitDistribution},
+        proof::ProofError,
+        scalar::ArkScalar,
+    },
+    sql::proof::{
+        CountBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofBuilder,
+        SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+    },
 };
-
 use bumpalo::Bump;
-
 use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::{One, Zero};
 

@@ -1,18 +1,16 @@
-use std::ops::Deref;
-
 use super::QueryContext;
-use crate::base::database::SchemaAccessor;
-use crate::base::database::TableRef;
-use crate::base::database::{ColumnRef, ColumnType};
-use crate::sql::parse::{ConversionError, ConversionResult};
-
-use proofs_sql::intermediate_ast::BinaryOperator;
-use proofs_sql::intermediate_ast::TableExpression;
-use proofs_sql::intermediate_ast::UnaryOperator;
-use proofs_sql::intermediate_ast::{
-    AggregationOperator, AliasedResultExpr, Expression, Literal, OrderBy, SelectResultExpr, Slice,
+use crate::{
+    base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
+    sql::parse::{ConversionError, ConversionResult},
 };
-use proofs_sql::{Identifier, ResourceId};
+use proofs_sql::{
+    intermediate_ast::{
+        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
+        SelectResultExpr, Slice, TableExpression, UnaryOperator,
+    },
+    Identifier, ResourceId,
+};
+use std::ops::Deref;
 
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,

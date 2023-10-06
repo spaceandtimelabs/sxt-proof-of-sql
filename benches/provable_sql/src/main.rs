@@ -1,13 +1,18 @@
 use blitzar::compute::{init_backend_with_config, BackendConfig};
 use clap::Parser;
-use proofs::base::database::{
-    make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+use proofs::{
+    base::{
+        database::{
+            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+        },
+        proof::ProofError,
+    },
+    sql::{
+        parse::QueryExpr,
+        proof::{QueryResult, VerifiableQueryResult},
+    },
 };
-use proofs::base::proof::ProofError;
-use proofs::sql::parse::QueryExpr;
-use proofs::sql::proof::{QueryResult, VerifiableQueryResult};
-use rand::rngs::StdRng;
-use rand::SeedableRng;
+use rand::{rngs::StdRng, SeedableRng};
 use std::time::Instant;
 
 #[cfg(feature = "valgrind")]

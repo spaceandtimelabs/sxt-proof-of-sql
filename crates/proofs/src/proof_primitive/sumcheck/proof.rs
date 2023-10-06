@@ -1,16 +1,19 @@
-use crate::base::scalar::ArkScalar;
+use crate::{
+    base::{
+        polynomial::{CompositePolynomial, CompositePolynomialInfo},
+        proof::{MessageLabel, ProofError, TranscriptProtocol},
+        scalar::ArkScalar,
+    },
+    proof_primitive::sumcheck::{prove_round, ProverState, Subclaim},
+};
+use merlin::Transcript;
+use serde::{Deserialize, Serialize};
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use std::vec::Vec;
-
-use crate::base::polynomial::{CompositePolynomial, CompositePolynomialInfo};
-use crate::base::proof::{MessageLabel, ProofError, TranscriptProtocol};
-use crate::proof_primitive::sumcheck::{prove_round, ProverState, Subclaim};
-use merlin::Transcript;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof {

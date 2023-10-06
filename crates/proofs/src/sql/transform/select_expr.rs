@@ -1,5 +1,4 @@
 use super::DataFrameExpr;
-
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{Expr, LazyFrame};
 use serde::{Deserialize, Serialize};

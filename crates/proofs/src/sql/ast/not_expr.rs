@@ -1,9 +1,14 @@
-use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
-use crate::sql::ast::BoolExpr;
-use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
-
+use crate::{
+    base::{
+        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        proof::ProofError,
+        scalar::ArkScalar,
+    },
+    sql::{
+        ast::BoolExpr,
+        proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    },
+};
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};

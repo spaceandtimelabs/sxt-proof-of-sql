@@ -1,6 +1,5 @@
-use polars::prelude::{DataType, Expr, Literal, Series};
-
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
+use polars::prelude::{DataType, Expr, Literal, Series};
 
 pub trait LiteralConversion {
     fn to_lit(&self) -> Expr;
@@ -25,9 +24,13 @@ impl LiteralConversion for i128 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::record_batch as batch;
-    use crate::sql::proof::TransformExpr;
-    use crate::sql::transform::{test_utility::select, ResultExpr};
+    use crate::{
+        record_batch as batch,
+        sql::{
+            proof::TransformExpr,
+            transform::{test_utility::select, ResultExpr},
+        },
+    };
 
     const MAX_I64: i128 = i64::MAX as i128;
     const MIN_I64: i128 = i64::MIN as i128;

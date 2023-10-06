@@ -1,6 +1,5 @@
-use thiserror::Error;
-
 use proofs_sql::{Identifier, ResourceId};
+use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Error, Debug, PartialEq, Eq)]

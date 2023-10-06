@@ -4,9 +4,7 @@
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::ArkScalar;
-
-use crate::base::polynomial::interpolate_uni_poly;
-use crate::base::proof::ProofError;
+use crate::base::{polynomial::interpolate_uni_poly, proof::ProofError};
 
 pub struct Subclaim {
     pub evaluation_point: Vec<ArkScalar>,

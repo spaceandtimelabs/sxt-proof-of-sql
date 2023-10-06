@@ -1,15 +1,15 @@
 use super::{BoolExpr, FilterResultExpr, TableExpr};
-use std::collections::HashSet;
-
-use crate::base::database::{
-    ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+use crate::{
+    base::{
+        database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
+        proof::ProofError,
+    },
+    sql::proof::{CountBuilder, ProofBuilder, ProofExpr, VerificationBuilder},
 };
-use crate::base::proof::ProofError;
-use crate::sql::proof::{CountBuilder, ProofBuilder, ProofExpr, VerificationBuilder};
-
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore

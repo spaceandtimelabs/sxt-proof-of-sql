@@ -1,10 +1,10 @@
 use super::{ProofCounts, TestQueryExpr, VerifiableQueryResult};
-
 use crate::base::database::TestAccessor;
-
-use arrow::array::Int64Array;
-use arrow::datatypes::{DataType, Field, Schema};
-use arrow::record_batch::RecordBatch;
+use arrow::{
+    array::Int64Array,
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use std::sync::Arc;
 
 #[test]

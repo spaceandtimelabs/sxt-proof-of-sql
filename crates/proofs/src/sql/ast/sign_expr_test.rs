@@ -1,12 +1,15 @@
 use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
-
-use crate::base::bit::BitDistribution;
-use crate::base::database::TestAccessor;
-use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
-use crate::record_batch;
-
-use crate::sql::proof::{
-    CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
+use crate::{
+    base::{
+        bit::BitDistribution,
+        database::TestAccessor,
+        scalar::{compute_commitment_for_testing, ArkScalar},
+    },
+    record_batch,
+    sql::proof::{
+        CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+        VerificationBuilder,
+    },
 };
 use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
