@@ -1,7 +1,7 @@
-use crate::base::database::{dataframe_to_record_batch, record_batch_to_dataframe};
-use crate::sql::proof::TransformExpr;
-use crate::sql::transform::DataFrameExpr;
-
+use crate::{
+    base::database::{dataframe_to_record_batch, record_batch_to_dataframe},
+    sql::{proof::TransformExpr, transform::DataFrameExpr},
+};
 use arrow::record_batch::RecordBatch;
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::IntoLazy;

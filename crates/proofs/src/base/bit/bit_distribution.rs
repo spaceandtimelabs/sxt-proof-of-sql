@@ -1,6 +1,4 @@
-use crate::base::bit::make_abs_bit_mask;
-
-use crate::base::scalar::ArkScalar;
+use crate::base::{bit::make_abs_bit_mask, scalar::ArkScalar};
 use bit_iter::BitIter;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;

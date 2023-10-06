@@ -1,11 +1,14 @@
 use super::order_by_map_i128_to_utf8;
-use crate::base::database::ToArrow;
-use crate::record_batch;
-use crate::sql::proof::TransformExpr;
-use crate::sql::transform::test_utility::{composite_result, orders};
+use crate::{
+    base::database::ToArrow,
+    record_batch,
+    sql::{
+        proof::TransformExpr,
+        transform::test_utility::{composite_result, orders},
+    },
+};
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
-use rand::distributions::uniform::SampleUniform;
-use rand::{seq::SliceRandom, Rng};
+use rand::{distributions::uniform::SampleUniform, seq::SliceRandom, Rng};
 
 #[test]
 fn we_can_transform_a_result_using_a_single_order_by_in_ascending_direction() {

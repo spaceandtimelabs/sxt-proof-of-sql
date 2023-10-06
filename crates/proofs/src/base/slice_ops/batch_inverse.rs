@@ -6,8 +6,10 @@
 //!
 //! Additionally, `num_elem_per_thread` rounds up instead of down.
 
-use core::cmp::max;
-use core::ops::{Mul, MulAssign};
+use core::{
+    cmp::max,
+    ops::{Mul, MulAssign},
+};
 use num_traits::{Inv, One, Zero};
 use rayon::prelude::*;
 

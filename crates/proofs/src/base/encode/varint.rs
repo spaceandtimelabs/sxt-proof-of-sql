@@ -1,7 +1,8 @@
-use crate::base::encode::{ZigZag, U256};
-use crate::base::scalar::ArkScalar;
-use std::cmp::max;
-use std::cmp::Ordering;
+use crate::base::{
+    encode::{ZigZag, U256},
+    scalar::ArkScalar,
+};
+use std::cmp::{max, Ordering};
 
 /// This function writes the input scalar x as a varint encoding to buf slice
 ///

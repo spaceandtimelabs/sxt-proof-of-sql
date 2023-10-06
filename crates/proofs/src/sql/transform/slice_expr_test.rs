@@ -1,6 +1,10 @@
-use crate::record_batch;
-use crate::sql::proof::TransformExpr;
-use crate::sql::transform::test_utility::{composite_result, slice};
+use crate::{
+    record_batch,
+    sql::{
+        proof::TransformExpr,
+        transform::test_utility::{composite_result, slice},
+    },
+};
 
 #[test]
 fn we_can_slice_a_lazy_frame_using_only_a_positive_limit_value() {

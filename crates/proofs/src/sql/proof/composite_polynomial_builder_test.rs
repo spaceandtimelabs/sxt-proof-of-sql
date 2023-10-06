@@ -1,5 +1,4 @@
 use super::{CompositePolynomialBuilder, MultilinearExtensionImpl};
-
 use crate::base::scalar::ArkScalar;
 use num_traits::One;
 

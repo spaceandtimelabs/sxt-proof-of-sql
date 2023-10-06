@@ -1,8 +1,5 @@
-use crate::base::scalar::ArkScalar;
-
 use super::SumcheckMleEvaluations;
-
-use crate::base::bit::BitDistribution;
+use crate::base::{bit::BitDistribution, scalar::ArkScalar};
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::Zero;
 

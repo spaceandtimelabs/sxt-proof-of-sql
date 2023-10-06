@@ -1,5 +1,4 @@
-use crate::base::scalar::ArkScalar;
-use crate::base::slice_ops;
+use crate::base::{scalar::ArkScalar, slice_ops};
 use num_traits::{Inv, Zero};
 
 #[test]

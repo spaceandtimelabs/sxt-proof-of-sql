@@ -1,11 +1,13 @@
 use super::{BoolExpr, FilterExpr};
-use crate::base::database::{TableRef, TestAccessor};
-use crate::sql::ast::test_utility::{cols_result, tab};
-use crate::sql::proof::{exercise_verification, TransformExpr, VerifiableQueryResult};
-
+use crate::{
+    base::database::{TableRef, TestAccessor},
+    sql::{
+        ast::test_utility::{cols_result, tab},
+        proof::{exercise_verification, TransformExpr, VerifiableQueryResult},
+    },
+};
 use arrow::record_batch::RecordBatch;
-use polars::prelude::Expr;
-use polars::prelude::*;
+use polars::prelude::{Expr, *};
 
 pub struct TestExprNode {
     pub table_ref: TableRef,

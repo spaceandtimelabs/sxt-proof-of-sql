@@ -1,12 +1,14 @@
-use crate::base::database::{ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder};
-
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
+use crate::{
+    base::{
+        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        proof::ProofError,
+        scalar::ArkScalar,
+    },
+    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+};
 use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
-use std::collections::HashSet;
-use std::fmt::Debug;
+use std::{collections::HashSet, fmt::Debug};
 
 /// Provable AST column expression that evaluates to a boolean
 #[typetag::serde(tag = "type")]

@@ -1,10 +1,13 @@
 use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
-use crate::base::database::{ColumnField, ColumnType};
-
-use crate::base::scalar::ArkScalar;
-use arrow::array::{Decimal128Array, Int64Array, StringArray};
-use arrow::datatypes::{Field, Schema};
-use arrow::record_batch::RecordBatch;
+use crate::base::{
+    database::{ColumnField, ColumnType},
+    scalar::ArkScalar,
+};
+use arrow::{
+    array::{Decimal128Array, Int64Array, StringArray},
+    datatypes::{Field, Schema},
+    record_batch::RecordBatch,
+};
 use num_traits::Zero;
 use std::sync::Arc;
 

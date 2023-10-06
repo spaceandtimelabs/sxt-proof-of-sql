@@ -1,16 +1,16 @@
-use crate::base::database::{ColumnRef, ColumnType, TableRef};
-use crate::sql::ast::EqualsExpr;
-use crate::sql::ast::FilterExpr;
-use crate::sql::ast::FilterResultExpr;
-use crate::sql::ast::TableExpr;
-use crate::sql::ast::{AndExpr, NotExpr, OrExpr};
-use crate::sql::proof::ProofExpr;
-use proofs_sql::{Identifier, ResourceId};
-
-use crate::base::scalar::ArkScalar;
+use crate::{
+    base::{
+        database::{ColumnRef, ColumnType, TableRef},
+        scalar::ArkScalar,
+    },
+    sql::{
+        ast::{AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr},
+        proof::ProofExpr,
+    },
+};
 use arrow::datatypes::{Field, Schema};
-use std::collections::HashSet;
-use std::sync::Arc;
+use proofs_sql::{Identifier, ResourceId};
+use std::{collections::HashSet, sync::Arc};
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {

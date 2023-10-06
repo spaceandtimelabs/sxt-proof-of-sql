@@ -1,6 +1,5 @@
 use super::DataFrameExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
 use serde::{Deserialize, Serialize};

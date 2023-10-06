@@ -1,6 +1,5 @@
-use crate::base::scalar::ArkScalar;
-
 use super::*;
+use crate::base::scalar::ArkScalar;
 
 #[test]
 fn test_mul_add_assign() {

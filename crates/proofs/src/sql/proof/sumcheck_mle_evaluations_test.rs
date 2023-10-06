@@ -1,8 +1,5 @@
-use crate::sql::proof::SumcheckRandomScalars;
-
 use super::SumcheckMleEvaluations;
-
-use crate::base::scalar::ArkScalar;
+use crate::{base::scalar::ArkScalar, sql::proof::SumcheckRandomScalars};
 use num_traits::One;
 
 #[test]

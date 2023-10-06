@@ -4,11 +4,9 @@
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::ArkScalar;
-use rayon::prelude::*;
-
-use crate::base::polynomial::DenseMultilinearExtension;
-use crate::proof_primitive::sumcheck::ProverState;
+use crate::{base::polynomial::DenseMultilinearExtension, proof_primitive::sumcheck::ProverState};
 use num_traits::Zero;
+use rayon::prelude::*;
 
 #[tracing::instrument(
     name = "proofs.proof_primitive.sumcheck.prover_round.prove_round",

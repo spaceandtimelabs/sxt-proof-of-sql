@@ -1,10 +1,12 @@
+use crate::{
+    base::database::{ColumnRef, ColumnType, TableRef},
+    sql::parse::{ConversionError, ConversionResult},
+};
+use proofs_sql::{
+    intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice},
+    Identifier,
+};
 use std::collections::{HashMap, HashSet};
-
-use crate::base::database::{ColumnRef, ColumnType, TableRef};
-use crate::sql::parse::{ConversionError, ConversionResult};
-
-use proofs_sql::intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice};
-use proofs_sql::Identifier;
 
 #[derive(Default)]
 pub struct QueryContext {

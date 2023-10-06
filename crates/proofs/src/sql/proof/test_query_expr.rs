@@ -1,18 +1,16 @@
 use super::{
     CountBuilder, ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder,
 };
-use std::collections::HashSet;
-
-use crate::base::database::{
-    ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+use crate::base::{
+    database::{
+        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    },
+    proof::ProofError,
 };
-use crate::base::proof::ProofError;
-
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::fmt::Debug;
+use std::{collections::HashSet, fmt, fmt::Debug};
 
 type ProveFn =
     Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;

@@ -2,13 +2,11 @@ use super::{
     DenseProvableResultColumn, ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn,
     QueryProof, TestQueryExpr, TransformExpr, VerifiableQueryResult,
 };
-
-use crate::base::database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor};
-use crate::base::scalar::compute_commitment_for_testing;
-
-use crate::base::scalar::ArkScalar;
-use curve25519_dalek::ristretto::CompressedRistretto;
-use curve25519_dalek::traits::Identity;
+use crate::base::{
+    database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor},
+    scalar::{compute_commitment_for_testing, ArkScalar},
+};
+use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 use num_traits::One;
 
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that

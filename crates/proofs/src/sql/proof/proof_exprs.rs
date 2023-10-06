@@ -1,14 +1,12 @@
 use super::{CountBuilder, ProofBuilder, VerificationBuilder};
-use crate::base::database::{
-    ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+use crate::base::{
+    database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
+    proof::ProofError,
 };
-use crate::base::proof::ProofError;
-
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
-use std::collections::HashSet;
-use std::fmt::Debug;
+use std::{collections::HashSet, fmt::Debug};
 
 #[dyn_partial_eq]
 pub trait ProofExpr: Debug + Send + Sync {

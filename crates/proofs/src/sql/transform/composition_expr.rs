@@ -1,7 +1,6 @@
 use crate::sql::transform::DataFrameExpr;
-use polars::prelude::LazyFrame;
-
 use dyn_partial_eq::DynPartialEq;
+use polars::prelude::LazyFrame;
 use serde::{Deserialize, Serialize};
 
 /// A node representing a list of transformations to be applied to a `LazyFrame`.

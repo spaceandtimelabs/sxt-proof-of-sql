@@ -1,20 +1,24 @@
-use crate::base::database::{Column, ColumnRef, CommitmentAccessor, DataAccessor};
-use crate::base::proof::ProofError;
-use crate::base::scalar::ArkScalar;
-use crate::sql::ast::BoolExpr;
-use crate::sql::proof::{
-    CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
-    SumcheckSubpolynomialType, VerificationBuilder,
+use crate::{
+    base::{
+        database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
+        proof::ProofError,
+        scalar::ArkScalar,
+        slice_ops,
+    },
+    sql::{
+        ast::BoolExpr,
+        proof::{
+            CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
+            SumcheckSubpolynomialType, VerificationBuilder,
+        },
+    },
 };
-
-use crate::base::slice_ops;
 use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
-use dyn_partial_eq::DynPartialEq;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
-
 use curve25519_dalek::ristretto::RistrettoPoint;
+use dyn_partial_eq::DynPartialEq;
 use num_traits::{One, Zero};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 

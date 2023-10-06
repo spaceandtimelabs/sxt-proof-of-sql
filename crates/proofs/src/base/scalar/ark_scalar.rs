@@ -1,14 +1,10 @@
-use ark_ff::Field;
-use ark_ff::PrimeField;
+use ark_ff::{Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::iter::Sum;
 use derive_more::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Product, Sub, SubAssign, Sum,
 };
-use serde::Deserialize;
-use serde::Deserializer;
-use serde::Serialize;
-use serde::Serializer;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(
     Add,
