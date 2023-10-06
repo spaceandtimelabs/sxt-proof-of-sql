@@ -267,7 +267,7 @@ impl<'a> QueryContextBuilder<'a> {
             _ => panic!("Left side of comparison expression must be a column"),
         };
         let right_dtype = match right {
-            Expression::Literal(literal) => self.visit_literal(literal.deref()),
+            Expression::Literal(literal) => self.visit_literal(literal),
             _ => panic!("Right side of comparison expression must be a literal"),
         };
         check_dtypes(left_dtype, right_dtype)?;

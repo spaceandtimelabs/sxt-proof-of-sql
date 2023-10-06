@@ -8,7 +8,7 @@ use crate::base::proof::ProofError;
 use crate::base::scalar::ArkScalar;
 use crate::sql::proof::{
     CountBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofBuilder,
-    SumcheckSubpolynomial, VerificationBuilder,
+    SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
 };
 
 use bumpalo::Bump;
@@ -132,19 +132,22 @@ fn verifier_const_sign_evaluate(
 fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a>, bits: &[&'a [bool]]) {
     for seq in bits.iter() {
         builder.produce_intermediate_mle(seq);
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(seq))],
-            ),
-            (
-                -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(seq)),
-                    Box::new(MultilinearExtensionImpl::new(seq)),
-                ],
-            ),
-        ]));
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (
+                    ArkScalar::one(),
+                    vec![Box::new(MultilinearExtensionImpl::new(seq))],
+                ),
+                (
+                    -ArkScalar::one(),
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(seq)),
+                        Box::new(MultilinearExtensionImpl::new(seq)),
+                    ],
+                ),
+            ],
+        ));
     }
 }
 
@@ -196,7 +199,10 @@ fn prove_bit_decomposition<'a>(
         ));
         vary_index += 1;
     });
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(terms));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        terms,
+    ));
 }
 
 fn verify_bit_decomposition(

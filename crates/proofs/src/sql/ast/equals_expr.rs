@@ -4,7 +4,7 @@ use crate::base::scalar::ArkScalar;
 use crate::sql::ast::BoolExpr;
 use crate::sql::proof::{
     CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
-    VerificationBuilder,
+    SumcheckSubpolynomialType, VerificationBuilder,
 };
 
 use crate::base::slice_ops;
@@ -127,28 +127,34 @@ pub fn prover_evaluate_equals_zero<'a>(
     let selection = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
 
     // subpolynomial: selection * lhs
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![(
-        ArkScalar::one(),
-        vec![
-            Box::new(MultilinearExtensionImpl::new(lhs)),
-            Box::new(MultilinearExtensionImpl::new(selection)),
-        ],
-    )]));
-
-    // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(vec![
-        (
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        vec![(
             ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
-        ),
-        (
-            -ArkScalar::one(),
             vec![
                 Box::new(MultilinearExtensionImpl::new(lhs)),
-                Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
+                Box::new(MultilinearExtensionImpl::new(selection)),
             ],
-        ),
-    ]));
+        )],
+    ));
+
+    // subpolynomial: selection_not - lhs * lhs_pseudo_inv
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (
+                ArkScalar::one(),
+                vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
+            ),
+            (
+                -ArkScalar::one(),
+                vec![
+                    Box::new(MultilinearExtensionImpl::new(lhs)),
+                    Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
+                ],
+            ),
+        ],
+    ));
 
     selection
 }
