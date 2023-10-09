@@ -2,10 +2,11 @@ mod filter_result_expr;
 pub use filter_result_expr::FilterResultExpr;
 
 mod filter_expr;
-pub use filter_expr::FilterExpr;
-
+pub use filter_expr::{FilterExpr, OstensibleFilterExpr};
 #[cfg(test)]
 mod filter_expr_test;
+#[cfg(test)]
+mod filter_expr_test_dishonest_prover;
 
 mod bitwise_verification;
 pub use bitwise_verification::*;
