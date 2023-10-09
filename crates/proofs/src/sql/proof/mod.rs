@@ -49,7 +49,8 @@ mod sumcheck_random_scalars;
 pub use sumcheck_random_scalars::SumcheckRandomScalars;
 
 mod proof_exprs;
-pub use proof_exprs::{ProofExpr, TransformExpr};
+pub(crate) use proof_exprs::ProverHonestyMarker;
+pub use proof_exprs::{HonestProver, ProofExpr, ProverEvaluate, TransformExpr};
 
 mod query_proof;
 pub use query_proof::QueryProof;

@@ -1,11 +1,15 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, TableRef},
+        database::{ColumnRef, ColumnType, TableRef, TestAccessor},
         scalar::ArkScalar,
     },
+    record_batch,
     sql::{
-        ast::{AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr, TableExpr},
-        proof::ProofExpr,
+        ast::{
+            test_utility::*, AndExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
+            TableExpr,
+        },
+        proof::{ProofExpr, VerifiableQueryResult},
     },
 };
 use arrow::datatypes::{Field, Schema};
@@ -129,4 +133,23 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             )
         ])
     );
+}
+
+#[test]
+fn we_can_get_the_correct_result_from_a_basic_filter() {
+    let data = record_batch!(
+        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
+        "b" => [1_i64, 2, 3, 4, 5],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = TestAccessor::new();
+    accessor.add_table(t, data, 0);
+    let where_clause = equal(t, "a", 5, &accessor);
+    let expr = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = res.verify(&expr, &accessor).unwrap().unwrap();
+    let expected = record_batch!(
+        "b" => [3_i64, 5],
+    );
+    assert_eq!(res, expected);
 }

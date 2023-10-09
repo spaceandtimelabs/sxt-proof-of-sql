@@ -4,25 +4,39 @@ use crate::{
         database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, ProofExpr, VerificationBuilder},
+    sql::proof::{
+        CountBuilder, HonestProver, ProofBuilder, ProofExpr, ProverEvaluate, ProverHonestyMarker,
+        VerificationBuilder,
+    },
 };
 use bumpalo::Bump;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::{collections::HashSet, marker::PhantomData};
 
 /// Provable expressions for queries of the form
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
-#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
-pub struct FilterExpr {
-    results: Vec<FilterResultExpr>,
-    table: TableExpr,
-    where_clause: Box<dyn BoolExpr>,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct OstensibleFilterExpr<H: ProverHonestyMarker> {
+    pub(super) results: Vec<FilterResultExpr>,
+    pub(super) table: TableExpr,
+    pub(super) where_clause: Box<dyn BoolExpr>,
+    phantom: PhantomData<H>,
 }
 
-impl FilterExpr {
+// This is required because derive(DynPartialEq) does not work with generics
+impl<H: ProverHonestyMarker> DynPartialEq for OstensibleFilterExpr<H> {
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
+    fn box_eq(&self, other: &dyn core::any::Any) -> bool {
+        other.downcast_ref::<Self>().map_or(false, |a| self == a)
+    }
+}
+
+impl<H: ProverHonestyMarker> OstensibleFilterExpr<H> {
     /// Creates a new filter expression.
     pub fn new(
         results: Vec<FilterResultExpr>,
@@ -33,6 +47,7 @@ impl FilterExpr {
             results,
             table,
             where_clause,
+            phantom: PhantomData,
         }
     }
 
@@ -42,7 +57,10 @@ impl FilterExpr {
     }
 }
 
-impl ProofExpr for FilterExpr {
+impl<H: ProverHonestyMarker> ProofExpr for OstensibleFilterExpr<H>
+where
+    OstensibleFilterExpr<H>: ProverEvaluate,
+{
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -61,41 +79,6 @@ impl ProofExpr for FilterExpr {
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
-    }
-
-    #[tracing::instrument(
-        name = "proofs.sql.ast.filter_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
-    ) {
-        // evaluate where clause
-        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
-
-        // set result indexes
-        let mut cnt: usize = 0;
-        for b in selection {
-            cnt += *b as usize;
-        }
-        let indexes = alloc.alloc_slice_fill_default::<u64>(cnt);
-        cnt = 0;
-        for (i, b) in selection.iter().enumerate() {
-            if *b {
-                indexes[cnt] = i as u64;
-                cnt += 1;
-            }
-        }
-        builder.set_result_indexes(indexes);
-
-        // evaluate result columns
-        for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, accessor, selection);
-        }
     }
 
     #[tracing::instrument(
@@ -133,5 +116,43 @@ impl ProofExpr for FilterExpr {
         self.where_clause.get_column_references(&mut columns);
 
         columns
+    }
+}
+
+pub type FilterExpr = OstensibleFilterExpr<HonestProver>;
+impl ProverEvaluate for FilterExpr {
+    #[tracing::instrument(
+        name = "proofs.sql.ast.filter_expr.prover_evaluate",
+        level = "info",
+        skip_all
+    )]
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        // evaluate where clause
+        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
+
+        // set result indexes
+        let mut cnt: usize = 0;
+        for b in selection {
+            cnt += *b as usize;
+        }
+        let indexes = alloc.alloc_slice_fill_default::<u64>(cnt);
+        cnt = 0;
+        for (i, b) in selection.iter().enumerate() {
+            if *b {
+                indexes[cnt] = i as u64;
+                cnt += 1;
+            }
+        }
+        builder.set_result_indexes(indexes);
+
+        // evaluate result columns
+        for expr in self.results.iter() {
+            expr.prover_evaluate(builder, alloc, accessor, selection);
+        }
     }
 }

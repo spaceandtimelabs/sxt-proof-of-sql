@@ -10,7 +10,10 @@ use crate::{
     sql::{
         ast::FilterExpr,
         parse::ConversionResult,
-        proof::{CountBuilder, ProofBuilder, ProofExpr, TransformExpr, VerificationBuilder},
+        proof::{
+            CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, TransformExpr,
+            VerificationBuilder,
+        },
         transform::ResultExpr,
     },
 };
@@ -106,15 +109,6 @@ impl ProofExpr for QueryExpr {
         self.filter.get_offset(accessor)
     }
 
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
-    ) {
-        self.filter.prover_evaluate(builder, alloc, accessor)
-    }
-
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
@@ -129,6 +123,17 @@ impl ProofExpr for QueryExpr {
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         self.filter.get_column_references()
+    }
+}
+
+impl ProverEvaluate for QueryExpr {
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        self.filter.prover_evaluate(builder, alloc, accessor)
     }
 }
 
