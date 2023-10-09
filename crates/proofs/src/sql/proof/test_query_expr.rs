@@ -1,5 +1,6 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, TransformExpr, VerificationBuilder,
+    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, TransformExpr,
+    VerificationBuilder,
 };
 use crate::base::{
     database::{
@@ -51,17 +52,6 @@ impl ProofExpr for TestQueryExpr {
         self.offset_generators
     }
 
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
-    ) {
-        if let Some(f) = &self.prover_fn {
-            f(builder, alloc, accessor);
-        }
-    }
-
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
@@ -89,6 +79,19 @@ impl ProofExpr for TestQueryExpr {
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
+    }
+}
+
+impl ProverEvaluate for TestQueryExpr {
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        if let Some(f) = &self.prover_fn {
+            f(builder, alloc, accessor);
+        }
     }
 }
 

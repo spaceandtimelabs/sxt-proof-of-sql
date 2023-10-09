@@ -9,7 +9,7 @@ use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
 #[dyn_partial_eq]
-pub trait ProofExpr: Debug + Send + Sync {
+pub trait ProofExpr: Debug + Send + Sync + ProverEvaluate {
     /// Count terms used within the Query's proof
     fn count(
         &self,
@@ -24,19 +24,6 @@ pub trait ProofExpr: Debug + Send + Sync {
     fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
         self.get_length(accessor) == 0
     }
-
-    /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
-    /// of the query result and track all the components needed to form the query's proof.
-    ///
-    /// Intermediate values that are needed to form the proof are allocated into the arena
-    /// allocator alloc. These intermediate values will persist through proof creation and
-    /// will be bulk deallocated once the proof is formed.
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
-    );
 
     /// Form components needed to verify and proof store into VerificationBuilder
     fn verifier_evaluate(
@@ -59,3 +46,28 @@ pub trait TransformExpr: Debug + Send + Sync {
         result
     }
 }
+
+pub trait ProverEvaluate {
+    /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
+    /// of the query result and track all the components needed to form the query's proof.
+    ///
+    /// Intermediate values that are needed to form the proof are allocated into the arena
+    /// allocator alloc. These intermediate values will persist through proof creation and
+    /// will be bulk deallocated once the proof is formed.
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    );
+}
+
+/// Marker used as a trait bound for generic [`ProofExpr`] types to indicate the honesty of their implementation.
+///
+/// This allows us to define alternative prover implementations that misbehave, and test that the verifier rejects their results.
+pub trait ProverHonestyMarker: Debug + Send + Sync + PartialEq + 'static {}
+
+/// [`ProverHonestyMarker`] for generic [`ProofExpr`] types whose implementation is canonical/honest.
+#[derive(Debug, PartialEq)]
+pub struct HonestProver;
+impl ProverHonestyMarker for HonestProver {}
