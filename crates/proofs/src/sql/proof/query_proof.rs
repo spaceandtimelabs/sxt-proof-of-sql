@@ -17,7 +17,6 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use byte_slice_cast::AsByteSlice;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 use num_traits::Zero;
@@ -67,12 +66,8 @@ impl QueryProof {
         let provable_result = builder.make_provable_query_result();
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(
-            &commitments,
-            &provable_result.indexes,
-            &provable_result.data,
-            builder.bit_distributions(),
-        );
+        let mut transcript =
+            make_transcript(&commitments, &provable_result, builder.bit_distributions());
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
@@ -175,12 +170,7 @@ impl QueryProof {
         }
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(
-            &self.commitments,
-            &result.indexes,
-            &result.data,
-            &self.bit_distributions,
-        );
+        let mut transcript = make_transcript(&self.commitments, result, &self.bit_distributions);
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -276,7 +266,7 @@ impl QueryProof {
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
-        result.num_columns as usize == counts.result_columns
+        result.num_columns() == counts.result_columns
             && self.commitments.len() == counts.intermediate_mles
             && self.pre_result_mle_evaluations.len()
                 == counts.intermediate_mles + counts.anchored_mles
@@ -290,17 +280,12 @@ impl QueryProof {
 )]
 fn make_transcript(
     commitments: &[CompressedRistretto],
-    result_indexes: &[u64],
-    result_data: &[u8],
+    result: &ProvableQueryResult,
     bit_distributions: &[BitDistribution],
 ) -> merlin::Transcript {
     let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
     transcript.append_points(MessageLabel::QueryCommit, commitments);
-    transcript.append_message(
-        MessageLabel::QueryResultIndexes.as_bytes(),
-        result_indexes.as_byte_slice(),
-    );
+    transcript.append_auto(MessageLabel::QueryResultData, result);
     transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
-    transcript.append_message(MessageLabel::QueryResultData.as_bytes(), result_data);
     transcript
 }
