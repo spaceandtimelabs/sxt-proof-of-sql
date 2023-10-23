@@ -210,7 +210,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     };
     let accessor = TestAccessor::new();
     let (proof, mut result) = QueryProof::new(&expr, &accessor);
-    result.indexes.pop();
+    result.indexes_mut().pop();
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 

@@ -119,7 +119,7 @@ fn tamper_result(
         return;
     }
     let provable_res = res.provable_result.as_ref().unwrap();
-    if provable_res.indexes.is_empty() {
+    if provable_res.indexes().is_empty() {
         tamper_empty_result(res, expr, accessor);
         return;
     }
@@ -127,14 +127,14 @@ fn tamper_result(
     // try to change an index
     let mut res_p = res.clone();
     let mut provable_res_p = provable_res.clone();
-    provable_res_p.indexes[0] += 1;
+    provable_res_p.indexes_mut()[0] += 1;
     res_p.provable_result = Some(provable_res_p);
     assert!(res_p.verify(expr, accessor).is_err());
 
     // try to change data
     let mut res_p = res.clone();
     let mut provable_res_p = provable_res.clone();
-    provable_res_p.data[0] += 1;
+    provable_res_p.data_mut()[0] += 1;
     res_p.provable_result = Some(provable_res_p);
     assert!(res_p.verify(expr, accessor).is_err());
 }

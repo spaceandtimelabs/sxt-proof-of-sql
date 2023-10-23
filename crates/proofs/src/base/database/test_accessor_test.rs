@@ -79,11 +79,11 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let col_slice: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.as_bytes()).collect();
+    let col_slice: Vec<_> = vec!["a", "bc", "d", "e"];
     let col_scalars: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.into()).collect();
     let column = ColumnRef::new(table_ref_2, "d".parse().unwrap(), ColumnType::VarChar);
     match accessor.get_column(column) {
-        Column::HashedBytes((col, scals)) => {
+        Column::VarChar((col, scals)) => {
             assert_eq!(col.to_vec(), col_slice);
             assert_eq!(scals.to_vec(), col_scalars);
         }
