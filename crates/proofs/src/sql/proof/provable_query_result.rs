@@ -17,18 +17,51 @@ use std::sync::Arc;
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
-///
-/// Note: Because the class is deserialized from untrusted data, it
-/// cannot maintain any invariant on its data members; hence, they are
-/// all public so as to allow for easy manipulation for testing.
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
-    pub num_columns: u64,
-    pub indexes: Vec<u64>,
-    pub data: Vec<u8>,
+    num_columns: u64,
+    indexes: Vec<u64>,
+    data: Vec<u8>,
 }
 
 impl ProvableQueryResult {
+    /// The number of columns in the result
+    pub fn num_columns(&self) -> usize {
+        self.num_columns as usize
+    }
+    /// The indexes in the result.
+    #[cfg(test)]
+    pub fn indexes(&self) -> &Vec<u64> {
+        &self.indexes
+    }
+    /// A mutable reference to a the indexes in the result. Because the struct is deserialized from untrusted data, it
+    /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
+    #[cfg(test)]
+    pub fn indexes_mut(&mut self) -> &mut Vec<u64> {
+        &mut self.indexes
+    }
+    /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
+    /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
+    #[cfg(test)]
+    pub fn num_columns_mut(&mut self) -> &mut u64 {
+        &mut self.num_columns
+    }
+    /// A mutable reference to the underlying encoded data of the result. Because the struct is deserialized from untrusted data, it
+    /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
+    #[cfg(test)]
+    pub fn data_mut(&mut self) -> &mut Vec<u8> {
+        &mut self.data
+    }
+    /// This function is available to allow for easy creation for testing.
+    #[cfg(test)]
+    pub fn new_from_raw_data(num_columns: u64, indexes: Vec<u64>, data: Vec<u8>) -> Self {
+        Self {
+            num_columns,
+            indexes,
+            data,
+        }
+    }
+
     /// Form intermediate query result from index rows and result columns
     #[tracing::instrument(
         name = "proofs.sql.proof.provable_query_result.new",

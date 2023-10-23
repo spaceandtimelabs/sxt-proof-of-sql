@@ -91,8 +91,8 @@ impl ArrayRefExt for ArrayRef {
                     .as_any()
                     .downcast_ref::<StringArray>()
                     .map(|array| {
-                        alloc.alloc_slice_fill_with(range.end - range.start, |i| -> &'a [u8] {
-                            array.value(range.start + i).as_bytes()
+                        alloc.alloc_slice_fill_with(range.end - range.start, |i| -> &'a str {
+                            array.value(range.start + i)
                         })
                     })
                     .unwrap();
@@ -106,7 +106,7 @@ impl ArrayRefExt for ArrayRef {
                     alloc.alloc_slice_fill_with(vals.len(), |i| -> ArkScalar { vals[i].into() })
                 };
 
-                Column::HashedBytes((vals, scals))
+                Column::VarChar((vals, scals))
             }
             _ => unimplemented!(),
         }
@@ -136,11 +136,10 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
-        let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array.to_column(&alloc, &(0..2), None),
-            Column::HashedBytes((&data_slices[..], &scals[..]))
+            Column::VarChar((&data[..], &scals[..]))
         );
     }
 
@@ -162,16 +161,15 @@ mod tests {
         let alloc = Bump::new();
         let data = ["ab", "-f34", "ehfh43"];
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
-        let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
         assert_eq!(
             array.to_column(&alloc, &(1..3), None),
-            Column::HashedBytes((&data_slices[1..3], &scals[1..3]))
+            Column::VarChar((&data[1..3], &scals[1..3]))
         );
         assert_eq!(
             array.to_column(&alloc, &(0..0), None),
-            Column::HashedBytes((&[], &[]))
+            Column::VarChar((&[], &[]))
         );
     }
 
@@ -180,11 +178,10 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
-        let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array.to_column(&alloc, &(0..2), Some(&scals)),
-            Column::HashedBytes((&data_slices[..], &scals[..]))
+            Column::VarChar((&data[..], &scals[..]))
         );
     }
 
@@ -193,11 +190,10 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
-        let data_slices: Vec<_> = data.iter().map(|v| v.as_bytes()).collect();
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array.to_column(&alloc, &(0..0), None),
-            Column::HashedBytes((&data_slices[0..0], &scals[0..0]))
+            Column::VarChar((&data[0..0], &scals[0..0]))
         );
     }
 

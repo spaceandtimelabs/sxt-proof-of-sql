@@ -14,10 +14,10 @@ use serde::{Deserialize, Serialize};
 pub enum Column<'a> {
     /// i64 columns
     BigInt(&'a [i64]),
-    /// Byte columns (such as &[&[u8]] or &[&str.as_bytes()])
-    ///  - the first element maps to the byte values.
-    ///  - the second element maps to the byte hashes (see [crate::base::scalar::ArkScalar]).
-    HashedBytes((&'a [&'a [u8]], &'a [ArkScalar])),
+    /// String columns
+    ///  - the first element maps to the str values.
+    ///  - the second element maps to the str hashes (see [crate::base::scalar::ArkScalar]).
+    VarChar((&'a [&'a str], &'a [ArkScalar])),
     /// i128 columns
     Int128(&'a [i128]),
 }
@@ -27,7 +27,7 @@ impl Column<'_> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::BigInt(_) => ColumnType::BigInt,
-            Self::HashedBytes(_) => ColumnType::VarChar,
+            Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
         }
     }

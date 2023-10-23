@@ -4,9 +4,8 @@ use crate::{
         scalar::ArkScalar,
     },
     sql::proof::{
-        CountBuilder, DenseProvableResultColumn, EncodeProvableResultElement,
-        MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial, SumcheckSubpolynomialType,
-        VerificationBuilder,
+        CountBuilder, DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder,
+        SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -55,10 +54,17 @@ impl FilterResultExpr {
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
-            Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col, col),
-            Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col, col),
-            Column::HashedBytes((col, scals)) => {
-                prover_evaluate_impl(builder, alloc, selection, col, scals)
+            Column::BigInt(col) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+                prover_evaluate_impl(builder, alloc, selection, col)
+            }
+            Column::Int128(col) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+                prover_evaluate_impl(builder, alloc, selection, col)
+            }
+            Column::VarChar((col, scals)) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+                prover_evaluate_impl(builder, alloc, selection, scals)
             }
         };
     }
@@ -82,20 +88,15 @@ impl FilterResultExpr {
     }
 }
 
-fn prover_evaluate_impl<'a, T: EncodeProvableResultElement, S: Clone + Default + Sync>(
+fn prover_evaluate_impl<'a, S: Clone + Default + Sync>(
     builder: &mut ProofBuilder<'a>,
     alloc: &'a Bump,
     selection: &'a [bool],
-    col_data: &'a [T],
     col_scalars: &'a [S],
 ) where
-    [T]: ToOwned,
     &'a S: Into<ArkScalar>,
     &'a bool: Into<ArkScalar>,
 {
-    // add result column
-    builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col_data)));
-
     // make a column of selected result values only
     let selected_vals = alloc.alloc_slice_fill_with(builder.table_length(), |i| {
         if selection[i] {

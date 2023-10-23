@@ -155,7 +155,7 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::new(&values))];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
-    res.indexes[1] = 20;
+    res.indexes_mut()[1] = 20;
     let evaluation_vec = [
         ArkScalar::from(10u64),
         ArkScalar::from(100u64),
@@ -192,7 +192,7 @@ fn evaluation_fails_if_extra_data_is_included() {
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::new(&values))];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
-    res.data.push(3u8);
+    res.data_mut().push(3u8);
     let evaluation_vec = [
         ArkScalar::from(10u64),
         ArkScalar::from(100u64),
@@ -206,12 +206,8 @@ fn evaluation_fails_if_extra_data_is_included() {
 
 #[test]
 fn evaluation_fails_if_the_result_cant_be_decoded() {
-    let mut res = ProvableQueryResult {
-        num_columns: 1,
-        indexes: vec![0],
-        data: vec![0b11111111_u8; 38],
-    };
-    res.data[37] = 0b00000001_u8;
+    let mut res = ProvableQueryResult::new_from_raw_data(1, vec![0], vec![0b11111111_u8; 38]);
+    res.data_mut()[37] = 0b00000001_u8;
     let evaluation_vec = [
         ArkScalar::from(10u64),
         ArkScalar::from(100u64),
@@ -219,7 +215,7 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
         ArkScalar::from(10000u64),
     ];
     let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
     assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
@@ -230,7 +226,7 @@ fn evaluation_fails_if_data_is_missing() {
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::new(&values))];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
-    res.num_columns = 3;
+    *res.num_columns_mut() = 3;
     let evaluation_vec = [
         ArkScalar::from(10u64),
         ArkScalar::from(100u64),
@@ -238,7 +234,7 @@ fn evaluation_fails_if_data_is_missing() {
         ArkScalar::from(10000u64),
     ];
     let column_fields =
-        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns as usize];
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
     assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
 }
 
