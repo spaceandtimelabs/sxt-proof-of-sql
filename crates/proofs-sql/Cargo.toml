@@ -21,7 +21,7 @@ serde = { workspace = true, features = ["serde_derive"] }
 thiserror = { workspace = true }
 
 [build-dependencies]
-lalrpop = { version = "0.20.1" }
+lalrpop = { version = "0.20.0" }
 
 [dev-dependencies]
 serde_json = "1"
