@@ -28,7 +28,7 @@ half = { version = "=2.2.1" } # This can be removed when we bump to rust version
 hashbrown = { version = "0.14.0" }
 indexmap = { version = "1.9" }
 integer-encoding = { version = "4.0.0" }
-lalrpop-util = { version = "0.20.1" }
+lalrpop-util = { version = "0.20.0" }
 lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
