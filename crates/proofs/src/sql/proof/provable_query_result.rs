@@ -1,6 +1,6 @@
 use super::{
     are_indexes_valid, decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn,
-    QueryError, QueryResult,
+    QueryError,
 };
 use crate::base::{
     database::{ColumnField, ColumnType},
@@ -140,7 +140,10 @@ impl ProvableQueryResult {
         level = "debug",
         skip_all
     )]
-    pub fn into_query_result(&self, column_result_fields: &[ColumnField]) -> QueryResult {
+    pub fn into_record_batch(
+        &self,
+        column_result_fields: &[ColumnField],
+    ) -> Result<RecordBatch, QueryError> {
         assert_eq!(column_result_fields.len() as u64, self.num_columns);
 
         let n = self.indexes.len();
@@ -156,7 +159,7 @@ impl ProvableQueryResult {
 
                     columns.push(Arc::new(Int64Array::from(col)));
 
-                    Ok(num_read)
+                    Ok::<_, QueryError>(num_read)
                 }
                 ColumnType::Int128 => {
                     let (col, num_read) = decode_multiple_elements::<i128>(&self.data[offset..], n)

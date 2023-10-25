@@ -1,11 +1,8 @@
 use blitzar::compute::{init_backend_with_config, BackendConfig};
 use clap::Parser;
 use proofs::{
-    base::{
-        database::{
-            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
-        },
-        proof::ProofError,
+    base::database::{
+        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
     },
     sql::{
         parse::QueryExpr,
@@ -112,7 +109,7 @@ fn process_query(
     _args: &Args,
     query: &str,
     sample_iter: usize,
-) -> Result<QueryResult, ProofError> {
+) -> QueryResult {
     // generate and verify proof
     let verifiable_result = VerifiableQueryResult::new(provable_ast, accessor);
 

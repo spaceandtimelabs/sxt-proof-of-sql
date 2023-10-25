@@ -14,6 +14,7 @@ use crate::{
         slice_ops,
     },
     proof_primitive::sumcheck::SumcheckProof,
+    sql::proof::QueryData,
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
@@ -132,7 +133,7 @@ impl QueryProof {
         expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
         result: &ProvableQueryResult,
-    ) -> Result<QueryResult, ProofError> {
+    ) -> QueryResult {
         let table_length = expr.get_length(accessor);
         let generator_offset = expr.get_offset(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
@@ -141,7 +142,7 @@ impl QueryProof {
         // validate bit decompositions
         for dist in self.bit_distributions.iter() {
             if !dist.is_valid() {
-                return Err(ProofError::VerificationError("invalid bit distributions"));
+                Err(ProofError::VerificationError("invalid bit distributions"))?;
             }
         }
 
@@ -154,7 +155,7 @@ impl QueryProof {
 
         // verify sizes
         if !self.validate_sizes(&counts, result) {
-            return Err(ProofError::VerificationError("invalid proof size"));
+            Err(ProofError::VerificationError("invalid proof size"))?;
         }
 
         // decompress commitments
@@ -163,9 +164,9 @@ impl QueryProof {
             if let Some(commitment) = commitment.decompress() {
                 commitments.push(commitment);
             } else {
-                return Err(ProofError::VerificationError(
+                Err(ProofError::VerificationError(
                     "commitment failed to decompress",
-                ));
+                ))?;
             }
         }
 
@@ -213,11 +214,9 @@ impl QueryProof {
         // compute the evaluation of the result MLEs
         let result_evaluations = match result.evaluate(&evaluation_vec, &column_result_fields[..]) {
             Some(evaluations) => evaluations,
-            _ => {
-                return Err(ProofError::VerificationError(
-                    "failed to evaluate intermediate result MLEs",
-                ))
-            }
+            _ => Err(ProofError::VerificationError(
+                "failed to evaluate intermediate result MLEs",
+            ))?,
         };
 
         // pass over the provable AST to fill in the verification builder
@@ -240,9 +239,9 @@ impl QueryProof {
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
-            return Err(ProofError::VerificationError(
+            Err(ProofError::VerificationError(
                 "sumcheck evaluation check failed",
-            ));
+            ))?;
         }
 
         // finally, check the MLE evaluations with the inner product proof
@@ -260,9 +259,18 @@ impl QueryProof {
                 ProofError::VerificationError("Inner product proof of MLE evaluations failed")
             })?;
 
-        Ok(result
-            .into_query_result(&column_result_fields[..])
-            .map(|batch| expr.transform_results(batch)))
+        let mut verification_hash = [0u8; 32];
+        transcript.challenge_bytes(
+            MessageLabel::VerificationHash.as_bytes(),
+            &mut verification_hash,
+        );
+        result
+            .into_record_batch(&column_result_fields[..])
+            .map(|batch| expr.transform_results(batch))
+            .map(|record_batch| QueryData {
+                record_batch,
+                verification_hash,
+            })
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {

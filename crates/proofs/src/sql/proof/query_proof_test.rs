@@ -7,7 +7,7 @@ use crate::{
         database::{CommitmentAccessor, DataAccessor, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    sql::proof::SumcheckSubpolynomialType,
+    sql::proof::{QueryData, SumcheckSubpolynomialType},
 };
 use arrow::{
     array::Int64Array,
@@ -58,7 +58,11 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     };
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
-    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
+    let QueryData {
+        verification_hash,
+        record_batch: result,
+    } = proof.verify(&expr, &accessor, &result).unwrap();
+    assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()
@@ -313,7 +317,11 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     };
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
-    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
+    let QueryData {
+        verification_hash,
+        record_batch: result,
+    } = proof.verify(&expr, &accessor, &result).unwrap();
+    assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()
@@ -551,7 +559,11 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     };
     let accessor = TestAccessor::new();
     let (proof, result) = QueryProof::new(&expr, &accessor);
-    let result = proof.verify(&expr, &accessor, &result).unwrap().unwrap();
+    let QueryData {
+        verification_hash,
+        record_batch: result,
+    } = proof.verify(&expr, &accessor, &result).unwrap();
+    assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
         .iter()

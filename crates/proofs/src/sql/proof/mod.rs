@@ -58,7 +58,7 @@ pub use query_proof::QueryProof;
 mod query_proof_test;
 
 mod query_result;
-pub use query_result::{QueryError, QueryResult};
+pub use query_result::{QueryData, QueryError, QueryResult};
 
 mod sumcheck_subpolynomial;
 pub use sumcheck_subpolynomial::{SumcheckSubpolynomial, SumcheckSubpolynomialType};

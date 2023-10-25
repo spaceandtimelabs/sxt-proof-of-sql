@@ -139,6 +139,7 @@ pub enum MessageLabel {
     QueryResultData,
     QueryBitDistributions,
     QuerySumcheckChallenge,
+    VerificationHash,
 }
 impl MessageLabel {
     /// Convert the label to a byte slice, which satisfies the requirements of a merlin label:
@@ -159,6 +160,7 @@ impl MessageLabel {
             MessageLabel::QueryMleEvaluations => b"querymleevaluations v1",
             MessageLabel::QueryMleEvaluationsChallenge => b"querymleevaluationschallenge v1",
             MessageLabel::QuerySumcheckChallenge => b"querysumcheckchallenge v1",
+            MessageLabel::VerificationHash => b"verificationhash v1",
         }
     }
 }

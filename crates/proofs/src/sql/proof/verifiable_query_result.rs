@@ -1,10 +1,7 @@
-use super::{ProofExpr, ProvableQueryResult, QueryProof, TransformExpr};
-use crate::{
-    base::{
-        database::{ColumnField, ColumnType, CommitmentAccessor, DataAccessor},
-        proof::ProofError,
-    },
-    sql::proof::QueryResult,
+use super::{ProofExpr, ProvableQueryResult, QueryData, QueryProof, QueryResult, TransformExpr};
+use crate::base::{
+    database::{ColumnField, ColumnType, CommitmentAccessor, DataAccessor},
+    proof::ProofError,
 };
 use arrow::{
     array::{Array, Decimal128Array, Int64Array, StringArray},
@@ -109,7 +106,7 @@ impl VerifiableQueryResult {
         &self,
         expr: &(impl ProofExpr + TransformExpr),
         accessor: &impl CommitmentAccessor,
-    ) -> Result<QueryResult, ProofError> {
+    ) -> QueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -118,18 +115,18 @@ impl VerifiableQueryResult {
             if self.provable_result.is_some() || self.proof.is_some() {
                 return Err(ProofError::VerificationError(
                     "zero sumcheck variables but non-empty result",
-                ));
+                ))?;
             }
 
             let result_fields = expr.get_column_result_fields();
 
-            return Ok(make_empty_query_result(result_fields));
+            return make_empty_query_result(result_fields);
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
             return Err(ProofError::VerificationError(
                 "non-zero sumcheck variables but empty result",
-            ));
+            ))?;
         }
 
         self.proof
@@ -155,5 +152,8 @@ fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
     }
 
     let schema = Arc::new(Schema::new(column_fields));
-    Ok(RecordBatch::try_new(schema, columns).unwrap())
+    Ok(QueryData {
+        record_batch: RecordBatch::try_new(schema, columns).unwrap(),
+        verification_hash: Default::default(),
+    })
 }
