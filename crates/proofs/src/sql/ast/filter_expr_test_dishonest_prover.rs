@@ -7,7 +7,9 @@ use crate::{
     record_batch,
     sql::{
         ast::test_utility::*,
-        proof::{ProofBuilder, ProverEvaluate, ProverHonestyMarker, VerifiableQueryResult},
+        proof::{
+            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, VerifiableQueryResult,
+        },
     },
 };
 use bumpalo::Bump;
@@ -69,6 +71,6 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let res = VerifiableQueryResult::new(&expr, &accessor);
     assert!(matches!(
         res.verify(&expr, &accessor),
-        Err(ProofError::VerificationError(_))
+        Err(QueryError::ProofError(ProofError::VerificationError(_)))
     ));
 }
