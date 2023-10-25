@@ -141,7 +141,7 @@ fn we_can_form_the_provable_query_result() {
     let res = builder.make_provable_query_result();
 
     let column_fields = vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); 2];
-    let res = res.into_query_result(&column_fields).unwrap();
+    let res = res.into_record_batch(&column_fields).unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 

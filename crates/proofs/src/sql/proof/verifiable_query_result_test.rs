@@ -19,7 +19,7 @@ fn we_can_verify_queries_on_an_empty_table() {
     };
     let accessor = TestAccessor::new();
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().unwrap();
+    let res = res.verify(&expr, &accessor).unwrap().record_batch;
     let schema = Schema::new(vec![Field::new("a1", DataType::Int64, false)]);
     let schema = Arc::new(schema);
     let expected_res =
