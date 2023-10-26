@@ -18,7 +18,7 @@ arrayvec = { version = "0.7" }
 arrow = { version = "36.0" }
 bit-iter = { version = "1.1.1" }
 blake3 = { version = "1.3.3" }
-blitzar = { version = "0.2.0" }
+blitzar = { version = "1.0.0" }
 bumpalo = { version = "3.11.0" }
 byte-slice-cast = { version = "1.2.1" }
 curve25519-dalek = { version = "3" }
