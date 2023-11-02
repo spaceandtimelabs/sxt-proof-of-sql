@@ -147,7 +147,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter() {
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [3_i64, 5],
     );

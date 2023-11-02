@@ -54,7 +54,9 @@ impl TestExprNode {
     pub fn verify_expr(&self) -> RecordBatch {
         let res = VerifiableQueryResult::new(&self.ast, &self.accessor);
         exercise_verification(&res, &self.ast, &self.accessor, self.table_ref);
-        res.verify(&self.ast, &self.accessor).unwrap().record_batch
+        res.verify(&self.ast, &self.accessor)
+            .unwrap()
+            .into_record_batch()
     }
 
     pub fn query_table(&self) -> RecordBatch {

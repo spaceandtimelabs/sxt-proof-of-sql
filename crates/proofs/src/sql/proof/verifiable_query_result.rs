@@ -1,15 +1,11 @@
-use super::{ProofExpr, ProvableQueryResult, QueryData, QueryProof, QueryResult, TransformExpr};
+use super::{ProofExpr, ProvableQueryResult, QueryData, QueryProof, QueryResult};
 use crate::base::{
-    database::{ColumnField, ColumnType, CommitmentAccessor, DataAccessor},
+    database::{
+        ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
+    },
     proof::ProofError,
 };
-use arrow::{
-    array::{Array, Decimal128Array, Int64Array, StringArray},
-    datatypes::{Field, Schema},
-    record_batch::RecordBatch,
-};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// The result of an sql query along with a proof that the query is valid. The
 /// result and proof can be verified using commitments to database columns.
@@ -102,11 +98,9 @@ impl VerifiableQueryResult {
     ///
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
-    pub fn verify(
-        &self,
-        expr: &(impl ProofExpr + TransformExpr),
-        accessor: &impl CommitmentAccessor,
-    ) -> QueryResult {
+    ///
+    /// Note: This does NOT transform the result!
+    pub fn verify(&self, expr: &impl ProofExpr, accessor: &impl CommitmentAccessor) -> QueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -137,23 +131,23 @@ impl VerifiableQueryResult {
 }
 
 fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
-    let mut column_fields: Vec<Field> = Vec::with_capacity(result_fields.len());
-    let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(result_fields.len());
-
-    for field in result_fields.iter() {
-        let col: Arc<dyn Array> = match field.data_type() {
-            ColumnType::BigInt => Arc::new(Int64Array::from(Vec::<i64>::new())),
-            ColumnType::Int128 => Arc::new(Decimal128Array::from(Vec::<i128>::new())),
-            ColumnType::VarChar => Arc::new(StringArray::from(Vec::<String>::new())),
-        };
-
-        column_fields.push(field.into());
-        columns.push(col);
-    }
-
-    let schema = Arc::new(Schema::new(column_fields));
+    let table = OwnedTable::try_new(
+        result_fields
+            .iter()
+            .map(|field| {
+                (
+                    field.name(),
+                    match field.data_type() {
+                        ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
+                        ColumnType::Int128 => OwnedColumn::Int128(vec![]),
+                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
+                    },
+                )
+            })
+            .collect(),
+    )?;
     Ok(QueryData {
-        record_batch: RecordBatch::try_new(schema, columns).unwrap(),
+        table,
         verification_hash: Default::default(),
     })
 }

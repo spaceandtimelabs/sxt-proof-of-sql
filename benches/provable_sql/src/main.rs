@@ -6,7 +6,7 @@ use proofs::{
     },
     sql::{
         parse::QueryExpr,
-        proof::{QueryResult, VerifiableQueryResult},
+        proof::{QueryResult, TransformExpr, VerifiableQueryResult},
     },
 };
 use rand::{rngs::StdRng, SeedableRng};
@@ -127,7 +127,10 @@ fn main() {
     toggle_collect();
     for iter in 0..args.num_samples {
         let before = Instant::now();
-        let _res = process_query(&provable_ast, &accessor, &args, &query, iter);
+        let res = process_query(&provable_ast, &accessor, &args, &query, iter);
+        if let Ok(res) = res {
+            provable_ast.transform_results(res.try_into().unwrap());
+        }
         mean_time += before.elapsed().as_secs_f64();
     }
     toggle_collect();

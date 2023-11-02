@@ -155,6 +155,20 @@ impl<'a> DecodeProvableResultElement<'a> for &'a str {
     }
 }
 
+/// Implement decode for `String`s
+impl<'a> DecodeProvableResultElement<'a> for String {
+    fn decode(data: &'a [u8]) -> Option<(Self, usize)>
+    where
+        Self: Sized,
+    {
+        <&'a str>::decode(data).map(|(s, l)| (s.to_string(), l))
+    }
+
+    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
+        <&'a str>::decode_to_ark_scalar(data)
+    }
+}
+
 /// Implement the decode operation for multiple rows
 pub fn decode_multiple_elements<'a, T: DecodeProvableResultElement<'a>>(
     data: &'a [u8],
