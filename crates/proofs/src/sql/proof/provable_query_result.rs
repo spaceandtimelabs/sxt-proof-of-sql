@@ -3,17 +3,11 @@ use super::{
     QueryError,
 };
 use crate::base::{
-    database::{ColumnField, ColumnType},
+    database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
     scalar::ArkScalar,
-};
-use arrow::{
-    array::{Array, Decimal128Array, Int64Array, StringArray},
-    datatypes::{Field, Schema},
-    record_batch::RecordBatch,
 };
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
@@ -130,64 +124,50 @@ impl ProvableQueryResult {
 
     /// Convert the intermediate query result into a final query result
     ///
-    /// The result is essentially an Arrow RecordBatch.
-    /// Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
-    /// This is because there is no `Int128` type in Arrow.
-    /// This does not check that the values are less than 39 digits.
-    /// However, the actual backing `i128` is the correct value.
+    /// The result is essentially an `OwnedTable` type.
     #[tracing::instrument(
-        name = "proofs.sql.proof.provable_query_result.into_query_result",
+        name = "proofs.sql.proof.provable_query_result.into_owned_table",
         level = "debug",
         skip_all
     )]
-    pub fn into_record_batch(
+    pub fn into_owned_table(
         &self,
         column_result_fields: &[ColumnField],
-    ) -> Result<RecordBatch, QueryError> {
-        assert_eq!(column_result_fields.len() as u64, self.num_columns);
+    ) -> Result<OwnedTable, QueryError> {
+        assert_eq!(column_result_fields.len(), self.num_columns());
 
         let n = self.indexes.len();
         let mut offset: usize = 0;
-        let mut column_fields: Vec<Field> = Vec::with_capacity(self.num_columns as usize);
-        let mut columns: Vec<Arc<dyn Array>> = Vec::with_capacity(self.num_columns as usize);
 
-        for field in column_result_fields {
-            offset += match field.data_type() {
-                ColumnType::BigInt => {
-                    let (col, num_read) = decode_multiple_elements::<i64>(&self.data[offset..], n)
-                        .ok_or(QueryError::Overflow)?;
-
-                    columns.push(Arc::new(Int64Array::from(col)));
-
-                    Ok::<_, QueryError>(num_read)
-                }
-                ColumnType::Int128 => {
-                    let (col, num_read) = decode_multiple_elements::<i128>(&self.data[offset..], n)
-                        .ok_or(QueryError::Overflow)?;
-                    columns.push(Arc::new(
-                        Decimal128Array::from(col)
-                            .with_precision_and_scale(38, 0)
-                            .unwrap(),
-                    ));
-                    Ok(num_read)
-                }
-                ColumnType::VarChar => {
-                    let (col, num_read) = decode_multiple_elements::<&str>(&self.data[offset..], n)
-                        .ok_or(QueryError::InvalidString)?;
-
-                    columns.push(Arc::new(StringArray::from(col)));
-
-                    Ok(num_read)
-                }
-            }?;
-
-            column_fields.push(field.into());
-        }
+        let owned_table = OwnedTable::try_new(
+            column_result_fields
+                .iter()
+                .map(|field| match field.data_type() {
+                    ColumnType::BigInt => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::BigInt(col)))
+                    }
+                    ColumnType::Int128 => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::Int128(col)))
+                    }
+                    ColumnType::VarChar => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::InvalidString)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::VarChar(col)))
+                    }
+                })
+                .collect::<Result<_, QueryError>>()?,
+        )?;
 
         assert_eq!(offset, self.data.len());
+        assert_eq!(owned_table.num_columns(), self.num_columns());
 
-        let schema = Arc::new(Schema::new(column_fields));
-
-        Ok(RecordBatch::try_new(schema, columns).unwrap())
+        Ok(owned_table)
     }
 }

@@ -60,8 +60,9 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
-        record_batch: result,
+        table,
     } = proof.verify(&expr, &accessor, &result).unwrap();
+    let result = RecordBatch::try_from(table).unwrap();
     assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
@@ -319,8 +320,9 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
-        record_batch: result,
+        table,
     } = proof.verify(&expr, &accessor, &result).unwrap();
+    let result = RecordBatch::try_from(table).unwrap();
     assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
@@ -561,8 +563,9 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
-        record_batch: result,
+        table,
     } = proof.verify(&expr, &accessor, &result).unwrap();
+    let result = RecordBatch::try_from(table).unwrap();
     assert_ne!(verification_hash, [0; 32]);
     let column_fields: Vec<Field> = expr
         .get_column_result_fields()
