@@ -1,6 +1,6 @@
 use super::{
     compute_evaluation_vector, CountBuilder, ProofBuilder, ProofCounts, ProofExpr,
-    ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars, TransformExpr,
+    ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
     VerificationBuilder,
 };
 use crate::{
@@ -128,9 +128,10 @@ impl QueryProof {
         skip_all,
         err
     )]
+    /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExpr + TransformExpr),
+        expr: &impl ProofExpr,
         accessor: &impl CommitmentAccessor,
         result: &ProvableQueryResult,
     ) -> QueryResult {
@@ -265,10 +266,9 @@ impl QueryProof {
             &mut verification_hash,
         );
         result
-            .into_record_batch(&column_result_fields[..])
-            .map(|batch| expr.transform_results(batch))
-            .map(|record_batch| QueryData {
-                record_batch,
+            .into_owned_table(&column_result_fields[..])
+            .map(|table| QueryData {
+                table,
                 verification_hash,
             })
     }

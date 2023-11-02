@@ -140,8 +140,11 @@ fn we_can_form_the_provable_query_result() {
 
     let res = builder.make_provable_query_result();
 
-    let column_fields = vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); 2];
-    let res = res.into_record_batch(&column_fields).unwrap();
+    let column_fields = vec![
+        ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+        ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
+    ];
+    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 

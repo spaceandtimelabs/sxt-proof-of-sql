@@ -38,7 +38,7 @@ fn we_can_compare_a_constant_column() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => &[] as &[i64],
     );
@@ -57,7 +57,7 @@ fn we_can_compare_a_varying_column_with_constant_sign() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => &[] as &[i64],
     );
@@ -76,7 +76,7 @@ fn we_can_compare_a_varying_column_with_constant_absolute_value() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 3],
     );
@@ -95,7 +95,7 @@ fn we_can_compare_a_constant_column_of_negative_columns() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -114,7 +114,7 @@ fn we_can_compare_a_varying_column_with_negative_only_signs() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -133,7 +133,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 1.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 3],
     );
@@ -152,7 +152,7 @@ fn we_can_compare_column_with_greater_than_or_equal() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 1.into(), false));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [2_i64],
     );
@@ -171,7 +171,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs_and_a_constant
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64],
     );
@@ -190,7 +190,7 @@ fn we_can_compare_a_constant_column_of_zeros() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().record_batch;
+    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -230,7 +230,10 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
 
     let (proof, res) = QueryProof::new_from_builder(builder, 0);
-    let res = proof.verify(&expr, &accessor, &res).unwrap().record_batch;
+    let res = proof
+        .verify(&expr, &accessor, &res)
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );

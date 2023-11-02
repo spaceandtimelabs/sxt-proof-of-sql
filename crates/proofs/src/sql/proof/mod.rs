@@ -1,3 +1,4 @@
+#[warn(missing_docs)]
 mod evaluation_vector;
 pub use evaluation_vector::compute_evaluation_vector;
 #[cfg(test)]
@@ -6,11 +7,13 @@ mod evaluation_vector_test;
 mod count_builder;
 pub use count_builder::CountBuilder;
 
+#[warn(missing_docs)]
 mod index_utility;
 pub use index_utility::are_indexes_valid;
 #[cfg(test)]
 mod index_utility_test;
 
+#[warn(missing_docs)]
 mod multilinear_extension;
 pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
 
@@ -32,9 +35,11 @@ pub use verification_builder::VerificationBuilder;
 #[cfg(test)]
 mod verification_builder_test;
 
+#[warn(missing_docs)]
 mod provable_result_column;
 pub use provable_result_column::{DenseProvableResultColumn, ProvableResultColumn};
 
+#[warn(missing_docs)]
 mod provable_query_result;
 pub use provable_query_result::ProvableQueryResult;
 #[cfg(test)]
@@ -57,6 +62,7 @@ pub use query_proof::QueryProof;
 #[cfg(test)]
 mod query_proof_test;
 
+#[warn(missing_docs)]
 mod query_result;
 pub use query_result::{QueryData, QueryError, QueryResult};
 
@@ -83,6 +89,7 @@ pub use result_element_serialization::{
     decode_multiple_elements, DecodeProvableResultElement, EncodeProvableResultElement,
 };
 
+#[warn(missing_docs)]
 mod lagrange_basis_evaluation;
 pub use lagrange_basis_evaluation::{
     compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
