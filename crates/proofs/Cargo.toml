@@ -13,7 +13,9 @@ doctest = true
 test = true
 
 [dependencies]
+ark-bls12-381 = { workspace = true }
 ark-curve25519 = { workspace = true }
+ark-ec = { workspace = true }
 ark-ff = { workspace = true }
 ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
