@@ -2,8 +2,10 @@ use super::{MultilinearExtension, MultilinearExtensionImpl};
 use crate::base::{
     polynomial::{CompositePolynomial, DenseMultilinearExtension},
     scalar::ArkScalar,
+    slice_ops,
 };
 use num_traits::{One, Zero};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 // Build up a composite polynomial from individual MLE expressions
@@ -37,8 +39,12 @@ impl CompositePolynomialBuilder {
         mult: &ArkScalar,
         terms: &[Box<dyn MultilinearExtension + '_>],
     ) {
-        assert!(!terms.is_empty());
-        if terms.len() == 1 {
+        if terms.is_empty() {
+            self.fr_multiplicands_degree1
+                .par_iter_mut()
+                .with_min_len(slice_ops::MIN_RAYON_LEN)
+                .for_each(|val| *val += *mult);
+        } else if terms.len() == 1 {
             terms[0].mul_add(&mut self.fr_multiplicands_degree1, mult);
         } else {
             let multiplicand = self.create_multiplicand_with_deduplicated_mles(terms);
@@ -52,6 +58,8 @@ impl CompositePolynomialBuilder {
         mult: &ArkScalar,
         terms: &[Box<dyn MultilinearExtension + '_>],
     ) {
+        // There is a more efficient way of handling constant zerosum terms,
+        // since we know the sum will be constant * length, so this assertion should be here.
         assert!(!terms.is_empty());
         let multiplicand = self.create_multiplicand_with_deduplicated_mles(terms);
         self.zerosum_multiplicands.push((*mult, multiplicand));
