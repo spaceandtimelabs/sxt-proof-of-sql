@@ -36,18 +36,24 @@ use merlin::Transcript;
 /// ```
 pub trait TranscriptProtocol {
     /// Append a message to the transcript, automatically serializing it.
-    /// Usually you would use this to start an operation, as well as include a few commitments.
-    /// When including commitments this way, besure to use Commitment::as_compressed(),
-    /// so that only the RistrettoPoint is included, and not the length.
     ///
     /// The message is encoded with Postcard v1, chosen for its simplicity and stability.
     fn append_auto(&mut self, label: MessageLabel, message: &(impl serde::Serialize + ?Sized));
+
+    /// Append a message to the transcript, serializing it with CanonicalSerialize.
+    fn append_canonical_serialize(
+        &mut self,
+        label: MessageLabel,
+        message: &(impl CanonicalSerialize + ?Sized),
+    );
 
     /// Append some scalars to the transcript under a specific label.
     ///
     /// For most types, prefer to include it as part of the message with append_auto.
     /// But ArkScalars are not Serialize, so you must use this method instead, creating a separate message.
-    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]);
+    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]) {
+        self.append_canonical_serialize(label, scalars)
+    }
 
     /// Append a Compressed RistrettoPoint with a specific label.
     ///
@@ -63,14 +69,23 @@ pub trait TranscriptProtocol {
     /// because using this method creates a need for more labels
     fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
 
+    /// Compute multiple challenge values of a type that extends `ark_std::UniformRand` (which requires a label). This generalizes `challenge_ark_scalars`.
+    fn challenge_ark<'a, U: ark_std::UniformRand + 'a>(
+        &mut self,
+        buf: impl IntoIterator<Item = &'a mut U>,
+        label: MessageLabel,
+    );
+
     /// Compute multiple challenge variables (which requires a label).
-    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel);
+    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel) {
+        self.challenge_ark(scalars.iter_mut().map(|a| &mut a.0), label)
+    }
 
     /// Compute a challenge variable (which requires a label).
     fn challenge_ark_scalar(&mut self, label: MessageLabel) -> ArkScalar {
-        let mut buf = [Default::default(); 1];
-        self.challenge_ark_scalars(&mut buf, label);
-        buf[0]
+        let mut res: ArkScalar = Default::default();
+        self.challenge_ark(core::iter::once(&mut res.0), label);
+        res
     }
 }
 
@@ -79,9 +94,13 @@ impl TranscriptProtocol for Transcript {
         self.append_message(label.as_bytes(), &postcard::to_allocvec(message).unwrap());
     }
 
-    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]) {
-        let mut buf = vec![Default::default(); scalars.compressed_size()];
-        scalars.serialize_compressed(&mut buf).unwrap();
+    fn append_canonical_serialize(
+        &mut self,
+        label: MessageLabel,
+        message: &(impl CanonicalSerialize + ?Sized),
+    ) {
+        let mut buf = vec![Default::default(); message.compressed_size()];
+        message.serialize_compressed(&mut buf).unwrap();
         self.append_message(label.as_bytes(), &buf);
     }
 
@@ -89,12 +108,11 @@ impl TranscriptProtocol for Transcript {
         self.append_message(label.as_bytes(), points_as_byte_slice(points));
     }
 
-    #[tracing::instrument(
-        name = "proofs.base.proof.transcript_protocol.challenge_ark_scalars",
-        level = "info",
-        skip_all
-    )]
-    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel) {
+    fn challenge_ark<'a, U: ark_std::UniformRand + 'a>(
+        &mut self,
+        buf: impl IntoIterator<Item = &'a mut U>,
+        label: MessageLabel,
+    ) {
         self.append_message(label.as_bytes(), &[]);
         struct TranscriptProtocolRng<'a>(&'a mut Transcript);
         impl<'a> ark_std::rand::RngCore for TranscriptProtocolRng<'a> {
@@ -117,8 +135,8 @@ impl TranscriptProtocol for Transcript {
             }
         }
         let rng = &mut TranscriptProtocolRng(self);
-        for scalar in scalars.iter_mut() {
-            *scalar = ArkScalar(ark_ff::UniformRand::rand(rng));
+        for val in buf {
+            *val = ark_ff::UniformRand::rand(rng);
         }
     }
 }
@@ -140,6 +158,8 @@ pub enum MessageLabel {
     QueryBitDistributions,
     QuerySumcheckChallenge,
     VerificationHash,
+    DoryMessage,
+    DoryChallenge,
 }
 impl MessageLabel {
     /// Convert the label to a byte slice, which satisfies the requirements of a merlin label:
@@ -161,6 +181,8 @@ impl MessageLabel {
             MessageLabel::QueryMleEvaluationsChallenge => b"querymleevaluationschallenge v1",
             MessageLabel::QuerySumcheckChallenge => b"querysumcheckchallenge v1",
             MessageLabel::VerificationHash => b"verificationhash v1",
+            MessageLabel::DoryMessage => b"dorymessage v1",
+            MessageLabel::DoryChallenge => b"dorychallenge v1",
         }
     }
 }
