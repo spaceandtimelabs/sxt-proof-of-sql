@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{CommitmentAccessor, DataAccessor, TestAccessor},
+        database::{CommitmentAccessor, DataAccessor, RecordBatchTestAccessor, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
     sql::proof::{QueryData, SumcheckSubpolynomialType},
@@ -56,7 +56,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
@@ -126,7 +126,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -170,7 +170,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -213,7 +213,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, mut result) = QueryProof::new(&expr, &accessor);
     result.indexes_mut().pop();
     assert!(proof.verify(&expr, &accessor, &result).is_err());
@@ -258,7 +258,7 @@ fn verify_fails_if_counts_dont_match() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -316,7 +316,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
@@ -412,7 +412,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -471,7 +471,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -559,7 +559,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     let QueryData {
         verification_hash,
@@ -688,7 +688,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (mut proof, result) = QueryProof::new(&expr, &accessor);
     proof.commitments[0] =
         (proof.commitments[0].decompress().unwrap() * ArkScalar::from(2u64)).compress();
@@ -779,7 +779,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (mut proof, result) = QueryProof::new(&expr, &accessor);
     let mut bytes = [0u8; 32];
     bytes[31] = 1u8;
@@ -875,7 +875,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
@@ -966,7 +966,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }

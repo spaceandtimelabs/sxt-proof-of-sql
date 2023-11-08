@@ -1,6 +1,7 @@
 use crate::{
     base::database::{
-        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+        RecordBatchTestAccessor, TestAccessor,
     },
     record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::const_v},
@@ -17,7 +18,7 @@ fn create_test_const_bool_expr(
     data: RecordBatch,
     offset: usize,
 ) -> TestExprNode {
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     let table_ref = table_ref.parse().unwrap();
     accessor.add_table(table_ref, data, offset);
     let df_filter = lit(filter_val);

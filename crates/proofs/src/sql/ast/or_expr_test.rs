@@ -1,7 +1,8 @@
 use crate::{
     base::{
         database::{
-            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+            RecordBatchTestAccessor, TestAccessor,
         },
         scalar::ArkScalar,
     },
@@ -30,7 +31,7 @@ fn create_test_or_expr<
     data: RecordBatch,
     offset: usize,
 ) -> TestExprNode {
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let or_expr = or(
