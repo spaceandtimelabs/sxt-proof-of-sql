@@ -1,6 +1,6 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, TableRef, TestAccessor},
+    base::database::{ColumnType, RecordBatchTestAccessor, TableRef, TestAccessor},
     record_batch,
     sql::{
         ast::{test_utility::*, FilterExpr},
@@ -13,23 +13,31 @@ use itertools::Itertools;
 use polars::prelude::col as pc;
 use proofs_sql::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
 
-fn query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) -> QueryExpr {
+fn query_to_provable_ast(
+    table: TableRef,
+    query: &str,
+    accessor: &RecordBatchTestAccessor,
+) -> QueryExpr {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
-fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestAccessor) {
+fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &RecordBatchTestAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
 }
 
-fn record_batch_to_accessor(table: TableRef, data: RecordBatch, offset: usize) -> TestAccessor {
-    let mut accessor = TestAccessor::new();
+fn record_batch_to_accessor(
+    table: TableRef,
+    data: RecordBatch,
+    offset: usize,
+) -> RecordBatchTestAccessor {
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(table, data, offset);
     accessor
 }
 
-fn get_test_accessor() -> (TableRef, TestAccessor) {
+fn get_test_accessor() -> (TableRef, RecordBatchTestAccessor) {
     let table = "sxt.t".parse().unwrap();
     let data = record_batch!(
         "s" => ["abc", ],
@@ -44,7 +52,7 @@ fn get_test_accessor() -> (TableRef, TestAccessor) {
         "i1" => [1_i64, ],
         "d1" => [2_i128, ],
     );
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(table, data, 0);
     (table, accessor)
 }

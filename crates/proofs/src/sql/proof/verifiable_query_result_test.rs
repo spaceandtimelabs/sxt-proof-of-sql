@@ -1,5 +1,5 @@
 use super::{ProofCounts, TestQueryExpr, VerifiableQueryResult};
-use crate::base::database::TestAccessor;
+use crate::base::database::{RecordBatchTestAccessor, TestAccessor};
 use arrow::{
     array::Int64Array,
     datatypes::{DataType, Field, Schema},
@@ -17,7 +17,7 @@ fn we_can_verify_queries_on_an_empty_table() {
         counts,
         ..Default::default()
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
     let schema = Schema::new(vec![Field::new("a1", DataType::Int64, false)]);
@@ -37,7 +37,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         counts,
         ..Default::default()
     };
-    let accessor = TestAccessor::new();
+    let accessor = RecordBatchTestAccessor::new_empty();
     let res = VerifiableQueryResult {
         provable_result: Some(Default::default()),
         ..Default::default()

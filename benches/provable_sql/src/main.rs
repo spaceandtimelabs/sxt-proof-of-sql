@@ -2,7 +2,8 @@ use blitzar::compute::{init_backend_with_config, BackendConfig};
 use clap::Parser;
 use proofs::{
     base::database::{
-        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+        RecordBatchTestAccessor, TestAccessor,
     },
     sql::{
         parse::QueryExpr,
@@ -48,7 +49,7 @@ fn generate_accessor(
     min_value: i64,
     max_value: i64,
     offset_generators: usize,
-) -> (String, TestAccessor) {
+) -> (String, RecordBatchTestAccessor) {
     assert!(num_columns < 26);
 
     let mut rng = StdRng::from_seed([0u8; 32]);
@@ -69,13 +70,16 @@ fn generate_accessor(
 
     let table_ref = "sxt.t".parse().unwrap();
     let data = make_random_test_accessor_data(&mut rng, &ref_cols[..], &descriptor);
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(table_ref, data, offset_generators);
 
     (table_ref.table_id().name().to_owned(), accessor)
 }
 
-fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, TestAccessor, String) {
+fn generate_input_data(
+    args: &Args,
+    offset_generators: usize,
+) -> (QueryExpr, RecordBatchTestAccessor, String) {
     init_backend_with_config(BackendConfig {
         num_precomputed_generators: args.table_length as u64,
     });
@@ -105,7 +109,7 @@ fn generate_input_data(args: &Args, offset_generators: usize) -> (QueryExpr, Tes
 #[tracing::instrument(skip(provable_ast, accessor))]
 fn process_query(
     provable_ast: &QueryExpr,
-    accessor: &TestAccessor,
+    accessor: &RecordBatchTestAccessor,
     _args: &Args,
     query: &str,
     sample_iter: usize,

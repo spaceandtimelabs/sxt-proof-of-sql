@@ -1,6 +1,6 @@
 use crate::{
     base::{
-        database::{ColumnRef, ColumnType, TableRef, TestAccessor},
+        database::{ColumnRef, ColumnType, RecordBatchTestAccessor, TableRef, TestAccessor},
         scalar::ArkScalar,
     },
     record_batch,
@@ -142,7 +142,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter() {
         "b" => [1_i64, 2, 3, 4, 5],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);

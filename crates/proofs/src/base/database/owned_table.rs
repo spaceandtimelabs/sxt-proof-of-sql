@@ -43,6 +43,14 @@ impl OwnedTable {
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
+    /// Number of rows in the table.
+    pub fn num_rows(&self) -> usize {
+        if self.table.is_empty() {
+            0
+        } else {
+            self.table[0].len()
+        }
+    }
     /// Whether the table has no columns.
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
@@ -50,6 +58,14 @@ impl OwnedTable {
     /// Returns the columns of this table as an IndexMap
     pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn> {
         self.table
+    }
+    /// Returns the columns of this table as an IndexMap
+    pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn> {
+        &self.table
+    }
+    /// Returns the columns of this table as an Iterator
+    pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
+        self.table.keys()
     }
 }
 

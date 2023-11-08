@@ -3,7 +3,9 @@ use super::{
     QueryProof, TestQueryExpr, TransformExpr, VerifiableQueryResult,
 };
 use crate::base::{
-    database::{CommitmentAccessor, MetadataAccessor, TableRef, TestAccessor},
+    database::{
+        CommitmentAccessor, MetadataAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
+    },
     scalar::{compute_commitment_for_testing, ArkScalar},
 };
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
@@ -16,7 +18,7 @@ use num_traits::One;
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
     expr: &(impl ProofExpr + TransformExpr),
-    accessor: &TestAccessor,
+    accessor: &RecordBatchTestAccessor,
     table_ref: TableRef,
 ) {
     assert!(res.verify(expr, accessor).is_ok());
@@ -90,7 +92,7 @@ fn tamper_no_result(
         counts,
         ..Default::default()
     };
-    let accessor_p = TestAccessor::new();
+    let accessor_p = RecordBatchTestAccessor::new_empty();
     let (proof, _result) = QueryProof::new(&expr_p, &accessor_p);
     res_p.proof = Some(proof);
     assert!(res_p.verify(expr, accessor).is_err());
