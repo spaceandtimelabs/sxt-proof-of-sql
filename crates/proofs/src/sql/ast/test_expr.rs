@@ -1,6 +1,6 @@
 use super::{BoolExpr, FilterExpr, OstensibleFilterExpr};
 use crate::{
-    base::database::{TableRef, TestAccessor},
+    base::database::{RecordBatchTestAccessor, TableRef},
     sql::{
         ast::test_utility::{cols_result, tab},
         proof::{exercise_verification, ProverHonestyMarker, TransformExpr, VerifiableQueryResult},
@@ -13,7 +13,7 @@ pub struct TestExprNode {
     pub table_ref: TableRef,
     pub results: Vec<Expr>,
     pub ast: FilterExpr,
-    pub accessor: TestAccessor,
+    pub accessor: RecordBatchTestAccessor,
     pub df_filter: Expr,
 }
 
@@ -26,7 +26,7 @@ impl TestExprNode {
         results: &[&str],
         filter_expr: Box<dyn BoolExpr>,
         df_filter: Expr,
-        accessor: TestAccessor,
+        accessor: RecordBatchTestAccessor,
     ) -> Self {
         let polar_results = results
             .iter()

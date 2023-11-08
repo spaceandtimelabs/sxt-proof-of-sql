@@ -2,7 +2,7 @@ use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{
         bit::BitDistribution,
-        database::TestAccessor,
+        database::{RecordBatchTestAccessor, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
     record_batch,
@@ -20,7 +20,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let data = [123_i64, 123, 123];
     let dist = BitDistribution::new(&data);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, record_batch!("a" => data), 0);
 
     let alloc = Bump::new();
@@ -36,7 +36,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     let data = [-123_i64, -123, -123];
     let dist = BitDistribution::new(&data);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, record_batch!("a" => data), 0);
 
     let alloc = Bump::new();

@@ -1,7 +1,8 @@
 use crate::{
     base::{
         database::{
-            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor, TestAccessor,
+            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+            RecordBatchTestAccessor, TestAccessor,
         },
         scalar::ArkScalar,
     },
@@ -27,7 +28,7 @@ fn create_test_not_expr<T: Into<ArkScalar> + Copy + Literal>(
     data: RecordBatch,
     offset: usize,
 ) -> TestExprNode {
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let df_filter = polars::prelude::col(filter_col).neq(lit(filter_val));

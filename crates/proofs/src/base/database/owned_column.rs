@@ -1,3 +1,5 @@
+use super::ColumnType;
+
 /// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
@@ -27,6 +29,14 @@ impl OwnedColumn {
             OwnedColumn::BigInt(col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
+        }
+    }
+    /// Returns the type of the column.
+    pub fn column_type(&self) -> ColumnType {
+        match self {
+            OwnedColumn::BigInt(_) => ColumnType::BigInt,
+            OwnedColumn::VarChar(_) => ColumnType::VarChar,
+            OwnedColumn::Int128(_) => ColumnType::Int128,
         }
     }
 }

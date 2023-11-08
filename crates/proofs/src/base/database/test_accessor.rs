@@ -1,191 +1,77 @@
 use super::{
-    dataframe_to_record_batch, record_batch_to_dataframe, ArrayRefExt, Column, ColumnRef,
-    ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
+    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TableRef,
 };
-use crate::base::scalar::compute_commitment_for_testing;
-use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
-use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use indexmap::IndexMap;
-use polars::prelude::DataFrame;
 use proofs_sql::Identifier;
-use std::collections::HashMap;
 
-/// TestTable is used to simulate an in-memory table and commitment tracking table.
-#[derive(Clone)]
-pub struct TestAccessorTable {
-    data: RecordBatch,
-    table_offset: usize,
-    columns: IndexMap<Identifier, ArrayRef>,
-    commitments: IndexMap<Identifier, RistrettoPoint>,
-}
+/// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing purposes.
+pub trait TestAccessor:
+    Clone + Default + MetadataAccessor + SchemaAccessor + CommitmentAccessor + DataAccessor
+{
+    /// The table type that the accessor will accept in the `add_table` method, and likely the inner table type.
+    type Table;
 
-/// TestAccessor is used to simulate an in-memory databasefor proof testing.
-pub struct TestAccessor {
-    alloc: Bump,
-    tables: HashMap<TableRef, TestAccessorTable>,
-}
-
-impl Clone for TestAccessor {
-    fn clone(&self) -> Self {
-        Self {
-            alloc: Bump::new(),
-            tables: self.tables.clone(),
-        }
-    }
-}
-
-impl Default for TestAccessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl TestAccessor {
     /// Create an empty test accessor
-    pub fn new() -> Self {
-        Self {
-            alloc: Bump::new(),
-            tables: HashMap::new(),
-        }
-    }
+    fn new_empty() -> Self;
 
     /// Add a new table to the current test accessor
-    pub fn add_table(&mut self, table_ref: TableRef, data: RecordBatch, table_offset: usize) {
-        assert!(self.tables.get(&table_ref).is_none());
+    fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize);
 
-        let columns: IndexMap<_, _> = data
-            .schema()
-            .fields()
-            .iter()
-            .zip(data.columns())
-            .map(|(f, v)| (f.name().parse().unwrap(), v.clone()))
-            .collect();
-
-        let commitments = columns
-            .iter()
-            .map(|(k, v)| {
-                (
-                    *k,
-                    compute_commitment_for_testing(&v.to_ark_scalars()[..], table_offset),
-                )
-            })
-            .collect();
-
-        self.tables.insert(
-            table_ref,
-            TestAccessorTable {
-                table_offset,
-                commitments,
-                data,
-                columns,
-            },
-        );
-    }
-
-    pub fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
-        assert_eq!(self.tables.len(), 1);
-        let table = self.tables.get(&table_ref).unwrap();
-        table.columns.keys().map(|c| c.as_str()).collect()
-    }
+    /// Get the column names for a given table
+    fn get_column_names(&self, table_ref: TableRef) -> Vec<&str>;
 
     /// Update the table offset alongside its column commitments
-    pub fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
-        let table = self.tables.get_mut(&table_ref).unwrap();
-
-        table.table_offset = new_offset;
-        table.commitments = table
-            .columns
-            .iter()
-            .map(|(k, col)| {
-                (
-                    *k,
-                    compute_commitment_for_testing(&col.to_ark_scalars()[..], new_offset),
-                )
-            })
-            .collect();
-    }
-
-    /// Apply a query function to table and then convert the result to a RecordBatch
-    pub fn query_table(
-        &self,
-        table_ref: TableRef,
-        f: impl Fn(&DataFrame) -> DataFrame,
-    ) -> RecordBatch {
-        let table = self.tables.get(&table_ref).unwrap();
-
-        dataframe_to_record_batch(f(&record_batch_to_dataframe(table.data.clone())))
-    }
+    fn update_offset(&mut self, table_ref: TableRef, new_offset: usize);
 }
 
-/// MetadataAccessor implementation for TestAccessor
-impl MetadataAccessor for TestAccessor {
-    /// Return the table length associated with table_ref
-    ///
-    /// Note: this function expects table_ref to exist
-    fn get_length(&self, table_ref: TableRef) -> usize {
-        let table = self.tables.get(&table_ref).unwrap();
-        table.data.num_rows()
+#[derive(Clone, Default)]
+/// A test accessor that leaves all of the required methods except `new` `unimplemented!()`.
+pub struct UnimplementedTestAccessor;
+impl TestAccessor for UnimplementedTestAccessor {
+    type Table = ();
+
+    fn new_empty() -> Self {
+        Default::default()
     }
 
-    /// Return the offset associated with table_ref
-    ///
-    /// Note: this function expects table_ref to exist
-    fn get_offset(&self, table_ref: TableRef) -> usize {
-        let table = self.tables.get(&table_ref).unwrap();
-        table.table_offset
-    }
-}
-
-/// SchemaAccessor implementation for TestAccessor
-impl SchemaAccessor for TestAccessor {
-    /// Return the column type associated with column_id, if exists.
-    ///
-    /// Note: this function expects `table_ref` and `column_id` to exist
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
-        let table = self.tables.get(&table_ref)?;
-        table
-            .columns
-            .get(&column_id)
-            .map(|dt| DataType::try_into(dt.data_type().clone()).unwrap())
+    fn add_table(&mut self, _table_ref: TableRef, _data: (), _table_offset: usize) {
+        unimplemented!()
     }
 
-    /// Return the column schema + column type associated with table_ref
-    ///
-    /// Note: this function expects table_ref to exist
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
-        let table = self.tables.get(&table_ref).unwrap();
-        table
-            .columns
-            .iter()
-            .map(|(k, dt)| (*k, DataType::try_into(dt.data_type().clone()).unwrap()))
-            .collect()
+    fn get_column_names(&self, _table_ref: TableRef) -> Vec<&str> {
+        unimplemented!()
+    }
+
+    fn update_offset(&mut self, _table_ref: TableRef, _new_offset: usize) {
+        unimplemented!()
     }
 }
-
-/// CommitmentAccessor implementation for TestAccessor
-impl CommitmentAccessor for TestAccessor {
-    /// Return the commitment associated with column_ref
-    ///
-    /// Note: this function expects the column_ref to exist
-    fn get_commitment(&self, column_ref: ColumnRef) -> RistrettoPoint {
-        let table = self.tables.get(&column_ref.table_ref()).unwrap();
-        *table.commitments.get(&column_ref.column_id()).unwrap()
+impl DataAccessor for UnimplementedTestAccessor {
+    fn get_column(&self, _column: ColumnRef) -> Column {
+        unimplemented!()
     }
 }
+impl CommitmentAccessor for UnimplementedTestAccessor {
+    fn get_commitment(&self, _column: ColumnRef) -> RistrettoPoint {
+        unimplemented!()
+    }
+}
+impl MetadataAccessor for UnimplementedTestAccessor {
+    fn get_length(&self, _table_ref: TableRef) -> usize {
+        unimplemented!()
+    }
 
-/// DataAccessor implementation for TestAccessor
-impl DataAccessor for TestAccessor {
-    /// Return the data slice wrapped within the Column::<some_type>
-    ///
-    /// Note: this function expects the column_ref to exist
-    /// and also have the same type specified by column_ref.column_type()
-    fn get_column(&self, column_ref: ColumnRef) -> Column {
-        let table = self.tables.get(&column_ref.table_ref()).unwrap();
-        table
-            .columns
-            .get(&column_ref.column_id())
-            .unwrap()
-            .to_column(&self.alloc, &(0..table.data.num_rows()), None)
+    fn get_offset(&self, _table_ref: TableRef) -> usize {
+        unimplemented!()
+    }
+}
+impl SchemaAccessor for UnimplementedTestAccessor {
+    fn lookup_column(&self, _table_ref: TableRef, _column_id: Identifier) -> Option<ColumnType> {
+        unimplemented!()
+    }
+
+    fn lookup_schema(&self, _table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+        unimplemented!()
     }
 }

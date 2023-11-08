@@ -1,7 +1,7 @@
 use super::OstensibleFilterExpr;
 use crate::{
     base::{
-        database::{DataAccessor, TestAccessor},
+        database::{DataAccessor, RecordBatchTestAccessor, TestAccessor},
         proof::ProofError,
     },
     record_batch,
@@ -64,7 +64,7 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
         "b" => [1_i64, 2, 3, 4, 5],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = TestAccessor::new();
+    let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);

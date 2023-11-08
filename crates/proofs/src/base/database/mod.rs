@@ -16,13 +16,15 @@ pub use record_batch_dataframe_conversion::*;
 mod record_batch_utility;
 pub use record_batch_utility::*;
 
+#[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
-mod test_accessor;
+mod record_batch_test_accessor;
 #[cfg(any(test, feature = "test"))]
-pub use test_accessor::TestAccessor;
+pub use record_batch_test_accessor::RecordBatchTestAccessor;
 
+#[warn(missing_docs)]
 #[cfg(test)]
-mod test_accessor_test;
+mod record_batch_test_accessor_test;
 
 #[cfg(any(test, feature = "test"))]
 mod test_accessor_utility;
@@ -45,3 +47,13 @@ pub use owned_and_arrow_conversions::*;
 #[cfg(test)]
 #[warn(missing_docs)]
 mod owned_and_arrow_conversions_test;
+
+#[warn(missing_docs)]
+mod test_accessor;
+pub use test_accessor::TestAccessor;
+
+#[warn(missing_docs)]
+mod owned_table_test_accessor;
+pub use owned_table_test_accessor::OwnedTableTestAccessor;
+#[cfg(test)]
+mod owned_table_test_accessor_test;
