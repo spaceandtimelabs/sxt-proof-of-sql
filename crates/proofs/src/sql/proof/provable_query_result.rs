@@ -1,10 +1,12 @@
 use super::{
-    are_indexes_valid, decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn,
-    QueryError,
+    decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn, QueryError,
 };
-use crate::base::{
-    database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
-    scalar::ArkScalar,
+use crate::{
+    base::{
+        database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
+        scalar::ArkScalar,
+    },
+    sql::proof::Indexes,
 };
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -93,7 +95,7 @@ impl ProvableQueryResult {
     ) -> Option<Vec<ArkScalar>> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
-        if !are_indexes_valid(&self.indexes, evaluation_vec.len()) {
+        if !Indexes::Sparse(self.indexes.clone()).valid(evaluation_vec.len()) {
             return None;
         }
 

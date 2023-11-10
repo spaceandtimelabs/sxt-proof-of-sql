@@ -8,12 +8,6 @@ mod count_builder;
 pub use count_builder::CountBuilder;
 
 #[warn(missing_docs)]
-mod index_utility;
-pub use index_utility::are_indexes_valid;
-#[cfg(test)]
-mod index_utility_test;
-
-#[warn(missing_docs)]
 mod multilinear_extension;
 pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
 
@@ -96,3 +90,9 @@ pub use lagrange_basis_evaluation::{
 };
 #[cfg(test)]
 mod lagrange_basis_evaluation_test;
+
+#[warn(missing_docs)]
+mod indexes;
+pub use indexes::Indexes;
+#[cfg(test)]
+mod indexes_test;
