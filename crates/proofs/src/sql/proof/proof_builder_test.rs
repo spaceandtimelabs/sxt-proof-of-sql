@@ -8,7 +8,9 @@ use crate::{
         polynomial::CompositePolynomial,
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    sql::proof::{compute_evaluation_vector, MultilinearExtension, SumcheckSubpolynomialType},
+    sql::proof::{
+        compute_evaluation_vector, Indexes, MultilinearExtension, SumcheckSubpolynomialType,
+    },
 };
 use arrow::{
     array::Int64Array,
@@ -130,11 +132,11 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 
 #[test]
 fn we_can_form_the_provable_query_result() {
-    let result_indexes = [1, 2];
+    let result_indexes = Indexes::Sparse(vec![1, 2]);
     let col1 = [10, 11, 12];
     let col2 = [-2, -3, -4];
     let mut builder = ProofBuilder::new(3, 2);
-    builder.set_result_indexes(&result_indexes);
+    builder.set_result_indexes(result_indexes);
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
 

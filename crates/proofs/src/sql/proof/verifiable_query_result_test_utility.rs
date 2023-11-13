@@ -2,11 +2,14 @@ use super::{
     DenseProvableResultColumn, ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn,
     QueryProof, TestQueryExpr, TransformExpr, VerifiableQueryResult,
 };
-use crate::base::{
-    database::{
-        CommitmentAccessor, MetadataAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
+use crate::{
+    base::{
+        database::{
+            CommitmentAccessor, MetadataAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
+        },
+        scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    scalar::{compute_commitment_for_testing, ArkScalar},
+    sql::proof::Indexes,
 };
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 use num_traits::One;
@@ -79,7 +82,7 @@ fn tamper_no_result(
     let mut res_p = res.clone();
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::<i64>::new(&[][..]))];
-    res_p.provable_result = Some(ProvableQueryResult::new(&[][..], &cols));
+    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols));
     assert!(res_p.verify(expr, accessor).is_err());
 
     // add a proof
@@ -107,7 +110,7 @@ fn tamper_empty_result(
     let mut res_p = res.clone();
     let cols: [Box<dyn ProvableResultColumn>; 1] =
         [Box::new(DenseProvableResultColumn::<i64>::new(&[123][..]))];
-    res_p.provable_result = Some(ProvableQueryResult::new(&[0][..], &cols));
+    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![0]), &cols));
     assert!(res_p.verify(expr, accessor).is_err());
 }
 
@@ -129,7 +132,13 @@ fn tamper_result(
     // try to change an index
     let mut res_p = res.clone();
     let mut provable_res_p = provable_res.clone();
-    provable_res_p.indexes_mut()[0] += 1;
+    match provable_res_p.indexes_mut() {
+        Indexes::Sparse(indexes) => indexes[0] += 1,
+        Indexes::Dense(range) => {
+            range.start += 1;
+            range.end += 1;
+        }
+    }
     res_p.provable_result = Some(provable_res_p);
     assert!(res_p.verify(expr, accessor).is_err());
 

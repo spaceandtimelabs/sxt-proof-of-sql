@@ -8,7 +8,8 @@ use crate::{
     sql::{
         ast::test_utility::*,
         proof::{
-            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, VerifiableQueryResult,
+            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError,
+            VerifiableQueryResult,
         },
     },
 };
@@ -35,20 +36,14 @@ impl ProverEvaluate for DishonestFilterExpr {
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
 
         // set result indexes
-        let mut cnt: usize = 0;
-        for b in selection {
-            cnt += *b as usize;
-        }
-        let indexes = alloc.alloc_slice_fill_default::<u64>(cnt);
-        cnt = 0;
-        for (i, b) in selection.iter().enumerate() {
-            if *b {
-                indexes[cnt] = i as u64;
-                cnt += 1;
-            }
-        }
+        let mut indexes: Vec<_> = selection
+            .iter()
+            .enumerate()
+            .filter(|(_, &b)| b)
+            .map(|(i, _)| i as u64)
+            .collect();
         indexes[0] += 1;
-        builder.set_result_indexes(indexes);
+        builder.set_result_indexes(Indexes::Sparse(indexes));
 
         // evaluate result columns
         for expr in self.results.iter() {

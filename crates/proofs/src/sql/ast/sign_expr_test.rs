@@ -77,6 +77,7 @@ fn we_can_verify_a_constant_decomposition() {
         &sumcheck_random_scalars,
         &[],
         &[],
+        &Default::default(),
     );
 
     let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
@@ -100,6 +101,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &sumcheck_random_scalars,
         &[],
         &[],
+        &Default::default(),
     );
 
     let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);

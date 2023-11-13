@@ -1,12 +1,13 @@
+use super::Indexes;
 use crate::sql::proof::EncodeProvableResultElement;
 
 /// Interface for serializing an intermediate result column
 pub trait ProvableResultColumn {
     /// The number of bytes of the serialized result column
-    fn num_bytes(&self, selection: &[u64]) -> usize;
+    fn num_bytes(&self, selection: &Indexes) -> usize;
 
     /// Serialize the result column
-    fn write(&self, out: &mut [u8], selection: &[u64]) -> usize;
+    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize;
 }
 
 /// Support using a database column as a result in-place
@@ -25,18 +26,18 @@ impl<'a, T: EncodeProvableResultElement> ProvableResultColumn for DenseProvableR
 where
     [T]: ToOwned,
 {
-    fn num_bytes(&self, selection: &[u64]) -> usize {
+    fn num_bytes(&self, selection: &Indexes) -> usize {
         let mut res = 0;
         for i in selection.iter() {
-            res += self.data[*i as usize].required_bytes();
+            res += self.data[i as usize].required_bytes();
         }
         res
     }
 
-    fn write(&self, out: &mut [u8], selection: &[u64]) -> usize {
+    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
         let mut res = 0;
         for i in selection.iter() {
-            res += self.data[*i as usize].encode(&mut out[res..]);
+            res += self.data[i as usize].encode(&mut out[res..]);
         }
         res
     }

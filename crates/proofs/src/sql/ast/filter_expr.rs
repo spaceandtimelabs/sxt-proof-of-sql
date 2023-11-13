@@ -5,8 +5,8 @@ use crate::{
         proof::ProofError,
     },
     sql::proof::{
-        CountBuilder, HonestProver, ProofBuilder, ProofExpr, ProverEvaluate, ProverHonestyMarker,
-        VerificationBuilder,
+        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
+        ProverHonestyMarker, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -136,19 +136,13 @@ impl ProverEvaluate for FilterExpr {
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
 
         // set result indexes
-        let mut cnt: usize = 0;
-        for b in selection {
-            cnt += *b as usize;
-        }
-        let indexes = alloc.alloc_slice_fill_default::<u64>(cnt);
-        cnt = 0;
-        for (i, b) in selection.iter().enumerate() {
-            if *b {
-                indexes[cnt] = i as u64;
-                cnt += 1;
-            }
-        }
-        builder.set_result_indexes(indexes);
+        let indexes = selection
+            .iter()
+            .enumerate()
+            .filter(|(_, &b)| b)
+            .map(|(i, _)| i as u64)
+            .collect();
+        builder.set_result_indexes(Indexes::Sparse(indexes));
 
         // evaluate result columns
         for expr in self.results.iter() {

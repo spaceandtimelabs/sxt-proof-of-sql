@@ -1,12 +1,10 @@
 use super::{
-    decode_multiple_elements, DecodeProvableResultElement, ProvableResultColumn, QueryError,
+    decode_multiple_elements, DecodeProvableResultElement, Indexes, ProvableResultColumn,
+    QueryError,
 };
-use crate::{
-    base::{
-        database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
-        scalar::ArkScalar,
-    },
-    sql::proof::Indexes,
+use crate::base::{
+    database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
+    scalar::ArkScalar,
 };
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -16,7 +14,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
-    indexes: Vec<u64>,
+    indexes: Indexes,
     data: Vec<u8>,
 }
 
@@ -26,14 +24,13 @@ impl ProvableQueryResult {
         self.num_columns as usize
     }
     /// The indexes in the result.
-    #[cfg(test)]
-    pub fn indexes(&self) -> &Vec<u64> {
+    pub fn indexes(&self) -> &Indexes {
         &self.indexes
     }
     /// A mutable reference to a the indexes in the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
     #[cfg(test)]
-    pub fn indexes_mut(&mut self) -> &mut Vec<u64> {
+    pub fn indexes_mut(&mut self) -> &mut Indexes {
         &mut self.indexes
     }
     /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
@@ -50,7 +47,7 @@ impl ProvableQueryResult {
     }
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
-    pub fn new_from_raw_data(num_columns: u64, indexes: Vec<u64>, data: Vec<u8>) -> Self {
+    pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
         Self {
             num_columns,
             indexes,
@@ -64,7 +61,10 @@ impl ProvableQueryResult {
         level = "debug",
         skip_all
     )]
-    pub fn new<'a>(indexes: &'a [u64], columns: &'a [Box<dyn ProvableResultColumn + 'a>]) -> Self {
+    pub fn new<'a>(
+        indexes: &'a Indexes,
+        columns: &'a [Box<dyn ProvableResultColumn + 'a>],
+    ) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
             sz += col.num_bytes(indexes);
@@ -76,7 +76,7 @@ impl ProvableQueryResult {
         }
         ProvableQueryResult {
             num_columns: columns.len() as u64,
-            indexes: indexes.to_vec(),
+            indexes: indexes.clone(),
             data,
         }
     }
@@ -95,7 +95,7 @@ impl ProvableQueryResult {
     ) -> Option<Vec<ArkScalar>> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
-        if !Indexes::Sparse(self.indexes.clone()).valid(evaluation_vec.len()) {
+        if !self.indexes.valid(evaluation_vec.len()) {
             return None;
         }
 
@@ -111,7 +111,7 @@ impl ProvableQueryResult {
                     ColumnType::Int128 => <i128>::decode_to_ark_scalar(&self.data[offset..]),
                 }?;
 
-                val += evaluation_vec[*index as usize] * x;
+                val += evaluation_vec[index as usize] * x;
                 offset += sz;
             }
             res.push(val);
