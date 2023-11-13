@@ -9,10 +9,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
         table_length: 1,
         num_sumcheck_variables: 1,
-        one_evaluation: ArkScalar::zero(),
-        random_evaluation: ArkScalar::zero(),
-        pre_result_evaluations: &[][..],
-        result_evaluations: &[][..],
+        ..Default::default()
     };
     let builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);
     assert_eq!(builder.sumcheck_evaluation(), ArkScalar::zero());
@@ -27,10 +24,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
     let mle_evaluations = SumcheckMleEvaluations {
         table_length: 1,
         num_sumcheck_variables: 1,
-        one_evaluation: ArkScalar::zero(),
-        random_evaluation: ArkScalar::zero(),
-        pre_result_evaluations: &[][..],
-        result_evaluations: &[][..],
+        ..Default::default()
     };
     let subpolynomial_multipliers = [ArkScalar::from(10u64), ArkScalar::from(100u64)];
     let mut builder = VerificationBuilder::new(
@@ -54,10 +48,8 @@ fn we_build_up_the_folded_pre_result_commitment() {
     let mle_evaluations = SumcheckMleEvaluations {
         table_length: 1,
         num_sumcheck_variables: 1,
-        one_evaluation: ArkScalar::zero(),
-        random_evaluation: ArkScalar::zero(),
         pre_result_evaluations: &pre_result_evaluations,
-        result_evaluations: &[][..],
+        ..Default::default()
     };
     let mut rng = OsRng;
     let commit1 = RistrettoPoint::random(&mut rng);
@@ -96,10 +88,8 @@ fn we_can_consume_result_evaluations() {
     let mle_evaluations = SumcheckMleEvaluations {
         table_length: 1,
         num_sumcheck_variables: 1,
-        one_evaluation: ArkScalar::zero(),
-        random_evaluation: ArkScalar::zero(),
-        pre_result_evaluations: &[][..],
         result_evaluations: &result_evaluations,
+        ..Default::default()
     };
     let mut builder =
         VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);

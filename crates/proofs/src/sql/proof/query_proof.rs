@@ -227,6 +227,7 @@ impl QueryProof {
             &sumcheck_random_scalars,
             &self.pre_result_mle_evaluations,
             &result_evaluations,
+            result.indexes(),
         );
         let mut builder = VerificationBuilder::new(
             generator_offset,

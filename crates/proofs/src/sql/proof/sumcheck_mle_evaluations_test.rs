@@ -1,4 +1,4 @@
-use super::SumcheckMleEvaluations;
+use super::{Indexes, SumcheckMleEvaluations};
 use crate::{base::scalar::ArkScalar, sql::proof::SumcheckRandomScalars};
 use num_traits::One;
 
@@ -17,6 +17,7 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         &sumcheck_random_scalars,
         &pre_result_evaluations,
         &result_evaluations,
+        &Indexes::Sparse(vec![]),
     );
     let expected_eval = (ArkScalar::one() - evaluation_point[0])
         * (ArkScalar::one() - evaluation_point[1])
@@ -37,4 +38,26 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         + (evaluation_point[0]) * (ArkScalar::one() - evaluation_point[1])
         + (ArkScalar::one() - evaluation_point[0]) * (evaluation_point[1]);
     assert_eq!(evals.one_evaluation, expected_eval);
+    // Because the Indexes are sparse, this should not be evaluated.
+    assert_eq!(evals.result_indexes_evaluation, None);
+}
+#[test]
+fn we_can_track_the_evaluation_of_dense_indexes() {
+    let evaluation_point = [ArkScalar::from(3u64), ArkScalar::from(5u64)];
+    let random_scalars = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
+
+    let sumcheck_random_scalars = SumcheckRandomScalars::new(&random_scalars, 3, 2);
+
+    let pre_result_evaluations = [ArkScalar::from(42u64)];
+    let result_evaluations = [ArkScalar::from(51u64)];
+    let evals = SumcheckMleEvaluations::new(
+        3,
+        &evaluation_point,
+        &sumcheck_random_scalars,
+        &pre_result_evaluations,
+        &result_evaluations,
+        &Indexes::Dense(0..3),
+    );
+    // Because the range is the entire table, these should be the same.
+    assert_eq!(evals.result_indexes_evaluation, Some(evals.one_evaluation));
 }
