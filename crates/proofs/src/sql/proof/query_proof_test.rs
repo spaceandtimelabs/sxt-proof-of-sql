@@ -7,7 +7,7 @@ use crate::{
         database::{CommitmentAccessor, DataAccessor, RecordBatchTestAccessor, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    sql::proof::{QueryData, SumcheckSubpolynomialType},
+    sql::proof::{Indexes, QueryData, SumcheckSubpolynomialType},
 };
 use arrow::{
     array::Int64Array,
@@ -34,7 +34,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
-        let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
+        let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -104,7 +104,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
-        let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
+        let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -147,7 +147,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
+        let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -191,7 +191,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
+        let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -215,7 +215,12 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     };
     let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, mut result) = QueryProof::new(&expr, &accessor);
-    result.indexes_mut().pop();
+    match result.indexes_mut() {
+        Indexes::Sparse(ref mut indexes) => {
+            indexes.pop();
+        }
+        _ => panic!("unexpected indexes type"),
+    }
     assert!(proof.verify(&expr, &accessor, &result).is_err());
 }
 
@@ -235,7 +240,7 @@ fn verify_fails_if_counts_dont_match() {
         _accessor: &'a dyn DataAccessor,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = alloc.alloc_slice_fill_copy(1, 0u64);
+        let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -282,7 +287,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -378,7 +383,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -437,7 +442,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
@@ -497,7 +502,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
@@ -626,7 +631,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
@@ -717,7 +722,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
@@ -813,7 +818,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
@@ -904,7 +909,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
-        builder.set_result_indexes(&INDEXES);
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);

@@ -39,6 +39,7 @@ pub use provable_query_result::ProvableQueryResult;
 #[cfg(test)]
 mod provable_query_result_test;
 
+#[warn(missing_docs)]
 mod sumcheck_mle_evaluations;
 pub use sumcheck_mle_evaluations::SumcheckMleEvaluations;
 #[cfg(test)]

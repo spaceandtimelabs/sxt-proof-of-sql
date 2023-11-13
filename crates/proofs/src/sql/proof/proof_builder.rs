@@ -1,5 +1,5 @@
 use super::{
-    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
+    CompositePolynomialBuilder, Indexes, MultilinearExtension, MultilinearExtensionImpl,
     ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::{
@@ -15,7 +15,7 @@ pub struct ProofBuilder<'a> {
     table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
-    result_index_vector: &'a [u64],
+    result_index_vector: Indexes,
     result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
     commitment_descriptor: Vec<Sequence<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
@@ -29,7 +29,7 @@ impl<'a> ProofBuilder<'a> {
             table_length,
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
-            result_index_vector: &[],
+            result_index_vector: Indexes::default(),
             result_columns: Vec::new(),
             commitment_descriptor: Vec::new(),
             pre_result_mles: Vec::new(),
@@ -133,8 +133,8 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn set_result_indexes(&mut self, result_index_vector: &'a [u64]) {
-        self.result_index_vector = result_index_vector;
+    pub fn set_result_indexes(&mut self, result_index: Indexes) {
+        self.result_index_vector = result_index;
     }
 
     /// Produce an intermediate result column that will be sent to the verifier.
@@ -170,7 +170,7 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn make_provable_query_result(&self) -> ProvableQueryResult {
-        ProvableQueryResult::new(self.result_index_vector, &self.result_columns)
+        ProvableQueryResult::new(&self.result_index_vector, &self.result_columns)
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all

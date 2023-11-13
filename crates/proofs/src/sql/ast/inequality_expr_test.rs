@@ -14,7 +14,7 @@ use crate::{
             test_expr::TestExprNode,
             test_utility::{col, cols_result, tab},
         },
-        proof::{ProofBuilder, QueryProof, VerifiableQueryResult},
+        proof::{Indexes, ProofBuilder, QueryProof, VerifiableQueryResult},
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -224,7 +224,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     builder.produce_bit_distribution(bit_distribution);
     let sign = [true; 3];
     prover_evaluate_or(&mut builder, &alloc, equals_zero, &sign);
-    builder.set_result_indexes(&[0, 1, 2]);
+    builder.set_result_indexes(Indexes::Sparse(vec![0, 1, 2]));
 
     let result_cols = cols_result(t, &["b"], &accessor);
     let selection = [true; 3];
