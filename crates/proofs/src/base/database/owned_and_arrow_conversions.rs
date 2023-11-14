@@ -50,6 +50,8 @@ impl From<OwnedColumn> for ArrayRef {
                     .with_precision_and_scale(38, 0)
                     .unwrap(),
             ),
+            #[cfg(test)]
+            OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
     }
 }

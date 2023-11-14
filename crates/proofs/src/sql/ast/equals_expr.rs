@@ -83,6 +83,11 @@ impl BoolExpr for EqualsExpr {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::VarChar((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
+            #[cfg(test)]
+            // While implementing this for a Scalar columns is very simple
+            // major refactoring is required to create tests for this
+            // (in particular the tests need to used the OwnedTableTestAccessor)
+            Column::Scalar(_) => todo!("Scalar column type not supported in equals_expr"),
         }
     }
 

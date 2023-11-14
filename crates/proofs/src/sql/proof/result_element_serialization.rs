@@ -169,6 +169,26 @@ impl<'a> DecodeProvableResultElement<'a> for String {
     }
 }
 
+impl EncodeProvableResultElement for ArkScalar {
+    fn required_bytes(&self) -> usize {
+        crate::base::encode::scalar_varint_size(self)
+    }
+    fn encode(&self, out: &mut [u8]) -> usize {
+        crate::base::encode::write_scalar_varint(out, self)
+    }
+}
+impl DecodeProvableResultElement<'_> for ArkScalar {
+    fn decode(data: &'_ [u8]) -> Option<(Self, usize)>
+    where
+        Self: Sized,
+    {
+        crate::base::encode::read_scalar_varint(data)
+    }
+    fn decode_to_ark_scalar(data: &'_ [u8]) -> Option<(ArkScalar, usize)> {
+        Self::decode(data)
+    }
+}
+
 /// Implement the decode operation for multiple rows
 pub fn decode_multiple_elements<'a, T: DecodeProvableResultElement<'a>>(
     data: &'a [u8],

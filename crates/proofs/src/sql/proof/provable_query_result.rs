@@ -109,6 +109,8 @@ impl ProvableQueryResult {
                     ColumnType::BigInt => <i64>::decode_to_ark_scalar(&self.data[offset..]),
                     ColumnType::VarChar => <&str>::decode_to_ark_scalar(&self.data[offset..]),
                     ColumnType::Int128 => <i128>::decode_to_ark_scalar(&self.data[offset..]),
+                    #[cfg(test)]
+                    ColumnType::Scalar => <ArkScalar>::decode_to_ark_scalar(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[index as usize] * x;
@@ -162,6 +164,13 @@ impl ProvableQueryResult {
                             .ok_or(QueryError::InvalidString)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::VarChar(col)))
+                    }
+                    #[cfg(test)]
+                    ColumnType::Scalar => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::Scalar(col)))
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,
