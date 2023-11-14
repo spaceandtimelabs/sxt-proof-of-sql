@@ -1,5 +1,8 @@
 use super::{OwnedColumn, OwnedTable};
-use crate::{base::database::OwnedArrowConversionError, owned_table, record_batch};
+use crate::{
+    base::{database::OwnedArrowConversionError, scalar::ArkScalar},
+    owned_table, record_batch,
+};
 use arrow::{
     array::{ArrayRef, Decimal128Array, Float32Array, Int64Array, StringArray},
     datatypes::Schema,
@@ -117,4 +120,13 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
         OwnedTable::try_from(record_batch),
         Err(OwnedArrowConversionError::DuplicateIdentifiers)
     ));
+}
+
+#[test]
+#[should_panic]
+fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
+    let owned_table = owned_table!(
+        "a" => [ArkScalar::from(0_i64); 0],
+    );
+    let _ = RecordBatch::try_from(owned_table);
 }

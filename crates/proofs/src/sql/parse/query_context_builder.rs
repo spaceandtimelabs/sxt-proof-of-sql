@@ -295,27 +295,13 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
-pub fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> ConversionResult<()> {
-    match right_dtype {
-        ColumnType::Int128 | ColumnType::BigInt => {
-            // Integer literal is compatible with any integeger column type other than VarChar
-            if left_dtype == ColumnType::VarChar {
-                return Err(ConversionError::DataTypeMismatch(
-                    left_dtype.to_string(),
-                    right_dtype.to_string(),
-                ));
-            }
-        }
-        ColumnType::VarChar => {
-            // Varchar literal is only compatible wtih VarChar column type
-            if left_dtype != ColumnType::VarChar {
-                return Err(ConversionError::DataTypeMismatch(
-                    left_dtype.to_string(),
-                    right_dtype.to_string(),
-                ));
-            }
-        }
+fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> ConversionResult<()> {
+    match (left_dtype, right_dtype) {
+        (ColumnType::BigInt | ColumnType::Int128, ColumnType::BigInt | ColumnType::Int128)
+        | (ColumnType::VarChar, ColumnType::VarChar) => Ok(()),
+        _ => Err(ConversionError::DataTypeMismatch(
+            left_dtype.to_string(),
+            right_dtype.to_string(),
+        )),
     }
-
-    Ok(())
 }

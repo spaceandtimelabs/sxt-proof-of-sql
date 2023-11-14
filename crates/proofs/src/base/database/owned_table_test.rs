@@ -1,5 +1,8 @@
 use crate::{
-    base::database::{OwnedColumn, OwnedTable, OwnedTableError},
+    base::{
+        database::{OwnedColumn, OwnedTable, OwnedTableError},
+        scalar::ArkScalar,
+    },
     owned_table,
 };
 use indexmap::IndexMap;
@@ -16,6 +19,7 @@ fn we_can_create_an_empty_owned_table() {
         "a" => [0_i64; 0],
         "b" => [0_i128; 0],
         "c" => ["0"; 0],
+        "d" => [ArkScalar::from(0); 0],
     );
     let mut table = IndexMap::new();
     table.insert(
@@ -30,6 +34,10 @@ fn we_can_create_an_empty_owned_table() {
         Identifier::try_new("c").unwrap(),
         OwnedColumn::VarChar(vec![]),
     );
+    table.insert(
+        Identifier::try_new("d").unwrap(),
+        OwnedColumn::Scalar(vec![]),
+    );
     assert_eq!(owned_table.into_inner(), table);
 }
 #[test]
@@ -38,6 +46,7 @@ fn we_can_create_an_owned_table_with_data() {
         "a" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         "b" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
         "c" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+        "d" => [ArkScalar::from(0), 1.into(), 2.into(), 3.into(), 4.into(), 5.into(), 6.into(), 7.into(), 8.into()],
     );
     let mut table = IndexMap::new();
     table.insert(
@@ -60,6 +69,20 @@ fn we_can_create_an_owned_table_with_data() {
             "6".to_string(),
             "7".to_string(),
             "8".to_string(),
+        ]),
+    );
+    table.insert(
+        Identifier::try_new("d").unwrap(),
+        OwnedColumn::Scalar(vec![
+            ArkScalar::from(0),
+            1.into(),
+            2.into(),
+            3.into(),
+            4.into(),
+            5.into(),
+            6.into(),
+            7.into(),
+            8.into(),
         ]),
     );
     assert_eq!(owned_table.into_inner(), table);
