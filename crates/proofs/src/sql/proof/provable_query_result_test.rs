@@ -124,6 +124,32 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
 }
 
 #[test]
+fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
+    let indexes = Indexes::Sparse(vec![0, 2]);
+    let values1: [ArkScalar; 3] = [10.into(), 11.into(), 12.into()];
+    let values2: [ArkScalar; 3] = [5.into(), 7.into(), 9.into()];
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [
+        Box::new(DenseProvableResultColumn::new(&values1)),
+        Box::new(DenseProvableResultColumn::new(&values2)),
+    ];
+    let res = ProvableQueryResult::new(&indexes, &cols);
+    let evaluation_vec = [
+        ArkScalar::from(10u64),
+        ArkScalar::from(100u64),
+        ArkScalar::from(1000u64),
+        ArkScalar::from(10000u64),
+    ];
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::Scalar); cols.len()];
+    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let expected_evals = [
+        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
+        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
+    ];
+    assert_eq!(evals, expected_evals);
+}
+
+#[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i64; 3] = [10, 11, 12];

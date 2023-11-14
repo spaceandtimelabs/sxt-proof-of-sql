@@ -71,6 +71,8 @@ pub fn make_random_test_accessor_data(
 
                 columns.push(Arc::new(StringArray::from(col)));
             }
+            #[cfg(test)]
+            ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
         }
     }
 

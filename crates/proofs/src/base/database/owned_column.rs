@@ -1,4 +1,6 @@
 use super::ColumnType;
+#[cfg(test)]
+use crate::base::scalar::ArkScalar;
 
 /// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.
 /// This is primarily used as an internal result that is used before
@@ -12,6 +14,9 @@ pub enum OwnedColumn {
     VarChar(Vec<String>),
     /// i128 columns
     Int128(Vec<i128>),
+    /// Scalar columns
+    #[cfg(test)]
+    Scalar(Vec<ArkScalar>),
 }
 
 impl OwnedColumn {
@@ -21,6 +26,8 @@ impl OwnedColumn {
             OwnedColumn::BigInt(col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
+            #[cfg(test)]
+            OwnedColumn::Scalar(col) => col.len(),
         }
     }
     /// Returns true if the column is empty.
@@ -29,6 +36,8 @@ impl OwnedColumn {
             OwnedColumn::BigInt(col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
+            #[cfg(test)]
+            OwnedColumn::Scalar(col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -37,6 +46,8 @@ impl OwnedColumn {
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
             OwnedColumn::VarChar(_) => ColumnType::VarChar,
             OwnedColumn::Int128(_) => ColumnType::Int128,
+            #[cfg(test)]
+            OwnedColumn::Scalar(_) => ColumnType::Scalar,
         }
     }
 }
@@ -54,6 +65,12 @@ impl FromIterator<i128> for OwnedColumn {
 impl FromIterator<String> for OwnedColumn {
     fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
         Self::VarChar(Vec::from_iter(iter))
+    }
+}
+#[cfg(test)]
+impl FromIterator<ArkScalar> for OwnedColumn {
+    fn from_iter<T: IntoIterator<Item = ArkScalar>>(iter: T) -> Self {
+        Self::Scalar(Vec::from_iter(iter))
     }
 }
 impl<'a> FromIterator<&'a str> for OwnedColumn {

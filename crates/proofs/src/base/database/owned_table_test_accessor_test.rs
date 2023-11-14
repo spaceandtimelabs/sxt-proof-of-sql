@@ -2,7 +2,10 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
-use crate::{base::scalar::compute_commitment_for_testing, owned_table};
+use crate::{
+    base::scalar::{compute_commitment_for_testing, ArkScalar},
+    owned_table,
+};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -48,9 +51,10 @@ fn we_can_access_the_columns_of_a_table() {
 
     let data2 = owned_table!(
         "a" => [1_i64, 2, 3, 4],
-        "d" => ["a", "bc", "d", "e"],
         "b" => [4_i64, 5, 6, 5],
         "c128" => [1_i128, 2, 3, 4],
+        "d" => ["a", "bc", "d", "e"],
+        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4)],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -80,6 +84,20 @@ fn we_can_access_the_columns_of_a_table() {
             assert_eq!(col.to_vec(), col_slice);
             assert_eq!(scals.to_vec(), col_scalars);
         }
+        _ => panic!("Invalid column type"),
+    };
+
+    let column = ColumnRef::new(table_ref_2, "e".parse().unwrap(), ColumnType::Scalar);
+    match accessor.get_column(column) {
+        Column::Scalar(col) => assert_eq!(
+            col.to_vec(),
+            vec![
+                ArkScalar::from(1),
+                ArkScalar::from(2),
+                ArkScalar::from(3),
+                ArkScalar::from(4)
+            ]
+        ),
         _ => panic!("Invalid column type"),
     };
 }

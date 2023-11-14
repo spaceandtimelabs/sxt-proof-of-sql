@@ -20,6 +20,9 @@ pub enum Column<'a> {
     VarChar((&'a [&'a str], &'a [ArkScalar])),
     /// i128 columns
     Int128(&'a [i128]),
+    /// Scalar columns
+    #[cfg(test)]
+    Scalar(&'a [ArkScalar]),
 }
 
 /// Provides the column type associated with the column
@@ -29,6 +32,8 @@ impl Column<'_> {
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
+            #[cfg(test)]
+            Self::Scalar(_) => ColumnType::Scalar,
         }
     }
 }
@@ -55,6 +60,10 @@ pub enum ColumnType {
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
     VarChar,
+    /// Mapped to ArkScalar
+    #[serde(alias = "SCALAR", alias = "scalar")]
+    #[cfg(test)]
+    Scalar,
 }
 
 /// Convert ColumnType values to some arrow DataType
@@ -64,6 +73,8 @@ impl From<&ColumnType> for DataType {
             ColumnType::BigInt => DataType::Int64,
             ColumnType::Int128 => DataType::Decimal128(38, 0),
             ColumnType::VarChar => DataType::Utf8,
+            #[cfg(test)]
+            ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
     }
 }
@@ -89,6 +100,8 @@ impl std::fmt::Display for ColumnType {
             ColumnType::BigInt => write!(f, "BIGINT"),
             ColumnType::Int128 => write!(f, "DECIMAL"),
             ColumnType::VarChar => write!(f, "VARCHAR"),
+            #[cfg(test)]
+            ColumnType::Scalar => write!(f, "SCALAR"),
         }
     }
 }
@@ -102,6 +115,8 @@ impl std::str::FromStr for ColumnType {
             "BIGINT" => Ok(ColumnType::BigInt),
             "DECIMAL" => Ok(ColumnType::Int128),
             "VARCHAR" => Ok(ColumnType::VarChar),
+            #[cfg(test)]
+            "SCALAR" => Ok(ColumnType::Scalar),
             _ => Err(format!("Unsupported column type {:?}", s)),
         }
     }
@@ -190,6 +205,10 @@ mod tests {
         let column_type = ColumnType::VarChar;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""VarChar""#);
+
+        let column_type = ColumnType::Scalar;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""Scalar""#);
     }
 
     #[test]
@@ -204,6 +223,10 @@ mod tests {
 
         let expected_column_type = ColumnType::VarChar;
         let deserialized: ColumnType = serde_json::from_str(r#""VarChar""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::Scalar;
+        let deserialized: ColumnType = serde_json::from_str(r#""SCALAR""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
     }
 
@@ -235,6 +258,15 @@ mod tests {
             serde_json::from_str::<ColumnType>(r#""varchar""#).unwrap(),
             ColumnType::VarChar
         );
+
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""SCALAR""#).unwrap(),
+            ColumnType::Scalar
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""scalar""#).unwrap(),
+            ColumnType::Scalar
+        );
     }
 
     #[test]
@@ -247,6 +279,9 @@ mod tests {
 
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Varchar""#);
         assert!(deserialized.is_err());
+
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""ScaLar""#);
+        assert!(deserialized.is_err());
     }
 
     #[test]
@@ -254,11 +289,13 @@ mod tests {
         assert_eq!(format!("{}", ColumnType::BigInt), "BIGINT");
         assert_eq!(format!("{}", ColumnType::Int128), "DECIMAL");
         assert_eq!(format!("{}", ColumnType::VarChar), "VARCHAR");
+        assert_eq!(format!("{}", ColumnType::Scalar), "SCALAR");
         assert_eq!("BIGINT".parse::<ColumnType>().unwrap(), ColumnType::BigInt);
         assert_eq!("DECIMAL".parse::<ColumnType>().unwrap(), ColumnType::Int128);
         assert_eq!(
             "VARCHAR".parse::<ColumnType>().unwrap(),
             ColumnType::VarChar
         );
+        assert_eq!("SCALAR".parse::<ColumnType>().unwrap(), ColumnType::Scalar);
     }
 }

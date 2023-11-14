@@ -72,6 +72,8 @@ impl DataAccessor for OwnedTableTestAccessor {
                 Column::VarChar((col, scals))
             }
             OwnedColumn::Int128(col) => Column::Int128(col),
+            #[cfg(test)]
+            OwnedColumn::Scalar(col) => Column::Scalar(col),
         }
     }
 }
@@ -82,6 +84,8 @@ impl CommitmentAccessor for OwnedTableTestAccessor {
             OwnedColumn::BigInt(vals) => compute_commitment_for_testing(vals, *offset),
             OwnedColumn::VarChar(vals) => compute_commitment_for_testing(vals, *offset),
             OwnedColumn::Int128(vals) => compute_commitment_for_testing(vals, *offset),
+            #[cfg(test)]
+            OwnedColumn::Scalar(vals) => compute_commitment_for_testing(vals, *offset),
         }
     }
 }
