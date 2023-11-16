@@ -40,6 +40,23 @@ impl EqualsExpr {
         Self { value, column_ref }
     }
 
+    fn result_evaluate_impl<'a, T: Sync>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        col: &'a [T],
+    ) -> &'a [bool]
+    where
+        &'a T: Into<ArkScalar>,
+        &'a ArkScalar: Into<ArkScalar>,
+    {
+        let lhs = alloc.alloc_slice_fill_default(table_length);
+        lhs.par_iter_mut()
+            .zip(col)
+            .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+        result_evaluate_equals_zero(table_length, alloc, lhs)
+    }
+
     fn prover_evaluate_impl<'a, T: Sync>(
         &self,
         builder: &mut ProofBuilder<'a>,
@@ -66,6 +83,24 @@ impl BoolExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);
         Ok(())
+    }
+
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        match accessor.get_column(self.column_ref) {
+            Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
+            Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
+            Column::VarChar((_, scals)) => self.result_evaluate_impl(table_length, alloc, scals),
+            #[cfg(test)]
+            // While implementing this for a Scalar columns is very simple
+            // major refactoring is required to create tests for this
+            // (in particular the tests need to used the OwnedTableTestAccessor)
+            Column::Scalar(_) => todo!("Scalar column type not supported in equals_expr"),
+        }
     }
 
     #[tracing::instrument(
@@ -110,6 +145,15 @@ impl BoolExpr for EqualsExpr {
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         columns.insert(self.column_ref);
     }
+}
+
+pub fn result_evaluate_equals_zero<'a>(
+    table_length: usize,
+    alloc: &'a Bump,
+    lhs: &'a [ArkScalar],
+) -> &'a [bool] {
+    assert_eq!(table_length, lhs.len());
+    alloc.alloc_slice_fill_with(table_length, |i| lhs[i] == ArkScalar::zero())
 }
 
 pub fn prover_evaluate_equals_zero<'a>(

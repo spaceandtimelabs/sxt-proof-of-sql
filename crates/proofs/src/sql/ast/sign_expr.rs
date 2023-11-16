@@ -38,6 +38,34 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     Ok(())
 }
 
+/// Compute the sign bit for a column of scalars.
+///
+/// todo! make this more efficient and targeted at just the sign bit rather than all bits to create a proof
+pub fn result_evaluate_sign<'a>(
+    table_length: usize,
+    alloc: &'a Bump,
+    expr: &'a [ArkScalar],
+) -> &'a [bool] {
+    assert_eq!(table_length, expr.len());
+    // bit_distribution
+    let dist = BitDistribution::new(expr);
+
+    // handle the constant case
+    if dist.num_varying_bits() == 0 {
+        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
+    }
+
+    // prove that the bits are binary
+    let bits = compute_varying_bit_matrix(alloc, expr, &dist);
+    if !dist.has_varying_sign_bit() {
+        return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
+    }
+
+    let result = bits.last().unwrap();
+    assert_eq!(table_length, result.len());
+    result
+}
+
 /// Prove the sign decomposition for a column of scalars.
 ///
 /// If x1, ..., xn denotes the data, prove the column of

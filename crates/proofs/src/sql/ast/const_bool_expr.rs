@@ -44,6 +44,15 @@ impl BoolExpr for ConstBoolExpr {
         Ok(())
     }
 
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        alloc.alloc_slice_fill_copy(table_length, self.value)
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.const_bool_expr.prover_evaluate",
         level = "info",

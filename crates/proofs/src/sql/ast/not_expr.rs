@@ -33,6 +33,16 @@ impl BoolExpr for NotExpr {
         self.expr.count(builder)
     }
 
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        let selection = self.expr.result_evaluate(table_length, alloc, accessor);
+        alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.not_expr.prover_evaluate",
         level = "info",

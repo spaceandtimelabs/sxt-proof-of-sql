@@ -15,6 +15,8 @@ mod bitwise_verification_test;
 
 mod bool_expr;
 pub use bool_expr::BoolExpr;
+#[cfg(test)]
+mod bool_expr_test;
 
 mod const_bool_expr;
 pub use const_bool_expr::ConstBoolExpr;
