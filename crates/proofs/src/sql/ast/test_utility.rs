@@ -3,11 +3,11 @@ use super::{
     TableExpr,
 };
 use crate::base::{
-    database::{ColumnRef, RecordBatchTestAccessor, SchemaAccessor, TableRef},
+    database::{ColumnRef, SchemaAccessor, TableRef},
     scalar::ArkScalar,
 };
 
-pub fn col(tab: TableRef, name: &str, accessor: &RecordBatchTestAccessor) -> ColumnRef {
+pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     ColumnRef::new(tab, name, type_col)
@@ -17,7 +17,7 @@ pub fn equal<T: Into<ArkScalar>>(
     tab: TableRef,
     name: &str,
     val: T,
-    accessor: &RecordBatchTestAccessor,
+    accessor: &impl SchemaAccessor,
 ) -> Box<dyn BoolExpr> {
     Box::new(EqualsExpr::new(col(tab, name, accessor), val.into()))
 }
@@ -42,18 +42,14 @@ pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
-pub fn col_result(
-    tab: TableRef,
-    name: &str,
-    accessor: &RecordBatchTestAccessor,
-) -> FilterResultExpr {
+pub fn col_result(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> FilterResultExpr {
     FilterResultExpr::new(col(tab, name, accessor))
 }
 
 pub fn cols_result(
     tab: TableRef,
     names: &[&str],
-    accessor: &RecordBatchTestAccessor,
+    accessor: &impl SchemaAccessor,
 ) -> Vec<FilterResultExpr> {
     names
         .iter()
