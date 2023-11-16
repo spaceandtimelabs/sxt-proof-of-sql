@@ -1,12 +1,10 @@
 use super::{
     DenseProvableResultColumn, ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn,
-    QueryProof, TestQueryExpr, TransformExpr, VerifiableQueryResult,
+    QueryProof, TestQueryExpr, VerifiableQueryResult,
 };
 use crate::{
     base::{
-        database::{
-            CommitmentAccessor, MetadataAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
-        },
+        database::{CommitmentAccessor, RecordBatchTestAccessor, TableRef, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
     sql::proof::Indexes,
@@ -20,8 +18,8 @@ use num_traits::One;
 /// It's useful as a tool for testing proof code.
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + TransformExpr),
-    accessor: &RecordBatchTestAccessor,
+    expr: &impl ProofExpr,
+    accessor: &impl TestAccessor,
     table_ref: TableRef,
 ) {
     assert!(res.verify(expr, accessor).is_ok());
@@ -75,7 +73,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + TransformExpr),
+    expr: &impl ProofExpr,
     accessor: &impl CommitmentAccessor,
 ) {
     // add a result
@@ -103,7 +101,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + TransformExpr),
+    expr: &impl ProofExpr,
     accessor: &impl CommitmentAccessor,
 ) {
     // try to add a result
@@ -116,7 +114,7 @@ fn tamper_empty_result(
 
 fn tamper_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + TransformExpr),
+    expr: &impl ProofExpr,
     accessor: &impl CommitmentAccessor,
 ) {
     if res.provable_result.is_none() {
