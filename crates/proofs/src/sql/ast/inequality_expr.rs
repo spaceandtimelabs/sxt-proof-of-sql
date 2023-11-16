@@ -1,7 +1,7 @@
 use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
-    prover_evaluate_sign, verifier_evaluate_equals_zero, verifier_evaluate_or,
-    verifier_evaluate_sign, BoolExpr,
+    prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
+    verifier_evaluate_equals_zero, verifier_evaluate_or, verifier_evaluate_sign, BoolExpr,
 };
 use crate::{
     base::{
@@ -51,6 +51,39 @@ impl BoolExpr for InequalityExpr {
         count_sign(builder)?;
         count_or(builder);
         Ok(())
+    }
+
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        // lhs
+        let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
+            let lhs = alloc.alloc_slice_fill_default(table_length);
+            if self.is_lte {
+                lhs.par_iter_mut()
+                    .zip(col)
+                    .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+            } else {
+                lhs.par_iter_mut()
+                    .zip(col)
+                    .for_each(|(a, b)| *a = self.value - Into::<ArkScalar>::into(b));
+            }
+            lhs
+        } else {
+            panic!("invalid column type")
+        };
+
+        // lhs == 0
+        let equals_zero = result_evaluate_equals_zero(table_length, alloc, lhs);
+
+        // sign(lhs) == -1
+        let sign = result_evaluate_sign(table_length, alloc, lhs);
+
+        // (lhs == 0) || (sign(lhs) == -1)
+        result_evaluate_or(table_length, alloc, equals_zero, sign)
     }
 
     #[tracing::instrument(

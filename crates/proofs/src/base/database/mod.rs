@@ -50,7 +50,7 @@ mod owned_and_arrow_conversions_test;
 
 #[warn(missing_docs)]
 mod test_accessor;
-pub use test_accessor::TestAccessor;
+pub use test_accessor::{TestAccessor, UnimplementedTestAccessor};
 
 #[warn(missing_docs)]
 mod owned_table_test_accessor;

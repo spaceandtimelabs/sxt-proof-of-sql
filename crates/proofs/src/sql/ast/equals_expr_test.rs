@@ -1,15 +1,16 @@
 use crate::{
     base::{
         database::{
-            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
-            RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         scalar::ArkScalar,
     },
-    record_batch,
+    owned_table, record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::equal},
 };
 use arrow::record_batch::RecordBatch;
+use bumpalo::Bump;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -199,4 +200,21 @@ fn we_can_query_random_tables_with_a_zero_offset() {
 #[test]
 fn we_can_query_random_tables_with_a_non_zero_offset() {
     we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(121);
+}
+
+#[test]
+fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
+    let data = owned_table!(
+        "a" => [1_i64, 2, 3, 4],
+        "c" => ["t", "ghi", "jj", "f"],
+        "b" => [0_i64, 5, 0, 5],
+    );
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let t = "sxt.t".parse().unwrap();
+    accessor.add_table(t, data, 0);
+    let equals_expr = equal(t, "b", 0, &accessor);
+    let alloc = Bump::new();
+    let res = equals_expr.result_evaluate(4, &alloc, &accessor);
+    let expected_res = &[true, false, true, false];
+    assert_eq!(res, expected_res);
 }

@@ -1,6 +1,6 @@
 use super::{
-    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, NotExpr, OrExpr,
-    TableExpr,
+    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, InequalityExpr,
+    NotExpr, OrExpr, TableExpr,
 };
 use crate::base::{
     database::{ColumnRef, SchemaAccessor, TableRef},
@@ -20,6 +20,32 @@ pub fn equal<T: Into<ArkScalar>>(
     accessor: &impl SchemaAccessor,
 ) -> Box<dyn BoolExpr> {
     Box::new(EqualsExpr::new(col(tab, name, accessor), val.into()))
+}
+
+pub fn lte<T: Into<ArkScalar>>(
+    tab: TableRef,
+    name: &str,
+    val: T,
+    accessor: &impl SchemaAccessor,
+) -> Box<dyn BoolExpr> {
+    Box::new(InequalityExpr::new(
+        col(tab, name, accessor),
+        val.into(),
+        true,
+    ))
+}
+
+pub fn gte<T: Into<ArkScalar>>(
+    tab: TableRef,
+    name: &str,
+    val: T,
+    accessor: &impl SchemaAccessor,
+) -> Box<dyn BoolExpr> {
+    Box::new(InequalityExpr::new(
+        col(tab, name, accessor),
+        val.into(),
+        false,
+    ))
 }
 
 pub fn not(expr: Box<dyn BoolExpr>) -> Box<dyn BoolExpr> {
