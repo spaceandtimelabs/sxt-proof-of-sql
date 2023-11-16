@@ -17,6 +17,16 @@ pub trait BoolExpr: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
+    /// This returns the result of evaluating the expression on the given table, and returns
+    /// a column of boolean values. This result slice is guarenteed to have length `table_length`.
+    /// Implementations must ensure that the returned slice has length `table_length`.
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool];
+
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of boolean values
     fn prover_evaluate<'a>(

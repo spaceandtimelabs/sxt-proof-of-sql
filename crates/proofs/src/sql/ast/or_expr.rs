@@ -41,6 +41,17 @@ impl BoolExpr for OrExpr {
         Ok(())
     }
 
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        let lhs = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs = self.rhs.result_evaluate(table_length, alloc, accessor);
+        result_evaluate_or(table_length, alloc, lhs, rhs)
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.or_expr.prover_evaluate",
         level = "info",
@@ -72,6 +83,17 @@ impl BoolExpr for OrExpr {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }
+}
+
+pub fn result_evaluate_or<'a>(
+    table_length: usize,
+    alloc: &'a Bump,
+    lhs: &[bool],
+    rhs: &[bool],
+) -> &'a [bool] {
+    assert_eq!(table_length, lhs.len());
+    assert_eq!(table_length, rhs.len());
+    alloc.alloc_slice_fill_with(table_length, |i| lhs[i] || rhs[i])
 }
 
 pub fn prover_evaluate_or<'a>(

@@ -3,16 +3,17 @@ use crate::{
     base::{
         bit::BitDistribution,
         database::{
-            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
-            RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         scalar::ArkScalar,
     },
-    record_batch,
+    owned_table, record_batch,
     sql::{
         ast::{
             test_expr::TestExprNode,
             test_utility::{col, cols_result, tab},
+            BoolExpr,
         },
         proof::{Indexes, ProofBuilder, QueryProof, VerifiableQueryResult},
     },
@@ -380,4 +381,36 @@ fn we_can_query_random_data_of_varying_size() {
         let expected = test_expr.query_table();
         assert_eq!(res, expected);
     }
+}
+
+#[test]
+fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evaluate() {
+    let data = owned_table!(
+        "a" => [-1_i64, 9, 1],
+        "b" => [1_i64, 2, 3],
+    );
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let t = "sxt.t".parse().unwrap();
+    accessor.add_table(t, data, 0);
+    let equals_expr = InequalityExpr::new(col(t, "a", &accessor), 1.into(), true);
+    let alloc = Bump::new();
+    let res = equals_expr.result_evaluate(3, &alloc, &accessor);
+    let expected_res = &[true, false, true];
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evaluate() {
+    let data = owned_table!(
+        "a" => [-1_i64, 9, 1],
+        "b" => [1_i64, 2, 3],
+    );
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let t = "sxt.t".parse().unwrap();
+    accessor.add_table(t, data, 0);
+    let equals_expr = InequalityExpr::new(col(t, "a", &accessor), 1.into(), false);
+    let alloc = Bump::new();
+    let res = equals_expr.result_evaluate(3, &alloc, &accessor);
+    let expected_res = &[false, true, true];
+    assert_eq!(res, expected_res);
 }

@@ -43,6 +43,17 @@ impl BoolExpr for AndExpr {
         Ok(())
     }
 
+    fn result_evaluate<'a>(
+        &self,
+        table_length: usize,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) -> &'a [bool] {
+        let lhs = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs = self.rhs.result_evaluate(table_length, alloc, accessor);
+        alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i])
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.and_expr.prover_evaluate",
         level = "info",

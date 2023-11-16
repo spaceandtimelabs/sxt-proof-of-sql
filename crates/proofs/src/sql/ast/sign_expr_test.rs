@@ -6,9 +6,12 @@ use crate::{
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
     record_batch,
-    sql::proof::{
-        CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-        VerificationBuilder,
+    sql::{
+        ast::result_evaluate_sign,
+        proof::{
+            CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+            VerificationBuilder,
+        },
     },
 };
 use blitzar::compute::get_one_commit;
@@ -107,4 +110,39 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
     let commit = ArkScalar::from(2) * compute_commitment_for_testing(&data, 0);
     assert!(verifier_evaluate_sign(&mut builder, &commit, &one_commit).is_err());
+}
+
+#[test]
+fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_for_a_constant() {
+    let data: &[ArkScalar] = &[(-123).into(), (-123).into()];
+    let alloc = Bump::new();
+    let res = result_evaluate_sign(2, &alloc, data);
+    let expected_res = [true, true];
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_fixed_sign(
+) {
+    let data: &[ArkScalar] = &[123.into(), 452.into(), 0.into(), 789.into(), 910.into()];
+    let alloc = Bump::new();
+    let res = result_evaluate_sign(5, &alloc, data);
+    let expected_res = [false, false, false, false, false];
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_compute_the_correct_sign_of_scalars_using_result_evaluate_sign_with_varying_bits_and_sign(
+) {
+    let data: &[ArkScalar] = &[
+        123.into(),
+        (-452).into(),
+        0.into(),
+        789.into(),
+        (-910).into(),
+    ];
+    let alloc = Bump::new();
+    let res = result_evaluate_sign(5, &alloc, data);
+    let expected_res = [false, true, false, false, true];
+    assert_eq!(res, expected_res);
 }
