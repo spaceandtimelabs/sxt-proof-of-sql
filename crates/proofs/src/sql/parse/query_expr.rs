@@ -11,7 +11,7 @@ use crate::{
         ast::FilterExpr,
         parse::ConversionResult,
         proof::{
-            CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, TransformExpr,
+            CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder, TransformExpr,
             VerificationBuilder,
         },
         transform::ResultExpr,
@@ -127,6 +127,15 @@ impl ProofExpr for QueryExpr {
 }
 
 impl ProverEvaluate for QueryExpr {
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        self.filter.result_evaluate(builder, alloc, accessor)
+    }
+
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,

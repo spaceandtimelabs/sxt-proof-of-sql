@@ -8,7 +8,7 @@ use crate::{
     sql::{
         ast::test_utility::*,
         proof::{
-            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError,
+            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
     },
@@ -21,6 +21,28 @@ impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExpr = OstensibleFilterExpr<Dishonest>;
 
 impl ProverEvaluate for DishonestFilterExpr {
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        // evaluate where clause
+        let selection = self
+            .where_clause
+            .result_evaluate(builder.table_length(), alloc, accessor);
+
+        // set result indexes
+        let mut indexes: Vec<_> = selection
+            .iter()
+            .enumerate()
+            .filter(|(_, &b)| b)
+            .map(|(i, _)| i as u64)
+            .collect();
+        indexes[0] += 1;
+        builder.set_result_indexes(Indexes::Sparse(indexes));
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.filter_expr.prover_evaluate",
         level = "info",
@@ -34,16 +56,6 @@ impl ProverEvaluate for DishonestFilterExpr {
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
-
-        // set result indexes
-        let mut indexes: Vec<_> = selection
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b)
-            .map(|(i, _)| i as u64)
-            .collect();
-        indexes[0] += 1;
-        builder.set_result_indexes(Indexes::Sparse(indexes));
 
         // evaluate result columns
         for expr in self.results.iter() {

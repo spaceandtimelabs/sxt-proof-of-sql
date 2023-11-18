@@ -14,7 +14,7 @@ use crate::{
         slice_ops,
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::proof::QueryData,
+    sql::proof::{QueryData, ResultBuilder},
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
@@ -47,24 +47,26 @@ impl QueryProof {
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
+        let mut result_builder = ResultBuilder::new(table_length);
+        expr.result_evaluate(&mut result_builder, &alloc, accessor);
+        let provable_result = result_builder.make_provable_query_result();
+
         let mut builder = ProofBuilder::new(table_length, num_sumcheck_variables);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
 
-        QueryProof::new_from_builder(builder, generator_offset)
+        QueryProof::new_from_builder(builder, generator_offset, provable_result)
     }
 
     pub fn new_from_builder(
         builder: ProofBuilder,
         generator_offset: usize,
+        provable_result: ProvableQueryResult,
     ) -> (Self, ProvableQueryResult) {
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(generator_offset);
-
-        // compute the query's result
-        let provable_result = builder.make_provable_query_result();
 
         // construct a transcript for the proof
         let mut transcript =

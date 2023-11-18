@@ -5,7 +5,7 @@ use crate::{
     },
     sql::proof::{
         CountBuilder, DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder,
-        SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+        ResultBuilder, SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -45,6 +45,31 @@ impl FilterResultExpr {
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
+    /// add the result to the ResultBuilder
+    pub fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        match accessor.get_column(self.column_ref) {
+            Column::BigInt(col) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+            }
+            Column::Int128(col) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+            }
+            Column::VarChar((col, _)) => {
+                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+            }
+            #[cfg(test)]
+            // While implementing this for a Scalar columns is very simple
+            // major refactoring is required to create tests for this
+            // (in particular the tests need to used the OwnedTableTestAccessor)
+            Column::Scalar(_) => todo!("Scalar column type not supported in filter_result_expr"),
+        };
+    }
+
+    /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
     /// add the components needed to prove the result
     pub fn prover_evaluate<'a>(
         &self,
@@ -54,18 +79,9 @@ impl FilterResultExpr {
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
-            Column::BigInt(col) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-                prover_evaluate_impl(builder, alloc, selection, col)
-            }
-            Column::Int128(col) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-                prover_evaluate_impl(builder, alloc, selection, col)
-            }
-            Column::VarChar((col, scals)) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-                prover_evaluate_impl(builder, alloc, selection, scals)
-            }
+            Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
+            Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col),
+            Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
             #[cfg(test)]
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this

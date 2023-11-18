@@ -97,3 +97,7 @@ mod indexes;
 pub use indexes::Indexes;
 #[cfg(test)]
 mod indexes_test;
+
+#[warn(missing_docs)]
+mod result_builder;
+pub use result_builder::ResultBuilder;
