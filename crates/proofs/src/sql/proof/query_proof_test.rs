@@ -7,7 +7,7 @@ use crate::{
         database::{CommitmentAccessor, DataAccessor, RecordBatchTestAccessor, TestAccessor},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    sql::proof::{Indexes, QueryData, SumcheckSubpolynomialType},
+    sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
 use arrow::{
     array::Int64Array,
@@ -28,8 +28,8 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         sumcheck_subpolynomials: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
@@ -37,6 +37,13 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
             vec![(
@@ -53,6 +60,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         table_length: n,
         offset_generators,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -98,8 +106,8 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         sumcheck_subpolynomials: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
@@ -107,6 +115,13 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let col = alloc.alloc_slice_fill_copy(2, 123i64);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
             vec![(
@@ -123,6 +138,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -141,8 +157,8 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         sumcheck_subpolynomials: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
@@ -150,6 +166,13 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
             vec![(
@@ -167,6 +190,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -185,8 +209,8 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         sumcheck_subpolynomials: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
@@ -194,6 +218,13 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
             vec![(
@@ -210,6 +241,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -234,8 +266,8 @@ fn verify_fails_if_counts_dont_match() {
         sumcheck_subpolynomials: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
@@ -243,6 +275,13 @@ fn verify_fails_if_counts_dont_match() {
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
             vec![(
@@ -260,6 +299,7 @@ fn verify_fails_if_counts_dont_match() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -282,13 +322,19 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         anchored_mles: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
@@ -318,6 +364,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         table_length: 2,
         offset_generators,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -345,6 +392,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         table_length: 2,
         offset_generators: offset_generators + 1,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -378,13 +426,19 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         anchored_mles: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
@@ -414,6 +468,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -437,13 +492,19 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         anchored_mles: 1,
         ..Default::default()
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
             SumcheckSubpolynomialType::Identity,
@@ -473,6 +534,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -497,13 +559,19 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         anchored_mles: 1,
         intermediate_mles: 1,
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
 
@@ -561,6 +629,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         table_length: 2,
         offset_generators,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -593,6 +662,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         table_length: 2,
         offset_generators: offset_generators + 1,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -626,13 +696,19 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         anchored_mles: 1,
         intermediate_mles: 1,
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
 
@@ -690,6 +766,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -717,13 +794,19 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         anchored_mles: 1,
         intermediate_mles: 1,
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
 
@@ -781,6 +864,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -813,13 +897,19 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         anchored_mles: 1,
         intermediate_mles: 1,
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
 
@@ -877,6 +967,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };
@@ -904,13 +995,19 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         anchored_mles: 1,
         intermediate_mles: 1,
     };
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z);
 
@@ -968,6 +1065,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         table_length: 2,
         offset_generators: 0,
         counts,
+        result_fn: Some(Box::new(result_eval)),
         prover_fn: Some(Box::new(prover_eval)),
         verifier_fn: Some(Box::new(verifier_eval)),
     };

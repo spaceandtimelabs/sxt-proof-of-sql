@@ -1,6 +1,6 @@
 use super::{
-    CompositePolynomialBuilder, Indexes, MultilinearExtension, MultilinearExtensionImpl,
-    ProvableQueryResult, ProvableResultColumn, SumcheckRandomScalars, SumcheckSubpolynomial,
+    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
+    SumcheckRandomScalars, SumcheckSubpolynomial,
 };
 use crate::base::{
     bit::BitDistribution, polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops,
@@ -15,8 +15,6 @@ pub struct ProofBuilder<'a> {
     table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
-    result_index_vector: Indexes,
-    result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
     commitment_descriptor: Vec<Sequence<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a>>,
@@ -29,8 +27,6 @@ impl<'a> ProofBuilder<'a> {
             table_length,
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
-            result_index_vector: Indexes::default(),
-            result_columns: Vec::new(),
             commitment_descriptor: Vec::new(),
             pre_result_mles: Vec::new(),
             sumcheck_subpolynomials: Vec::new(),
@@ -47,10 +43,6 @@ impl<'a> ProofBuilder<'a> {
 
     pub fn num_sumcheck_subpolynomials(&self) -> usize {
         self.sumcheck_subpolynomials.len()
-    }
-
-    pub fn num_result_columns(&self) -> usize {
-        self.result_columns.len()
     }
 
     /// Produce a bit distribution that describes which bits are constant
@@ -127,26 +119,6 @@ impl<'a> ProofBuilder<'a> {
         self.sumcheck_subpolynomials.push(group);
     }
 
-    /// Set the indexes of the rows select in the result
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.set_result_indexes",
-        level = "debug",
-        skip_all
-    )]
-    pub fn set_result_indexes(&mut self, result_index: Indexes) {
-        self.result_index_vector = result_index;
-    }
-
-    /// Produce an intermediate result column that will be sent to the verifier.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.produce_result_column",
-        level = "debug",
-        skip_all
-    )]
-    pub fn produce_result_column(&mut self, col: Box<dyn ProvableResultColumn + 'a>) {
-        self.result_columns.push(col);
-    }
-
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
     #[tracing::instrument(
         name = "proofs.sql.proof.proof_builder.commit_intermediate_mles",
@@ -161,16 +133,6 @@ impl<'a> ProofBuilder<'a> {
             offset_generators as u64,
         );
         res
-    }
-
-    /// Construct the intermediate query result to be sent to the verifier.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.make_provable_query_result",
-        level = "debug",
-        skip_all
-    )]
-    pub fn make_provable_query_result(&self) -> ProvableQueryResult {
-        ProvableQueryResult::new(&self.result_index_vector, &self.result_columns)
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all

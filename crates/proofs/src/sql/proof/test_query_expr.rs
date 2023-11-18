@@ -1,6 +1,6 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, TransformExpr,
-    VerificationBuilder,
+    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, ResultBuilder,
+    TransformExpr, VerificationBuilder,
 };
 use crate::base::{
     database::{
@@ -13,6 +13,9 @@ use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt, fmt::Debug};
 
+type ResultFn =
+    Box<dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;
+
 type ProveFn =
     Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;
 
@@ -24,6 +27,8 @@ pub struct TestQueryExpr {
     pub table_length: usize,
     pub offset_generators: usize,
     pub counts: ProofCounts,
+    #[serde(skip)]
+    pub result_fn: Option<ResultFn>,
     #[serde(skip)]
     pub prover_fn: Option<ProveFn>,
     #[serde(skip)]
@@ -83,6 +88,17 @@ impl ProofExpr for TestQueryExpr {
 }
 
 impl ProverEvaluate for TestQueryExpr {
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        if let Some(f) = &self.result_fn {
+            f(builder, alloc, accessor);
+        }
+    }
+
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,

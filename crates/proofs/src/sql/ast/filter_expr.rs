@@ -6,7 +6,7 @@ use crate::{
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
-        ProverHonestyMarker, VerificationBuilder,
+        ProverHonestyMarker, ResultBuilder, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -121,6 +121,32 @@ where
 
 pub type FilterExpr = OstensibleFilterExpr<HonestProver>;
 impl ProverEvaluate for FilterExpr {
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    ) {
+        // evaluate where clause
+        let selection = self
+            .where_clause
+            .result_evaluate(builder.table_length(), alloc, accessor);
+
+        // set result indexes
+        let indexes = selection
+            .iter()
+            .enumerate()
+            .filter(|(_, &b)| b)
+            .map(|(i, _)| i as u64)
+            .collect();
+        builder.set_result_indexes(Indexes::Sparse(indexes));
+
+        // evaluate result columns
+        for expr in self.results.iter() {
+            expr.result_evaluate(builder, accessor);
+        }
+    }
+
     #[tracing::instrument(
         name = "proofs.sql.ast.filter_expr.prover_evaluate",
         level = "info",
@@ -134,15 +160,6 @@ impl ProverEvaluate for FilterExpr {
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
-
-        // set result indexes
-        let indexes = selection
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b)
-            .map(|(i, _)| i as u64)
-            .collect();
-        builder.set_result_indexes(Indexes::Sparse(indexes));
 
         // evaluate result columns
         for expr in self.results.iter() {

@@ -1,4 +1,4 @@
-use super::{CountBuilder, ProofBuilder, VerificationBuilder};
+use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
     proof::ProofError,
@@ -48,6 +48,14 @@ pub trait TransformExpr: Debug + Send + Sync {
 }
 
 pub trait ProverEvaluate {
+    /// Evaluate the query and modify `ResultBuilder` to track the result of the query.
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor,
+    );
+
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
     ///

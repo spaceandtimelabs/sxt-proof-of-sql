@@ -9,7 +9,8 @@ use crate::{
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
     sql::proof::{
-        compute_evaluation_vector, Indexes, MultilinearExtension, SumcheckSubpolynomialType,
+        compute_evaluation_vector, Indexes, MultilinearExtension, ResultBuilder,
+        SumcheckSubpolynomialType,
     },
 };
 use arrow::{
@@ -135,7 +136,7 @@ fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);
     let col1 = [10, 11, 12];
     let col2 = [-2, -3, -4];
-    let mut builder = ProofBuilder::new(3, 2);
+    let mut builder = ResultBuilder::new(3);
     builder.set_result_indexes(result_indexes);
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
     builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
