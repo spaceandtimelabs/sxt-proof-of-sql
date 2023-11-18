@@ -15,7 +15,7 @@ use crate::{
             test_utility::{col, cols_result, tab},
             BoolExpr,
         },
-        proof::{Indexes, ProofBuilder, QueryProof, VerifiableQueryResult},
+        proof::{Indexes, ProofBuilder, QueryProof, ResultBuilder, VerifiableQueryResult},
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -211,6 +211,13 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
+
+    let mut result_builder = ResultBuilder::new(3);
+    result_builder.set_result_indexes(Indexes::Sparse(vec![0, 1, 2]));
+    let result_cols = cols_result(t, &["b"], &accessor);
+    result_cols[0].result_evaluate(&mut result_builder, &accessor);
+    let provable_result = result_builder.make_provable_query_result();
+
     let mut builder = ProofBuilder::new(3, 2);
 
     let lhs = [ArkScalar::zero(); 3];
@@ -225,13 +232,11 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     builder.produce_bit_distribution(bit_distribution);
     let sign = [true; 3];
     prover_evaluate_or(&mut builder, &alloc, equals_zero, &sign);
-    builder.set_result_indexes(Indexes::Sparse(vec![0, 1, 2]));
 
-    let result_cols = cols_result(t, &["b"], &accessor);
     let selection = [true; 3];
     result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
 
-    let (proof, res) = QueryProof::new_from_builder(builder, 0);
+    let (proof, res) = QueryProof::new_from_builder(builder, 0, provable_result);
     let res = proof
         .verify(&expr, &accessor, &res)
         .unwrap()
