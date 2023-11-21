@@ -1,6 +1,6 @@
 use super::{
-    AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, FilterExpr, FilterResultExpr, InequalityExpr,
-    NotExpr, OrExpr, TableExpr,
+    AndExpr, BoolExpr, ColumnExpr, ConstBoolExpr, DenseFilterExpr, EqualsExpr, FilterExpr,
+    FilterResultExpr, InequalityExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::base::{
     database::{ColumnRef, SchemaAccessor, TableRef},
@@ -89,4 +89,23 @@ pub fn filter(
     where_clause: Box<dyn BoolExpr>,
 ) -> FilterExpr {
     FilterExpr::new(results, table, where_clause)
+}
+
+pub fn col_expr(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
+    ColumnExpr::new(col(tab, name, accessor))
+}
+
+pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) -> Vec<ColumnExpr> {
+    names
+        .iter()
+        .map(|name| col_expr(tab, name, accessor))
+        .collect()
+}
+
+pub fn dense_filter(
+    results: Vec<ColumnExpr>,
+    table: TableExpr,
+    where_clause: Box<dyn BoolExpr>,
+) -> DenseFilterExpr {
+    DenseFilterExpr::new(results, table, where_clause)
 }

@@ -61,3 +61,14 @@ pub mod test_expr;
 
 #[cfg(test)]
 pub mod test_utility;
+
+#[warn(missing_docs)]
+mod column_expr;
+pub use column_expr::ColumnExpr;
+
+mod dense_filter_expr;
+pub use dense_filter_expr::{DenseFilterExpr, OstensibleDenseFilterExpr};
+#[cfg(test)]
+mod dense_filter_expr_test;
+#[cfg(test)]
+mod dense_filter_expr_test_dishonest_prover;
