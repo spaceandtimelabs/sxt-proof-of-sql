@@ -11,7 +11,15 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         num_sumcheck_variables: 1,
         ..Default::default()
     };
-    let builder = VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);
+    let builder = VerificationBuilder::new(
+        0,
+        mle_evaluations,
+        &[][..],
+        &[][..],
+        &[][..],
+        &[][..],
+        Vec::new(),
+    );
     assert_eq!(builder.sumcheck_evaluation(), ArkScalar::zero());
     assert_eq!(
         builder.folded_pre_result_commitment(),
@@ -34,6 +42,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         &[][..],
         &subpolynomial_multipliers,
         &[][..],
+        Vec::new(),
     );
     builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::from(2u64));
     builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::from(3u64));
@@ -63,6 +72,7 @@ fn we_build_up_the_folded_pre_result_commitment() {
         &intermediate_commitments,
         &[][..],
         &inner_product_multipliers,
+        Vec::new(),
     );
     let eval = builder.consume_anchored_mle(&commit1);
     assert_eq!(eval, ArkScalar::from(123u64));
@@ -91,8 +101,44 @@ fn we_can_consume_result_evaluations() {
         result_evaluations: &result_evaluations,
         ..Default::default()
     };
-    let mut builder =
-        VerificationBuilder::new(0, mle_evaluations, &[][..], &[][..], &[][..], &[][..]);
+    let mut builder = VerificationBuilder::new(
+        0,
+        mle_evaluations,
+        &[][..],
+        &[][..],
+        &[][..],
+        &[][..],
+        Vec::new(),
+    );
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(123u64));
     assert_eq!(builder.consume_result_mle(), ArkScalar::from(456u64));
+}
+
+#[test]
+fn we_can_consume_post_result_challenges_in_proof_builder() {
+    let mut builder = VerificationBuilder::new(
+        0,
+        SumcheckMleEvaluations::default(),
+        &[][..],
+        &[][..],
+        &[][..],
+        &[][..],
+        vec![
+            ArkScalar::from(123),
+            ArkScalar::from(456),
+            ArkScalar::from(789),
+        ],
+    );
+    assert_eq!(
+        ArkScalar::from(789),
+        builder.consume_post_result_challenge()
+    );
+    assert_eq!(
+        ArkScalar::from(456),
+        builder.consume_post_result_challenge()
+    );
+    assert_eq!(
+        ArkScalar::from(123),
+        builder.consume_post_result_challenge()
+    );
 }

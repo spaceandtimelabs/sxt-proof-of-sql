@@ -53,6 +53,8 @@ pub(crate) use proof_exprs::ProverHonestyMarker;
 pub use proof_exprs::{HonestProver, ProofExpr, ProverEvaluate, TransformExpr};
 
 mod query_proof;
+#[cfg(test)]
+pub use query_proof::make_transcript;
 pub use query_proof::QueryProof;
 #[cfg(test)]
 mod query_proof_test;
