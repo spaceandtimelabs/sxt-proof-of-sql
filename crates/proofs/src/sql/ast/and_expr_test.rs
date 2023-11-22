@@ -1,18 +1,18 @@
+use super::{test_utility::*, FilterExpr};
 use crate::{
     base::{
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
+            RandomTestAccessorDescriptor, TestAccessor,
         },
         scalar::ArkScalar,
     },
-    owned_table, record_batch,
-    sql::ast::{
-        test_expr::TestExprNode,
-        test_utility::{and, equal},
+    owned_table,
+    sql::{
+        ast::test_utility::{and, equal},
+        proof::{exercise_verification, VerifiableQueryResult},
     },
 };
-use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use polars::prelude::*;
 use rand::{
@@ -20,42 +20,51 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-
-fn create_test_and_expr<
-    T1: Into<ArkScalar> + Copy + Literal,
-    T2: Into<ArkScalar> + Copy + Literal,
->(
+/// This function creates a TestAccessor, adds a table, and then creates a FilterExpr with the given parameters.
+/// It then executes the query, verifies the result, and returns the table.
+fn create_and_verify_test_and_expr(
     table_ref: &str,
     results: &[&str],
-    lhs: (&str, T1),
-    rhs: (&str, T2),
-    data: RecordBatch,
+    lhs: (&str, impl Into<ArkScalar>),
+    rhs: (&str, impl Into<ArkScalar>),
+    data: OwnedTable,
     offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
+) -> OwnedTable {
+    let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let and_expr = and(
         equal(t, lhs.0, lhs.1, &accessor),
         equal(t, rhs.0, rhs.1, &accessor),
     );
+    let ast = FilterExpr::new(cols_result(t, results, &accessor), tab(t), and_expr);
+    let res = VerifiableQueryResult::new(&ast, &accessor);
+    exercise_verification(&res, &ast, &accessor, t);
+    res.verify(&ast, &accessor).unwrap().table
+}
+/// This function filters the given data using polars with the given parameters.
+fn filter_test_and_expr(
+    results: &[&str],
+    lhs: (&str, impl polars::prelude::Literal),
+    rhs: (&str, impl polars::prelude::Literal),
+    data: OwnedTable,
+) -> OwnedTable {
     let df_filter = polars::prelude::col(lhs.0)
         .eq(lit(lhs.1))
         .and(polars::prelude::col(rhs.0).eq(lit(rhs.1)));
-    TestExprNode::new(t, results, and_expr, df_filter, accessor)
+    data.apply_polars_filter(results, df_filter)
 }
 
 #[test]
 fn we_can_prove_a_simple_and_query() {
-    let data = record_batch!(
+    let data = owned_table!(
         "a" => [1_i64, 2, 3, 4],
         "b" => [0_i64, 1, 0, 1],
         "d" => ["ab", "t", "efg", "g"],
         "c" => [0_i64, 2, 2, 0],
     );
-    let test_expr = create_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
-    let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
+    let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
+    let expected_res = owned_table!(
         "a" => [2_i64],
         "d" => ["t"]
     );
@@ -64,15 +73,14 @@ fn we_can_prove_a_simple_and_query() {
 
 #[test]
 fn we_can_prove_a_simple_and_query_with_128_bits() {
-    let data = record_batch!(
+    let data = owned_table!(
         "a" => [1_i128, 2, 3, 4],
         "b" => [0_i128, 1, 0, 1],
         "d" => ["ab", "t", "efg", "g"],
         "c" => [0_i128, 2, 2, 0],
     );
-    let test_expr = create_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
-    let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
+    let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
+    let expected_res = owned_table!(
         "a" => [2_i128],
         "d" => ["t"]
     );
@@ -95,22 +103,17 @@ fn test_random_tables_with_given_offset(offset: usize) {
     ];
     for _ in 0..20 {
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
+        let data = OwnedTable::try_from(data).unwrap();
         let filter_val1 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let filter_val1 = format!("s{filter_val1}");
         let filter_val2 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_and_expr(
-            "sxt.t",
-            &["a", "d"],
-            (
-                "b",
-                ("s".to_owned() + &filter_val1.to_string()[..]).as_str(),
-            ),
-            ("c", filter_val2),
-            data,
-            offset,
-        );
-        let res = test_expr.verify_expr();
-        let expected_res = test_expr.query_table();
-        assert_eq!(res, expected_res);
+        let results = &["a", "d"];
+        let lhs = ("b", filter_val1.as_str());
+        let rhs = ("c", filter_val2);
+        assert_eq!(
+            filter_test_and_expr(results, lhs, rhs, data.clone()),
+            create_and_verify_test_and_expr("sxt.t", results, lhs, rhs, data, offset)
+        )
     }
 }
 

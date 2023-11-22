@@ -67,6 +67,31 @@ impl OwnedTable {
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
     }
+
+    /// Applies a filter to this table via polars, returning a new table. This is useful for testing that a filter is executed correctly.
+    #[cfg(test)]
+    pub fn apply_polars_filter(
+        &self,
+        results: &[&str],
+        predicate: polars::prelude::Expr,
+    ) -> OwnedTable {
+        OwnedTable::try_from(super::dataframe_to_record_batch(
+            polars::prelude::IntoLazy::lazy(super::record_batch_to_dataframe(
+                arrow::record_batch::RecordBatch::try_from(self.clone()).unwrap(),
+            ))
+            .filter(predicate)
+            .select(
+                results
+                    .iter()
+                    .map(|v| polars::prelude::col(v))
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+            )
+            .collect()
+            .unwrap(),
+        ))
+        .unwrap()
+    }
 }
 
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.
