@@ -28,7 +28,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
 
     let alloc = Bump::new();
     let data: Vec<ArkScalar> = data.into_iter().map(ArkScalar::from).collect();
-    let mut builder = ProofBuilder::new(3, 2);
+    let mut builder = ProofBuilder::new(3, 2, Vec::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [false; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -44,7 +44,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
 
     let alloc = Bump::new();
     let data: Vec<ArkScalar> = data.into_iter().map(ArkScalar::from).collect();
-    let mut builder = ProofBuilder::new(3, 2);
+    let mut builder = ProofBuilder::new(3, 2, Vec::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data);
     assert_eq!(sign, [true; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -83,7 +83,8 @@ fn we_can_verify_a_constant_decomposition() {
         &Default::default(),
     );
 
-    let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
+    let mut builder =
+        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
     let commit = compute_commitment_for_testing(&data, 0);
     let eval = verifier_evaluate_sign(&mut builder, &commit, &one_commit).unwrap();
     assert_eq!(eval, ArkScalar::zero());
@@ -107,7 +108,8 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &Default::default(),
     );
 
-    let mut builder = VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[]);
+    let mut builder =
+        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
     let commit = ArkScalar::from(2) * compute_commitment_for_testing(&data, 0);
     assert!(verifier_evaluate_sign(&mut builder, &commit, &one_commit).is_err());
 }

@@ -9,6 +9,12 @@ pub struct ProofCounts {
     pub anchored_mles: usize,
     pub intermediate_mles: usize,
     pub sumcheck_subpolynomials: usize,
+
+    /// The number of challenges used in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    pub post_result_challenges: usize,
 }
 
 impl ProofCounts {
@@ -29,5 +35,6 @@ impl ProofCounts {
             "sumcheck_subpolynomials = {:?}",
             self.sumcheck_subpolynomials
         );
+        tracing::info!("post_result_challenges = {:?}", self.post_result_challenges);
     }
 }

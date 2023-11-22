@@ -6,6 +6,7 @@ use crate::{
             make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
+        proof::{MessageLabel, TranscriptProtocol},
         scalar::ArkScalar,
     },
     owned_table, record_batch,
@@ -15,7 +16,10 @@ use crate::{
             test_utility::{col, cols_result, tab},
             BoolExpr,
         },
-        proof::{Indexes, ProofBuilder, QueryProof, ResultBuilder, VerifiableQueryResult},
+        proof::{
+            make_transcript, Indexes, ProofBuilder, QueryProof, ResultBuilder,
+            VerifiableQueryResult,
+        },
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -218,7 +222,10 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     result_cols[0].result_evaluate(&mut result_builder, &accessor);
     let provable_result = result_builder.make_provable_query_result();
 
-    let mut builder = ProofBuilder::new(3, 2);
+    let mut transcript = make_transcript(&provable_result);
+    transcript.challenge_ark_scalars(&mut [], MessageLabel::PostResultChallenges);
+
+    let mut builder = ProofBuilder::new(3, 2, Vec::new());
 
     let lhs = [ArkScalar::zero(); 3];
     let equals_zero = prover_evaluate_equals_zero(&mut builder, &alloc, &lhs);
@@ -236,9 +243,9 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let selection = [true; 3];
     result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
 
-    let (proof, res) = QueryProof::new_from_builder(builder, 0, provable_result);
+    let proof = QueryProof::new_from_builder(builder, 0, transcript);
     let res = proof
-        .verify(&expr, &accessor, &res)
+        .verify(&expr, &accessor, &provable_result)
         .unwrap()
         .into_record_batch();
     let expected = record_batch!(

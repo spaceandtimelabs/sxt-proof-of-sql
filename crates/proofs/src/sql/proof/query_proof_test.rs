@@ -558,6 +558,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        post_result_challenges: 0,
     };
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
@@ -695,6 +696,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        post_result_challenges: 0,
     };
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
@@ -793,6 +795,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        post_result_challenges: 0,
     };
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
@@ -896,6 +899,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        post_result_challenges: 0,
     };
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
@@ -994,6 +998,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         sumcheck_subpolynomials: 2,
         anchored_mles: 1,
         intermediate_mles: 1,
+        post_result_challenges: 0,
     };
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
@@ -1072,4 +1077,110 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     let accessor = RecordBatchTestAccessor::new_empty();
     let (proof, result) = QueryProof::new(&expr, &accessor);
     assert!(proof.verify(&expr, &accessor, &result).is_err());
+}
+
+fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generators: usize) {
+    // prove and verify an artificial query where
+    //     alpha * res_i = alpha * x_i * x_i
+    // where the commitment for x is known and alpha depends on res
+    // additionally, we will have a second challenge beta, that is unused
+    static RES: [i64; 2] = [9, 25];
+    static X: [i64; 2] = [3, 5];
+    static INDEXES: [u64; 2] = [0u64, 1u64];
+    let counts = ProofCounts {
+        sumcheck_max_multiplicands: 3,
+        result_columns: 1,
+        sumcheck_subpolynomials: 1,
+        anchored_mles: 1,
+        post_result_challenges: 2,
+        ..Default::default()
+    };
+    fn result_eval<'a>(
+        builder: &mut ResultBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
+        builder.produce_result_column(Box::new(DenseProvableResultColumn::new(&RES)));
+        builder.request_post_result_challenges(2);
+    }
+    fn prover_eval<'a>(
+        builder: &mut ProofBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor,
+    ) {
+        let alpha = builder.consume_post_result_challenge();
+        let _beta = builder.consume_post_result_challenge();
+        builder.produce_anchored_mle(&X);
+        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (alpha, vec![Box::new(MultilinearExtensionImpl::new(&RES))]),
+                (
+                    -alpha,
+                    vec![
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                        Box::new(MultilinearExtensionImpl::new(&X)),
+                    ],
+                ),
+            ],
+        ));
+    }
+    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+        let alpha = builder.consume_post_result_challenge();
+        let _beta = builder.consume_post_result_challenge();
+        let res_eval = builder.consume_result_mle();
+        let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
+        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let eval = builder.mle_evaluations.random_evaluation
+            * (alpha * res_eval - alpha * x_eval * x_eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    }
+    let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators,
+        counts,
+        result_fn: Some(Box::new(result_eval)),
+        prover_fn: Some(Box::new(prover_eval)),
+        verifier_fn: Some(Box::new(verifier_eval)),
+    };
+    let accessor = RecordBatchTestAccessor::new_empty();
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let QueryData {
+        verification_hash,
+        table,
+    } = proof.verify(&expr, &accessor, &result).unwrap();
+    let result = RecordBatch::try_from(table).unwrap();
+    assert_ne!(verification_hash, [0; 32]);
+    let column_fields: Vec<Field> = expr
+        .get_column_result_fields()
+        .iter()
+        .map(|v| v.into())
+        .collect();
+    let schema = Arc::new(Schema::new(column_fields));
+    let expected_result =
+        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![9, 25]))]).unwrap();
+    assert_eq!(result, expected_result);
+
+    // invalid offset will fail to verify
+    let (proof, result) = QueryProof::new(&expr, &accessor);
+    let expr = TestQueryExpr {
+        table_length: 2,
+        offset_generators: offset_generators + 1,
+        counts,
+        result_fn: Some(Box::new(result_eval)),
+        prover_fn: Some(Box::new(prover_eval)),
+        verifier_fn: Some(Box::new(verifier_eval)),
+    };
+    assert!(proof.verify(&expr, &accessor, &result).is_err());
+}
+
+#[test]
+fn we_can_verify_a_proof_with_a_post_result_challenge_and_with_a_zero_offset() {
+    verify_a_proof_with_a_post_result_challenge_and_given_offset(0);
+}
+
+#[test]
+fn we_can_verify_a_proof_with_a_post_result_challenge_and_with_a_non_zero_offset() {
+    verify_a_proof_with_a_post_result_challenge_and_given_offset(123);
 }

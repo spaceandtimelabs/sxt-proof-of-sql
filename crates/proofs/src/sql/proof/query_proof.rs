@@ -51,26 +51,42 @@ impl QueryProof {
         expr.result_evaluate(&mut result_builder, &alloc, accessor);
         let provable_result = result_builder.make_provable_query_result();
 
-        let mut builder = ProofBuilder::new(table_length, num_sumcheck_variables);
+        // construct a transcript for the proof
+        let mut transcript = make_transcript(&provable_result);
+
+        // These are the challenges that will be consumed by the proof
+        // Specifically, these are the challenges that the verifier sends to
+        // the prover after the prover sends the result, but before the prover
+        // send commitments to the intermediate witness columns.
+        // Note: the last challenge in the vec is the first one that is consumed.
+        let mut post_result_challenges =
+            vec![Zero::zero(); result_builder.num_post_result_challenges()];
+        transcript.challenge_ark_scalars(
+            &mut post_result_challenges,
+            MessageLabel::PostResultChallenges,
+        );
+
+        let mut builder =
+            ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
 
-        QueryProof::new_from_builder(builder, generator_offset, provable_result)
+        let proof = QueryProof::new_from_builder(builder, generator_offset, transcript);
+        (proof, provable_result)
     }
 
     pub fn new_from_builder(
         builder: ProofBuilder,
         generator_offset: usize,
-        provable_result: ProvableQueryResult,
-    ) -> (Self, ProvableQueryResult) {
+        mut transcript: Transcript,
+    ) -> Self {
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(generator_offset);
 
-        // construct a transcript for the proof
-        let mut transcript =
-            make_transcript(&commitments, &provable_result, builder.bit_distributions());
+        // add the commitments and bit disctibutions to the proof
+        extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
@@ -121,7 +137,7 @@ impl QueryProof {
             pre_result_mle_evaluations,
             evaluation_proof,
         };
-        (proof, provable_result)
+        proof
     }
 
     #[tracing::instrument(
@@ -174,7 +190,21 @@ impl QueryProof {
         }
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(&self.commitments, result, &self.bit_distributions);
+        let mut transcript = make_transcript(result);
+
+        // These are the challenges that will be consumed by the proof
+        // Specifically, these are the challenges that the verifier sends to
+        // the prover after the prover sends the result, but before the prover
+        // send commitments to the intermediate witness columns.
+        // Note: the last challenge in the vec is the first one that is consumed.
+        let mut post_result_challenges = vec![Zero::zero(); counts.post_result_challenges];
+        transcript.challenge_ark_scalars(
+            &mut post_result_challenges,
+            MessageLabel::PostResultChallenges,
+        );
+
+        // add the commitments and bit disctibutions to the proof
+        extend_transcript(&mut transcript, &self.commitments, &self.bit_distributions);
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
@@ -238,6 +268,7 @@ impl QueryProof {
             &commitments,
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
+            post_result_challenges,
         );
         expr.verifier_evaluate(&mut builder, accessor)?;
 
@@ -289,14 +320,17 @@ impl QueryProof {
     level = "debug",
     skip_all
 )]
-fn make_transcript(
-    commitments: &[CompressedRistretto],
-    result: &ProvableQueryResult,
-    bit_distributions: &[BitDistribution],
-) -> merlin::Transcript {
+pub fn make_transcript(result: &ProvableQueryResult) -> merlin::Transcript {
     let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
-    transcript.append_points(MessageLabel::QueryCommit, commitments);
     transcript.append_auto(MessageLabel::QueryResultData, result);
-    transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
     transcript
+}
+
+fn extend_transcript(
+    transcript: &mut Transcript,
+    commitments: &[CompressedRistretto],
+    bit_distributions: &[BitDistribution],
+) {
+    transcript.append_points(MessageLabel::QueryCommit, commitments);
+    transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
 }

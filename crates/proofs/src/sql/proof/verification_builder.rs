@@ -18,6 +18,14 @@ pub struct VerificationBuilder<'a> {
     consumed_pre_result_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
+    /// The challenges used in creation of the constraints in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    ///
+    /// Note: this vector is treated as a stack and the first
+    /// challenge is the last entry in the vector.
+    post_result_challenges: Vec<ArkScalar>,
 }
 
 impl<'a> VerificationBuilder<'a> {
@@ -28,6 +36,7 @@ impl<'a> VerificationBuilder<'a> {
         intermediate_commitments: &'a [RistrettoPoint],
         subpolynomial_multipliers: &'a [ArkScalar],
         inner_product_multipliers: &'a [ArkScalar],
+        post_result_challenges: Vec<ArkScalar>,
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
@@ -47,6 +56,7 @@ impl<'a> VerificationBuilder<'a> {
             consumed_pre_result_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
+            post_result_challenges,
         }
     }
 
@@ -136,5 +146,16 @@ impl<'a> VerificationBuilder<'a> {
             && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pre_result_mles == self.mle_evaluations.pre_result_evaluations.len()
             && self.consumed_result_mles == self.mle_evaluations.result_evaluations.len()
+            && self.post_result_challenges.is_empty()
+    }
+
+    /// Pops a challenge off the stack of post-result challenges.
+    ///
+    /// These challenges are used in creation of the constraints in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    pub fn consume_post_result_challenge(&mut self) -> ArkScalar {
+        self.post_result_challenges.pop().unwrap()
     }
 }

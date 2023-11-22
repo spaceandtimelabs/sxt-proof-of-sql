@@ -160,6 +160,7 @@ pub enum MessageLabel {
     VerificationHash,
     DoryMessage,
     DoryChallenge,
+    PostResultChallenges,
 }
 impl MessageLabel {
     /// Convert the label to a byte slice, which satisfies the requirements of a merlin label:
@@ -183,6 +184,7 @@ impl MessageLabel {
             MessageLabel::VerificationHash => b"verificationhash v1",
             MessageLabel::DoryMessage => b"dorymessage v1",
             MessageLabel::DoryChallenge => b"dorychallenge v1",
+            MessageLabel::PostResultChallenges => b"postresultchallenges v1",
         }
     }
 }

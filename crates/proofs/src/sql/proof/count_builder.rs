@@ -63,4 +63,12 @@ impl<'a> CountBuilder<'a> {
         }
         Ok(self.counts)
     }
+
+    /// Adds `cnt` to the number of challenges used in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    pub fn count_post_result_challenges(&mut self, cnt: usize) {
+        self.counts.post_result_challenges += cnt;
+    }
 }
