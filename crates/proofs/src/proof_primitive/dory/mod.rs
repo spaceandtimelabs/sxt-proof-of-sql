@@ -5,6 +5,14 @@
 //! Note:
 //! We use nu = m and k = m-i or m-j.
 //! This indexing is more convenient for coding because lengths of the arrays used are typically 2^k rather than 2^i or 2^j.
+//!
+//! Note: from the paper:
+//! > In our initial presentation of the protocols, and discussions of completeness
+//! > and soundness, we will highlight that which is required only to achieve hiding
+//! > in commitments and zero-knowledge in the protocols in blue.
+//!
+//! This implementation only implements the computational integrity component of Dory.
+//! This can be extended in the future to achieve hiding, but that isn't needed for our initial use-case.
 
 #![warn(missing_docs)]
 // This is so that the naming in the code more closely matches the naming in the paper, since the paper used both capital and non-capital letters.
@@ -32,3 +40,15 @@ mod state;
 pub use state::{ProverState, VerifierState};
 #[cfg(test)]
 mod state_test;
+
+mod dory_reduce;
+mod scalar_product;
+
+use dory_reduce::{dory_reduce_prove, dory_reduce_verify};
+use scalar_product::{scalar_product_prove, scalar_product_verify};
+
+mod dory_inner_product;
+pub use dory_inner_product::{dory_inner_product_prove, dory_inner_product_verify};
+
+#[cfg(test)]
+mod dory_inner_product_test;
