@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/proofs", "crates/proofs-sql", "benches/provable_sql"]
+members = ["crates/proofs", "crates/proofs-sql", "benches/provable_sql", "benches/ec_ops"]
 
 [workspace.package]
 edition = "2021"
