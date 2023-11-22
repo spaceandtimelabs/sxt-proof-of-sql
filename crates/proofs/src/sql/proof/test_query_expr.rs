@@ -46,6 +46,7 @@ impl ProofExpr for TestQueryExpr {
         builder.count_anchored_mles(self.counts.anchored_mles);
         builder.count_intermediate_mles(self.counts.intermediate_mles);
         builder.count_subpolynomials(self.counts.sumcheck_subpolynomials);
+        builder.count_post_result_challenges(self.counts.post_result_challenges);
         Ok(())
     }
 

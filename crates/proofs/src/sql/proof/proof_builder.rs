@@ -18,11 +18,23 @@ pub struct ProofBuilder<'a> {
     commitment_descriptor: Vec<Sequence<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a>>,
+    /// The challenges used in creation of the constraints in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    ///
+    /// Note: this vector is treated as a stack and the first
+    /// challenge is the last entry in the vector.
+    post_result_challenges: Vec<ArkScalar>,
 }
 
 impl<'a> ProofBuilder<'a> {
     #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
-    pub fn new(table_length: usize, num_sumcheck_variables: usize) -> Self {
+    pub fn new(
+        table_length: usize,
+        num_sumcheck_variables: usize,
+        post_result_challenges: Vec<ArkScalar>,
+    ) -> Self {
         Self {
             table_length,
             num_sumcheck_variables,
@@ -30,6 +42,7 @@ impl<'a> ProofBuilder<'a> {
             commitment_descriptor: Vec::new(),
             pre_result_mles: Vec::new(),
             sumcheck_subpolynomials: Vec::new(),
+            post_result_challenges,
         }
     }
 
@@ -190,5 +203,15 @@ impl<'a> ProofBuilder<'a> {
 
     pub fn bit_distributions(&self) -> &[BitDistribution] {
         &self.bit_distributions
+    }
+
+    /// Pops a challenge off the stack of post-result challenges.
+    ///
+    /// These challenges are used in creation of the constraints in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    pub fn consume_post_result_challenge(&mut self) -> ArkScalar {
+        self.post_result_challenges.pop().unwrap()
     }
 }

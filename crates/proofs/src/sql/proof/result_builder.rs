@@ -5,6 +5,12 @@ pub struct ResultBuilder<'a> {
     table_length: usize,
     result_index_vector: Indexes,
     result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
+
+    /// The number of challenges used in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    num_post_result_challenges: usize,
 }
 
 impl<'a> ResultBuilder<'a> {
@@ -14,6 +20,7 @@ impl<'a> ResultBuilder<'a> {
             table_length,
             result_index_vector: Indexes::default(),
             result_columns: Vec::new(),
+            num_post_result_challenges: 0,
         }
     }
 
@@ -50,5 +57,23 @@ impl<'a> ResultBuilder<'a> {
     )]
     pub fn make_provable_query_result(&self) -> ProvableQueryResult {
         ProvableQueryResult::new(&self.result_index_vector, &self.result_columns)
+    }
+
+    /// The number of challenges used in the proof.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    pub(super) fn num_post_result_challenges(&self) -> usize {
+        self.num_post_result_challenges
+    }
+
+    /// Request `cnt` more post result challenges.
+    /// Specifically, these are the challenges that the verifier sends to
+    /// the prover after the prover sends the result, but before the prover
+    /// send commitments to the intermediate witness columns.
+    ///
+    /// Note: this must be matched with the same count in the CountBuilder.
+    pub fn request_post_result_challenges(&mut self, cnt: usize) {
+        self.num_post_result_challenges += cnt;
     }
 }
