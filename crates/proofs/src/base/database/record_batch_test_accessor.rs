@@ -188,5 +188,6 @@ impl DataAccessor for RecordBatchTestAccessor {
             .get(&column_ref.column_id())
             .unwrap()
             .to_column(&self.alloc, &(0..table.data.num_rows()), None)
+            .unwrap()
     }
 }
