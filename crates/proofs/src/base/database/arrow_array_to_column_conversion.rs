@@ -5,6 +5,18 @@ use arrow::{
 };
 use bumpalo::Bump;
 use std::ops::Range;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+/// Errors caused by conversions between Arrow and owned types.
+pub enum ArrowArrayToColumnConversionError {
+    /// This error occurs when an array contains a non-zero number of null elements
+    #[error("arrow array must not contain nulls")]
+    ArrayContainsNulls,
+    /// This error occurs when trying to convert from an unsupported arrow type.
+    #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
+    UnsupportedType(DataType),
+}
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
@@ -31,7 +43,7 @@ pub trait ArrayRefExt {
         alloc: &'a Bump,
         range: &Range<usize>,
         scals: Option<&'a [ArkScalar]>,
-    ) -> Column<'a>;
+    ) -> Result<Column<'a>, ArrowArrayToColumnConversionError>;
 }
 
 impl ArrayRefExt for ArrayRef {
@@ -63,52 +75,70 @@ impl ArrayRefExt for ArrayRef {
         }
     }
 
+    /// Converts the given ArrowArray into a `Column` data type based on its `DataType`. Returns an
+    /// empty `Column` for any empty tange if it is in-bounds.
+    ///
+    /// # Parameters
+    /// - `alloc`: Reference to a `Bump` allocator used for memory allocation during the conversion.
+    /// - `range`: Reference to a `Range<usize>` specifying the slice of the array to convert.
+    /// - `precomputed_scals`: Optional reference to a slice of `ArkScalar` values.
+    ///    VarChar columns store hashes to their values as scalars, which can be provided here.
+    ///
+    /// # Supported types
+    /// - For `DataType::Int64` and `DataType::Decimal128(38, 0)`, it slices the array
+    ///   based on the provided range and returns the corresponding `BigInt` or `Int128` column.
+    /// - For `DataType::Utf8`, it extracts string values and scalar values (if `precomputed_scals`
+    ///   is provided) for the specified range and returns a `VarChar` column.
+    ///
+    /// # Panics
+    /// - When any range is OOB, i.e. indexing 3..6 or 5..5 on array of size 2.
     fn to_column<'a>(
         &'a self,
         alloc: &'a Bump,
         range: &Range<usize>,
         precomputed_scals: Option<&'a [ArkScalar]>,
-    ) -> Column<'a> {
-        assert!(self.null_count() == 0);
-
+    ) -> Result<Column<'a>, ArrowArrayToColumnConversionError> {
+        // Start by checking for nulls
+        if self.null_count() != 0 {
+            return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
+        }
+        // Match supported types and attempt conversion
         match self.data_type() {
-            DataType::Int64 => Column::BigInt(
-                &self
+            DataType::Int64 => {
+                let array = self
                     .as_any()
                     .downcast_ref::<Int64Array>()
-                    .map(|array| array.values())
-                    .unwrap()[range.start..range.end],
-            ),
-            DataType::Decimal128(38, 0) => Column::Int128(
-                &self
-                    .as_any()
-                    .downcast_ref::<Decimal128Array>()
-                    .map(|array| array.values())
-                    .unwrap()[range.start..range.end],
-            ),
+                    .expect("Failed to downcast to Int64Array in arrow_array_to_column_conversion");
+
+                Ok(Column::BigInt(&array.values()[range.start..range.end]))
+            }
+            DataType::Decimal128(38, 0) => {
+                let array = self.as_any().downcast_ref::<Decimal128Array>().expect(
+                    "Failed to downcast to Decimal128Array in arrow_array_to_column_conversion",
+                );
+
+                Ok(Column::Int128(&array.values()[range.start..range.end]))
+            }
             DataType::Utf8 => {
-                let vals = self
-                    .as_any()
-                    .downcast_ref::<StringArray>()
-                    .map(|array| {
-                        alloc.alloc_slice_fill_with(range.end - range.start, |i| -> &'a str {
-                            array.value(range.start + i)
-                        })
-                    })
-                    .unwrap();
+                let array = self.as_any().downcast_ref::<StringArray>().expect(
+                    "Failed to downcast to StringArray in arrow_array_to_column_conversion",
+                );
+
+                let vals = alloc.alloc_slice_fill_with(range.end - range.start, |i| -> &'a str {
+                    array.value(range.start + i)
+                });
 
                 let scals = if let Some(scals) = precomputed_scals {
                     &scals[range.start..range.end]
                 } else {
-                    // This `else` is just to simplify implementations at higher code levels.
-                    // However, as the caller can always pass the correct scalar slice,
-                    // this convenience `else` here may be dropped in the future.
                     alloc.alloc_slice_fill_with(vals.len(), |i| -> ArkScalar { vals[i].into() })
                 };
 
-                Column::VarChar((vals, scals))
+                Ok(Column::VarChar((vals, scals)))
             }
-            _ => unimplemented!(),
+            data_type => Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                data_type.clone(),
+            )),
         }
     }
 }
@@ -119,16 +149,82 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
+    #[should_panic(expected = "range end index 3 out of range for slice of length 2")]
+    fn we_cannot_index_on_oob_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
+        array.to_column(&alloc, &(2..3), None).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "range end index 5 out of range for slice of length 2")]
+    fn we_cannot_index_on_empty_oob_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
+        array.to_column(&alloc, &(5..5), None).unwrap();
+    }
+
+    #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_int64() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
+        let result = array.to_column(&alloc, &(2..2), None).unwrap();
+        assert_eq!(result, Column::BigInt(&[]));
+    }
+
+    #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_decimal128() {
+        let alloc = Bump::new();
+        let decimal_values = vec![12345678901234567890_i128, -12345678901234567890_i128];
+        let array: ArrayRef = Arc::new(
+            Decimal128Array::from(decimal_values)
+                .with_precision_and_scale(38, 0)
+                .unwrap(),
+        );
+        let result = array.to_column(&alloc, &(0..0), None).unwrap();
+        assert_eq!(result, Column::Int128(&[]));
+    }
+
+    #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_utf8() {
+        let alloc = Bump::new();
+        let data = vec!["ab", "-f34"];
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
+        assert_eq!(
+            array.to_column(&alloc, &(1..1), None).unwrap(),
+            Column::VarChar((&[], &[]))
+        );
+    }
+
+    #[test]
+    fn we_cannot_build_a_column_from_an_array_with_nulls_utf8() {
+        let alloc = Bump::new();
+        let data = vec![Some("ab"), Some("-f34"), None];
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
+        let result = array.to_column(&alloc, &(0..3), None);
+        assert!(matches!(
+            result,
+            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+        ));
+    }
+
+    #[test]
+    #[should_panic]
+    fn we_cannot_convert_valid_string_array_refs_into_valid_columns_using_out_of_ranges_sizes() {
+        let alloc = Bump::new();
+        let data = vec!["ab", "-f34"];
+        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
+        let _ = array.to_column(&alloc, &(0..3), None);
+    }
+
+    #[test]
     fn we_can_convert_valid_integer_array_refs_into_valid_columns() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), None),
+            array.to_column(&alloc, &(0..2), None).unwrap(),
             Column::BigInt(&[1, -3])
         );
-
-        let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(Vec::<i64>::new()));
-        assert_eq!(array.to_column(&alloc, &(0..0), None), Column::BigInt(&[]));
     }
 
     #[test]
@@ -138,7 +234,7 @@ mod tests {
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), None),
+            array.to_column(&alloc, &(0..2), None).unwrap(),
             Column::VarChar((&data[..], &scals[..]))
         );
     }
@@ -149,10 +245,9 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![0, 1, 545]));
         assert_eq!(
-            array.to_column(&alloc, &(1..3), None),
+            array.to_column(&alloc, &(1..3), None).unwrap(),
             Column::BigInt(&[1, 545])
         );
-        assert_eq!(array.to_column(&alloc, &(0..0), None), Column::BigInt(&[]));
     }
 
     #[test]
@@ -164,12 +259,8 @@ mod tests {
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
         assert_eq!(
-            array.to_column(&alloc, &(1..3), None),
+            array.to_column(&alloc, &(1..3), None).unwrap(),
             Column::VarChar((&data[1..3], &scals[1..3]))
-        );
-        assert_eq!(
-            array.to_column(&alloc, &(0..0), None),
-            Column::VarChar((&[], &[]))
         );
     }
 
@@ -180,7 +271,7 @@ mod tests {
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), Some(&scals)),
+            array.to_column(&alloc, &(0..2), Some(&scals)).unwrap(),
             Column::VarChar((&data[..], &scals[..]))
         );
     }
@@ -189,21 +280,9 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_ranges_with_zero_size() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        assert_eq!(
-            array.to_column(&alloc, &(0..0), None),
-            Column::VarChar((&data[0..0], &scals[0..0]))
-        );
-    }
-
-    #[test]
-    #[should_panic]
-    fn we_cannot_convert_valid_string_array_refs_into_valid_columns_using_out_of_ranges_sizes() {
-        let alloc = Bump::new();
-        let data = vec!["ab", "-f34"];
-        let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
-        array.to_column(&alloc, &(0..3), None);
+        let result = array.to_column(&alloc, &(0..0), None).unwrap();
+        assert_eq!(result, Column::VarChar((&[], &[])));
     }
 
     #[test]
