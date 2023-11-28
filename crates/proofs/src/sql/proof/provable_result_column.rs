@@ -1,5 +1,5 @@
 use super::Indexes;
-use crate::sql::proof::EncodeProvableResultElement;
+use crate::{base::database::Column, sql::proof::EncodeProvableResultElement};
 
 /// Interface for serializing an intermediate result column
 pub trait ProvableResultColumn {
@@ -40,5 +40,17 @@ where
             res += self.data[i as usize].encode(&mut out[res..]);
         }
         res
+    }
+}
+
+impl<'a> From<Column<'a>> for Box<dyn ProvableResultColumn + 'a> {
+    fn from(col: Column<'a>) -> Self {
+        match col {
+            Column::BigInt(col) => Box::new(DenseProvableResultColumn::new(col)),
+            Column::Int128(col) => Box::new(DenseProvableResultColumn::new(col)),
+            Column::VarChar((col, _)) => Box::new(DenseProvableResultColumn::new(col)),
+            #[cfg(test)]
+            Column::Scalar(col) => Box::new(DenseProvableResultColumn::new(col)),
+        }
     }
 }
