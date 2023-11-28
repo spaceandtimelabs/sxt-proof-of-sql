@@ -1,4 +1,4 @@
-use super::{BoolExpr, ColumnExpr, TableExpr};
+use super::{filter_columns, BoolExpr, ColumnExpr, TableExpr};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use core::iter::repeat_with;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -18,6 +19,8 @@ use std::{collections::HashSet, marker::PhantomData};
 /// ```ignore
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
+///
+/// This differs from the [`FilterExpr`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleDenseFilterExpr<H: ProverHonestyMarker> {
     pub(super) results: Vec<ColumnExpr>,
@@ -69,6 +72,7 @@ where
         self.where_clause.count(builder)?;
         for expr in self.results.iter() {
             expr.count(builder);
+            builder.count_result_columns(1);
         }
         Ok(())
     }
@@ -86,15 +90,29 @@ where
         level = "debug",
         skip_all
     )]
+    #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
     ) -> Result<(), ProofError> {
+        // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
-        for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, accessor, &selection_eval);
-        }
+        // 2. columns
+        let columns_evals = Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.verifier_evaluate(builder, accessor)),
+        );
+        // 3. indexes
+        let indexes_eval = builder
+            .mle_evaluations
+            .result_indexes_evaluation
+            .ok_or(ProofError::VerificationError("invalid indexes"))?;
+        // 4. filtered_columns
+        let filtered_columns_evals =
+            Vec::from_iter(repeat_with(|| builder.consume_result_mle()).take(self.results.len()));
+        // todo!: build the proof components that show that the filtered_columns_evals are actually correct.
         Ok(())
     }
 
@@ -119,6 +137,7 @@ where
     }
 }
 
+/// Alias for a dense filter expression with a honest prover.
 pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
 impl ProverEvaluate for DenseFilterExpr {
     fn result_evaluate<'a>(
@@ -127,23 +146,23 @@ impl ProverEvaluate for DenseFilterExpr {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor,
     ) {
-        // evaluate where clause
+        // 1. selection
         let selection = self
             .where_clause
             .result_evaluate(builder.table_length(), alloc, accessor);
-
-        // set result indexes
-        let indexes = selection
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b)
-            .map(|(i, _)| i as u64)
-            .collect();
-        builder.set_result_indexes(Indexes::Sparse(indexes));
-
-        // evaluate result columns
-        for expr in self.results.iter() {
-            expr.result_evaluate(builder, accessor);
+        // 2. columns
+        let columns = Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.result_evaluate(accessor)),
+        );
+        // Compute filtered_columns and indexes
+        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // 3. set indexes
+        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
+        // 4. set filtered_columns
+        for col in filtered_columns {
+            builder.produce_result_column(col.into());
         }
     }
 
@@ -152,18 +171,23 @@ impl ProverEvaluate for DenseFilterExpr {
         level = "info",
         skip_all
     )]
+    #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor,
     ) {
-        // evaluate where clause
+        // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
-
-        // evaluate result columns
-        for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, accessor, selection);
-        }
+        // 2. columns
+        let columns = Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.prover_evaluate(builder, accessor)),
+        );
+        // Compute filtered_columns and indexes
+        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // todo!: build the proof components that show that the filtered_columns are actually correct.
     }
 }

@@ -20,7 +20,9 @@ use crate::{
             OrExpr,
             TableExpr,
         },
-        proof::{ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult},
+        proof::{
+            exercise_verification, ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
+        },
     },
 };
 use arrow::datatypes::{Field, Schema};
@@ -300,6 +302,93 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         "b" => [3_i64, 5],
         "c" => [3_i128, 5],
         "d" => ["3", "5"],
+    );
+    assert_eq!(res, expected);
+}
+
+#[test]
+fn we_can_prove_a_dense_filter_on_an_empty_table() {
+    let data = owned_table!(
+        "a" => [101_i64; 0],
+        "b" => [3_i64; 0],
+        "c" => [3_i128; 0],
+        "d" => ["3"; 0],
+        "e" => [ArkScalar::from(3); 0],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    accessor.add_table(t, data, 0);
+    let expr = dense_filter(
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
+        tab(t),
+        equal(t, "a", 106, &accessor),
+    );
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    exercise_verification(&res, &expr, &accessor, t);
+    let res = res.verify(&expr, &accessor).unwrap().table;
+    let expected = owned_table!(
+        "b" => [3_i64; 0],
+        "c" => [3_i128; 0],
+        "d" => ["3"; 0],
+        "e" => [ArkScalar::from(3); 0],
+    );
+    assert_eq!(res, expected);
+}
+
+#[test]
+fn we_can_prove_a_dense_filter_with_empty_results() {
+    let data = owned_table!(
+        "a" => [101_i64, 104, 105, 102, 105],
+        "b" => [1_i64, 2, 3, 4, 5],
+        "c" => [1_i128, 2, 3, 4, 5],
+        "d" => ["1", "2", "3", "4", "5"],
+        "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    accessor.add_table(t, data, 0);
+    let expr = dense_filter(
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
+        tab(t),
+        equal(t, "a", 106, &accessor),
+    );
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    exercise_verification(&res, &expr, &accessor, t);
+    let res = res.verify(&expr, &accessor).unwrap().table;
+    let expected = owned_table!(
+        "b" => [3_i64; 0],
+        "c" => [3_i128; 0],
+        "d" => ["3"; 0],
+        "e" => [ArkScalar::from(3); 0],
+    );
+    assert_eq!(res, expected);
+}
+
+#[test]
+fn we_can_prove_a_dense_filter() {
+    let data = owned_table!(
+        "a" => [101_i64, 104, 105, 102, 105],
+        "b" => [1_i64, 2, 3, 4, 5],
+        "c" => [1_i128, 2, 3, 4, 5],
+        "d" => ["1", "2", "3", "4", "5"],
+        "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
+    );
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::new_empty();
+    accessor.add_table(t, data, 0);
+    let expr = dense_filter(
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
+        tab(t),
+        equal(t, "a", 105, &accessor),
+    );
+    let res = VerifiableQueryResult::new(&expr, &accessor);
+    exercise_verification(&res, &expr, &accessor, t);
+    let res = res.verify(&expr, &accessor).unwrap().table;
+    let expected = owned_table!(
+        "b" => [3_i64, 5],
+        "c" => [3_i128, 5],
+        "d" => ["3", "5"],
+        "e" => [ArkScalar::from(3), 5.into()],
     );
     assert_eq!(res, expected);
 }
