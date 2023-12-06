@@ -1,4 +1,4 @@
-use super::{G1, G2};
+use super::{F, G1, G2};
 use ark_std::{
     rand::{rngs::StdRng, Rng, SeedableRng},
     UniformRand,
@@ -22,6 +22,24 @@ where
     core::iter::repeat_with(|| (G1::rand(rng), G2::rand(rng)))
         .take(1 << nu)
         .unzip()
+}
+
+/// Creates two vectors of random F elements with length 2^nu.
+pub fn rand_F_vecs<R>(nu: usize, rng: &mut R) -> (Vec<F>, Vec<F>)
+where
+    R: ark_std::rand::Rng + ?Sized,
+{
+    core::iter::repeat_with(|| (F::rand(rng), F::rand(rng)))
+        .take(1 << nu)
+        .unzip()
+}
+
+/// Creates two of random G1 and G2 elements.
+pub fn rand_Hs<R>(rng: &mut R) -> (G1, G2)
+where
+    R: ark_std::rand::Rng + ?Sized,
+{
+    (G1::rand(rng), G2::rand(rng))
 }
 
 #[test]
@@ -67,4 +85,56 @@ fn we_can_create_different_rand_G_vecs_from_different_seeds() {
         assert_ne!(Gamma_1, Gamma_1_2);
         assert_ne!(Gamma_2, Gamma_2_2);
     }
+}
+
+#[test]
+fn we_can_create_rand_F_vecs() {
+    let mut rng = test_rng();
+    for nu in 0..5 {
+        let (s1, s2) = rand_F_vecs(nu, &mut rng);
+        assert_eq!(s1.len(), 1 << nu);
+        assert_eq!(s2.len(), 1 << nu);
+        assert_ne!(s1, s2);
+    }
+}
+
+#[test]
+fn we_can_create_different_rand_F_vecs_consecutively_from_the_same_rng() {
+    let mut rng = test_rng();
+    for nu in 0..5 {
+        let (s1, s2) = rand_F_vecs(nu, &mut rng);
+        let (s1_2, s2_2) = rand_F_vecs(nu, &mut rng);
+        assert_ne!(s1, s1_2);
+        assert_ne!(s2, s2_2);
+    }
+}
+
+#[test]
+fn we_can_create_the_same_rand_F_vecs_from_the_same_seed() {
+    let mut rng = test_seed_rng([1; 32]);
+    let mut rng_2 = test_seed_rng([1; 32]);
+    for nu in 0..5 {
+        let (s1, s2) = rand_F_vecs(nu, &mut rng);
+        let (s1_2, s2_2) = rand_F_vecs(nu, &mut rng_2);
+        assert_eq!(s1, s1_2);
+        assert_eq!(s2, s2_2);
+    }
+}
+
+#[test]
+fn we_can_create_different_rand_F_vecs_from_different_seeds() {
+    let mut rng = test_seed_rng([1; 32]);
+    let mut rng_2 = test_seed_rng([2; 32]);
+    for nu in 0..5 {
+        let (s1, s2) = rand_F_vecs(nu, &mut rng);
+        let (s1_2, s2_2) = rand_F_vecs(nu, &mut rng_2);
+        assert_ne!(s1, s1_2);
+        assert_ne!(s2, s2_2);
+    }
+}
+
+#[test]
+fn we_can_create_rand_Hs() {
+    let mut rng = test_rng();
+    let (_H1, _H2) = rand_Hs(&mut rng);
 }

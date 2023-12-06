@@ -1,4 +1,4 @@
-use super::{rand_G_vecs, test_rng, ProverSetup, ProverState};
+use super::{rand_G_vecs, rand_Hs, test_rng, ProverSetup, ProverState};
 use ark_ec::pairing::Pairing;
 
 #[test]
@@ -7,8 +7,9 @@ pub fn we_can_create_a_verifier_state_from_a_prover_state() {
     for nu in 0..5 {
         let (v1, v2) = rand_G_vecs(nu, &mut rng);
         let (Gamma_1_nu, Gamma_2_nu) = rand_G_vecs(nu, &mut rng);
+        let (H_1, H_2) = rand_Hs(&mut rng);
         let prover_state = ProverState::new(v1.clone(), v2.clone(), nu);
-        let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu);
+        let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu, H_1, H_2);
         let verifier_state = prover_state.calculate_verifier_state(&setup);
 
         let C = Pairing::multi_pairing(&v1, &v2);

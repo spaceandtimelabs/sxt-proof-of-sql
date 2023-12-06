@@ -24,7 +24,8 @@ type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 #[cfg(test)]
 mod rand_util;
 #[cfg(test)]
-use rand_util::{rand_G_vecs, test_rng};
+#[allow(unused_imports)]
+use rand_util::{rand_F_vecs, rand_G_vecs, rand_Hs, test_rng};
 
 mod dory_messages;
 pub use dory_messages::DoryMessages;
