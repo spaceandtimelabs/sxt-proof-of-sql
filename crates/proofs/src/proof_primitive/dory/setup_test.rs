@@ -1,11 +1,12 @@
-use super::{rand_G_vecs, test_rng, ProverSetup, VerifierSetup};
+use super::{rand_G_vecs, rand_Hs, test_rng, ProverSetup, VerifierSetup};
 use ark_ec::pairing::Pairing;
 
 #[test]
 fn we_can_create_and_manually_check_a_small_prover_setup() {
     let mut rng = test_rng();
     let (Gamma_1_nu, Gamma_2_nu) = rand_G_vecs(2, &mut rng);
-    let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, 2);
+    let (H_1, H_2) = rand_Hs(&mut rng);
+    let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, 2, H_1, H_2);
     assert_eq!(setup.max_nu, 2);
     assert_eq!(setup.Gamma_1.len(), 3);
     assert_eq!(setup.Gamma_2.len(), 3);
@@ -15,13 +16,16 @@ fn we_can_create_and_manually_check_a_small_prover_setup() {
     assert_eq!(setup.Gamma_2[0], Gamma_2_nu[0..1].to_vec());
     assert_eq!(setup.Gamma_2[1], Gamma_2_nu[0..2].to_vec());
     assert_eq!(setup.Gamma_2[2], Gamma_2_nu[0..4].to_vec());
+    assert_eq!(setup.H_1, H_1);
+    assert_eq!(setup.H_2, H_2);
 }
 
 #[test]
 fn we_can_create_and_manually_check_a_small_verifier_setup() {
     let mut rng = test_rng();
     let (Gamma_1_nu, Gamma_2_nu) = rand_G_vecs(2, &mut rng);
-    let setup = VerifierSetup::new(&Gamma_1_nu, &Gamma_2_nu, 2);
+    let (H_1, H_2) = rand_Hs(&mut rng);
+    let setup = VerifierSetup::new(&Gamma_1_nu, &Gamma_2_nu, 2, H_1, H_2);
     assert_eq!(setup.max_nu, 2);
     assert_eq!(setup.Delta_1L.len(), 3);
     assert_eq!(setup.Delta_1R.len(), 3);
@@ -74,6 +78,9 @@ fn we_can_create_and_manually_check_a_small_verifier_setup() {
     );
     assert_eq!(setup.Gamma_1_0, Gamma_1_nu[0]);
     assert_eq!(setup.Gamma_2_0, Gamma_2_nu[0]);
+    assert_eq!(setup.H_1, H_1);
+    assert_eq!(setup.H_2, H_2);
+    assert_eq!(setup.H_T, Pairing::pairing(H_1, H_2));
 }
 
 #[test]
@@ -81,7 +88,8 @@ fn we_can_create_prover_setups_with_various_sizes() {
     let mut rng = test_rng();
     for nu in 0..5 {
         let (Gamma_1_nu, Gamma_2_nu) = rand_G_vecs(nu, &mut rng);
-        let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu);
+        let (H_1, H_2) = rand_Hs(&mut rng);
+        let setup = ProverSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu, H_1, H_2);
         assert_eq!(setup.Gamma_1.len(), nu + 1);
         assert_eq!(setup.Gamma_2.len(), nu + 1);
         for k in 0..=nu {
@@ -89,6 +97,8 @@ fn we_can_create_prover_setups_with_various_sizes() {
             assert_eq!(setup.Gamma_2[k].len(), 1 << k);
         }
         assert_eq!(setup.max_nu, nu);
+        assert_eq!(setup.H_1, H_1);
+        assert_eq!(setup.H_2, H_2);
     }
 }
 
@@ -97,7 +107,8 @@ fn we_can_create_verifier_setups_with_various_sizes() {
     let mut rng = test_rng();
     for nu in 0..5 {
         let (Gamma_1_nu, Gamma_2_nu) = rand_G_vecs(nu, &mut rng);
-        let setup = VerifierSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu);
+        let (H_1, H_2) = rand_Hs(&mut rng);
+        let setup = VerifierSetup::new(&Gamma_1_nu, &Gamma_2_nu, nu, H_1, H_2);
         assert_eq!(setup.Delta_1L.len(), nu + 1);
         assert_eq!(setup.Delta_1R.len(), nu + 1);
         assert_eq!(setup.Delta_2L.len(), nu + 1);
@@ -117,5 +128,8 @@ fn we_can_create_verifier_setups_with_various_sizes() {
             setup.chi[0],
             Pairing::pairing(setup.Gamma_1_0, setup.Gamma_2_0)
         );
+        assert_eq!(setup.H_1, H_1);
+        assert_eq!(setup.H_2, H_2);
+        assert_eq!(setup.H_T, Pairing::pairing(H_1, H_2));
     }
 }

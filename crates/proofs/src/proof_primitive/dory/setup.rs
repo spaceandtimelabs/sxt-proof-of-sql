@@ -10,6 +10,7 @@ use itertools::MultiUnzip;
 /// Note:
 /// We use nu = m and k = m-i or m-j.
 /// This indexing is more convenient for coding because lengths of the arrays used are typically 2^k rather than 2^i or 2^j.
+#[allow(dead_code)]
 pub struct ProverSetup<'a> {
     /// `Gamma_1[k]` = Γ_1,(m-k) in the Dory paper.
     pub(super) Gamma_1: Vec<&'a [G1]>,
@@ -17,11 +18,15 @@ pub struct ProverSetup<'a> {
     pub(super) Gamma_2: Vec<&'a [G2]>,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
+    /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    pub(super) H_1: G1,
+    /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    pub(super) H_2: G2,
 }
 
 impl<'a> ProverSetup<'a> {
     /// Create a new `ProverSetup` from the public parameters.
-    pub fn new(Gamma_1: &'a [G1], Gamma_2: &'a [G2], nu: usize) -> Self {
+    pub fn new(Gamma_1: &'a [G1], Gamma_2: &'a [G2], nu: usize, H_1: G1, H_2: G2) -> Self {
         assert_eq!(Gamma_1.len(), 1 << nu);
         assert_eq!(Gamma_2.len(), 1 << nu);
         let (Gamma_1, Gamma_2) = (0..nu + 1)
@@ -31,6 +36,8 @@ impl<'a> ProverSetup<'a> {
             Gamma_1,
             Gamma_2,
             max_nu: nu,
+            H_1,
+            H_2,
         }
     }
 }
@@ -61,11 +68,17 @@ pub struct VerifierSetup {
     pub(super) Gamma_2_0: G2,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
+    /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    pub(super) H_1: G1,
+    /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    pub(super) H_2: G2,
+    /// `H_T` = H_T in the Dory paper.
+    pub(super) H_T: GT,
 }
 
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.
-    pub fn new(Gamma_1_nu: &[G1], Gamma_2_nu: &[G2], nu: usize) -> Self {
+    pub fn new(Gamma_1_nu: &[G1], Gamma_2_nu: &[G2], nu: usize, H_1: G1, H_2: G2) -> Self {
         assert_eq!(Gamma_1_nu.len(), 1 << nu);
         assert_eq!(Gamma_2_nu.len(), 1 << nu);
         let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..nu + 1)
@@ -105,6 +118,9 @@ impl VerifierSetup {
             Gamma_1_0: Gamma_1_nu[0],
             Gamma_2_0: Gamma_2_nu[0],
             max_nu: nu,
+            H_1,
+            H_2,
+            H_T: Pairing::pairing(H_1, H_2),
         }
     }
 }

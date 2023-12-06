@@ -41,7 +41,7 @@ impl ProverState {
 /// This is initially created from a type of commitment to the witness, which the prover typically sends to the verifier.
 /// This is essentially what the verifier is trying to verify.
 /// See the beginning of section 3 of https://eprint.iacr.org/2020/1274.pdf for details.
-#[allow(dead_code)]
+#[derive(PartialEq, Debug)]
 pub struct VerifierState {
     /// The inner pairing product of the witness. This should be <v1,v2>. This will be mutated during the proof verification.
     pub(super) C: GT,
