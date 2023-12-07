@@ -24,7 +24,6 @@ type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 #[cfg(test)]
 mod rand_util;
 #[cfg(test)]
-#[allow(unused_imports)]
 use rand_util::{rand_F_vecs, rand_G_vecs, rand_Hs, test_rng};
 
 mod dory_messages;
@@ -43,6 +42,7 @@ pub use state::{ProverState, VerifierState};
 mod state_test;
 
 mod dory_reduce;
+mod dory_reduce_helper;
 mod scalar_product;
 
 use dory_reduce::{dory_reduce_prove, dory_reduce_verify};
@@ -53,3 +53,14 @@ pub use dory_inner_product::{dory_inner_product_prove, dory_inner_product_verify
 
 #[cfg(test)]
 mod dory_inner_product_test;
+
+mod extended_state;
+pub use extended_state::{ExtendedProverState, ExtendedVerifierState};
+#[cfg(test)]
+mod extended_state_test;
+
+mod fold_scalars;
+pub use fold_scalars::{fold_scalars_0_prove, fold_scalars_0_verify};
+
+#[cfg(test)]
+mod fold_scalars_test;
