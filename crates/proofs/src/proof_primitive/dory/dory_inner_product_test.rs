@@ -59,7 +59,7 @@ fn we_can_prove_and_verify_a_dory_inner_product_for_multiple_nu_values() {
 }
 
 #[test]
-fn we_fail_to_verify_when_a_message_is_modified() {
+fn we_fail_to_verify_a_dory_inner_product_when_a_message_is_modified() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -86,7 +86,7 @@ fn we_fail_to_verify_when_a_message_is_modified() {
 }
 
 #[test]
-fn we_fail_to_verify_when_there_are_too_few_GT_messages() {
+fn we_fail_to_verify_a_dory_inner_product_when_there_are_too_few_GT_messages() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -113,7 +113,7 @@ fn we_fail_to_verify_when_there_are_too_few_GT_messages() {
 }
 
 #[test]
-fn we_fail_to_verify_when_there_are_too_many_GT_messages() {
+fn we_fail_to_verify_a_dory_inner_product_when_there_are_too_many_GT_messages() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -140,7 +140,7 @@ fn we_fail_to_verify_when_there_are_too_many_GT_messages() {
 }
 
 #[test]
-fn we_fail_to_verify_when_there_are_too_few_G1_messages() {
+fn we_fail_to_verify_a_dory_inner_product_when_there_are_too_few_G1_messages() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -167,7 +167,7 @@ fn we_fail_to_verify_when_there_are_too_few_G1_messages() {
 }
 
 #[test]
-fn we_fail_to_verify_when_there_are_too_many_G1_messages() {
+fn we_fail_to_verify_a_dory_inner_product_when_there_are_too_many_G1_messages() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -194,7 +194,7 @@ fn we_fail_to_verify_when_there_are_too_many_G1_messages() {
 }
 
 #[test]
-fn we_fail_to_verify_when_the_transcripts_differ() {
+fn we_fail_to_verify_a_dory_inner_product_when_the_transcripts_differ() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -219,7 +219,7 @@ fn we_fail_to_verify_when_the_transcripts_differ() {
 }
 
 #[test]
-fn we_fail_to_verify_when_the_setups_differ() {
+fn we_fail_to_verify_a_dory_inner_product_when_the_setups_differ() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
@@ -249,7 +249,7 @@ fn we_fail_to_verify_when_the_setups_differ() {
 }
 
 #[test]
-fn we_fail_to_verify_when_the_commitment_is_wrong() {
+fn we_fail_to_verify_a_dory_inner_product_when_the_commitment_is_wrong() {
     let mut rng = test_rng();
     let nu = 3;
     let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
