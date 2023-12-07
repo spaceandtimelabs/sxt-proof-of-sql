@@ -10,7 +10,6 @@ use itertools::MultiUnzip;
 /// Note:
 /// We use nu = m and k = m-i or m-j.
 /// This indexing is more convenient for coding because lengths of the arrays used are typically 2^k rather than 2^i or 2^j.
-#[allow(dead_code)]
 pub struct ProverSetup<'a> {
     /// `Gamma_1[k]` = Γ_1,(m-k) in the Dory paper.
     pub(super) Gamma_1: Vec<&'a [G1]>,
@@ -50,7 +49,6 @@ impl<'a> ProverSetup<'a> {
 /// Note:
 /// We use nu = m and k = m-i or m-j.
 /// This indexing is more convenient for coding because lengths of the arrays used are typically 2^k rather than 2^i or 2^j.
-#[allow(dead_code)]
 pub struct VerifierSetup {
     /// `Delta_1L[k]` = Δ_1L,(m-k) in the Dory paper, so `Delta_1L[0]` is unused. Note, this is the same as `Delta_2L`.
     pub(super) Delta_1L: Vec<GT>,
