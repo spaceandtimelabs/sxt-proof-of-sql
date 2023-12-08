@@ -17,7 +17,7 @@ use crate::{
             BoolExpr,
         },
         proof::{
-            make_transcript, Indexes, ProofBuilder, QueryProof, ResultBuilder,
+            make_transcript, Indexes, ProofBuilder, ProofExpr, QueryProof, ResultBuilder,
             VerifiableQueryResult,
         },
     },
@@ -220,9 +220,12 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     result_builder.set_result_indexes(Indexes::Sparse(vec![0, 1, 2]));
     let result_cols = cols_result(t, &["b"], &accessor);
     result_cols[0].result_evaluate(&mut result_builder, &accessor);
-    let provable_result = result_builder.make_provable_query_result();
 
-    let mut transcript = make_transcript(&provable_result);
+    let provable_result = result_builder.make_provable_query_result();
+    let table_length = expr.get_length(&accessor);
+    let generator_offset = expr.get_offset(&accessor);
+
+    let mut transcript = make_transcript(&expr, &provable_result, table_length, generator_offset);
     transcript.challenge_ark_scalars(&mut [], MessageLabel::PostResultChallenges);
 
     let mut builder = ProofBuilder::new(3, 2, Vec::new());
@@ -265,6 +268,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     accessor.add_table(t, data, 0);
     let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
     let data = record_batch!(
