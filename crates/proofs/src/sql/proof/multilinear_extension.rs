@@ -19,38 +19,20 @@ pub trait MultilinearExtension {
     fn id(&self) -> *const c_void;
 }
 
-/// Treat scalar convertible columns as a multilinear extensions
-pub struct MultilinearExtensionImpl<'a, T>
-where
-    &'a T: Into<ArkScalar>,
-{
-    data: &'a [T],
-}
-
-impl<'a, T> MultilinearExtensionImpl<'a, T>
-where
-    &'a T: Into<ArkScalar>,
-{
-    /// Create MLE from slice
-    pub fn new(data: &'a [T]) -> Self {
-        Self { data }
-    }
-}
-
-impl<'a, T: Sync> MultilinearExtension for MultilinearExtensionImpl<'a, T>
+impl<'a, T: Sync> MultilinearExtension for &'a [T]
 where
     &'a T: Into<ArkScalar>,
 {
     fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar {
-        slice_ops::inner_product(evaluation_vec, &slice_ops::slice_cast(self.data))
+        slice_ops::inner_product(evaluation_vec, &slice_ops::slice_cast(self))
     }
 
     fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar) {
-        slice_ops::mul_add_assign(res, *multiplier, &slice_ops::slice_cast(self.data));
+        slice_ops::mul_add_assign(res, *multiplier, &slice_ops::slice_cast(self));
     }
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
-        let values = self.data;
+        let values = self;
         let n = 1 << num_vars;
         assert!(n >= values.len());
         let scalars = values
@@ -62,6 +44,40 @@ where
     }
 
     fn id(&self) -> *const c_void {
-        self.data.as_ptr() as *const c_void
+        self.as_ptr() as *const c_void
     }
+}
+
+macro_rules! slice_like_mle_impl {
+    () => {
+        fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar {
+            (&self[..]).inner_product(evaluation_vec)
+        }
+
+        fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar) {
+            (&self[..]).mul_add(res, multiplier)
+        }
+
+        fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
+            (&self[..]).to_sumcheck_term(num_vars)
+        }
+
+        fn id(&self) -> *const c_void {
+            (&self[..]).id()
+        }
+    };
+}
+
+impl<'a, T: Sync> MultilinearExtension for &'a Vec<T>
+where
+    &'a T: Into<ArkScalar>,
+{
+    slice_like_mle_impl!();
+}
+
+impl<'a, T: Sync, const N: usize> MultilinearExtension for &'a [T; N]
+where
+    &'a T: Into<ArkScalar>,
+{
+    slice_like_mle_impl!();
 }

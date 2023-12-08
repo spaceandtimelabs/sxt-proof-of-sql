@@ -9,7 +9,7 @@ pub use count_builder::CountBuilder;
 
 #[warn(missing_docs)]
 mod multilinear_extension;
-pub use multilinear_extension::{MultilinearExtension, MultilinearExtensionImpl};
+pub use multilinear_extension::MultilinearExtension;
 
 mod proof_builder;
 pub use proof_builder::ProofBuilder;
@@ -31,7 +31,7 @@ mod verification_builder_test;
 
 #[warn(missing_docs)]
 mod provable_result_column;
-pub use provable_result_column::{DenseProvableResultColumn, ProvableResultColumn};
+pub use provable_result_column::ProvableResultColumn;
 
 #[warn(missing_docs)]
 mod provable_query_result;
@@ -63,8 +63,11 @@ mod query_proof_test;
 mod query_result;
 pub use query_result::{QueryData, QueryError, QueryResult};
 
+#[warn(missing_docs)]
 mod sumcheck_subpolynomial;
-pub use sumcheck_subpolynomial::{SumcheckSubpolynomial, SumcheckSubpolynomialType};
+pub use sumcheck_subpolynomial::{
+    SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
+};
 
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;

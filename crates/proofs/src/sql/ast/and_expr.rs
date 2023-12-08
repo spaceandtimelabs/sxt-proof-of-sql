@@ -6,10 +6,7 @@ use crate::{
     },
     sql::{
         ast::BoolExpr,
-        proof::{
-            CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
-            SumcheckSubpolynomialType, VerificationBuilder,
-        },
+        proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
     },
 };
 use bumpalo::Bump;
@@ -71,26 +68,17 @@ impl BoolExpr for AndExpr {
         assert_eq!(n, rhs.len());
 
         // lhs_and_rhs
-        let lhs_and_rhs = alloc.alloc_slice_fill_with(n, |i| lhs[i] && rhs[i]);
+        let lhs_and_rhs: &[_] = alloc.alloc_slice_fill_with(n, |i| lhs[i] && rhs[i]);
         builder.produce_intermediate_mle(lhs_and_rhs);
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (
-                    ArkScalar::one(),
-                    vec![Box::new(MultilinearExtensionImpl::new(lhs_and_rhs))],
-                ),
-                (
-                    -ArkScalar::one(),
-                    vec![
-                        Box::new(MultilinearExtensionImpl::new(lhs)),
-                        Box::new(MultilinearExtensionImpl::new(rhs)),
-                    ],
-                ),
+                (ArkScalar::one(), vec![Box::new(lhs_and_rhs)]),
+                (-ArkScalar::one(), vec![Box::new(lhs), Box::new(rhs)]),
             ],
-        ));
+        );
 
         // selection
         lhs_and_rhs
