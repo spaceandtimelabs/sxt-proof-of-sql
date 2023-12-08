@@ -1,4 +1,4 @@
-use super::{DenseProvableResultColumn, ProvableQueryResult, ProvableResultColumn};
+use super::{ProvableQueryResult, ProvableResultColumn};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
@@ -16,8 +16,7 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::<i64>::new(&[][..]))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
     let res = ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
@@ -32,8 +31,7 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
 fn we_can_evaluate_result_columns_as_mles() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i64; 3] = [10, 11, -12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -55,8 +53,7 @@ fn we_can_evaluate_result_columns_as_mles() {
 fn we_can_evaluate_result_columns_with_no_rows() {
     let indexes = Indexes::Sparse(vec![]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -76,10 +73,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i64; 3] = [10, 11, 12];
     let values2: [i64; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [
-        Box::new(DenseProvableResultColumn::new(&values1)),
-        Box::new(DenseProvableResultColumn::new(&values2)),
-    ];
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -102,10 +96,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i128; 3] = [10, 11, 12];
     let values2: [i128; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [
-        Box::new(DenseProvableResultColumn::new(&values1)),
-        Box::new(DenseProvableResultColumn::new(&values2)),
-    ];
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -128,10 +119,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [ArkScalar; 3] = [10.into(), 11.into(), 12.into()];
     let values2: [ArkScalar; 3] = [5.into(), 7.into(), 9.into()];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [
-        Box::new(DenseProvableResultColumn::new(&values1)),
-        Box::new(DenseProvableResultColumn::new(&values2)),
-    ];
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -154,10 +142,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i64; 3] = [10, 11, 12];
     let values2: [i128; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [
-        Box::new(DenseProvableResultColumn::new(&values1)),
-        Box::new(DenseProvableResultColumn::new(&values2)),
-    ];
+    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -181,8 +166,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
 fn evaluation_fails_if_indexes_are_out_of_range() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     match res.indexes_mut() {
         Indexes::Sparse(indexes) => indexes[1] = 20,
@@ -203,8 +187,7 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
 fn evaluation_fails_if_indexes_are_not_sorted() {
     let indexes = Indexes::Sparse(vec![1, 0]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
         ArkScalar::from(10u64),
@@ -221,8 +204,7 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
 fn evaluation_fails_if_extra_data_is_included() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data_mut().push(3u8);
     let evaluation_vec = [
@@ -259,8 +241,7 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 fn evaluation_fails_if_data_is_missing() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     *res.num_columns_mut() = 3;
     let evaluation_vec = [
@@ -278,8 +259,7 @@ fn evaluation_fails_if_data_is_missing() {
 fn we_can_convert_a_provable_result_to_a_final_result() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
@@ -294,8 +274,7 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
 fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values: [i128; 3] = [10, 11, i128::MAX];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
     let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
@@ -319,11 +298,8 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values1: [i64; 3] = [6, 7, i64::MAX];
     let values2: [i128; 3] = [10, 11, i128::MAX];
     let values3 = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
-    let cols: [Box<dyn ProvableResultColumn>; 3] = [
-        Box::new(DenseProvableResultColumn::new(&values1)),
-        Box::new(DenseProvableResultColumn::new(&values2)),
-        Box::new(DenseProvableResultColumn::new(&values3)),
-    ];
+    let cols: [Box<dyn ProvableResultColumn>; 3] =
+        [Box::new(values1), Box::new(values2), Box::new(values3)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![
         ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt),
@@ -353,8 +329,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
 #[test]
 fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
     let values = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::new(&values))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::VarChar)];
     let indexes = Indexes::Sparse(vec![0]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
@@ -377,7 +352,7 @@ fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
 //     let indexes = [0];
 //     let values = [i64::MAX];
 //     let cols : [Box<dyn ProvableResultColumn>; 1] = [
-//             Box::new(DenseProvableResultColumn::new(&values)),
+//             Box::new(values),
 //     ];
 //     let res = ProvableQueryResult::new(&
 //         &indexes,

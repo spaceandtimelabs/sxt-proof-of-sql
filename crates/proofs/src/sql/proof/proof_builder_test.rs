@@ -1,7 +1,4 @@
-use super::{
-    DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder, SumcheckRandomScalars,
-    SumcheckSubpolynomial,
-};
+use super::{ProofBuilder, SumcheckRandomScalars};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
@@ -27,7 +24,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
-    builder.produce_intermediate_mle(&mle2);
+    builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
     let commitments = builder.commit_intermediate_mles(offset_generators);
     assert_eq!(
@@ -42,7 +39,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
-    builder.produce_intermediate_mle(&mle2);
+    builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
     let commitments = builder.commit_intermediate_mles(offset_generators);
     assert_eq!(
@@ -57,7 +54,7 @@ fn we_can_evaluate_pre_result_mles() {
     let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
-    builder.produce_intermediate_mle(&mle2);
+    builder.produce_intermediate_mle(&mle2[..]);
     let evaluation_vec = [ArkScalar::from(100u64), ArkScalar::from(10u64)];
     let evals = builder.evaluate_pre_result_mles(&evaluation_vec);
     let expected_evals = [ArkScalar::from(120u64), ArkScalar::from(1200u64)];
@@ -71,30 +68,21 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let mle3 = [2000u32, 3000, 5000, 7000];
     let mut builder = ProofBuilder::new(4, 2, Vec::new());
     builder.produce_anchored_mle(&mle1);
-    builder.produce_intermediate_mle(&mle2);
-    builder.produce_intermediate_mle(&mle3);
+    builder.produce_intermediate_mle(&mle2[..]);
+    builder.produce_intermediate_mle(&mle3[..]);
 
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
-        vec![(
-            -ArkScalar::one(),
-            vec![Box::new(MultilinearExtensionImpl::new(&mle1))],
-        )],
-    ));
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        vec![(-ArkScalar::one(), vec![Box::new(&mle1)])],
+    );
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
-        vec![(
-            -ArkScalar::from(10u64),
-            vec![Box::new(MultilinearExtensionImpl::new(&mle2))],
-        )],
-    ));
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        vec![(-ArkScalar::from(10u64), vec![Box::new(&mle2)])],
+    );
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
-        vec![(
-            ArkScalar::from(9876u64),
-            vec![Box::new(MultilinearExtensionImpl::new(&mle3))],
-        )],
-    ));
+        vec![(ArkScalar::from(9876u64), vec![Box::new(&mle3)])],
+    );
 
     let multipliers = [
         ArkScalar::from(5u64),
@@ -109,20 +97,17 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 
     let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(&multipliers, 4, 2));
     let mut expected_poly = CompositePolynomial::new(2);
-    let fr = MultilinearExtensionImpl::new(&evaluation_vector).to_sumcheck_term(2);
+    let fr = (&evaluation_vector).to_sumcheck_term(2);
     expected_poly.add_product(
-        [
-            fr.clone(),
-            MultilinearExtensionImpl::new(&mle1).to_sumcheck_term(2),
-        ],
+        [fr.clone(), (&mle1).to_sumcheck_term(2)],
         -ArkScalar::from(1u64) * multipliers[2],
     );
     expected_poly.add_product(
-        [fr, MultilinearExtensionImpl::new(&mle2).to_sumcheck_term(2)],
+        [fr, (&mle2).to_sumcheck_term(2)],
         -ArkScalar::from(10u64) * multipliers[3],
     );
     expected_poly.add_product(
-        [MultilinearExtensionImpl::new(&mle3).to_sumcheck_term(2)],
+        [(&mle3).to_sumcheck_term(2)],
         ArkScalar::from(9876u64) * multipliers[4],
     );
     let random_point = [ArkScalar::from(123u64), ArkScalar::from(101112u64)];
@@ -134,12 +119,12 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 #[test]
 fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);
-    let col1 = [10, 11, 12];
-    let col2 = [-2, -3, -4];
+    let col1 = [10_i64, 11, 12];
+    let col2 = [-2_i64, -3, -4];
     let mut builder = ResultBuilder::new(3);
     builder.set_result_indexes(result_indexes);
-    builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col1)));
-    builder.produce_result_column(Box::new(DenseProvableResultColumn::<i64>::new(&col2)));
+    builder.produce_result_column(col1);
+    builder.produce_result_column(col2);
 
     let res = builder.make_provable_query_result();
 
@@ -168,7 +153,7 @@ fn we_can_fold_pre_result_mles() {
     let mle2 = [10u32, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
-    builder.produce_intermediate_mle(&mle2);
+    builder.produce_intermediate_mle(&mle2[..]);
     let multipliers = [ArkScalar::from(100u64), ArkScalar::from(2u64)];
     let z = builder.fold_pre_result_mles(&multipliers);
     let expected_z = [ArkScalar::from(120u64), ArkScalar::from(240u64)];

@@ -4,8 +4,7 @@ use crate::{
         scalar::ArkScalar,
     },
     sql::proof::{
-        CountBuilder, DenseProvableResultColumn, MultilinearExtensionImpl, ProofBuilder,
-        ResultBuilder, SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+        CountBuilder, ProofBuilder, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -51,22 +50,7 @@ impl FilterResultExpr {
         builder: &mut ResultBuilder<'a>,
         accessor: &'a dyn DataAccessor,
     ) {
-        match accessor.get_column(self.column_ref) {
-            Column::BigInt(col) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-            }
-            Column::Int128(col) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-            }
-            Column::VarChar((col, _)) => {
-                builder.produce_result_column(Box::new(DenseProvableResultColumn::new(col)));
-            }
-            #[cfg(test)]
-            // While implementing this for a Scalar columns is very simple
-            // major refactoring is required to create tests for this
-            // (in particular the tests need to used the OwnedTableTestAccessor)
-            Column::Scalar(_) => todo!("Scalar column type not supported in filter_result_expr"),
-        };
+        builder.produce_result_column(accessor.get_column(self.column_ref));
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
@@ -128,22 +112,16 @@ fn prover_evaluate_impl<'a, S: Clone + Default + Sync>(
     });
 
     // add sumcheck term for col * selection
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
-            (
-                One::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(selected_vals))],
-            ),
+            (One::one(), vec![Box::new(selected_vals as &[_])]),
             (
                 -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(col_scalars)),
-                    Box::new(MultilinearExtensionImpl::new(selection)),
-                ],
+                vec![Box::new(col_scalars), Box::new(selection)],
             ),
         ],
-    ));
+    );
 
     // add MLE for result column
     builder.produce_anchored_mle(col_scalars);

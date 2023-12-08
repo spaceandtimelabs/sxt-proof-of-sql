@@ -7,10 +7,7 @@ use crate::{
     },
     sql::{
         ast::BoolExpr,
-        proof::{
-            CountBuilder, MultilinearExtensionImpl, ProofBuilder, SumcheckSubpolynomial,
-            SumcheckSubpolynomialType, VerificationBuilder,
-        },
+        proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
     },
 };
 use blitzar::compute::get_one_commit;
@@ -173,41 +170,30 @@ pub fn prover_evaluate_equals_zero<'a>(
     builder.produce_intermediate_mle_from_ark_scalars(lhs_pseudo_inv, alloc);
 
     // selection_not
-    let selection_not = alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != ArkScalar::zero());
+    let selection_not: &[_] =
+        alloc.alloc_slice_fill_with(table_length, |i| lhs[i] != ArkScalar::zero());
     builder.produce_intermediate_mle(selection_not);
 
     // selection
-    let selection = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
+    let selection: &[_] = alloc.alloc_slice_fill_with(table_length, |i| !selection_not[i]);
 
     // subpolynomial: selection * lhs
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
-        vec![(
-            ArkScalar::one(),
-            vec![
-                Box::new(MultilinearExtensionImpl::new(lhs)),
-                Box::new(MultilinearExtensionImpl::new(selection)),
-            ],
-        )],
-    ));
+        vec![(ArkScalar::one(), vec![Box::new(lhs), Box::new(selection)])],
+    );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+    builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
         vec![
-            (
-                ArkScalar::one(),
-                vec![Box::new(MultilinearExtensionImpl::new(selection_not))],
-            ),
+            (ArkScalar::one(), vec![Box::new(selection_not)]),
             (
                 -ArkScalar::one(),
-                vec![
-                    Box::new(MultilinearExtensionImpl::new(lhs)),
-                    Box::new(MultilinearExtensionImpl::new(lhs_pseudo_inv)),
-                ],
+                vec![Box::new(lhs), Box::new(lhs_pseudo_inv as &[_])],
             ),
         ],
-    ));
+    );
 
     selection
 }
