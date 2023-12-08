@@ -9,8 +9,8 @@ use crate::{
         scalar::ArkScalar,
     },
     sql::proof::{
-        CountBuilder, MultilinearExtension, MultilinearExtensionImpl, ProofBuilder,
-        SumcheckSubpolynomial, SumcheckSubpolynomialType, VerificationBuilder,
+        CountBuilder, MultilinearExtension, ProofBuilder, SumcheckSubpolynomialType,
+        VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -159,24 +159,15 @@ fn verifier_const_sign_evaluate(
 }
 
 fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a>, bits: &[&'a [bool]]) {
-    for seq in bits.iter() {
+    for &seq in bits.iter() {
         builder.produce_intermediate_mle(seq);
-        builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
+        builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (
-                    ArkScalar::one(),
-                    vec![Box::new(MultilinearExtensionImpl::new(seq))],
-                ),
-                (
-                    -ArkScalar::one(),
-                    vec![
-                        Box::new(MultilinearExtensionImpl::new(seq)),
-                        Box::new(MultilinearExtensionImpl::new(seq)),
-                    ],
-                ),
+                (ArkScalar::one(), vec![Box::new(seq)]),
+                (-ArkScalar::one(), vec![Box::new(seq), Box::new(seq)]),
             ],
-        ));
+        );
     }
 }
 
@@ -198,22 +189,17 @@ fn prove_bit_decomposition<'a>(
     builder.produce_anchored_mle(expr);
 
     let sign_mle = bits.last().unwrap();
-    let sign_mle = alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
+    let sign_mle: &[_] =
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
     let mut terms: Vec<(ArkScalar, Vec<Box<dyn MultilinearExtension>>)> = Vec::new();
 
     // expr
-    terms.push((
-        ArkScalar::one(),
-        vec![Box::new(MultilinearExtensionImpl::new(expr))],
-    ));
+    terms.push((ArkScalar::one(), vec![Box::new(expr)]));
 
     // expr bit decomposition
     let const_part = dist.constant_part();
     if !const_part.is_zero() {
-        terms.push((
-            -const_part,
-            vec![Box::new(MultilinearExtensionImpl::new(sign_mle))],
-        ));
+        terms.push((-const_part, vec![Box::new(sign_mle)]));
     }
     let mut vary_index = 0;
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
@@ -221,17 +207,11 @@ fn prove_bit_decomposition<'a>(
         mult[int_index] = 1u64 << bit_index;
         terms.push((
             -ArkScalar::from_bigint(mult),
-            vec![
-                Box::new(MultilinearExtensionImpl::new(sign_mle)),
-                Box::new(MultilinearExtensionImpl::new(bits[vary_index])),
-            ],
+            vec![Box::new(sign_mle), Box::new(bits[vary_index])],
         ));
         vary_index += 1;
     });
-    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomial::new(
-        SumcheckSubpolynomialType::Identity,
-        terms,
-    ));
+    builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
 }
 
 fn verify_bit_decomposition(

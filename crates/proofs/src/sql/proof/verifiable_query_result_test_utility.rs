@@ -1,6 +1,6 @@
 use super::{
-    DenseProvableResultColumn, ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn,
-    QueryProof, TestQueryExpr, VerifiableQueryResult,
+    ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn, QueryProof, TestQueryExpr,
+    VerifiableQueryResult,
 };
 use crate::{
     base::{
@@ -79,8 +79,7 @@ fn tamper_no_result(
 ) {
     // add a result
     let mut res_p = res.clone();
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::<i64>::new(&[][..]))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
     res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols));
     assert!(res_p.verify(expr, accessor).is_err());
 
@@ -107,8 +106,7 @@ fn tamper_empty_result(
 ) {
     // try to add a result
     let mut res_p = res.clone();
-    let cols: [Box<dyn ProvableResultColumn>; 1] =
-        [Box::new(DenseProvableResultColumn::<i64>::new(&[123][..]))];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([123_i64])];
     res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![0]), &cols));
     assert!(res_p.verify(expr, accessor).is_err());
 }

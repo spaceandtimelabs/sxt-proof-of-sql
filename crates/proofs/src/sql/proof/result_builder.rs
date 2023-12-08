@@ -45,8 +45,8 @@ impl<'a> ResultBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_result_column(&mut self, col: Box<dyn ProvableResultColumn + 'a>) {
-        self.result_columns.push(col);
+    pub fn produce_result_column(&mut self, col: impl ProvableResultColumn + 'a) {
+        self.result_columns.push(Box::new(col));
     }
 
     /// Construct the intermediate query result to be sent to the verifier.

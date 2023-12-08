@@ -1,4 +1,4 @@
-use super::{MultilinearExtension, MultilinearExtensionImpl};
+use super::MultilinearExtension;
 use crate::base::{
     polynomial::{CompositePolynomial, DenseMultilinearExtension},
     scalar::ArkScalar,
@@ -26,7 +26,7 @@ impl CompositePolynomialBuilder {
             fr_multiplicands_degree1: vec![Zero::zero(); fr.len()],
             fr_multiplicands_rest: vec![],
             zerosum_multiplicands: vec![],
-            fr: MultilinearExtensionImpl::new(fr).to_sumcheck_term(num_sumcheck_variables),
+            fr: fr.to_sumcheck_term(num_sumcheck_variables),
             mles: HashMap::new(),
         }
     }
@@ -90,8 +90,7 @@ impl CompositePolynomialBuilder {
         res.add_product(
             [
                 self.fr.clone(),
-                MultilinearExtensionImpl::new(&self.fr_multiplicands_degree1)
-                    .to_sumcheck_term(self.num_sumcheck_variables),
+                (&self.fr_multiplicands_degree1).to_sumcheck_term(self.num_sumcheck_variables),
             ],
             One::one(),
         );

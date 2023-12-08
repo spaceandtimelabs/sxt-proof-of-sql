@@ -1,4 +1,4 @@
-use super::{CompositePolynomialBuilder, MultilinearExtensionImpl};
+use super::CompositePolynomialBuilder;
 use crate::base::scalar::ArkScalar;
 use num_traits::One;
 
@@ -8,14 +8,8 @@ fn we_combine_single_degree_fr_multiplicands() {
     let mle1 = [10, 20];
     let mle2 = [11, 21];
     let mut builder = CompositePolynomialBuilder::new(1, &fr);
-    builder.produce_fr_multiplicand(
-        &One::one(),
-        &[Box::new(MultilinearExtensionImpl::new(&mle1))],
-    );
-    builder.produce_fr_multiplicand(
-        &-ArkScalar::one(),
-        &[Box::new(MultilinearExtensionImpl::new(&mle2))],
-    );
+    builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1)]);
+    builder.produce_fr_multiplicand(&-ArkScalar::one(), &[Box::new(&mle2)]);
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 1);
     assert_eq!(p.flattened_ml_extensions.len(), 2);
@@ -35,20 +29,8 @@ fn we_dont_duplicate_repeated_mles() {
     let mle1 = [10, 20];
     let mle2 = [11, 21];
     let mut builder = CompositePolynomialBuilder::new(1, &fr);
-    builder.produce_fr_multiplicand(
-        &One::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle1)),
-            Box::new(MultilinearExtensionImpl::new(&mle1)),
-        ],
-    );
-    builder.produce_fr_multiplicand(
-        &One::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle1)),
-            Box::new(MultilinearExtensionImpl::new(&mle2)),
-        ],
-    );
+    builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1), Box::new(&mle1)]);
+    builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1), Box::new(&mle2)]);
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3);
     assert_eq!(p.flattened_ml_extensions.len(), 4);
@@ -70,20 +52,8 @@ fn we_can_combine_identity_with_zero_sum_polynomials() {
     let mle3 = [12, 22];
     let mle4 = [13, 23];
     let mut builder = CompositePolynomialBuilder::new(1, &fr);
-    builder.produce_fr_multiplicand(
-        &One::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle1)),
-            Box::new(MultilinearExtensionImpl::new(&mle2)),
-        ],
-    );
-    builder.produce_zerosum_multiplicand(
-        &-ArkScalar::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle3)),
-            Box::new(MultilinearExtensionImpl::new(&mle4)),
-        ],
-    );
+    builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1), Box::new(&mle2)]);
+    builder.produce_zerosum_multiplicand(&-ArkScalar::one(), &[Box::new(&mle3), Box::new(&mle4)]);
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3); //1 for the linear term, 1 for the fr multiplicand, 1 for the zerosum multiplicand
     assert_eq!(p.flattened_ml_extensions.len(), 6); //1 for fr, 1 for the linear term, and 4 for mle1-4
@@ -124,21 +94,9 @@ fn we_can_handle_empty_terms_with_other_terms() {
     let mle3 = [12, 22];
     let mle4 = [13, 23];
     let mut builder = CompositePolynomialBuilder::new(1, &fr);
-    builder.produce_fr_multiplicand(
-        &One::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle1)),
-            Box::new(MultilinearExtensionImpl::new(&mle2)),
-        ],
-    );
+    builder.produce_fr_multiplicand(&One::one(), &[Box::new(&mle1), Box::new(&mle2)]);
     builder.produce_fr_multiplicand(&ArkScalar::from(17), &[]);
-    builder.produce_zerosum_multiplicand(
-        &-ArkScalar::one(),
-        &[
-            Box::new(MultilinearExtensionImpl::new(&mle3)),
-            Box::new(MultilinearExtensionImpl::new(&mle4)),
-        ],
-    );
+    builder.produce_zerosum_multiplicand(&-ArkScalar::one(), &[Box::new(&mle3), Box::new(&mle4)]);
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3); //1 for the linear term, 1 for the fr multiplicand, 1 for the zerosum multiplicand
     assert_eq!(p.flattened_ml_extensions.len(), 6); //1 for fr, 1 for the linear term, and 4 for mle1-4

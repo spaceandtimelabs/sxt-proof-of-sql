@@ -162,7 +162,7 @@ impl ProverEvaluate for DenseFilterExpr {
         builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         // 4. set filtered_columns
         for col in filtered_columns {
-            builder.produce_result_column(col.into());
+            builder.produce_result_column(col);
         }
     }
 

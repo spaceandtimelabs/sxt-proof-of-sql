@@ -1,6 +1,6 @@
 use super::{
-    CompositePolynomialBuilder, MultilinearExtension, MultilinearExtensionImpl,
-    SumcheckRandomScalars, SumcheckSubpolynomial,
+    CompositePolynomialBuilder, MultilinearExtension, SumcheckRandomScalars, SumcheckSubpolynomial,
+    SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
 };
 use crate::base::{
     bit::BitDistribution, polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops,
@@ -72,12 +72,8 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_anchored_mle<T: Sync>(&mut self, data: &'a [T])
-    where
-        &'a T: Into<ArkScalar>,
-    {
-        self.pre_result_mles
-            .push(Box::new(MultilinearExtensionImpl::new(data)));
+    pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension + 'a) {
+        self.pre_result_mles.push(Box::new(data));
     }
 
     /// Produce an MLE for a intermediate computed column that we can reference in sumcheck.
@@ -89,11 +85,10 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_intermediate_mle<T: Sync>(&mut self, data: &'a [T])
-    where
-        &'a [T]: Into<Sequence<'a>>,
-        &'a T: Into<ArkScalar>,
-    {
+    pub fn produce_intermediate_mle(
+        &mut self,
+        data: impl MultilinearExtension + Into<Sequence<'a>> + Copy + 'a,
+    ) {
         self.commitment_descriptor.push(data.into());
         self.produce_anchored_mle(data);
     }
@@ -128,8 +123,13 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_sumcheck_subpolynomial(&mut self, group: SumcheckSubpolynomial<'a>) {
-        self.sumcheck_subpolynomials.push(group);
+    pub fn produce_sumcheck_subpolynomial(
+        &mut self,
+        subpolynomial_type: SumcheckSubpolynomialType,
+        terms: Vec<SumcheckSubpolynomialTerm<'a>>,
+    ) {
+        self.sumcheck_subpolynomials
+            .push(SumcheckSubpolynomial::new(subpolynomial_type, terms));
     }
 
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
