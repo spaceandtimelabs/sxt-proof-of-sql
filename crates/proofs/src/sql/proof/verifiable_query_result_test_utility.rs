@@ -11,6 +11,7 @@ use crate::{
 };
 use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
 use num_traits::One;
+use serde::Serialize;
 
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
 /// verification fails.
@@ -18,7 +19,7 @@ use num_traits::One;
 /// It's useful as a tool for testing proof code.
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
-    expr: &impl ProofExpr,
+    expr: &(impl ProofExpr + Serialize),
     accessor: &impl TestAccessor,
     table_ref: TableRef,
 ) {
@@ -73,7 +74,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult,
-    expr: &impl ProofExpr,
+    expr: &(impl ProofExpr + Serialize),
     accessor: &impl CommitmentAccessor,
 ) {
     // add a result
@@ -101,7 +102,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult,
-    expr: &impl ProofExpr,
+    expr: &(impl ProofExpr + Serialize),
     accessor: &impl CommitmentAccessor,
 ) {
     // try to add a result
@@ -114,7 +115,7 @@ fn tamper_empty_result(
 
 fn tamper_result(
     res: &VerifiableQueryResult,
-    expr: &impl ProofExpr,
+    expr: &(impl ProofExpr + Serialize),
     accessor: &impl CommitmentAccessor,
 ) {
     if res.provable_result.is_none() {

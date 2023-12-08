@@ -40,7 +40,10 @@ pub struct QueryProof {
 
 impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
-    pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> (Self, ProvableQueryResult) {
+    pub fn new(
+        expr: &(impl ProofExpr + Serialize),
+        accessor: &impl DataAccessor,
+    ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
         let generator_offset = expr.get_offset(accessor);
@@ -52,7 +55,8 @@ impl QueryProof {
         let provable_result = result_builder.make_provable_query_result();
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(&provable_result);
+        let mut transcript: Transcript =
+            make_transcript(expr, &provable_result, table_length, generator_offset);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -85,7 +89,7 @@ impl QueryProof {
         // commit to any intermediate MLEs
         let commitments = builder.commit_intermediate_mles(generator_offset);
 
-        // add the commitments and bit disctibutions to the proof
+        // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
 
         // construct the sumcheck polynomial
@@ -149,7 +153,7 @@ impl QueryProof {
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &impl ProofExpr,
+        expr: &(impl ProofExpr + Serialize),
         accessor: &impl CommitmentAccessor,
         result: &ProvableQueryResult,
     ) -> QueryResult {
@@ -190,7 +194,7 @@ impl QueryProof {
         }
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(result);
+        let mut transcript = make_transcript(expr, result, table_length, generator_offset);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -320,9 +324,41 @@ impl QueryProof {
     level = "debug",
     skip_all
 )]
-pub fn make_transcript(result: &ProvableQueryResult) -> merlin::Transcript {
+
+/// Creates a transcript using the Merlin library.
+///
+/// This function is used to produce a transcript for a proof expression
+/// and a provable query result, along with additional parameters like
+/// table length and generator offset. The transcript is constructed
+/// with all protocol public inputs appended to it.
+///
+/// # Arguments
+///
+/// * `expr` - A reference to an object that implements `ProofExpr` and `Serialize`.
+///   This is the proof expression which is part of the proof.
+///
+/// * `result` - A reference to a `ProvableQueryResult`, which is the result
+///   of a query that needs to be proven.
+///
+/// * `table_length` - The length of the table used in the proof, as a `usize`.
+///
+/// * `generator_offset` - The offset of the generator used in the proof, as a `usize`.
+///
+/// # Returns
+/// This function returns a `merlin::Transcript`. The transcript is a record
+/// of all the operations and data involved in creating a proof.
+/// ```
+pub fn make_transcript(
+    expr: &(impl ProofExpr + Serialize),
+    result: &ProvableQueryResult,
+    table_length: usize,
+    generator_offset: usize,
+) -> merlin::Transcript {
     let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
     transcript.append_auto(MessageLabel::QueryResultData, result);
+    transcript.append_auto(MessageLabel::ProofExpr, expr);
+    transcript.append_auto(MessageLabel::TableLength, &table_length);
+    transcript.append_auto(MessageLabel::GeneratorOffset, &generator_offset);
     transcript
 }
 

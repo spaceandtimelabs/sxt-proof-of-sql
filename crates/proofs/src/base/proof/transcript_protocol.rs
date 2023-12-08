@@ -141,27 +141,53 @@ impl TranscriptProtocol for Transcript {
     }
 }
 
+/// Labels for items in a merlin transcript.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageLabel {
+    /// Represents an inner product computation or its result.
     InnerProduct,
+    /// Represents a challenge in the computation of an inner product.
     InnerProductChallenge,
+    /// Represents the left operand in an inner product computation.
     InnerProductLeft,
+    /// Represents the right operand in an inner product computation.
     InnerProductRight,
+    /// Denotes a sumcheck protocol message.
     Sumcheck,
+    /// Represents a challenge in the sumcheck protocol.
     SumcheckChallenge,
+    /// Represents a round evaluation in the sumcheck protocol.
     SumcheckRoundEvaluation,
+    /// Represents a proof resulting from a query.
     QueryProof,
+    /// Represents a commitment to a query.
     QueryCommit,
+    /// Represents evaluations in an MLE context.
     QueryMleEvaluations,
+    /// Represents a challenge in the context of MLE evaluations.
     QueryMleEvaluationsChallenge,
+    /// Represents the data resulting from a query.
     QueryResultData,
+    /// Represents a query for bit distribution data.
     QueryBitDistributions,
+    /// Represents a challenge in a sumcheck query.
     QuerySumcheckChallenge,
+    /// Represents a hash used for verification purposes.
     VerificationHash,
+    /// Represents a message in the context of the Dory protocol.
     DoryMessage,
+    /// Represents a challenge in the context of the Dory protocol.
     DoryChallenge,
+    /// Represents challenges posted after result computation.
     PostResultChallenges,
+    /// Represents a SQL query
+    ProofExpr,
+    /// Represents the length of a table.
+    TableLength,
+    /// Represents an offset for a generator.
+    GeneratorOffset,
 }
+
 impl MessageLabel {
     /// Convert the label to a byte slice, which satisfies the requirements of a merlin label:
     /// "the labels should be distinct and none should be a prefix of any other."
@@ -185,6 +211,9 @@ impl MessageLabel {
             MessageLabel::DoryMessage => b"dorymessage v1",
             MessageLabel::DoryChallenge => b"dorychallenge v1",
             MessageLabel::PostResultChallenges => b"postresultchallenges v1",
+            MessageLabel::ProofExpr => b"proofexpr v1",
+            MessageLabel::TableLength => b"tablelength v1",
+            MessageLabel::GeneratorOffset => b"generatoroffset v1",
         }
     }
 }

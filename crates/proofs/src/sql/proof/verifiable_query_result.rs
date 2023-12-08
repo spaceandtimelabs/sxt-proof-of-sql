@@ -74,7 +74,10 @@ impl VerifiableQueryResult {
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
-    pub fn new(expr: &impl ProofExpr, accessor: &impl DataAccessor) -> VerifiableQueryResult {
+    pub fn new(
+        expr: &(impl ProofExpr + Serialize),
+        accessor: &impl DataAccessor,
+    ) -> VerifiableQueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -100,7 +103,11 @@ impl VerifiableQueryResult {
     /// error.
     ///
     /// Note: This does NOT transform the result!
-    pub fn verify(&self, expr: &impl ProofExpr, accessor: &impl CommitmentAccessor) -> QueryResult {
+    pub fn verify(
+        &self,
+        expr: &(impl ProofExpr + Serialize),
+        accessor: &impl CommitmentAccessor,
+    ) -> QueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
