@@ -112,6 +112,7 @@ impl PartialEq for OwnedTable {
 ///
 /// Note: this panics if the columns have different lengths or if the table has no columns.
 #[macro_export]
+#[cfg(test)]
 macro_rules! owned_table {
     ($($col_name:expr => $slice:expr), + $(,)?) => {
         {
