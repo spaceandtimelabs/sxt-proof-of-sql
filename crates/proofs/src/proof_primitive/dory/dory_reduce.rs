@@ -18,12 +18,12 @@ pub fn dory_reduce_prove(
     messages.send_prover_GT_message(transcript, D_2L);
     messages.send_prover_GT_message(transcript, D_2R);
     let betas = messages.verifier_F_message(transcript);
-    dory_reduce_prove_mutate_vs(state, setup, betas);
+    dory_reduce_prove_mutate_v_vecs(state, setup, betas);
     let (C_plus, C_minus) = dory_reduce_prove_compute_Cs(state, half_n);
     messages.send_prover_GT_message(transcript, C_plus);
     messages.send_prover_GT_message(transcript, C_minus);
     let alphas = messages.verifier_F_message(transcript);
-    dory_reduce_prove_fold_vs(state, alphas, half_n);
+    dory_reduce_prove_fold_v_vecs(state, alphas, half_n);
     state.nu -= 1;
 }
 
