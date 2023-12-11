@@ -59,8 +59,20 @@ pub use extended_state::{ExtendedProverState, ExtendedVerifierState};
 #[cfg(test)]
 mod extended_state_test;
 
+mod extended_dory_reduce;
+mod extended_dory_reduce_helper;
 mod fold_scalars;
+
+pub use extended_dory_reduce::{extended_dory_reduce_prove, extended_dory_reduce_verify};
 pub use fold_scalars::{fold_scalars_0_prove, fold_scalars_0_verify};
 
 #[cfg(test)]
 mod fold_scalars_test;
+
+mod extended_dory_inner_product;
+pub use extended_dory_inner_product::{
+    extended_dory_inner_product_prove, extended_dory_inner_product_verify,
+};
+
+#[cfg(test)]
+mod extended_dory_inner_product_test;
