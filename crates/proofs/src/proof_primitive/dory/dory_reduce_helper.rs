@@ -28,7 +28,7 @@ pub fn dory_reduce_prove_compute_Ds(
 /// Mutates v_1 and v_2.
 /// * v_1 <- v_1 + beta * Gamma_1
 /// * v_2 <- v_2 + beta_inv * Gamma_2
-pub fn dory_reduce_prove_mutate_vs(
+pub fn dory_reduce_prove_mutate_v_vecs(
     state: &mut ProverState,
     setup: &ProverSetup,
     (beta, beta_inv): (F, F),
@@ -62,7 +62,7 @@ pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, 
 /// Folds v_1 and v_2.
 /// * v_1' <- alpha * v_1L + v_1R
 /// * v_2' <- alpha_inv * v_2L + v_2R
-pub fn dory_reduce_prove_fold_vs(
+pub fn dory_reduce_prove_fold_v_vecs(
     state: &mut ProverState,
     (alpha, alpha_inv): (F, F),
     half_n: usize,

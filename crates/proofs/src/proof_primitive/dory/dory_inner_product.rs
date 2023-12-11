@@ -12,8 +12,9 @@ pub fn dory_inner_product_prove(
     mut state: ProverState,
     setup: &ProverSetup,
 ) {
-    assert!(setup.max_nu >= state.nu);
-    for _ in 0..state.nu {
+    let nu = state.nu;
+    assert!(setup.max_nu >= nu);
+    for _ in 0..nu {
         dory_reduce_prove(messages, transcript, &mut state, setup);
     }
     scalar_product_prove(messages, transcript, state)
@@ -27,8 +28,9 @@ pub fn dory_inner_product_verify(
     mut state: VerifierState,
     setup: &VerifierSetup,
 ) -> bool {
-    assert!(setup.max_nu >= state.nu);
-    for _ in 0..state.nu {
+    let nu = state.nu;
+    assert!(setup.max_nu >= nu);
+    for _ in 0..nu {
         if !dory_reduce_verify(messages, transcript, &mut state, setup) {
             return false;
         }
