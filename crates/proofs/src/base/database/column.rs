@@ -25,8 +25,8 @@ pub enum Column<'a> {
     Scalar(&'a [ArkScalar]),
 }
 
-/// Provides the column type associated with the column
 impl Column<'_> {
+    /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::BigInt(_) => ColumnType::BigInt,
@@ -35,6 +35,23 @@ impl Column<'_> {
             #[cfg(test)]
             Self::Scalar(_) => ColumnType::Scalar,
         }
+    }
+    /// Returns the length of the column.
+    pub fn len(&self) -> usize {
+        match self {
+            Self::BigInt(col) => col.len(),
+            Self::VarChar((col, scals)) => {
+                assert_eq!(col.len(), scals.len());
+                col.len()
+            }
+            Self::Int128(col) => col.len(),
+            #[cfg(test)]
+            Self::Scalar(col) => col.len(),
+        }
+    }
+    /// Returns `true` if the column has no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -131,6 +148,7 @@ pub struct ColumnRef {
 }
 
 impl ColumnRef {
+    /// Create a new `ColumnRef` from a table, column identifier and column type
     pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
         Self {
             column_id,
@@ -139,39 +157,44 @@ impl ColumnRef {
         }
     }
 
+    /// Returns the table reference of this column
     pub fn table_ref(&self) -> TableRef {
         self.table_ref
     }
 
+    /// Returns the column identifier of this column
     pub fn column_id(&self) -> Identifier {
         self.column_id
     }
 
+    /// Returns the column type of this column
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
 }
 
-// Represents an abstraction for the arrow Field
-//
-// This allows us to work with the proof column
-// native types, while also easily converting to
-// arrow Field structures.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy)]
+/// This type is used to represent the metadata
+/// of a column in a table. Namely: it's name and type.
+///
+/// This is the analog of a `Field` in Apache Arrow.
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
 pub struct ColumnField {
     name: Identifier,
     data_type: ColumnType,
 }
 
 impl ColumnField {
+    /// Create a new `ColumnField` from a name and a type
     pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
         ColumnField { name, data_type }
     }
 
+    /// Returns the name of the column
     pub fn name(&self) -> Identifier {
         self.name
     }
 
+    /// Returns the type of the column
     pub fn data_type(&self) -> ColumnType {
         self.data_type
     }
@@ -297,5 +320,42 @@ mod tests {
             ColumnType::VarChar
         );
         assert_eq!("SCALAR".parse::<ColumnType>().unwrap(), ColumnType::Scalar);
+    }
+
+    #[test]
+    fn we_can_get_the_len_of_a_column() {
+        let scals = [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3)];
+
+        let column = Column::BigInt(&[1, 2, 3]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::VarChar((&["a", "b", "c"], &scals));
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::Int128(&[1, 2, 3]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::Scalar(&scals);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::BigInt(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::VarChar((&[], &[]));
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::Int128(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::Scalar(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
     }
 }

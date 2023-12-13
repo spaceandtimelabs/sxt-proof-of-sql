@@ -12,9 +12,13 @@ use std::sync::Arc;
 
 /// Specify what form a randomly generated TestAccessor can take
 pub struct RandomTestAccessorDescriptor {
+    /// The minimum number of rows in the generated RecordBatch
     pub min_rows: usize,
+    /// The maximum number of rows in the generated RecordBatch
     pub max_rows: usize,
+    /// The minimum value of the generated data
     pub min_value: i64,
+    /// The maximum value of the generated data
     pub max_value: i64,
 }
 
