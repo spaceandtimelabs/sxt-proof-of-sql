@@ -10,6 +10,8 @@ pub use count_builder::CountBuilder;
 #[warn(missing_docs)]
 mod multilinear_extension;
 pub use multilinear_extension::MultilinearExtension;
+#[cfg(test)]
+mod multilinear_extension_test;
 
 mod proof_builder;
 pub use proof_builder::ProofBuilder;

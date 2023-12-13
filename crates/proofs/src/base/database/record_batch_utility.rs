@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
+/// Extension trait for Vec<T> to convert it to an Arrow array
 pub trait ToArrow {
+    /// Returns the equivalent Arrow type
     fn to_type(&self) -> arrow::datatypes::DataType;
+    /// Converts the Vec<T> to an Arrow `ArrayRef`.
     fn to_array(self) -> Arc<dyn arrow::array::Array>;
 }
 
