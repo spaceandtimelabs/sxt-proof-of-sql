@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+//! Module with database related functionality. In particular, this module contains the
+//! accessor traits and the `OwnedTable` type along with some utility functions to convert
+//! between Arrow and `OwnedTable`.
 mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
