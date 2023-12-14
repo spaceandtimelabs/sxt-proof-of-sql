@@ -1,6 +1,6 @@
 use super::{
-    fold_scalars_0_prove, fold_scalars_0_verify, rand_F_vecs, rand_G_vecs, rand_Hs, test_rng,
-    DoryMessages, ExtendedProverState, ProverSetup, VerifierSetup,
+    fold_scalars_0_prove, fold_scalars_0_verify, rand_F_vecs, rand_G_vecs, test_rng, DoryMessages,
+    ExtendedProverState, PublicParameters,
 };
 use merlin::Transcript;
 
@@ -8,10 +8,9 @@ use merlin::Transcript;
 fn we_can_fold_scalars() {
     let mut rng = test_rng();
     let nu = 0;
-    let (Gamma_1, Gamma_2) = rand_G_vecs(nu, &mut rng);
-    let (H_1, H_2) = rand_Hs(&mut rng);
-    let prover_setup = ProverSetup::new(&Gamma_1, &Gamma_2, nu, H_1, H_2);
-    let verifier_setup = VerifierSetup::new(&Gamma_1, &Gamma_2, nu, H_1, H_2);
+    let pp = PublicParameters::rand(nu, &mut rng);
+    let prover_setup = (&pp).into();
+    let verifier_setup = (&pp).into();
     let (s1, s2) = rand_F_vecs(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
     let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
