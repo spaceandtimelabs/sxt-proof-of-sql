@@ -1,4 +1,5 @@
 use crate::base::{encode::read_scalar_varint, scalar::ArkScalar};
+use ark_ff::PrimeField;
 use integer_encoding::VarInt;
 
 pub trait EncodeProvableResultElement {
@@ -42,30 +43,38 @@ impl_provable_result_integer_elements!(i64);
 
 /// The i128 type is not supported by integer_encoding::VarInt.
 /// So we need to implement encode and decode for it manually.
-/// We split the i128 into two i64 and encode them separately.
+/// We convert to and from `ArkScalar` to handle this. TODO: implement this properly.
 impl EncodeProvableResultElement for i128 {
     fn required_bytes(&self) -> usize {
-        let low_part: i64 = (*self) as i64;
-        let high_part = ((*self) >> 64) as i64;
-        low_part.required_bytes() + high_part.required_bytes()
+        ArkScalar::from(*self).required_bytes()
     }
 
     fn encode(&self, out: &mut [u8]) -> usize {
-        let low_part: i64 = (*self) as i64;
-        let high_part = ((*self) >> 64) as i64;
-        let low_len = low_part.encode(out);
-        let high_len = high_part.encode(&mut out[low_len..]);
-        low_len + high_len
+        ArkScalar::from(*self).encode(out)
     }
 }
 impl DecodeProvableResultElement<'_> for i128 {
     fn decode(data: &[u8]) -> Option<(i128, usize)> {
-        let (low_part, low_len) = <i64>::decode(data)?;
-        let (high_part, high_len) = <i64>::decode(&data[low_len..])?;
-        Some((
-            (high_part as i128) << 64 | (low_part as u64 as i128),
-            low_len + high_len,
-        ))
+        let (val_scalar, read_bytes) = <ArkScalar>::decode(data)?;
+        // From the arkworks code for cmp: "Note that this implementation of `Ord` compares field elements viewing them as integers in the range 0, 1, ..., P::MODULUS - 1."
+        // So, the smaller of the value and it's negative is the "absolute value" of the field element. We can use this to check if the value is negative.
+        let is_negative = val_scalar > -val_scalar;
+        let abs_scalar = if is_negative { -val_scalar } else { val_scalar };
+        let limbs = abs_scalar.0.into_bigint().0;
+        if limbs[2] != 0 || limbs[3] != 0 {
+            return None;
+        }
+        let abs_i128 = (limbs[0] as i128) | ((limbs[1] as i128) << 64);
+        let val_i128 = if is_negative {
+            i128::wrapping_neg(abs_i128)
+        } else {
+            abs_i128
+        };
+        if is_negative == (val_i128 < 0) {
+            Some((val_i128, read_bytes))
+        } else {
+            None
+        }
     }
 
     fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
@@ -259,6 +268,18 @@ mod tests {
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value);
     }
+    #[test]
+    fn we_cannnot_decode_a_128_bit_integer_that_is_out_of_range() {
+        let value = ArkScalar::from(i128::MAX) + ArkScalar::from(1);
+        let mut out = vec![0_u8; value.required_bytes()];
+        value.encode(&mut out[..]);
+        assert_eq!(<i128>::decode(&out[..]), None);
+
+        let value = ArkScalar::from(i128::MIN) - ArkScalar::from(1);
+        let mut out = vec![0_u8; value.required_bytes()];
+        value.encode(&mut out[..]);
+        assert_eq!(<i128>::decode(&out[..]), None);
+    }
 
     #[test]
     fn we_can_encode_and_decode_a_simple_string() {
@@ -415,7 +436,7 @@ mod tests {
 
     #[test]
     fn multiple_integer_rows_are_correctly_encoded_and_decoded() {
-        let data = [121_i64, -345_i64, 666_i64, 0_i64];
+        let data = [121_i64, -345_i64, 666_i64, 0_i64, i64::MAX, i64::MIN];
         let out = encode_multiple_rows(&data);
         let (decoded_data, decoded_bytes) =
             decode_multiple_elements::<i64>(&out[..], data.len()).unwrap();
@@ -426,7 +447,7 @@ mod tests {
 
     #[test]
     fn multiple_128_bit_integer_rows_are_correctly_encoded_and_decoded() {
-        let data = [121_i128, -345_i128, 666_i128, 0_i128];
+        let data = [121_i128, -345_i128, 666_i128, 0_i128, i128::MAX, i128::MIN];
         let out = encode_multiple_rows(&data);
         let (decoded_data, decoded_bytes) =
             decode_multiple_elements::<i128>(&out[..], data.len()).unwrap();
