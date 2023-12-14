@@ -53,11 +53,15 @@ pub use owned_and_arrow_conversions::*;
 mod owned_and_arrow_conversions_test;
 
 #[warn(missing_docs)]
+#[cfg(any(test, feature = "test"))]
 mod test_accessor;
+#[cfg(any(test, feature = "test"))]
 pub use test_accessor::{TestAccessor, UnimplementedTestAccessor};
 
 #[warn(missing_docs)]
+#[cfg(any(test, feature = "test"))]
 mod owned_table_test_accessor;
+#[cfg(any(test, feature = "test"))]
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(test)]
 mod owned_table_test_accessor_test;
