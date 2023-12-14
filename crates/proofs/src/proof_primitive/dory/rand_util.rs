@@ -34,14 +34,6 @@ where
         .unzip()
 }
 
-/// Creates two of random G1 and G2 elements.
-pub fn rand_Hs<R>(rng: &mut R) -> (G1, G2)
-where
-    R: ark_std::rand::Rng + ?Sized,
-{
-    (G1::rand(rng), G2::rand(rng))
-}
-
 #[test]
 fn we_can_create_rand_G_vecs() {
     let mut rng = test_rng();
@@ -131,10 +123,4 @@ fn we_can_create_different_rand_F_vecs_from_different_seeds() {
         assert_ne!(s1, s1_2);
         assert_ne!(s2, s2_2);
     }
-}
-
-#[test]
-fn we_can_create_rand_Hs() {
-    let mut rng = test_rng();
-    let (_H1, _H2) = rand_Hs(&mut rng);
 }

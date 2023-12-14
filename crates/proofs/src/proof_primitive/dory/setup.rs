@@ -1,4 +1,4 @@
-use super::{G1, G2, GT};
+use super::{PublicParameters, G1, G2, GT};
 use ark_ec::pairing::Pairing;
 use itertools::MultiUnzip;
 
@@ -15,29 +15,47 @@ pub struct ProverSetup<'a> {
     pub(super) Gamma_1: Vec<&'a [G1]>,
     /// `Gamma_2[k]` = Γ_2,(m-k) in the Dory paper.
     pub(super) Gamma_2: Vec<&'a [G2]>,
-    /// `max_nu` is the maximum nu that this setup will work for
-    pub(super) max_nu: usize,
     /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_1: G1,
     /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_2: G2,
+    /// `max_nu` is the maximum nu that this setup will work for
+    pub(super) max_nu: usize,
 }
 
 impl<'a> ProverSetup<'a> {
     /// Create a new `ProverSetup` from the public parameters.
-    pub fn new(Gamma_1: &'a [G1], Gamma_2: &'a [G2], nu: usize, H_1: G1, H_2: G2) -> Self {
-        assert_eq!(Gamma_1.len(), 1 << nu);
-        assert_eq!(Gamma_2.len(), 1 << nu);
-        let (Gamma_1, Gamma_2) = (0..nu + 1)
+    pub(super) fn new(
+        Gamma_1: &'a [G1],
+        Gamma_2: &'a [G2],
+        H_1: G1,
+        H_2: G2,
+        max_nu: usize,
+    ) -> Self {
+        assert_eq!(Gamma_1.len(), 1 << max_nu);
+        assert_eq!(Gamma_2.len(), 1 << max_nu);
+        let (Gamma_1, Gamma_2) = (0..max_nu + 1)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
         ProverSetup {
             Gamma_1,
             Gamma_2,
-            max_nu: nu,
             H_1,
             H_2,
+            max_nu,
         }
+    }
+}
+
+impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
+    fn from(value: &'a PublicParameters) -> Self {
+        Self::new(
+            &value.Gamma_1,
+            &value.Gamma_2,
+            value.H_1,
+            value.H_2,
+            value.max_nu,
+        )
     }
 }
 
@@ -64,22 +82,29 @@ pub struct VerifierSetup {
     pub(super) Gamma_1_0: G1,
     /// `Gamma_2_0` is the Γ_2 used in Scalar-Product algorithm in the Dory paper.
     pub(super) Gamma_2_0: G2,
-    /// `max_nu` is the maximum nu that this setup will work for
-    pub(super) max_nu: usize,
     /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_1: G1,
     /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_2: G2,
     /// `H_T` = H_T in the Dory paper.
     pub(super) H_T: GT,
+    /// `max_nu` is the maximum nu that this setup will work for
+    pub(super) max_nu: usize,
 }
 
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.
-    pub fn new(Gamma_1_nu: &[G1], Gamma_2_nu: &[G2], nu: usize, H_1: G1, H_2: G2) -> Self {
-        assert_eq!(Gamma_1_nu.len(), 1 << nu);
-        assert_eq!(Gamma_2_nu.len(), 1 << nu);
-        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..nu + 1)
+    pub(super) fn new(
+        Gamma_1_nu: &[G1],
+        Gamma_2_nu: &[G2],
+        H_1: G1,
+        H_2: G2,
+        max_nu: usize,
+    ) -> Self {
+        assert_eq!(Gamma_1_nu.len(), 1 << max_nu);
+        assert_eq!(Gamma_2_nu.len(), 1 << max_nu);
+        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..max_nu
+            + 1)
             .map(|k| {
                 if k == 0 {
                     (
@@ -115,10 +140,22 @@ impl VerifierSetup {
             chi,
             Gamma_1_0: Gamma_1_nu[0],
             Gamma_2_0: Gamma_2_nu[0],
-            max_nu: nu,
             H_1,
             H_2,
             H_T: Pairing::pairing(H_1, H_2),
+            max_nu,
         }
+    }
+}
+
+impl From<&PublicParameters> for VerifierSetup {
+    fn from(value: &PublicParameters) -> Self {
+        Self::new(
+            &value.Gamma_1,
+            &value.Gamma_2,
+            value.H_1,
+            value.H_2,
+            value.max_nu,
+        )
     }
 }
