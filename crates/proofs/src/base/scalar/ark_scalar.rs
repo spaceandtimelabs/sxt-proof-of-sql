@@ -27,6 +27,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
     CanonicalDeserialize,
     Eq,
     Hash,
+    PartialOrd,
+    Ord,
 )]
 #[mul(forward)]
 #[div(forward)]
