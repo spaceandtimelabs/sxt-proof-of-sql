@@ -76,6 +76,6 @@ mod dense_filter_expr_test_dishonest_prover;
 
 #[warn(missing_docs)]
 mod dense_filter_util;
-pub use dense_filter_util::{filter_columns, fold_columns, fold_vals};
+pub use dense_filter_util::{filter_column_by_index, filter_columns, fold_columns, fold_vals};
 #[cfg(test)]
 mod dense_filter_util_test;
