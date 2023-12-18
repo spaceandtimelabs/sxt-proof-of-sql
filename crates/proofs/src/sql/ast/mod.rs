@@ -79,3 +79,9 @@ mod dense_filter_util;
 pub use dense_filter_util::{filter_column_by_index, filter_columns, fold_columns, fold_vals};
 #[cfg(test)]
 mod dense_filter_util_test;
+
+#[warn(missing_docs)]
+mod group_by_util;
+pub use group_by_util::aggregate_columns;
+#[cfg(test)]
+mod group_by_util_test;
