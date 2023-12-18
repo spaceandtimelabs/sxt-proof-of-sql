@@ -1,4 +1,6 @@
 pub mod bit;
+#[warn(missing_docs)]
+pub mod commitment;
 pub mod database;
 pub mod encode;
 pub mod math;
