@@ -6,11 +6,11 @@ use crate::{
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, VerificationBuilder,
+        ProverHonestyMarker, ResultBuilder, SerializableProofExpr, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
-use core::iter::repeat_with;
+use core::{any::Any, iter::repeat_with};
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -27,16 +27,6 @@ pub struct OstensibleDenseFilterExpr<H: ProverHonestyMarker> {
     pub(super) table: TableExpr,
     pub(super) where_clause: Box<dyn BoolExpr>,
     phantom: PhantomData<H>,
-}
-
-// This is required because derive(DynPartialEq) does not work with generics
-impl<H: ProverHonestyMarker> DynPartialEq for OstensibleDenseFilterExpr<H> {
-    fn as_any(&self) -> &dyn core::any::Any {
-        self
-    }
-    fn box_eq(&self, other: &dyn core::any::Any) -> bool {
-        other.downcast_ref::<Self>().map_or(false, |a| self == a)
-    }
 }
 
 impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
@@ -139,6 +129,18 @@ where
 
 /// Alias for a dense filter expression with a honest prover.
 pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
+#[typetag::serde]
+impl SerializableProofExpr for DenseFilterExpr {}
+// This is required because derive(DynPartialEq) does not work with aliases
+impl DynPartialEq for DenseFilterExpr {
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
+    fn box_eq(&self, other: &dyn Any) -> bool {
+        other.downcast_ref().map_or(false, |a| self == a)
+    }
+}
+
 impl ProverEvaluate for DenseFilterExpr {
     fn result_evaluate<'a>(
         &self,

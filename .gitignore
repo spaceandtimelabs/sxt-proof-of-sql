@@ -50,3 +50,11 @@ temp-bench-results
 *.tar.gz
 *.tar
 *.zip
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.out
+*.pdf

@@ -8,11 +8,10 @@ use crate::{
         proof::ProofError,
     },
     sql::{
-        ast::FilterExpr,
         parse::ConversionResult,
         proof::{
-            CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder, TransformExpr,
-            VerificationBuilder,
+            CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
+            SerializableProofExpr, TransformExpr, VerificationBuilder,
         },
         transform::ResultExpr,
     },
@@ -26,7 +25,7 @@ use std::{collections::HashSet, fmt};
 
 #[derive(DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct QueryExpr {
-    filter: FilterExpr,
+    proof_expr: Box<dyn SerializableProofExpr>,
     result: ResultExpr,
 }
 
@@ -34,13 +33,20 @@ pub struct QueryExpr {
 // Prints filter and result fields in a readable format.
 impl fmt::Debug for QueryExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "QueryExpr \n[{:#?},\n{:#?}\n]", self.filter, self.result)
+        write!(
+            f,
+            "QueryExpr \n[{:#?},\n{:#?}\n]",
+            self.proof_expr, self.result
+        )
     }
 }
 
 impl QueryExpr {
-    pub fn new(filter: FilterExpr, result: ResultExpr) -> Self {
-        Self { filter, result }
+    pub fn new(proof_expr: impl SerializableProofExpr + 'static, result: ResultExpr) -> Self {
+        Self {
+            proof_expr: Box::new(proof_expr),
+            result,
+        }
     }
 
     pub fn try_new(
@@ -78,12 +84,15 @@ impl QueryExpr {
             .add_slice_expr(context.get_slice_expr())
             .build();
 
-        Ok(Self { filter, result })
+        Ok(Self {
+            proof_expr: Box::new(filter),
+            result,
+        })
     }
 
     /// Immutable access to this query's provable filter expression.
-    pub fn filter(&self) -> &FilterExpr {
-        &self.filter
+    pub fn proof_expr(&self) -> &dyn SerializableProofExpr {
+        &*self.proof_expr
     }
 
     /// Immutable access to this query's post-proof result transform expression.
@@ -92,21 +101,23 @@ impl QueryExpr {
     }
 }
 
+#[typetag::serde]
+impl SerializableProofExpr for QueryExpr {}
 impl ProofExpr for QueryExpr {
     fn count(
         &self,
         builder: &mut CountBuilder,
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        self.filter.count(builder, accessor)
+        self.proof_expr.count(builder, accessor)
     }
 
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        self.filter.get_length(accessor)
+        self.proof_expr.get_length(accessor)
     }
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
-        self.filter.get_offset(accessor)
+        self.proof_expr.get_offset(accessor)
     }
 
     fn verifier_evaluate(
@@ -114,15 +125,15 @@ impl ProofExpr for QueryExpr {
         builder: &mut VerificationBuilder,
         accessor: &dyn CommitmentAccessor,
     ) -> Result<(), ProofError> {
-        self.filter.verifier_evaluate(builder, accessor)
+        self.proof_expr.verifier_evaluate(builder, accessor)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        self.filter.get_column_result_fields()
+        self.proof_expr.get_column_result_fields()
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
-        self.filter.get_column_references()
+        self.proof_expr.get_column_references()
     }
 }
 
@@ -133,7 +144,7 @@ impl ProverEvaluate for QueryExpr {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor,
     ) {
-        self.filter.result_evaluate(builder, alloc, accessor)
+        self.proof_expr.result_evaluate(builder, alloc, accessor)
     }
 
     fn prover_evaluate<'a>(
@@ -142,7 +153,7 @@ impl ProverEvaluate for QueryExpr {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor,
     ) {
-        self.filter.prover_evaluate(builder, alloc, accessor)
+        self.proof_expr.prover_evaluate(builder, alloc, accessor)
     }
 }
 
