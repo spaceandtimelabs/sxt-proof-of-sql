@@ -1,9 +1,9 @@
 use super::{
     AndExpr, BoolExpr, ColumnExpr, ConstBoolExpr, DenseFilterExpr, EqualsExpr, FilterExpr,
-    FilterResultExpr, InequalityExpr, NotExpr, OrExpr, TableExpr,
+    FilterResultExpr, GroupByExpr, InequalityExpr, NotExpr, OrExpr, TableExpr,
 };
 use crate::base::{
-    database::{ColumnRef, SchemaAccessor, TableRef},
+    database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
     scalar::ArkScalar,
 };
 
@@ -108,4 +108,47 @@ pub fn dense_filter(
     where_clause: Box<dyn BoolExpr>,
 ) -> DenseFilterExpr {
     DenseFilterExpr::new(results, table, where_clause)
+}
+
+pub fn sum_expr(
+    tab: TableRef,
+    name: &str,
+    alias: &str,
+    column_type: ColumnType,
+    accessor: &impl SchemaAccessor,
+) -> (ColumnExpr, ColumnField) {
+    (
+        col_expr(tab, name, accessor),
+        ColumnField::new(alias.parse().unwrap(), column_type),
+    )
+}
+
+pub fn sums_expr(
+    tab: TableRef,
+    names: &[&str],
+    aliases: &[&str],
+    column_types: &[ColumnType],
+    accessor: &impl SchemaAccessor,
+) -> Vec<(ColumnExpr, ColumnField)> {
+    names
+        .iter()
+        .zip(aliases.iter().zip(column_types.iter()))
+        .map(|(name, (alias, column_type))| sum_expr(tab, name, alias, *column_type, accessor))
+        .collect()
+}
+
+pub fn group_by(
+    group_by_exprs: Vec<ColumnExpr>,
+    sum_expr: Vec<(ColumnExpr, ColumnField)>,
+    count_alias: &str,
+    table: TableExpr,
+    where_clause: Box<dyn BoolExpr>,
+) -> GroupByExpr {
+    GroupByExpr::new(
+        group_by_exprs,
+        sum_expr,
+        count_alias.parse().unwrap(),
+        table,
+        where_clause,
+    )
 }
