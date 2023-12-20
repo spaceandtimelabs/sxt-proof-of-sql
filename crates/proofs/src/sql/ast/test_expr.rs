@@ -1,9 +1,9 @@
-use super::{BoolExpr, FilterExpr, OstensibleFilterExpr};
+use super::{BoolExpr, FilterExpr};
 use crate::{
     base::database::{RecordBatchTestAccessor, TableRef},
     sql::{
         ast::test_utility::{cols_result, tab},
-        proof::{exercise_verification, ProverHonestyMarker, TransformExpr, VerifiableQueryResult},
+        proof::{exercise_verification, TransformExpr, VerifiableQueryResult},
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -18,7 +18,7 @@ pub struct TestExprNode {
 }
 
 // Note: this implementation is purely for test purposes
-impl<H: ProverHonestyMarker> TransformExpr for OstensibleFilterExpr<H> {}
+impl TransformExpr for FilterExpr {}
 
 impl TestExprNode {
     pub fn new(

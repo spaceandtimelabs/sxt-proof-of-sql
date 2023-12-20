@@ -1754,12 +1754,13 @@ fn query_expr_with_order_and_limits_can_serialize_to_and_from_flex_buffers() {
 fn we_can_serialize_list_of_filters_from_query_expr() {
     let query_expr = query_expr_for_test_table("select * from table");
 
-    let filter_exprs: Vec<&FilterExpr> = vec![query_expr.filter()];
+    let filter_exprs = vec![query_expr.proof_expr()];
 
     let serialized = flexbuffers::to_vec(&filter_exprs).unwrap();
 
     let deserialized: Vec<FilterExpr> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
     let deserialized_as_ref: Vec<&FilterExpr> = deserialized.iter().collect();
 
-    assert_eq!(filter_exprs, deserialized_as_ref);
+    assert_eq!(filter_exprs.len(), deserialized_as_ref.len());
+    assert!(filter_exprs[0].box_eq(deserialized_as_ref[0]));
 }

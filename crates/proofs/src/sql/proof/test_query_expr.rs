@@ -1,6 +1,6 @@
 use super::{
     CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, ResultBuilder,
-    TransformExpr, VerificationBuilder,
+    SerializableProofExpr, TransformExpr, VerificationBuilder,
 };
 use crate::base::{
     database::{
@@ -35,6 +35,8 @@ pub struct TestQueryExpr {
     pub verifier_fn: Option<VerifyFn>,
 }
 
+#[typetag::serde]
+impl SerializableProofExpr for TestQueryExpr {}
 impl ProofExpr for TestQueryExpr {
     fn count(
         &self,
