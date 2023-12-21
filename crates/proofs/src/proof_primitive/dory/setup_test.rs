@@ -17,6 +17,7 @@ fn we_can_create_and_manually_check_a_small_prover_setup() {
     assert_eq!(setup.Gamma_2[2], pp.Gamma_2[0..4].to_vec());
     assert_eq!(setup.H_1, pp.H_1);
     assert_eq!(setup.H_2, pp.H_2);
+    assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
 }
 
 #[test]
@@ -79,6 +80,7 @@ fn we_can_create_and_manually_check_a_small_verifier_setup() {
     assert_eq!(setup.H_1, pp.H_1);
     assert_eq!(setup.H_2, pp.H_2);
     assert_eq!(setup.H_T, Pairing::pairing(pp.H_1, pp.H_2));
+    assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
 }
 
 #[test]
@@ -96,6 +98,7 @@ fn we_can_create_prover_setups_with_various_sizes() {
         assert_eq!(setup.max_nu, nu);
         assert_eq!(setup.H_1, pp.H_1);
         assert_eq!(setup.H_2, pp.H_2);
+        assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
     }
 }
 
@@ -127,5 +130,6 @@ fn we_can_create_verifier_setups_with_various_sizes() {
         assert_eq!(setup.H_1, pp.H_1);
         assert_eq!(setup.H_2, pp.H_2);
         assert_eq!(setup.H_T, Pairing::pairing(pp.H_1, pp.H_2));
+        assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
     }
 }
