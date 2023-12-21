@@ -1,4 +1,7 @@
-use super::{ProverSetup, ProverState, F, G1, G2};
+#[cfg(test)]
+use super::ProverSetup;
+use super::{ProverState, VerifierState, F, G1, G2, GT};
+#[cfg(test)]
 use ark_ec::{ScalarMul, VariableBaseMSM};
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
@@ -27,6 +30,7 @@ impl ExtendedProverState {
     /// Calculate the verifier state from the prover state and setup information.
     /// This is basically the commitment computation of the witness.
     /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+    #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> ExtendedVerifierState {
         let E_1 = G1::msm(
             &ScalarMul::batch_convert_to_mul_base(&self.base_state.v1),
@@ -51,6 +55,7 @@ impl ExtendedProverState {
 /// The state of the verifier during the Dory proof verification with the extended algorithm.
 /// `base_state` is the state of the verifier during the Dory proof verification with the original algorithm.
 /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+#[derive(PartialEq, Debug)]
 pub struct ExtendedVerifierState {
     /// The state of the verifier during the Dory proof verification with the original algorithm.
     pub(super) base_state: super::VerifierState,
@@ -62,4 +67,27 @@ pub struct ExtendedVerifierState {
     pub(super) s1: Vec<F>,
     /// The second vector of F elements in the witness. This will be mutated during the proof verification.
     pub(super) s2: Vec<F>,
+}
+
+impl ExtendedVerifierState {
+    /// Create a new `ExtendedVerifierState` from the commitment to the witness.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        E_1: G1,
+        E_2: G2,
+        s1: Vec<F>,
+        s2: Vec<F>,
+        C: GT,
+        D_1: GT,
+        D_2: GT,
+        nu: usize,
+    ) -> Self {
+        ExtendedVerifierState {
+            base_state: VerifierState::new(C, D_1, D_2, nu),
+            E_1,
+            E_2,
+            s1,
+            s2,
+        }
+    }
 }

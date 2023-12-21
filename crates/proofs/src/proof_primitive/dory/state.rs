@@ -1,4 +1,7 @@
-use super::{ProverSetup, G1, G2, GT};
+#[cfg(test)]
+use super::ProverSetup;
+use super::{G1, G2, GT};
+#[cfg(test)]
 use ark_ec::pairing::Pairing;
 
 /// The state of the prover during the Dory proof generation.
@@ -23,6 +26,7 @@ impl ProverState {
     /// Calculate the verifier state from the prover state and setup information.
     /// This is basically the commitment computation of the witness.
     /// See the beginning of section 3 of https://eprint.iacr.org/2020/1274.pdf for details.
+    #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> VerifierState {
         assert!(setup.max_nu >= self.nu);
         let C = Pairing::multi_pairing(&self.v1, &self.v2);
@@ -51,4 +55,11 @@ pub struct VerifierState {
     pub(super) D_2: GT,
     /// The round number of the proof. The length of `v1` and `v2` should always be 2^nu. This will be mutated during the proof verification.
     pub(super) nu: usize,
+}
+
+impl VerifierState {
+    /// Create a new `VerifierState` from the commitment to the witness.
+    pub fn new(C: GT, D_1: GT, D_2: GT, nu: usize) -> Self {
+        VerifierState { C, D_1, D_2, nu }
+    }
 }

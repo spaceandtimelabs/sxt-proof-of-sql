@@ -31,8 +31,8 @@ pub fn scalar_product_prove(
     let E_1 = state.v1[0];
     // v2 is a single element.
     let E_2 = state.v2[0];
-    messages.send_prover_G1_message(transcript, E_1);
-    messages.send_prover_G2_message(transcript, E_2);
+    messages.prover_send_G1_message(transcript, E_1);
+    messages.prover_send_G2_message(transcript, E_2);
     let (d, d_inv) = messages.verifier_F_message(transcript);
 }
 
@@ -67,8 +67,8 @@ pub fn scalar_product_verify(
     {
         return false;
     }
-    let E_1 = messages.recieve_prover_G1_message(transcript);
-    let E_2 = messages.recieve_prover_G2_message(transcript);
+    let E_1 = messages.prover_recieve_G1_message(transcript);
+    let E_2 = messages.prover_recieve_G2_message(transcript);
     let (d, d_inv) = messages.verifier_F_message(transcript);
     Pairing::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
         == setup.chi[0] + state.C + state.D_2 * d + state.D_1 * d_inv
