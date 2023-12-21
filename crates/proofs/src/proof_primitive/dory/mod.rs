@@ -19,6 +19,7 @@
 #![allow(non_snake_case)]
 
 use ark_bls12_381::{Fr as F, G1Projective as G1, G2Projective as G2};
+/// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 
 #[cfg(test)]
@@ -79,3 +80,17 @@ mod extended_dory_inner_product_test;
 
 mod public_parameters;
 pub use public_parameters::PublicParameters;
+
+mod eval_vmv_re;
+pub use eval_vmv_re::{eval_vmv_re_prove, eval_vmv_re_verify};
+
+#[cfg(test)]
+mod eval_vmv_re_test;
+
+mod vmv_state;
+#[cfg(test)]
+use vmv_state::VMV;
+pub use vmv_state::{VMVProverState, VMVVerifierState};
+
+#[cfg(test)]
+mod vmv_state_test;

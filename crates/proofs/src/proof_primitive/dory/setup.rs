@@ -19,6 +19,8 @@ pub struct ProverSetup<'a> {
     pub(super) H_1: G1,
     /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_2: G2,
+    /// `Gamma_2_fin` = Gamma_2,fin in the Dory paper.
+    pub(super) Gamma_2_fin: G2,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
 }
@@ -30,6 +32,7 @@ impl<'a> ProverSetup<'a> {
         Gamma_2: &'a [G2],
         H_1: G1,
         H_2: G2,
+        Gamma_2_fin: G2,
         max_nu: usize,
     ) -> Self {
         assert_eq!(Gamma_1.len(), 1 << max_nu);
@@ -42,6 +45,7 @@ impl<'a> ProverSetup<'a> {
             Gamma_2,
             H_1,
             H_2,
+            Gamma_2_fin,
             max_nu,
         }
     }
@@ -54,6 +58,7 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
             &value.Gamma_2,
             value.H_1,
             value.H_2,
+            value.Gamma_2_fin,
             value.max_nu,
         )
     }
@@ -88,6 +93,8 @@ pub struct VerifierSetup {
     pub(super) H_2: G2,
     /// `H_T` = H_T in the Dory paper.
     pub(super) H_T: GT,
+    /// `Gamma_2_fin` = Gamma_2,fin in the Dory paper.
+    pub(super) Gamma_2_fin: G2,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
 }
@@ -99,6 +106,7 @@ impl VerifierSetup {
         Gamma_2_nu: &[G2],
         H_1: G1,
         H_2: G2,
+        Gamma_2_fin: G2,
         max_nu: usize,
     ) -> Self {
         assert_eq!(Gamma_1_nu.len(), 1 << max_nu);
@@ -143,6 +151,7 @@ impl VerifierSetup {
             H_1,
             H_2,
             H_T: Pairing::pairing(H_1, H_2),
+            Gamma_2_fin,
             max_nu,
         }
     }
@@ -155,6 +164,7 @@ impl From<&PublicParameters> for VerifierSetup {
             &value.Gamma_2,
             value.H_1,
             value.H_2,
+            value.Gamma_2_fin,
             value.max_nu,
         )
     }

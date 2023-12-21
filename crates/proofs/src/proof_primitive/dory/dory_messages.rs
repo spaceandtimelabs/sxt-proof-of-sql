@@ -25,45 +25,45 @@ pub struct DoryMessages {
 #[cfg_attr(not(test), allow(dead_code))]
 impl DoryMessages {
     /// Pushes a field element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn send_prover_F_message(&mut self, transcript: &mut Transcript, message: F) {
+    pub(super) fn prover_send_F_message(&mut self, transcript: &mut Transcript, message: F) {
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.F_messages.insert(0, message);
     }
     /// Pushes a G1 element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn send_prover_G1_message(&mut self, transcript: &mut Transcript, message: G1) {
+    pub(super) fn prover_send_G1_message(&mut self, transcript: &mut Transcript, message: G1) {
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.G1_messages.insert(0, message);
     }
     /// Pushes a G2 element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn send_prover_G2_message(&mut self, transcript: &mut Transcript, message: G2) {
+    pub(super) fn prover_send_G2_message(&mut self, transcript: &mut Transcript, message: G2) {
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.G2_messages.insert(0, message);
     }
     /// Pushes a GT element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn send_prover_GT_message(&mut self, transcript: &mut Transcript, message: GT) {
+    pub(super) fn prover_send_GT_message(&mut self, transcript: &mut Transcript, message: GT) {
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.GT_messages.insert(0, message);
     }
     /// Pops a field element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn recieve_prover_F_message(&mut self, transcript: &mut Transcript) -> F {
+    pub(super) fn prover_recieve_F_message(&mut self, transcript: &mut Transcript) -> F {
         let message = self.F_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G1 element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn recieve_prover_G1_message(&mut self, transcript: &mut Transcript) -> G1 {
+    pub(super) fn prover_recieve_G1_message(&mut self, transcript: &mut Transcript) -> G1 {
         let message = self.G1_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G2 element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn recieve_prover_G2_message(&mut self, transcript: &mut Transcript) -> G2 {
+    pub(super) fn prover_recieve_G2_message(&mut self, transcript: &mut Transcript) -> G2 {
         let message = self.G2_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a GT element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn recieve_prover_GT_message(&mut self, transcript: &mut Transcript) -> GT {
+    pub(super) fn prover_recieve_GT_message(&mut self, transcript: &mut Transcript) -> GT {
         let message = self.GT_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
