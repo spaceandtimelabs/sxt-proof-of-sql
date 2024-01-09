@@ -1,17 +1,26 @@
-use super::{filter_columns, BoolExpr, ColumnExpr, TableExpr};
+use super::{
+    dense_filter_util::{fold_columns, fold_vals},
+    filter_columns, BoolExpr, ColumnExpr, TableExpr,
+};
 use crate::{
     base::{
-        database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
+        database::{
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+        },
         proof::ProofError,
+        scalar::ArkScalar,
+        slice_ops,
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, SerializableProofExpr, VerificationBuilder,
+        ProverHonestyMarker, ResultBuilder, SerializableProofExpr, SumcheckSubpolynomialType,
+        VerificationBuilder,
     },
 };
 use bumpalo::Bump;
 use core::{any::Any, iter::repeat_with};
 use dyn_partial_eq::DynPartialEq;
+use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 
@@ -64,6 +73,10 @@ where
             expr.count(builder);
             builder.count_result_columns(1);
         }
+        builder.count_intermediate_mles(2);
+        builder.count_subpolynomials(3);
+        builder.count_degree(3);
+        builder.count_post_result_challenges(2);
         Ok(())
     }
 
@@ -102,8 +115,18 @@ where
         // 4. filtered_columns
         let filtered_columns_evals =
             Vec::from_iter(repeat_with(|| builder.consume_result_mle()).take(self.results.len()));
-        // todo!: build the proof components that show that the filtered_columns_evals are actually correct.
-        Ok(())
+
+        let alpha = builder.consume_post_result_challenge();
+        let beta = builder.consume_post_result_challenge();
+
+        verify_filter(
+            builder,
+            alpha,
+            beta,
+            columns_evals,
+            selection_eval,
+            filtered_columns_evals,
+        )
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -166,6 +189,7 @@ impl ProverEvaluate for DenseFilterExpr {
         for col in filtered_columns {
             builder.produce_result_column(col);
         }
+        builder.request_post_result_challenges(2);
     }
 
     #[tracing::instrument(
@@ -190,6 +214,122 @@ impl ProverEvaluate for DenseFilterExpr {
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        // todo!: build the proof components that show that the filtered_columns are actually correct.
+
+        let alpha = builder.consume_post_result_challenge();
+        let beta = builder.consume_post_result_challenge();
+
+        prove_filter(
+            builder,
+            alloc,
+            alpha,
+            beta,
+            &columns,
+            selection,
+            &filtered_columns,
+            result_len,
+        );
     }
+}
+
+fn verify_filter(
+    builder: &mut VerificationBuilder,
+    alpha: ArkScalar,
+    beta: ArkScalar,
+    c_evals: Vec<ArkScalar>,
+    s_eval: ArkScalar,
+    d_evals: Vec<ArkScalar>,
+) -> Result<(), ProofError> {
+    let one_eval = builder.mle_evaluations.one_evaluation;
+    let rand_eval = builder.mle_evaluations.random_evaluation;
+
+    let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
+        Some(eval) => eval,
+        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
+    };
+
+    let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
+    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);
+    let c_star_eval = builder.consume_intermediate_mle();
+    let d_star_eval = builder.consume_intermediate_mle();
+
+    // sum c_star * s - d_star = 0
+    builder.produce_sumcheck_subpolynomial_evaluation(&(c_star_eval * s_eval - d_star_eval));
+
+    // c_fold * c_star - 1 = 0
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        &(rand_eval * (c_fold_eval * c_star_eval - one_eval)),
+    );
+
+    // d_bar_fold * d_star - chi = 0
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        &(rand_eval * (d_bar_fold_eval * d_star_eval - chi_eval)),
+    );
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn prove_filter<'a>(
+    builder: &mut ProofBuilder<'a>,
+    alloc: &'a Bump,
+    alpha: ArkScalar,
+    beta: ArkScalar,
+    c: &[Column],
+    s: &'a [bool],
+    d: &[Column],
+    m: usize,
+) {
+    let n = builder.table_length();
+    let chi = alloc.alloc_slice_fill_copy(n, false);
+    chi[..m].fill(true);
+
+    let c_fold = alloc.alloc_slice_fill_copy(n, alpha);
+    fold_columns(c_fold, One::one(), beta, c);
+    let d_bar_fold = alloc.alloc_slice_fill_copy(n, alpha);
+    fold_columns(d_bar_fold, One::one(), beta, d);
+
+    let c_star = alloc.alloc_slice_copy(c_fold);
+    let d_star = alloc.alloc_slice_copy(d_bar_fold);
+    d_star[m..].fill(Zero::zero());
+    slice_ops::batch_inversion(c_star);
+    slice_ops::batch_inversion(&mut d_star[..m]);
+
+    builder.produce_intermediate_mle_from_ark_scalars(c_star, alloc);
+    builder.produce_intermediate_mle_from_ark_scalars(d_star, alloc);
+
+    // sum c_star * s - d_star = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::ZeroSum,
+        vec![
+            (
+                ArkScalar::one(),
+                vec![Box::new(c_star as &[_]), Box::new(s)],
+            ),
+            (-ArkScalar::one(), vec![Box::new(d_star as &[_])]),
+        ],
+    );
+
+    // c_fold * c_star - 1 = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (
+                ArkScalar::one(),
+                vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
+            ),
+            (-ArkScalar::one(), vec![]),
+        ],
+    );
+
+    // d_bar_fold * d_star - chi = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (
+                ArkScalar::one(),
+                vec![Box::new(d_star as &[_]), Box::new(d_bar_fold as &[_])],
+            ),
+            (-ArkScalar::one(), vec![Box::new(chi as &[_])]),
+        ],
+    );
 }
