@@ -1,4 +1,4 @@
-use super::{filter_columns, OstensibleDenseFilterExpr};
+use super::{dense_filter_expr::prove_filter, filter_columns, OstensibleDenseFilterExpr};
 use crate::{
     base::{
         database::{Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
@@ -11,8 +11,8 @@ use crate::{
         // sparse filter for these tests
         ast::test_utility::{cols_expr, equal, tab},
         proof::{
-            exercise_verification, Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker,
-            QueryError, ResultBuilder, VerifiableQueryResult,
+            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            VerifiableQueryResult,
         },
     },
 };
@@ -50,6 +50,7 @@ impl ProverEvaluate for DishonestDenseFilterExpr {
         for col in filtered_columns {
             builder.produce_result_column(col);
         }
+        builder.request_post_result_challenges(2);
     }
 
     #[tracing::instrument(
@@ -75,7 +76,20 @@ impl ProverEvaluate for DishonestDenseFilterExpr {
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        // todo!: build the proof components that show that the filtered_columns are actually correct.
+
+        let alpha = builder.consume_post_result_challenge();
+        let beta = builder.consume_post_result_challenge();
+
+        prove_filter(
+            builder,
+            alloc,
+            alpha,
+            beta,
+            &columns,
+            selection,
+            &filtered_columns,
+            result_len,
+        );
     }
 }
 
@@ -95,8 +109,6 @@ fn tamper_column<'a>(alloc: &'a Bump, mut columns: Vec<Column<'a>>) -> Vec<Colum
     columns
 }
 
-// This test should eventually pass, but it does not because the above dense filter isn't actually secure.
-#[ignore]
 #[test]
 fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
     let data = owned_table!(
@@ -119,34 +131,4 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
         res.verify(&expr, &accessor),
         Err(QueryError::ProofError(ProofError::VerificationError(_)))
     ));
-}
-
-// This test shows that the above dense filter isn't actually secure. This test should eventually be removed in favor of the previous one.
-#[test]
-fn we_can_incorrectly_prove_a_dense_filter_even_when_tampered() {
-    let data = owned_table!(
-        "a" => [101_i64, 104, 105, 102, 105],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
-    );
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
-    accessor.add_table(t, data, 0);
-    let expr = DishonestDenseFilterExpr::new(
-        cols_expr(t, &["b", "c", "d", "e"], &accessor),
-        tab(t),
-        equal(t, "a", 105, &accessor),
-    );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
-    let expected = owned_table!(
-        "b" => [3_i64, 5],
-        "c" => [3_i128, 5],
-        "d" => ["3", "5"],
-        "e" => [ArkScalar::from(3), 5.into()],
-    );
-    assert_ne!(res, expected);
 }
