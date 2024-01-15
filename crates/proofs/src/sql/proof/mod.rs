@@ -1,9 +1,3 @@
-#[warn(missing_docs)]
-mod evaluation_vector;
-pub use evaluation_vector::compute_evaluation_vector;
-#[cfg(test)]
-mod evaluation_vector_test;
-
 mod count_builder;
 pub use count_builder::CountBuilder;
 
@@ -92,14 +86,6 @@ mod result_element_serialization;
 pub use result_element_serialization::{
     decode_multiple_elements, DecodeProvableResultElement, EncodeProvableResultElement,
 };
-
-#[warn(missing_docs)]
-mod lagrange_basis_evaluation;
-pub use lagrange_basis_evaluation::{
-    compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
-};
-#[cfg(test)]
-mod lagrange_basis_evaluation_test;
 
 #[warn(missing_docs)]
 mod indexes;

@@ -1,5 +1,4 @@
-use super::compute_evaluation_vector;
-use crate::base::scalar::ArkScalar;
+use crate::base::{polynomial::compute_evaluation_vector, scalar::ArkScalar};
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
 pub struct SumcheckRandomScalars<'a> {

@@ -1,5 +1,5 @@
-use super::{compute_evaluation_vector, Indexes};
-use crate::base::scalar::ArkScalar;
+use super::Indexes;
+use crate::base::{polynomial::compute_evaluation_vector, scalar::ArkScalar};
 use num_traits::Zero;
 
 #[test]
