@@ -23,6 +23,12 @@ pub trait VecCommitmentExt {
     where
         C: Into<CommittableColumn<'a>>;
 
+    /// Returns a collection of commitments to the provided slice of `CommittableColumn`s using the given generator offset.
+    fn from_commitable_columns_with_offset(
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+    ) -> Self;
+
     /// Append rows of data from the provided columns to the existing commitments.
     ///
     /// The given generator offset will be used for committing to the new rows.
@@ -64,6 +70,13 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
         let committable_columns: Vec<CommittableColumn<'a>> =
             columns.into_iter().map(Into::into).collect::<Vec<_>>();
 
+        Self::from_commitable_columns_with_offset(&committable_columns, offset)
+    }
+
+    fn from_commitable_columns_with_offset(
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+    ) -> Self {
         let sequences: Vec<_> = committable_columns.iter().map(Sequence::from).collect();
 
         let mut commitments = vec![CompressedRistretto::default(); committable_columns.len()];

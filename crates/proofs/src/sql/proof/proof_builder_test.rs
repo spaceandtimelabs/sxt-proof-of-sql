@@ -21,7 +21,7 @@ use std::sync::Arc;
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle1 = [1, 2];
-    let mle2 = [10u32, 20];
+    let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
@@ -36,7 +36,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle1 = [1, 2];
-    let mle2 = [10u32, 20];
+    let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
@@ -51,7 +51,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
 #[test]
 fn we_can_evaluate_pre_result_mles() {
     let mle1 = [1, 2];
-    let mle2 = [10u32, 20];
+    let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
@@ -64,8 +64,8 @@ fn we_can_evaluate_pre_result_mles() {
 #[test]
 fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let mle1 = [1, 2, -1];
-    let mle2 = [10u32, 20, 100, 30];
-    let mle3 = [2000u32, 3000, 5000, 7000];
+    let mle2 = [10i64, 20, 100, 30];
+    let mle3 = [2000i64, 3000, 5000, 7000];
     let mut builder = ProofBuilder::new(4, 2, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
@@ -150,7 +150,7 @@ fn we_can_form_the_provable_query_result() {
 #[test]
 fn we_can_fold_pre_result_mles() {
     let mle1 = [1, 2];
-    let mle2 = [10u32, 20];
+    let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);

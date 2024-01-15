@@ -294,8 +294,8 @@ pub(super) fn prove_filter<'a>(
     slice_ops::batch_inversion(c_star);
     slice_ops::batch_inversion(&mut d_star[..m]);
 
-    builder.produce_intermediate_mle_from_ark_scalars(c_star, alloc);
-    builder.produce_intermediate_mle_from_ark_scalars(d_star, alloc);
+    builder.produce_intermediate_mle(c_star as &[_]);
+    builder.produce_intermediate_mle(d_star as &[_]);
 
     // sum c_star * s - d_star = 0
     builder.produce_sumcheck_subpolynomial(

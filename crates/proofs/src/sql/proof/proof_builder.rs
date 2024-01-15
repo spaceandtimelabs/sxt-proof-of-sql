@@ -3,11 +3,12 @@ use super::{
     SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
 };
 use crate::base::{
-    bit::BitDistribution, polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops,
+    bit::BitDistribution,
+    commitment::{CommittableColumn, VecCommitmentExt},
+    polynomial::CompositePolynomial,
+    scalar::ArkScalar,
 };
-use blitzar::{compute::compute_commitments, sequence::Sequence};
-use bumpalo::Bump;
-use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
+use curve25519_dalek::ristretto::CompressedRistretto;
 use num_traits::Zero;
 
 /// Track components used to form a query's proof
@@ -15,7 +16,7 @@ pub struct ProofBuilder<'a> {
     table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
-    commitment_descriptor: Vec<Sequence<'a>>,
+    commitment_descriptor: Vec<CommittableColumn<'a>>,
     pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a>>,
     /// The challenges used in creation of the constraints in the proof.
@@ -87,32 +88,9 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn produce_intermediate_mle(
         &mut self,
-        data: impl MultilinearExtension + Into<Sequence<'a>> + Copy + 'a,
+        data: impl MultilinearExtension + Into<CommittableColumn<'a>> + Copy + 'a,
     ) {
         self.commitment_descriptor.push(data.into());
-        self.produce_anchored_mle(data);
-    }
-
-    /// Produce an MLE for a intermediate computed column of `ArkScalar`s that we can reference in sumcheck.
-    ///
-    /// Because the verifier doesn't have access to the MLE's commitment, we will need to
-    /// commit to the MLE before we form the sumcheck polynomial.
-    ///
-    /// This method differs from `produce_intermediate_mle` in that it takes `ArkScalar`s as input. This is needed because a
-    /// slice of `ArkScalar`s does not implement `Into<DenseSequence>`.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.produce_intermediate_mle_from_ark_scalars",
-        level = "debug",
-        skip_all
-    )]
-    pub fn produce_intermediate_mle_from_ark_scalars(
-        &mut self,
-        data: &'a [ArkScalar],
-        alloc: &'a Bump,
-    ) {
-        let cast_data: &mut [[u64; 4]] = alloc.alloc_slice_fill_default(data.len());
-        slice_ops::slice_cast_mut(data, cast_data);
-        self.commitment_descriptor.push(cast_data.into());
         self.produce_anchored_mle(data);
     }
 
@@ -139,13 +117,7 @@ impl<'a> ProofBuilder<'a> {
         skip_all
     )]
     pub fn commit_intermediate_mles(&self, offset_generators: usize) -> Vec<CompressedRistretto> {
-        let mut res = vec![CompressedRistretto::identity(); self.commitment_descriptor.len()];
-        compute_commitments(
-            &mut res,
-            &self.commitment_descriptor,
-            offset_generators as u64,
-        );
-        res
+        Vec::from_commitable_columns_with_offset(&self.commitment_descriptor, offset_generators)
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
