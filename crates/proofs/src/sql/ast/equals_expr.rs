@@ -167,7 +167,7 @@ pub fn prover_evaluate_equals_zero<'a>(
     let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
     slice_ops::batch_inversion(lhs_pseudo_inv);
 
-    builder.produce_intermediate_mle_from_ark_scalars(lhs_pseudo_inv, alloc);
+    builder.produce_intermediate_mle(lhs_pseudo_inv as &[_]);
 
     // selection_not
     let selection_not: &[_] =

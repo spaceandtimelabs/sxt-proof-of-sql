@@ -23,9 +23,10 @@ pub enum CommittableColumn<'a> {
     Int128(&'a [i128]),
     /// Column of big ints for committing to, hashed from a VarChar column.
     VarChar(Vec<[u64; 4]>),
-    #[cfg(test)]
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
+    /// Borrowed Bool column, mapped to `bool`.
+    Boolean(&'a [bool]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -35,8 +36,8 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::BigInt(col) => col.len(),
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
-            #[cfg(test)]
             CommittableColumn::Scalar(col) => col.len(),
+            CommittableColumn::Boolean(col) => col.len(),
         }
     }
 
@@ -57,8 +58,13 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
             CommittableColumn::Int128(_) => ColumnType::Int128,
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
+            #[cfg(not(test))]
+            CommittableColumn::Scalar(_) => unimplemented!("Scalar columns are not supported yet"),
             #[cfg(test)]
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
+            CommittableColumn::Boolean(_) => {
+                unimplemented!("Boolean columns are not supported yet")
+            }
         }
     }
 }
@@ -66,17 +72,14 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
 impl<'a> From<&Column<'a>> for CommittableColumn<'a> {
     fn from(value: &Column<'a>) -> Self {
         match value {
-            Column::BigInt(ints) => CommittableColumn::BigInt(ints),
-            Column::Int128(ints) => CommittableColumn::Int128(ints),
+            Column::BigInt(ints) => (ints as &[_]).into(),
+            Column::Int128(ints) => (ints as &[_]).into(),
             Column::VarChar((_, scalars)) => {
                 let as_limbs: Vec<_> = scalars.iter().map(Into::<[u64; 4]>::into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
             #[cfg(test)]
-            Column::Scalar(scalars) => {
-                let as_limbs: Vec<_> = scalars.iter().map(Into::<[u64; 4]>::into).collect();
-                CommittableColumn::Scalar(as_limbs)
-            }
+            Column::Scalar(scalars) => (scalars as &[_]).into(),
         }
     }
 }
@@ -84,32 +87,55 @@ impl<'a> From<&Column<'a>> for CommittableColumn<'a> {
 impl<'a> From<&'a OwnedColumn> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn) -> Self {
         match value {
-            OwnedColumn::BigInt(ints) => CommittableColumn::BigInt(ints),
-            OwnedColumn::Int128(ints) => CommittableColumn::Int128(ints),
-            OwnedColumn::VarChar(strings) => {
-                let as_limbs: Vec<_> = strings
-                    .iter()
-                    .map(ArkScalar::from)
-                    .map(Into::<[u64; 4]>::into)
-                    .collect();
-                CommittableColumn::VarChar(as_limbs)
-            }
+            OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
+            OwnedColumn::Int128(ints) => (ints as &[_]).into(),
+            OwnedColumn::VarChar(strings) => (strings as &[_]).into(),
             #[cfg(test)]
-            OwnedColumn::Scalar(scalars) => {
-                let as_limbs: Vec<_> = scalars.iter().map(Into::<[u64; 4]>::into).collect();
-                CommittableColumn::Scalar(as_limbs)
-            }
+            OwnedColumn::Scalar(scalars) => (scalars as &[_]).into(),
         }
     }
 }
+
+impl<'a> From<&'a [i64]> for CommittableColumn<'a> {
+    fn from(value: &'a [i64]) -> Self {
+        CommittableColumn::BigInt(value)
+    }
+}
+impl<'a> From<&'a [i128]> for CommittableColumn<'a> {
+    fn from(value: &'a [i128]) -> Self {
+        CommittableColumn::Int128(value)
+    }
+}
+impl<'a> From<&'a [String]> for CommittableColumn<'a> {
+    fn from(value: &'a [String]) -> Self {
+        CommittableColumn::VarChar(
+            value
+                .iter()
+                .map(ArkScalar::from)
+                .map(Into::<[u64; 4]>::into)
+                .collect(),
+        )
+    }
+}
+impl<'a> From<&'a [ArkScalar]> for CommittableColumn<'a> {
+    fn from(value: &'a [ArkScalar]) -> Self {
+        CommittableColumn::Scalar(value.iter().map(Into::<[u64; 4]>::into).collect())
+    }
+}
+impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
+    fn from(value: &'a [bool]) -> Self {
+        CommittableColumn::Boolean(value)
+    }
+}
+
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
-            #[cfg(test)]
             CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
+            CommittableColumn::Boolean(bools) => Sequence::from(*bools),
         }
     }
 }
@@ -185,6 +211,25 @@ mod tests {
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
         assert_eq!(bigint_committable_column.column_type(), ColumnType::Scalar);
+    }
+
+    #[test]
+    fn we_can_get_length_of_boolean_column() {
+        // empty case
+        let bool_committable_column = CommittableColumn::Boolean(&[]);
+        assert_eq!(bool_committable_column.len(), 0);
+
+        let bool_committable_column = CommittableColumn::Boolean(&[true, false, true]);
+        assert_eq!(bool_committable_column.len(), 3);
+        assert!(!bool_committable_column.is_empty());
+    }
+
+    #[test]
+    #[should_panic]
+    fn we_cannot_get_type_of_boolean_column() {
+        // empty case
+        let bool_committable_column = CommittableColumn::Boolean(&[]);
+        let _ = bool_committable_column.column_type();
     }
 
     #[test]
@@ -392,6 +437,30 @@ mod tests {
         let sequence_actual = Sequence::from(&committable_column);
         let scalars = values.map(ArkScalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_boolean_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::Boolean(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [true, false, true];
+        let committable_column = CommittableColumn::Boolean(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_commitments(
             &mut commitment_buffer,
