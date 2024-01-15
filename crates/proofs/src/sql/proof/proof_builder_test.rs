@@ -2,13 +2,10 @@ use super::{ProofBuilder, SumcheckRandomScalars};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
-        polynomial::CompositePolynomial,
+        polynomial::{compute_evaluation_vector, CompositePolynomial},
         scalar::{compute_commitment_for_testing, ArkScalar},
     },
-    sql::proof::{
-        compute_evaluation_vector, Indexes, MultilinearExtension, ResultBuilder,
-        SumcheckSubpolynomialType,
-    },
+    sql::proof::{Indexes, MultilinearExtension, ResultBuilder, SumcheckSubpolynomialType},
 };
 use arrow::{
     array::Int64Array,

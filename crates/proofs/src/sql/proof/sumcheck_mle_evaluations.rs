@@ -1,8 +1,10 @@
-use super::{
-    compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum, Indexes,
-    SumcheckRandomScalars,
+use super::{Indexes, SumcheckRandomScalars};
+use crate::base::{
+    polynomial::{
+        compute_truncated_lagrange_basis_inner_product, compute_truncated_lagrange_basis_sum,
+    },
+    scalar::ArkScalar,
 };
-use crate::base::scalar::ArkScalar;
 
 /// Evaluations for different MLEs at the random point chosen for sumcheck
 #[derive(Default)]

@@ -1,5 +1,4 @@
-use super::compute_truncated_lagrange_basis_sum;
-use crate::base::scalar::ArkScalar;
+use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::ArkScalar};
 use core::ops::Range;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
