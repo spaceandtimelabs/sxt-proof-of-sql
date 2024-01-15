@@ -1,14 +1,13 @@
 use super::{
-    compute_evaluation_vector, CountBuilder, ProofBuilder, ProofCounts, ProofExpr,
-    ProvableQueryResult, QueryResult, SumcheckMleEvaluations, SumcheckRandomScalars,
-    VerificationBuilder,
+    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProvableQueryResult, QueryResult,
+    SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
     base::{
         bit::BitDistribution,
         database::{CommitmentAccessor, DataAccessor},
         math::log2_up,
-        polynomial::CompositePolynomialInfo,
+        polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{MessageLabel, ProofError, TranscriptProtocol},
         scalar::ArkScalar,
         slice_ops,

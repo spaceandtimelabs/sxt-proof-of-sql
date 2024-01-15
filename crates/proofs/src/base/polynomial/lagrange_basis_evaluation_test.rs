@@ -1,9 +1,9 @@
-use crate::{
-    base::scalar::ArkScalar,
-    sql::proof::{
+use crate::base::{
+    polynomial::{
         compute_evaluation_vector, compute_truncated_lagrange_basis_inner_product,
         compute_truncated_lagrange_basis_sum,
     },
+    scalar::ArkScalar,
 };
 use num_traits::Zero;
 use std::iter;
