@@ -109,7 +109,6 @@ impl ProvableQueryResult {
                     ColumnType::BigInt => <i64>::decode_to_ark_scalar(&self.data[offset..]),
                     ColumnType::VarChar => <&str>::decode_to_ark_scalar(&self.data[offset..]),
                     ColumnType::Int128 => <i128>::decode_to_ark_scalar(&self.data[offset..]),
-                    #[cfg(test)]
                     ColumnType::Scalar => <ArkScalar>::decode_to_ark_scalar(&self.data[offset..]),
                 }?;
 
@@ -137,7 +136,7 @@ impl ProvableQueryResult {
     pub fn into_owned_table(
         &self,
         column_result_fields: &[ColumnField],
-    ) -> Result<OwnedTable, QueryError> {
+    ) -> Result<OwnedTable<ArkScalar>, QueryError> {
         assert_eq!(column_result_fields.len(), self.num_columns());
 
         let n = self.indexes.len();
@@ -165,7 +164,6 @@ impl ProvableQueryResult {
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::VarChar(col)))
                     }
-                    #[cfg(test)]
                     ColumnType::Scalar => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
                             .ok_or(QueryError::Overflow)?;

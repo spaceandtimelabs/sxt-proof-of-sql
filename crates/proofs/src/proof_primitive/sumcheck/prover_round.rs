@@ -4,7 +4,7 @@
  * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::ArkScalar;
-use crate::{base::polynomial::DenseMultilinearExtension, proof_primitive::sumcheck::ProverState};
+use crate::proof_primitive::sumcheck::ProverState;
 use num_traits::Zero;
 use rayon::prelude::*;
 
@@ -98,15 +98,11 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) 
 }
 
 /// This is equivalent to
-/// *multiplicand = DenseMultilinearExtension {
+/// *multiplicand = Vec<ArkScalar> {
 ///                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
 ///                };
 /// Only it does it in place
-fn in_place_fix_variable(
-    multiplicand: &mut DenseMultilinearExtension,
-    r_as_field: ArkScalar,
-    num_vars: usize,
-) {
+fn in_place_fix_variable(multiplicand: &mut [ArkScalar], r_as_field: ArkScalar, num_vars: usize) {
     assert!(num_vars > 0, "invalid size of partial point");
     for b in 0..(1 << num_vars) {
         let left: ArkScalar = multiplicand[b << 1];

@@ -1,4 +1,7 @@
-use crate::base::database::{Column, ColumnRef, ColumnType, TableRef};
+use crate::base::{
+    database::{Column, ColumnRef, ColumnType, TableRef},
+    scalar::ArkScalar,
+};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 
@@ -80,7 +83,7 @@ pub trait CommitmentAccessor: MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
-    fn get_column(&self, column: ColumnRef) -> Column;
+    fn get_column(&self, column: ColumnRef) -> Column<ArkScalar>;
 }
 
 /// Access tables and their schemas in a database.

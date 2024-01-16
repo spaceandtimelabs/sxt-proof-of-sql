@@ -66,7 +66,6 @@ impl FilterResultExpr {
             Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
-            #[cfg(test)]
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)

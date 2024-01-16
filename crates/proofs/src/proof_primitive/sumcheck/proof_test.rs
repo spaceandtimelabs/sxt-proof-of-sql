@@ -1,5 +1,5 @@
 use crate::base::{
-    polynomial::{CompositePolynomial, DenseMultilinearExtension},
+    polynomial::CompositePolynomial,
     proof::{MessageLabel, TranscriptProtocol},
     scalar::ArkScalar,
 };
@@ -62,7 +62,7 @@ fn random_product(
     nv: usize,
     num_multiplicands: usize,
     rng: &mut ark_std::rand::rngs::StdRng,
-) -> (Vec<Rc<DenseMultilinearExtension>>, ArkScalar) {
+) -> (Vec<Rc<Vec<ArkScalar>>>, ArkScalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
         multiplicands.push(Vec::with_capacity(1 << nv))
@@ -87,7 +87,7 @@ fn random_polynomial(
     num_multiplicands_range: (usize, usize),
     num_products: usize,
     rng: &mut ark_std::rand::rngs::StdRng,
-) -> (CompositePolynomial, ArkScalar) {
+) -> (CompositePolynomial<ArkScalar>, ArkScalar) {
     use ark_std::rand::Rng;
     let mut sum = ArkScalar::zero();
     let mut poly = CompositePolynomial::new(nv);

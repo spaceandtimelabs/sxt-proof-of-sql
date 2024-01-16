@@ -179,8 +179,10 @@ mod tests {
     #[test]
     fn we_can_convert_from_columns() {
         // empty case
-        let commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(&Vec::<Column>::new(), 0);
+        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
+            &Vec::<Column<ArkScalar>>::new(),
+            0,
+        );
 
         assert!(commitments.is_empty());
 
@@ -264,7 +266,7 @@ mod tests {
 
         let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
-        let new_columns = Vec::<Column>::new();
+        let new_columns = Vec::<Column<ArkScalar>>::new();
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3),
             Err(NumColumnsMismatch)
@@ -384,7 +386,7 @@ mod tests {
 
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
-        let new_columns = Vec::<Column>::new();
+        let new_columns = Vec::<Column<ArkScalar>>::new();
         let new_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
@@ -456,7 +458,7 @@ mod tests {
 
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
-        let full_columns = Vec::<Column>::new();
+        let full_columns = Vec::<Column<ArkScalar>>::new();
         let full_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
         assert!(matches!(

@@ -1,4 +1,7 @@
-use crate::base::{database::Column, scalar::ArkScalar};
+use crate::base::{
+    database::Column,
+    scalar::{ArkScalar, Scalar},
+};
 use arrow::{
     array::{Array, ArrayRef, Decimal128Array, Int64Array, StringArray},
     datatypes::DataType,
@@ -38,12 +41,12 @@ pub trait ArrayRefExt {
     ///    `scals` must be provided and have a length equal to `range.len()`.
     ///
     /// Note: this function must not be called from unsupported or nullable arrays as it will panic.
-    fn to_column<'a>(
+    fn to_column<'a, S: Scalar>(
         &'a self,
         alloc: &'a Bump,
         range: &Range<usize>,
-        scals: Option<&'a [ArkScalar]>,
-    ) -> Result<Column<'a>, ArrowArrayToColumnConversionError>;
+        scals: Option<&'a [S]>,
+    ) -> Result<Column<'a, S>, ArrowArrayToColumnConversionError>;
 }
 
 impl ArrayRefExt for ArrayRef {
@@ -92,12 +95,12 @@ impl ArrayRefExt for ArrayRef {
     ///
     /// # Panics
     /// - When any range is OOB, i.e. indexing 3..6 or 5..5 on array of size 2.
-    fn to_column<'a>(
+    fn to_column<'a, S: Scalar>(
         &'a self,
         alloc: &'a Bump,
         range: &Range<usize>,
-        precomputed_scals: Option<&'a [ArkScalar]>,
-    ) -> Result<Column<'a>, ArrowArrayToColumnConversionError> {
+        precomputed_scals: Option<&'a [S]>,
+    ) -> Result<Column<'a, S>, ArrowArrayToColumnConversionError> {
         // Start by checking for nulls
         if self.null_count() != 0 {
             return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
@@ -131,7 +134,7 @@ impl ArrayRefExt for ArrayRef {
                 let scals = if let Some(scals) = precomputed_scals {
                     &scals[range.start..range.end]
                 } else {
-                    alloc.alloc_slice_fill_with(vals.len(), |i| -> ArkScalar { vals[i].into() })
+                    alloc.alloc_slice_fill_with(vals.len(), |i| -> S { vals[i].into() })
                 };
 
                 Ok(Column::VarChar((vals, scals)))
@@ -153,7 +156,7 @@ mod tests {
     fn we_cannot_index_on_oob_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
-        array.to_column(&alloc, &(2..3), None).unwrap();
+        array.to_column::<ArkScalar>(&alloc, &(2..3), None).unwrap();
     }
 
     #[test]
@@ -161,14 +164,14 @@ mod tests {
     fn we_cannot_index_on_empty_oob_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
-        array.to_column(&alloc, &(5..5), None).unwrap();
+        array.to_column::<ArkScalar>(&alloc, &(5..5), None).unwrap();
     }
 
     #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_int64() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
-        let result = array.to_column(&alloc, &(2..2), None).unwrap();
+        let result = array.to_column::<ArkScalar>(&alloc, &(2..2), None).unwrap();
         assert_eq!(result, Column::BigInt(&[]));
     }
 
@@ -181,7 +184,7 @@ mod tests {
                 .with_precision_and_scale(38, 0)
                 .unwrap(),
         );
-        let result = array.to_column(&alloc, &(0..0), None).unwrap();
+        let result = array.to_column::<ArkScalar>(&alloc, &(0..0), None).unwrap();
         assert_eq!(result, Column::Int128(&[]));
     }
 
@@ -191,7 +194,7 @@ mod tests {
         let data = vec!["ab", "-f34"];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_column(&alloc, &(1..1), None).unwrap(),
+            array.to_column::<ArkScalar>(&alloc, &(1..1), None).unwrap(),
             Column::VarChar((&[], &[]))
         );
     }
@@ -201,7 +204,7 @@ mod tests {
         let alloc = Bump::new();
         let data = vec![Some("ab"), Some("-f34"), None];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        let result = array.to_column(&alloc, &(0..3), None);
+        let result = array.to_column::<ArkScalar>(&alloc, &(0..3), None);
         assert!(matches!(
             result,
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
@@ -214,7 +217,7 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data));
-        let _ = array.to_column(&alloc, &(0..3), None);
+        let _ = array.to_column::<ArkScalar>(&alloc, &(0..3), None);
     }
 
     #[test]
@@ -222,7 +225,7 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), None).unwrap(),
+            array.to_column::<ArkScalar>(&alloc, &(0..2), None).unwrap(),
             Column::BigInt(&[1, -3])
         );
     }
@@ -234,7 +237,7 @@ mod tests {
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), None).unwrap(),
+            array.to_column::<ArkScalar>(&alloc, &(0..2), None).unwrap(),
             Column::VarChar((&data[..], &scals[..]))
         );
     }
@@ -245,7 +248,7 @@ mod tests {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![0, 1, 545]));
         assert_eq!(
-            array.to_column(&alloc, &(1..3), None).unwrap(),
+            array.to_column::<ArkScalar>(&alloc, &(1..3), None).unwrap(),
             Column::BigInt(&[1, 545])
         );
     }
@@ -259,7 +262,7 @@ mod tests {
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
         assert_eq!(
-            array.to_column(&alloc, &(1..3), None).unwrap(),
+            array.to_column::<ArkScalar>(&alloc, &(1..3), None).unwrap(),
             Column::VarChar((&data[1..3], &scals[1..3]))
         );
     }
@@ -271,7 +274,9 @@ mod tests {
         let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
-            array.to_column(&alloc, &(0..2), Some(&scals)).unwrap(),
+            array
+                .to_column::<ArkScalar>(&alloc, &(0..2), Some(&scals))
+                .unwrap(),
             Column::VarChar((&data[..], &scals[..]))
         );
     }
@@ -281,7 +286,7 @@ mod tests {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
-        let result = array.to_column(&alloc, &(0..0), None).unwrap();
+        let result = array.to_column::<ArkScalar>(&alloc, &(0..0), None).unwrap();
         assert_eq!(result, Column::VarChar((&[], &[])));
     }
 

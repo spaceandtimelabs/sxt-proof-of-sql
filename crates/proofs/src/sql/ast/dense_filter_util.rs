@@ -13,9 +13,9 @@ use num_traits::One;
 /// rows in the filtered columns.
 pub fn filter_columns<'a>(
     alloc: &'a Bump,
-    columns: &[Column<'a>],
+    columns: &[Column<'a, ArkScalar>],
     selection: &[bool],
-) -> (Vec<Column<'a>>, usize) {
+) -> (Vec<Column<'a, ArkScalar>>, usize) {
     for col in columns {
         assert_eq!(col.len(), selection.len());
     }
@@ -38,9 +38,9 @@ pub fn filter_columns<'a>(
 /// the indexes are valid.
 pub fn filter_column_by_index<'a>(
     alloc: &'a Bump,
-    column: &Column<'a>,
+    column: &Column<'a, ArkScalar>,
     indexes: &[usize],
-) -> Column<'a> {
+) -> Column<'a, ArkScalar> {
     match column {
         Column::BigInt(col) => {
             Column::BigInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
@@ -52,7 +52,6 @@ pub fn filter_column_by_index<'a>(
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| scals[i])),
         )),
-        #[cfg(test)]
         Column::Scalar(col) => {
             Column::Scalar(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }

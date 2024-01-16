@@ -1,5 +1,8 @@
 use super::Indexes;
-use crate::{base::database::Column, sql::proof::EncodeProvableResultElement};
+use crate::{
+    base::{database::Column, scalar::ArkScalar},
+    sql::proof::EncodeProvableResultElement,
+};
 
 /// Interface for serializing an intermediate result column
 pub trait ProvableResultColumn {
@@ -28,13 +31,12 @@ impl<'a, T: EncodeProvableResultElement> ProvableResultColumn for &'a [T] {
     }
 }
 
-impl ProvableResultColumn for Column<'_> {
+impl ProvableResultColumn for Column<'_, ArkScalar> {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         match self {
             Column::BigInt(col) => col.num_bytes(selection),
             Column::Int128(col) => col.num_bytes(selection),
             Column::VarChar((col, _)) => col.num_bytes(selection),
-            #[cfg(test)]
             Column::Scalar(col) => col.num_bytes(selection),
         }
     }
@@ -44,7 +46,6 @@ impl ProvableResultColumn for Column<'_> {
             Column::BigInt(col) => col.write(out, selection),
             Column::Int128(col) => col.write(out, selection),
             Column::VarChar((col, _)) => col.write(out, selection),
-            #[cfg(test)]
             Column::Scalar(col) => col.write(out, selection),
         }
     }

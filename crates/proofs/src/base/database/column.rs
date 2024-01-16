@@ -1,5 +1,5 @@
 use super::TableRef;
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::Scalar;
 use arrow::datatypes::{DataType, Field};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
@@ -11,28 +11,26 @@ use serde::{Deserialize, Serialize};
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub enum Column<'a> {
+pub enum Column<'a, S: Scalar> {
     /// i64 columns
     BigInt(&'a [i64]),
     /// String columns
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [crate::base::scalar::ArkScalar]).
-    VarChar((&'a [&'a str], &'a [ArkScalar])),
+    VarChar((&'a [&'a str], &'a [S])),
     /// i128 columns
     Int128(&'a [i128]),
     /// Scalar columns
-    #[cfg(test)]
-    Scalar(&'a [ArkScalar]),
+    Scalar(&'a [S]),
 }
 
-impl Column<'_> {
+impl<S: Scalar> Column<'_, S> {
     /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
-            #[cfg(test)]
             Self::Scalar(_) => ColumnType::Scalar,
         }
     }
@@ -45,7 +43,6 @@ impl Column<'_> {
                 col.len()
             }
             Self::Int128(col) => col.len(),
-            #[cfg(test)]
             Self::Scalar(col) => col.len(),
         }
     }
@@ -79,7 +76,6 @@ pub enum ColumnType {
     VarChar,
     /// Mapped to ArkScalar
     #[serde(alias = "SCALAR", alias = "scalar")]
-    #[cfg(test)]
     Scalar,
 }
 
@@ -90,7 +86,6 @@ impl From<&ColumnType> for DataType {
             ColumnType::BigInt => DataType::Int64,
             ColumnType::Int128 => DataType::Decimal128(38, 0),
             ColumnType::VarChar => DataType::Utf8,
-            #[cfg(test)]
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
     }
@@ -117,7 +112,6 @@ impl std::fmt::Display for ColumnType {
             ColumnType::BigInt => write!(f, "BIGINT"),
             ColumnType::Int128 => write!(f, "DECIMAL"),
             ColumnType::VarChar => write!(f, "VARCHAR"),
-            #[cfg(test)]
             ColumnType::Scalar => write!(f, "SCALAR"),
         }
     }
@@ -132,7 +126,6 @@ impl std::str::FromStr for ColumnType {
             "BIGINT" => Ok(ColumnType::BigInt),
             "DECIMAL" => Ok(ColumnType::Int128),
             "VARCHAR" => Ok(ColumnType::VarChar),
-            #[cfg(test)]
             "SCALAR" => Ok(ColumnType::Scalar),
             _ => Err(format!("Unsupported column type {:?}", s)),
         }
@@ -214,6 +207,7 @@ impl From<&ColumnField> for Field {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::scalar::ArkScalar;
 
     #[test]
     fn column_type_serializes_to_string() {
@@ -326,7 +320,7 @@ mod tests {
     fn we_can_get_the_len_of_a_column() {
         let scals = [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3)];
 
-        let column = Column::BigInt(&[1, 2, 3]);
+        let column = Column::<ArkScalar>::BigInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -334,7 +328,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::Int128(&[1, 2, 3]);
+        let column = Column::<ArkScalar>::Int128(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -342,19 +336,19 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::BigInt(&[]);
+        let column = Column::<ArkScalar>::BigInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::VarChar((&[], &[]));
+        let column = Column::<ArkScalar>::VarChar((&[], &[]));
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::Int128(&[]);
+        let column = Column::<ArkScalar>::Int128(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::Scalar(&[]);
+        let column = Column::<ArkScalar>::Scalar(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
     }

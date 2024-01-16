@@ -274,9 +274,9 @@ pub(super) fn prove_filter<'a>(
     alloc: &'a Bump,
     alpha: ArkScalar,
     beta: ArkScalar,
-    c: &[Column],
+    c: &[Column<ArkScalar>],
     s: &'a [bool],
-    d: &[Column],
+    d: &[Column<ArkScalar>],
     m: usize,
 ) {
     let n = builder.table_length();

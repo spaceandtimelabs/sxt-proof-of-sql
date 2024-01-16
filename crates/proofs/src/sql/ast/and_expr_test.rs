@@ -27,9 +27,9 @@ fn create_and_verify_test_and_expr(
     results: &[&str],
     lhs: (&str, impl Into<ArkScalar>),
     rhs: (&str, impl Into<ArkScalar>),
-    data: OwnedTable,
+    data: OwnedTable<ArkScalar>,
     offset: usize,
-) -> OwnedTable {
+) -> OwnedTable<ArkScalar> {
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
@@ -47,8 +47,8 @@ fn filter_test_and_expr(
     results: &[&str],
     lhs: (&str, impl polars::prelude::Literal),
     rhs: (&str, impl polars::prelude::Literal),
-    data: OwnedTable,
-) -> OwnedTable {
+    data: OwnedTable<ArkScalar>,
+) -> OwnedTable<ArkScalar> {
     let df_filter = polars::prelude::col(lhs.0)
         .eq(lit(lhs.1))
         .and(polars::prelude::col(rhs.0).eq(lit(rhs.1)));

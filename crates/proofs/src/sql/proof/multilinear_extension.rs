@@ -1,6 +1,4 @@
-use crate::base::{
-    database::Column, polynomial::DenseMultilinearExtension, scalar::ArkScalar, slice_ops,
-};
+use crate::base::{database::Column, scalar::ArkScalar, slice_ops};
 use num_traits::Zero;
 use rayon::iter::*;
 use std::{ffi::c_void, rc::Rc};
@@ -15,7 +13,7 @@ pub trait MultilinearExtension {
     fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar);
 
     /// convert the MLE to a form that can be used in sumcheck
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension>;
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<ArkScalar>>;
 
     /// pointer to identify the slice forming the MLE
     fn id(&self) -> *const c_void;
@@ -33,7 +31,7 @@ where
         slice_ops::mul_add_assign(res, *multiplier, &slice_ops::slice_cast(self));
     }
 
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<ArkScalar>> {
         let values = self;
         let n = 1 << num_vars;
         assert!(n >= values.len());
@@ -60,7 +58,7 @@ macro_rules! slice_like_mle_impl {
             (&self[..]).mul_add(res, multiplier)
         }
 
-        fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
+        fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<ArkScalar>> {
             (&self[..]).to_sumcheck_term(num_vars)
         }
 
@@ -84,10 +82,9 @@ where
     slice_like_mle_impl!();
 }
 
-impl MultilinearExtension for Column<'_> {
+impl MultilinearExtension for Column<'_, ArkScalar> {
     fn inner_product(&self, evaluation_vec: &[ArkScalar]) -> ArkScalar {
         match self {
-            #[cfg(test)]
             Column::Scalar(c) => c.inner_product(evaluation_vec),
             Column::BigInt(c) => c.inner_product(evaluation_vec),
             Column::VarChar((_, c)) => c.inner_product(evaluation_vec),
@@ -97,7 +94,6 @@ impl MultilinearExtension for Column<'_> {
 
     fn mul_add(&self, res: &mut [ArkScalar], multiplier: &ArkScalar) {
         match self {
-            #[cfg(test)]
             Column::Scalar(c) => c.mul_add(res, multiplier),
             Column::BigInt(c) => c.mul_add(res, multiplier),
             Column::VarChar((_, c)) => c.mul_add(res, multiplier),
@@ -105,9 +101,8 @@ impl MultilinearExtension for Column<'_> {
         }
     }
 
-    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<DenseMultilinearExtension> {
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<ArkScalar>> {
         match self {
-            #[cfg(test)]
             Column::Scalar(c) => c.to_sumcheck_term(num_vars),
             Column::BigInt(c) => c.to_sumcheck_term(num_vars),
             Column::VarChar((_, c)) => c.to_sumcheck_term(num_vars),
@@ -117,7 +112,6 @@ impl MultilinearExtension for Column<'_> {
 
     fn id(&self) -> *const c_void {
         match self {
-            #[cfg(test)]
             Column::Scalar(c) => c.id(),
             Column::BigInt(c) => c.id(),
             Column::VarChar((_, c)) => c.id(),
