@@ -148,7 +148,6 @@ fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
                         ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
                         ColumnType::Int128 => OwnedColumn::Int128(vec![]),
                         ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
-                        #[cfg(test)]
                         ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
                     },
                 )

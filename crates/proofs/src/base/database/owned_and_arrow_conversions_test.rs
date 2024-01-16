@@ -12,7 +12,7 @@ use indexmap::IndexMap;
 use std::sync::Arc;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
-    owned_column: OwnedColumn,
+    owned_column: OwnedColumn<ArkScalar>,
     array_ref: ArrayRef,
 ) {
     let ic_to_ar = ArrayRef::try_from(owned_column.clone()).unwrap();
@@ -23,13 +23,13 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
 }
 fn we_can_convert_between_bigint_owned_column_and_array_ref_impl(data: Vec<i64>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::BigInt(data.clone()),
+        OwnedColumn::<ArkScalar>::BigInt(data.clone()),
         Arc::new(Int64Array::from(data)),
     );
 }
 fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::Int128(data.clone()),
+        OwnedColumn::<ArkScalar>::Int128(data.clone()),
         Arc::new(
             Decimal128Array::from(data)
                 .with_precision_and_scale(38, 0)
@@ -39,7 +39,7 @@ fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>
 }
 fn we_can_convert_between_varchar_owned_column_and_array_ref_impl(data: Vec<String>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::VarChar(data.clone()),
+        OwnedColumn::<ArkScalar>::VarChar(data.clone()),
         Arc::new(StringArray::from(data)),
     );
 }
@@ -63,13 +63,13 @@ fn we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_
 ) {
     let array_ref: ArrayRef = Arc::new(Float32Array::from(vec![0.0]));
     assert!(matches!(
-        OwnedColumn::try_from(array_ref),
+        OwnedColumn::<ArkScalar>::try_from(array_ref),
         Err(OwnedArrowConversionError::UnsupportedType(_))
     ));
 }
 
 fn we_can_convert_between_owned_table_and_record_batch_impl(
-    owned_table: OwnedTable,
+    owned_table: OwnedTable<ArkScalar>,
     record_batch: RecordBatch,
 ) {
     let it_to_rb = RecordBatch::try_from(owned_table.clone()).unwrap();
@@ -81,7 +81,7 @@ fn we_can_convert_between_owned_table_and_record_batch_impl(
 #[test]
 fn we_can_convert_between_owned_table_and_record_batch() {
     we_can_convert_between_owned_table_and_record_batch_impl(
-        OwnedTable::try_new(IndexMap::new()).unwrap(),
+        OwnedTable::<ArkScalar>::try_new(IndexMap::new()).unwrap(),
         RecordBatch::new_empty(Arc::new(Schema::empty())),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
@@ -117,7 +117,7 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
         "A" => [0_i128; 0],
     );
     assert!(matches!(
-        OwnedTable::try_from(record_batch),
+        OwnedTable::<ArkScalar>::try_from(record_batch),
         Err(OwnedArrowConversionError::DuplicateIdentifiers)
     ));
 }

@@ -29,7 +29,7 @@ impl SumcheckProof {
     pub fn create(
         transcript: &mut Transcript,
         evaluation_point: &mut [ArkScalar],
-        polynomial: &CompositePolynomial,
+        polynomial: &CompositePolynomial<ArkScalar>,
     ) -> SumcheckProof {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
         transcript.append_auto(

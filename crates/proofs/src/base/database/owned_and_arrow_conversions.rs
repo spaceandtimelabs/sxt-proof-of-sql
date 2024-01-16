@@ -11,7 +11,10 @@
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
 
-use crate::base::database::{OwnedColumn, OwnedTable, OwnedTableError};
+use crate::base::{
+    database::{OwnedColumn, OwnedTable, OwnedTableError},
+    scalar::Scalar,
+};
 use arrow::{
     array::{ArrayRef, Decimal128Array, Int64Array, StringArray},
     datatypes::{DataType, Schema, SchemaRef},
@@ -40,8 +43,8 @@ pub enum OwnedArrowConversionError {
     InvalidTable(#[from] OwnedTableError),
 }
 
-impl From<OwnedColumn> for ArrayRef {
-    fn from(value: OwnedColumn) -> Self {
+impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
+    fn from(value: OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
@@ -50,15 +53,14 @@ impl From<OwnedColumn> for ArrayRef {
                     .with_precision_and_scale(38, 0)
                     .unwrap(),
             ),
-            #[cfg(test)]
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
     }
 }
 
-impl TryFrom<OwnedTable> for RecordBatch {
+impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
     type Error = ArrowError;
-    fn try_from(value: OwnedTable) -> Result<Self, Self::Error> {
+    fn try_from(value: OwnedTable<S>) -> Result<Self, Self::Error> {
         if value.is_empty() {
             Ok(RecordBatch::new_empty(SchemaRef::new(Schema::empty())))
         } else {
@@ -72,13 +74,13 @@ impl TryFrom<OwnedTable> for RecordBatch {
     }
 }
 
-impl TryFrom<ArrayRef> for OwnedColumn {
+impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: ArrayRef) -> Result<Self, Self::Error> {
         Self::try_from(&value)
     }
 }
-impl TryFrom<&ArrayRef> for OwnedColumn {
+impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
@@ -114,7 +116,7 @@ impl TryFrom<&ArrayRef> for OwnedColumn {
     }
 }
 
-impl TryFrom<RecordBatch> for OwnedTable {
+impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: RecordBatch) -> Result<Self, Self::Error> {
         let num_columns = value.num_columns();

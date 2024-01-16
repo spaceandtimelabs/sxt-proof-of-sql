@@ -92,7 +92,6 @@ impl BoolExpr for EqualsExpr {
             Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::VarChar((_, scals)) => self.result_evaluate_impl(table_length, alloc, scals),
-            #[cfg(test)]
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)
@@ -115,7 +114,6 @@ impl BoolExpr for EqualsExpr {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::VarChar((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
-            #[cfg(test)]
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)

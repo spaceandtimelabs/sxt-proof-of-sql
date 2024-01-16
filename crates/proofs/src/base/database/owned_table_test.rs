@@ -10,7 +10,7 @@ use proofs_sql::Identifier;
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
-    let table = OwnedTable::try_new(IndexMap::new()).unwrap();
+    let table = OwnedTable::<ArkScalar>::try_new(IndexMap::new()).unwrap();
     assert_eq!(table.num_columns(), 0);
 }
 #[test]
@@ -89,12 +89,12 @@ fn we_can_create_an_owned_table_with_data() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_column_order() {
-    let owned_table_a = owned_table!(
+    let owned_table_a: OwnedTable<ArkScalar> = owned_table!(
         "a" => [0_i64; 0],
         "b" => [0_i128; 0],
         "c" => ["0"; 0],
     );
-    let owned_table_b = owned_table!(
+    let owned_table_b: OwnedTable<ArkScalar> = owned_table!(
         "b" => [0_i128; 0],
         "a" => [0_i64; 0],
         "c" => ["0"; 0],
@@ -103,12 +103,12 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_data() {
-    let owned_table_a = owned_table!(
+    let owned_table_a: OwnedTable<ArkScalar> = owned_table!(
         "a" => [0_i64],
         "b" => [0_i128],
         "c" => ["0"],
     );
-    let owned_table_b = owned_table!(
+    let owned_table_b: OwnedTable<ArkScalar> = owned_table!(
         "a" => [1_i64],
         "b" => [0_i128],
         "c" => ["0"],
@@ -118,7 +118,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
     assert!(matches!(
-        OwnedTable::try_from_iter([
+        OwnedTable::<ArkScalar>::try_from_iter([
             ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
             ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
         ]),

@@ -1,9 +1,5 @@
 use super::MultilinearExtension;
-use crate::base::{
-    polynomial::{CompositePolynomial, DenseMultilinearExtension},
-    scalar::ArkScalar,
-    slice_ops,
-};
+use crate::base::{polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops};
 use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
@@ -12,10 +8,10 @@ use std::{collections::HashMap, ffi::c_void, rc::Rc};
 pub struct CompositePolynomialBuilder {
     num_sumcheck_variables: usize,
     fr_multiplicands_degree1: Vec<ArkScalar>,
-    fr_multiplicands_rest: Vec<(ArkScalar, Vec<Rc<DenseMultilinearExtension>>)>,
-    zerosum_multiplicands: Vec<(ArkScalar, Vec<Rc<DenseMultilinearExtension>>)>,
-    fr: Rc<DenseMultilinearExtension>,
-    mles: HashMap<*const c_void, Rc<DenseMultilinearExtension>>,
+    fr_multiplicands_rest: Vec<(ArkScalar, Vec<Rc<Vec<ArkScalar>>>)>,
+    zerosum_multiplicands: Vec<(ArkScalar, Vec<Rc<Vec<ArkScalar>>>)>,
+    fr: Rc<Vec<ArkScalar>>,
+    mles: HashMap<*const c_void, Rc<Vec<ArkScalar>>>,
 }
 
 impl CompositePolynomialBuilder {
@@ -68,7 +64,7 @@ impl CompositePolynomialBuilder {
     fn create_multiplicand_with_deduplicated_mles(
         &mut self,
         terms: &[Box<dyn MultilinearExtension + '_>],
-    ) -> Vec<Rc<DenseMultilinearExtension>> {
+    ) -> Vec<Rc<Vec<ArkScalar>>> {
         let mut terms_p = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
@@ -85,7 +81,7 @@ impl CompositePolynomialBuilder {
 
     /// Create a composite polynomial that is the sum of all of the
     /// produced MLE expressions
-    pub fn make_composite_polynomial(&self) -> CompositePolynomial {
+    pub fn make_composite_polynomial(&self) -> CompositePolynomial<ArkScalar> {
         let mut res = CompositePolynomial::new(self.num_sumcheck_variables);
         res.add_product(
             [

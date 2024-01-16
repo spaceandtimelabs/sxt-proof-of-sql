@@ -2,19 +2,13 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use merlin::Transcript;
 use num_traits::{One, Zero};
 use proofs::{
-    base::{
-        polynomial::{CompositePolynomial, DenseMultilinearExtension},
-        scalar::ArkScalar,
-    },
+    base::{polynomial::CompositePolynomial, scalar::ArkScalar},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
 use std::{rc::Rc, time::Duration};
 
-fn random_mle_with_num_vars<R: Rng>(
-    v: usize,
-    rng: &mut R,
-) -> (ArkScalar, DenseMultilinearExtension) {
+fn random_mle_with_num_vars<R: Rng>(v: usize, rng: &mut R) -> (ArkScalar, Vec<ArkScalar>) {
     let scalars: Vec<ArkScalar> = (0..2u32.pow(v as u32))
         .map(|_| rng.gen::<u32>())
         .map(ArkScalar::from)

@@ -37,7 +37,7 @@ impl ColumnExpr {
 
     /// Evaluate the column expression and
     /// add the result to the ResultBuilder
-    pub fn result_evaluate<'a>(&self, accessor: &'a dyn DataAccessor) -> Column<'a> {
+    pub fn result_evaluate<'a>(&self, accessor: &'a dyn DataAccessor) -> Column<'a, ArkScalar> {
         accessor.get_column(self.column_ref)
     }
 
@@ -47,13 +47,12 @@ impl ColumnExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         accessor: &'a dyn DataAccessor,
-    ) -> Column<'a> {
+    ) -> Column<'a, ArkScalar> {
         let column = accessor.get_column(self.column_ref);
         match column {
             Column::BigInt(col) => builder.produce_anchored_mle(col),
             Column::Int128(col) => builder.produce_anchored_mle(col),
             Column::VarChar((_, scals)) => builder.produce_anchored_mle(scals),
-            #[cfg(test)]
             Column::Scalar(col) => builder.produce_anchored_mle(col),
         };
         column

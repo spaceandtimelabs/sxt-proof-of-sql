@@ -127,7 +127,10 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn make_sumcheck_polynomial(&self, scalars: &SumcheckRandomScalars) -> CompositePolynomial {
+    pub fn make_sumcheck_polynomial(
+        &self,
+        scalars: &SumcheckRandomScalars,
+    ) -> CompositePolynomial<ArkScalar> {
         let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,
             &scalars.compute_entrywise_multipliers(),
