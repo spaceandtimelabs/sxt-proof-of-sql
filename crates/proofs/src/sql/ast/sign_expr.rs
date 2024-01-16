@@ -48,7 +48,7 @@ pub fn result_evaluate_sign<'a>(
 ) -> &'a [bool] {
     assert_eq!(table_length, expr.len());
     // bit_distribution
-    let dist = BitDistribution::new(expr);
+    let dist = BitDistribution::new::<ArkScalar, _>(expr);
 
     // handle the constant case
     if dist.num_varying_bits() == 0 {
@@ -81,7 +81,7 @@ pub fn prover_evaluate_sign<'a>(
 ) -> &'a [bool] {
     let table_length = expr.len();
     // bit_distribution
-    let dist = BitDistribution::new(expr);
+    let dist = BitDistribution::new::<ArkScalar, _>(expr);
     builder.produce_bit_distribution(dist.clone());
 
     // handle the constant case
@@ -197,7 +197,7 @@ fn prove_bit_decomposition<'a>(
     terms.push((ArkScalar::one(), vec![Box::new(expr)]));
 
     // expr bit decomposition
-    let const_part = dist.constant_part();
+    let const_part = dist.constant_part::<ArkScalar>();
     if !const_part.is_zero() {
         terms.push((-const_part, vec![Box::new(sign_mle)]));
     }
@@ -224,7 +224,7 @@ fn verify_bit_decomposition(
     let sign_eval = builder.mle_evaluations.one_evaluation - ArkScalar::from(2) * *sign_eval;
     let mut vary_index = 0;
     let mut eval = builder.consume_anchored_mle(expr_commit);
-    eval -= sign_eval * dist.constant_part();
+    eval -= sign_eval * dist.constant_part::<ArkScalar>();
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;

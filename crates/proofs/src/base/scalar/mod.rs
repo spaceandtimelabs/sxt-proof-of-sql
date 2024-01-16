@@ -12,6 +12,7 @@ mod commitment_utility;
 #[cfg(any(test, feature = "test"))]
 pub use commitment_utility::compute_commitment_for_testing;
 
+/// A trait for the scalar field used in proofs.
 pub trait Scalar:
     Clone
     + core::fmt::Debug
@@ -26,6 +27,10 @@ pub trait Scalar:
     + Sub<Output = Self>
     + Copy
     + std::ops::MulAssign
+    + std::convert::Into<[u64; 4]>
+    + std::convert::From<[u64; 4]>
+    + core::cmp::PartialOrd
+    + std::ops::Neg<Output = Self>
     + num_traits::Zero
     + std::ops::AddAssign
     + ark_serialize::CanonicalSerialize //This enables us to put `Scalar`s on the transcript
@@ -33,5 +38,7 @@ pub trait Scalar:
     + num_traits::Inv<Output = Self>
     + std::ops::SubAssign
 {
+    /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
+    /// It is the largest signed value that can be represented in the field with the natural embedding.
+    const MAX_SIGNED: Self;
 }
-impl Scalar for ArkScalar {}

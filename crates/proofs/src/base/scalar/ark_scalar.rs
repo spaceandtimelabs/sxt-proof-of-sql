@@ -63,6 +63,12 @@ impl ArkScalar {
     }
 }
 
+impl From<[u64; 4]> for ArkScalar {
+    fn from(value: [u64; 4]) -> Self {
+        Self(ark_curve25519::Fr::new(ark_ff::BigInt(value)))
+    }
+}
+
 impl ark_std::UniformRand for ArkScalar {
     fn rand<R: ark_std::rand::Rng + ?Sized>(rng: &mut R) -> Self {
         Self(ark_ff::UniformRand::rand(rng))
@@ -164,4 +170,10 @@ impl From<&ArkScalar> for [u64; 4] {
     fn from(value: &ArkScalar) -> Self {
         value.0.into_bigint().0
     }
+}
+
+impl super::Scalar for ArkScalar {
+    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
+        "3618502788666131106986593281521497120428558179689953803000975469142727125494"
+    ));
 }
