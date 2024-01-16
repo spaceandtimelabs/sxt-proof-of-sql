@@ -26,6 +26,12 @@ pub trait Scalar:
     + Sub<Output = Self>
     + Copy
     + std::ops::MulAssign
+    + num_traits::Zero
+    + std::ops::AddAssign
+    + ark_serialize::CanonicalSerialize //This enables us to put `Scalar`s on the transcript
+    + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
+    + num_traits::Inv<Output = Self>
+    + std::ops::SubAssign
 {
 }
 impl Scalar for ArkScalar {}

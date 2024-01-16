@@ -32,7 +32,7 @@ use std::cmp;
 pub struct QueryProof {
     pub bit_distributions: Vec<BitDistribution>,
     pub commitments: Vec<CompressedRistretto>,
-    pub sumcheck_proof: SumcheckProof,
+    pub sumcheck_proof: SumcheckProof<ArkScalar>,
     pub pre_result_mle_evaluations: Vec<ArkScalar>,
     pub evaluation_proof: InnerProductProof,
 }
