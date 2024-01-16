@@ -5,6 +5,7 @@
  */
 use crate::base::polynomial::interpolate::*;
 use crate::base::scalar::ArkScalar;
+use ark_std::UniformRand;
 use num_traits::Zero;
 
 #[test]

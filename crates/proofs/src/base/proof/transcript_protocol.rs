@@ -82,6 +82,16 @@ pub trait TranscriptProtocol {
     }
 
     /// Compute a challenge variable (which requires a label).
+    fn challenge_ark_single<U: ark_std::UniformRand + Default>(
+        &mut self,
+        label: MessageLabel,
+    ) -> U {
+        let mut res = Default::default();
+        self.challenge_ark(core::iter::once(&mut res), label);
+        res
+    }
+
+    /// Compute a challenge variable (which requires a label).
     fn challenge_ark_scalar(&mut self, label: MessageLabel) -> ArkScalar {
         let mut res: ArkScalar = Default::default();
         self.challenge_ark(core::iter::once(&mut res.0), label);

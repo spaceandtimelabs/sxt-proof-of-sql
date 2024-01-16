@@ -3,9 +3,8 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::Scalar;
 use crate::proof_primitive::sumcheck::ProverState;
-use num_traits::Zero;
 use rayon::prelude::*;
 
 #[tracing::instrument(
@@ -13,7 +12,7 @@ use rayon::prelude::*;
     level = "info",
     skip_all
 )]
-pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) -> Vec<ArkScalar> {
+pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
     if let Some(r) = r_maybe {
         if prover_state.round == 0 {
             panic!("first round should be prover first.");
@@ -74,10 +73,10 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) 
                         let table = &prover_state.flattened_ml_extensions[multiplicand_index];
 
                         // This third+final loop give an efficient way of computing
-                        // products[t] *= table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field;
+                        // products[t] *= table[b << 1] * (S::one() - t_as_field) + table[(b << 1) + 1] * t_as_field;
                         // It requires only 1 addition (plus the cumulative multiplication) to accomplish the same task.
                         // It relies on the fact that
-                        // table[b << 1] * (ArkScalar::one() - t_as_field) + table[(b << 1) + 1] * t_as_field == table[b << 1] + t * diff
+                        // table[b << 1] * (S::one() - t_as_field) + table[(b << 1) + 1] * t_as_field == table[b << 1] + t * diff
                         let mut start = table[b << 1];
                         let step = table[(b << 1) + 1] - start;
 
@@ -90,30 +89,27 @@ pub fn prove_round(prover_state: &mut ProverState, r_maybe: &Option<ArkScalar>) 
                     }
                     products
                 })
-                .reduce(|| vec![ArkScalar::zero(); degree + 1], vec_elementwise_add)
+                .reduce(|| vec![S::zero(); degree + 1], vec_elementwise_add)
         })
-        .reduce(|| vec![ArkScalar::zero(); degree + 1], vec_elementwise_add);
+        .reduce(|| vec![S::zero(); degree + 1], vec_elementwise_add);
 
     result
 }
 
 /// This is equivalent to
-/// *multiplicand = Vec<ArkScalar> {
+/// *multiplicand = Vec<S> {
 ///                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
 ///                };
 /// Only it does it in place
-fn in_place_fix_variable(multiplicand: &mut [ArkScalar], r_as_field: ArkScalar, num_vars: usize) {
+fn in_place_fix_variable<S: Scalar>(multiplicand: &mut [S], r_as_field: S, num_vars: usize) {
     assert!(num_vars > 0, "invalid size of partial point");
     for b in 0..(1 << num_vars) {
-        let left: ArkScalar = multiplicand[b << 1];
-        let right: ArkScalar = multiplicand[(b << 1) + 1];
+        let left: S = multiplicand[b << 1];
+        let right: S = multiplicand[(b << 1) + 1];
         multiplicand[b] = left + r_as_field * (right - left);
     }
 }
 
-fn vec_elementwise_add(a: Vec<ArkScalar>, b: Vec<ArkScalar>) -> Vec<ArkScalar> {
-    a.into_iter()
-        .zip(b)
-        .map(|(x, y)| x + y)
-        .collect::<Vec<ArkScalar>>()
+fn vec_elementwise_add<S: Scalar>(a: Vec<S>, b: Vec<S>) -> Vec<S> {
+    a.into_iter().zip(b).map(|(x, y)| x + y).collect::<Vec<S>>()
 }

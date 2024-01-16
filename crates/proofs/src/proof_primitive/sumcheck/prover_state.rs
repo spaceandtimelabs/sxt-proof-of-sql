@@ -4,28 +4,28 @@ use crate::base::polynomial::CompositePolynomial;
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::Scalar;
 
-pub struct ProverState {
+pub struct ProverState<S: Scalar> {
     /// sampled randomness given by the verifier
-    pub randomness: Vec<ArkScalar>,
+    pub randomness: Vec<S>,
     /// Stores the list of products that is meant to be added together. Each multiplicand is represented by
     /// the index in flattened_ml_extensions
-    pub list_of_products: Vec<(ArkScalar, Vec<usize>)>,
+    pub list_of_products: Vec<(S, Vec<usize>)>,
     /// Stores a list of multilinear extensions in which `self.list_of_products` points to
-    pub flattened_ml_extensions: Vec<Vec<ArkScalar>>,
+    pub flattened_ml_extensions: Vec<Vec<S>>,
     pub num_vars: usize,
     pub max_multiplicands: usize,
     pub round: usize,
 }
 
-impl ProverState {
+impl<S: Scalar> ProverState<S> {
     #[tracing::instrument(
         name = "proofs.proof_primitive.sumcheck.prover_state.create",
         level = "info",
         skip_all
     )]
-    pub fn create(polynomial: &CompositePolynomial<ArkScalar>) -> ProverState {
+    pub fn create(polynomial: &CompositePolynomial<S>) -> Self {
         if polynomial.num_variables == 0 {
             panic!("Attempt to prove a constant.")
         }
