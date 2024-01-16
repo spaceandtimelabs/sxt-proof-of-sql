@@ -1,5 +1,6 @@
-use crate::base::scalar::ark_scalar::*;
+use crate::base::scalar::{ark_scalar::*, Scalar};
 use ark_ff::BigInt;
+use num_traits::{Inv, One};
 
 #[test]
 fn test_dalek_interop_1() {
@@ -55,4 +56,12 @@ fn test_ark_scalar_serialization() {
     let serialized = serde_json::to_string(&s).unwrap();
     let deserialized: [ArkScalar; 10] = serde_json::from_str(&serialized).unwrap();
     assert_eq!(s, deserialized);
+}
+
+#[test]
+fn test_ark_scalar_mid() {
+    assert_eq!(
+        ArkScalar::MAX_SIGNED,
+        -ArkScalar::one() * ArkScalar::from(2).inv()
+    );
 }

@@ -1,6 +1,6 @@
 use crate::base::{
     bit::{make_abs_bit_mask, BitDistribution},
-    scalar::ArkScalar,
+    scalar::Scalar,
 };
 use bumpalo::Bump;
 
@@ -11,9 +11,9 @@ use bumpalo::Bump;
 /// compute_varying_bit_matrix returns the matrix M where
 ///   M_ij = abs(xi) & (1 << bj) == 1
 /// The last column of M corresponds to the sign bit if it varies.
-pub fn compute_varying_bit_matrix<'a>(
+pub fn compute_varying_bit_matrix<'a, S: Scalar>(
     alloc: &'a Bump,
-    vals: &[ArkScalar],
+    vals: &[S],
     dist: &BitDistribution,
 ) -> Vec<&'a [bool]> {
     let n = vals.len();

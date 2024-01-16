@@ -1,13 +1,7 @@
-use crate::base::scalar::ArkScalar;
-use lazy_static::lazy_static;
-use num_traits::{Inv, One};
-use std::convert::Into;
+use crate::base::scalar::Scalar;
 
-pub fn make_abs_bit_mask(x: ArkScalar) -> [u64; 4] {
-    lazy_static! {
-        static ref MID: ArkScalar = -ArkScalar::one() * ArkScalar::from(2).inv();
-    }
-    let (sign, x) = if MID.0 < x.0 { (1, -x) } else { (0, x) };
+pub fn make_abs_bit_mask<S: Scalar>(x: S) -> [u64; 4] {
+    let (sign, x) = if S::MAX_SIGNED < x { (1, -x) } else { (0, x) };
     let mut res: [u64; 4] = x.into();
     res[3] |= sign << 63;
     res
