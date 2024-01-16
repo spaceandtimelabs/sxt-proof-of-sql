@@ -1,4 +1,4 @@
-use crate::base::{bit::make_abs_bit_mask, scalar::ArkScalar};
+use crate::base::{bit::make_abs_bit_mask, scalar::Scalar};
 use bit_iter::BitIter;
 use serde::{Deserialize, Serialize};
 use std::convert::Into;
@@ -18,7 +18,7 @@ pub struct BitDistribution {
 }
 
 impl BitDistribution {
-    pub fn new<T: Into<ArkScalar> + Clone>(data: &[T]) -> Self {
+    pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         if data.is_empty() {
             return Self {
                 or_all: [0; 4],
@@ -68,12 +68,12 @@ impl BitDistribution {
 
     /// If {b_i} represents the non-varying 1-bits of the absolute values, return the value
     ///    sum_i b_i 2 ^ i
-    pub fn constant_part(&self) -> ArkScalar {
+    pub fn constant_part<S: Scalar>(&self) -> S {
         let mut val = [0; 4];
         self.for_each_abs_constant_bit(|i: usize, bit: usize| {
             val[i] |= 1u64 << bit;
         });
-        ArkScalar::from_bigint(val)
+        S::from(val)
     }
 
     /// Iterate over each constant 1-bit for the absolute values

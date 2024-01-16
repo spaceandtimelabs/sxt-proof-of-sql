@@ -21,7 +21,7 @@ use num_traits::Zero;
 #[test]
 fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let data = [123_i64, 123, 123];
-    let dist = BitDistribution::new(&data);
+    let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, record_batch!("a" => data), 0);
@@ -37,7 +37,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
 #[test]
 fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_column() {
     let data = [-123_i64, -123, -123];
-    let dist = BitDistribution::new(&data);
+    let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, record_batch!("a" => data), 0);
@@ -52,7 +52,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
 
 #[test]
 fn count_fails_if_a_bit_distribution_is_out_of_range() {
-    let dists = [BitDistribution::new(&[
+    let dists = [BitDistribution::new::<ArkScalar, _>(&[
         ArkScalar::from(3) * ArkScalar::from(u128::MAX)
     ])];
     let mut builder = CountBuilder::new(&dists);
@@ -70,7 +70,7 @@ fn we_can_verify_a_constant_decomposition() {
     let data = [123_i64, 123, 123];
     let one_commit = get_one_commit(data.len() as u64);
 
-    let dists = [BitDistribution::new(&data)];
+    let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
     let evaluation_point = [ArkScalar::from(324), ArkScalar::from(97)];
@@ -95,7 +95,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let data = [123_i64, 123, 123];
     let one_commit = get_one_commit(data.len() as u64);
 
-    let dists = [BitDistribution::new(&data)];
+    let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
     let evaluation_point = [ArkScalar::from(324), ArkScalar::from(97)];
