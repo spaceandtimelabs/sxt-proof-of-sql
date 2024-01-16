@@ -2,7 +2,7 @@ use crate::{
     base::{
         polynomial::{CompositePolynomial, CompositePolynomialInfo},
         proof::{MessageLabel, ProofError, TranscriptProtocol},
-        scalar::ArkScalar,
+        scalar::Scalar,
     },
     proof_primitive::sumcheck::{prove_round, ProverState, Subclaim},
 };
@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 use std::vec::Vec;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SumcheckProof {
-    pub(super) evaluations: Vec<Vec<ArkScalar>>,
+pub struct SumcheckProof<S: Scalar> {
+    pub(super) evaluations: Vec<Vec<S>>,
 }
 
-impl SumcheckProof {
+impl<S: Scalar> SumcheckProof<S> {
     #[tracing::instrument(
         name = "proofs.proof_primitive.sumcheck.proof.create",
         level = "info",
@@ -28,9 +28,9 @@ impl SumcheckProof {
     )]
     pub fn create(
         transcript: &mut Transcript,
-        evaluation_point: &mut [ArkScalar],
-        polynomial: &CompositePolynomial<ArkScalar>,
-    ) -> SumcheckProof {
+        evaluation_point: &mut [S],
+        polynomial: &CompositePolynomial<S>,
+    ) -> Self {
         assert_eq!(evaluation_point.len(), polynomial.num_variables);
         transcript.append_auto(
             MessageLabel::Sumcheck,
@@ -41,10 +41,12 @@ impl SumcheckProof {
         let mut evaluations = Vec::with_capacity(polynomial.num_variables);
         for scalar in evaluation_point.iter_mut().take(polynomial.num_variables) {
             let round_evaluations = prove_round(&mut state, &r);
-            transcript
-                .append_ark_scalars(MessageLabel::SumcheckRoundEvaluation, &round_evaluations);
+            transcript.append_canonical_serialize(
+                MessageLabel::SumcheckRoundEvaluation,
+                &round_evaluations,
+            );
             evaluations.push(round_evaluations);
-            *scalar = transcript.challenge_ark_scalar(MessageLabel::SumcheckChallenge);
+            *scalar = transcript.challenge_ark_single(MessageLabel::SumcheckChallenge);
             r = Some(*scalar);
         }
 
@@ -60,8 +62,8 @@ impl SumcheckProof {
         &self,
         transcript: &mut Transcript,
         polynomial_info: CompositePolynomialInfo,
-        claimed_sum: &ArkScalar,
-    ) -> Result<Subclaim, ProofError> {
+        claimed_sum: &S,
+    ) -> Result<Subclaim<S>, ProofError> {
         transcript.append_auto(
             MessageLabel::Sumcheck,
             &(
@@ -76,11 +78,11 @@ impl SumcheckProof {
         }
         let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
         for round_index in 0..polynomial_info.num_variables {
-            transcript.append_ark_scalars(
+            transcript.append_canonical_serialize(
                 MessageLabel::SumcheckRoundEvaluation,
                 &self.evaluations[round_index],
             );
-            evaluation_point.push(transcript.challenge_ark_scalar(MessageLabel::SumcheckChallenge));
+            evaluation_point.push(transcript.challenge_ark_single(MessageLabel::SumcheckChallenge));
         }
         Subclaim::create(
             evaluation_point,

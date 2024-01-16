@@ -51,11 +51,6 @@ impl ArkScalar {
         use ark_ff::BigInteger;
         self.0.into_bigint().to_bytes_le()
     }
-    /// Convenience function for generating random values. Should not be used outside of tests. Instead, use a transcript.
-    #[cfg(test)]
-    pub fn rand<R: ark_std::rand::Rng + ?Sized>(rng: &mut R) -> Self {
-        Self(ark_ff::UniformRand::rand(rng))
-    }
     /// Convenience function for converting a slice of `ark_curve25519::Fr` into a vector of `ArkScalar`. Should not be used outside of tests.
     #[cfg(test)]
     pub fn wrap_slice(slice: &[ark_curve25519::Fr]) -> Vec<Self> {
@@ -65,6 +60,12 @@ impl ArkScalar {
     #[cfg(test)]
     pub fn unwrap_slice(slice: &[Self]) -> Vec<ark_curve25519::Fr> {
         slice.iter().map(|x| x.0).collect()
+    }
+}
+
+impl ark_std::UniformRand for ArkScalar {
+    fn rand<R: ark_std::rand::Rng + ?Sized>(rng: &mut R) -> Self {
+        Self(ark_ff::UniformRand::rand(rng))
     }
 }
 
