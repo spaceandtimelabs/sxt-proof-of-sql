@@ -94,7 +94,10 @@ impl ProverEvaluate for DishonestDenseFilterExpr {
 }
 
 /// Tamper with the first element of the first column that is a Scalar. This could be changed for different types of tests.
-fn tamper_column<'a>(alloc: &'a Bump, mut columns: Vec<Column<'a>>) -> Vec<Column<'a>> {
+fn tamper_column<'a>(
+    alloc: &'a Bump,
+    mut columns: Vec<Column<'a, ArkScalar>>,
+) -> Vec<Column<'a, ArkScalar>> {
     for column in columns.iter_mut() {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {

@@ -1,4 +1,5 @@
 use super::OwnedColumn;
+use crate::base::scalar::Scalar;
 use indexmap::IndexMap;
 use proofs_sql::Identifier;
 use thiserror::Error;
@@ -17,12 +18,12 @@ pub enum OwnedTableError {
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow RecordBatch.
 #[derive(Debug, Clone, Eq)]
-pub struct OwnedTable {
-    table: IndexMap<Identifier, OwnedColumn>,
+pub struct OwnedTable<S: Scalar> {
+    table: IndexMap<Identifier, OwnedColumn<S>>,
 }
-impl OwnedTable {
+impl<S: Scalar> OwnedTable<S> {
     /// Creates a new OwnedTable.
-    pub fn try_new(table: IndexMap<Identifier, OwnedColumn>) -> Result<Self, OwnedTableError> {
+    pub fn try_new(table: IndexMap<Identifier, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
             return Ok(Self { table });
         }
@@ -34,7 +35,7 @@ impl OwnedTable {
         }
     }
     /// Creates a new OwnedTable.
-    pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn)>>(
+    pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
@@ -56,11 +57,11 @@ impl OwnedTable {
         self.table.is_empty()
     }
     /// Returns the columns of this table as an IndexMap
-    pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn> {
+    pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
     /// Returns the columns of this table as an IndexMap
-    pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn> {
+    pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table
     }
     /// Returns the columns of this table as an Iterator
@@ -74,7 +75,7 @@ impl OwnedTable {
         &self,
         results: &[&str],
         predicate: polars::prelude::Expr,
-    ) -> OwnedTable {
+    ) -> OwnedTable<S> {
         OwnedTable::try_from(super::dataframe_to_record_batch(
             polars::prelude::IntoLazy::lazy(super::record_batch_to_dataframe(
                 arrow::record_batch::RecordBatch::try_from(self.clone()).unwrap(),
@@ -96,7 +97,7 @@ impl OwnedTable {
 
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.
 // This is to align with the behaviour of a `RecordBatch`.
-impl PartialEq for OwnedTable {
+impl<S: Scalar> PartialEq for OwnedTable<S> {
     fn eq(&self, other: &Self) -> bool {
         self.table == other.table
             && self

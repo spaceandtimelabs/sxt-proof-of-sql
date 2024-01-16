@@ -3,7 +3,7 @@ use super::{
     ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
     TestAccessor,
 };
-use crate::base::scalar::compute_commitment_for_testing;
+use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
 use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
@@ -181,7 +181,7 @@ impl DataAccessor for RecordBatchTestAccessor {
     ///
     /// Note: this function expects the column_ref to exist
     /// and also have the same type specified by column_ref.column_type()
-    fn get_column(&self, column_ref: ColumnRef) -> Column {
+    fn get_column(&self, column_ref: ColumnRef) -> Column<ArkScalar> {
         let table = self.tables.get(&column_ref.table_ref()).unwrap();
         table
             .columns

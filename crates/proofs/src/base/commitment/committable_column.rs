@@ -1,6 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
-    scalar::ArkScalar,
+    scalar::Scalar,
 };
 use blitzar::sequence::Sequence;
 
@@ -58,9 +58,6 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
             CommittableColumn::Int128(_) => ColumnType::Int128,
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
-            #[cfg(not(test))]
-            CommittableColumn::Scalar(_) => unimplemented!("Scalar columns are not supported yet"),
-            #[cfg(test)]
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
             CommittableColumn::Boolean(_) => {
                 unimplemented!("Boolean columns are not supported yet")
@@ -69,8 +66,11 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     }
 }
 
-impl<'a> From<&Column<'a>> for CommittableColumn<'a> {
-    fn from(value: &Column<'a>) -> Self {
+impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a>
+where
+    for<'b> &'b S: Into<[u64; 4]>,
+{
+    fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::BigInt(ints) => (ints as &[_]).into(),
             Column::Int128(ints) => (ints as &[_]).into(),
@@ -78,19 +78,28 @@ impl<'a> From<&Column<'a>> for CommittableColumn<'a> {
                 let as_limbs: Vec<_> = scalars.iter().map(Into::<[u64; 4]>::into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
-            #[cfg(test)]
             Column::Scalar(scalars) => (scalars as &[_]).into(),
         }
     }
 }
 
-impl<'a> From<&'a OwnedColumn> for CommittableColumn<'a> {
-    fn from(value: &'a OwnedColumn) -> Self {
+impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a>
+where
+    for<'b> &'b String: Into<S>,
+    for<'b> &'b S: Into<[u64; 4]>,
+    S: Into<[u64; 4]>,
+{
+    fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int128(ints) => (ints as &[_]).into(),
-            OwnedColumn::VarChar(strings) => (strings as &[_]).into(),
-            #[cfg(test)]
+            OwnedColumn::VarChar(strings) => CommittableColumn::VarChar(
+                strings
+                    .iter()
+                    .map(Into::<S>::into)
+                    .map(Into::<[u64; 4]>::into)
+                    .collect(),
+            ),
             OwnedColumn::Scalar(scalars) => (scalars as &[_]).into(),
         }
     }
@@ -106,19 +115,11 @@ impl<'a> From<&'a [i128]> for CommittableColumn<'a> {
         CommittableColumn::Int128(value)
     }
 }
-impl<'a> From<&'a [String]> for CommittableColumn<'a> {
-    fn from(value: &'a [String]) -> Self {
-        CommittableColumn::VarChar(
-            value
-                .iter()
-                .map(ArkScalar::from)
-                .map(Into::<[u64; 4]>::into)
-                .collect(),
-        )
-    }
-}
-impl<'a> From<&'a [ArkScalar]> for CommittableColumn<'a> {
-    fn from(value: &'a [ArkScalar]) -> Self {
+impl<'a, S: Scalar> From<&'a [S]> for CommittableColumn<'a>
+where
+    for<'b> &'b S: Into<[u64; 4]>,
+{
+    fn from(value: &'a [S]) -> Self {
         CommittableColumn::Scalar(value.iter().map(Into::<[u64; 4]>::into).collect())
     }
 }
@@ -143,6 +144,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::base::scalar::ArkScalar;
     use blitzar::compute::compute_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 

@@ -1,4 +1,4 @@
-use crate::base::{polynomial::DenseMultilinearExtension, scalar::ArkScalar};
+use crate::base::scalar::{ArkScalar, Scalar};
 use hashbrown::HashMap;
 /**
  * Adopted from arkworks
@@ -22,16 +22,16 @@ use std::{fmt::Write, rc::Rc, vec::Vec};
 /// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
 ///
 /// The result polynomial is used as the prover key.
-pub struct CompositePolynomial {
+pub struct CompositePolynomial<S: Scalar> {
     /// max number of multiplicands in each product
     pub max_multiplicands: usize,
     /// number of variables of the polynomial
     pub num_variables: usize,
     /// list of reference to products (as usize) of multilinear extension
-    pub products: Vec<(ArkScalar, Vec<usize>)>,
+    pub products: Vec<(S, Vec<usize>)>,
     /// Stores multilinear extensions in which product multiplicand can refer to.
-    pub flattened_ml_extensions: Vec<Rc<DenseMultilinearExtension>>,
-    raw_pointers_lookup_table: HashMap<*const DenseMultilinearExtension, usize>,
+    pub flattened_ml_extensions: Vec<Rc<Vec<S>>>,
+    raw_pointers_lookup_table: HashMap<*const Vec<S>, usize>,
 }
 
 /// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
@@ -43,7 +43,7 @@ pub struct CompositePolynomialInfo {
     pub num_variables: usize,
 }
 
-impl CompositePolynomial {
+impl<S: Scalar> CompositePolynomial<S> {
     /// Returns an empty polynomial
     pub fn new(num_variables: usize) -> Self {
         CompositePolynomial {
@@ -65,17 +65,13 @@ impl CompositePolynomial {
 
     /// Add a list of multilinear extensions that is meant to be multiplied together.
     /// The resulting polynomial will be multiplied by the scalar `coefficient`.
-    pub fn add_product(
-        &mut self,
-        product: impl IntoIterator<Item = Rc<DenseMultilinearExtension>>,
-        coefficient: ArkScalar,
-    ) {
-        let product: Vec<Rc<DenseMultilinearExtension>> = product.into_iter().collect();
+    pub fn add_product(&mut self, product: impl IntoIterator<Item = Rc<Vec<S>>>, coefficient: S) {
+        let product: Vec<Rc<Vec<S>>> = product.into_iter().collect();
         let mut indexed_product = Vec::with_capacity(product.len());
         assert!(!product.is_empty());
         self.max_multiplicands = max(self.max_multiplicands, product.len());
         for m in product {
-            let m_ptr: *const DenseMultilinearExtension = Rc::as_ptr(&m);
+            let m_ptr: *const Vec<S> = Rc::as_ptr(&m);
             if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
                 indexed_product.push(*index)
             } else {
@@ -87,11 +83,12 @@ impl CompositePolynomial {
         }
         self.products.push((coefficient, indexed_product));
     }
-
     /// Evaluate the polynomial at point `point`
     #[cfg(test)]
-    pub fn evaluate(&self, point: &[ArkScalar]) -> ArkScalar {
-        use ark_poly::MultilinearExtension;
+    pub fn evaluate(&self, point: &[S]) -> S {
+        let mut evaluation_vector = vec![S::default(); 1 << self.num_variables];
+        super::evaluation_vector::compute_evaluation_vector(&mut evaluation_vector, point);
+
         let result = self
             .products
             .iter()
@@ -99,21 +96,18 @@ impl CompositePolynomial {
                 *c * p
                     .iter()
                     .map(|&i| {
-                        ArkScalar(
-                            ark_poly::DenseMultilinearExtension::from_evaluations_vec(
-                                self.num_variables,
-                                ArkScalar::unwrap_slice(&self.flattened_ml_extensions[i]),
-                            )
-                            .evaluate(&ArkScalar::unwrap_slice(point))
-                            .unwrap(),
+                        crate::base::slice_ops::inner_product(
+                            &evaluation_vector,
+                            &self.flattened_ml_extensions[i],
                         )
                     })
-                    .product::<ArkScalar>()
+                    .product::<S>()
             })
             .sum();
         result
     }
-
+}
+impl CompositePolynomial<ArkScalar> {
     #[tracing::instrument(
         name = "proofs.sql.proof.composite_polynomial.annotate_trace",
         level = "debug",

@@ -2,6 +2,7 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     SchemaAccessor, TableRef,
 };
+use crate::base::scalar::ArkScalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 
@@ -48,7 +49,7 @@ impl TestAccessor for UnimplementedTestAccessor {
     }
 }
 impl DataAccessor for UnimplementedTestAccessor {
-    fn get_column(&self, _column: ColumnRef) -> Column {
+    fn get_column(&self, _column: ColumnRef) -> Column<ArkScalar> {
         unimplemented!()
     }
 }

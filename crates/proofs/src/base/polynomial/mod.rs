@@ -1,5 +1,3 @@
-pub type DenseMultilinearExtension = Vec<crate::base::scalar::ArkScalar>;
-
 mod composite_polynomial;
 pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};
 #[cfg(test)]

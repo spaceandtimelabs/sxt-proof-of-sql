@@ -12,7 +12,7 @@ use thiserror::Error;
 pub struct AggregatedColumns<'a> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
     /// This is effectively just the original group_by columns filtered by the selection.
-    pub group_by_columns: Vec<Column<'a>>,
+    pub group_by_columns: Vec<Column<'a, ArkScalar>>,
     /// Resulting sums of the groups for the columns in `sum_columns_in`.
     pub sum_columns: Vec<&'a [ArkScalar]>,
     /// The number of rows in each group.
@@ -34,8 +34,8 @@ pub enum AggregateColumnsError {
 /// the given columns aggregated by the group_by columns only for the selected rows.
 pub fn aggregate_columns<'a>(
     alloc: &'a Bump,
-    group_by_columns_in: &[Column<'a>],
-    sum_columns_in: &[Column],
+    group_by_columns_in: &[Column<'a, ArkScalar>],
+    sum_columns_in: &[Column<ArkScalar>],
     selection_column_in: &[bool],
 ) -> Result<AggregatedColumns<'a>, AggregateColumnsError> {
     for col in group_by_columns_in {
@@ -99,12 +99,11 @@ pub fn aggregate_columns<'a>(
 /// See [`sum_aggregate_slice_by_index_counts`] for an example. This is a helper wrapper around that function.
 pub(super) fn sum_aggregate_column_by_index_counts<'a>(
     alloc: &'a Bump,
-    column: &Column,
+    column: &Column<ArkScalar>,
     counts: &[usize],
     indexes: &[usize],
 ) -> &'a [ArkScalar] {
     match column {
-        #[cfg(test)]
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -151,11 +150,14 @@ pub(super) fn sum_aggregate_slice_by_index_counts<'a, T: Copy + Into<ArkScalar>>
 
 /// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
 /// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
-pub(super) fn compare_indexes_by_columns(group_by: &[Column], i: usize, j: usize) -> Ordering {
+pub(super) fn compare_indexes_by_columns(
+    group_by: &[Column<ArkScalar>],
+    i: usize,
+    j: usize,
+) -> Ordering {
     group_by
         .iter()
         .map(|col| match col {
-            #[cfg(test)]
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::BigInt(col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),

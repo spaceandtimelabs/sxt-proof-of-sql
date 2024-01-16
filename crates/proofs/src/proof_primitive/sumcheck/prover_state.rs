@@ -1,4 +1,4 @@
-use crate::base::polynomial::{CompositePolynomial, DenseMultilinearExtension};
+use crate::base::polynomial::CompositePolynomial;
 /**
  * Adopted from arkworks
  *
@@ -13,7 +13,7 @@ pub struct ProverState {
     /// the index in flattened_ml_extensions
     pub list_of_products: Vec<(ArkScalar, Vec<usize>)>,
     /// Stores a list of multilinear extensions in which `self.list_of_products` points to
-    pub flattened_ml_extensions: Vec<DenseMultilinearExtension>,
+    pub flattened_ml_extensions: Vec<Vec<ArkScalar>>,
     pub num_vars: usize,
     pub max_multiplicands: usize,
     pub round: usize,
@@ -25,7 +25,7 @@ impl ProverState {
         level = "info",
         skip_all
     )]
-    pub fn create(polynomial: &CompositePolynomial) -> ProverState {
+    pub fn create(polynomial: &CompositePolynomial<ArkScalar>) -> ProverState {
         if polynomial.num_variables == 0 {
             panic!("Attempt to prove a constant.")
         }
