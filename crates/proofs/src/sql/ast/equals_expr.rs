@@ -86,7 +86,7 @@ impl BoolExpr for EqualsExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
@@ -108,7 +108,7 @@ impl BoolExpr for EqualsExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
@@ -124,7 +124,7 @@ impl BoolExpr for EqualsExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();
         let generator_offset = builder.generator_offset();

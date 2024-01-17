@@ -3,6 +3,7 @@ use crate::{
     base::{
         database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
         proof::ProofError,
+        scalar::ArkScalar,
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
@@ -11,6 +12,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::any::Any;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -80,7 +82,7 @@ where
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         for expr in self.results.iter() {
@@ -127,7 +129,7 @@ impl ProverEvaluate for FilterExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // evaluate where clause
         let selection = self
@@ -158,7 +160,7 @@ impl ProverEvaluate for FilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

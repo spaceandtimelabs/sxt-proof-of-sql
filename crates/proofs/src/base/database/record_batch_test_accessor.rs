@@ -42,7 +42,7 @@ impl Default for RecordBatchTestAccessor {
     }
 }
 
-impl TestAccessor for RecordBatchTestAccessor {
+impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
     type Table = RecordBatch;
 
     fn new_empty() -> Self {
@@ -165,7 +165,7 @@ impl SchemaAccessor for RecordBatchTestAccessor {
 }
 
 /// CommitmentAccessor implementation for TestAccessor
-impl CommitmentAccessor for RecordBatchTestAccessor {
+impl CommitmentAccessor<RistrettoPoint> for RecordBatchTestAccessor {
     /// Return the commitment associated with column_ref
     ///
     /// Note: this function expects the column_ref to exist
@@ -176,7 +176,7 @@ impl CommitmentAccessor for RecordBatchTestAccessor {
 }
 
 /// DataAccessor implementation for TestAccessor
-impl DataAccessor for RecordBatchTestAccessor {
+impl DataAccessor<ArkScalar> for RecordBatchTestAccessor {
     /// Return the data slice wrapped within the Column::<some_type>
     ///
     /// Note: this function expects the column_ref to exist

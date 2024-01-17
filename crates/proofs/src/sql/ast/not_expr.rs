@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -37,7 +38,7 @@ impl BoolExpr for NotExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         let selection = self.expr.result_evaluate(table_length, alloc, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
@@ -52,7 +53,7 @@ impl BoolExpr for NotExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         let selection = self.expr.prover_evaluate(builder, alloc, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
@@ -61,7 +62,7 @@ impl BoolExpr for NotExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
         Ok(builder.mle_evaluations.one_evaluation - eval)

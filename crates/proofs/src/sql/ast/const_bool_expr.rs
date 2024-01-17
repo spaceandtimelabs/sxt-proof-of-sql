@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -48,7 +49,7 @@ impl BoolExpr for ConstBoolExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         alloc.alloc_slice_fill_copy(table_length, self.value)
     }
@@ -62,7 +63,7 @@ impl BoolExpr for ConstBoolExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         alloc.alloc_slice_fill_copy(builder.table_length(), self.value)
     }
@@ -70,7 +71,7 @@ impl BoolExpr for ConstBoolExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        _accessor: &dyn CommitmentAccessor,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         if self.value {
             Ok(builder.mle_evaluations.one_evaluation)

@@ -15,7 +15,7 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: OwnedColumn<ArkScalar>,
     array_ref: ArrayRef,
 ) {
-    let ic_to_ar = ArrayRef::try_from(owned_column.clone()).unwrap();
+    let ic_to_ar = ArrayRef::from(owned_column.clone());
     let ar_to_ic = OwnedColumn::try_from(array_ref.clone()).unwrap();
 
     assert!(ic_to_ar == array_ref);

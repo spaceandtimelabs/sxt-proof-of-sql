@@ -1,8 +1,8 @@
 use crate::base::{
+    commitment::Commitment,
     database::{Column, ColumnRef, ColumnType, TableRef},
-    scalar::ArkScalar,
+    scalar::Scalar,
 };
-use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 
 /// Access metadata of a table span in a database.
@@ -47,9 +47,9 @@ pub trait MetadataAccessor {
 ///
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about columns that exist in the database.
-pub trait CommitmentAccessor: MetadataAccessor {
+pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
     /// Return the full table column commitment
-    fn get_commitment(&self, column: ColumnRef) -> RistrettoPoint;
+    fn get_commitment(&self, column: ColumnRef) -> C;
 }
 
 /// Access database columns of an in-memory table span.
@@ -81,9 +81,9 @@ pub trait CommitmentAccessor: MetadataAccessor {
 ///
 /// Note: we assume that the query has already been validated so that we
 /// will only be accessing information about columns that exist in the database.
-pub trait DataAccessor: MetadataAccessor {
+pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
-    fn get_column(&self, column: ColumnRef) -> Column<ArkScalar>;
+    fn get_column(&self, column: ColumnRef) -> Column<S>;
 }
 
 /// Access tables and their schemas in a database.

@@ -9,7 +9,10 @@ use crate::{
     },
     sql::proof::Indexes,
 };
-use curve25519_dalek::{ristretto::CompressedRistretto, traits::Identity};
+use curve25519_dalek::{
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    traits::Identity,
+};
 use num_traits::One;
 use serde::Serialize;
 
@@ -20,7 +23,7 @@ use serde::Serialize;
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
     expr: &(impl ProofExpr + Serialize),
-    accessor: &impl TestAccessor,
+    accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
     assert!(res.verify(expr, accessor).is_ok());
@@ -75,7 +78,7 @@ pub fn exercise_verification(
 fn tamper_no_result(
     res: &VerifiableQueryResult,
     expr: &(impl ProofExpr + Serialize),
-    accessor: &impl CommitmentAccessor,
+    accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // add a result
     let mut res_p = res.clone();
@@ -102,7 +105,7 @@ fn tamper_no_result(
 fn tamper_empty_result(
     res: &VerifiableQueryResult,
     expr: &(impl ProofExpr + Serialize),
-    accessor: &impl CommitmentAccessor,
+    accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // try to add a result
     let mut res_p = res.clone();
@@ -114,7 +117,7 @@ fn tamper_empty_result(
 fn tamper_result(
     res: &VerifiableQueryResult,
     expr: &(impl ProofExpr + Serialize),
-    accessor: &impl CommitmentAccessor,
+    accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     if res.provable_result.is_none() {
         tamper_no_result(res, expr, accessor);

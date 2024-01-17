@@ -6,6 +6,7 @@ use crate::{
             SchemaAccessor,
         },
         proof::ProofError,
+        scalar::ArkScalar,
     },
     sql::{
         parse::ConversionResult,
@@ -18,6 +19,7 @@ use crate::{
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use proofs_sql::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
@@ -123,7 +125,7 @@ impl ProofExpr for QueryExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         self.proof_expr.verifier_evaluate(builder, accessor)
     }
@@ -142,7 +144,7 @@ impl ProverEvaluate for QueryExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         self.proof_expr.result_evaluate(builder, alloc, accessor)
     }
@@ -151,7 +153,7 @@ impl ProverEvaluate for QueryExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         self.proof_expr.prover_evaluate(builder, alloc, accessor)
     }

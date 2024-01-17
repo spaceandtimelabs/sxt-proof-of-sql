@@ -13,6 +13,7 @@ use crate::{
 };
 use blitzar::compute::get_one_commit;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -57,7 +58,7 @@ impl BoolExpr for InequalityExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         // lhs
         let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
@@ -95,7 +96,7 @@ impl BoolExpr for InequalityExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         let table_length = builder.table_length();
 
@@ -129,7 +130,7 @@ impl BoolExpr for InequalityExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();
         let generator_offset = builder.generator_offset();
