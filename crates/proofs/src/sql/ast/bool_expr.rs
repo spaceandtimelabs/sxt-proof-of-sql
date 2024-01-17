@@ -7,6 +7,7 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
@@ -24,7 +25,7 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool];
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
@@ -33,7 +34,7 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool];
 
     /// Compute the evaluation of a multilinear extension from this boolean expression
@@ -42,7 +43,7 @@ pub trait BoolExpr: Debug + Send + Sync {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError>;
 
     // Insert in the HashSet `columns` all the column

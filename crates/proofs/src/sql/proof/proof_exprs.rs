@@ -2,9 +2,11 @@ use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
 use crate::base::{
     database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
     proof::ProofError,
+    scalar::ArkScalar,
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
@@ -34,7 +36,7 @@ pub trait ProofExpr: Debug + Send + Sync + ProverEvaluate {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError>;
 
     /// Return all the result column fields
@@ -58,7 +60,7 @@ pub trait ProverEvaluate {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     );
 
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
@@ -71,7 +73,7 @@ pub trait ProverEvaluate {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     );
 }
 

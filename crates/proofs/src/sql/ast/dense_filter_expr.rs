@@ -19,6 +19,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::{any::Any, iter::repeat_with};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
@@ -97,7 +98,7 @@ where
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -169,7 +170,7 @@ impl ProverEvaluate for DenseFilterExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self
@@ -202,7 +203,7 @@ impl ProverEvaluate for DenseFilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

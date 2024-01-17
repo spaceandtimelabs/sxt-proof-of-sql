@@ -5,6 +5,7 @@ use crate::{
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
+use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
 /// Provable expression for a column
 ///
@@ -37,7 +38,10 @@ impl ColumnExpr {
 
     /// Evaluate the column expression and
     /// add the result to the ResultBuilder
-    pub fn result_evaluate<'a>(&self, accessor: &'a dyn DataAccessor) -> Column<'a, ArkScalar> {
+    pub fn result_evaluate<'a>(
+        &self,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
+    ) -> Column<'a, ArkScalar> {
         accessor.get_column(self.column_ref)
     }
 
@@ -46,7 +50,7 @@ impl ColumnExpr {
     pub fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a>,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> Column<'a, ArkScalar> {
         let column = accessor.get_column(self.column_ref);
         match column {
@@ -63,7 +67,7 @@ impl ColumnExpr {
     pub fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> ArkScalar {
         let col_commit = accessor.get_commitment(self.column_ref);
 

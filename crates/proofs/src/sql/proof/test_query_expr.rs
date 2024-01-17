@@ -7,19 +7,24 @@ use crate::base::{
         ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     },
     proof::ProofError,
+    scalar::ArkScalar,
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt, fmt::Debug};
 
-type ResultFn =
-    Box<dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;
+type ResultFn = Box<
+    dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor<ArkScalar>) + Send + Sync,
+>;
 
-type ProveFn =
-    Box<dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor) + Send + Sync>;
+type ProveFn = Box<
+    dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor<ArkScalar>) + Send + Sync,
+>;
 
-type VerifyFn = Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor) + Send + Sync>;
+type VerifyFn =
+    Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor<RistrettoPoint>) + Send + Sync>;
 
 /// A query expression that can mock desired behavior for testing
 #[derive(Default, DynPartialEq, Serialize, Deserialize)]
@@ -63,7 +68,7 @@ impl ProofExpr for TestQueryExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         if let Some(f) = &self.verifier_fn {
             f(builder, accessor);
@@ -95,7 +100,7 @@ impl ProverEvaluate for TestQueryExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         if let Some(f) = &self.result_fn {
             f(builder, alloc, accessor);
@@ -106,7 +111,7 @@ impl ProverEvaluate for TestQueryExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         if let Some(f) = &self.prover_fn {
             f(builder, alloc, accessor);

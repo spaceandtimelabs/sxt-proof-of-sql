@@ -4,7 +4,9 @@ use crate::base::{
         ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
     },
     proof::ProofError,
+    scalar::ArkScalar,
 };
+use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -76,7 +78,7 @@ impl VerifiableQueryResult {
     /// validity.
     pub fn new(
         expr: &(impl ProofExpr + Serialize),
-        accessor: &impl DataAccessor,
+        accessor: &impl DataAccessor<ArkScalar>,
     ) -> VerifiableQueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
@@ -106,7 +108,7 @@ impl VerifiableQueryResult {
     pub fn verify(
         &self,
         expr: &(impl ProofExpr + Serialize),
-        accessor: &impl CommitmentAccessor,
+        accessor: &impl CommitmentAccessor<RistrettoPoint>,
     ) -> QueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.

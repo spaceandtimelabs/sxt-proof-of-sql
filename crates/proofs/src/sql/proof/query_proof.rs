@@ -17,7 +17,7 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use merlin::Transcript;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,7 @@ impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(
         expr: &(impl ProofExpr + Serialize),
-        accessor: &impl DataAccessor,
+        accessor: &impl DataAccessor<ArkScalar>,
     ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
@@ -153,7 +153,7 @@ impl QueryProof {
     pub fn verify(
         &self,
         expr: &(impl ProofExpr + Serialize),
-        accessor: &impl CommitmentAccessor,
+        accessor: &impl CommitmentAccessor<RistrettoPoint>,
         result: &ProvableQueryResult,
     ) -> QueryResult {
         let table_length = expr.get_length(accessor);
