@@ -1,11 +1,11 @@
 use super::{
-    CompositePolynomialBuilder, MultilinearExtension, SumcheckRandomScalars, SumcheckSubpolynomial,
+    CompositePolynomialBuilder, SumcheckRandomScalars, SumcheckSubpolynomial,
     SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
 };
 use crate::base::{
     bit::BitDistribution,
     commitment::{CommittableColumn, VecCommitmentExt},
-    polynomial::CompositePolynomial,
+    polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::ArkScalar,
 };
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -17,8 +17,8 @@ pub struct ProofBuilder<'a> {
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
-    pre_result_mles: Vec<Box<dyn MultilinearExtension + 'a>>,
-    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a>>,
+    pre_result_mles: Vec<Box<dyn MultilinearExtension<ArkScalar> + 'a>>,
+    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, ArkScalar>>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -73,7 +73,7 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension + 'a) {
+    pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension<ArkScalar> + 'a) {
         self.pre_result_mles.push(Box::new(data));
     }
 
@@ -88,7 +88,7 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn produce_intermediate_mle(
         &mut self,
-        data: impl MultilinearExtension + Into<CommittableColumn<'a>> + Copy + 'a,
+        data: impl MultilinearExtension<ArkScalar> + Into<CommittableColumn<'a>> + Copy + 'a,
     ) {
         self.commitment_descriptor.push(data.into());
         self.produce_anchored_mle(data);
@@ -104,7 +104,7 @@ impl<'a> ProofBuilder<'a> {
     pub fn produce_sumcheck_subpolynomial(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
-        terms: Vec<SumcheckSubpolynomialTerm<'a>>,
+        terms: Vec<SumcheckSubpolynomialTerm<'a, ArkScalar>>,
     ) {
         self.sumcheck_subpolynomials
             .push(SumcheckSubpolynomial::new(subpolynomial_type, terms));
@@ -129,7 +129,7 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn make_sumcheck_polynomial(
         &self,
-        scalars: &SumcheckRandomScalars,
+        scalars: &SumcheckRandomScalars<ArkScalar>,
     ) -> CompositePolynomial<ArkScalar> {
         let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,

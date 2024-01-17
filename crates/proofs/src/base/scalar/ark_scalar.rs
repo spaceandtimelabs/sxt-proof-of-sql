@@ -1,6 +1,9 @@
-use ark_ff::{Field, PrimeField};
+use ark_ff::{BigInteger, Field, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use core::iter::Sum;
+use core::{
+    fmt::{Display, Formatter},
+    iter::Sum,
+};
 use derive_more::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Product, Sub, SubAssign, Sum,
 };
@@ -46,9 +49,7 @@ impl ArkScalar {
     pub fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
         Self(ark_curve25519::Fr::from_le_bytes_mod_order(bytes))
     }
-    #[cfg(test)]
     pub fn to_bytes_le(&self) -> Vec<u8> {
-        use ark_ff::BigInteger;
         self.0.into_bigint().to_bytes_le()
     }
     /// Convenience function for converting a slice of `ark_curve25519::Fr` into a vector of `ArkScalar`. Should not be used outside of tests.
@@ -169,6 +170,71 @@ impl From<ArkScalar> for [u64; 4] {
 impl From<&ArkScalar> for [u64; 4] {
     fn from(value: &ArkScalar) -> Self {
         value.0.into_bigint().0
+    }
+}
+
+impl Display for ArkScalar {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let sign = match f.sign_plus() {
+            true => {
+                let n = -self;
+                match self > &n {
+                    true => Some(Some(n)),
+                    false => Some(None),
+                }
+            }
+            false => None,
+        };
+        match (f.alternate(), sign) {
+            (false, None) => {
+                let data = self.0.into_bigint().0;
+                write!(
+                    f,
+                    "{:016X}{:016X}{:016X}{:016X}",
+                    data[3], data[2], data[1], data[0],
+                )
+            }
+            (false, Some(None)) => {
+                let data = self.0.into_bigint().0;
+                write!(
+                    f,
+                    "+{:016X}{:016X}{:016X}{:016X}",
+                    data[3], data[2], data[1], data[0],
+                )
+            }
+            (false, Some(Some(n))) => {
+                let data = n.0.into_bigint().0;
+                write!(
+                    f,
+                    "-{:016X}{:016X}{:016X}{:016X}",
+                    data[3], data[2], data[1], data[0],
+                )
+            }
+            (true, None) => {
+                let data = self.to_bytes_le();
+                write!(
+                    f,
+                    "0x{:02X}{:02X}...{:02X}{:02X}",
+                    data[31], data[30], data[1], data[0],
+                )
+            }
+            (true, Some(None)) => {
+                let data = self.to_bytes_le();
+                write!(
+                    f,
+                    "+0x{:02X}{:02X}...{:02X}{:02X}",
+                    data[31], data[30], data[1], data[0],
+                )
+            }
+            (true, Some(Some(n))) => {
+                let data = n.to_bytes_le();
+                write!(
+                    f,
+                    "-0x{:02X}{:02X}...{:02X}{:02X}",
+                    data[31], data[30], data[1], data[0],
+                )
+            }
+        }
     }
 }
 

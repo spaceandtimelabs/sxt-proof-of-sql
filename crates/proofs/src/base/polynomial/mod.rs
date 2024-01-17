@@ -21,3 +21,9 @@ pub use lagrange_basis_evaluation::{
 };
 #[cfg(test)]
 mod lagrange_basis_evaluation_test;
+
+#[warn(missing_docs)]
+mod multilinear_extension;
+pub use multilinear_extension::MultilinearExtension;
+#[cfg(test)]
+mod multilinear_extension_test;
