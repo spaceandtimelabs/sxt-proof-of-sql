@@ -14,7 +14,7 @@ use crate::{
         },
     },
 };
-use blitzar::compute::get_one_commit;
+use blitzar::compute::get_one_curve25519_commit;
 use bumpalo::Bump;
 use num_traits::Zero;
 
@@ -68,7 +68,7 @@ fn count_fails_if_no_bit_distribution_is_available() {
 #[test]
 fn we_can_verify_a_constant_decomposition() {
     let data = [123_i64, 123, 123];
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
 
     let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
@@ -93,7 +93,7 @@ fn we_can_verify_a_constant_decomposition() {
 #[test]
 fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_distribution() {
     let data = [123_i64, 123, 123];
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
 
     let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];

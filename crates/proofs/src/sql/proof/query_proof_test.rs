@@ -809,7 +809,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     let (mut proof, result) = QueryProof::new(&expr, &accessor);
     let mut bytes = [0u8; 32];
     bytes[31] = 1u8;
-    let commit = CompressedRistretto::from_slice(&bytes);
+    let commit = CompressedRistretto::from_slice(&bytes).unwrap();
     assert!(commit.decompress().is_none());
     proof.commitments[0] = commit;
     assert!(proof.verify(&expr, &accessor, &result).is_err());

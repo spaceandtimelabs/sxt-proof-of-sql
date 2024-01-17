@@ -47,12 +47,12 @@ tracing = { workspace = true, features = ["attributes"] }
 typetag = { workspace = true }
 
 [dev_dependencies]
-criterion = "0.4"
-polars = { version = "0.33.1", features = ["lazy"] }
-rand = { version = "0.7" }
-rand_core = { version = "0.5" }
-serde_json = "1"
-flexbuffers = "2.0.0"
+criterion = { workspace = true }
+polars = { workspace = true, features = ["lazy"] }
+rand = { workspace = true }
+rand_core = { workspace = true }
+serde_json = { workspace = true }
+flexbuffers = { workspace = true }
 
 [[bench]]
 harness = false

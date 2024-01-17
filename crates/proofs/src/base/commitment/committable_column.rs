@@ -145,7 +145,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
 mod tests {
     use super::*;
     use crate::base::scalar::ArkScalar;
-    use blitzar::compute::compute_commitments;
+    use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
@@ -352,7 +352,7 @@ mod tests {
         let committable_column = CommittableColumn::BigInt(&[]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
-        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
@@ -362,7 +362,7 @@ mod tests {
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut commitment_buffer,
             &[sequence_actual, sequence_expected],
             0,
@@ -378,7 +378,7 @@ mod tests {
         let committable_column = CommittableColumn::Int128(&[]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
-        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
@@ -388,7 +388,7 @@ mod tests {
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut commitment_buffer,
             &[sequence_actual, sequence_expected],
             0,
@@ -402,7 +402,7 @@ mod tests {
         let committable_column = CommittableColumn::VarChar(vec![]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
-        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
@@ -414,7 +414,7 @@ mod tests {
         let scalars = values.map(ArkScalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut commitment_buffer,
             &[sequence_actual, sequence_expected],
             0,
@@ -428,7 +428,7 @@ mod tests {
         let committable_column = CommittableColumn::Scalar(vec![]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
-        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
@@ -440,7 +440,7 @@ mod tests {
         let scalars = values.map(ArkScalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut commitment_buffer,
             &[sequence_actual, sequence_expected],
             0,
@@ -454,7 +454,7 @@ mod tests {
         let committable_column = CommittableColumn::Boolean(&[]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
-        compute_commitments(&mut commitment_buffer, &[sequence], 0);
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // nonempty case
@@ -464,7 +464,7 @@ mod tests {
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut commitment_buffer,
             &[sequence_actual, sequence_expected],
             0,

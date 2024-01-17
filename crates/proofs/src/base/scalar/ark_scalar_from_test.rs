@@ -96,11 +96,13 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
     let mut rng = StdRng::from_seed([0u8; 32]);
     let dist = Uniform::new(1, 100);
 
-    for _ in 0..100 {
-        let s = dist.sample(&mut rng).to_string()
-            + "testing string to scalar"
-                .repeat(dist.sample(&mut rng))
-                .as_str();
+    for i in 0..100 {
+        let s = format!(
+            "{}_{}_{}",
+            dist.sample(&mut rng),
+            i,
+            "testing string to scalar".repeat(dist.sample(&mut rng))
+        );
         assert!(prev_scalars.insert(ArkScalar::from(s.as_str())));
     }
 }
