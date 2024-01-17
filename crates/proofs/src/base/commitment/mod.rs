@@ -13,12 +13,16 @@ mod column_bounds;
 use super::scalar::ArkScalar;
 pub use column_bounds::{ColumnBounds, ColumnBoundsMismatch};
 
+mod column_commitment_metadata;
+pub use column_commitment_metadata::{ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch};
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment {
     /// The associated scalar that the commitment is for.
     /// There are multiple possible commitment schemes for a scalar, but only one scalar for any commitment.
     type Scalar: Scalar;
 }
+
 impl Commitment for RistrettoPoint {
     type Scalar = ArkScalar;
 }
