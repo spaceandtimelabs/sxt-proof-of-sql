@@ -3,6 +3,7 @@ use crate::{
     base::{
         database::{DataAccessor, RecordBatchTestAccessor, TestAccessor},
         proof::ProofError,
+        scalar::ArkScalar,
     },
     record_batch,
     sql::{
@@ -25,7 +26,7 @@ impl ProverEvaluate for DishonestFilterExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // evaluate where clause
         let selection = self
@@ -52,7 +53,7 @@ impl ProverEvaluate for DishonestFilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

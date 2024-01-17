@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 
@@ -48,7 +49,7 @@ impl FilterResultExpr {
     pub fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_result_column(accessor.get_column(self.column_ref));
     }
@@ -59,7 +60,7 @@ impl FilterResultExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
@@ -78,7 +79,7 @@ impl FilterResultExpr {
     pub fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
         selection_eval: &ArkScalar,
     ) {
         let col_commit = accessor.get_commitment(self.column_ref);

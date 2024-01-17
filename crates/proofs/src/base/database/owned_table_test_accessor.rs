@@ -25,7 +25,7 @@ impl<S: Scalar> Clone for OwnedTableTestAccessor<S> {
     }
 }
 
-impl TestAccessor for OwnedTableTestAccessor<ArkScalar> {
+impl TestAccessor<RistrettoPoint> for OwnedTableTestAccessor<ArkScalar> {
     type Table = OwnedTable<ArkScalar>;
 
     fn new_empty() -> Self {
@@ -50,8 +50,8 @@ impl TestAccessor for OwnedTableTestAccessor<ArkScalar> {
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
-impl DataAccessor for OwnedTableTestAccessor<ArkScalar> {
-    fn get_column(&self, column: ColumnRef) -> Column<ArkScalar> {
+impl<S: Scalar> DataAccessor<S> for OwnedTableTestAccessor<S> {
+    fn get_column(&self, column: ColumnRef) -> Column<S> {
         match self
             .tables
             .get(&column.table_ref())
@@ -66,9 +66,9 @@ impl DataAccessor for OwnedTableTestAccessor<ArkScalar> {
                 let col: &mut [&str] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| s.as_str()));
-                let scals: &mut [ArkScalar] = self
+                let scals: &mut [S] = self
                     .alloc
-                    .alloc_slice_fill_iter(col.iter().map(|s| s.into()));
+                    .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
                 Column::VarChar((col, scals))
             }
             OwnedColumn::Int128(col) => Column::Int128(col),
@@ -76,7 +76,7 @@ impl DataAccessor for OwnedTableTestAccessor<ArkScalar> {
         }
     }
 }
-impl CommitmentAccessor for OwnedTableTestAccessor<ArkScalar> {
+impl CommitmentAccessor<RistrettoPoint> for OwnedTableTestAccessor<ArkScalar> {
     fn get_commitment(&self, column: ColumnRef) -> RistrettoPoint {
         let (table, offset) = self.tables.get(&column.table_ref()).unwrap();
         match table.inner_table().get(&column.column_id()).unwrap() {

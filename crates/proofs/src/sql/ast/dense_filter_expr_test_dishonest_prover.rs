@@ -29,7 +29,7 @@ impl ProverEvaluate for DishonestDenseFilterExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self
@@ -63,7 +63,7 @@ impl ProverEvaluate for DishonestDenseFilterExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

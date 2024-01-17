@@ -2,13 +2,18 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     SchemaAccessor, TableRef,
 };
-use crate::base::scalar::ArkScalar;
+use crate::base::{commitment::Commitment, scalar::ArkScalar};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 
 /// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing purposes.
-pub trait TestAccessor:
-    Clone + Default + MetadataAccessor + SchemaAccessor + CommitmentAccessor + DataAccessor
+pub trait TestAccessor<C: Commitment>:
+    Clone
+    + Default
+    + MetadataAccessor
+    + SchemaAccessor
+    + CommitmentAccessor<C>
+    + DataAccessor<C::Scalar>
 {
     /// The table type that the accessor will accept in the `add_table` method, and likely the inner table type.
     type Table;
@@ -29,7 +34,7 @@ pub trait TestAccessor:
 #[derive(Clone, Default)]
 /// A test accessor that leaves all of the required methods except `new` `unimplemented!()`.
 pub struct UnimplementedTestAccessor;
-impl TestAccessor for UnimplementedTestAccessor {
+impl TestAccessor<RistrettoPoint> for UnimplementedTestAccessor {
     type Table = ();
 
     fn new_empty() -> Self {
@@ -48,12 +53,12 @@ impl TestAccessor for UnimplementedTestAccessor {
         unimplemented!()
     }
 }
-impl DataAccessor for UnimplementedTestAccessor {
+impl DataAccessor<ArkScalar> for UnimplementedTestAccessor {
     fn get_column(&self, _column: ColumnRef) -> Column<ArkScalar> {
         unimplemented!()
     }
 }
-impl CommitmentAccessor for UnimplementedTestAccessor {
+impl CommitmentAccessor<RistrettoPoint> for UnimplementedTestAccessor {
     fn get_commitment(&self, _column: ColumnRef) -> RistrettoPoint {
         unimplemented!()
     }

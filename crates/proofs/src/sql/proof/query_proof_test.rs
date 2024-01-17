@@ -12,7 +12,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use num_traits::{One, Zero};
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -38,7 +38,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         builder.produce_sumcheck_subpolynomial(
@@ -46,7 +46,10 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
             vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
@@ -103,7 +106,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -113,7 +116,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
         builder.produce_sumcheck_subpolynomial(
@@ -121,7 +124,10 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
             vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
@@ -151,7 +157,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -161,7 +167,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
@@ -169,7 +175,10 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
             vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         // specify an arbitrary evaluation so that verify fails
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::from(123u64));
@@ -200,7 +209,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -210,7 +219,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
@@ -218,7 +227,10 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
             vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
@@ -254,7 +266,7 @@ fn verify_fails_if_counts_dont_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -264,7 +276,7 @@ fn verify_fails_if_counts_dont_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
@@ -272,7 +284,10 @@ fn verify_fails_if_counts_dont_match() {
             vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
         builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
     }
@@ -307,7 +322,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -315,7 +330,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
@@ -326,7 +341,10 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -402,7 +420,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -410,7 +428,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
@@ -421,7 +439,10 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -459,7 +480,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -467,7 +488,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
@@ -478,7 +499,10 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = ArkScalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -518,7 +542,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -526,7 +550,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -549,7 +573,10 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -638,7 +665,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -646,7 +673,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -669,7 +696,10 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -719,7 +749,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -727,7 +757,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -750,7 +780,10 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -805,7 +838,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -813,7 +846,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -836,7 +869,10 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -886,7 +922,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -894,7 +930,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -917,7 +953,10 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(&x_commit);
@@ -963,7 +1002,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
@@ -972,7 +1011,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
     fn prover_eval<'a>(
         builder: &mut ProofBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor,
+        _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
@@ -985,7 +1024,10 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
             ],
         );
     }
-    fn verifier_eval(builder: &mut VerificationBuilder, _accessor: &dyn CommitmentAccessor) {
+    fn verifier_eval(
+        builder: &mut VerificationBuilder,
+        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+    ) {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         let res_eval = builder.consume_result_mle();

@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,7 @@ impl BoolExpr for AndExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         let lhs = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs = self.rhs.result_evaluate(table_length, alloc, accessor);
@@ -60,7 +61,7 @@ impl BoolExpr for AndExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
         let lhs = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs = self.rhs.prover_evaluate(builder, alloc, accessor);
@@ -87,7 +88,7 @@ impl BoolExpr for AndExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor)?;

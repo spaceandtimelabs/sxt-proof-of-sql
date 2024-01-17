@@ -5,6 +5,7 @@ use crate::{
             ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
         },
         proof::ProofError,
+        scalar::ArkScalar,
     },
     sql::proof::{
         CountBuilder, Indexes, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
@@ -13,6 +14,7 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
@@ -93,7 +95,7 @@ impl ProofExpr for GroupByExpr {
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder,
-        accessor: &dyn CommitmentAccessor,
+        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -160,7 +162,7 @@ impl ProverEvaluate for GroupByExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self
@@ -206,7 +208,7 @@ impl ProverEvaluate for GroupByExpr {
         &self,
         builder: &mut ProofBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor,
+        accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
