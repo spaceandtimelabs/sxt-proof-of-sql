@@ -59,6 +59,36 @@ fn test_ark_scalar_serialization() {
 }
 
 #[test]
+fn test_ark_scalar_display() {
+    assert_eq!(
+        "0000000000000000000000000000000000000000000000000000000000ABC123",
+        format!("{}", ArkScalar::from(0xABC123))
+    );
+    assert_eq!(
+        "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5C4A12CA",
+        format!("{}", ArkScalar::from(-0xABC123))
+    );
+    assert_eq!("0x0000...C123", format!("{:#}", ArkScalar::from(0xABC123)));
+    assert_eq!("0x1000...12CA", format!("{:#}", ArkScalar::from(-0xABC123)));
+    assert_eq!(
+        "+0000000000000000000000000000000000000000000000000000000000ABC123",
+        format!("{:+}", ArkScalar::from(0xABC123))
+    );
+    assert_eq!(
+        "-0000000000000000000000000000000000000000000000000000000000ABC123",
+        format!("{:+}", ArkScalar::from(-0xABC123))
+    );
+    assert_eq!(
+        "+0x0000...C123",
+        format!("{:+#}", ArkScalar::from(0xABC123))
+    );
+    assert_eq!(
+        "-0x0000...C123",
+        format!("{:+#}", ArkScalar::from(-0xABC123))
+    );
+}
+
+#[test]
 fn test_ark_scalar_mid() {
     assert_eq!(
         ArkScalar::MAX_SIGNED,

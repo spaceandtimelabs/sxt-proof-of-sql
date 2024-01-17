@@ -1,4 +1,4 @@
-use crate::base::scalar::{ArkScalar, Scalar};
+use crate::base::scalar::Scalar;
 use hashbrown::HashMap;
 /**
  * Adopted from arkworks
@@ -6,7 +6,7 @@ use hashbrown::HashMap;
  * See third_party/license/arkworks.LICENSE
  */
 use std::cmp::max;
-use std::{fmt::Write, rc::Rc, vec::Vec};
+use std::{rc::Rc, vec::Vec};
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
@@ -106,31 +106,17 @@ impl<S: Scalar> CompositePolynomial<S> {
             .sum();
         result
     }
-}
-impl CompositePolynomial<ArkScalar> {
     #[tracing::instrument(
         name = "proofs.sql.proof.composite_polynomial.annotate_trace",
         level = "debug",
         skip_all
     )]
     pub fn annotate_trace(&self) {
-        use ark_ff::{BigInteger, PrimeField};
         for i in 0..self.products.len() {
-            let data = self.products[i].0 .0.into_bigint().to_bytes_be();
-            let data_as_string: String = data.iter().fold(String::new(), |mut output, b| {
-                let _ = write!(output, "{b:02X}");
-                output
-            });
-
-            let mut coefficient_string = String::from("0x");
-            coefficient_string.push_str(&data_as_string[0..4]);
-            coefficient_string.push_str("...");
-            coefficient_string.push_str(&data_as_string[data_as_string.len() - 4..]);
-
             tracing::info!(
-                "Product #{:?}: {} * {:?}",
+                "Product #{:?}: {:#} * {:?}",
                 i,
-                coefficient_string,
+                self.products[i].0,
                 self.products[i].1
             );
         }

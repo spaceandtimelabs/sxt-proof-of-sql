@@ -1,21 +1,24 @@
-use super::MultilinearExtension;
-use crate::base::{polynomial::CompositePolynomial, scalar::ArkScalar, slice_ops};
+use crate::base::{
+    polynomial::{CompositePolynomial, MultilinearExtension},
+    scalar::Scalar,
+    slice_ops,
+};
 use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 // Build up a composite polynomial from individual MLE expressions
-pub struct CompositePolynomialBuilder {
+pub struct CompositePolynomialBuilder<S: Scalar> {
     num_sumcheck_variables: usize,
-    fr_multiplicands_degree1: Vec<ArkScalar>,
-    fr_multiplicands_rest: Vec<(ArkScalar, Vec<Rc<Vec<ArkScalar>>>)>,
-    zerosum_multiplicands: Vec<(ArkScalar, Vec<Rc<Vec<ArkScalar>>>)>,
-    fr: Rc<Vec<ArkScalar>>,
-    mles: HashMap<*const c_void, Rc<Vec<ArkScalar>>>,
+    fr_multiplicands_degree1: Vec<S>,
+    fr_multiplicands_rest: Vec<(S, Vec<Rc<Vec<S>>>)>,
+    zerosum_multiplicands: Vec<(S, Vec<Rc<Vec<S>>>)>,
+    fr: Rc<Vec<S>>,
+    mles: HashMap<*const c_void, Rc<Vec<S>>>,
 }
 
-impl CompositePolynomialBuilder {
-    pub fn new(num_sumcheck_variables: usize, fr: &[ArkScalar]) -> Self {
+impl<S: Scalar> CompositePolynomialBuilder<S> {
+    pub fn new(num_sumcheck_variables: usize, fr: &[S]) -> Self {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {
             num_sumcheck_variables,
@@ -32,8 +35,8 @@ impl CompositePolynomialBuilder {
     /// where f_r is an MLE of random scalars
     pub fn produce_fr_multiplicand(
         &mut self,
-        mult: &ArkScalar,
-        terms: &[Box<dyn MultilinearExtension + '_>],
+        mult: &S,
+        terms: &[Box<dyn MultilinearExtension<S> + '_>],
     ) {
         if terms.is_empty() {
             self.fr_multiplicands_degree1
@@ -51,8 +54,8 @@ impl CompositePolynomialBuilder {
     ///    mult * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
     pub fn produce_zerosum_multiplicand(
         &mut self,
-        mult: &ArkScalar,
-        terms: &[Box<dyn MultilinearExtension + '_>],
+        mult: &S,
+        terms: &[Box<dyn MultilinearExtension<S> + '_>],
     ) {
         // There is a more efficient way of handling constant zerosum terms,
         // since we know the sum will be constant * length, so this assertion should be here.
@@ -63,8 +66,8 @@ impl CompositePolynomialBuilder {
 
     fn create_multiplicand_with_deduplicated_mles(
         &mut self,
-        terms: &[Box<dyn MultilinearExtension + '_>],
-    ) -> Vec<Rc<Vec<ArkScalar>>> {
+        terms: &[Box<dyn MultilinearExtension<S> + '_>],
+    ) -> Vec<Rc<Vec<S>>> {
         let mut terms_p = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
@@ -81,7 +84,7 @@ impl CompositePolynomialBuilder {
 
     /// Create a composite polynomial that is the sum of all of the
     /// produced MLE expressions
-    pub fn make_composite_polynomial(&self) -> CompositePolynomial<ArkScalar> {
+    pub fn make_composite_polynomial(&self) -> CompositePolynomial<S> {
         let mut res = CompositePolynomial::new(self.num_sumcheck_variables);
         res.add_product(
             [

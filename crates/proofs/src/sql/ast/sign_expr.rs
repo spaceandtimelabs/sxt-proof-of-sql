@@ -9,7 +9,7 @@ use crate::{
         scalar::ArkScalar,
     },
     sql::proof::{
-        CountBuilder, MultilinearExtension, ProofBuilder, SumcheckSubpolynomialType,
+        CountBuilder, ProofBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
         VerificationBuilder,
     },
 };
@@ -191,7 +191,7 @@ fn prove_bit_decomposition<'a>(
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
         alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
-    let mut terms: Vec<(ArkScalar, Vec<Box<dyn MultilinearExtension>>)> = Vec::new();
+    let mut terms: Vec<SumcheckSubpolynomialTerm<ArkScalar>> = Vec::new();
 
     // expr
     terms.push((ArkScalar::one(), vec![Box::new(expr)]));

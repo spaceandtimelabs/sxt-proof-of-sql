@@ -17,7 +17,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_slice() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *slice.to_sumcheck_term(3),
+        *MultilinearExtension::<ArkScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -29,7 +29,10 @@ fn we_can_use_multilinear_extension_methods_for_i64_slice() {
             0.into()
         ]
     );
-    assert_ne!(slice.id(), (&evaluation_vec).id());
+    assert_ne!(
+        MultilinearExtension::<ArkScalar>::id(&slice),
+        MultilinearExtension::<ArkScalar>::id(&&evaluation_vec)
+    );
 }
 
 #[test]
@@ -48,7 +51,7 @@ fn we_can_use_multilinear_extension_methods_for_column() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *slice.to_sumcheck_term(3),
+        *MultilinearExtension::<ArkScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -60,7 +63,10 @@ fn we_can_use_multilinear_extension_methods_for_column() {
             0.into()
         ]
     );
-    assert_ne!(slice.id(), (&evaluation_vec).id());
+    assert_ne!(
+        MultilinearExtension::<ArkScalar>::id(&slice),
+        MultilinearExtension::<ArkScalar>::id(&&evaluation_vec)
+    );
 }
 
 #[test]
@@ -79,7 +85,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_vec() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *slice.to_sumcheck_term(3),
+        *MultilinearExtension::<ArkScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -91,5 +97,8 @@ fn we_can_use_multilinear_extension_methods_for_i64_vec() {
             0.into()
         ]
     );
-    assert_ne!(slice.id(), (&evaluation_vec).id());
+    assert_ne!(
+        MultilinearExtension::<ArkScalar>::id(&slice),
+        MultilinearExtension::<ArkScalar>::id(&&evaluation_vec)
+    );
 }

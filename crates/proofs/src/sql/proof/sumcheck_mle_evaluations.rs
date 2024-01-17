@@ -50,7 +50,7 @@ impl<'a> SumcheckMleEvaluations<'a> {
     pub fn new(
         table_length: usize,
         evaluation_point: &[ArkScalar],
-        sumcheck_random_scalars: &SumcheckRandomScalars,
+        sumcheck_random_scalars: &SumcheckRandomScalars<ArkScalar>,
         pre_result_evaluations: &'a [ArkScalar],
         result_evaluations: &'a [ArkScalar],
         result_indexes: &Indexes,
