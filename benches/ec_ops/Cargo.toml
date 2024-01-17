@@ -2,14 +2,12 @@
 name = "ec_ops"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ark-bls12-381 = { version = "0.4.0" }
-ark-ec = { version = "0.4.2" }
-ark-std = { version = "0.4.0" }
-blitzar = { version = "1.1.1" }
-curve25519-dalek = { version = "3" }
-rand = "0.7"
-rand_core = "0.5"
+ark-bls12-381 = { workspace = true }
+ark-ec = { workspace = true }
+ark-std = { workspace = true }
+blitzar = { workspace = true }
+curve25519-dalek = { workspace = true }
+rand = { workspace = true }

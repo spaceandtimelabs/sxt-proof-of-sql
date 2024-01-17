@@ -4,7 +4,6 @@ use ark_std::UniformRand;
 use blitzar::{compute::*, sequence::Sequence};
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use rand::Rng;
-use rand_core::OsRng;
 use std::time::Instant;
 
 fn wake_up_gpu() {
@@ -13,7 +12,6 @@ fn wake_up_gpu() {
     let data: Vec<u8> = (0..1).map(|_| rng.gen::<u8>()).collect();
 
     // Randomly obtain the generator points
-    let mut rng = OsRng;
     let gs: Vec<RistrettoPoint> = (0..data.len())
         .map(|_| RistrettoPoint::random(&mut rng))
         .collect();
@@ -22,7 +20,7 @@ fn wake_up_gpu() {
     let mut commitments = vec![CompressedRistretto::default(); 1];
 
     // Compute commitment
-    compute_commitments_with_generators(&mut commitments, &[(*data).into()], &gs);
+    compute_curve25519_commitments_with_generators(&mut commitments, &[(*data).into()], &gs);
 }
 
 fn single_bls12_381_g1_commit<'a>(data: impl Into<Sequence<'a>>) {
@@ -56,7 +54,7 @@ fn single_curve25519_commit<'a>(data: impl Into<Sequence<'a>>) {
     let data = data.into();
 
     // Randomly obtain the generator points
-    let mut rng = OsRng;
+    let mut rng = rand::thread_rng();
     let gs: Vec<RistrettoPoint> = (0..data.len())
         .map(|_| RistrettoPoint::random(&mut rng))
         .collect();
@@ -67,7 +65,7 @@ fn single_curve25519_commit<'a>(data: impl Into<Sequence<'a>>) {
     let start_time = Instant::now();
 
     // Compute commitment
-    compute_commitments_with_generators(&mut commitments, &[data], &gs);
+    compute_curve25519_commitments_with_generators(&mut commitments, &[data], &gs);
 
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);
@@ -183,7 +181,7 @@ fn bls12_381_g1_multi(data: &Vec<Vec<[u8; 32]>>) {
 
 fn curve25519_multi(data: &Vec<Vec<[u8; 32]>>) {
     // Randomly obtain the generator points
-    let mut rng = OsRng;
+    let mut rng = rand::thread_rng();
     let gs: Vec<RistrettoPoint> = (0..data[0].len())
         .map(|_| RistrettoPoint::random(&mut rng))
         .collect();
@@ -195,7 +193,7 @@ fn curve25519_multi(data: &Vec<Vec<[u8; 32]>>) {
     let start_time = Instant::now();
 
     // Compute commitment
-    compute_commitments_with_generators(&mut commitments, &seq, &gs);
+    compute_curve25519_commitments_with_generators(&mut commitments, &seq, &gs);
 
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(start_time);

@@ -127,7 +127,7 @@ where
     let mut rng = rand::thread_rng();
     let data: Vec<T> = range
         .iter()
-        .map(|_| rng.gen_range(low.clone(), high.clone()))
+        .map(|_| rng.gen_range(low.clone()..high.clone()))
         .chain(range.clone())
         .collect();
 
@@ -220,7 +220,7 @@ fn order_by_with_random_data_preserves_ordering() {
     let nines = "9".repeat(38).parse::<i128>().unwrap();
     validate_order_by_map_i128_to_utf8_with_array(
         (-300000..300000)
-            .map(|_| rng.gen_range(-nines, nines + 1))
+            .map(|_| rng.gen_range(-nines..nines + 1))
             .collect(),
     );
 }

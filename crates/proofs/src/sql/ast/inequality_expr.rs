@@ -11,7 +11,7 @@ use crate::{
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
-use blitzar::compute::get_one_commit;
+use blitzar::compute::get_one_curve25519_commit;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
@@ -134,8 +134,8 @@ impl BoolExpr for InequalityExpr {
     ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();
         let generator_offset = builder.generator_offset();
-        let one_commit = get_one_commit((table_length + generator_offset) as u64)
-            - get_one_commit(generator_offset as u64);
+        let one_commit = get_one_curve25519_commit((table_length + generator_offset) as u64)
+            - get_one_curve25519_commit(generator_offset as u64);
 
         // commit
         let commit = if self.is_lte {

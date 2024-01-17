@@ -1,6 +1,6 @@
 use crate::base::commitment::committable_column::CommittableColumn;
 use blitzar::{
-    compute::{compute_commitments, update_commitments},
+    compute::{compute_curve25519_commitments, update_curve25519_commitments},
     sequence::Sequence,
 };
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -80,7 +80,7 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
         let sequences: Vec<_> = committable_columns.iter().map(Sequence::from).collect();
 
         let mut commitments = vec![CompressedRistretto::default(); committable_columns.len()];
-        compute_commitments(&mut commitments, &sequences, offset as u64);
+        compute_curve25519_commitments(&mut commitments, &sequences, offset as u64);
 
         commitments
     }
@@ -102,7 +102,7 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
 
         let sequences: Vec<_> = committable_columns.iter().map(Sequence::from).collect();
 
-        update_commitments(self, &sequences, offset as u64);
+        update_curve25519_commitments(self, &sequences, offset as u64);
 
         Ok(())
     }
@@ -198,7 +198,7 @@ mod tests {
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut expected_commitments,
             &[
                 Sequence::from(column_a.as_slice()),
@@ -237,7 +237,7 @@ mod tests {
             .unwrap();
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut expected_commitments,
             &[
                 Sequence::from(column_a.as_slice()),
@@ -311,7 +311,7 @@ mod tests {
         commitments.extend_columns_with_offset(&new_columns, 0);
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 4];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut expected_commitments,
             &[
                 Sequence::from(column_a.as_slice()),
@@ -357,7 +357,7 @@ mod tests {
         let commitments = commitments_a.try_add(commitments_b).unwrap();
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut expected_commitments,
             &[
                 Sequence::from(column_a.as_slice()),
@@ -434,7 +434,7 @@ mod tests {
         let commitments = commitments_b.try_sub(commitments_a).unwrap();
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_commitments(
+        compute_curve25519_commitments(
             &mut expected_commitments,
             &[
                 Sequence::from(&column_a[3..]),

@@ -24,4 +24,4 @@ thiserror = { workspace = true }
 lalrpop = { version = "0.20.0" }
 
 [dev-dependencies]
-serde_json = "1"
+serde_json = { workspace = true }
