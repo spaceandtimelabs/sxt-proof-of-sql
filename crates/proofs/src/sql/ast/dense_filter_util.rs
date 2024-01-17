@@ -1,7 +1,4 @@
-use crate::{
-    base::{database::Column, scalar::ArkScalar},
-    sql::proof::MultilinearExtension,
-};
+use crate::base::{database::Column, polynomial::MultilinearExtension, scalar::ArkScalar};
 use bumpalo::Bump;
 use num_traits::One;
 
@@ -70,7 +67,7 @@ pub fn fold_columns(
     res: &mut [ArkScalar],
     mul: ArkScalar,
     beta: ArkScalar,
-    columns: &[impl MultilinearExtension],
+    columns: &[impl MultilinearExtension<ArkScalar>],
 ) {
     for (m, col) in powers(mul, beta).zip(columns) {
         col.mul_add(res, &m);

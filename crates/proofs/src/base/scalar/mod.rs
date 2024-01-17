@@ -16,6 +16,7 @@ pub use commitment_utility::compute_commitment_for_testing;
 pub trait Scalar:
     Clone
     + core::fmt::Debug
+    + core::fmt::Display
     + PartialEq
     + Default
     + for<'a> From<&'a str>
@@ -27,6 +28,11 @@ pub trait Scalar:
     + Sub<Output = Self>
     + Copy
     + std::ops::MulAssign
+    + std::ops::AddAssign
+    + num_traits::Zero
+    + for<'a> std::convert::From<&'a Self> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
     + std::convert::Into<[u64; 4]>
     + std::convert::From<[u64; 4]>
     + core::cmp::PartialOrd

@@ -1,5 +1,5 @@
-use super::{CompositePolynomialBuilder, MultilinearExtension};
-use crate::base::scalar::ArkScalar;
+use super::CompositePolynomialBuilder;
+use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
 
 /// The type of a sumcheck subpolynomial
 pub enum SumcheckSubpolynomialType {
@@ -11,7 +11,7 @@ pub enum SumcheckSubpolynomialType {
 
 /// A term in a sumcheck subpolynomial, represented as a product of multilinear
 /// extensions and a constant.
-pub type SumcheckSubpolynomialTerm<'a> = (ArkScalar, Vec<Box<dyn MultilinearExtension + 'a>>);
+pub type SumcheckSubpolynomialTerm<'a, S> = (S, Vec<Box<dyn MultilinearExtension<S> + 'a>>);
 
 /// A polynomial that can be used to check a contraint and can be aggregated
 /// into a single sumcheck polynomial.
@@ -21,16 +21,16 @@ pub type SumcheckSubpolynomialTerm<'a> = (ArkScalar, Vec<Box<dyn MultilinearExte
 ///
 /// The subpolynomial is represented as a sum of terms, where each term is a
 /// product of multilinear extensions and a constant.
-pub struct SumcheckSubpolynomial<'a> {
-    terms: Vec<SumcheckSubpolynomialTerm<'a>>,
+pub struct SumcheckSubpolynomial<'a, S: Scalar> {
+    terms: Vec<SumcheckSubpolynomialTerm<'a, S>>,
     subpolynomial_type: SumcheckSubpolynomialType,
 }
 
-impl<'a> SumcheckSubpolynomial<'a> {
+impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
     /// Form subpolynomial from a sum of multilinear extension products
     pub fn new(
         subpolynomial_type: SumcheckSubpolynomialType,
-        terms: Vec<SumcheckSubpolynomialTerm<'a>>,
+        terms: Vec<SumcheckSubpolynomialTerm<'a, S>>,
     ) -> Self {
         Self {
             terms,
@@ -41,8 +41,8 @@ impl<'a> SumcheckSubpolynomial<'a> {
     /// Combine the subpolynomial into a combined composite polynomial
     pub fn compose(
         &self,
-        composite_polynomial: &mut CompositePolynomialBuilder,
-        group_multiplier: ArkScalar,
+        composite_polynomial: &mut CompositePolynomialBuilder<S>,
+        group_multiplier: S,
     ) {
         for (mult, term) in self.terms.iter() {
             match self.subpolynomial_type {
