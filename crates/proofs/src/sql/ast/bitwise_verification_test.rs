@@ -6,7 +6,7 @@ use crate::base::{
     bit::BitDistribution,
     scalar::{compute_commitment_for_testing, ArkScalar},
 };
-use blitzar::compute::get_one_commit;
+use blitzar::compute::get_one_curve25519_commit;
 
 #[test]
 fn zero_is_within_range() {
@@ -35,7 +35,7 @@ fn we_can_verify_the_decomposition_of_a_constant_column() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(1234), ArkScalar::from(1234)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &[]).is_ok());
 }
 
@@ -44,7 +44,7 @@ fn we_can_verify_the_decomposition_of_a_column_with_constant_sign() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(123), ArkScalar::from(122)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     let bits = [compute_commitment_for_testing(&[1, 0], 0)];
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &bits).is_ok());
 }
@@ -54,7 +54,7 @@ fn we_can_verify_the_decomposition_of_a_constant_column_with_negative_values() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(-1234), ArkScalar::from(-1234)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &[]).is_ok());
 }
 
@@ -64,7 +64,7 @@ fn constant_verification_fails_if_the_commitment_doesnt_match() {
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let data: Vec<ArkScalar> = vec![ArkScalar::from(1235), ArkScalar::from(1234)];
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &[]).is_err());
 }
 
@@ -74,7 +74,7 @@ fn constant_verification_fails_if_the_sign_bit_doesnt_match() {
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let data: Vec<ArkScalar> = vec![ArkScalar::from(-1234), ArkScalar::from(-1234)];
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &[]).is_err());
 }
 
@@ -84,7 +84,7 @@ fn constant_verification_fails_if_a_varying_bit_doesnt_match() {
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let data: Vec<ArkScalar> = vec![ArkScalar::from(234), ArkScalar::from(1234)];
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     assert!(verify_constant_sign_decomposition(&dist, &commit, &one_commit, &[]).is_err());
 }
 
@@ -93,7 +93,7 @@ fn we_can_verify_a_decomposition_with_only_a_varying_sign() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(-1), ArkScalar::from(1)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     let sign_commit = compute_commitment_for_testing(&[1, 0], 0);
     assert!(verify_constant_abs_decomposition(&dist, &commit, &one_commit, &sign_commit).is_ok());
 }
@@ -103,7 +103,7 @@ fn constant_abs_verification_fails_if_the_sign_and_data_dont_match() {
     let data: Vec<ArkScalar> = vec![ArkScalar::from(-1), ArkScalar::from(1)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     let sign_commit = compute_commitment_for_testing(&[0, 1], 0);
     assert!(verify_constant_abs_decomposition(&dist, &commit, &one_commit, &sign_commit).is_err());
 }
@@ -113,7 +113,7 @@ fn we_can_verify_a_decomposition_with_only_a_varying_sign_and_magnitude_greater_
     let data: Vec<ArkScalar> = vec![ArkScalar::from(-100), ArkScalar::from(100)];
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     let commit = compute_commitment_for_testing(&data, 0);
-    let one_commit = get_one_commit(data.len() as u64);
+    let one_commit = get_one_curve25519_commit(data.len() as u64);
     let sign_commit = compute_commitment_for_testing(&[1, 0], 0);
     assert!(verify_constant_abs_decomposition(&dist, &commit, &one_commit, &sign_commit).is_ok());
 }

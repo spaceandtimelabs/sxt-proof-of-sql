@@ -395,7 +395,7 @@ fn group_by_with_random_data_doesnt_have_collisions() {
     let nines = "9".repeat(38).parse::<i128>().unwrap();
     validate_group_by_map_i128_to_utf8(
         (-300000..300000)
-            .map(|_| rng.gen_range(-nines, nines + 1))
+            .map(|_| rng.gen_range(-nines..nines + 1))
             .collect(),
     );
 }
