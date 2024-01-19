@@ -1,5 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
+    ref_into::RefInto,
     scalar::Scalar,
 };
 use blitzar::sequence::Sequence;
@@ -66,16 +67,13 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     }
 }
 
-impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a>
-where
-    for<'b> &'b S: Into<[u64; 4]>,
-{
+impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::BigInt(ints) => (ints as &[_]).into(),
             Column::Int128(ints) => (ints as &[_]).into(),
             Column::VarChar((_, scalars)) => {
-                let as_limbs: Vec<_> = scalars.iter().map(Into::<[u64; 4]>::into).collect();
+                let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
             Column::Scalar(scalars) => (scalars as &[_]).into(),
@@ -83,12 +81,7 @@ where
     }
 }
 
-impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a>
-where
-    for<'b> &'b String: Into<S>,
-    for<'b> &'b S: Into<[u64; 4]>,
-    S: Into<[u64; 4]>,
-{
+impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
@@ -115,12 +108,9 @@ impl<'a> From<&'a [i128]> for CommittableColumn<'a> {
         CommittableColumn::Int128(value)
     }
 }
-impl<'a, S: Scalar> From<&'a [S]> for CommittableColumn<'a>
-where
-    for<'b> &'b S: Into<[u64; 4]>,
-{
+impl<'a, S: Scalar> From<&'a [S]> for CommittableColumn<'a> {
     fn from(value: &'a [S]) -> Self {
-        CommittableColumn::Scalar(value.iter().map(Into::<[u64; 4]>::into).collect())
+        CommittableColumn::Scalar(value.iter().map(RefInto::<[u64; 4]>::ref_into).collect())
     }
 }
 impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
@@ -237,10 +227,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_bigint_column() {
         // empty case
-        let from_borrowed_column = CommittableColumn::from(&Column::BigInt(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<ArkScalar>::BigInt(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::BigInt(&[]));
 
-        let from_borrowed_column = CommittableColumn::from(&Column::BigInt(&[12, 34, 56]));
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<ArkScalar>::BigInt(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
@@ -250,10 +241,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_int128_column() {
         // empty case
-        let from_borrowed_column = CommittableColumn::from(&Column::Int128(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<ArkScalar>::Int128(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Int128(&[]));
 
-        let from_borrowed_column = CommittableColumn::from(&Column::Int128(&[12, 34, 56]));
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<ArkScalar>::Int128(&[12, 34, 56]));
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::Int128(&[12, 34, 56])
@@ -263,7 +255,8 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_varchar_column() {
         // empty case
-        let from_borrowed_column = CommittableColumn::from(&Column::VarChar((&[], &[])));
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<ArkScalar>::VarChar((&[], &[])));
         assert_eq!(from_borrowed_column, CommittableColumn::VarChar(Vec::new()));
 
         let varchar_data = ["12", "34", "56"];
@@ -279,7 +272,7 @@ mod tests {
     #[test]
     fn we_can_convert_from_borrowing_scalar_column() {
         // empty case
-        let from_borrowed_column = CommittableColumn::from(&Column::Scalar(&[]));
+        let from_borrowed_column = CommittableColumn::from(&Column::<ArkScalar>::Scalar(&[]));
         assert_eq!(from_borrowed_column, CommittableColumn::Scalar(Vec::new()));
 
         let scalars = [12, 34, 56].map(ArkScalar::from);
@@ -293,11 +286,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_bigint_column() {
         // empty case
-        let owned_column = OwnedColumn::BigInt(Vec::new());
+        let owned_column = OwnedColumn::<ArkScalar>::BigInt(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[]));
 
-        let owned_column = OwnedColumn::BigInt(vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<ArkScalar>::BigInt(vec![12, 34, 56]);
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[12, 34, 56]));
     }
@@ -305,11 +298,11 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_int128_column() {
         // empty case
-        let owned_column = OwnedColumn::Int128(Vec::new());
+        let owned_column = OwnedColumn::<ArkScalar>::Int128(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[]));
 
-        let owned_column = OwnedColumn::Int128(vec![12, 34, 56]);
+        let owned_column = OwnedColumn::<ArkScalar>::Int128(vec![12, 34, 56]);
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Int128(&[12, 34, 56]));
     }
@@ -317,12 +310,12 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_varchar_column() {
         // empty case
-        let owned_column = OwnedColumn::VarChar(Vec::new());
+        let owned_column = OwnedColumn::<ArkScalar>::VarChar(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::VarChar(Vec::new()));
 
         let strings = ["12", "34", "56"].map(String::from);
-        let owned_column = OwnedColumn::VarChar(strings.to_vec());
+        let owned_column = OwnedColumn::<ArkScalar>::VarChar(strings.to_vec());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
@@ -333,7 +326,7 @@ mod tests {
     #[test]
     fn we_can_convert_from_owned_scalar_column() {
         // empty case
-        let owned_column = OwnedColumn::Scalar(Vec::new());
+        let owned_column = OwnedColumn::<ArkScalar>::Scalar(Vec::new());
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::Scalar(Vec::new()));
 
@@ -407,7 +400,7 @@ mod tests {
 
         // nonempty case
         let values = ["12", "34", "56"].map(String::from);
-        let owned_column = OwnedColumn::VarChar(values.to_vec());
+        let owned_column = OwnedColumn::<ArkScalar>::VarChar(values.to_vec());
         let committable_column = CommittableColumn::from(&owned_column);
 
         let sequence_actual = Sequence::from(&committable_column);

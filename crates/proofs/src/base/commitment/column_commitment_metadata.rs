@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata_from_column() {
-        let varchar_column = OwnedColumn::VarChar(
+        let varchar_column = OwnedColumn::<ArkScalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
                 .to_vec(),
@@ -107,7 +107,7 @@ mod tests {
         assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar);
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
 
-        let bigint_column = OwnedColumn::BigInt([1, 2, 3, 1, 0].to_vec());
+        let bigint_column = OwnedColumn::<ArkScalar>::BigInt([1, 2, 3, 1, 0].to_vec());
         let committable_bigint_column = CommittableColumn::from(&bigint_column);
         let bigint_metadata = ColumnCommitmentMetadata::from_column(&committable_bigint_column);
         assert_eq!(bigint_metadata.column_type(), &ColumnType::BigInt);
@@ -118,7 +118,7 @@ mod tests {
             panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
         }
 
-        let int128_column = OwnedColumn::Int128([].to_vec());
+        let int128_column = OwnedColumn::<ArkScalar>::Int128([].to_vec());
         let committable_int128_column = CommittableColumn::from(&int128_column);
         let int128_metadata = ColumnCommitmentMetadata::from_column(&committable_int128_column);
         assert_eq!(int128_metadata.column_type(), &ColumnType::Int128);
