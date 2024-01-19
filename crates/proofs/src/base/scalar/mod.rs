@@ -33,6 +33,8 @@ pub trait Scalar:
     + for<'a> std::convert::From<&'a Self> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> std::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> std::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a bool>
+    + for<'a> std::convert::From<&'a i32>
     + std::convert::Into<[u64; 4]>
     + std::convert::From<[u64; 4]>
     + core::cmp::PartialOrd
@@ -49,4 +51,5 @@ pub trait Scalar:
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
     const MAX_SIGNED: Self;
+    const TWO: Self;
 }

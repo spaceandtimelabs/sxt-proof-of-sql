@@ -1,7 +1,6 @@
-use crate::base::{bit::BitDistribution, proof::ProofError, scalar::ArkScalar};
-use curve25519_dalek::ristretto::RistrettoPoint;
-use num_traits::Zero;
-
+use crate::base::{
+    bit::BitDistribution, commitment::Commitment, proof::ProofError, scalar::Scalar,
+};
 /// In order to avoid cases with large numbers where there can be both a positive and negative
 /// representation, we restrict the range of bit distributions that we accept.
 ///
@@ -9,7 +8,7 @@ use num_traits::Zero;
 /// integers. The range will likely be expanded in the future as we support additional expressions.
 pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     // handle the case of everything zero
-    if dist.num_varying_bits() == 0 && dist.constant_part::<ArkScalar>() == ArkScalar::zero() {
+    if dist.num_varying_bits() == 0 && dist.constant_part() == [0; 4] {
         return true;
     }
 
@@ -24,11 +23,11 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
 /// Given a bit distribution for a column of data with a constant sign, the commitment of a column
 /// of ones, the constant column's commitment, and the commitment of varying absolute bits, verify
 /// that the bit distribution is correct.
-pub fn verify_constant_sign_decomposition(
+pub fn verify_constant_sign_decomposition<C: Commitment>(
     dist: &BitDistribution,
-    commit: &RistrettoPoint,
-    one_commit: &RistrettoPoint,
-    bit_commits: &[RistrettoPoint],
+    commit: &C,
+    one_commit: &C,
+    bit_commits: &[C],
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
@@ -36,13 +35,13 @@ pub fn verify_constant_sign_decomposition(
             && dist.num_varying_bits() == bit_commits.len()
             && !dist.has_varying_sign_bit()
     );
-    let lhs = if dist.sign_bit() { -commit } else { *commit };
-    let mut rhs = dist.constant_part::<ArkScalar>() * one_commit;
+    let lhs = if dist.sign_bit() { -*commit } else { *commit };
+    let mut rhs = C::Scalar::from(dist.constant_part()) * one_commit;
     let mut vary_index = 0;
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
-        rhs += ArkScalar::from_bigint(mult) * bit_commits[vary_index];
+        rhs += C::Scalar::from(mult) * bit_commits[vary_index];
         vary_index += 1;
     });
     if lhs == rhs {
@@ -54,11 +53,11 @@ pub fn verify_constant_sign_decomposition(
     }
 }
 
-pub fn verify_constant_abs_decomposition(
+pub fn verify_constant_abs_decomposition<C: Commitment>(
     dist: &BitDistribution,
-    commit: &RistrettoPoint,
-    one_commit: &RistrettoPoint,
-    sign_commit: &RistrettoPoint,
+    commit: &C,
+    one_commit: &C,
+    sign_commit: &C,
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
@@ -66,8 +65,8 @@ pub fn verify_constant_abs_decomposition(
             && dist.num_varying_bits() == 1
             && dist.has_varying_sign_bit()
     );
-    let t = one_commit - ArkScalar::from(2) * sign_commit;
-    if dist.constant_part::<ArkScalar>() * t == *commit {
+    let t = *one_commit - C::Scalar::TWO * sign_commit;
+    if C::Scalar::from(dist.constant_part()) * t == *commit {
         Ok(())
     } else {
         Err(ProofError::VerificationError(
