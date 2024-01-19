@@ -16,6 +16,11 @@ pub use column_bounds::{ColumnBounds, ColumnBoundsMismatch};
 mod column_commitment_metadata;
 pub use column_commitment_metadata::{ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch};
 
+mod column_commitment_metadata_map;
+pub use column_commitment_metadata_map::{
+    ColumnCommitmentMetadataMap, ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch,
+};
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment {
     /// The associated scalar that the commitment is for.
