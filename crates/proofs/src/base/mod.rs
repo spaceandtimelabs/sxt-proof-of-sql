@@ -7,5 +7,6 @@ pub mod math;
 pub mod polynomial;
 #[warn(missing_docs)]
 pub mod proof;
+pub mod ref_into;
 pub mod scalar;
 pub mod slice_ops;
