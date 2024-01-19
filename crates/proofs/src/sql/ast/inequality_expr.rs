@@ -94,7 +94,7 @@ impl BoolExpr for InequalityExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
@@ -129,7 +129,7 @@ impl BoolExpr for InequalityExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();

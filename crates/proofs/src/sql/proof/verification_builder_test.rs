@@ -11,7 +11,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         num_sumcheck_variables: 1,
         ..Default::default()
     };
-    let builder = VerificationBuilder::new(
+    let builder = VerificationBuilder::<RistrettoPoint>::new(
         0,
         mle_evaluations,
         &[][..],
@@ -35,7 +35,7 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         ..Default::default()
     };
     let subpolynomial_multipliers = [ArkScalar::from(10u64), ArkScalar::from(100u64)];
-    let mut builder = VerificationBuilder::new(
+    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
         0,
         mle_evaluations,
         &[][..],
@@ -101,7 +101,7 @@ fn we_can_consume_result_evaluations() {
         result_evaluations: &result_evaluations,
         ..Default::default()
     };
-    let mut builder = VerificationBuilder::new(
+    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
         0,
         mle_evaluations,
         &[][..],
@@ -116,7 +116,7 @@ fn we_can_consume_result_evaluations() {
 
 #[test]
 fn we_can_consume_post_result_challenges_in_proof_builder() {
-    let mut builder = VerificationBuilder::new(
+    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
         0,
         SumcheckMleEvaluations::default(),
         &[][..],

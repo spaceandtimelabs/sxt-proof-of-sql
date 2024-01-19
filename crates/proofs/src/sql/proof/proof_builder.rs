@@ -6,19 +6,19 @@ use crate::base::{
     bit::BitDistribution,
     commitment::{CommittableColumn, VecCommitmentExt},
     polynomial::{CompositePolynomial, MultilinearExtension},
-    scalar::ArkScalar,
+    scalar::Scalar,
 };
 use curve25519_dalek::ristretto::CompressedRistretto;
 use num_traits::Zero;
 
 /// Track components used to form a query's proof
-pub struct ProofBuilder<'a> {
+pub struct ProofBuilder<'a, S: Scalar> {
     table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
-    pre_result_mles: Vec<Box<dyn MultilinearExtension<ArkScalar> + 'a>>,
-    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, ArkScalar>>,
+    pre_result_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -26,15 +26,15 @@ pub struct ProofBuilder<'a> {
     ///
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
-    post_result_challenges: Vec<ArkScalar>,
+    post_result_challenges: Vec<S>,
 }
 
-impl<'a> ProofBuilder<'a> {
+impl<'a, S: Scalar> ProofBuilder<'a, S> {
     #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
     pub fn new(
         table_length: usize,
         num_sumcheck_variables: usize,
-        post_result_challenges: Vec<ArkScalar>,
+        post_result_challenges: Vec<S>,
     ) -> Self {
         Self {
             table_length,
@@ -73,7 +73,7 @@ impl<'a> ProofBuilder<'a> {
         level = "debug",
         skip_all
     )]
-    pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension<ArkScalar> + 'a) {
+    pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension<S> + 'a) {
         self.pre_result_mles.push(Box::new(data));
     }
 
@@ -88,7 +88,7 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn produce_intermediate_mle(
         &mut self,
-        data: impl MultilinearExtension<ArkScalar> + Into<CommittableColumn<'a>> + Copy + 'a,
+        data: impl MultilinearExtension<S> + Into<CommittableColumn<'a>> + Copy + 'a,
     ) {
         self.commitment_descriptor.push(data.into());
         self.produce_anchored_mle(data);
@@ -104,7 +104,7 @@ impl<'a> ProofBuilder<'a> {
     pub fn produce_sumcheck_subpolynomial(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
-        terms: Vec<SumcheckSubpolynomialTerm<'a, ArkScalar>>,
+        terms: Vec<SumcheckSubpolynomialTerm<'a, S>>,
     ) {
         self.sumcheck_subpolynomials
             .push(SumcheckSubpolynomial::new(subpolynomial_type, terms));
@@ -129,8 +129,8 @@ impl<'a> ProofBuilder<'a> {
     )]
     pub fn make_sumcheck_polynomial(
         &self,
-        scalars: &SumcheckRandomScalars<ArkScalar>,
-    ) -> CompositePolynomial<ArkScalar> {
+        scalars: &SumcheckRandomScalars<S>,
+    ) -> CompositePolynomial<S> {
         let mut builder = CompositePolynomialBuilder::new(
             self.num_sumcheck_variables,
             &scalars.compute_entrywise_multipliers(),
@@ -152,7 +152,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[ArkScalar]) -> Vec<ArkScalar> {
+    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
         let mut res = Vec::with_capacity(self.pre_result_mles.len());
         for evaluator in self.pre_result_mles.iter() {
             res.push(evaluator.inner_product(evaluation_vec));
@@ -167,7 +167,7 @@ impl<'a> ProofBuilder<'a> {
         level = "info",
         skip_all
     )]
-    pub fn fold_pre_result_mles(&self, multipliers: &[ArkScalar]) -> Vec<ArkScalar> {
+    pub fn fold_pre_result_mles(&self, multipliers: &[S]) -> Vec<S> {
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];
         for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
@@ -186,7 +186,7 @@ impl<'a> ProofBuilder<'a> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
-    pub fn consume_post_result_challenge(&mut self) -> ArkScalar {
+    pub fn consume_post_result_challenge(&mut self) -> S {
         self.post_result_challenges.pop().unwrap()
     }
 }

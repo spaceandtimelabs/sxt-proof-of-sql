@@ -61,7 +61,7 @@ impl BoolExpr for ConstBoolExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
@@ -70,7 +70,7 @@ impl BoolExpr for ConstBoolExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         if self.value {

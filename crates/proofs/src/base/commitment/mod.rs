@@ -1,6 +1,7 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
 pub use blitzar::compute::{init_backend, init_backend_with_config, BackendConfig};
+use core::ops::AddAssign;
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
@@ -22,10 +23,12 @@ pub use column_commitment_metadata_map::{
 };
 
 /// A trait for using commitment schemes generically.
-pub trait Commitment {
+pub trait Commitment: AddAssign + Sized + Default + Copy {
     /// The associated scalar that the commitment is for.
     /// There are multiple possible commitment schemes for a scalar, but only one scalar for any commitment.
-    type Scalar: Scalar;
+    type Scalar: Scalar
+        + for<'a> core::ops::Mul<&'a Self, Output = Self>
+        + core::ops::Mul<Self, Output = Self>;
 }
 
 impl Commitment for RistrettoPoint {

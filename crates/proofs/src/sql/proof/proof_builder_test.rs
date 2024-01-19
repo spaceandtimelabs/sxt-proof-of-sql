@@ -19,7 +19,7 @@ use std::sync::Arc;
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<ArkScalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
@@ -34,7 +34,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<ArkScalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;

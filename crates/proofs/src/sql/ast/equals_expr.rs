@@ -56,7 +56,7 @@ impl EqualsExpr {
 
     fn prover_evaluate_impl<'a, T: Sync>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         col: &'a [T],
     ) -> &'a [bool]
@@ -106,7 +106,7 @@ impl BoolExpr for EqualsExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
@@ -123,7 +123,7 @@ impl BoolExpr for EqualsExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let table_length = builder.table_length();
@@ -152,7 +152,7 @@ pub fn result_evaluate_equals_zero<'a>(
 }
 
 pub fn prover_evaluate_equals_zero<'a>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     lhs: &'a [ArkScalar],
 ) -> &'a [bool] {
@@ -197,7 +197,7 @@ pub fn prover_evaluate_equals_zero<'a>(
 }
 
 pub fn verifier_evaluate_equals_zero(
-    builder: &mut VerificationBuilder,
+    builder: &mut VerificationBuilder<RistrettoPoint>,
     lhs_commit: &RistrettoPoint,
 ) -> ArkScalar {
     // consume mle evaluations
