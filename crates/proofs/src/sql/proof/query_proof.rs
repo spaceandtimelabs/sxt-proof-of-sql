@@ -78,7 +78,7 @@ impl QueryProof {
     }
 
     pub fn new_from_builder(
-        builder: ProofBuilder,
+        builder: ProofBuilder<ArkScalar>,
         generator_offset: usize,
         mut transcript: Transcript,
     ) -> Self {

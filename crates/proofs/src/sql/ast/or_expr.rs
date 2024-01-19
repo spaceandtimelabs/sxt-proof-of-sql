@@ -57,7 +57,7 @@ impl BoolExpr for OrExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> &'a [bool] {
@@ -68,7 +68,7 @@ impl BoolExpr for OrExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<ArkScalar, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
@@ -95,7 +95,7 @@ pub fn result_evaluate_or<'a>(
 }
 
 pub fn prover_evaluate_or<'a>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     lhs: &'a [bool],
     rhs: &'a [bool],
@@ -121,7 +121,7 @@ pub fn prover_evaluate_or<'a>(
 }
 
 pub fn verifier_evaluate_or(
-    builder: &mut VerificationBuilder,
+    builder: &mut VerificationBuilder<RistrettoPoint>,
     lhs: &ArkScalar,
     rhs: &ArkScalar,
 ) -> ArkScalar {

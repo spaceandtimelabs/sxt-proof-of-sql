@@ -49,7 +49,7 @@ impl ColumnExpr {
     /// add the components needed to prove the result
     pub fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) -> Column<'a, ArkScalar> {
         let column = accessor.get_column(self.column_ref);
@@ -66,7 +66,7 @@ impl ColumnExpr {
     /// add components needed to verify this column expression
     pub fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> ArkScalar {
         let col_commit = accessor.get_commitment(self.column_ref);

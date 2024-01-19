@@ -35,7 +35,7 @@ pub trait ProofExpr: Debug + Send + Sync + ProverEvaluate {
     /// Form components needed to verify and proof store into VerificationBuilder
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError>;
 
@@ -71,7 +71,7 @@ pub trait ProverEvaluate {
     /// will be bulk deallocated once the proof is formed.
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     );

@@ -97,7 +97,7 @@ where
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         // 1. selection
@@ -201,7 +201,7 @@ impl ProverEvaluate for DenseFilterExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -233,7 +233,7 @@ impl ProverEvaluate for DenseFilterExpr {
 }
 
 fn verify_filter(
-    builder: &mut VerificationBuilder,
+    builder: &mut VerificationBuilder<RistrettoPoint>,
     alpha: ArkScalar,
     beta: ArkScalar,
     c_evals: Vec<ArkScalar>,
@@ -271,7 +271,7 @@ fn verify_filter(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn prove_filter<'a>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     alpha: ArkScalar,
     beta: ArkScalar,

@@ -1,4 +1,4 @@
-use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::ArkScalar};
+use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::Scalar};
 use core::ops::Range;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -86,7 +86,7 @@ impl Indexes {
 
     /// Evaluates the mle that is 1 at the indexes and 0 elsewhere at the given evaluation point.
     /// This returne None for Sparse indexes and the actual value for Dense indexes.
-    pub fn evaluate_at_point(&self, evaluation_point: &[ArkScalar]) -> Option<ArkScalar> {
+    pub fn evaluate_at_point<S: Scalar>(&self, evaluation_point: &[S]) -> Option<S> {
         match self {
             Indexes::Sparse(_) => None,
             Indexes::Dense(range) => {

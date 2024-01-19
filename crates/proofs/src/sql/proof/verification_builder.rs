@@ -1,19 +1,18 @@
 use super::SumcheckMleEvaluations;
-use crate::base::{bit::BitDistribution, scalar::ArkScalar};
-use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
+use crate::base::{bit::BitDistribution, commitment::Commitment};
 use num_traits::Zero;
 
 /// Track components used to verify a query's proof
-pub struct VerificationBuilder<'a> {
-    pub mle_evaluations: SumcheckMleEvaluations<'a>,
+pub struct VerificationBuilder<'a, C: Commitment> {
+    pub mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
     generator_offset: usize,
-    intermediate_commitments: &'a [RistrettoPoint],
-    subpolynomial_multipliers: &'a [ArkScalar],
-    inner_product_multipliers: &'a [ArkScalar],
-    sumcheck_evaluation: ArkScalar,
+    intermediate_commitments: &'a [C],
+    subpolynomial_multipliers: &'a [C::Scalar],
+    inner_product_multipliers: &'a [C::Scalar],
+    sumcheck_evaluation: C::Scalar,
     bit_distributions: &'a [BitDistribution],
-    folded_pre_result_commitment: RistrettoPoint,
-    folded_pre_result_evaluation: ArkScalar,
+    folded_pre_result_commitment: C,
+    folded_pre_result_evaluation: C::Scalar,
     consumed_result_mles: usize,
     consumed_pre_result_mles: usize,
     consumed_intermediate_mles: usize,
@@ -25,18 +24,18 @@ pub struct VerificationBuilder<'a> {
     ///
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
-    post_result_challenges: Vec<ArkScalar>,
+    post_result_challenges: Vec<C::Scalar>,
 }
 
-impl<'a> VerificationBuilder<'a> {
+impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     pub fn new(
         generator_offset: usize,
-        mle_evaluations: SumcheckMleEvaluations<'a>,
+        mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
         bit_distributions: &'a [BitDistribution],
-        intermediate_commitments: &'a [RistrettoPoint],
-        subpolynomial_multipliers: &'a [ArkScalar],
-        inner_product_multipliers: &'a [ArkScalar],
-        post_result_challenges: Vec<ArkScalar>,
+        intermediate_commitments: &'a [C],
+        subpolynomial_multipliers: &'a [C::Scalar],
+        inner_product_multipliers: &'a [C::Scalar],
+        post_result_challenges: Vec<C::Scalar>,
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
@@ -49,9 +48,9 @@ impl<'a> VerificationBuilder<'a> {
             intermediate_commitments,
             subpolynomial_multipliers,
             inner_product_multipliers,
-            sumcheck_evaluation: ArkScalar::zero(),
-            folded_pre_result_commitment: RistrettoPoint::identity(),
-            folded_pre_result_evaluation: ArkScalar::zero(),
+            sumcheck_evaluation: C::Scalar::zero(),
+            folded_pre_result_commitment: C::default(),
+            folded_pre_result_evaluation: C::Scalar::zero(),
             consumed_result_mles: 0,
             consumed_pre_result_mles: 0,
             consumed_intermediate_mles: 0,
@@ -71,7 +70,7 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self, commitment: &RistrettoPoint) -> ArkScalar {
+    pub fn consume_anchored_mle(&mut self, commitment: &C) -> C::Scalar {
         let index = self.consumed_pre_result_mles;
         let multiplier = self.inner_product_multipliers[index];
         self.folded_pre_result_commitment += multiplier * commitment;
@@ -92,7 +91,7 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation and commitment of an intermediate MLE used in sumcheck
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle_with_commit(&mut self) -> (ArkScalar, RistrettoPoint) {
+    pub fn consume_intermediate_mle_with_commit(&mut self) -> (C::Scalar, C) {
         let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
         self.consumed_intermediate_mles += 1;
         (self.consume_anchored_mle(commitment), *commitment)
@@ -101,40 +100,40 @@ impl<'a> VerificationBuilder<'a> {
     /// Consume the evaluation of an intermediate MLE used in sumcheck
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
-    pub fn consume_intermediate_mle(&mut self) -> ArkScalar {
+    pub fn consume_intermediate_mle(&mut self) -> C::Scalar {
         self.consume_intermediate_mle_with_commit().0
     }
 
     /// Consume the evaluation of the MLE for a result column used in sumcheck
-    pub fn consume_result_mle(&mut self) -> ArkScalar {
+    pub fn consume_result_mle(&mut self) -> C::Scalar {
         let index = self.consumed_result_mles;
         self.consumed_result_mles += 1;
         self.mle_evaluations.result_evaluations[index]
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &ArkScalar) {
+    pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &C::Scalar) {
         self.sumcheck_evaluation +=
             self.subpolynomial_multipliers[self.produced_subpolynomials] * *eval;
         self.produced_subpolynomials += 1;
     }
 
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
-    pub fn sumcheck_evaluation(&self) -> ArkScalar {
+    pub fn sumcheck_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
         self.sumcheck_evaluation
     }
 
     /// Get the commitment of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pre_result_commitment(&self) -> RistrettoPoint {
+    pub fn folded_pre_result_commitment(&self) -> C {
         assert!(self.completed());
         self.folded_pre_result_commitment
     }
 
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pre_result_evaluation(&self) -> ArkScalar {
+    pub fn folded_pre_result_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
         self.folded_pre_result_evaluation
     }
@@ -155,7 +154,7 @@ impl<'a> VerificationBuilder<'a> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
-    pub fn consume_post_result_challenge(&mut self) -> ArkScalar {
+    pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
         self.post_result_challenges.pop().unwrap()
     }
 }
