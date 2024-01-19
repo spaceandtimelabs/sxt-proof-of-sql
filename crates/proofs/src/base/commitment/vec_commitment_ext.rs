@@ -191,7 +191,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a.to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
@@ -221,14 +221,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
         let new_columns = vec![
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
@@ -260,7 +260,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
@@ -272,14 +272,14 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
@@ -297,14 +297,14 @@ mod tests {
         let column_d = [78i64, 90, 1112];
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a.to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
         let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
         let new_columns = vec![
-            OwnedColumn::VarChar(column_c.to_vec()),
+            OwnedColumn::<ArkScalar>::VarChar(column_c.to_vec()),
             OwnedColumn::BigInt(column_d.to_vec()),
         ];
 
@@ -341,14 +341,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
         let new_columns = vec![
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
@@ -380,7 +380,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
@@ -393,7 +393,7 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
         let new_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
@@ -401,7 +401,7 @@ mod tests {
         ));
 
         let new_columns = vec![
-            OwnedColumn::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
@@ -418,14 +418,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
 
         let full_columns = vec![
-            OwnedColumn::BigInt(column_a.to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
@@ -452,7 +452,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
@@ -466,7 +466,7 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let full_columns = vec![OwnedColumn::BigInt(column_a.to_vec())];
+        let full_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec())];
         let full_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
         assert!(matches!(
@@ -475,7 +475,7 @@ mod tests {
         ));
 
         let full_columns = vec![
-            OwnedColumn::BigInt(column_a.to_vec()),
+            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
             OwnedColumn::BigInt(column_a.to_vec()),
         ];

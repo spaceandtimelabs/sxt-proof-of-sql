@@ -43,6 +43,8 @@ pub trait Scalar:
     + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
     + num_traits::Inv<Output = Self>
     + std::ops::SubAssign
+    + super::ref_into::RefInto<[u64; 4]>
+    + for<'a> std::convert::From<&'a String>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
