@@ -36,7 +36,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -47,7 +47,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -114,7 +114,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -125,7 +125,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -165,7 +165,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -176,7 +176,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -217,7 +217,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -228,7 +228,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -274,7 +274,7 @@ fn verify_fails_if_counts_dont_match() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -285,7 +285,7 @@ fn verify_fails_if_counts_dont_match() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
@@ -328,7 +328,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -342,7 +342,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let res_eval = builder.consume_result_mle();
@@ -426,7 +426,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -440,7 +440,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let res_eval = builder.consume_result_mle();
@@ -486,7 +486,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -500,7 +500,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let res_eval = builder.consume_result_mle();
@@ -548,7 +548,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -574,7 +574,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
@@ -671,7 +671,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -697,7 +697,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -755,7 +755,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -781,7 +781,7 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -844,7 +844,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -870,7 +870,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -928,7 +928,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -954,7 +954,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
@@ -1009,7 +1009,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
         builder.request_post_result_challenges(2);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
@@ -1025,7 +1025,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
         );
     }
     fn verifier_eval(
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let alpha = builder.consume_post_result_challenge();

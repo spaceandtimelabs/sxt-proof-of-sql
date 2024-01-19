@@ -20,11 +20,16 @@ type ResultFn = Box<
 >;
 
 type ProveFn = Box<
-    dyn for<'a> Fn(&mut ProofBuilder<'a>, &'a Bump, &'a dyn DataAccessor<ArkScalar>) + Send + Sync,
+    dyn for<'a> Fn(&mut ProofBuilder<'a, ArkScalar>, &'a Bump, &'a dyn DataAccessor<ArkScalar>)
+        + Send
+        + Sync,
 >;
 
-type VerifyFn =
-    Box<dyn Fn(&mut VerificationBuilder, &dyn CommitmentAccessor<RistrettoPoint>) + Send + Sync>;
+type VerifyFn = Box<
+    dyn Fn(&mut VerificationBuilder<RistrettoPoint>, &dyn CommitmentAccessor<RistrettoPoint>)
+        + Send
+        + Sync,
+>;
 
 /// A query expression that can mock desired behavior for testing
 #[derive(Default, DynPartialEq, Serialize, Deserialize)]
@@ -67,7 +72,7 @@ impl ProofExpr for TestQueryExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         if let Some(f) = &self.verifier_fn {
@@ -109,7 +114,7 @@ impl ProverEvaluate for TestQueryExpr {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {

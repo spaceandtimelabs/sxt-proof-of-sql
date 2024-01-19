@@ -75,7 +75,7 @@ pub fn result_evaluate_sign<'a>(
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
 pub fn prover_evaluate_sign<'a>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     expr: &'a [ArkScalar],
 ) -> &'a [bool] {
@@ -107,7 +107,7 @@ pub fn prover_evaluate_sign<'a>(
 ///
 /// See prover_evaluate_sign.
 pub fn verifier_evaluate_sign(
-    builder: &mut VerificationBuilder,
+    builder: &mut VerificationBuilder<RistrettoPoint>,
     commit: &RistrettoPoint,
     one_commit: &RistrettoPoint,
 ) -> Result<ArkScalar, ProofError> {
@@ -144,7 +144,7 @@ pub fn verifier_evaluate_sign(
 }
 
 fn verifier_const_sign_evaluate(
-    builder: &VerificationBuilder,
+    builder: &VerificationBuilder<RistrettoPoint>,
     dist: &BitDistribution,
     commit: &RistrettoPoint,
     one_commit: &RistrettoPoint,
@@ -158,7 +158,7 @@ fn verifier_const_sign_evaluate(
     }
 }
 
-fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a>, bits: &[&'a [bool]]) {
+fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a, ArkScalar>, bits: &[&'a [bool]]) {
     for &seq in bits.iter() {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
@@ -171,7 +171,10 @@ fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a>, bits: &[&'a [bool]]
     }
 }
 
-fn verify_bits_are_binary(builder: &mut VerificationBuilder, bit_evals: &[ArkScalar]) {
+fn verify_bits_are_binary(
+    builder: &mut VerificationBuilder<RistrettoPoint>,
+    bit_evals: &[ArkScalar],
+) {
     for bit_eval in bit_evals.iter() {
         let mut eval = *bit_eval - *bit_eval * *bit_eval;
         eval *= builder.mle_evaluations.random_evaluation;
@@ -180,7 +183,7 @@ fn verify_bits_are_binary(builder: &mut VerificationBuilder, bit_evals: &[ArkSca
 }
 
 fn prove_bit_decomposition<'a>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     expr: &'a [ArkScalar],
     bits: &[&'a [bool]],
@@ -215,7 +218,7 @@ fn prove_bit_decomposition<'a>(
 }
 
 fn verify_bit_decomposition(
-    builder: &mut VerificationBuilder<'_>,
+    builder: &mut VerificationBuilder<'_, RistrettoPoint>,
     expr_commit: &RistrettoPoint,
     bit_evals: &[ArkScalar],
     dist: &BitDistribution,

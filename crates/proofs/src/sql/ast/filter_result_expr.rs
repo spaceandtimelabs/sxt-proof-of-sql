@@ -58,7 +58,7 @@ impl FilterResultExpr {
     /// add the components needed to prove the result
     pub fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
         selection: &'a [bool],
@@ -78,7 +78,7 @@ impl FilterResultExpr {
     /// add components needed to verify this filter result expression
     pub fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
         selection_eval: &ArkScalar,
     ) {
@@ -94,7 +94,7 @@ impl FilterResultExpr {
 }
 
 fn prover_evaluate_impl<'a, S: Clone + Default + Sync>(
-    builder: &mut ProofBuilder<'a>,
+    builder: &mut ProofBuilder<'a, ArkScalar>,
     alloc: &'a Bump,
     selection: &'a [bool],
     col_scalars: &'a [S],

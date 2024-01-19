@@ -94,7 +94,7 @@ impl ProofExpr for GroupByExpr {
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder,
+        builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) -> Result<(), ProofError> {
         // 1. selection
@@ -206,7 +206,7 @@ impl ProverEvaluate for GroupByExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a>,
+        builder: &mut ProofBuilder<'a, ArkScalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<ArkScalar>,
     ) {
