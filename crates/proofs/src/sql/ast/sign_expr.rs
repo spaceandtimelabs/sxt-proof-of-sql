@@ -5,8 +5,9 @@ use super::{
 use crate::{
     base::{
         bit::{compute_varying_bit_matrix, BitDistribution},
+        commitment::Commitment,
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Scalar,
     },
     sql::proof::{
         CountBuilder, ProofBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
@@ -14,8 +15,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
-use num_traits::{One, Zero};
+use num_traits::Zero;
 
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
@@ -41,14 +41,14 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
 /// Compute the sign bit for a column of scalars.
 ///
 /// todo! make this more efficient and targeted at just the sign bit rather than all bits to create a proof
-pub fn result_evaluate_sign<'a>(
+pub fn result_evaluate_sign<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,
-    expr: &'a [ArkScalar],
+    expr: &'a [S],
 ) -> &'a [bool] {
     assert_eq!(table_length, expr.len());
     // bit_distribution
-    let dist = BitDistribution::new::<ArkScalar, _>(expr);
+    let dist = BitDistribution::new::<S, _>(expr);
 
     // handle the constant case
     if dist.num_varying_bits() == 0 {
@@ -74,14 +74,14 @@ pub fn result_evaluate_sign<'a>(
 ///
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
-pub fn prover_evaluate_sign<'a>(
-    builder: &mut ProofBuilder<'a, ArkScalar>,
+pub fn prover_evaluate_sign<'a, S: Scalar>(
+    builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
-    expr: &'a [ArkScalar],
+    expr: &'a [S],
 ) -> &'a [bool] {
     let table_length = expr.len();
     // bit_distribution
-    let dist = BitDistribution::new::<ArkScalar, _>(expr);
+    let dist = BitDistribution::new::<S, _>(expr);
     builder.produce_bit_distribution(dist.clone());
 
     // handle the constant case
@@ -106,11 +106,11 @@ pub fn prover_evaluate_sign<'a>(
 /// Verify the sign decomposition for a column of scalars.
 ///
 /// See prover_evaluate_sign.
-pub fn verifier_evaluate_sign(
-    builder: &mut VerificationBuilder<RistrettoPoint>,
-    commit: &RistrettoPoint,
-    one_commit: &RistrettoPoint,
-) -> Result<ArkScalar, ProofError> {
+pub fn verifier_evaluate_sign<C: Commitment>(
+    builder: &mut VerificationBuilder<C>,
+    commit: &C,
+    one_commit: &C,
+) -> Result<C::Scalar, ProofError> {
     // bit_distribution
     let dist = builder.consume_bit_distribution();
     let num_varying_bits = dist.num_varying_bits();
@@ -143,37 +143,37 @@ pub fn verifier_evaluate_sign(
     Ok(*bit_evals.last().unwrap())
 }
 
-fn verifier_const_sign_evaluate(
-    builder: &VerificationBuilder<RistrettoPoint>,
+fn verifier_const_sign_evaluate<C: Commitment>(
+    builder: &VerificationBuilder<C>,
     dist: &BitDistribution,
-    commit: &RistrettoPoint,
-    one_commit: &RistrettoPoint,
-    bit_commits: &[RistrettoPoint],
-) -> Result<ArkScalar, ProofError> {
+    commit: &C,
+    one_commit: &C,
+    bit_commits: &[C],
+) -> Result<C::Scalar, ProofError> {
     verify_constant_sign_decomposition(dist, commit, one_commit, bit_commits)?;
     if dist.sign_bit() {
         Ok(builder.mle_evaluations.one_evaluation)
     } else {
-        Ok(ArkScalar::zero())
+        Ok(C::Scalar::zero())
     }
 }
 
-fn prove_bits_are_binary<'a>(builder: &mut ProofBuilder<'a, ArkScalar>, bits: &[&'a [bool]]) {
+fn prove_bits_are_binary<'a, S: Scalar>(builder: &mut ProofBuilder<'a, S>, bits: &[&'a [bool]]) {
     for &seq in bits.iter() {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(seq)]),
-                (-ArkScalar::one(), vec![Box::new(seq), Box::new(seq)]),
+                (S::one(), vec![Box::new(seq)]),
+                (-S::one(), vec![Box::new(seq), Box::new(seq)]),
             ],
         );
     }
 }
 
-fn verify_bits_are_binary(
-    builder: &mut VerificationBuilder<RistrettoPoint>,
-    bit_evals: &[ArkScalar],
+fn verify_bits_are_binary<C: Commitment>(
+    builder: &mut VerificationBuilder<C>,
+    bit_evals: &[C::Scalar],
 ) {
     for bit_eval in bit_evals.iter() {
         let mut eval = *bit_eval - *bit_eval * *bit_eval;
@@ -182,10 +182,10 @@ fn verify_bits_are_binary(
     }
 }
 
-fn prove_bit_decomposition<'a>(
-    builder: &mut ProofBuilder<'a, ArkScalar>,
+fn prove_bit_decomposition<'a, S: Scalar>(
+    builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
-    expr: &'a [ArkScalar],
+    expr: &'a [S],
     bits: &[&'a [bool]],
     dist: &BitDistribution,
 ) {
@@ -194,13 +194,13 @@ fn prove_bit_decomposition<'a>(
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
         alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
-    let mut terms: Vec<SumcheckSubpolynomialTerm<ArkScalar>> = Vec::new();
+    let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
 
     // expr
-    terms.push((ArkScalar::one(), vec![Box::new(expr)]));
+    terms.push((S::one(), vec![Box::new(expr)]));
 
     // expr bit decomposition
-    let const_part = dist.constant_part::<ArkScalar>();
+    let const_part = S::from(dist.constant_part());
     if !const_part.is_zero() {
         terms.push((-const_part, vec![Box::new(sign_mle)]));
     }
@@ -209,7 +209,7 @@ fn prove_bit_decomposition<'a>(
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         terms.push((
-            -ArkScalar::from_bigint(mult),
+            -S::from(mult),
             vec![Box::new(sign_mle), Box::new(bits[vary_index])],
         ));
         vary_index += 1;
@@ -217,22 +217,22 @@ fn prove_bit_decomposition<'a>(
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
 }
 
-fn verify_bit_decomposition(
-    builder: &mut VerificationBuilder<'_, RistrettoPoint>,
-    expr_commit: &RistrettoPoint,
-    bit_evals: &[ArkScalar],
+fn verify_bit_decomposition<C: Commitment>(
+    builder: &mut VerificationBuilder<'_, C>,
+    expr_commit: &C,
+    bit_evals: &[C::Scalar],
     dist: &BitDistribution,
 ) {
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.one_evaluation - ArkScalar::from(2) * *sign_eval;
+    let sign_eval = builder.mle_evaluations.one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;
     let mut eval = builder.consume_anchored_mle(expr_commit);
-    eval -= sign_eval * dist.constant_part::<ArkScalar>();
+    eval -= sign_eval * C::Scalar::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         let bit_eval = bit_evals[vary_index];
-        eval -= ArkScalar::from_bigint(mult) * sign_eval * bit_eval;
+        eval -= C::Scalar::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
     eval *= builder.mle_evaluations.random_evaluation;

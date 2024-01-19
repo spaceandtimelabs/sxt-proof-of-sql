@@ -23,7 +23,15 @@ pub use column_commitment_metadata_map::{
 };
 
 /// A trait for using commitment schemes generically.
-pub trait Commitment: AddAssign + Sized + Default + Copy {
+pub trait Commitment:
+    AddAssign
+    + Sized
+    + Default
+    + Copy
+    + core::ops::Neg<Output = Self>
+    + Eq
+    + core::ops::Sub<Output = Self>
+{
     /// The associated scalar that the commitment is for.
     /// There are multiple possible commitment schemes for a scalar, but only one scalar for any commitment.
     type Scalar: Scalar

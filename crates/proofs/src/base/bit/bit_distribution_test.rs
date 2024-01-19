@@ -10,7 +10,7 @@ fn we_can_compute_the_bit_distribution_of_an_empty_slice() {
     assert!(!dist.has_varying_sign_bit());
     assert!(!dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::zero());
+    assert_eq!(ArkScalar::from(dist.constant_part()), ArkScalar::zero());
 
     let mut cnt = 0;
     dist.for_each_abs_constant_bit(|_i: usize, _pos: usize| {
@@ -40,7 +40,7 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_a_single_element() {
     assert!(!dist.has_varying_sign_bit());
     assert!(!dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::from(val));
+    assert_eq!(ArkScalar::from(dist.constant_part()), ArkScalar::from(val));
     assert_eq!(dist.most_significant_abs_bit(), 10);
 
     let mut cnt = 0;
@@ -73,7 +73,7 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_one_varying_bits() {
     assert!(!dist.sign_bit());
     assert!(dist.is_valid());
     assert_eq!(
-        dist.constant_part::<ArkScalar>(),
+        ArkScalar::from(dist.constant_part()),
         ArkScalar::from((1 << 10) | (1 << 2))
     );
     assert_eq!(dist.most_significant_abs_bit(), 21);
@@ -115,7 +115,10 @@ fn we_can_compute_the_bit_distribution_of_a_slice_with_multiple_varying_bits() {
     assert!(!dist.has_varying_sign_bit());
     assert!(!dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::from(1 << 10));
+    assert_eq!(
+        ArkScalar::from(dist.constant_part()),
+        ArkScalar::from(1 << 10)
+    );
     assert_eq!(dist.most_significant_abs_bit(), 50);
 
     let mut cnt = 0;
@@ -151,7 +154,7 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
     assert!(!dist.has_varying_sign_bit());
     assert!(dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::one());
+    assert_eq!(ArkScalar::from(dist.constant_part()), ArkScalar::one());
     assert_eq!(dist.most_significant_abs_bit(), 0);
 
     let mut cnt = 0;
@@ -181,7 +184,7 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
     let dist = BitDistribution::new::<ArkScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 1);
     assert!(dist.has_varying_sign_bit());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::one());
+    assert_eq!(ArkScalar::from(dist.constant_part()), ArkScalar::one());
     assert_eq!(dist.most_significant_abs_bit(), 0);
 
     let mut cnt = 0;
@@ -214,7 +217,7 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values
     assert_eq!(dist.num_varying_bits(), 3);
     assert!(dist.has_varying_sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(dist.constant_part::<ArkScalar>(), ArkScalar::zero());
+    assert_eq!(ArkScalar::from(dist.constant_part()), ArkScalar::zero());
     assert_eq!(dist.most_significant_abs_bit(), 2);
 
     let mut cnt = 0;
@@ -249,7 +252,7 @@ fn we_can_compute_the_bit_distribution_of_values_larger_than_64_bit_integers() {
     assert!(!dist.has_varying_sign_bit());
     assert!(dist.is_valid());
     assert_eq!(
-        dist.constant_part::<ArkScalar>(),
+        ArkScalar::from(dist.constant_part()),
         ArkScalar::from_bigint(val)
     );
     assert_eq!(dist.most_significant_abs_bit(), 64 * 3 + 11);

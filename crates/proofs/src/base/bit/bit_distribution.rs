@@ -68,12 +68,12 @@ impl BitDistribution {
 
     /// If {b_i} represents the non-varying 1-bits of the absolute values, return the value
     ///    sum_i b_i 2 ^ i
-    pub fn constant_part<S: Scalar>(&self) -> S {
+    pub fn constant_part(&self) -> [u64; 4] {
         let mut val = [0; 4];
         self.for_each_abs_constant_bit(|i: usize, bit: usize| {
             val[i] |= 1u64 << bit;
         });
-        S::from(val)
+        val
     }
 
     /// Iterate over each constant 1-bit for the absolute values
