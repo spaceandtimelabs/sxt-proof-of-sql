@@ -1,4 +1,5 @@
 use super::{
+    bool_expr_plan::BoolExprPlan,
     dense_filter_util::{fold_columns, fold_vals},
     filter_columns, BoolExpr, ColumnExpr, TableExpr,
 };
@@ -13,14 +14,12 @@ use crate::{
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, SerializableProofExpr, SumcheckSubpolynomialType,
-        VerificationBuilder,
+        ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
-use core::{any::Any, iter::repeat_with};
+use core::iter::repeat_with;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -35,17 +34,13 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleDenseFilterExpr<H: ProverHonestyMarker> {
     pub(super) results: Vec<ColumnExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: Box<dyn BoolExpr>,
+    pub(super) where_clause: BoolExprPlan,
     phantom: PhantomData<H>,
 }
 
 impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
     /// Creates a new dense_filter expression.
-    pub fn new(
-        results: Vec<ColumnExpr>,
-        table: TableExpr,
-        where_clause: Box<dyn BoolExpr>,
-    ) -> Self {
+    pub fn new(results: Vec<ColumnExpr>, table: TableExpr, where_clause: BoolExprPlan) -> Self {
         Self {
             results,
             table,
@@ -153,17 +148,6 @@ where
 
 /// Alias for a dense filter expression with a honest prover.
 pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
-#[typetag::serde]
-impl SerializableProofExpr for DenseFilterExpr {}
-// This is required because derive(DynPartialEq) does not work with aliases
-impl DynPartialEq for DenseFilterExpr {
-    fn as_any(&self) -> &dyn core::any::Any {
-        self
-    }
-    fn box_eq(&self, other: &dyn Any) -> bool {
-        other.downcast_ref().map_or(false, |a| self == a)
-    }
-}
 
 impl ProverEvaluate for DenseFilterExpr {
     fn result_evaluate<'a>(

@@ -1,4 +1,4 @@
-use super::{prover_evaluate_equals_zero, prover_evaluate_or, FilterExpr, InequalityExpr};
+use super::{prover_evaluate_equals_zero, prover_evaluate_or, BoolExpr, FilterExpr};
 use crate::{
     base::{
         bit::BitDistribution,
@@ -14,7 +14,7 @@ use crate::{
         ast::{
             test_expr::TestExprNode,
             test_utility::{col, cols_result, tab},
-            BoolExpr,
+            BoolExprPlan,
         },
         proof::{
             make_transcript, Indexes, ProofBuilder, ProofExpr, QueryProof, ResultBuilder,
@@ -41,7 +41,7 @@ fn we_can_compare_a_constant_column() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -60,7 +60,7 @@ fn we_can_compare_a_varying_column_with_constant_sign() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -79,7 +79,7 @@ fn we_can_compare_a_varying_column_with_constant_absolute_value() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -98,7 +98,7 @@ fn we_can_compare_a_constant_column_of_negative_columns() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -117,7 +117,7 @@ fn we_can_compare_a_varying_column_with_negative_only_signs() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -136,7 +136,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 1.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -155,7 +155,7 @@ fn we_can_compare_column_with_greater_than_or_equal() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 1.into(), false));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), false);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -174,7 +174,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs_and_a_constant
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -193,7 +193,7 @@ fn we_can_compare_a_constant_column_of_zeros() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
     let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
@@ -212,7 +212,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
 
@@ -266,7 +266,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
 
     let res = VerifiableQueryResult::new(&expr, &accessor);
@@ -278,7 +278,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     assert!(res.verify(&expr, &accessor).is_err());
 }
@@ -292,7 +292,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_absolute_column()
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -303,7 +303,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_absolute_column()
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 0.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     assert!(res.verify(&expr, &accessor).is_err());
 }
@@ -317,7 +317,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_sign_column() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -328,7 +328,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_sign_column() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     assert!(res.verify(&expr, &accessor).is_err());
 }
@@ -342,7 +342,7 @@ fn verification_fails_if_commitments_dont_match() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::new(&expr, &accessor);
 
@@ -353,7 +353,7 @@ fn verification_fails_if_commitments_dont_match() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = Box::new(InequalityExpr::new(col(t, "a", &accessor), 5.into(), true));
+    let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     assert!(res.verify(&expr, &accessor).is_err());
 }
@@ -369,11 +369,8 @@ fn create_test_lte_expr<T: Into<ArkScalar> + Copy + Literal>(
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, 0);
 
-    let where_clause = Box::new(InequalityExpr::new(
-        col(t, filter_col, &accessor),
-        filter_val.into(),
-        true,
-    ));
+    let where_clause =
+        BoolExprPlan::new_inequality(col(t, filter_col, &accessor), filter_val.into(), true);
 
     let df_filter = polars::prelude::col(filter_col).lt_eq(lit(filter_val));
     TestExprNode::new(t, &[result_col], where_clause, df_filter, accessor)
@@ -408,7 +405,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = InequalityExpr::new(col(t, "a", &accessor), 1.into(), true);
+    let equals_expr = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), true);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
     let expected_res = &[true, false, true];
@@ -424,7 +421,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = InequalityExpr::new(col(t, "a", &accessor), 1.into(), false);
+    let equals_expr = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), false);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
     let expected_res = &[false, true, true];

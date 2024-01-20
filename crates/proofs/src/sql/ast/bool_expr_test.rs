@@ -1,4 +1,4 @@
-use super::test_utility::*;
+use super::{test_utility::*, BoolExpr};
 use crate::{
     base::database::{OwnedTableTestAccessor, TestAccessor},
     owned_table,

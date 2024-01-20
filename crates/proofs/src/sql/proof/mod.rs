@@ -40,9 +40,7 @@ pub use sumcheck_random_scalars::SumcheckRandomScalars;
 
 mod proof_exprs;
 pub(crate) use proof_exprs::ProverHonestyMarker;
-pub use proof_exprs::{
-    HonestProver, ProofExpr, ProverEvaluate, SerializableProofExpr, TransformExpr,
-};
+pub use proof_exprs::{HonestProver, ProofExpr, ProverEvaluate, TransformExpr};
 
 mod query_proof;
 #[cfg(test)]

@@ -1,35 +1,31 @@
+use super::BoolExpr;
 use crate::{
     base::{
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::ArkScalar,
     },
-    sql::{
-        ast::BoolExpr,
-        proof::{CountBuilder, ProofBuilder, VerificationBuilder},
-    },
+    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical NOT expression
-#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
-pub struct NotExpr {
-    expr: Box<dyn BoolExpr>,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct NotExpr<B: BoolExpr> {
+    expr: Box<B>,
 }
 
-impl NotExpr {
+impl<B: BoolExpr> NotExpr<B> {
     /// Create logical NOT expression
-    pub fn new(expr: Box<dyn BoolExpr>) -> Self {
+    pub fn new(expr: Box<B>) -> Self {
         Self { expr }
     }
 }
 
-#[typetag::serde]
-impl BoolExpr for NotExpr {
+impl<B: BoolExpr> BoolExpr for NotExpr<B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }

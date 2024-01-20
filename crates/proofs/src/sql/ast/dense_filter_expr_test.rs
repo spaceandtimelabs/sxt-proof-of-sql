@@ -1,3 +1,7 @@
+use crate::sql::ast::{
+    test_utility::{and, not, or},
+    BoolExprPlan,
+};
 use crate::{
     base::{
         database::{
@@ -12,12 +16,8 @@ use crate::{
             // Making this explicit to ensure that we don't accidentally use the
             // sparse filter for these tests
             test_utility::{cols_expr, dense_filter, equal, tab},
-            AndExpr,
             ColumnExpr,
             DenseFilterExpr,
-            EqualsExpr,
-            NotExpr,
-            OrExpr,
             TableExpr,
         },
         proof::{
@@ -48,14 +48,14 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             )),
         ],
         TableExpr { table_ref },
-        Box::new(EqualsExpr::new(
+        BoolExprPlan::new_equals(
             ColumnRef::new(
                 table_ref,
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt,
             ),
             ArkScalar::from(123_u64),
-        )),
+        ),
     );
 
     let column_fields: Vec<Field> = provable_ast
@@ -91,34 +91,34 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
             )),
         ],
         TableExpr { table_ref },
-        Box::new(NotExpr::new(Box::new(AndExpr::new(
-            Box::new(OrExpr::new(
-                Box::new(EqualsExpr::new(
+        not(and(
+            or(
+                BoolExprPlan::new_equals(
                     ColumnRef::new(
                         table_ref,
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ),
                     ArkScalar::from(45_u64),
-                )),
-                Box::new(EqualsExpr::new(
+                ),
+                BoolExprPlan::new_equals(
                     ColumnRef::new(
                         table_ref,
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ),
                     -ArkScalar::from(2_u64),
-                )),
-            )),
-            Box::new(EqualsExpr::new(
+                ),
+            ),
+            BoolExprPlan::new_equals(
                 ColumnRef::new(
                     table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
                 ArkScalar::from(3_u64),
-            )),
-        )))),
+            ),
+        )),
     );
 
     let ref_columns = provable_ast.get_column_references();

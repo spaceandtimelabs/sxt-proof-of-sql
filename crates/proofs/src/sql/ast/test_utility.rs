@@ -1,6 +1,6 @@
 use super::{
-    AndExpr, BoolExpr, ColumnExpr, ConstBoolExpr, DenseFilterExpr, EqualsExpr, FilterExpr,
-    FilterResultExpr, GroupByExpr, InequalityExpr, NotExpr, OrExpr, TableExpr,
+    BoolExprPlan, ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr, GroupByExpr,
+    ProofPlan, TableExpr,
 };
 use crate::base::{
     database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
@@ -18,8 +18,8 @@ pub fn equal<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> Box<dyn BoolExpr> {
-    Box::new(EqualsExpr::new(col(tab, name, accessor), val.into()))
+) -> BoolExprPlan {
+    BoolExprPlan::new_equals(col(tab, name, accessor), val.into())
 }
 
 pub fn lte<T: Into<ArkScalar>>(
@@ -27,12 +27,8 @@ pub fn lte<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> Box<dyn BoolExpr> {
-    Box::new(InequalityExpr::new(
-        col(tab, name, accessor),
-        val.into(),
-        true,
-    ))
+) -> BoolExprPlan {
+    BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
 pub fn gte<T: Into<ArkScalar>>(
@@ -40,28 +36,24 @@ pub fn gte<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> Box<dyn BoolExpr> {
-    Box::new(InequalityExpr::new(
-        col(tab, name, accessor),
-        val.into(),
-        false,
-    ))
+) -> BoolExprPlan {
+    BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
 }
 
-pub fn not(expr: Box<dyn BoolExpr>) -> Box<dyn BoolExpr> {
-    Box::new(NotExpr::new(expr))
+pub fn not(expr: BoolExprPlan) -> BoolExprPlan {
+    BoolExprPlan::new_not(expr)
 }
 
-pub fn and(left: Box<dyn BoolExpr>, right: Box<dyn BoolExpr>) -> Box<dyn BoolExpr> {
-    Box::new(AndExpr::new(left, right))
+pub fn and(left: BoolExprPlan, right: BoolExprPlan) -> BoolExprPlan {
+    BoolExprPlan::new_and(left, right)
 }
 
-pub fn or(left: Box<dyn BoolExpr>, right: Box<dyn BoolExpr>) -> Box<dyn BoolExpr> {
-    Box::new(OrExpr::new(left, right))
+pub fn or(left: BoolExprPlan, right: BoolExprPlan) -> BoolExprPlan {
+    BoolExprPlan::new_or(left, right)
 }
 
-pub fn const_v(val: bool) -> Box<dyn BoolExpr> {
-    Box::new(ConstBoolExpr::new(val))
+pub fn const_v(val: bool) -> BoolExprPlan {
+    BoolExprPlan::new_const_bool(val)
 }
 
 pub fn tab(tab: TableRef) -> TableExpr {
@@ -86,9 +78,9 @@ pub fn cols_result(
 pub fn filter(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
-    where_clause: Box<dyn BoolExpr>,
-) -> FilterExpr {
-    FilterExpr::new(results, table, where_clause)
+    where_clause: BoolExprPlan,
+) -> ProofPlan {
+    ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
 
 pub fn col_expr(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
@@ -105,7 +97,7 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 pub fn dense_filter(
     results: Vec<ColumnExpr>,
     table: TableExpr,
-    where_clause: Box<dyn BoolExpr>,
+    where_clause: BoolExprPlan,
 ) -> DenseFilterExpr {
     DenseFilterExpr::new(results, table, where_clause)
 }
@@ -142,7 +134,7 @@ pub fn group_by(
     sum_expr: Vec<(ColumnExpr, ColumnField)>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: Box<dyn BoolExpr>,
+    where_clause: BoolExprPlan,
 ) -> GroupByExpr {
     GroupByExpr::new(
         group_by_exprs,

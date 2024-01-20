@@ -1,4 +1,7 @@
-use super::{aggregate_columns, group_by_util::AggregatedColumns, BoolExpr, ColumnExpr, TableExpr};
+use super::{
+    aggregate_columns, bool_expr_plan::BoolExprPlan, group_by_util::AggregatedColumns, BoolExpr,
+    ColumnExpr, TableExpr,
+};
 use crate::{
     base::{
         database::{
@@ -15,7 +18,6 @@ use crate::{
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -31,13 +33,13 @@ use std::collections::HashSet;
 /// ```
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
-#[derive(Debug, PartialEq, Serialize, Deserialize, DynPartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr {
     pub(super) group_by_exprs: Vec<ColumnExpr>,
     pub(super) sum_expr: Vec<(ColumnExpr, ColumnField)>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: Box<dyn BoolExpr>,
+    pub(super) where_clause: BoolExprPlan,
 }
 
 impl GroupByExpr {
@@ -47,7 +49,7 @@ impl GroupByExpr {
         sum_expr: Vec<(ColumnExpr, ColumnField)>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: Box<dyn BoolExpr>,
+        where_clause: BoolExprPlan,
     ) -> Self {
         Self {
             group_by_exprs,
