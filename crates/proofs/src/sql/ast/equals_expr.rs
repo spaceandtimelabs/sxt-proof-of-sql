@@ -1,3 +1,4 @@
+use super::BoolExpr;
 use crate::{
     base::{
         database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
@@ -5,15 +6,11 @@ use crate::{
         scalar::ArkScalar,
         slice_ops,
     },
-    sql::{
-        ast::BoolExpr,
-        proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-    },
+    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use blitzar::compute::get_one_curve25519_commit;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -25,7 +22,7 @@ use std::collections::HashSet;
 /// ```ignore
 ///     <col> = <constant>
 /// ```
-#[derive(Debug, DynPartialEq, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EqualsExpr {
     value: ArkScalar,
     column_ref: ColumnRef,
@@ -75,7 +72,6 @@ impl EqualsExpr {
     }
 }
 
-#[typetag::serde]
 impl BoolExpr for EqualsExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);

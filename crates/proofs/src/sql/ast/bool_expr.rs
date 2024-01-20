@@ -8,12 +8,9 @@ use crate::{
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
 /// Provable AST column expression that evaluates to a boolean
-#[typetag::serde(tag = "type")]
-#[dyn_partial_eq]
 pub trait BoolExpr: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;

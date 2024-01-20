@@ -1,7 +1,4 @@
-use crate::{
-    base::database::ColumnRef,
-    sql::ast::{AndExpr, BoolExpr, EqualsExpr, NotExpr, OrExpr},
-};
+use crate::{base::database::ColumnRef, sql::ast::BoolExprPlan};
 use proofs_sql::{
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,
@@ -20,14 +17,14 @@ impl<'a> WhereExprBuilder<'a> {
     }
     /// Builds a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
-    pub fn build(self, where_expr: Option<Box<Expression>>) -> Option<Box<dyn BoolExpr>> {
+    pub fn build(self, where_expr: Option<Box<Expression>>) -> Option<BoolExprPlan> {
         where_expr.map(|where_expr| self.visit_expr(*where_expr))
     }
 }
 
 // Private interface
 impl WhereExprBuilder<'_> {
-    fn visit_expr(&self, expr: proofs_sql::intermediate_ast::Expression) -> Box<dyn BoolExpr> {
+    fn visit_expr(&self, expr: proofs_sql::intermediate_ast::Expression) -> BoolExprPlan {
         match expr {
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
@@ -35,11 +32,11 @@ impl WhereExprBuilder<'_> {
         }
     }
 
-    fn visit_unary_expr(&self, op: UnaryOperator, expr: Expression) -> Box<dyn BoolExpr> {
+    fn visit_unary_expr(&self, op: UnaryOperator, expr: Expression) -> BoolExprPlan {
         let expr = self.visit_expr(expr);
 
         match op {
-            UnaryOperator::Not => Box::new(NotExpr::new(expr)),
+            UnaryOperator::Not => BoolExprPlan::new_not(expr),
         }
     }
 
@@ -48,24 +45,24 @@ impl WhereExprBuilder<'_> {
         op: BinaryOperator,
         left: Expression,
         right: Expression,
-    ) -> Box<dyn BoolExpr> {
+    ) -> BoolExprPlan {
         match op {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Box::new(AndExpr::new(left, right))
+                BoolExprPlan::new_and(left, right)
             }
             BinaryOperator::Or => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Box::new(OrExpr::new(left, right))
+                BoolExprPlan::new_or(left, right)
             }
             BinaryOperator::Equal => self.visit_equal_expr(left, right),
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
     }
 
-    fn visit_equal_expr(&self, left: Expression, right: Expression) -> Box<dyn BoolExpr> {
+    fn visit_equal_expr(&self, left: Expression, right: Expression) -> BoolExprPlan {
         let left = match left {
             Expression::Column(identifier) => *self.column_mapping.get(&identifier).unwrap(),
             _ => panic!("The parser must ensure that the left side is a column"),
@@ -79,6 +76,6 @@ impl WhereExprBuilder<'_> {
             _ => panic!("The parser must ensure that the left side is a literal"),
         };
 
-        Box::new(EqualsExpr::new(left, right))
+        BoolExprPlan::new_equals(left, right)
     }
 }

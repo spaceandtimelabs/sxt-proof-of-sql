@@ -1,10 +1,11 @@
+use super::BoolExpr;
 use crate::{
     base::database::{
         make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
         RecordBatchTestAccessor, TestAccessor, UnimplementedTestAccessor,
     },
     record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::const_v, BoolExpr, ConstBoolExpr},
+    sql::ast::{test_expr::TestExprNode, test_utility::const_v},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -75,7 +76,7 @@ fn we_can_select_from_tables_with_an_always_false_where_clause() {
 #[test]
 fn we_can_compute_the_correct_output_of_a_const_bool_expr_using_result_evaluate() {
     let accessor = UnimplementedTestAccessor::new_empty();
-    let const_bool_expr = ConstBoolExpr::new(true);
+    let const_bool_expr = const_v(true);
     let alloc = Bump::new();
     let res = const_bool_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = &[true, true, true, true];

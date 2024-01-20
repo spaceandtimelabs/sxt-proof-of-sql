@@ -1,9 +1,9 @@
-use super::{BoolExpr, FilterExpr};
+use super::{BoolExprPlan, FilterExpr};
 use crate::{
     base::database::{RecordBatchTestAccessor, TableRef},
     sql::{
         ast::test_utility::{cols_result, tab},
-        proof::{exercise_verification, TransformExpr, VerifiableQueryResult},
+        proof::{exercise_verification, VerifiableQueryResult},
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -17,14 +17,11 @@ pub struct TestExprNode {
     pub df_filter: Expr,
 }
 
-// Note: this implementation is purely for test purposes
-impl TransformExpr for FilterExpr {}
-
 impl TestExprNode {
     pub fn new(
         table_ref: TableRef,
         results: &[&str],
-        filter_expr: Box<dyn BoolExpr>,
+        filter_expr: BoolExprPlan,
         df_filter: Expr,
         accessor: RecordBatchTestAccessor,
     ) -> Self {

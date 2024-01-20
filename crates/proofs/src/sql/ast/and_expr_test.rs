@@ -1,4 +1,4 @@
-use super::{test_utility::*, FilterExpr};
+use super::{test_utility::*, BoolExpr, FilterExpr};
 use crate::{
     base::{
         database::{

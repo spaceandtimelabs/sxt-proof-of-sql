@@ -6,6 +6,7 @@ use proofs::{
         RecordBatchTestAccessor, TestAccessor,
     },
     sql::{
+        ast::ProofPlan,
         parse::QueryExpr,
         proof::{QueryResult, TransformExpr, VerifiableQueryResult},
     },
@@ -108,7 +109,7 @@ fn generate_input_data(
 
 #[tracing::instrument(skip(provable_ast, accessor))]
 fn process_query(
-    provable_ast: &QueryExpr,
+    provable_ast: &ProofPlan,
     accessor: &RecordBatchTestAccessor,
     _args: &Args,
     query: &str,
@@ -131,9 +132,11 @@ fn main() {
     toggle_collect();
     for iter in 0..args.num_samples {
         let before = Instant::now();
-        let res = process_query(&provable_ast, &accessor, &args, &query, iter);
+        let res = process_query(provable_ast.proof_expr(), &accessor, &args, &query, iter);
         if let Ok(res) = res {
-            provable_ast.transform_results(res.try_into().unwrap());
+            provable_ast
+                .result()
+                .transform_results(res.try_into().unwrap());
         }
         mean_time += before.elapsed().as_secs_f64();
     }

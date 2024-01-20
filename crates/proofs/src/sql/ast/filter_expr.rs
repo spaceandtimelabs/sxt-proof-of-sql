@@ -1,4 +1,4 @@
-use super::{BoolExpr, FilterResultExpr, TableExpr};
+use super::{bool_expr_plan::BoolExprPlan, BoolExpr, FilterResultExpr, TableExpr};
 use crate::{
     base::{
         database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
@@ -7,13 +7,11 @@ use crate::{
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, SerializableProofExpr, VerificationBuilder,
+        ProverHonestyMarker, ResultBuilder, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
-use core::any::Any;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 
@@ -25,7 +23,7 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleFilterExpr<H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: Box<dyn BoolExpr>,
+    pub(super) where_clause: BoolExprPlan,
     phantom: PhantomData<H>,
 }
 
@@ -34,7 +32,7 @@ impl<H: ProverHonestyMarker> OstensibleFilterExpr<H> {
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
-        where_clause: Box<dyn BoolExpr>,
+        where_clause: BoolExprPlan,
     ) -> Self {
         Self {
             results,
@@ -112,17 +110,6 @@ where
     }
 }
 
-#[typetag::serde]
-impl SerializableProofExpr for FilterExpr {}
-// This is required because derive(DynPartialEq) does not work with aliases
-impl DynPartialEq for FilterExpr {
-    fn as_any(&self) -> &dyn core::any::Any {
-        self
-    }
-    fn box_eq(&self, other: &dyn Any) -> bool {
-        other.downcast_ref().map_or(false, |a| self == a)
-    }
-}
 pub type FilterExpr = OstensibleFilterExpr<HonestProver>;
 impl ProverEvaluate for FilterExpr {
     fn result_evaluate<'a>(

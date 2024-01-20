@@ -1,14 +1,14 @@
 use super::where_expr_builder::WhereExprBuilder;
 use crate::{
     base::database::{ColumnRef, TableRef},
-    sql::ast::{BoolExpr, ConstBoolExpr, FilterExpr, FilterResultExpr, TableExpr},
+    sql::ast::{BoolExprPlan, FilterExpr, FilterResultExpr, TableExpr},
 };
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
 
 pub struct FilterExprBuilder {
     table_expr: Option<TableExpr>,
-    where_expr: Option<Box<dyn BoolExpr>>,
+    where_expr: Option<BoolExprPlan>,
     filter_result_expr_list: Vec<FilterResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
@@ -53,7 +53,7 @@ impl FilterExprBuilder {
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
-                .unwrap_or_else(|| Box::new(ConstBoolExpr::new(true))),
+                .unwrap_or_else(|| BoolExprPlan::new_const_bool(true)),
         )
     }
 }

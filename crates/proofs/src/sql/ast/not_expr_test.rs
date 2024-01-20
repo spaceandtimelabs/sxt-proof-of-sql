@@ -1,3 +1,4 @@
+use super::BoolExpr;
 use crate::{
     base::{
         database::{
