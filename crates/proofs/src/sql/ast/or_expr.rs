@@ -1,37 +1,33 @@
+use super::BoolExpr;
 use crate::{
     base::{
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::ArkScalar,
     },
-    sql::{
-        ast::BoolExpr,
-        proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-    },
+    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical OR expression
-#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
-pub struct OrExpr {
-    lhs: Box<dyn BoolExpr>,
-    rhs: Box<dyn BoolExpr>,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct OrExpr<B: BoolExpr> {
+    lhs: Box<B>,
+    rhs: Box<B>,
 }
 
-impl OrExpr {
+impl<B: BoolExpr> OrExpr<B> {
     /// Create logical OR expression
-    pub fn new(lhs: Box<dyn BoolExpr>, rhs: Box<dyn BoolExpr>) -> Self {
+    pub fn new(lhs: Box<B>, rhs: Box<B>) -> Self {
         Self { lhs, rhs }
     }
 }
 
-#[typetag::serde]
-impl BoolExpr for OrExpr {
+impl<B: BoolExpr> BoolExpr for OrExpr<B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;

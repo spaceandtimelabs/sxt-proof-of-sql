@@ -14,7 +14,6 @@ use crate::{
 use blitzar::compute::get_one_curve25519_commit;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use dyn_partial_eq::DynPartialEq;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -27,7 +26,7 @@ use std::collections::HashSet;
 /// ```ignore
 ///    <col> >= <constant>
 /// ```
-#[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct InequalityExpr {
     value: ArkScalar,
     column_ref: ColumnRef,
@@ -45,7 +44,6 @@ impl InequalityExpr {
     }
 }
 
-#[typetag::serde]
 impl BoolExpr for InequalityExpr {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);

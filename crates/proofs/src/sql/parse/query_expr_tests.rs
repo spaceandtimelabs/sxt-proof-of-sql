@@ -3,7 +3,7 @@ use crate::{
     base::database::{ColumnType, RecordBatchTestAccessor, TableRef, TestAccessor},
     record_batch,
     sql::{
-        ast::{test_utility::*, FilterExpr},
+        ast::{test_utility::*, ProofPlan},
         parse::QueryExpr,
         transform::{test_utility::*, LiteralConversion},
     },
@@ -1758,9 +1758,9 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
 
     let serialized = flexbuffers::to_vec(&filter_exprs).unwrap();
 
-    let deserialized: Vec<FilterExpr> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    let deserialized_as_ref: Vec<&FilterExpr> = deserialized.iter().collect();
+    let deserialized: Vec<ProofPlan> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized_as_ref: Vec<&ProofPlan> = deserialized.iter().collect();
 
     assert_eq!(filter_exprs.len(), deserialized_as_ref.len());
-    assert!(filter_exprs[0].box_eq(deserialized_as_ref[0]));
+    assert_eq!(filter_exprs[0], deserialized_as_ref[0]);
 }
