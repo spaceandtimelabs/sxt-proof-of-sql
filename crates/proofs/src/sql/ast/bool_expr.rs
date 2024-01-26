@@ -1,17 +1,16 @@
 use crate::{
     base::{
+        commitment::Commitment,
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use std::{collections::HashSet, fmt::Debug};
 
 /// Provable AST column expression that evaluates to a boolean
-pub trait BoolExpr: Debug + Send + Sync {
+pub trait BoolExpr<C: Commitment>: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 
@@ -22,16 +21,16 @@ pub trait BoolExpr: Debug + Send + Sync {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool];
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of boolean values
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool];
 
     /// Compute the evaluation of a multilinear extension from this boolean expression
@@ -39,9 +38,9 @@ pub trait BoolExpr: Debug + Send + Sync {
     /// VerificationBuilder
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Result<ArkScalar, ProofError>;
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+    ) -> Result<C::Scalar, ProofError>;
 
     // Insert in the HashSet `columns` all the column
     // references in the BoolExpr or forwards the call to some

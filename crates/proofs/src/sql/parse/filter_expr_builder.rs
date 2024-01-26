@@ -3,12 +3,13 @@ use crate::{
     base::database::{ColumnRef, TableRef},
     sql::ast::{BoolExprPlan, FilterExpr, FilterResultExpr, TableExpr},
 };
+use curve25519_dalek::RistrettoPoint;
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
 
 pub struct FilterExprBuilder {
     table_expr: Option<TableExpr>,
-    where_expr: Option<BoolExprPlan>,
+    where_expr: Option<BoolExprPlan<RistrettoPoint>>,
     filter_result_expr_list: Vec<FilterResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }

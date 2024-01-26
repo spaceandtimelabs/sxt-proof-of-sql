@@ -6,6 +6,7 @@ use crate::base::{
     database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
     scalar::ArkScalar,
 };
+use curve25519_dalek::RistrettoPoint;
 
 pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -18,7 +19,7 @@ pub fn equal<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan {
+) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_equals(col(tab, name, accessor), val.into())
 }
 
@@ -27,7 +28,7 @@ pub fn lte<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan {
+) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
@@ -36,23 +37,29 @@ pub fn gte<T: Into<ArkScalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan {
+) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
 }
 
-pub fn not(expr: BoolExprPlan) -> BoolExprPlan {
+pub fn not(expr: BoolExprPlan<RistrettoPoint>) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_not(expr)
 }
 
-pub fn and(left: BoolExprPlan, right: BoolExprPlan) -> BoolExprPlan {
+pub fn and(
+    left: BoolExprPlan<RistrettoPoint>,
+    right: BoolExprPlan<RistrettoPoint>,
+) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_and(left, right)
 }
 
-pub fn or(left: BoolExprPlan, right: BoolExprPlan) -> BoolExprPlan {
+pub fn or(
+    left: BoolExprPlan<RistrettoPoint>,
+    right: BoolExprPlan<RistrettoPoint>,
+) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_or(left, right)
 }
 
-pub fn const_v(val: bool) -> BoolExprPlan {
+pub fn const_v(val: bool) -> BoolExprPlan<RistrettoPoint> {
     BoolExprPlan::new_const_bool(val)
 }
 
@@ -78,7 +85,7 @@ pub fn cols_result(
 pub fn filter(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan,
+    where_clause: BoolExprPlan<RistrettoPoint>,
 ) -> ProofPlan {
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
@@ -97,7 +104,7 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 pub fn dense_filter(
     results: Vec<ColumnExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan,
+    where_clause: BoolExprPlan<RistrettoPoint>,
 ) -> DenseFilterExpr {
     DenseFilterExpr::new(results, table, where_clause)
 }
@@ -134,7 +141,7 @@ pub fn group_by(
     sum_expr: Vec<(ColumnExpr, ColumnField)>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: BoolExprPlan,
+    where_clause: BoolExprPlan<RistrettoPoint>,
 ) -> GroupByExpr {
     GroupByExpr::new(
         group_by_exprs,

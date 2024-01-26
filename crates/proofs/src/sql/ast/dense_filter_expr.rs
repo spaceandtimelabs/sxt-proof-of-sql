@@ -34,13 +34,17 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleDenseFilterExpr<H: ProverHonestyMarker> {
     pub(super) results: Vec<ColumnExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan,
+    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
     phantom: PhantomData<H>,
 }
 
 impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
     /// Creates a new dense_filter expression.
-    pub fn new(results: Vec<ColumnExpr>, table: TableExpr, where_clause: BoolExprPlan) -> Self {
+    pub fn new(
+        results: Vec<ColumnExpr>,
+        table: TableExpr,
+        where_clause: BoolExprPlan<RistrettoPoint>,
+    ) -> Self {
         Self {
             results,
             table,

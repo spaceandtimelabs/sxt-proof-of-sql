@@ -39,7 +39,7 @@ pub struct GroupByExpr {
     pub(super) sum_expr: Vec<(ColumnExpr, ColumnField)>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan,
+    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
 }
 
 impl GroupByExpr {
@@ -49,7 +49,7 @@ impl GroupByExpr {
         sum_expr: Vec<(ColumnExpr, ColumnField)>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: BoolExprPlan,
+        where_clause: BoolExprPlan<RistrettoPoint>,
     ) -> Self {
         Self {
             group_by_exprs,

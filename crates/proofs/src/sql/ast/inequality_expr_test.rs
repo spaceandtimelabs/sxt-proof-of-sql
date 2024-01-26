@@ -24,6 +24,7 @@ use crate::{
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use curve25519_dalek::RistrettoPoint;
 use num_traits::Zero;
 use polars::prelude::*;
 use rand::{
@@ -405,7 +406,8 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), true);
+    let equals_expr =
+        BoolExprPlan::<RistrettoPoint>::new_inequality(col(t, "a", &accessor), 1.into(), true);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
     let expected_res = &[true, false, true];
@@ -421,7 +423,8 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), false);
+    let equals_expr =
+        BoolExprPlan::<RistrettoPoint>::new_inequality(col(t, "a", &accessor), 1.into(), false);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
     let expected_res = &[false, true, true];
