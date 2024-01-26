@@ -1,31 +1,34 @@
 use super::BoolExpr;
 use crate::{
     base::{
+        commitment::Commitment,
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::{collections::HashSet, marker::PhantomData};
 
 /// Provable logical NOT expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct NotExpr<B: BoolExpr> {
+pub struct NotExpr<C: Commitment, B: BoolExpr<C>> {
     expr: Box<B>,
+    _phantom: PhantomData<C>,
 }
 
-impl<B: BoolExpr> NotExpr<B> {
+impl<C: Commitment, B: BoolExpr<C>> NotExpr<C, B> {
     /// Create logical NOT expression
     pub fn new(expr: Box<B>) -> Self {
-        Self { expr }
+        Self {
+            expr,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl<B: BoolExpr> BoolExpr for NotExpr<B> {
+impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for NotExpr<C, B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }
@@ -34,7 +37,7 @@ impl<B: BoolExpr> BoolExpr for NotExpr<B> {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         let selection = self.expr.result_evaluate(table_length, alloc, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
@@ -47,9 +50,9 @@ impl<B: BoolExpr> BoolExpr for NotExpr<B> {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         let selection = self.expr.prover_evaluate(builder, alloc, accessor);
         alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
@@ -57,9 +60,9 @@ impl<B: BoolExpr> BoolExpr for NotExpr<B> {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Result<ArkScalar, ProofError> {
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+    ) -> Result<C::Scalar, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
         Ok(builder.mle_evaluations.one_evaluation - eval)
     }

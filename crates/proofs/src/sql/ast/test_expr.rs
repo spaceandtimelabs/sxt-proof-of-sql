@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use arrow::record_batch::RecordBatch;
+use curve25519_dalek::RistrettoPoint;
 use polars::prelude::{Expr, *};
 
 pub struct TestExprNode {
@@ -21,7 +22,7 @@ impl TestExprNode {
     pub fn new(
         table_ref: TableRef,
         results: &[&str],
-        filter_expr: BoolExprPlan,
+        filter_expr: BoolExprPlan<RistrettoPoint>,
         df_filter: Expr,
         accessor: RecordBatchTestAccessor,
     ) -> Self {
