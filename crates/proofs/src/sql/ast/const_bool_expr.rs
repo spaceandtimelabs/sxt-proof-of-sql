@@ -1,8 +1,8 @@
 use crate::{
     base::{
+        commitment::Commitment,
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
     },
     sql::{
         ast::BoolExpr,
@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -38,7 +37,7 @@ impl ConstBoolExpr {
     }
 }
 
-impl BoolExpr for ConstBoolExpr {
+impl<C: Commitment> BoolExpr<C> for ConstBoolExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
@@ -47,7 +46,7 @@ impl BoolExpr for ConstBoolExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         alloc.alloc_slice_fill_copy(table_length, self.value)
     }
@@ -59,22 +58,22 @@ impl BoolExpr for ConstBoolExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         alloc.alloc_slice_fill_copy(builder.table_length(), self.value)
     }
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Result<ArkScalar, ProofError> {
+        builder: &mut VerificationBuilder<C>,
+        _accessor: &dyn CommitmentAccessor<C>,
+    ) -> Result<C::Scalar, ProofError> {
         if self.value {
             Ok(builder.mle_evaluations.one_evaluation)
         } else {
-            Ok(ArkScalar::zero())
+            Ok(C::Scalar::zero())
         }
     }
 

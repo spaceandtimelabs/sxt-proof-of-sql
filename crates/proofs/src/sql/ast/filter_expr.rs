@@ -23,7 +23,7 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleFilterExpr<H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan,
+    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
     phantom: PhantomData<H>,
 }
 
@@ -32,7 +32,7 @@ impl<H: ProverHonestyMarker> OstensibleFilterExpr<H> {
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
-        where_clause: BoolExprPlan,
+        where_clause: BoolExprPlan<RistrettoPoint>,
     ) -> Self {
         Self {
             results,

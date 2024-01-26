@@ -25,6 +25,7 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     /// Note: this vector is treated as a stack and the first
     /// challenge is the last entry in the vector.
     post_result_challenges: Vec<C::Scalar>,
+    one_commit: C,
 }
 
 impl<'a, C: Commitment> VerificationBuilder<'a, C> {
@@ -41,6 +42,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             inner_product_multipliers.len(),
             mle_evaluations.pre_result_evaluations.len()
         );
+        let one_commit = C::compute_ones_commit(
+            generator_offset as u64..(generator_offset + mle_evaluations.table_length) as u64,
+        );
         Self {
             mle_evaluations,
             generator_offset,
@@ -56,6 +60,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
+            one_commit,
         }
     }
 
@@ -65,6 +70,11 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     pub fn generator_offset(&self) -> usize {
         self.generator_offset
+    }
+
+    /// Return the commitment to the vector of scalars that are 1 in the table range and 0 elsewhere.
+    pub fn one_commit(&self) -> &C {
+        &self.one_commit
     }
 
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE

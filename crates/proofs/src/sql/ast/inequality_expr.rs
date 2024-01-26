@@ -5,15 +5,14 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::Commitment,
         database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
-use blitzar::compute::get_one_curve25519_commit;
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -27,15 +26,15 @@ use std::collections::HashSet;
 ///    <col> >= <constant>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct InequalityExpr {
-    value: ArkScalar,
+pub struct InequalityExpr<S: Scalar> {
+    value: S,
     column_ref: ColumnRef,
     is_lte: bool,
 }
 
-impl InequalityExpr {
+impl<S: Scalar> InequalityExpr<S> {
     /// Create a new less than or equal expression
-    pub fn new(column_ref: ColumnRef, value: ArkScalar, is_lte: bool) -> Self {
+    pub fn new(column_ref: ColumnRef, value: S, is_lte: bool) -> Self {
         Self {
             value,
             column_ref,
@@ -44,7 +43,7 @@ impl InequalityExpr {
     }
 }
 
-impl BoolExpr for InequalityExpr {
+impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         count_equals_zero(builder);
         count_sign(builder)?;
@@ -56,7 +55,7 @@ impl BoolExpr for InequalityExpr {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         // lhs
         let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
@@ -64,11 +63,11 @@ impl BoolExpr for InequalityExpr {
             if self.is_lte {
                 lhs.par_iter_mut()
                     .zip(col)
-                    .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+                    .for_each(|(a, b)| *a = Into::<C::Scalar>::into(b) - self.value);
             } else {
                 lhs.par_iter_mut()
                     .zip(col)
-                    .for_each(|(a, b)| *a = self.value - Into::<ArkScalar>::into(b));
+                    .for_each(|(a, b)| *a = self.value - Into::<C::Scalar>::into(b));
             }
             lhs
         } else {
@@ -92,9 +91,9 @@ impl BoolExpr for InequalityExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         let table_length = builder.table_length();
 
@@ -104,11 +103,11 @@ impl BoolExpr for InequalityExpr {
             if self.is_lte {
                 lhs.par_iter_mut()
                     .zip(col)
-                    .for_each(|(a, b)| *a = Into::<ArkScalar>::into(b) - self.value);
+                    .for_each(|(a, b)| *a = Into::<C::Scalar>::into(b) - self.value);
             } else {
                 lhs.par_iter_mut()
                     .zip(col)
-                    .for_each(|(a, b)| *a = self.value - Into::<ArkScalar>::into(b));
+                    .for_each(|(a, b)| *a = self.value - Into::<C::Scalar>::into(b));
             }
             lhs
         } else {
@@ -127,13 +126,10 @@ impl BoolExpr for InequalityExpr {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Result<ArkScalar, ProofError> {
-        let table_length = builder.table_length();
-        let generator_offset = builder.generator_offset();
-        let one_commit = get_one_curve25519_commit((table_length + generator_offset) as u64)
-            - get_one_curve25519_commit(generator_offset as u64);
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+    ) -> Result<C::Scalar, ProofError> {
+        let one_commit = *builder.one_commit();
 
         // commit
         let commit = if self.is_lte {

@@ -1,33 +1,38 @@
 use super::BoolExpr;
 use crate::{
     base::{
+        commitment::Commitment,
         database::{ColumnRef, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
+use core::marker::PhantomData;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical AND expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct AndExpr<B: BoolExpr> {
+pub struct AndExpr<C: Commitment, B: BoolExpr<C>> {
     lhs: Box<B>,
     rhs: Box<B>,
+    _phantom: PhantomData<C>,
 }
 
-impl<B: BoolExpr> AndExpr<B> {
+impl<C: Commitment, B: BoolExpr<C>> AndExpr<C, B> {
     /// Create logical AND expression
     pub fn new(lhs: Box<B>, rhs: Box<B>) -> Self {
-        Self { lhs, rhs }
+        Self {
+            lhs,
+            rhs,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl<B: BoolExpr> BoolExpr for AndExpr<B> {
+impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for AndExpr<C, B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -41,7 +46,7 @@ impl<B: BoolExpr> BoolExpr for AndExpr<B> {
         &self,
         table_length: usize,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         let lhs = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs = self.rhs.result_evaluate(table_length, alloc, accessor);
@@ -55,9 +60,9 @@ impl<B: BoolExpr> BoolExpr for AndExpr<B> {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         let lhs = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs = self.rhs.prover_evaluate(builder, alloc, accessor);
@@ -72,8 +77,8 @@ impl<B: BoolExpr> BoolExpr for AndExpr<B> {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(lhs_and_rhs)]),
-                (-ArkScalar::one(), vec![Box::new(lhs), Box::new(rhs)]),
+                (C::Scalar::one(), vec![Box::new(lhs_and_rhs)]),
+                (-C::Scalar::one(), vec![Box::new(lhs), Box::new(rhs)]),
             ],
         );
 
@@ -83,9 +88,9 @@ impl<B: BoolExpr> BoolExpr for AndExpr<B> {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Result<ArkScalar, ProofError> {
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+    ) -> Result<C::Scalar, ProofError> {
         let lhs = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs = self.rhs.verifier_evaluate(builder, accessor)?;
 
