@@ -22,6 +22,11 @@ pub use column_commitment_metadata_map::{
     ColumnCommitmentMetadataMap, ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch,
 };
 
+mod column_commitments;
+pub use column_commitments::{
+    AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdentifiers,
+};
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
