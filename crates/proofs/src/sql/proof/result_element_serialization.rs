@@ -1,5 +1,6 @@
 use crate::base::{encode::read_scalar_varint, scalar::ArkScalar};
 use ark_ff::PrimeField;
+use arrow::datatypes::i256;
 use integer_encoding::VarInt;
 
 pub trait EncodeProvableResultElement {
@@ -62,7 +63,7 @@ impl DecodeProvableResultElement<'_> for i128 {
         let abs_scalar = if is_negative { -val_scalar } else { val_scalar };
         let limbs = abs_scalar.0.into_bigint().0;
         if limbs[2] != 0 || limbs[3] != 0 {
-            return None;
+            return None; // Err because this was larger than 128 bits
         }
         let abs_i128 = (limbs[0] as i128) | ((limbs[1] as i128) << 64);
         let val_i128 = if is_negative {
@@ -79,6 +80,32 @@ impl DecodeProvableResultElement<'_> for i128 {
 
     fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
         <i128>::decode(data).map(|(val, read_bytes)| (val.into(), read_bytes))
+    }
+}
+
+impl EncodeProvableResultElement for i256 {
+    fn required_bytes(&self) -> usize {
+        ArkScalar::try_from(*self).unwrap().required_bytes()
+    }
+
+    fn encode(&self, out: &mut [u8]) -> usize {
+        ArkScalar::try_from(*self).unwrap().encode(out)
+    }
+}
+impl DecodeProvableResultElement<'_> for i256 {
+    fn decode(data: &[u8]) -> Option<(i256, usize)> {
+        let (val_scalar, read_bytes) = <ArkScalar>::decode(data)?;
+        Some((val_scalar.into(), read_bytes))
+    }
+
+    fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
+        match <i256>::decode(data) {
+            Some((val, read_bytes)) => match ArkScalar::try_from(val) {
+                Ok(ark_scalar) => Some((ark_scalar, read_bytes)),
+                Err(_) => None,
+            },
+            None => None,
+        }
     }
 }
 
@@ -217,12 +244,64 @@ pub fn decode_multiple_elements<'a, T: DecodeProvableResultElement<'a>>(
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use crate::base::scalar::random_i256;
+    use arrow::datatypes::i256;
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::StdRng,
     };
     use rand_core::SeedableRng;
+
+    #[test]
+    fn we_can_encode_and_decode_a_decimal75_to_a_scalar() {
+        let value = i256::from(123);
+        let mut out = vec![0_u8; value.required_bytes()];
+        value.encode(&mut out[..]);
+        let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
+        assert_eq!(read_bytes, out.len());
+        assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
+    }
+
+    #[test]
+    fn arbitrary_encoded_256_bit_integers_are_correctly_decoded() {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..100 {
+            let value = random_i256(&mut rng);
+
+            let mut out = vec![0_u8; value.required_bytes()];
+            value.encode(&mut out[..]);
+
+            let (decoded_value, read_bytes) = <i256>::decode(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, value);
+
+            let (decoded_value, read_bytes) = <i256>::decode_to_ark_scalar(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
+        }
+    }
+
+    #[test]
+    fn multiple_256_bit_integer_rows_are_correctly_encoded_and_decoded() {
+        let mut rng = rand::thread_rng();
+        let data = [
+            random_i256(&mut rng),
+            random_i256(&mut rng),
+            random_i256(&mut rng),
+            random_i256(&mut rng),
+            random_i256(&mut rng),
+            random_i256(&mut rng),
+        ];
+        let out = encode_multiple_rows(&data);
+        let (decoded_data, decoded_bytes) =
+            decode_multiple_elements::<i256>(&out[..], data.len()).unwrap();
+
+        assert_eq!(decoded_data, data);
+        assert_eq!(decoded_bytes, out.len());
+    }
 
     #[test]
     fn we_can_encode_and_decode_empty_buffers() {
