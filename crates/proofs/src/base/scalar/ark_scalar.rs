@@ -242,5 +242,7 @@ impl super::Scalar for ArkScalar {
     const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
         "3618502788666131106986593281521497120428558179689953803000975469142727125494"
     ));
+    const ZERO: Self = Self(ark_ff::MontFp!("0"));
+    const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
