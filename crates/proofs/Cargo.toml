@@ -31,7 +31,6 @@ derive_more = { workspace = true }
 dyn_partial_eq = { workspace = true }
 hashbrown = { workspace = true }
 indexmap = { workspace = true }
-integer-encoding = { workspace = true }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 merlin = { workspace = true }
