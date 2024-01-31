@@ -1,7 +1,9 @@
-use crate::base::{encode::read_scalar_varint, scalar::ArkScalar};
+use crate::base::{
+    encode::{read_scalar_varint, VarInt},
+    scalar::ArkScalar,
+};
 use ark_ff::PrimeField;
 use arrow::datatypes::i256;
-use integer_encoding::VarInt;
 
 pub trait EncodeProvableResultElement {
     fn required_bytes(&self) -> usize;

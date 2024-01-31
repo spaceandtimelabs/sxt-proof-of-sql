@@ -15,3 +15,8 @@ pub use varint::{
 
 #[cfg(test)]
 mod varint_test;
+
+mod varint_trait;
+pub use varint_trait::VarInt;
+#[cfg(test)]
+mod varint_trait_test;
