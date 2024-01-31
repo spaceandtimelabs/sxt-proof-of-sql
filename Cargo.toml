@@ -30,7 +30,6 @@ dyn_partial_eq = { version = "0.1.2" }
 flexbuffers = { version = "2.0.0" }
 hashbrown = { version = "0.14.0" }
 indexmap = { version = "2.1" }
-integer-encoding = { version = "4.0.0" }
 itertools = { version = "0.12.0" }
 lalrpop-util = { version = "0.20.0" }
 lazy_static = { version = "1.4.0" }
