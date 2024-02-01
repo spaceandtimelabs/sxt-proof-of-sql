@@ -1,4 +1,5 @@
 use super::VarInt;
+use crate::base::scalar::ArkScalar;
 use core::{
     fmt::Debug,
     ops::{Add, Neg},
@@ -305,6 +306,108 @@ fn we_can_encode_and_decode_u32_and_u64_the_same() {
     test_encode_and_decode_types_align::<u32, u64>(
         &mut rng,
         &[u32::MAX as u64 + 1, u32::MAX as u64 * 1000],
+        100,
+    );
+}
+
+#[test]
+fn we_can_encode_and_decode_large_positive_u128() {
+    #[allow(clippy::unusual_byte_groupings)]
+    let value: u128 =
+        0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_0011100;
+    let expected_result: &[u8] = &[
+        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+    ];
+    let result: &mut [u8] = &mut [0; 11];
+    assert_eq!(value.required_space(), 11);
+    value.encode_var(result);
+    assert_eq!(expected_result, result);
+    assert_eq!((value, 11), u128::decode_var(result).unwrap());
+}
+
+#[test]
+fn we_can_encode_and_decode_large_positive_i128() {
+    #[allow(clippy::unusual_byte_groupings)]
+    let value: i128 =
+        0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
+    let expected_result: &[u8] = &[
+        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+    ];
+    let result: &mut [u8] = &mut [0; 11];
+    assert_eq!(value.required_space(), 11);
+    value.encode_var(result);
+    assert_eq!(expected_result, result);
+    assert_eq!((value, 11), i128::decode_var(result).unwrap());
+}
+
+#[test]
+fn we_can_encode_and_decode_large_negative_i128() {
+    #[allow(clippy::unusual_byte_groupings)]
+    let value: i128 =
+        -1 - 0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
+    let expected_result: &[u8] = &[
+        0b10011101, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+    ];
+    let result: &mut [u8] = &mut [0; 11];
+    assert_eq!(value.required_space(), 11);
+    value.encode_var(result);
+    assert_eq!(expected_result, result);
+    assert_eq!((value, 11), i128::decode_var(result).unwrap());
+}
+#[test]
+fn we_can_encode_and_decode_small_i128_values() {
+    test_small_signed_values_encode_and_decode_properly::<i128>();
+}
+
+#[test]
+fn we_can_encode_and_decode_small_u128_values() {
+    test_small_unsigned_values_encode_and_decode_properly::<u128>();
+}
+
+#[test]
+fn we_can_encode_and_decode_small_ark_scalar_values() {
+    test_small_signed_values_encode_and_decode_properly::<ArkScalar>();
+}
+
+#[test]
+fn we_can_encode_and_decode_i128_and_ark_scalar_the_same() {
+    let mut rng = rand::thread_rng();
+    test_encode_and_decode_types_align::<i128, ArkScalar>(
+        &mut rng,
+        &[
+            ArkScalar::from(i128::MAX) + ArkScalar::one(),
+            ArkScalar::from(i128::MIN) - ArkScalar::one(),
+            ArkScalar::from(i128::MAX) * ArkScalar::from(1000),
+            ArkScalar::from(i128::MIN) * ArkScalar::from(1000),
+        ],
+        100,
+    );
+}
+
+#[test]
+fn we_can_encode_and_decode_i64_and_i128_the_same() {
+    let mut rng = rand::thread_rng();
+    test_encode_and_decode_types_align::<i64, i128>(
+        &mut rng,
+        &[
+            i64::MAX as i128 + 1,
+            i64::MIN as i128 - 1,
+            i64::MAX as i128 * 1000,
+            i64::MIN as i128 * 1000,
+        ],
+        100,
+    );
+}
+
+#[test]
+fn we_can_encode_and_decode_u64_and_u128_the_same() {
+    let mut rng = rand::thread_rng();
+    test_encode_and_decode_types_align::<u64, u128>(
+        &mut rng,
+        &[u64::MAX as u128 + 1, u64::MAX as u128 * 1000],
         100,
     );
 }

@@ -7,14 +7,10 @@ pub(crate) use zigzag::ZigZag;
 #[cfg(test)]
 mod zigzag_test;
 
-mod varint;
-pub use varint::{
-    read_scalar_varint, read_scalar_varints, scalar_varint_size, scalar_varints_size,
-    write_scalar_varint, write_scalar_varints,
-};
+mod scalar_varint;
 
 #[cfg(test)]
-mod varint_test;
+mod scalar_varint_test;
 
 mod varint_trait;
 pub use varint_trait::VarInt;
