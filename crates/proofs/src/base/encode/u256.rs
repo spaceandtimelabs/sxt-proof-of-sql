@@ -4,7 +4,7 @@ use crate::base::scalar::ArkScalar;
 ///
 /// low is the lower bytes of the u256 number (from 0 to 127 bits)
 /// high is the upper bytes of the u256 number (from 128 to 255 bits)
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub struct U256 {
     pub low: u128,
     pub high: u128,

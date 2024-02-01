@@ -1,8 +1,4 @@
-use crate::base::{
-    encode::{read_scalar_varint, VarInt},
-    scalar::ArkScalar,
-};
-use ark_ff::PrimeField;
+use crate::base::{encode::VarInt, scalar::ArkScalar};
 use arrow::datatypes::i256;
 
 pub trait EncodeProvableResultElement {
@@ -18,70 +14,24 @@ pub trait DecodeProvableResultElement<'a> {
 }
 
 /// Implement encode and decode for integer types
-macro_rules! impl_provable_result_integer_elements {
-    ($tt:ty) => {
-        impl EncodeProvableResultElement for $tt {
-            fn required_bytes(&self) -> usize {
-                self.required_space()
-            }
 
-            fn encode(&self, out: &mut [u8]) -> usize {
-                self.encode_var(out)
-            }
-        }
-
-        impl DecodeProvableResultElement<'_> for $tt {
-            fn decode(data: &[u8]) -> Option<($tt, usize)> {
-                <$tt>::decode_var(data)
-            }
-
-            fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
-                read_scalar_varint(data)
-            }
-        }
-    };
-}
-
-impl_provable_result_integer_elements!(i64);
-
-/// The i128 type is not supported by integer_encoding::VarInt.
-/// So we need to implement encode and decode for it manually.
-/// We convert to and from `ArkScalar` to handle this. TODO: implement this properly.
-impl EncodeProvableResultElement for i128 {
+impl<T: VarInt> EncodeProvableResultElement for T {
     fn required_bytes(&self) -> usize {
-        ArkScalar::from(*self).required_bytes()
+        self.required_space()
     }
 
     fn encode(&self, out: &mut [u8]) -> usize {
-        ArkScalar::from(*self).encode(out)
+        self.encode_var(out)
     }
 }
-impl DecodeProvableResultElement<'_> for i128 {
-    fn decode(data: &[u8]) -> Option<(i128, usize)> {
-        let (val_scalar, read_bytes) = <ArkScalar>::decode(data)?;
-        // From the arkworks code for cmp: "Note that this implementation of `Ord` compares field elements viewing them as integers in the range 0, 1, ..., P::MODULUS - 1."
-        // So, the smaller of the value and it's negative is the "absolute value" of the field element. We can use this to check if the value is negative.
-        let is_negative = val_scalar > -val_scalar;
-        let abs_scalar = if is_negative { -val_scalar } else { val_scalar };
-        let limbs = abs_scalar.0.into_bigint().0;
-        if limbs[2] != 0 || limbs[3] != 0 {
-            return None; // Err because this was larger than 128 bits
-        }
-        let abs_i128 = (limbs[0] as i128) | ((limbs[1] as i128) << 64);
-        let val_i128 = if is_negative {
-            i128::wrapping_neg(abs_i128)
-        } else {
-            abs_i128
-        };
-        if is_negative == (val_i128 < 0) {
-            Some((val_i128, read_bytes))
-        } else {
-            None
-        }
+
+impl<T: VarInt> DecodeProvableResultElement<'_> for T {
+    fn decode(data: &[u8]) -> Option<(Self, usize)> {
+        VarInt::decode_var(data)
     }
 
     fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
-        <i128>::decode(data).map(|(val, read_bytes)| (val.into(), read_bytes))
+        VarInt::decode_var(data)
     }
 }
 
@@ -204,26 +154,6 @@ impl<'a> DecodeProvableResultElement<'a> for String {
 
     fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
         <&'a str>::decode_to_ark_scalar(data)
-    }
-}
-
-impl EncodeProvableResultElement for ArkScalar {
-    fn required_bytes(&self) -> usize {
-        crate::base::encode::scalar_varint_size(self)
-    }
-    fn encode(&self, out: &mut [u8]) -> usize {
-        crate::base::encode::write_scalar_varint(out, self)
-    }
-}
-impl DecodeProvableResultElement<'_> for ArkScalar {
-    fn decode(data: &'_ [u8]) -> Option<(Self, usize)>
-    where
-        Self: Sized,
-    {
-        crate::base::encode::read_scalar_varint(data)
-    }
-    fn decode_to_ark_scalar(data: &'_ [u8]) -> Option<(ArkScalar, usize)> {
-        Self::decode(data)
     }
 }
 

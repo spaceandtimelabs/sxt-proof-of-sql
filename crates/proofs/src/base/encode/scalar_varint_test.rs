@@ -1,10 +1,8 @@
-use crate::base::{
-    encode::{
-        read_scalar_varint, read_scalar_varints, scalar_varint_size, scalar_varints_size,
-        write_scalar_varint, write_scalar_varints, U256,
-    },
-    scalar::ArkScalar,
+use super::scalar_varint::{
+    read_scalar_varint, read_scalar_varints, scalar_varint_size, scalar_varints_size,
+    write_scalar_varint, write_scalar_varints,
 };
+use crate::base::{encode::U256, scalar::ArkScalar};
 
 #[test]
 fn small_scalars_are_encoded_as_positive_varints_and_consume_few_bytes() {
