@@ -9,6 +9,14 @@
 // 2) there is a bug in `integer-encoding` that made it so that large decodings didn't fail when they should have
 // There were significant code changes to simplify the code
 // ---------------------------------------------------------------------------------------------------------------
+use super::{
+    scalar_varint::{
+        read_scalar_varint, read_u256_varint, scalar_varint_size, u256_varint_size,
+        write_scalar_varint, write_u256_varint,
+    },
+    U256,
+};
+use crate::base::scalar::ArkScalar;
 
 /// Most-significant byte, == 0x80
 pub const MSB: u8 = 0b1000_0000;
@@ -178,5 +186,73 @@ impl VarInt for i64 {
     #[inline]
     fn encode_var(self, dst: &mut [u8]) -> usize {
         zigzag_encode(self).encode_var(dst)
+    }
+}
+
+impl VarInt for U256 {
+    fn required_space(self) -> usize {
+        u256_varint_size(self)
+    }
+    fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
+        read_u256_varint(src)
+    }
+    fn encode_var(self, dst: &mut [u8]) -> usize {
+        write_u256_varint(dst, self)
+    }
+}
+
+impl VarInt for u128 {
+    fn required_space(self) -> usize {
+        U256 { low: self, high: 0 }.required_space()
+    }
+    fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
+        match U256::decode_var(src)? {
+            (U256 { high: 0, low }, s) => Some((low, s)),
+            _ => None,
+        }
+    }
+    fn encode_var(self, dst: &mut [u8]) -> usize {
+        U256 { low: self, high: 0 }.encode_var(dst)
+    }
+}
+
+// Adapted from integer-encoding-rs. See third_party/license/integer-encoding.LICENSE
+#[inline]
+fn zigzag_encode_i128(from: i128) -> u128 {
+    ((from << 1) ^ (from >> 127)) as u128
+}
+// Adapted from integer-encoding-rs. See third_party/license/integer-encoding.LICENSE
+// see: http://stackoverflow.com/a/2211086/56332
+// casting required because operations like unary negation
+// cannot be performed on unsigned integers
+#[inline]
+fn zigzag_decode_i128(from: u128) -> i128 {
+    ((from >> 1) ^ (-((from & 1) as i128)) as u128) as i128
+}
+impl VarInt for i128 {
+    fn required_space(self) -> usize {
+        u128::required_space(zigzag_encode_i128(self))
+    }
+
+    #[inline]
+    fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
+        u128::decode_var(src).map(|(v, s)| (zigzag_decode_i128(v), s))
+    }
+
+    #[inline]
+    fn encode_var(self, dst: &mut [u8]) -> usize {
+        zigzag_encode_i128(self).encode_var(dst)
+    }
+}
+
+impl VarInt for ArkScalar {
+    fn required_space(self) -> usize {
+        scalar_varint_size(&self)
+    }
+    fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
+        read_scalar_varint(src)
+    }
+    fn encode_var(self, dst: &mut [u8]) -> usize {
+        write_scalar_varint(dst, &self)
     }
 }
