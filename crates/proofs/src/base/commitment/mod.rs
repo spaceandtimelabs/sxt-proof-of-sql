@@ -27,6 +27,12 @@ pub use column_commitments::{
     AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdentifiers,
 };
 
+mod table_commitment;
+pub use table_commitment::{
+    AppendTableCommitmentError, MixedLengthColumns, NegativeRange, TableCommitment,
+    TableCommitmentArithmeticError, TableCommitmentFromColumnsError,
+};
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
