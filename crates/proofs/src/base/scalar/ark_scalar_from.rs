@@ -1,35 +1,35 @@
 use super::Scalar;
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::{ArkScalar, MontScalar};
 use ark_curve25519::Fr as F;
-use ark_ff::PrimeField;
+use ark_ff::{MontConfig, PrimeField};
 use arrow::datatypes::i256;
 use num_traits::Zero;
 
 macro_rules! impl_from_for_ark_scalar_for_type_supported_by_from {
     ($tt:ty) => {
-        impl From<$tt> for ArkScalar {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
             fn from(x: $tt) -> Self {
-                ArkScalar(x.into())
+                Self(x.into())
             }
         }
     };
 }
-impl From<&[u8]> for ArkScalar {
+impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
     fn from(x: &[u8]) -> Self {
         if x.is_empty() {
-            return ArkScalar::zero();
+            return Self::zero();
         }
 
         let hash = blake3::hash(x);
         let mut bytes: [u8; 32] = hash.into();
         bytes[31] &= 0b00001111_u8;
 
-        ArkScalar::from_le_bytes_mod_order(&bytes)
+        Self::from_le_bytes_mod_order(&bytes)
     }
 }
 macro_rules! impl_from_for_ark_scalar_for_string {
     ($tt:ty) => {
-        impl From<$tt> for ArkScalar {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
             fn from(x: $tt) -> Self {
                 x.as_bytes().into()
             }
@@ -51,9 +51,9 @@ impl_from_for_ark_scalar_for_type_supported_by_from!(i128);
 impl_from_for_ark_scalar_for_string!(&str);
 impl_from_for_ark_scalar_for_string!(String);
 
-impl<T> From<&T> for ArkScalar
+impl<F: MontConfig<4>, T> From<&T> for MontScalar<F>
 where
-    T: Into<ArkScalar> + Clone,
+    T: Into<MontScalar<F>> + Clone,
 {
     fn from(x: &T) -> Self {
         x.clone().into()
@@ -98,7 +98,7 @@ impl TryFrom<i256> for ArkScalar {
                     return Err(ArkScalarConversionError::ValueTooSmall);
                 }
                 let field_element = F::from_le_bytes_mod_order(&bytes);
-                Ok(ArkScalar(F::zero() - field_element))
+                Ok(Self(F::zero() - field_element))
             }
             false => {
                 if value > ArkScalar::MAX_SIGNED.into() {
@@ -226,6 +226,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-impl_from_for_ark_scalar_for_type_supported_by_from!(ark_ff::BigInt<4>);

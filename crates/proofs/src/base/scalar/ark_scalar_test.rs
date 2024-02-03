@@ -1,4 +1,4 @@
-use crate::base::scalar::{ark_scalar::*, Scalar};
+use crate::base::scalar::{ArkScalar, Scalar};
 use ark_ff::BigInt;
 use num_traits::{Inv, One};
 
@@ -32,7 +32,7 @@ fn test_add() {
 fn test_mod() {
     let pm1: BigInt<4> =
         BigInt!("7237005577332262213973186563042994240857116359379907606001950938285454250988");
-    let x = ArkScalar::from(pm1);
+    let x = ArkScalar::from(pm1.0);
     let one = ArkScalar::from(1u64);
     let zero = ArkScalar::from(0u64);
     let xp1 = x + one;
