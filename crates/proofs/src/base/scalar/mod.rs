@@ -1,7 +1,7 @@
 mod ark_scalar;
 #[cfg(test)]
 mod ark_scalar_test;
-pub use ark_scalar::ArkScalar;
+pub use ark_scalar::{ArkScalar, MontScalar};
 use core::ops::Sub;
 mod ark_scalar_from;
 use arrow::datatypes::i256;

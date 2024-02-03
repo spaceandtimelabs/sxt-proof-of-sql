@@ -66,6 +66,6 @@ fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
         3,
         &ArkScalar::unwrap_slice(&xs),
     );
-    let expected_eval = ArkScalar(poly.evaluate(&ArkScalar::unwrap_slice(&point)).unwrap());
+    let expected_eval = ArkScalar::new(poly.evaluate(&ArkScalar::unwrap_slice(&point)).unwrap());
     assert_eq!(eval, expected_eval);
 }
