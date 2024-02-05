@@ -11,7 +11,6 @@ pub enum OwnedTableError {
     #[error("Columns have different lengths")]
     ColumnLengthMismatch,
 }
-
 /// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
@@ -93,6 +92,22 @@ impl<S: Scalar> OwnedTable<S> {
         ))
         .unwrap()
     }
+
+    #[cfg(test)]
+    /// Simple convenience function for appending more complex types like decimal75
+    /// to an owned table.
+    pub fn append_decimal_columns_for_testing(
+        &mut self,
+        name: &str,
+        precision: u8,
+        scale: i8,
+        values: Vec<S>,
+    ) {
+        use crate::base::math::precision::Precision;
+
+        let column = OwnedColumn::Decimal75(Precision::new(precision).unwrap(), scale, values);
+        self.table.insert(name.parse().unwrap(), column);
+    }
 }
 
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.
@@ -111,6 +126,7 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
 /// Utility macro to simplify the creation of OwnedTables.
 /// Convinience macro wrapping `OwnedTable::try_from_iter` that is only available in tests.
 ///
+/// Note: this panics if the columns have different lengths or if the table has no columns.
 /// Note: this panics if the columns have different lengths or if the table has no columns.
 #[macro_export]
 macro_rules! owned_table {

@@ -1,5 +1,5 @@
 use super::TableRef;
-use crate::base::scalar::Scalar;
+use crate::base::{math::precision::Precision, scalar::Scalar};
 use arrow::datatypes::{DataType, Field};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
 #[derive(Debug, Eq, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum Column<'a, S: Scalar> {
     /// i64 columns
     BigInt(&'a [i64]),
@@ -20,6 +21,9 @@ pub enum Column<'a, S: Scalar> {
     VarChar((&'a [&'a str], &'a [S])),
     /// i128 columns
     Int128(&'a [i128]),
+    /// Decimal columns with a max width of 252 bits
+    ///  - the backing store maps to the type [crate::base::scalar::ArkScalar]
+    Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
 }
@@ -32,6 +36,7 @@ impl<S: Scalar> Column<'_, S> {
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
             Self::Scalar(_) => ColumnType::Scalar,
+            Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
         }
     }
     /// Returns the length of the column.
@@ -44,6 +49,7 @@ impl<S: Scalar> Column<'_, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) => col.len(),
+            Self::Decimal75(_, _, col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -77,6 +83,9 @@ pub enum ColumnType {
     /// Mapped to ArkScalar
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
+    /// Mapped to i256
+    #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
+    Decimal75(Precision, i8),
 }
 
 /// Convert ColumnType values to some arrow DataType
@@ -85,6 +94,9 @@ impl From<&ColumnType> for DataType {
         match column_type {
             ColumnType::BigInt => DataType::Int64,
             ColumnType::Int128 => DataType::Decimal128(38, 0),
+            ColumnType::Decimal75(precision, scale) => {
+                DataType::Decimal256(precision.value(), *scale)
+            }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
@@ -99,6 +111,9 @@ impl TryFrom<DataType> for ColumnType {
         match data_type {
             DataType::Int64 => Ok(ColumnType::BigInt),
             DataType::Decimal128(38, 0) => Ok(ColumnType::Int128),
+            DataType::Decimal256(precision, scale) if precision <= 75 => {
+                Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
+            }
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
@@ -111,23 +126,15 @@ impl std::fmt::Display for ColumnType {
         match self {
             ColumnType::BigInt => write!(f, "BIGINT"),
             ColumnType::Int128 => write!(f, "DECIMAL"),
+            ColumnType::Decimal75(precision, scale) => {
+                write!(
+                    f,
+                    "DECIMAL75(PRECISION: {:?}, SCALE: {scale})",
+                    precision.value()
+                )
+            }
             ColumnType::VarChar => write!(f, "VARCHAR"),
             ColumnType::Scalar => write!(f, "SCALAR"),
-        }
-    }
-}
-
-/// Parse the column type from a str name (flexible about case)
-impl std::str::FromStr for ColumnType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_uppercase().as_str() {
-            "BIGINT" => Ok(ColumnType::BigInt),
-            "DECIMAL" => Ok(ColumnType::Int128),
-            "VARCHAR" => Ok(ColumnType::VarChar),
-            "SCALAR" => Ok(ColumnType::Scalar),
-            _ => Err(format!("Unsupported column type {:?}", s)),
         }
     }
 }
@@ -226,6 +233,10 @@ mod tests {
         let column_type = ColumnType::Scalar;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Scalar""#);
+
+        let column_type = ColumnType::Decimal75(Precision::new(1).unwrap(), 0);
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#"{"Decimal75":[1,0]}"#);
     }
 
     #[test]
@@ -238,12 +249,29 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""DECIMAL""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
+        let expected_column_type = ColumnType::Int128;
+        let deserialized: ColumnType = serde_json::from_str(r#""Decimal""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
         let expected_column_type = ColumnType::VarChar;
         let deserialized: ColumnType = serde_json::from_str(r#""VarChar""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::Scalar;
         let deserialized: ColumnType = serde_json::from_str(r#""SCALAR""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), i8::MAX);
+        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[75, 127]}"#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type =
+            ColumnType::Decimal75(Precision::new(u8::MIN + 1).unwrap(), i8::MIN);
+        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, -128]}"#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::Decimal75(Precision::new(1).unwrap(), 0);
+        let deserialized: ColumnType = serde_json::from_str(r#"{"Decimal75":[1, 0]}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
     }
 
@@ -284,6 +312,24 @@ mod tests {
             serde_json::from_str::<ColumnType>(r#""scalar""#).unwrap(),
             ColumnType::Scalar
         );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#"{"decimal75":[1,0]}"#).unwrap(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,0]}"#).unwrap(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+        );
+
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#"{"decimal75":[10,5]}"#).unwrap(),
+            ColumnType::Decimal75(Precision::new(10).unwrap(), 5)
+        );
+
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#"{"DECIMAL75":[1,-128]}"#).unwrap(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), -128)
+        );
     }
 
     #[test]
@@ -294,6 +340,9 @@ mod tests {
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""DecImal""#);
         assert!(deserialized.is_err());
 
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""DecImal75""#);
+        assert!(deserialized.is_err());
+
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Varchar""#);
         assert!(deserialized.is_err());
 
@@ -302,18 +351,46 @@ mod tests {
     }
 
     #[test]
-    fn we_can_convert_columntype_to_string_and_back_with_display_and_parse() {
-        assert_eq!(format!("{}", ColumnType::BigInt), "BIGINT");
-        assert_eq!(format!("{}", ColumnType::Int128), "DECIMAL");
-        assert_eq!(format!("{}", ColumnType::VarChar), "VARCHAR");
-        assert_eq!(format!("{}", ColumnType::Scalar), "SCALAR");
-        assert_eq!("BIGINT".parse::<ColumnType>().unwrap(), ColumnType::BigInt);
-        assert_eq!("DECIMAL".parse::<ColumnType>().unwrap(), ColumnType::Int128);
+    fn we_can_convert_columntype_to_json_string_and_back() {
+        let bigint = ColumnType::BigInt;
+        let bigint_json = serde_json::to_string(&bigint).unwrap();
+        assert_eq!(bigint_json, "\"BigInt\"");
         assert_eq!(
-            "VARCHAR".parse::<ColumnType>().unwrap(),
-            ColumnType::VarChar
+            serde_json::from_str::<ColumnType>(&bigint_json).unwrap(),
+            bigint
         );
-        assert_eq!("SCALAR".parse::<ColumnType>().unwrap(), ColumnType::Scalar);
+
+        let int128 = ColumnType::Int128;
+        let int128_json = serde_json::to_string(&int128).unwrap();
+        assert_eq!(int128_json, "\"Decimal\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&int128_json).unwrap(),
+            int128
+        );
+
+        let varchar = ColumnType::VarChar;
+        let varchar_json = serde_json::to_string(&varchar).unwrap();
+        assert_eq!(varchar_json, "\"VarChar\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&varchar_json).unwrap(),
+            varchar
+        );
+
+        let scalar = ColumnType::Scalar;
+        let scalar_json = serde_json::to_string(&scalar).unwrap();
+        assert_eq!(scalar_json, "\"Scalar\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&scalar_json).unwrap(),
+            scalar
+        );
+
+        let decimal75 = ColumnType::Decimal75(Precision::new(75).unwrap(), 0);
+        let decimal75_json = serde_json::to_string(&decimal75).unwrap();
+        assert_eq!(decimal75_json, r#"{"Decimal75":[75,0]}"#);
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&decimal75_json).unwrap(),
+            decimal75
+        );
     }
 
     #[test]
@@ -349,6 +426,19 @@ mod tests {
         assert!(column.is_empty());
 
         let column = Column::<ArkScalar>::Scalar(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let precision = 10;
+        let scale = 2;
+        let decimal_data = [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3)];
+
+        let precision = Precision::new(precision).unwrap();
+        let column = Column::Decimal75(precision, scale, &decimal_data);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column: Column<'_, ArkScalar> = Column::Decimal75(precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
     }

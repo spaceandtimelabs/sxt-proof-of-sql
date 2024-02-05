@@ -1,5 +1,6 @@
 use crate::base::{
     database::{Column, ColumnType, OwnedColumn},
+    math::precision::Precision,
     ref_into::RefInto,
     scalar::Scalar,
 };
@@ -16,12 +17,15 @@ use blitzar::sequence::Sequence;
 /// This type acts as an intermediate column type that *can* be used with blitzar directly.
 /// For column types that need to be transformed, their "committable form" is owned here.
 /// For column types that don't need to allocate new memory, their data is only borrowed here.
+#[non_exhaustive]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CommittableColumn<'a> {
     /// Borrowed BigInt column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
+    /// Borrowed Decimal75(precion, scale, column), mapped to 'i256'
+    Decimal75(Precision, i8, Vec<[u64; 4]>),
     /// Column of big ints for committing to, hashed from a VarChar column.
     VarChar(Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
@@ -38,6 +42,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
             CommittableColumn::Scalar(col) => col.len(),
+            CommittableColumn::Decimal75(_, _, col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
         }
     }
@@ -58,6 +63,9 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
         match value {
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
             CommittableColumn::Int128(_) => ColumnType::Int128,
+            CommittableColumn::Decimal75(precision, scale, _) => {
+                ColumnType::Decimal75(*precision, *scale)
+            }
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
             CommittableColumn::Boolean(_) => {
@@ -70,13 +78,18 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
 impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
-            Column::BigInt(ints) => (ints as &[_]).into(),
-            Column::Int128(ints) => (ints as &[_]).into(),
+            Column::BigInt(ints) => CommittableColumn::BigInt(ints),
+            Column::Int128(ints) => CommittableColumn::Int128(ints),
+
             Column::VarChar((_, scalars)) => {
                 let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
             Column::Scalar(scalars) => (scalars as &[_]).into(),
+            Column::Decimal75(precision, scale, decimals) => {
+                let as_limbs: Vec<_> = decimals.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
+                CommittableColumn::Decimal75(*precision, *scale, as_limbs)
+            }
         }
     }
 }
@@ -86,6 +99,15 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
         match value {
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int128(ints) => (ints as &[_]).into(),
+            OwnedColumn::Decimal75(precision, scale, decimals) => CommittableColumn::Decimal75(
+                *precision,
+                *scale,
+                decimals
+                    .iter()
+                    .map(Into::<S>::into)
+                    .map(Into::<[u64; 4]>::into)
+                    .collect(),
+            ),
             OwnedColumn::VarChar(strings) => CommittableColumn::VarChar(
                 strings
                     .iter()
@@ -124,6 +146,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
         match value {
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
+            CommittableColumn::Decimal75(_, _, limbs) => Sequence::from(limbs),
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
@@ -139,6 +162,24 @@ mod tests {
     use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
+    fn we_can_convert_from_owned_decimal75_column_to_committable_column() {
+        let decimals = vec![ArkScalar::from(-1), ArkScalar::from(1), ArkScalar::from(2)];
+        let decimal_column = OwnedColumn::Decimal75(Precision::new(75).unwrap(), -1, decimals);
+
+        let res_committable_column: CommittableColumn = (&decimal_column).into();
+        let test_committable_column: CommittableColumn = CommittableColumn::Decimal75(
+            Precision::new(75).unwrap(),
+            -1,
+            [-1, 1, 2]
+                .map(<ArkScalar>::from)
+                .map(<[u64; 4]>::from)
+                .into(),
+        );
+
+        assert_eq!(res_committable_column, test_committable_column)
+    }
+
+    #[test]
     fn we_can_get_type_and_length_of_bigint_column() {
         // empty case
         let bigint_committable_column = CommittableColumn::BigInt(&[]);
@@ -146,6 +187,23 @@ mod tests {
         assert!(bigint_committable_column.is_empty());
         assert_eq!(bigint_committable_column.column_type(), ColumnType::BigInt);
 
+        let bigint_committable_column = CommittableColumn::BigInt(&[12, 34, 56]);
+        assert_eq!(bigint_committable_column.len(), 3);
+        assert!(!bigint_committable_column.is_empty());
+        assert_eq!(bigint_committable_column.column_type(), ColumnType::BigInt);
+    }
+
+    #[test]
+    fn we_can_get_type_and_length_of_decimal_column() {
+        // empty case
+        let decimal_committable_column =
+            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, [].to_vec());
+        assert_eq!(decimal_committable_column.len(), 0);
+        assert!(decimal_committable_column.is_empty());
+        assert_eq!(
+            decimal_committable_column.column_type(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
+        );
         let bigint_committable_column = CommittableColumn::BigInt(&[12, 34, 56]);
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
@@ -235,6 +293,30 @@ mod tests {
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_borrowing_decimal_column() {
+        // Define a non-empty array of ArkScalars
+        let binding = vec![
+            ArkScalar::from(-1),
+            ArkScalar::from(34),
+            ArkScalar::from(56),
+        ];
+
+        let precision = Precision::new(75).unwrap();
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::Decimal75(precision, 0, &binding));
+
+        let expected_decimals = binding
+            .iter()
+            .map(|&scalar| scalar.into())
+            .collect::<Vec<[u64; 4]>>();
+
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::Decimal75(Precision::new(75).unwrap(), 0, expected_decimals)
         );
     }
 
@@ -351,6 +433,37 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::BigInt(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_decimal_column_through_committable_column() {
+        // empty case
+        let committable_column =
+            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, [].to_vec());
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [
+            ArkScalar::from(12),
+            ArkScalar::from(34),
+            ArkScalar::from(56),
+        ]
+        .map(<[u64; 4]>::from);
+        let committable_column =
+            CommittableColumn::Decimal75(Precision::new(1).unwrap(), 0, (values).to_vec());
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

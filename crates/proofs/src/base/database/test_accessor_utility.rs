@@ -1,7 +1,7 @@
 use crate::base::database::ColumnType;
 use arrow::{
-    array::{Array, Decimal128Array, Int64Array, StringArray},
-    datatypes::{DataType, Field, Schema},
+    array::{Array, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 use rand::{
@@ -61,6 +61,20 @@ pub fn make_random_test_accessor_data(
                 columns.push(Arc::new(
                     Decimal128Array::from(values.to_vec())
                         .with_precision_and_scale(38, 0)
+                        .unwrap(),
+                ));
+            }
+            ColumnType::Decimal75(precision, scale) => {
+                column_fields.push(Field::new(
+                    *col_name,
+                    DataType::Decimal256(precision.value(), *scale),
+                    false,
+                ));
+
+                let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
+                columns.push(Arc::new(
+                    Decimal256Array::from(values.to_vec())
+                        .with_precision_and_scale(precision.value(), *scale)
                         .unwrap(),
                 ));
             }

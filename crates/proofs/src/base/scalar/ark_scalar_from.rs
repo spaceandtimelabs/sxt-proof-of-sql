@@ -89,7 +89,7 @@ impl TryFrom<i256> for ArkScalar {
     type Error = ArkScalarConversionError;
 
     // Must fit inside 252 bits and so requires fallible
-    fn try_from(value: i256) -> Result<Self, Self::Error> {
+    fn try_from(value: i256) -> Result<Self, ArkScalarConversionError> {
         let bytes = value.wrapping_abs().to_le_bytes();
 
         match value.is_negative() {

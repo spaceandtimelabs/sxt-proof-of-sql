@@ -2,13 +2,14 @@ use super::{ProvableQueryResult, ProvableResultColumn};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
-        scalar::ArkScalar,
+        math::precision::Precision,
+        scalar::{ArkScalar, Scalar},
     },
     sql::proof::Indexes,
 };
 use arrow::{
-    array::{Decimal128Array, Int64Array, StringArray},
-    datatypes::{Field, Schema},
+    array::{Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    datatypes::{i256, Field, Schema},
     record_batch::RecordBatch,
 };
 use num_traits::Zero;
@@ -293,18 +294,55 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
 }
 
 #[test]
+fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
+    let indexes = Indexes::Sparse(vec![0, 2]);
+    let values = [i256::from(10), i256::from(11), ArkScalar::MAX_SIGNED.into()];
+
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let res = ProvableQueryResult::new(&indexes, &cols);
+    let column_fields = vec![ColumnField::new(
+        "a1".parse().unwrap(),
+        ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
+    )];
+    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let schema = Arc::new(Schema::new(column_fields));
+
+    let expected_res = RecordBatch::try_new(
+        schema,
+        vec![Arc::new(
+            Decimal256Array::from([i256::from(10), ArkScalar::MAX_SIGNED.into()].to_vec())
+                .with_precision_and_scale(75, 0)
+                .unwrap(),
+        )],
+    )
+    .unwrap();
+    assert_eq!(res, expected_res);
+}
+
+#[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i64; 3] = [6, 7, i64::MAX];
     let values2: [i128; 3] = [10, 11, i128::MAX];
     let values3 = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
-    let cols: [Box<dyn ProvableResultColumn>; 3] =
-        [Box::new(values1), Box::new(values2), Box::new(values3)];
+    let values4 = [i256::from(10), i256::from(11), ArkScalar::MAX_SIGNED.into()];
+
+    let cols: [Box<dyn ProvableResultColumn>; 4] = [
+        Box::new(values1),
+        Box::new(values2),
+        Box::new(values3),
+        Box::new(values4),
+    ];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![
         ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("a2".parse().unwrap(), ColumnType::Int128),
         ColumnField::new("a3".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(
+            "a4".parse().unwrap(),
+            ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
+        ),
     ];
     let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
@@ -320,6 +358,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
                     .unwrap(),
             ),
             Arc::new(StringArray::from(vec!["abc", "de"])),
+            Arc::new(
+                Decimal256Array::from(vec![i256::from(10), ArkScalar::MAX_SIGNED.into()])
+                    .with_precision_and_scale(75, 0)
+                    .unwrap(),
+            ),
         ],
     )
     .unwrap();

@@ -2,10 +2,10 @@ use super::BoolExpr;
 use crate::{
     base::{
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
-        scalar::ArkScalar,
+        scalar::{ArkScalar, Scalar},
     },
     owned_table, record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::equal},
@@ -37,12 +37,18 @@ fn create_test_equals_expr<T: Into<ArkScalar> + Copy + Literal>(
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
-    let data = record_batch!(
-        "a" => Vec::<i64>::new(),
-        "b" => Vec::<i64>::new(),
-        "d" => Vec::<String>::new(),
+    let mut data: OwnedTable<ArkScalar> =
+        owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
+    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["a", "d"],
+        "b",
+        0_i64,
+        data.try_into().unwrap(),
+        0,
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "d"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
     let expected_res = record_batch!(
         "a" => Vec::<i64>::new(),
@@ -53,82 +59,174 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
-    let data = record_batch!(
-        "a" => [123_i64],
-        "b" => [0_i64],
-        "d" => ["abc"]
+    let mut data: OwnedTable<ArkScalar> =
+        owned_table!( "a" => [123_i64], "b" => [0_i64], "d" => ["abc"], );
+    data.append_decimal_columns_for_testing("e", 75, 0, [ArkScalar::from(0)].to_vec());
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["d", "a"],
+        "b",
+        0_i64,
+        data.try_into().unwrap(),
+        0,
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["d", "a"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
+
     let expected_res = record_batch!(
         "d" => ["abc"],
         "a" => [123_i64],
     );
+
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
-    let data = record_batch!(
-        "a" => [123_i64],
-        "b" => [55_i64],
-        "d" => ["abc"]
+    let mut data: OwnedTable<ArkScalar> =
+        owned_table!( "a" => [123_i64], "b" => [55_i64], "d" => ["abc"], );
+    data.append_decimal_columns_for_testing("e", 75, 0, [ArkScalar::MAX_SIGNED].to_vec());
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["a", "d", "e"],
+        "b",
+        0_i64,
+        data.try_into().unwrap(),
+        0,
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "d"], "b", 0_i64, data, 0);
     let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
-        "a" => Vec::<i64>::new(),
-        "d" => Vec::<String>::new(),
-    );
-    assert_eq!(res, expected_res);
+
+    let mut expected_res: OwnedTable<ArkScalar> =
+        owned_table!( "a" => [0_i64; 0], "d" => [""; 0], );
+    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![ArkScalar::ZERO; 0]);
+
+    assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
-    let data = record_batch!(
-        "a" => [1_i64, 2, 3, 4],
-        "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0_i64, 5, 0, 5],
+    let mut data: OwnedTable<ArkScalar> = owned_table!( "a" => [1_i64, 2, 3, 4], "b" => [0_i64, 5, 0, 5], "c" =>  ["t", "ghi", "jj", "f"], );
+    data.append_decimal_columns_for_testing(
+        "e",
+        75,
+        0,
+        vec![
+            ArkScalar::ZERO,
+            ArkScalar::ONE,
+            ArkScalar::TWO,
+            ArkScalar::MAX_SIGNED,
+        ],
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_i64, data, 0);
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["a", "c", "e"],
+        "b",
+        0_i64,
+        data.try_into().unwrap(),
+        0,
+    );
     let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
-        "a" => [1_i64, 3],
-        "c" => ["t", "jj"],
+
+    let mut expected_res: OwnedTable<ArkScalar> =
+        owned_table!( "a" => [1_i64, 3], "c" => ["t".to_string(), "jj".to_string()], );
+    expected_res.append_decimal_columns_for_testing(
+        "e",
+        75,
+        0,
+        vec![ArkScalar::ZERO, ArkScalar::TWO],
     );
-    assert_eq!(res, expected_res);
+
+    assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
-    let data = record_batch!(
-        "a" => [1_i64, 2, 3, 4, 5],
-        "b" => [123_i64, 5, 123, 5, 0],
-        "c" => ["t", "ghi", "jj", "f", "abc"],
+    let mut data: OwnedTable<ArkScalar> = owned_table!( "a" => [1_i64, 2, 3, 4, 5], "b" => [123_i64, 5, 123, 5, 0], "c" =>  ["t", "ghi", "jj", "f", "abc"], );
+    data.append_decimal_columns_for_testing(
+        "e",
+        42,
+        10,
+        vec![
+            ArkScalar::ZERO,
+            ArkScalar::ONE,
+            ArkScalar::TWO,
+            ArkScalar::from(3),
+            ArkScalar::MAX_SIGNED,
+        ],
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 123_u64, data, 0);
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["a", "c", "e"],
+        "b",
+        123_u64,
+        data.try_into().unwrap(),
+        0,
+    );
     let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
+
+    let mut expected_res: OwnedTable<ArkScalar> = owned_table!(
         "a" => [1_i64, 3],
-        "c" => ["t", "jj"],
+        "c" => ["t".to_string(), "jj".to_string()],
     );
-    assert_eq!(res, expected_res);
+
+    expected_res.append_decimal_columns_for_testing(
+        "e",
+        42,
+        10,
+        vec![ArkScalar::ZERO, ArkScalar::TWO],
+    );
+
+    assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_string_comparison() {
-    let data = record_batch!(
-        "a" => [1_i64, 2, 3, 4, 5],
-        "b" => [123_i64, 5, 123, 5, 0],
-        "c" => ["t", "ghi", "jj", "f", "ghi"],
+    let mut data: OwnedTable<ArkScalar> = owned_table!(
+        "a" => [1_i64, 2, 3, 4, 5, 5],
+        "b" => [123_i64, 5, 123, 123, 5, 0],
+        "c" => ["t", "ghi", "jj", "f", "abc", "ghi"],
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "b"], "c", "ghi", data, 0);
+
+    data.append_decimal_columns_for_testing(
+        "e",
+        42, // precision
+        10, // scale
+        vec![
+            ArkScalar::ZERO,
+            ArkScalar::ONE,
+            ArkScalar::TWO,
+            ArkScalar::from(3),
+            ArkScalar::MAX_SIGNED,
+            ArkScalar::from(-1),
+        ],
+    );
+
+    let test_expr = create_test_equals_expr(
+        "sxt.t",
+        &["a", "b", "e"],
+        "c",
+        "ghi",
+        data.try_into().unwrap(),
+        0,
+    );
     let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
+
+    let mut expected_res: OwnedTable<ArkScalar> = owned_table!(
         "a" => [2_i64, 5],
         "b" => [5_i64, 0],
     );
-    assert_eq!(res, expected_res);
+
+    expected_res.append_decimal_columns_for_testing(
+        "e",
+        42,
+        10,
+        vec![ArkScalar::ONE, ArkScalar::from(-1)],
+    );
+
+    assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
@@ -205,15 +303,27 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
-    let data = owned_table!(
+    let mut data: OwnedTable<ArkScalar> = owned_table!(
         "a" => [1_i64, 2, 3, 4],
-        "c" => ["t", "ghi", "jj", "f"],
         "b" => [0_i64, 5, 0, 5],
+        "c" => ["t", "ghi", "jj", "f"]
+    );
+
+    data.append_decimal_columns_for_testing(
+        "e",
+        42,
+        10,
+        vec![
+            ArkScalar::ZERO,
+            ArkScalar::MAX_SIGNED,
+            ArkScalar::ZERO,
+            ArkScalar::from(-1),
+        ],
     );
     let mut accessor = OwnedTableTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = equal(t, "b", 0, &accessor);
+    let equals_expr = equal(t, "e", 0, &accessor);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = &[true, false, true, false];

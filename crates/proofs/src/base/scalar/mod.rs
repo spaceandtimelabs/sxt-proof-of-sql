@@ -2,9 +2,9 @@ mod ark_scalar;
 #[cfg(test)]
 mod ark_scalar_test;
 pub use ark_scalar::{ArkScalar, MontScalar};
+use arrow::datatypes::i256;
 use core::ops::Sub;
 mod ark_scalar_from;
-use arrow::datatypes::i256;
 #[cfg(test)]
 mod ark_scalar_from_test;
 
@@ -46,9 +46,10 @@ pub trait Scalar:
     + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
     + num_traits::Inv<Output = Self>
     + std::ops::SubAssign
+    + Into<i256>
+    + TryFrom<i256>
     + super::ref_into::RefInto<[u64; 4]>
     + for<'a> std::convert::From<&'a String>
-    + Into<i256>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
