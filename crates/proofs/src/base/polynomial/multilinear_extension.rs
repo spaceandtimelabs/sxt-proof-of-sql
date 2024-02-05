@@ -89,6 +89,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
             Column::BigInt(c) => c.inner_product(evaluation_vec),
             Column::VarChar((_, c)) => c.inner_product(evaluation_vec),
             Column::Int128(c) => c.inner_product(evaluation_vec),
+            Column::Decimal75(_, _, c) => c.inner_product(evaluation_vec),
         }
     }
 
@@ -98,6 +99,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
             Column::BigInt(c) => c.mul_add(res, multiplier),
             Column::VarChar((_, c)) => c.mul_add(res, multiplier),
             Column::Int128(c) => c.mul_add(res, multiplier),
+            Column::Decimal75(_, _, c) => c.mul_add(res, multiplier),
         }
     }
 
@@ -107,6 +109,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
             Column::BigInt(c) => c.to_sumcheck_term(num_vars),
             Column::VarChar((_, c)) => c.to_sumcheck_term(num_vars),
             Column::Int128(c) => c.to_sumcheck_term(num_vars),
+            Column::Decimal75(_, _, c) => c.to_sumcheck_term(num_vars),
         }
     }
 
@@ -116,6 +119,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
             Column::BigInt(c) => MultilinearExtension::<S>::id(c),
             Column::VarChar((_, c)) => MultilinearExtension::<S>::id(c),
             Column::Int128(c) => MultilinearExtension::<S>::id(c),
+            Column::Decimal75(_, _, c) => MultilinearExtension::<S>::id(c),
         }
     }
 }

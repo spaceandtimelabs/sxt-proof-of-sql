@@ -1,6 +1,9 @@
-use crate::sql::ast::{
-    test_utility::{and, not, or},
-    BoolExprPlan,
+use crate::{
+    base::math::precision::Precision,
+    sql::ast::{
+        test_utility::{and, not, or},
+        BoolExprPlan,
+    },
 };
 use crate::{
     base::{
@@ -176,13 +179,14 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
         "b" => [0_i64;0],
         "c" => [0_i128;0],
         "d" => ["";0],
+        "e" => [ArkScalar::from(0);0],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = dense_filter(
-        cols_expr(t, &["b", "c", "d"], &accessor),
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -193,16 +197,23 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
         ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(
+            "e".parse().unwrap(),
+            ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
+        ),
     ];
     let res = builder
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let expected = owned_table!(
-        "b" => [0_i64;0],
-        "c" => [0_i128;0],
-        "d" => ["";0],
+    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+        "b" => [0_i64; 0],
+        "c" => [0_i128; 0],
+        "d" => ["".to_string(); 0],
     );
+
+    expected.append_decimal_columns_for_testing("e", 75, 0, vec![ArkScalar::from(0); 0]);
+
     assert_eq!(res, expected);
 }
 
@@ -213,13 +224,14 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
+        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = dense_filter(
-        cols_expr(t, &["b", "c", "d"], &accessor),
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -230,16 +242,22 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
         ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(
+            "e".parse().unwrap(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
+        ),
     ];
     let res = builder
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let expected = owned_table!(
-        "b" => [0_i64;0],
-        "c" => [0_i128;0],
-        "d" => ["";0],
+    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+        "b" => [0_i64; 0],
+        "c" => [0_i128; 0],
+        "d" => ["".to_string(); 0],
     );
+
+    expected.append_decimal_columns_for_testing("e", 1, 0, vec![ArkScalar::from(0); 0]);
     assert_eq!(res, expected);
 }
 
@@ -251,6 +269,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
+        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::new_empty();
@@ -276,13 +295,14 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
+        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = dense_filter(
-        cols_expr(t, &["b", "c", "d"], &accessor),
+        cols_expr(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -293,15 +313,26 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
         ColumnField::new("d".parse().unwrap(), ColumnType::VarChar),
+        ColumnField::new(
+            "e".parse().unwrap(),
+            ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
+        ),
     ];
     let res = builder
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let expected = owned_table!(
-        "b" => [3_i64, 5],
-        "c" => [3_i128, 5],
-        "d" => ["3", "5"],
+    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+        "b" => [3_i64, 5_i64],
+        "c" => [3_i128, 5_i128],
+        "d" => ["3".to_string(), "5".to_string()],
+    );
+
+    expected.append_decimal_columns_for_testing(
+        "e",
+        1,
+        0,
+        vec![ArkScalar::from(3), ArkScalar::from(5)],
     );
     assert_eq!(res, expected);
 }

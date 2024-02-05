@@ -5,19 +5,19 @@
 //! BigInt <-> Int64
 //! VarChar <-> Utf8/String
 //! Int128 <-> Decimal128(38,0)
+//! Decimal75 <-> S
 //!
 //! Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
 //! This is because there is no `Int128` type in Arrow.
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
-
 use crate::base::{
     database::{OwnedColumn, OwnedTable, OwnedTableError},
     scalar::Scalar,
 };
 use arrow::{
-    array::{ArrayRef, Decimal128Array, Int64Array, StringArray},
-    datatypes::{DataType, Schema, SchemaRef},
+    array::{ArrayRef, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    datatypes::{i256, DataType, Schema, SchemaRef},
     error::ArrowError,
     record_batch::RecordBatch,
 };
@@ -27,6 +27,7 @@ use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 /// Errors cause by conversions between Arrow and owned types.
 pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
@@ -53,6 +54,18 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                     .with_precision_and_scale(38, 0)
                     .unwrap(),
             ),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                let converted_col: Vec<i256> = col
+                    .into_iter()
+                    .map(|ark_scalar| ark_scalar.into())
+                    .collect();
+
+                Arc::new(
+                    Decimal256Array::from(converted_col)
+                        .with_precision_and_scale(precision.value(), scale)
+                        .unwrap(),
+                )
+            }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
         }
     }
