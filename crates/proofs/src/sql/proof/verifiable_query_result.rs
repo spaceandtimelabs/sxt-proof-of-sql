@@ -151,6 +151,9 @@ fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
                         ColumnType::Int128 => OwnedColumn::Int128(vec![]),
                         ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
                         ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
+                        ColumnType::Decimal75(precision, scale) => {
+                            OwnedColumn::Decimal75(precision, scale, vec![])
+                        }
                     },
                 )
             })

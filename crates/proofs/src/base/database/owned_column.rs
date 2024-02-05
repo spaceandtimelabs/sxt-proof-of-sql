@@ -1,11 +1,12 @@
-use super::ColumnType;
-use crate::base::scalar::Scalar;
-
 /// A column of data, with type included. This is simply a wrapper around `Vec<T>` for enumerated `T`.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
+use super::ColumnType;
+use crate::base::{math::precision::Precision, scalar::Scalar};
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[non_exhaustive]
+/// Supported types for OwnedColumn
 pub enum OwnedColumn<S: Scalar> {
     /// i64 columns
     BigInt(Vec<i64>),
@@ -13,6 +14,8 @@ pub enum OwnedColumn<S: Scalar> {
     VarChar(Vec<String>),
     /// i128 columns
     Int128(Vec<i128>),
+    /// Decimal columns
+    Decimal75(Precision, i8, Vec<S>),
     /// Scalar columns
     Scalar(Vec<S>),
 }
@@ -24,6 +27,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::BigInt(col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
+            OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
         }
     }
@@ -34,6 +38,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
+            OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -43,6 +48,9 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::VarChar(_) => ColumnType::VarChar,
             OwnedColumn::Int128(_) => ColumnType::Int128,
             OwnedColumn::Scalar(_) => ColumnType::Scalar,
+            OwnedColumn::Decimal75(precision, scale, _) => {
+                ColumnType::Decimal75(*precision, *scale)
+            }
         }
     }
 }

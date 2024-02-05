@@ -1,9 +1,10 @@
 use crate::base::{
     database::Column,
+    math::precision::Precision,
     scalar::{ArkScalar, Scalar},
 };
 use arrow::{
-    array::{Array, ArrayRef, Decimal128Array, Int64Array, StringArray},
+    array::{Array, ArrayRef, Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::DataType,
 };
 use bumpalo::Bump;
@@ -64,6 +65,17 @@ impl ArrayRefExt for ArrayRef {
                 .downcast_ref::<Decimal128Array>()
                 .map(|array| array.values().iter().map(|v| v.into()).collect())
                 .unwrap(),
+            DataType::Decimal256(_, _) => self
+                .as_any()
+                .downcast_ref::<Decimal256Array>()
+                .map(|array| {
+                    array
+                        .values()
+                        .iter()
+                        .map(|v| (*v).try_into().unwrap())
+                        .collect()
+                })
+                .unwrap(),
             DataType::Utf8 => self
                 .as_any()
                 .downcast_ref::<StringArray>()
@@ -90,6 +102,7 @@ impl ArrayRefExt for ArrayRef {
     /// # Supported types
     /// - For `DataType::Int64` and `DataType::Decimal128(38, 0)`, it slices the array
     ///   based on the provided range and returns the corresponding `BigInt` or `Int128` column.
+    /// - Decimal256, converts arrow i256 columns into Decimal75(precision, scale) columns.
     /// - For `DataType::Utf8`, it extracts string values and scalar values (if `precomputed_scals`
     ///   is provided) for the specified range and returns a `VarChar` column.
     ///
@@ -121,6 +134,27 @@ impl ArrayRefExt for ArrayRef {
                 );
 
                 Ok(Column::Int128(&array.values()[range.start..range.end]))
+            }
+            DataType::Decimal256(precision, scale) if *precision <= 75 => {
+                let array = self.as_any().downcast_ref::<Decimal256Array>().expect(
+                    "Failed to downcast to Decimal256Array in arrow_array_to_column_conversion",
+                );
+
+                let i256_slice = &array.values()[range.start..range.end];
+                let ark_scalars = alloc.alloc_slice_fill_with(i256_slice.len(), |i| {
+                    match S::try_from(i256_slice[i]) {
+                        Ok(scalar) => scalar,
+                        // this is functionally equivalent to .expect() but does not require:
+                        // `where <S as TryFrom<arrow::datatypes::i256>>::Error: Debug`
+                        Err(_) => panic!("Failed to convert arrow i256 to ArkScalar"),
+                    }
+                });
+
+                Ok(Column::Decimal75(
+                    Precision::new(*precision).unwrap(),
+                    *scale,
+                    ark_scalars,
+                ))
             }
             DataType::Utf8 => {
                 let array = self.as_any().downcast_ref::<StringArray>().expect(

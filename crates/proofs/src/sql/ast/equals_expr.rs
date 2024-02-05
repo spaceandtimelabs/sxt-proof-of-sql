@@ -85,6 +85,7 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
+            Column::Decimal75(_, _, col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::VarChar((_, scals)) => self.result_evaluate_impl(table_length, alloc, scals),
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
@@ -107,11 +108,12 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
+            Column::Decimal75(_, _, _col) => todo!(),
             Column::VarChar((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
-            // (in particular the tests need to used the OwnedTableTestAccessor)
-            Column::Scalar(_) => todo!("Scalar column type not supported in equals_expr"),
+            // (in particular the tests need to use the OwnedTableTestAccessor)
+            Column::Scalar(_col) => todo!(),
         }
     }
 

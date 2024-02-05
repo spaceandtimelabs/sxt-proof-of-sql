@@ -41,6 +41,7 @@ proofs-sql = { workspace = true }
 rand = { workspace = true, optional = true }
 rayon = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 typetag = { workspace = true }

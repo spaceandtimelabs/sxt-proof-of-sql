@@ -107,7 +107,11 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a>(
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+
         Column::VarChar(_) => panic!("Cannot sum varchar columns"),
+        Column::Decimal75(_, _, _col) => {
+            todo!()
+        }
     }
 }
 
@@ -162,6 +166,7 @@ pub(super) fn compare_indexes_by_columns(
             Column::BigInt(col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
+            Column::Decimal75(_, _, _) => todo!("TODO: unimplemented"),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

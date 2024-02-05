@@ -72,6 +72,9 @@ impl<S: Scalar> DataAccessor<S> for OwnedTableTestAccessor<S> {
                 Column::VarChar((col, scals))
             }
             OwnedColumn::Int128(col) => Column::Int128(col),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                Column::Decimal75(*precision, *scale, col)
+            }
             OwnedColumn::Scalar(col) => Column::Scalar(col),
         }
     }
@@ -83,6 +86,7 @@ impl CommitmentAccessor<RistrettoPoint> for OwnedTableTestAccessor<ArkScalar> {
             OwnedColumn::BigInt(vals) => compute_commitment_for_testing(vals, *offset),
             OwnedColumn::VarChar(vals) => compute_commitment_for_testing(vals, *offset),
             OwnedColumn::Int128(vals) => compute_commitment_for_testing(vals, *offset),
+            OwnedColumn::Decimal75(_, _, vals) => compute_commitment_for_testing(vals, *offset),
             OwnedColumn::Scalar(vals) => compute_commitment_for_testing(vals, *offset),
         }
     }

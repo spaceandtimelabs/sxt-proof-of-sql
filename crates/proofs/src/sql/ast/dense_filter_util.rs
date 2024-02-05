@@ -52,6 +52,11 @@ pub fn filter_column_by_index<'a>(
         Column::Scalar(col) => {
             Column::Scalar(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
+        Column::Decimal75(precision, scale, col) => Column::Decimal75(
+            *precision,
+            *scale,
+            alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
+        ),
     }
 }
 

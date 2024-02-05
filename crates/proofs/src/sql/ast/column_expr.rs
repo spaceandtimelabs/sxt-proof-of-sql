@@ -58,6 +58,7 @@ impl ColumnExpr {
             Column::Int128(col) => builder.produce_anchored_mle(col),
             Column::VarChar((_, scals)) => builder.produce_anchored_mle(scals),
             Column::Scalar(col) => builder.produce_anchored_mle(col),
+            Column::Decimal75(_, _, col) => builder.produce_anchored_mle(col),
         };
         column
     }

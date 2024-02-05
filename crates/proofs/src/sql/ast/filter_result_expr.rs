@@ -70,7 +70,8 @@ impl FilterResultExpr {
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)
-            Column::Scalar(_) => todo!("Scalar column type not supported in filter_result_expr"),
+            Column::Scalar(_col) => todo!(),
+            Column::Decimal75(_, _, col) => prover_evaluate_impl(builder, alloc, selection, col),
         };
     }
 
