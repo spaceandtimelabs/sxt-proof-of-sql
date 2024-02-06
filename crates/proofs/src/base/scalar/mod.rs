@@ -44,7 +44,7 @@ pub trait Scalar:
     + std::ops::AddAssign
     + ark_serialize::CanonicalSerialize //This enables us to put `Scalar`s on the transcript
     + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
-    + num_traits::Inv<Output = Self>
+    + num_traits::Inv<Output = Option<Self>> // Note: `inv` should return `None` exactly when the element is zero.
     + std::ops::SubAssign
     + Into<i256>
     + TryFrom<i256>

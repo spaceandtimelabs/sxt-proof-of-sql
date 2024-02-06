@@ -200,9 +200,9 @@ impl<T: MontConfig<4>> num_traits::Zero for MontScalar<T> {
     }
 }
 impl<T: MontConfig<4>> num_traits::Inv for MontScalar<T> {
-    type Output = Self;
-    fn inv(self) -> Self {
-        Self(self.0.inverse().unwrap())
+    type Output = Option<Self>;
+    fn inv(self) -> Option<Self> {
+        self.0.inverse().map(Self)
     }
 }
 impl<T: MontConfig<4>> Serialize for MontScalar<T> {

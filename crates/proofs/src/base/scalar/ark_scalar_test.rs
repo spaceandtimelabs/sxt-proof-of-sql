@@ -92,6 +92,6 @@ fn test_ark_scalar_display() {
 fn test_ark_scalar_mid() {
     assert_eq!(
         ArkScalar::MAX_SIGNED,
-        -ArkScalar::one() * ArkScalar::from(2).inv()
+        -ArkScalar::one() * ArkScalar::from(2).inv().unwrap()
     );
 }
