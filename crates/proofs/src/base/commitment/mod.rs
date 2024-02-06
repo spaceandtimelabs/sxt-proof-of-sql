@@ -33,6 +33,9 @@ pub use table_commitment::{
     TableCommitmentArithmeticError, TableCommitmentFromColumnsError,
 };
 
+mod query_commitments;
+pub use query_commitments::QueryCommitments;
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
