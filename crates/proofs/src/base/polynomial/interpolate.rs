@@ -16,7 +16,7 @@ use num_traits::{Inv, One, Zero};
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
-        + Inv<Output = F>
+        + Inv<Output = Option<F>>
         + One
         + Zero
         + AddAssign
@@ -51,7 +51,11 @@ where
     let mut x_minus_i = x;
     for i in 0..=degree {
         // This is `f(i) / (i! * (d-i)! * (x-i))`
-        let new_term = polynomial[i] * (factorials[i] * factorials[degree - i] * x_minus_i).inv();
+        let new_term = polynomial[i]
+            * (factorials[i] * factorials[degree - i] * x_minus_i)
+                .inv()
+                .unwrap(); // This unwrap is safe because we are guarenteed that x-i is not zero, and factorials are never zero.
+
         // This handles the (-1)^(d-i) sign.
         if (degree - i) % 2 == 0 {
             sum += new_term;

@@ -18,7 +18,7 @@ fn we_can_pseudo_invert_arrays_of_length_1_with_non_zero() {
     res.copy_from_slice(&input[..]);
     slice_ops::batch_inversion(&mut res[..]);
 
-    assert!(res == vec![input[0].inv()]);
+    assert!(res == vec![input[0].inv().unwrap()]);
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn we_can_pseudo_invert_arrays_of_length_bigger_than_1_with_zeros_and_non_zeros(
 
     for (input_val, res_val) in input.iter().zip(res) {
         if *input_val != ArkScalar::zero() {
-            assert!(input_val.inv() == res_val);
+            assert!(input_val.inv().unwrap() == res_val);
         } else {
             assert!(ArkScalar::zero() == res_val);
         }
@@ -80,7 +80,7 @@ fn we_can_pseudo_invert_arrays_with_nonzero_count_bigger_than_min_chunking_size_
 
     for (input_val, res_val) in input.iter().zip(res) {
         if *input_val != ArkScalar::zero() {
-            assert!(input_val.inv() == res_val);
+            assert!(input_val.inv().unwrap() == res_val);
         } else {
             assert!(ArkScalar::zero() == res_val);
         }
@@ -111,7 +111,7 @@ fn we_can_pseudo_invert_arrays_with_nonzero_count_smaller_than_min_chunking_size
 
     for (input_val, res_val) in input.iter().zip(res) {
         if *input_val != ArkScalar::zero() {
-            assert!(input_val.inv() == res_val);
+            assert!(input_val.inv().unwrap() == res_val);
         } else {
             assert!(ArkScalar::zero() == res_val);
         }

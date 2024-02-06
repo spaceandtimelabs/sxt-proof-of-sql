@@ -24,14 +24,14 @@ use rayon::prelude::*;
 /// Any zero elements in the vector are left unchanged.
 pub fn batch_inversion<F>(v: &mut [F])
 where
-    F: One + Zero + MulAssign + Inv<Output = F> + Mul<Output = F> + Send + Sync + Copy,
+    F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,
 {
     batch_inversion_and_mul(v, F::one());
 }
 
 pub fn batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
-    F: One + Zero + MulAssign + Inv<Output = F> + Mul<Output = F> + Send + Sync + Copy,
+    F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,
 {
     // Divide the vector v evenly between all available cores, but make sure that each
     // core has at least MIN_RAYON_LEN elements to work on
@@ -49,7 +49,7 @@ where
 
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
-    F: One + Zero + MulAssign + Inv<Output = F> + Mul<Output = F> + Copy,
+    F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Copy,
 {
     // Montgomery’s Trick and Fast Implementation of Masked AES
     // Genelle, Prouff and Quisquater
@@ -66,7 +66,7 @@ where
     }
 
     // Invert `tmp`.
-    tmp = tmp.inv(); // Guaranteed to be nonzero.
+    tmp = tmp.inv().unwrap(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff
     tmp *= coeff;
