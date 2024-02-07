@@ -77,7 +77,7 @@ impl VerifiableQueryResult {
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(
-        expr: &(impl ProofExpr + Serialize),
+        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
         accessor: &impl DataAccessor<ArkScalar>,
     ) -> VerifiableQueryResult {
         // a query must have at least one result column; if not, it should
@@ -107,7 +107,7 @@ impl VerifiableQueryResult {
     /// Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExpr + Serialize),
+        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
         accessor: &impl CommitmentAccessor<RistrettoPoint>,
     ) -> QueryResult {
         // a query must have at least one result column; if not, it should

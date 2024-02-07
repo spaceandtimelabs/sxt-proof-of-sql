@@ -1,14 +1,14 @@
 use crate::{
     base::{
+        commitment::Commitment,
         database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor},
-        scalar::ArkScalar,
+        scalar::Scalar,
     },
     sql::proof::{
         CountBuilder, ProofBuilder, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 
@@ -46,21 +46,21 @@ impl FilterResultExpr {
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
     /// add the result to the ResultBuilder
-    pub fn result_evaluate<'a>(
+    pub fn result_evaluate<'a, S: Scalar>(
         &self,
         builder: &mut ResultBuilder<'a>,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<S>,
     ) {
         builder.produce_result_column(accessor.get_column(self.column_ref));
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
     /// add the components needed to prove the result
-    pub fn prover_evaluate<'a>(
+    pub fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<S>,
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
@@ -77,11 +77,11 @@ impl FilterResultExpr {
 
     /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
     /// add components needed to verify this filter result expression
-    pub fn verifier_evaluate(
+    pub fn verifier_evaluate<C: Commitment>(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-        selection_eval: &ArkScalar,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+        selection_eval: &C::Scalar,
     ) {
         let col_commit = accessor.get_commitment(self.column_ref);
 
@@ -94,21 +94,21 @@ impl FilterResultExpr {
     }
 }
 
-fn prover_evaluate_impl<'a, S: Clone + Default + Sync>(
-    builder: &mut ProofBuilder<'a, ArkScalar>,
+fn prover_evaluate_impl<'a, S: Scalar, T: Clone + Default + Sync>(
+    builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
     selection: &'a [bool],
-    col_scalars: &'a [S],
+    col_scalars: &'a [T],
 ) where
-    &'a S: Into<ArkScalar>,
-    &'a bool: Into<ArkScalar>,
+    &'a T: Into<S>,
+    &'a bool: Into<S>,
 {
     // make a column of selected result values only
     let selected_vals = alloc.alloc_slice_fill_with(builder.table_length(), |i| {
         if selection[i] {
             col_scalars[i].clone()
         } else {
-            S::default()
+            T::default()
         }
     });
 
@@ -117,10 +117,7 @@ fn prover_evaluate_impl<'a, S: Clone + Default + Sync>(
         SumcheckSubpolynomialType::Identity,
         vec![
             (One::one(), vec![Box::new(selected_vals as &[_])]),
-            (
-                -ArkScalar::one(),
-                vec![Box::new(col_scalars), Box::new(selection)],
-            ),
+            (-S::one(), vec![Box::new(col_scalars), Box::new(selection)]),
         ],
     );
 

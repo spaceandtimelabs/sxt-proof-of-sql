@@ -1,5 +1,7 @@
-use crate::{base::database::ColumnRef, sql::ast::BoolExprPlan};
-use curve25519_dalek::RistrettoPoint;
+use crate::{
+    base::{commitment::Commitment, database::ColumnRef},
+    sql::ast::BoolExprPlan,
+};
 use proofs_sql::{
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,
@@ -18,20 +20,20 @@ impl<'a> WhereExprBuilder<'a> {
     }
     /// Builds a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
-    pub fn build(
+    pub fn build<C: Commitment>(
         self,
         where_expr: Option<Box<Expression>>,
-    ) -> Option<BoolExprPlan<RistrettoPoint>> {
+    ) -> Option<BoolExprPlan<C>> {
         where_expr.map(|where_expr| self.visit_expr(*where_expr))
     }
 }
 
 // Private interface
 impl WhereExprBuilder<'_> {
-    fn visit_expr(
+    fn visit_expr<C: Commitment>(
         &self,
         expr: proofs_sql::intermediate_ast::Expression,
-    ) -> BoolExprPlan<RistrettoPoint> {
+    ) -> BoolExprPlan<C> {
         match expr {
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
@@ -39,11 +41,11 @@ impl WhereExprBuilder<'_> {
         }
     }
 
-    fn visit_unary_expr(
+    fn visit_unary_expr<C: Commitment>(
         &self,
         op: UnaryOperator,
         expr: Expression,
-    ) -> BoolExprPlan<RistrettoPoint> {
+    ) -> BoolExprPlan<C> {
         let expr = self.visit_expr(expr);
 
         match op {
@@ -51,12 +53,12 @@ impl WhereExprBuilder<'_> {
         }
     }
 
-    fn visit_binary_expr(
+    fn visit_binary_expr<C: Commitment>(
         &self,
         op: BinaryOperator,
         left: Expression,
         right: Expression,
-    ) -> BoolExprPlan<RistrettoPoint> {
+    ) -> BoolExprPlan<C> {
         match op {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
@@ -73,11 +75,11 @@ impl WhereExprBuilder<'_> {
         }
     }
 
-    fn visit_equal_expr(
+    fn visit_equal_expr<C: Commitment>(
         &self,
         left: Expression,
         right: Expression,
-    ) -> BoolExprPlan<RistrettoPoint> {
+    ) -> BoolExprPlan<C> {
         let left = match left {
             Expression::Column(identifier) => *self.column_mapping.get(&identifier).unwrap(),
             _ => panic!("The parser must ensure that the left side is a column"),

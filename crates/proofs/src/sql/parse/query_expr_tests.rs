@@ -9,6 +9,7 @@ use crate::{
     },
 };
 use arrow::record_batch::RecordBatch;
+use curve25519_dalek::RistrettoPoint;
 use itertools::Itertools;
 use polars::prelude::col as pc;
 use proofs_sql::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
@@ -17,14 +18,17 @@ fn query_to_provable_ast(
     table: TableRef,
     query: &str,
     accessor: &RecordBatchTestAccessor,
-) -> QueryExpr {
+) -> QueryExpr<RistrettoPoint> {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
 fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &RecordBatchTestAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
-    assert!(QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).is_err());
+    assert!(
+        QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, table.schema_id(), accessor)
+            .is_err()
+    );
 }
 
 fn record_batch_to_accessor(
@@ -84,7 +88,7 @@ macro_rules! query {
         offset_str!($($offset)?);
 
         let intermediate_ast = SelectStatementParser::new().parse(&query).unwrap();
-        let query_expr = QueryExpr::try_new(intermediate_ast, t.schema_id(), &accessor);
+        let query_expr = QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, t.schema_id(), &accessor);
         macro_rules! expect_err_str {
             () => { query_expr.unwrap() };
             (true) => { query_expr.unwrap_err() };
@@ -1690,7 +1694,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
 }
 
 /// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
-fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
+fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     let schema_accessor = record_batch_to_accessor(
         "test.table".parse().unwrap(),
         record_batch!(
@@ -1709,9 +1713,10 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr {
 }
 
 /// Serializes and deserializes QueryExpr with flexbuffers and asserts that it remains the same.
-fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr) {
+fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr<RistrettoPoint>) {
     let serialized = flexbuffers::to_vec(&query_expr).unwrap();
-    let deserialized: QueryExpr = flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized: QueryExpr<RistrettoPoint> =
+        flexbuffers::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(deserialized, query_expr);
 }
 
@@ -1758,8 +1763,9 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
 
     let serialized = flexbuffers::to_vec(&filter_exprs).unwrap();
 
-    let deserialized: Vec<ProofPlan> = flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    let deserialized_as_ref: Vec<&ProofPlan> = deserialized.iter().collect();
+    let deserialized: Vec<ProofPlan<RistrettoPoint>> =
+        flexbuffers::from_slice(serialized.as_slice()).unwrap();
+    let deserialized_as_ref: Vec<&ProofPlan<RistrettoPoint>> = deserialized.iter().collect();
 
     assert_eq!(filter_exprs.len(), deserialized_as_ref.len());
     assert_eq!(filter_exprs[0], deserialized_as_ref[0]);
