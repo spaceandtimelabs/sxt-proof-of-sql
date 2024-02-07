@@ -1,5 +1,4 @@
 use crate::base::{encode::VarInt, scalar::ArkScalar};
-use arrow::datatypes::i256;
 
 pub trait EncodeProvableResultElement {
     fn required_bytes(&self) -> usize;
@@ -32,32 +31,6 @@ impl<T: VarInt> DecodeProvableResultElement<'_> for T {
 
     fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
         VarInt::decode_var(data)
-    }
-}
-
-impl EncodeProvableResultElement for i256 {
-    fn required_bytes(&self) -> usize {
-        ArkScalar::try_from(*self).unwrap().required_bytes()
-    }
-
-    fn encode(&self, out: &mut [u8]) -> usize {
-        ArkScalar::try_from(*self).unwrap().encode(out)
-    }
-}
-impl DecodeProvableResultElement<'_> for i256 {
-    fn decode(data: &[u8]) -> Option<(i256, usize)> {
-        let (val_scalar, read_bytes) = <ArkScalar>::decode(data)?;
-        Some((val_scalar.into(), read_bytes))
-    }
-
-    fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
-        match <i256>::decode(data) {
-            Some((val, read_bytes)) => match ArkScalar::try_from(val) {
-                Ok(ark_scalar) => Some((ark_scalar, read_bytes)),
-                Err(_) => None,
-            },
-            None => None,
-        }
     }
 }
 
