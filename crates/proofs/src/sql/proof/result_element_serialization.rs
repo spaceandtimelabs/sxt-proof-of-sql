@@ -1,20 +1,17 @@
-use crate::base::{encode::VarInt, scalar::ArkScalar};
+use crate::base::encode::VarInt;
 
-pub trait EncodeProvableResultElement {
+pub trait ProvableResultElement<'a> {
     fn required_bytes(&self) -> usize;
     fn encode(&self, out: &mut [u8]) -> usize;
-}
 
-pub trait DecodeProvableResultElement<'a> {
     fn decode(data: &'a [u8]) -> Option<(Self, usize)>
     where
         Self: Sized;
-    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)>;
 }
 
 /// Implement encode and decode for integer types
 
-impl<T: VarInt> EncodeProvableResultElement for T {
+impl<T: VarInt> ProvableResultElement<'_> for T {
     fn required_bytes(&self) -> usize {
         self.required_space()
     }
@@ -22,59 +19,26 @@ impl<T: VarInt> EncodeProvableResultElement for T {
     fn encode(&self, out: &mut [u8]) -> usize {
         self.encode_var(out)
     }
-}
 
-impl<T: VarInt> DecodeProvableResultElement<'_> for T {
     fn decode(data: &[u8]) -> Option<(Self, usize)> {
-        VarInt::decode_var(data)
-    }
-
-    fn decode_to_ark_scalar(data: &[u8]) -> Option<(ArkScalar, usize)> {
         VarInt::decode_var(data)
     }
 }
 
 /// Implement encode for u8 buffer arrays
-macro_rules! impl_provable_result_byte_elements {
-    ($tt:ty) => {
-        impl EncodeProvableResultElement for $tt {
-            fn required_bytes(&self) -> usize {
-                self.len() + self.len().required_space()
-            }
+impl<'a> ProvableResultElement<'a> for &'a [u8] {
+    fn required_bytes(&self) -> usize {
+        self.len() + self.len().required_space()
+    }
 
-            fn encode(&self, out: &mut [u8]) -> usize {
-                let len_buf: usize = self.len();
-                let sizeof_usize = len_buf.encode_var(out);
-                let bytes_written = len_buf + sizeof_usize;
-                out[sizeof_usize..bytes_written].clone_from_slice(self);
+    fn encode(&self, out: &mut [u8]) -> usize {
+        let len_buf: usize = self.len();
+        let sizeof_usize = len_buf.encode_var(out);
+        let bytes_written = len_buf + sizeof_usize;
+        out[sizeof_usize..bytes_written].clone_from_slice(self);
 
-                bytes_written
-            }
-        }
-    };
-}
-
-impl_provable_result_byte_elements!(&[u8]);
-
-/// Implement encode for strings
-macro_rules! impl_provable_result_string_elements {
-    ($tt:ty) => {
-        impl EncodeProvableResultElement for $tt {
-            fn required_bytes(&self) -> usize {
-                self.as_bytes().required_bytes()
-            }
-
-            fn encode(&self, out: &mut [u8]) -> usize {
-                self.as_bytes().encode(out)
-            }
-        }
-    };
-}
-
-impl_provable_result_string_elements!(&str);
-
-/// Implement decode for u8 buffer arrays
-impl<'a> DecodeProvableResultElement<'a> for &'a [u8] {
+        bytes_written
+    }
     fn decode(data: &'a [u8]) -> Option<(Self, usize)> {
         let (len_buf, sizeof_usize) = <usize>::decode_var(data)?;
 
@@ -86,15 +50,16 @@ impl<'a> DecodeProvableResultElement<'a> for &'a [u8] {
 
         Some((&data[sizeof_usize..bytes_read], bytes_read))
     }
-
-    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
-        let (val, read_bytes) = Self::decode(data)?;
-        Some((val.into(), read_bytes))
-    }
 }
 
-/// Implement decode for strings
-impl<'a> DecodeProvableResultElement<'a> for &'a str {
+/// Implement encode for strings
+impl<'a> ProvableResultElement<'a> for &'a str {
+    fn required_bytes(&self) -> usize {
+        self.as_bytes().required_bytes()
+    }
+    fn encode(&self, out: &mut [u8]) -> usize {
+        self.as_bytes().encode(out)
+    }
     fn decode(data: &'a [u8]) -> Option<(Self, usize)> {
         let (data, bytes_read) = <&[u8]>::decode(data)?;
 
@@ -109,29 +74,32 @@ impl<'a> DecodeProvableResultElement<'a> for &'a str {
 
         Some((std::str::from_utf8(data).ok()?, bytes_read))
     }
+}
 
-    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
-        let (decoded_buf, bytes_read) = <&str>::decode(data)?;
-        Some((decoded_buf.into(), bytes_read))
+/// Implement encode for strings
+impl ProvableResultElement<'_> for String {
+    fn required_bytes(&self) -> usize {
+        self.as_str().required_bytes()
+    }
+    fn encode(&self, out: &mut [u8]) -> usize {
+        self.as_str().encode(out)
+    }
+    fn decode(data: &[u8]) -> Option<(Self, usize)> {
+        decode_and_convert::<&str, String>(data)
     }
 }
 
-/// Implement decode for `String`s
-impl<'a> DecodeProvableResultElement<'a> for String {
-    fn decode(data: &'a [u8]) -> Option<(Self, usize)>
-    where
-        Self: Sized,
-    {
-        <&'a str>::decode(data).map(|(s, l)| (s.to_string(), l))
-    }
-
-    fn decode_to_ark_scalar(data: &'a [u8]) -> Option<(ArkScalar, usize)> {
-        <&'a str>::decode_to_ark_scalar(data)
-    }
+pub fn decode_and_convert<'a, F, T>(data: &'a [u8]) -> Option<(T, usize)>
+where
+    F: ProvableResultElement<'a>,
+    T: From<F>,
+{
+    let (val, num_read) = F::decode(data)?;
+    Some((val.into(), num_read))
 }
 
 /// Implement the decode operation for multiple rows
-pub fn decode_multiple_elements<'a, T: DecodeProvableResultElement<'a>>(
+pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
     data: &'a [u8],
     n: usize,
 ) -> Option<(Vec<T>, usize)> {
@@ -151,7 +119,7 @@ pub fn decode_multiple_elements<'a, T: DecodeProvableResultElement<'a>>(
 mod tests {
 
     use super::*;
-    use crate::base::scalar::random_i256;
+    use crate::base::scalar::{random_i256, ArkScalar};
     use arrow::datatypes::i256;
     use rand::{
         distributions::{Distribution, Uniform},
@@ -164,7 +132,7 @@ mod tests {
         let value = i256::from(123);
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
     }
@@ -183,7 +151,7 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = <i256>::decode_to_ark_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
         }
@@ -290,7 +258,7 @@ mod tests {
         let value = 123_i64;
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -300,7 +268,7 @@ mod tests {
         let value = "test string";
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <&str>::decode_to_ark_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = decode_and_convert::<&str, ArkScalar>(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -310,7 +278,7 @@ mod tests {
         let value = &[1_u8, 3_u8, 5_u8][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = <&[u8]>::decode_to_ark_scalar(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = decode_and_convert::<&[u8], ArkScalar>(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -330,7 +298,7 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = <i64>::decode_to_ark_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value.into());
         }
@@ -351,7 +319,7 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = <i128>::decode_to_ark_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value.into());
         }
@@ -376,7 +344,8 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, str_slice);
 
-            let (decoded_value, read_bytes) = <&str>::decode_to_ark_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) =
+                decode_and_convert::<&str, ArkScalar>(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, str_slice.into());
         }
@@ -400,13 +369,14 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value_slice);
 
-            let (decoded_value, read_bytes) = <&[u8]>::decode_to_ark_scalar(&out[..]).unwrap();
+            let (decoded_value, read_bytes) =
+                decode_and_convert::<&[u8], ArkScalar>(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value_slice.into());
         }
     }
 
-    fn encode_multiple_rows<T: EncodeProvableResultElement>(data: &[T]) -> Vec<u8> {
+    fn encode_multiple_rows<'a, T: ProvableResultElement<'a>>(data: &[T]) -> Vec<u8> {
         let total_len = data.iter().map(|v| v.required_bytes()).sum::<usize>();
 
         let mut offset = 0;

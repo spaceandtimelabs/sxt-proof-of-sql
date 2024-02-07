@@ -1,13 +1,10 @@
 use super::{
-    decode_multiple_elements, DecodeProvableResultElement, Indexes, ProvableResultColumn,
-    QueryError,
+    decode_and_convert, decode_multiple_elements, Indexes, ProvableResultColumn, QueryError,
 };
 use crate::base::{
     database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
-    scalar::ArkScalar,
+    scalar::{ArkScalar, Scalar},
 };
-use arrow::datatypes::i256;
-use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
@@ -89,11 +86,11 @@ impl ProvableQueryResult {
         level = "debug",
         skip_all
     )]
-    pub fn evaluate(
+    pub fn evaluate<S: Scalar>(
         &self,
-        evaluation_vec: &[ArkScalar],
+        evaluation_vec: &[S],
         column_result_fields: &[ColumnField],
-    ) -> Option<Vec<ArkScalar>> {
+    ) -> Option<Vec<S>> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
         if !self.indexes.valid(evaluation_vec.len()) {
@@ -104,16 +101,14 @@ impl ProvableQueryResult {
         let mut res = Vec::with_capacity(self.num_columns as usize);
 
         for field in column_result_fields {
-            let mut val = ArkScalar::zero();
+            let mut val = S::zero();
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
-                    ColumnType::BigInt => <i64>::decode_to_ark_scalar(&self.data[offset..]),
-                    ColumnType::VarChar => <&str>::decode_to_ark_scalar(&self.data[offset..]),
-                    ColumnType::Int128 => <i128>::decode_to_ark_scalar(&self.data[offset..]),
-                    ColumnType::Scalar => <ArkScalar>::decode_to_ark_scalar(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) => {
-                        <i256>::decode_to_ark_scalar(&self.data[offset..])
-                    }
+                    ColumnType::BigInt => S::decode_var(&self.data[offset..]),
+                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
+                    ColumnType::Int128 => S::decode_var(&self.data[offset..]),
+                    ColumnType::Scalar => S::decode_var(&self.data[offset..]),
+                    ColumnType::Decimal75(_, _) => S::decode_var(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[index as usize] * x;

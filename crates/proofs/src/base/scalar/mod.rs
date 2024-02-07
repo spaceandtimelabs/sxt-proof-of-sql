@@ -50,7 +50,7 @@ pub trait Scalar:
     + TryFrom<i256>
     + super::ref_into::RefInto<[u64; 4]>
     + for<'a> std::convert::From<&'a String>
-    + crate::sql::proof::EncodeProvableResultElement
+    + super::encode::VarInt
     + std::convert::From<String>
     + std::convert::From<i128>
     + Into<i256>
