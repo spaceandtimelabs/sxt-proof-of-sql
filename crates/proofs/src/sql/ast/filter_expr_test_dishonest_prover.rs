@@ -15,13 +15,14 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::RistrettoPoint;
 
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestFilterExpr = OstensibleFilterExpr<Dishonest>;
+type DishonestFilterExpr = OstensibleFilterExpr<RistrettoPoint, Dishonest>;
 
-impl ProverEvaluate for DishonestFilterExpr {
+impl ProverEvaluate<ArkScalar> for DishonestFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,

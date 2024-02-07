@@ -61,7 +61,7 @@ impl GroupByExpr {
     }
 }
 
-impl ProofExpr for GroupByExpr {
+impl ProofExpr<RistrettoPoint> for GroupByExpr {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -159,7 +159,7 @@ impl ProofExpr for GroupByExpr {
     }
 }
 
-impl ProverEvaluate for GroupByExpr {
+impl ProverEvaluate<ArkScalar> for GroupByExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,

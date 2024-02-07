@@ -1,5 +1,6 @@
 use blitzar::compute::{init_backend_with_config, BackendConfig};
 use clap::Parser;
+use curve25519_dalek::RistrettoPoint;
 use proofs::{
     base::database::{
         make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
@@ -80,7 +81,7 @@ fn generate_accessor(
 fn generate_input_data(
     args: &Args,
     offset_generators: usize,
-) -> (QueryExpr, RecordBatchTestAccessor, String) {
+) -> (QueryExpr<RistrettoPoint>, RecordBatchTestAccessor, String) {
     init_backend_with_config(BackendConfig {
         num_precomputed_generators: args.table_length as u64,
     });
@@ -109,7 +110,7 @@ fn generate_input_data(
 
 #[tracing::instrument(skip(provable_ast, accessor))]
 fn process_query(
-    provable_ast: &ProofPlan,
+    provable_ast: &ProofPlan<RistrettoPoint>,
     accessor: &RecordBatchTestAccessor,
     _args: &Args,
     query: &str,

@@ -22,7 +22,7 @@ use serde::Serialize;
 /// It's useful as a tool for testing proof code.
 pub fn exercise_verification(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + Serialize),
+    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
@@ -77,7 +77,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + Serialize),
+    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // add a result
@@ -104,7 +104,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + Serialize),
+    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // try to add a result
@@ -116,7 +116,7 @@ fn tamper_empty_result(
 
 fn tamper_result(
     res: &VerifiableQueryResult,
-    expr: &(impl ProofExpr + Serialize),
+    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     if res.provable_result.is_none() {

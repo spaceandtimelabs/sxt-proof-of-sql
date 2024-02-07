@@ -45,7 +45,7 @@ pub struct TestQueryExpr {
     pub verifier_fn: Option<VerifyFn>,
 }
 
-impl ProofExpr for TestQueryExpr {
+impl ProofExpr<RistrettoPoint> for TestQueryExpr {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -98,7 +98,7 @@ impl ProofExpr for TestQueryExpr {
     }
 }
 
-impl ProverEvaluate for TestQueryExpr {
+impl ProverEvaluate<ArkScalar> for TestQueryExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,

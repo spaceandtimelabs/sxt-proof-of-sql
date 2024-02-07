@@ -1,21 +1,23 @@
 use super::where_expr_builder::WhereExprBuilder;
 use crate::{
-    base::database::{ColumnRef, TableRef},
+    base::{
+        commitment::Commitment,
+        database::{ColumnRef, TableRef},
+    },
     sql::ast::{BoolExprPlan, FilterExpr, FilterResultExpr, TableExpr},
 };
-use curve25519_dalek::RistrettoPoint;
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
 
-pub struct FilterExprBuilder {
+pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
-    where_expr: Option<BoolExprPlan<RistrettoPoint>>,
+    where_expr: Option<BoolExprPlan<C>>,
     filter_result_expr_list: Vec<FilterResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
 
 // Public interface
-impl FilterExprBuilder {
+impl<C: Commitment> FilterExprBuilder<C> {
     pub fn new(column_mapping: HashMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
@@ -49,7 +51,7 @@ impl FilterExprBuilder {
         self
     }
 
-    pub fn build(self) -> FilterExpr {
+    pub fn build(self) -> FilterExpr<C> {
         FilterExpr::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),

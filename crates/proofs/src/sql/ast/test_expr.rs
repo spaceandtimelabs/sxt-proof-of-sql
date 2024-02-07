@@ -13,7 +13,7 @@ use polars::prelude::{Expr, *};
 pub struct TestExprNode {
     pub table_ref: TableRef,
     pub results: Vec<Expr>,
-    pub ast: FilterExpr,
+    pub ast: FilterExpr<RistrettoPoint>,
     pub accessor: RecordBatchTestAccessor,
     pub df_filter: Expr,
 }

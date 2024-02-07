@@ -24,7 +24,7 @@ struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
 type DishonestDenseFilterExpr = OstensibleDenseFilterExpr<Dishonest>;
 
-impl ProverEvaluate for DishonestDenseFilterExpr {
+impl ProverEvaluate<ArkScalar> for DishonestDenseFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
