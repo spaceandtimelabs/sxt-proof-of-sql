@@ -3,6 +3,7 @@ use super::{
     ProofPlan, TableExpr,
 };
 use crate::base::{
+    commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
     scalar::ArkScalar,
 };
@@ -82,11 +83,11 @@ pub fn cols_result(
         .collect()
 }
 
-pub fn filter(
+pub fn filter<C: Commitment>(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan<RistrettoPoint>,
-) -> ProofPlan {
+    where_clause: BoolExprPlan<C>,
+) -> ProofPlan<C> {
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
 

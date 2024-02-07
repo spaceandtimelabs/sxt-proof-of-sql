@@ -1,16 +1,16 @@
 use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
 use crate::base::{
+    commitment::Commitment,
     database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
     proof::ProofError,
-    scalar::ArkScalar,
+    scalar::Scalar,
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
-pub trait ProofExpr: Debug + Send + Sync + ProverEvaluate {
+pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
     /// Count terms used within the Query's proof
     fn count(
         &self,
@@ -29,8 +29,8 @@ pub trait ProofExpr: Debug + Send + Sync + ProverEvaluate {
     /// Form components needed to verify and proof store into VerificationBuilder
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<(), ProofError>;
 
     /// Return all the result column fields
@@ -48,13 +48,13 @@ pub trait TransformExpr: Debug + Send + Sync {
     }
 }
 
-pub trait ProverEvaluate {
+pub trait ProverEvaluate<S: Scalar> {
     /// Evaluate the query and modify `ResultBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<S>,
     );
 
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
@@ -65,9 +65,9 @@ pub trait ProverEvaluate {
     /// will be bulk deallocated once the proof is formed.
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<S>,
     );
 }
 

@@ -1,6 +1,6 @@
 use super::Indexes;
 use crate::{
-    base::{database::Column, scalar::ArkScalar},
+    base::{database::Column, scalar::Scalar},
     sql::proof::EncodeProvableResultElement,
 };
 
@@ -31,7 +31,7 @@ impl<'a, T: EncodeProvableResultElement> ProvableResultColumn for &'a [T] {
     }
 }
 
-impl ProvableResultColumn for Column<'_, ArkScalar> {
+impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         match self {
             Column::BigInt(col) => col.num_bytes(selection),

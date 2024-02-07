@@ -1,9 +1,9 @@
 use super::{bool_expr_plan::BoolExprPlan, BoolExpr, FilterResultExpr, TableExpr};
 use crate::{
     base::{
+        commitment::Commitment,
         database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
     },
     sql::proof::{
         CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
@@ -11,7 +11,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 
@@ -20,19 +19,19 @@ use std::{collections::HashSet, marker::PhantomData};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExpr<H: ProverHonestyMarker> {
+pub struct OstensibleFilterExpr<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
+    pub(super) where_clause: BoolExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
-impl<H: ProverHonestyMarker> OstensibleFilterExpr<H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExpr<C, H> {
     /// Creates a new filter expression.
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
-        where_clause: BoolExprPlan<RistrettoPoint>,
+        where_clause: BoolExprPlan<C>,
     ) -> Self {
         Self {
             results,
@@ -48,9 +47,9 @@ impl<H: ProverHonestyMarker> OstensibleFilterExpr<H> {
     }
 }
 
-impl<H: ProverHonestyMarker> ProofExpr for OstensibleFilterExpr<H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofExpr<C> for OstensibleFilterExpr<C, H>
 where
-    OstensibleFilterExpr<H>: ProverEvaluate,
+    OstensibleFilterExpr<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -79,8 +78,8 @@ where
     )]
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<(), ProofError> {
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         for expr in self.results.iter() {
@@ -110,13 +109,13 @@ where
     }
 }
 
-pub type FilterExpr = OstensibleFilterExpr<HonestProver>;
-impl ProverEvaluate for FilterExpr {
+pub type FilterExpr<C> = OstensibleFilterExpr<C, HonestProver>;
+impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // evaluate where clause
         let selection = self
@@ -145,9 +144,9 @@ impl ProverEvaluate for FilterExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

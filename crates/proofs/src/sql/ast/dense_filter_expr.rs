@@ -59,9 +59,9 @@ impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
     }
 }
 
-impl<H: ProverHonestyMarker> ProofExpr for OstensibleDenseFilterExpr<H>
+impl<H: ProverHonestyMarker> ProofExpr<RistrettoPoint> for OstensibleDenseFilterExpr<H>
 where
-    OstensibleDenseFilterExpr<H>: ProverEvaluate,
+    OstensibleDenseFilterExpr<H>: ProverEvaluate<ArkScalar>,
 {
     fn count(
         &self,
@@ -153,7 +153,7 @@ where
 /// Alias for a dense filter expression with a honest prover.
 pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
 
-impl ProverEvaluate for DenseFilterExpr {
+impl ProverEvaluate<ArkScalar> for DenseFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,

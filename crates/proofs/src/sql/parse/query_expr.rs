@@ -1,6 +1,6 @@
 use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
 use crate::{
-    base::database::SchemaAccessor,
+    base::{commitment::Commitment, database::SchemaAccessor},
     sql::{ast::ProofPlan, parse::ConversionResult, transform::ResultExpr},
 };
 use proofs_sql::{intermediate_ast::SetExpression, Identifier, SelectStatement};
@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
-pub struct QueryExpr {
-    proof_expr: ProofPlan,
+pub struct QueryExpr<C: Commitment> {
+    proof_expr: ProofPlan<C>,
     result: ResultExpr,
 }
 
 // Implements fmt::Debug to aid in debugging QueryExpr.
 // Prints filter and result fields in a readable format.
-impl fmt::Debug for QueryExpr {
+impl<C: Commitment> fmt::Debug for QueryExpr<C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -25,8 +25,8 @@ impl fmt::Debug for QueryExpr {
     }
 }
 
-impl QueryExpr {
-    pub fn new(proof_expr: ProofPlan, result: ResultExpr) -> Self {
+impl<C: Commitment> QueryExpr<C> {
+    pub fn new(proof_expr: ProofPlan<C>, result: ResultExpr) -> Self {
         Self { proof_expr, result }
     }
 
@@ -72,7 +72,7 @@ impl QueryExpr {
     }
 
     /// Immutable access to this query's provable filter expression.
-    pub fn proof_expr(&self) -> &ProofPlan {
+    pub fn proof_expr(&self) -> &ProofPlan<C> {
         &self.proof_expr
     }
 

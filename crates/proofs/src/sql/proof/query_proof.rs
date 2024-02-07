@@ -40,7 +40,7 @@ pub struct QueryProof {
 impl QueryProof {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(
-        expr: &(impl ProofExpr + Serialize),
+        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
         accessor: &impl DataAccessor<ArkScalar>,
     ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
@@ -152,7 +152,7 @@ impl QueryProof {
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExpr + Serialize),
+        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
         accessor: &impl CommitmentAccessor<RistrettoPoint>,
         result: &ProvableQueryResult,
     ) -> QueryResult {
@@ -348,7 +348,7 @@ impl QueryProof {
 /// of all the operations and data involved in creating a proof.
 /// ```
 pub fn make_transcript(
-    expr: &(impl ProofExpr + Serialize),
+    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
     generator_offset: usize,

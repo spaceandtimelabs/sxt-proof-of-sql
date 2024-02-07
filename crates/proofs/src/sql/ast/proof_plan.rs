@@ -1,18 +1,21 @@
 use super::FilterExpr;
-use crate::sql::proof::{ProofExpr, ProverEvaluate};
+use crate::{
+    base::commitment::Commitment,
+    sql::proof::{ProofExpr, ProverEvaluate},
+};
 use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub enum ProofPlan {
+pub enum ProofPlan<C: Commitment> {
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
-    Filter(FilterExpr),
+    Filter(FilterExpr<C>),
 }
 
-impl ProofExpr for ProofPlan {
+impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
     fn count(
         &self,
         builder: &mut crate::sql::proof::CountBuilder,
@@ -37,8 +40,8 @@ impl ProofExpr for ProofPlan {
 
     fn verifier_evaluate(
         &self,
-        builder: &mut crate::sql::proof::VerificationBuilder<curve25519_dalek::RistrettoPoint>,
-        accessor: &dyn crate::base::database::CommitmentAccessor<curve25519_dalek::RistrettoPoint>,
+        builder: &mut crate::sql::proof::VerificationBuilder<C>,
+        accessor: &dyn crate::base::database::CommitmentAccessor<C>,
     ) -> Result<(), crate::base::proof::ProofError> {
         match self {
             ProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor),
@@ -58,12 +61,12 @@ impl ProofExpr for ProofPlan {
     }
 }
 
-impl ProverEvaluate for ProofPlan {
+impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
     fn result_evaluate<'a>(
         &self,
         builder: &mut crate::sql::proof::ResultBuilder<'a>,
         alloc: &'a bumpalo::Bump,
-        accessor: &'a dyn crate::base::database::DataAccessor<crate::base::scalar::ArkScalar>,
+        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) {
         match self {
             ProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
@@ -72,9 +75,9 @@ impl ProverEvaluate for ProofPlan {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut crate::sql::proof::ProofBuilder<'a, crate::base::scalar::ArkScalar>,
+        builder: &mut crate::sql::proof::ProofBuilder<'a, C::Scalar>,
         alloc: &'a bumpalo::Bump,
-        accessor: &'a dyn crate::base::database::DataAccessor<crate::base::scalar::ArkScalar>,
+        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) {
         match self {
             ProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),

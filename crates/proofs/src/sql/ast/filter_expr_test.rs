@@ -15,6 +15,7 @@ use crate::{
 };
 use arrow::datatypes::{Field, Schema};
 use bumpalo::Bump;
+use curve25519_dalek::RistrettoPoint;
 use indexmap::IndexMap;
 use proofs_sql::{Identifier, ResourceId};
 use std::{collections::HashSet, sync::Arc};
@@ -22,7 +23,7 @@ use std::{collections::HashSet, sync::Arc};
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let provable_ast = FilterExpr::new(
+    let provable_ast = FilterExpr::<RistrettoPoint>::new(
         vec![
             FilterResultExpr::new(ColumnRef::new(
                 table_ref,

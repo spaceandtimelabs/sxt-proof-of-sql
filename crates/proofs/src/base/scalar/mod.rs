@@ -50,6 +50,10 @@ pub trait Scalar:
     + TryFrom<i256>
     + super::ref_into::RefInto<[u64; 4]>
     + for<'a> std::convert::From<&'a String>
+    + crate::sql::proof::EncodeProvableResultElement
+    + std::convert::From<String>
+    + std::convert::From<i128>
+    + Into<i256>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
