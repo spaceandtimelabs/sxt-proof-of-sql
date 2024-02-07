@@ -1,11 +1,11 @@
 use super::VarInt;
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::{ArkScalar, Scalar};
 use core::{
     fmt::Debug,
     ops::{Add, Neg},
 };
 use num_traits::{One, Zero};
-use rand::{distributions::Standard, prelude::Distribution, Rng};
+use rand::Rng;
 
 /**
  * Adapted from integer-encoding-rs
@@ -161,7 +161,10 @@ fn test_regression_22() {
 // VarInt trait tests
 // ------------------
 
-fn test_encode_decode<T: VarInt + PartialEq + Debug, const N: usize>(val: T, encoded: [u8; N]) {
+pub(super) fn test_encode_decode<T: VarInt + PartialEq + Debug, const N: usize>(
+    val: T,
+    encoded: [u8; N],
+) {
     let result: &mut [u8] = &mut [0; N];
     assert_eq!(val.required_space(), N);
     assert_eq!(val.encode_var(result), N);
@@ -178,29 +181,28 @@ fn test_small_unsigned_values_encode_and_decode_properly<
     test_encode_decode(T::one() + T::one() + T::one(), [3]);
 }
 
-fn test_small_signed_values_encode_and_decode_properly<
-    T: VarInt + Zero + One + Add + PartialEq + Debug + Neg<Output = T>,
->() {
-    test_encode_decode(T::zero(), [0]);
-    test_encode_decode(-T::one(), [1]);
-    test_encode_decode(T::one(), [2]);
-    test_encode_decode(-(T::one() + T::one()), [3]);
-    test_encode_decode(T::one() + T::one(), [4]);
-    test_encode_decode(-(T::one() + T::one() + T::one()), [5]);
-    test_encode_decode(T::one() + T::one() + T::one(), [6]);
+pub(super) fn test_small_signed_values_encode_and_decode_properly<T>(one: T)
+where
+    T: VarInt + Add<Output = T> + PartialEq + Debug + Neg<Output = T>,
+{
+    test_encode_decode(one + (-one), [0]);
+    test_encode_decode(-one, [1]);
+    test_encode_decode(one, [2]);
+    test_encode_decode(-(one + one), [3]);
+    test_encode_decode(one + one, [4]);
+    test_encode_decode(-(one + one + one), [5]);
+    test_encode_decode(one + one + one, [6]);
 }
 
-fn test_encode_and_decode_types_align<Small, Large>(
-    rng: &mut impl Rng,
+pub(super) fn test_encode_and_decode_types_align<Small, Large>(
+    align_tests: &[Small],
     too_large_tests: &[Large],
     buffer_size: usize,
 ) where
-    Standard: Distribution<Small>,
     Small: VarInt + Into<Large>,
     Large: VarInt + PartialEq + Debug,
 {
-    for _ in 0..32 {
-        let val_small: Small = rng.gen();
+    for &val_small in align_tests {
         let val_large: Large = val_small.into();
         let mut result_small = vec![0u8; buffer_size];
         let mut result_large = vec![0u8; buffer_size];
@@ -226,7 +228,7 @@ fn test_encode_and_decode_types_align<Small, Large>(
 
 #[test]
 fn we_can_encode_and_decode_small_i64_values() {
-    test_small_signed_values_encode_and_decode_properly::<i64>();
+    test_small_signed_values_encode_and_decode_properly::<i64>(1);
 }
 
 #[test]
@@ -264,7 +266,7 @@ fn we_can_encode_and_decode_large_i64_values() {
 
 #[test]
 fn we_can_encode_and_decode_small_i32_values() {
-    test_small_signed_values_encode_and_decode_properly::<i32>();
+    test_small_signed_values_encode_and_decode_properly::<i32>(1);
 }
 
 #[test]
@@ -289,7 +291,7 @@ fn we_can_encode_and_decode_large_i32_values() {
 fn we_can_encode_and_decode_i32_and_i64_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<i32, i64>(
-        &mut rng,
+        &rng.gen::<[_; 32]>(),
         &[
             i32::MAX as i64 + 1,
             i32::MIN as i64 - 1,
@@ -304,7 +306,7 @@ fn we_can_encode_and_decode_i32_and_i64_the_same() {
 fn we_can_encode_and_decode_u32_and_u64_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<u32, u64>(
-        &mut rng,
+        &rng.gen::<[_; 32]>(),
         &[u32::MAX as u64 + 1, u32::MAX as u64 * 1000],
         100,
     );
@@ -359,7 +361,7 @@ fn we_can_encode_and_decode_large_negative_i128() {
 }
 #[test]
 fn we_can_encode_and_decode_small_i128_values() {
-    test_small_signed_values_encode_and_decode_properly::<i128>();
+    test_small_signed_values_encode_and_decode_properly::<i128>(1);
 }
 
 #[test]
@@ -369,14 +371,14 @@ fn we_can_encode_and_decode_small_u128_values() {
 
 #[test]
 fn we_can_encode_and_decode_small_ark_scalar_values() {
-    test_small_signed_values_encode_and_decode_properly::<ArkScalar>();
+    test_small_signed_values_encode_and_decode_properly::<ArkScalar>(ArkScalar::ONE);
 }
 
 #[test]
 fn we_can_encode_and_decode_i128_and_ark_scalar_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<i128, ArkScalar>(
-        &mut rng,
+        &rng.gen::<[_; 32]>(),
         &[
             ArkScalar::from(i128::MAX) + ArkScalar::one(),
             ArkScalar::from(i128::MIN) - ArkScalar::one(),
@@ -391,7 +393,7 @@ fn we_can_encode_and_decode_i128_and_ark_scalar_the_same() {
 fn we_can_encode_and_decode_i64_and_i128_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<i64, i128>(
-        &mut rng,
+        &rng.gen::<[_; 32]>(),
         &[
             i64::MAX as i128 + 1,
             i64::MIN as i128 - 1,
@@ -406,7 +408,7 @@ fn we_can_encode_and_decode_i64_and_i128_the_same() {
 fn we_can_encode_and_decode_u64_and_u128_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<u64, u128>(
-        &mut rng,
+        &rng.gen::<[_; 32]>(),
         &[u64::MAX as u128 + 1, u64::MAX as u128 * 1000],
         100,
     );
