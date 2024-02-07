@@ -76,7 +76,7 @@ pub use test_query_expr::TestQueryExpr;
 
 mod result_element_serialization;
 pub use result_element_serialization::{
-    decode_multiple_elements, DecodeProvableResultElement, EncodeProvableResultElement,
+    decode_and_convert, decode_multiple_elements, ProvableResultElement,
 };
 
 #[warn(missing_docs)]

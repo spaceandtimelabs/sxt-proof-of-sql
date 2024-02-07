@@ -1,7 +1,7 @@
 use super::Indexes;
 use crate::{
     base::{database::Column, scalar::Scalar},
-    sql::proof::EncodeProvableResultElement,
+    sql::proof::ProvableResultElement,
 };
 
 /// Interface for serializing an intermediate result column
@@ -13,7 +13,7 @@ pub trait ProvableResultColumn {
     fn write(&self, out: &mut [u8], selection: &Indexes) -> usize;
 }
 
-impl<'a, T: EncodeProvableResultElement> ProvableResultColumn for &'a [T] {
+impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         let mut res = 0;
         for i in selection.iter() {
@@ -53,7 +53,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     }
 }
 
-impl<T: EncodeProvableResultElement, const N: usize> ProvableResultColumn for [T; N] {
+impl<'a, T: ProvableResultElement<'a>, const N: usize> ProvableResultColumn for [T; N] {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         (&self[..]).num_bytes(selection)
     }
