@@ -1,5 +1,6 @@
 use super::{ProofExpr, ProvableQueryResult, QueryData, QueryProof, QueryResult};
 use crate::base::{
+    commitment::InnerProductProof,
     database::{
         ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
     },
@@ -68,7 +69,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct VerifiableQueryResult {
     pub provable_result: Option<ProvableQueryResult>,
-    pub proof: Option<QueryProof>,
+    pub proof: Option<QueryProof<InnerProductProof>>,
 }
 
 impl VerifiableQueryResult {

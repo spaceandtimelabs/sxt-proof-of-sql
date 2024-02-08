@@ -3,7 +3,7 @@ use blitzar::{
     compute::{compute_curve25519_commitments, update_curve25519_commitments},
     sequence::Sequence,
 };
-use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 use thiserror::Error;
 
 const INVALID_DECOMPRESSION_MESSAGE: &str =
@@ -60,6 +60,17 @@ pub trait VecCommitmentExt {
     fn try_sub(self, other: Self) -> Result<Self, NumColumnsMismatch>
     where
         Self: Sized;
+
+    /// Returns the number of commitments in the collection.
+    fn num_commitments(&self) -> usize;
+
+    /// The decompressed commitment type.
+    type DecompressedCommitment;
+
+    /// Decompresses the commitments in the collection.
+    ///
+    /// Note: this _could_ be made to return an iterator, but the usage does not currently require it.
+    fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>>;
 }
 
 impl VecCommitmentExt for Vec<CompressedRistretto> {
@@ -165,6 +176,18 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
             .collect();
 
         Ok(commitments)
+    }
+
+    fn num_commitments(&self) -> usize {
+        self.len()
+    }
+
+    type DecompressedCommitment = RistrettoPoint;
+
+    fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>> {
+        self.iter()
+            .map(|commitment| commitment.decompress())
+            .collect()
     }
 }
 

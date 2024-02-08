@@ -5,19 +5,16 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
+        commitment::{Commitment, CommitmentEvaluationProof, VecCommitmentExt},
         database::{CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{MessageLabel, ProofError, TranscriptProtocol},
-        scalar::ArkScalar,
-        slice_ops,
     },
     proof_primitive::sumcheck::SumcheckProof,
     sql::proof::{QueryData, ResultBuilder},
 };
-use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use merlin::Transcript;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
@@ -29,19 +26,19 @@ use std::cmp;
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct QueryProof {
+pub struct QueryProof<CP: CommitmentEvaluationProof> {
     pub bit_distributions: Vec<BitDistribution>,
-    pub commitments: Vec<CompressedRistretto>,
-    pub sumcheck_proof: SumcheckProof<ArkScalar>,
-    pub pre_result_mle_evaluations: Vec<ArkScalar>,
-    pub evaluation_proof: InnerProductProof,
+    pub commitments: CP::VecCommitment,
+    pub sumcheck_proof: SumcheckProof<CP::Scalar>,
+    pub pre_result_mle_evaluations: Vec<CP::Scalar>,
+    pub evaluation_proof: CP,
 }
 
-impl QueryProof {
+impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
     pub fn new(
-        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
-        accessor: &impl DataAccessor<ArkScalar>,
+        expr: &(impl ProofExpr<CP::Commitment> + Serialize),
+        accessor: &impl DataAccessor<CP::Scalar>,
     ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
@@ -64,7 +61,7 @@ impl QueryProof {
         // Note: the last challenge in the vec is the first one that is consumed.
         let mut post_result_challenges =
             vec![Zero::zero(); result_builder.num_post_result_challenges()];
-        transcript.challenge_ark_scalars(
+        transcript.challenge_ark(
             &mut post_result_challenges,
             MessageLabel::PostResultChallenges,
         );
@@ -77,8 +74,8 @@ impl QueryProof {
         (proof, provable_result)
     }
 
-    pub fn new_from_builder(
-        builder: ProofBuilder<ArkScalar>,
+    pub(crate) fn new_from_builder(
+        builder: ProofBuilder<CP::Scalar>,
         generator_offset: usize,
         mut transcript: Transcript,
     ) -> Self {
@@ -86,7 +83,7 @@ impl QueryProof {
         let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
-        let commitments = builder.commit_intermediate_mles(generator_offset);
+        let commitments: CP::VecCommitment = builder.commit_intermediate_mles(generator_offset);
 
         // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
@@ -94,7 +91,7 @@ impl QueryProof {
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
         let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_ark(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
             &random_scalars,
             table_length,
@@ -111,7 +108,7 @@ impl QueryProof {
         let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
-        transcript.append_ark_scalars(
+        transcript.append_canonical_serialize(
             MessageLabel::QueryMleEvaluations,
             &pre_result_mle_evaluations,
         );
@@ -119,17 +116,17 @@ impl QueryProof {
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
         let mut random_scalars = vec![Zero::zero(); pre_result_mle_evaluations.len()];
-        transcript.challenge_ark_scalars(
+        transcript.challenge_ark(
             &mut random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
         let folded_mle = builder.fold_pre_result_mles(&random_scalars);
 
         // finally, form the inner product proof of the MLEs' evaluations
-        let evaluation_proof = InnerProductProof::create(
+        let evaluation_proof = CP::new(
             &mut transcript,
-            &slice_ops::slice_cast(&folded_mle),
-            &slice_ops::slice_cast(&evaluation_vec),
+            &folded_mle,
+            &evaluation_vec,
             generator_offset as u64,
         );
 
@@ -152,8 +149,8 @@ impl QueryProof {
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
-        accessor: &impl CommitmentAccessor<RistrettoPoint>,
+        expr: &(impl ProofExpr<CP::Commitment> + Serialize),
+        accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
     ) -> QueryResult {
         let table_length = expr.get_length(accessor);
@@ -180,17 +177,12 @@ impl QueryProof {
             Err(ProofError::VerificationError("invalid proof size"))?;
         }
 
-        // decompress commitments
-        let mut commitments = Vec::with_capacity(self.commitments.len());
-        for commitment in self.commitments.iter() {
-            if let Some(commitment) = commitment.decompress() {
-                commitments.push(commitment);
-            } else {
-                Err(ProofError::VerificationError(
+        let commitments =
+            self.commitments
+                .to_decompressed()
+                .ok_or(ProofError::VerificationError(
                     "commitment failed to decompress",
                 ))?;
-            }
-        }
 
         // construct a transcript for the proof
         let mut transcript = make_transcript(expr, result, table_length, generator_offset);
@@ -201,7 +193,7 @@ impl QueryProof {
         // send commitments to the intermediate witness columns.
         // Note: the last challenge in the vec is the first one that is consumed.
         let mut post_result_challenges = vec![Zero::zero(); counts.post_result_challenges];
-        transcript.challenge_ark_scalars(
+        transcript.challenge_ark(
             &mut post_result_challenges,
             MessageLabel::PostResultChallenges,
         );
@@ -212,7 +204,7 @@ impl QueryProof {
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
         let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_ark_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_ark(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let sumcheck_random_scalars =
             SumcheckRandomScalars::new(&random_scalars, table_length, num_sumcheck_variables);
 
@@ -231,7 +223,7 @@ impl QueryProof {
         compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
-        transcript.append_ark_scalars(
+        transcript.append_canonical_serialize(
             MessageLabel::QueryMleEvaluations,
             &self.pre_result_mle_evaluations,
         );
@@ -240,7 +232,7 @@ impl QueryProof {
         // (i.e. the folding/random linear combination of the pre_result_mles)
         let mut evaluation_random_scalars =
             vec![Zero::zero(); self.pre_result_mle_evaluations.len()];
-        transcript.challenge_ark_scalars(
+        transcript.challenge_ark(
             &mut evaluation_random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
@@ -286,11 +278,11 @@ impl QueryProof {
         let product = builder.folded_pre_result_evaluation();
         let expected_commit = builder.folded_pre_result_commitment();
         self.evaluation_proof
-            .verify(
+            .verify_proof(
                 &mut transcript,
                 &expected_commit,
-                &product.into(),
-                &slice_ops::slice_cast(&evaluation_vec),
+                &product,
+                &evaluation_vec,
                 generator_offset as u64,
             )
             .map_err(|_e| {
@@ -312,7 +304,7 @@ impl QueryProof {
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
         result.num_columns() == counts.result_columns
-            && self.commitments.len() == counts.intermediate_mles
+            && self.commitments.num_commitments() == counts.intermediate_mles
             && self.pre_result_mle_evaluations.len()
                 == counts.intermediate_mles + counts.anchored_mles
     }
@@ -347,8 +339,8 @@ impl QueryProof {
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
 /// ```
-pub fn make_transcript(
-    expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
+pub fn make_transcript<C: Commitment>(
+    expr: &(impl ProofExpr<C> + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
     generator_offset: usize,
@@ -361,11 +353,11 @@ pub fn make_transcript(
     transcript
 }
 
-fn extend_transcript(
+fn extend_transcript<C: serde::Serialize>(
     transcript: &mut Transcript,
-    commitments: &[CompressedRistretto],
+    commitments: &C,
     bit_distributions: &[BitDistribution],
 ) {
-    transcript.append_points(MessageLabel::QueryCommit, commitments);
+    transcript.append_auto(MessageLabel::QueryCommit, commitments);
     transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
 }

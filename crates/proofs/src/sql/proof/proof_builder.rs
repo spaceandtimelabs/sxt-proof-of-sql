@@ -8,7 +8,6 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
-use curve25519_dalek::ristretto::CompressedRistretto;
 use num_traits::Zero;
 
 /// Track components used to form a query's proof
@@ -116,8 +115,8 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         level = "info",
         skip_all
     )]
-    pub fn commit_intermediate_mles(&self, offset_generators: usize) -> Vec<CompressedRistretto> {
-        Vec::from_commitable_columns_with_offset(&self.commitment_descriptor, offset_generators)
+    pub fn commit_intermediate_mles<V: VecCommitmentExt>(&self, offset_generators: usize) -> V {
+        V::from_commitable_columns_with_offset(&self.commitment_descriptor, offset_generators)
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
