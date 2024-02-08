@@ -296,7 +296,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values = [i256::from(10), i256::from(11), ArkScalar::MAX_SIGNED.into()];
+    let values = [
+        ArkScalar::from(10),
+        ArkScalar::from(11),
+        ArkScalar::MAX_SIGNED,
+    ];
 
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
@@ -326,7 +330,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values1: [i64; 3] = [6, 7, i64::MAX];
     let values2: [i128; 3] = [10, 11, i128::MAX];
     let values3 = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
-    let values4 = [i256::from(10), i256::from(11), ArkScalar::MAX_SIGNED.into()];
+    let values4 = [
+        ArkScalar::from(10),
+        ArkScalar::from(11),
+        ArkScalar::MAX_SIGNED,
+    ];
 
     let cols: [Box<dyn ProvableResultColumn>; 4] = [
         Box::new(values1),

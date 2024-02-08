@@ -11,6 +11,7 @@
 //! This is because there is no `Int128` type in Arrow.
 //! This does not check that the values are less than 39 digits.
 //! However, the actual arrow backing `i128` is the correct value.
+use super::scalar_and_i256_conversions::convert_scalar_to_i256;
 use crate::base::{
     database::{OwnedColumn, OwnedTable, OwnedTableError},
     scalar::Scalar,
@@ -55,10 +56,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                     .unwrap(),
             ),
             OwnedColumn::Decimal75(precision, scale, col) => {
-                let converted_col: Vec<i256> = col
-                    .into_iter()
-                    .map(|ark_scalar| ark_scalar.into())
-                    .collect();
+                let converted_col: Vec<i256> = col.iter().map(convert_scalar_to_i256).collect();
 
                 Arc::new(
                     Decimal256Array::from(converted_col)
