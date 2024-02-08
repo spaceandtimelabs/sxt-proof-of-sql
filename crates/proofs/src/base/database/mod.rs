@@ -65,3 +65,5 @@ mod owned_table_test_accessor;
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(test)]
 mod owned_table_test_accessor_test;
+
+mod scalar_and_i256_conversions;
