@@ -2,6 +2,7 @@ use super::{prover_evaluate_equals_zero, prover_evaluate_or, BoolExpr, FilterExp
 use crate::{
     base::{
         bit::BitDistribution,
+        commitment::InnerProductProof,
         database::{
             make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
@@ -247,7 +248,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let selection = [true; 3];
     result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
 
-    let proof = QueryProof::new_from_builder(builder, 0, transcript);
+    let proof = QueryProof::<InnerProductProof>::new_from_builder(builder, 0, transcript);
     let res = proof
         .verify(&expr, &accessor, &provable_result)
         .unwrap()
