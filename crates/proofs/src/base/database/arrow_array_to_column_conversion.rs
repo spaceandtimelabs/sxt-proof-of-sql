@@ -1,3 +1,4 @@
+use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{
     database::Column,
     math::precision::Precision,
@@ -5,7 +6,7 @@ use crate::base::{
 };
 use arrow::{
     array::{Array, ArrayRef, Decimal128Array, Decimal256Array, Int64Array, StringArray},
-    datatypes::DataType,
+    datatypes::{i256, DataType},
 };
 use bumpalo::Bump;
 use std::ops::Range;
@@ -20,6 +21,9 @@ pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
     #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
     UnsupportedType(DataType),
+    /// This error occurs when trying to convert from an i256 to a Scalar.
+    #[error("decimal conversion failed: {0}")]
+    DecimalConversionFailed(i256),
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
@@ -72,7 +76,7 @@ impl ArrayRefExt for ArrayRef {
                     array
                         .values()
                         .iter()
-                        .map(|v| (*v).try_into().unwrap())
+                        .map(|v| convert_i256_to_scalar(v).unwrap())
                         .collect()
                 })
                 .unwrap(),
@@ -141,14 +145,12 @@ impl ArrayRefExt for ArrayRef {
                 );
 
                 let i256_slice = &array.values()[range.start..range.end];
-                let ark_scalars = alloc.alloc_slice_fill_with(i256_slice.len(), |i| {
-                    match S::try_from(i256_slice[i]) {
-                        Ok(scalar) => scalar,
-                        // this is functionally equivalent to .expect() but does not require:
-                        // `where <S as TryFrom<arrow::datatypes::i256>>::Error: Debug`
-                        Err(_) => panic!("Failed to convert arrow i256 to ArkScalar"),
-                    }
-                });
+                let ark_scalars = alloc.alloc_slice_fill_default(i256_slice.len());
+                for (scalar, value) in ark_scalars.iter_mut().zip(i256_slice) {
+                    *scalar = convert_i256_to_scalar(value).ok_or(
+                        ArrowArrayToColumnConversionError::DecimalConversionFailed(*value),
+                    )?;
+                }
 
                 Ok(Column::Decimal75(
                     Precision::new(*precision).unwrap(),

@@ -119,62 +119,12 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
 mod tests {
 
     use super::*;
-    use crate::base::scalar::{random_i256, ArkScalar};
-    use arrow::datatypes::i256;
+    use crate::base::scalar::ArkScalar;
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::StdRng,
     };
     use rand_core::SeedableRng;
-
-    #[test]
-    fn we_can_encode_and_decode_a_decimal75_to_a_scalar() {
-        let value = i256::from(123);
-        let mut out = vec![0_u8; value.required_bytes()];
-        value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
-        assert_eq!(read_bytes, out.len());
-        assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
-    }
-
-    #[test]
-    fn arbitrary_encoded_256_bit_integers_are_correctly_decoded() {
-        let mut rng = rand::thread_rng();
-
-        for _ in 0..100 {
-            let value = random_i256(&mut rng);
-
-            let mut out = vec![0_u8; value.required_bytes()];
-            value.encode(&mut out[..]);
-
-            let (decoded_value, read_bytes) = <i256>::decode(&out[..]).unwrap();
-            assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, value);
-
-            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
-            assert_eq!(read_bytes, out.len());
-            assert_eq!(decoded_value, ArkScalar::try_from(value).unwrap());
-        }
-    }
-
-    #[test]
-    fn multiple_256_bit_integer_rows_are_correctly_encoded_and_decoded() {
-        let mut rng = rand::thread_rng();
-        let data = [
-            random_i256(&mut rng),
-            random_i256(&mut rng),
-            random_i256(&mut rng),
-            random_i256(&mut rng),
-            random_i256(&mut rng),
-            random_i256(&mut rng),
-        ];
-        let out = encode_multiple_rows(&data);
-        let (decoded_data, decoded_bytes) =
-            decode_multiple_elements::<i256>(&out[..], data.len()).unwrap();
-
-        assert_eq!(decoded_data, data);
-        assert_eq!(decoded_bytes, out.len());
-    }
 
     #[test]
     fn we_can_encode_and_decode_empty_buffers() {
