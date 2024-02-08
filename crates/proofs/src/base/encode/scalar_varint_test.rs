@@ -159,7 +159,7 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encod
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 37));
 
     // using a smaller buffer will fail
-    assert!(read_scalar_varint(&buf[..10]).is_none());
+    assert!((read_scalar_varint(&buf[..10]) as Option<(ArkScalar, _)>).is_none());
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
     assert!(read_scalar_varint(&buf[..]).unwrap() == (val, 37));
 
     // using a smaller buffer will fail
-    assert!(read_scalar_varint(&buf[..10]).is_none());
+    assert!((read_scalar_varint(&buf[..10]) as Option<(ArkScalar, _)>).is_none());
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out(
     let buf = [0b11111111_u8; 5];
 
     // varint numbers that do not terminate will fail out
-    assert!(read_scalar_varint(&buf[..]).is_none());
+    assert!((read_scalar_varint(&buf[..]) as Option<(ArkScalar, _)>).is_none());
 }
 
 #[test]
@@ -250,12 +250,12 @@ fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the
     // a varint with 260 bit-length will fail (260 bits = 37 * 7 + 1 as
     //  each byte can hold only 7 bits in the varint encoding)
     buf[37] = 0b00000001_u8;
-    assert!(read_scalar_varint(&buf[..37]).is_none());
+    assert!((read_scalar_varint(&buf[..37]) as Option<(ArkScalar, _)>).is_none());
 
     // a varint with 266 bit-length will fail (266 bits = 38 * 7 as
     //  each byte can hold only 7 bits in the varint encoding)
     buf[37] = 0b01111111_u8;
-    assert!(read_scalar_varint(&buf[..38]).is_none());
+    assert!((read_scalar_varint(&buf[..38]) as Option<(ArkScalar, _)>).is_none());
 }
 
 fn write_read_and_compare_encoding(expected_scals: &[ArkScalar]) {
