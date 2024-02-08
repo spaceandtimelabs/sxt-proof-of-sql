@@ -1,4 +1,5 @@
-use crate::base::{encode::U256, scalar::ArkScalar};
+use crate::base::{encode::U256, scalar::MontScalar};
+use ark_ff::MontConfig;
 
 /// A trait for enabling zig-zag encoding
 ///
@@ -23,7 +24,7 @@ pub trait ZigZag<T> {
 /// which represents a positive ZigZag encoding.
 /// Otherwise, we remap `y` to `2 * y + 1` u256 integer,
 /// which represents a negative ZigZag encoding (-y).
-impl ZigZag<U256> for ArkScalar {
+impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
     fn zigzag(&self) -> U256 {
         // since self is a dalek scalar, we never have the last bit 255 set
         // therefore, we should never expect overflow when multiplying by 2
@@ -73,8 +74,8 @@ impl ZigZag<U256> for ArkScalar {
 ///
 /// Finally, we return either -1 * dalek::Scalar(y) or dalek::Scalar(x),
 /// which in both cases represents the `x` scalar.
-impl ZigZag<ArkScalar> for U256 {
-    fn zigzag(&self) -> ArkScalar {
+impl<T: MontConfig<4>> ZigZag<MontScalar<T>> for U256 {
+    fn zigzag(&self) -> MontScalar<T> {
         // we need to divide self by 2 to remove the ZigZag encoding
         let mut zig_val = U256 {
             low: (self.low >> 1) | ((self.high & 1) << 127),
@@ -97,11 +98,11 @@ impl ZigZag<ArkScalar> for U256 {
             // even though the encoding represented a -y,
             // zig_val actually represents a `y` (we simply divided self by 2).
             // Also, since x + y = 0, we need to compute -(zig_val.into()) to return x
-            let scal: ArkScalar = (&zig_val).into();
+            let scal: MontScalar<T> = (&zig_val).into();
 
             -scal
         } else {
-            let scal: ArkScalar = (&zig_val).into();
+            let scal: MontScalar<T> = (&zig_val).into();
 
             // return x
             scal

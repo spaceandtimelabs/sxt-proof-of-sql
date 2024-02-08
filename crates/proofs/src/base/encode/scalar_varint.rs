@@ -1,7 +1,8 @@
 use crate::base::{
     encode::{ZigZag, U256},
-    scalar::ArkScalar,
+    scalar::MontScalar,
 };
+use ark_ff::MontConfig;
 use std::cmp::{max, Ordering};
 
 /// This function writes the input scalar x as a varint encoding to buf slice
@@ -13,7 +14,7 @@ use std::cmp::{max, Ordering};
 ///
 /// crash:
 /// - in case N is bigger than buf.len()
-pub fn write_scalar_varint(buf: &mut [u8], x: &ArkScalar) -> usize {
+pub fn write_scalar_varint<T: MontConfig<4>>(buf: &mut [u8], x: &MontScalar<T>) -> usize {
     write_u256_varint(buf, x.zigzag())
 }
 pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
@@ -58,7 +59,7 @@ pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
 ///  Since read-scalar stores the buf into a U256 type, which can only
 ///  hold up to 256 bit numbers, the non-continuation bits
 ///  257 up to 259 from buf are ignored.
-pub fn read_scalar_varint(buf: &[u8]) -> Option<(ArkScalar, usize)> {
+pub fn read_scalar_varint<T: MontConfig<4>>(buf: &[u8]) -> Option<(MontScalar<T>, usize)> {
     read_u256_varint(buf).map(|(val, s)| (val.zigzag(), s))
 }
 pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
@@ -110,7 +111,7 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
 /// error:
 /// - in case buf has not enough space to hold all the scalars encoding.
 #[cfg(test)]
-pub fn write_scalar_varints(buf: &mut [u8], scals: &[ArkScalar]) -> usize {
+pub fn write_scalar_varints<T: MontConfig<4>>(buf: &mut [u8], scals: &[MontScalar<T>]) -> usize {
     let mut total_bytes_written = 0;
 
     for scal in scals.iter() {
@@ -130,7 +131,10 @@ pub fn write_scalar_varints(buf: &mut [u8], scals: &[ArkScalar]) -> usize {
 /// error:
 /// - in case it's not possible to read all specified scalars from `input_buf`
 #[cfg(test)]
-pub fn read_scalar_varints(scals_buf: &mut [ArkScalar], input_buf: &[u8]) -> Option<()> {
+pub fn read_scalar_varints<T: MontConfig<4>>(
+    scals_buf: &mut [MontScalar<T>],
+    input_buf: &[u8],
+) -> Option<()> {
     let mut buf = input_buf;
 
     for scal_buf in scals_buf.iter_mut() {
@@ -147,7 +151,7 @@ pub fn read_scalar_varints(scals_buf: &mut [ArkScalar], input_buf: &[u8]) -> Opt
 ///
 /// This function should be used to get an upper bound on the buffer size
 /// used by the `write_scalar_varint` function.
-pub fn scalar_varint_size(x: &ArkScalar) -> usize {
+pub fn scalar_varint_size<T: MontConfig<4>>(x: &MontScalar<T>) -> usize {
     u256_varint_size(x.zigzag())
 }
 pub fn u256_varint_size(zig_x: U256) -> usize {
@@ -167,7 +171,7 @@ pub fn u256_varint_size(zig_x: U256) -> usize {
 /// This function should be used to get an upper bound on the buffer size
 /// used by the `write_scalar_varints` function.
 #[cfg(test)]
-pub fn scalar_varints_size(scals: &[ArkScalar]) -> usize {
+pub fn scalar_varints_size<T: MontConfig<4>>(scals: &[MontScalar<T>]) -> usize {
     let mut all_size: usize = 0;
 
     for x in scals.iter() {
