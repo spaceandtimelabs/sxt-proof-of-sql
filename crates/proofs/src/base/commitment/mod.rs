@@ -1,6 +1,9 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
-pub use blitzar::compute::{init_backend, init_backend_with_config, BackendConfig};
+pub use blitzar::{
+    compute::{init_backend, init_backend_with_config, BackendConfig},
+    proof::InnerProductProof,
+};
 use core::ops::AddAssign;
 use curve25519_dalek::ristretto::RistrettoPoint;
 
@@ -68,3 +71,6 @@ impl Commitment for RistrettoPoint {
             - blitzar::compute::get_one_curve25519_commit(range.start)
     }
 }
+
+mod commitment_evaluation_proof;
+pub use commitment_evaluation_proof::CommitmentEvaluationProof;
