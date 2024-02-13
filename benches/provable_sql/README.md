@@ -1,3 +1,19 @@
+# Running single benchmark using cargo
+
+To run benchmarks with Jaeger, you need to do the following
+
+1. Spin up Jaeger service on port 6831 to receive the benchmarks trace data, and provides Jaeger UI on port 16686.
+    ```bash
+    docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
+    ```
+2. Spin up Jaeger service on port 6831 to receive the benchmarks trace data, and provides Jaeger UI on port 16686.
+    ```bash
+    cargo run --release --package provable_sql -- --min-value -100 --max-value 100 --num-columns 5 --result-columns 'A,B' --where-expr '((C = 0) or (B = 1)) or (not (A = -1))' --num-samples 1 --table-length 1000000
+    ```
+
+3. Navigate to http://localhost:16686/ to see the results.
+
+# Using python benchmark suite (might be buggy)
 To run the benchmarks with Jaeger, you need to follow the next steps:
 
 ```bash

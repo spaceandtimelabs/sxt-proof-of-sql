@@ -8,10 +8,14 @@ edition = "2021"
 blitzar = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 curve25519-dalek = { workspace = true, features = ["serde"] }
+opentelemetry = { workspace = true }
+opentelemetry-jaeger = { workspace = true }
 proofs = { path = "../../crates/proofs", features = ["test"] }
 proofs-sql = { path = "../../crates/proofs-sql" }
 rand = { workspace = true }
-tracing = { version = "0.1.36", features = ["attributes"] }
+tracing = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [build-dependencies]
 cc = { version = "1.0", optional = true }

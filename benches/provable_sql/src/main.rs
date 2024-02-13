@@ -122,7 +122,7 @@ fn process_query(
     verifiable_result.verify(provable_ast, accessor)
 }
 
-fn main() {
+fn run_benchmarks() {
     let args = Args::parse();
     let offset_generators = 0_usize;
 
@@ -147,4 +147,21 @@ fn main() {
     mean_time = (mean_time / (args.num_samples as f64)) * 1e3;
 
     println!("{:.4?}seconds", mean_time);
+}
+
+fn main() {
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+    let tracer = opentelemetry_jaeger::new_agent_pipeline()
+        .with_service_name("provable_sql")
+        .install_simple()
+        .unwrap();
+    let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    tracing_subscriber::registry()
+        .with(opentelemetry)
+        .try_init()
+        .unwrap();
+    {
+        run_benchmarks();
+    }
+    opentelemetry::global::shutdown_tracer_provider();
 }

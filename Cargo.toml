@@ -35,6 +35,8 @@ lalrpop-util = { version = "0.20.0" }
 lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
+opentelemetry = { version = "0.21.0" }
+opentelemetry-jaeger = { version = "0.20.0" }
 polars = { version = "0.33.1" }
 postcard = { version = "1.0" }
 proofs = { path = "crates/proofs" } # We automatically update this line during release. So do not modify it!
@@ -46,4 +48,6 @@ serde = { version = "1" }
 serde_json = { version = "1" }
 thiserror = { version = "1" }
 tracing = { version = "0.1.36" }
+tracing-opentelemetry = { version = "0.22.0" }
+tracing-subscriber = { version = "0.3.0" }
 typetag = { version = "0.2.13" }
