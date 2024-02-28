@@ -29,6 +29,7 @@ use crate::{
     },
 };
 use arrow::datatypes::{Field, Schema};
+use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use indexmap::IndexMap;
 use proofs_sql::{Identifier, ResourceId};
@@ -164,8 +165,11 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = dense_filter(cols_expr(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [3_i64, 5],
     );
@@ -354,9 +358,9 @@ fn we_can_prove_a_dense_filter_on_an_empty_table() {
         tab(t),
         equal(t, "a", 106, &accessor),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "b" => [3_i64; 0],
         "c" => [3_i128; 0],
@@ -383,9 +387,9 @@ fn we_can_prove_a_dense_filter_with_empty_results() {
         tab(t),
         equal(t, "a", 106, &accessor),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "b" => [3_i64; 0],
         "c" => [3_i128; 0],
@@ -412,9 +416,9 @@ fn we_can_prove_a_dense_filter() {
         tab(t),
         equal(t, "a", 105, &accessor),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "b" => [3_i64, 5],
         "c" => [3_i128, 5],

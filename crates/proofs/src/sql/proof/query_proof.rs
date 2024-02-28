@@ -39,6 +39,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
+        setup: &CP::ProverPublicSetup,
     ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
@@ -70,7 +71,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
 
-        let proof = QueryProof::new_from_builder(builder, generator_offset, transcript);
+        let proof = QueryProof::new_from_builder(builder, generator_offset, transcript, setup);
         (proof, provable_result)
     }
 
@@ -78,6 +79,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         builder: ProofBuilder<CP::Scalar>,
         generator_offset: usize,
         mut transcript: Transcript,
+        setup: &CP::ProverPublicSetup,
     ) -> Self {
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
@@ -128,6 +130,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &folded_mle,
             &evaluation_vec,
             generator_offset as u64,
+            setup,
         );
 
         let proof = Self {
@@ -152,6 +155,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
+        setup: &CP::VerifierPublicSetup,
     ) -> QueryResult {
         let table_length = expr.get_length(accessor);
         let generator_offset = expr.get_offset(accessor);
@@ -284,6 +288,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 &product,
                 &evaluation_vec,
                 generator_offset as u64,
+                setup,
             )
             .map_err(|_e| {
                 ProofError::VerificationError("Inner product proof of MLE evaluations failed")

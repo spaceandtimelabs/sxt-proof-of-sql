@@ -247,7 +247,7 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
 
     let res = test_expr.create_verifiable_result();
     assert!(res
-        .verify(&test_expr.ast, &tampered_test_expr.accessor)
+        .verify(&test_expr.ast, &tampered_test_expr.accessor, &())
         .is_err());
 }
 

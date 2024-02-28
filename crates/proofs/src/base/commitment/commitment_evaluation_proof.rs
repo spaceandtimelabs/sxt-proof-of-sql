@@ -15,15 +15,25 @@ pub trait CommitmentEvaluationProof {
     /// The associated commitment type.
     type Commitment: Commitment<Scalar = Self::Scalar>;
     /// A collection of commitments. Most commonly this is a `Vec`.
-    type VecCommitment: VecCommitmentExt<DecompressedCommitment = Self::Commitment> + Serialize;
+    type VecCommitment: VecCommitmentExt<DecompressedCommitment = Self::Commitment>
+        + Serialize
+        + Clone
+        + for<'a> Deserialize<'a>;
     /// The error type for the proof.
     type Error;
+    /// The public setup parameters required by the prover.
+    /// This is simply precomputed data that is required by the prover to create a proof.
+    type ProverPublicSetup;
+    /// The public setup parameters required by the verifier.
+    /// This is simply precomputed data that is required by the verifier to verify a proof.
+    type VerifierPublicSetup;
     /// Create a new proof.
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
         b: &[Self::Scalar],
         generators_offset: u64,
+        setup: &Self::ProverPublicSetup,
     ) -> Self;
     /// Verify a proof.
     fn verify_proof(
@@ -33,6 +43,7 @@ pub trait CommitmentEvaluationProof {
         product: &Self::Scalar,
         b: &[Self::Scalar],
         generators_offset: u64,
+        setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error>;
 }
 
@@ -41,11 +52,14 @@ impl CommitmentEvaluationProof for InnerProductProof {
     type Commitment = RistrettoPoint;
     type VecCommitment = Vec<CompressedRistretto>;
     type Error = ProofError;
+    type ProverPublicSetup = ();
+    type VerifierPublicSetup = ();
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
         b: &[Self::Scalar],
         generators_offset: u64,
+        _setup: &Self::ProverPublicSetup,
     ) -> Self {
         Self::create(
             transcript,
@@ -61,6 +75,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
         product: &Self::Scalar,
         b: &[Self::Scalar],
         generators_offset: u64,
+        _setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error> {
         self.verify(
             transcript,

@@ -45,8 +45,11 @@ fn we_can_compare_a_constant_column() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => &[] as &[i64],
     );
@@ -64,8 +67,11 @@ fn we_can_compare_a_varying_column_with_constant_sign() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => &[] as &[i64],
     );
@@ -83,8 +89,11 @@ fn we_can_compare_a_varying_column_with_constant_absolute_value() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 3],
     );
@@ -102,8 +111,11 @@ fn we_can_compare_a_constant_column_of_negative_columns() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -121,8 +133,11 @@ fn we_can_compare_a_varying_column_with_negative_only_signs() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -140,8 +155,11 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 3],
     );
@@ -159,8 +177,11 @@ fn we_can_compare_column_with_greater_than_or_equal() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 1.into(), false);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [2_i64],
     );
@@ -178,8 +199,11 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs_and_a_constant
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64],
     );
@@ -197,8 +221,11 @@ fn we_can_compare_a_constant_column_of_zeros() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [1_i64, 2, 3],
     );
@@ -248,9 +275,9 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let selection = [true; 3];
     result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
 
-    let proof = QueryProof::<InnerProductProof>::new_from_builder(builder, 0, transcript);
+    let proof = QueryProof::<InnerProductProof>::new_from_builder(builder, 0, transcript, &());
     let res = proof
-        .verify(&expr, &accessor, &provable_result)
+        .verify(&expr, &accessor, &provable_result, &())
         .unwrap()
         .into_record_batch();
     let expected = record_batch!(
@@ -271,7 +298,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
 
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
 
     let data = record_batch!(
         "a" => [321_i64, 321, 321],
@@ -282,7 +309,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_column() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+    assert!(res.verify(&expr, &accessor, &()).is_err());
 }
 
 #[test]
@@ -296,7 +323,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_absolute_column()
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
 
     let data = record_batch!(
         "a" => [-321_i64, 321, -321],
@@ -307,7 +334,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_absolute_column()
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 0.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+    assert!(res.verify(&expr, &accessor, &()).is_err());
 }
 
 #[test]
@@ -321,7 +348,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_sign_column() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
 
     let data = record_batch!(
         "a" => [321_i64, 321, 321],
@@ -332,7 +359,7 @@ fn verification_fails_if_commitments_dont_match_for_a_constant_sign_column() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+    assert!(res.verify(&expr, &accessor, &()).is_err());
 }
 
 #[test]
@@ -346,7 +373,7 @@ fn verification_fails_if_commitments_dont_match() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
 
     let data = record_batch!(
         "a" => [-523_i64, 923, 83],
@@ -357,7 +384,7 @@ fn verification_fails_if_commitments_dont_match() {
     accessor.add_table(t, data, 0);
     let where_clause = BoolExprPlan::new_inequality(col(t, "a", &accessor), 5.into(), true);
     let expr = FilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    assert!(res.verify(&expr, &accessor).is_err());
+    assert!(res.verify(&expr, &accessor, &()).is_err());
 }
 
 fn create_test_lte_expr<T: Into<ArkScalar> + Copy + Literal>(
