@@ -1,13 +1,11 @@
 use super::{ProofExpr, ProvableQueryResult, QueryData, QueryProof, QueryResult};
 use crate::base::{
-    commitment::InnerProductProof,
+    commitment::CommitmentEvaluationProof,
     database::{
         ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
     },
     proof::ProofError,
-    scalar::ArkScalar,
 };
-use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -67,20 +65,21 @@ use serde::{Deserialize, Serialize};
 /// cannot maintain any invariant on its data members; hence, they are
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Default, Clone, Serialize, Deserialize)]
-pub struct VerifiableQueryResult {
+pub struct VerifiableQueryResult<CP: CommitmentEvaluationProof> {
     pub provable_result: Option<ProvableQueryResult>,
-    pub proof: Option<QueryProof<InnerProductProof>>,
+    pub proof: Option<QueryProof<CP>>,
 }
 
-impl VerifiableQueryResult {
+impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Form a `VerifiableQueryResult` from a query expression.
     ///
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(
-        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
-        accessor: &impl DataAccessor<ArkScalar>,
-    ) -> VerifiableQueryResult {
+        expr: &(impl ProofExpr<CP::Commitment> + Serialize),
+        accessor: &impl DataAccessor<CP::Scalar>,
+        setup: &CP::ProverPublicSetup,
+    ) -> Self {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -92,7 +91,7 @@ impl VerifiableQueryResult {
             };
         }
 
-        let (proof, res) = QueryProof::new(expr, accessor);
+        let (proof, res) = QueryProof::new(expr, accessor, setup);
         Self {
             provable_result: Some(res),
             proof: Some(proof),
@@ -108,8 +107,9 @@ impl VerifiableQueryResult {
     /// Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExpr<RistrettoPoint> + Serialize),
-        accessor: &impl CommitmentAccessor<RistrettoPoint>,
+        expr: &(impl ProofExpr<CP::Commitment> + Serialize),
+        accessor: &impl CommitmentAccessor<CP::Commitment>,
+        setup: &CP::VerifierPublicSetup,
     ) -> QueryResult {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
@@ -133,10 +133,12 @@ impl VerifiableQueryResult {
             ))?;
         }
 
-        self.proof
-            .as_ref()
-            .unwrap()
-            .verify(expr, accessor, self.provable_result.as_ref().unwrap())
+        self.proof.as_ref().unwrap().verify(
+            expr,
+            accessor,
+            self.provable_result.as_ref().unwrap(),
+            setup,
+        )
     }
 }
 

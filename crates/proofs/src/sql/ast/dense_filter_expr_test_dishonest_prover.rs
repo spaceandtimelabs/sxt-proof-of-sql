@@ -16,6 +16,7 @@ use crate::{
         },
     },
 };
+use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use num_traits::One;
 
@@ -129,9 +130,9 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
         tab(t),
         equal(t, "a", 105, &accessor),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(
-        res.verify(&expr, &accessor),
+        res.verify(&expr, &accessor, &()),
         Err(QueryError::ProofError(ProofError::VerificationError(_)))
     ));
 }

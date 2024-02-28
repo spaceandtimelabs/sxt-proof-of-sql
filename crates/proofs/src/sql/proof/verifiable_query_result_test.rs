@@ -5,6 +5,7 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
+use blitzar::proof::InnerProductProof;
 use std::sync::Arc;
 
 #[test]
@@ -18,8 +19,11 @@ fn we_can_verify_queries_on_an_empty_table() {
         ..Default::default()
     };
     let accessor = RecordBatchTestAccessor::new_empty();
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let schema = Schema::new(vec![Field::new("a1", DataType::Int64, false)]);
     let schema = Arc::new(schema);
     let expected_res =
@@ -38,9 +42,9 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
     let accessor = RecordBatchTestAccessor::new_empty();
-    let res = VerifiableQueryResult {
+    let res = VerifiableQueryResult::<InnerProductProof> {
         provable_result: Some(Default::default()),
-        ..Default::default()
+        proof: None,
     };
-    assert!(res.verify(&expr, &accessor).is_err());
+    assert!(res.verify(&expr, &accessor, &()).is_err());
 }

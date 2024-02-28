@@ -14,6 +14,7 @@ use crate::{
     },
 };
 use arrow::datatypes::{Field, Schema};
+use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use indexmap::IndexMap;
@@ -150,8 +151,11 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
-    let res = res.verify(&expr, &accessor).unwrap().into_record_batch();
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = res
+        .verify(&expr, &accessor, &())
+        .unwrap()
+        .into_record_batch();
     let expected = record_batch!(
         "b" => [3_i64, 5],
     );

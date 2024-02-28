@@ -25,9 +25,9 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
         tab(t),
         equal(t, "b", 99, &accessor),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "a" => [1_i64, 2],
         "sum_c" => [101_i64+104, 102+103],
@@ -98,9 +98,9 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(t, "varchar_filter", "f2", &accessor),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "scalar_group" => [ArkScalar::from(4), ArkScalar::from(4), ArkScalar::from(4)],
         "int128_group" => [8_i128, 8, 9],
@@ -130,9 +130,9 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             equal(t, "varchar_filter", "f2", &accessor),
         ),
     );
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor).unwrap().table;
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
         "sum_int" => [1406_i64 + 927 + 637],
         "sum_128" => [1342_i128 + 1262 + 513],

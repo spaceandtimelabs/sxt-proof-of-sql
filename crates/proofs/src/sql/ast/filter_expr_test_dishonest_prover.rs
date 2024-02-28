@@ -14,6 +14,7 @@ use crate::{
         },
     },
 };
+use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 
@@ -77,9 +78,9 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::new(&expr, &accessor);
+    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(
-        res.verify(&expr, &accessor),
+        res.verify(&expr, &accessor, &()),
         Err(QueryError::ProofError(ProofError::VerificationError(_)))
     ));
 }

@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use arrow::record_batch::RecordBatch;
+use blitzar::proof::InnerProductProof;
 use curve25519_dalek::RistrettoPoint;
 use polars::prelude::{Expr, *};
 
@@ -45,14 +46,14 @@ impl TestExprNode {
         }
     }
 
-    pub fn create_verifiable_result(&self) -> VerifiableQueryResult {
-        VerifiableQueryResult::new(&self.ast, &self.accessor)
+    pub fn create_verifiable_result(&self) -> VerifiableQueryResult<InnerProductProof> {
+        VerifiableQueryResult::new(&self.ast, &self.accessor, &())
     }
 
     pub fn verify_expr(&self) -> RecordBatch {
-        let res = VerifiableQueryResult::new(&self.ast, &self.accessor);
+        let res = VerifiableQueryResult::new(&self.ast, &self.accessor, &());
         exercise_verification(&res, &self.ast, &self.accessor, self.table_ref);
-        res.verify(&self.ast, &self.accessor)
+        res.verify(&self.ast, &self.accessor, &())
             .unwrap()
             .into_record_batch()
     }

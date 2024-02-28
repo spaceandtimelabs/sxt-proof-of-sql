@@ -38,9 +38,9 @@ fn create_and_verify_test_and_expr(
         equal(t, rhs.0, rhs.1, &accessor),
     );
     let ast = FilterExpr::new(cols_result(t, results, &accessor), tab(t), and_expr);
-    let res = VerifiableQueryResult::new(&ast, &accessor);
+    let res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&res, &ast, &accessor, t);
-    res.verify(&ast, &accessor).unwrap().table
+    res.verify(&ast, &accessor, &()).unwrap().table
 }
 /// This function filters the given data using polars with the given parameters.
 fn filter_test_and_expr(
