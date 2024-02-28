@@ -1,4 +1,7 @@
-use blitzar::compute::{init_backend_with_config, BackendConfig};
+use blitzar::{
+    compute::{init_backend_with_config, BackendConfig},
+    proof::InnerProductProof,
+};
 use clap::Parser;
 use curve25519_dalek::RistrettoPoint;
 use proofs::{
@@ -117,9 +120,10 @@ fn process_query(
     sample_iter: usize,
 ) -> QueryResult {
     // generate and verify proof
-    let verifiable_result = VerifiableQueryResult::new(provable_ast, accessor);
+    let verifiable_result =
+        VerifiableQueryResult::<InnerProductProof>::new(provable_ast, accessor, &());
 
-    verifiable_result.verify(provable_ast, accessor)
+    verifiable_result.verify(provable_ast, accessor, &())
 }
 
 fn run_benchmarks() {
