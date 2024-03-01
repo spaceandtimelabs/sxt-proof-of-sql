@@ -15,7 +15,7 @@ pub use vec_commitment_ext::VecCommitmentExt;
 
 mod column_bounds;
 use super::scalar::ArkScalar;
-pub use column_bounds::{ColumnBounds, ColumnBoundsMismatch};
+pub use column_bounds::{Bounds, ColumnBounds, ColumnBoundsMismatch};
 
 mod column_commitment_metadata;
 pub use column_commitment_metadata::{ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch};
