@@ -128,7 +128,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let evaluation_proof = CP::new(
             &mut transcript,
             &folded_mle,
-            &evaluation_vec,
+            &evaluation_point,
             generator_offset as u64,
             setup,
         );
@@ -286,8 +286,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 &mut transcript,
                 &expected_commit,
                 &product,
-                &evaluation_vec,
+                &subclaim.evaluation_point,
                 generator_offset as u64,
+                table_length,
                 setup,
             )
             .map_err(|_e| {
