@@ -28,21 +28,31 @@ pub trait CommitmentEvaluationProof {
     /// This is simply precomputed data that is required by the verifier to verify a proof.
     type VerifierPublicSetup;
     /// Create a new proof.
+    ///
+    /// Note: b_point must have length `nu`, where `2^nu` is at least the length of `a`.
+    /// `b_point` are the values for the variables that are being evaluated.
+    /// The resulting evaluation is the the inner product of `a` and `b`, where `b` is the expanded vector form of `b_point`.
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
-        b: &[Self::Scalar],
+        b_point: &[Self::Scalar],
         generators_offset: u64,
         setup: &Self::ProverPublicSetup,
     ) -> Self;
     /// Verify a proof.
+    ///
+    /// Note: b_point must have length `nu`, where `2^nu` is at least the length of `a`.
+    /// `b_point` are the values for the variables that are being evaluated.
+    /// The resulting evaluation is the the inner product of `a` and `b`, where `b` is the expanded vector form of `b_point`.
+    #[allow(clippy::too_many_arguments)]
     fn verify_proof(
         &self,
         transcript: &mut Transcript,
         a_commit: &Self::Commitment,
         product: &Self::Scalar,
-        b: &[Self::Scalar],
+        b_point: &[Self::Scalar],
         generators_offset: u64,
+        table_length: usize,
         setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error>;
 }
@@ -57,10 +67,18 @@ impl CommitmentEvaluationProof for InnerProductProof {
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
-        b: &[Self::Scalar],
+        b_point: &[Self::Scalar],
         generators_offset: u64,
         _setup: &Self::ProverPublicSetup,
     ) -> Self {
+        assert!(!a.is_empty());
+        let b = &mut vec![Default::default(); a.len()];
+        if b_point.is_empty() {
+            assert_eq!(b.len(), 1);
+            b[0] = Self::Scalar::ONE;
+        } else {
+            crate::base::polynomial::compute_evaluation_vector(b, b_point);
+        }
         Self::create(
             transcript,
             &slice_ops::slice_cast(a),
@@ -73,10 +91,19 @@ impl CommitmentEvaluationProof for InnerProductProof {
         transcript: &mut Transcript,
         a_commit: &Self::Commitment,
         product: &Self::Scalar,
-        b: &[Self::Scalar],
+        b_point: &[Self::Scalar],
         generators_offset: u64,
+        table_length: usize,
         _setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error> {
+        assert!(table_length > 0);
+        let b = &mut vec![Default::default(); table_length];
+        if b_point.is_empty() {
+            assert_eq!(b.len(), 1);
+            b[0] = Self::Scalar::ONE;
+        } else {
+            crate::base::polynomial::compute_evaluation_vector(b, b_point);
+        }
         self.verify(
             transcript,
             a_commit,
