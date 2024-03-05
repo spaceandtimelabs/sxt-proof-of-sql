@@ -115,8 +115,16 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         level = "info",
         skip_all
     )]
-    pub fn commit_intermediate_mles<V: VecCommitmentExt>(&self, offset_generators: usize) -> V {
-        V::from_commitable_columns_with_offset(&self.commitment_descriptor, offset_generators)
+    pub fn commit_intermediate_mles<V: VecCommitmentExt>(
+        &self,
+        offset_generators: usize,
+        setup: &V::CommitmentPublicSetup,
+    ) -> V {
+        V::from_commitable_columns_with_offset(
+            &self.commitment_descriptor,
+            offset_generators,
+            setup,
+        )
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all

@@ -15,8 +15,10 @@ pub trait CommitmentEvaluationProof {
     /// The associated commitment type.
     type Commitment: Commitment<Scalar = Self::Scalar>;
     /// A collection of commitments. Most commonly this is a `Vec`.
-    type VecCommitment: VecCommitmentExt<DecompressedCommitment = Self::Commitment>
-        + Serialize
+    type VecCommitment: VecCommitmentExt<
+            DecompressedCommitment = Self::Commitment,
+            CommitmentPublicSetup = Self::ProverPublicSetup,
+        > + Serialize
         + Clone
         + for<'a> Deserialize<'a>;
     /// The error type for the proof.

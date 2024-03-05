@@ -18,8 +18,16 @@ pub struct NumColumnsMismatch;
 ///
 /// Implemented for `Vec<CompressedRistretto>`.
 pub trait VecCommitmentExt {
+    /// The public setup parameters required to compute the commitments.
+    /// This is simply precomputed data that is required to compute the commitments.
+    type CommitmentPublicSetup;
+
     /// Returns a collection of commitments to the provided columns using the given generator offset.
-    fn from_columns_with_offset<'a, C>(columns: impl IntoIterator<Item = C>, offset: usize) -> Self
+    fn from_columns_with_offset<'a, C>(
+        columns: impl IntoIterator<Item = C>,
+        offset: usize,
+        setup: &Self::CommitmentPublicSetup,
+    ) -> Self
     where
         C: Into<CommittableColumn<'a>>;
 
@@ -27,6 +35,7 @@ pub trait VecCommitmentExt {
     fn from_commitable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
+        setup: &Self::CommitmentPublicSetup,
     ) -> Self;
 
     /// Append rows of data from the provided columns to the existing commitments.
@@ -39,6 +48,7 @@ pub trait VecCommitmentExt {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
+        setup: &Self::CommitmentPublicSetup,
     ) -> Result<(), NumColumnsMismatch>
     where
         C: Into<CommittableColumn<'a>>;
@@ -48,6 +58,7 @@ pub trait VecCommitmentExt {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
+        setup: &Self::CommitmentPublicSetup,
     ) where
         C: Into<CommittableColumn<'a>>;
 
@@ -74,19 +85,25 @@ pub trait VecCommitmentExt {
 }
 
 impl VecCommitmentExt for Vec<CompressedRistretto> {
-    fn from_columns_with_offset<'a, C>(columns: impl IntoIterator<Item = C>, offset: usize) -> Self
+    type CommitmentPublicSetup = ();
+    fn from_columns_with_offset<'a, C>(
+        columns: impl IntoIterator<Item = C>,
+        offset: usize,
+        setup: &Self::CommitmentPublicSetup,
+    ) -> Self
     where
         C: Into<CommittableColumn<'a>>,
     {
         let committable_columns: Vec<CommittableColumn<'a>> =
             columns.into_iter().map(Into::into).collect::<Vec<_>>();
 
-        Self::from_commitable_columns_with_offset(&committable_columns, offset)
+        Self::from_commitable_columns_with_offset(&committable_columns, offset, setup)
     }
 
     fn from_commitable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
+        _setup: &Self::CommitmentPublicSetup,
     ) -> Self {
         let sequences: Vec<_> = committable_columns.iter().map(Sequence::from).collect();
 
@@ -100,6 +117,7 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
+        _setup: &Self::CommitmentPublicSetup,
     ) -> Result<(), NumColumnsMismatch>
     where
         C: Into<CommittableColumn<'a>>,
@@ -122,10 +140,11 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
+        setup: &Self::CommitmentPublicSetup,
     ) where
         C: Into<CommittableColumn<'a>>,
     {
-        self.extend(Self::from_columns_with_offset(columns, offset))
+        self.extend(Self::from_columns_with_offset(columns, offset, setup))
     }
 
     fn try_add(self, other: Self) -> Result<Self, NumColumnsMismatch>
@@ -205,6 +224,7 @@ mod tests {
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
             &Vec::<Column<ArkScalar>>::new(),
             0,
+            &(),
         );
 
         assert!(commitments.is_empty());
@@ -218,7 +238,7 @@ mod tests {
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
         compute_curve25519_commitments(
@@ -248,7 +268,8 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let mut commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
             OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
@@ -256,7 +277,7 @@ mod tests {
         ];
 
         commitments
-            .try_append_rows_with_offset(&new_columns, 3)
+            .try_append_rows_with_offset(&new_columns, 3, &())
             .unwrap();
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 2];
@@ -287,17 +308,18 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let mut commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = Vec::<Column<ArkScalar>>::new();
         assert!(matches!(
-            commitments.try_append_rows_with_offset(&new_columns, 3),
+            commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
         assert!(matches!(
-            commitments.try_append_rows_with_offset(&new_columns, 3),
+            commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
@@ -307,7 +329,7 @@ mod tests {
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
         assert!(matches!(
-            commitments.try_append_rows_with_offset(&new_columns, 3),
+            commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
     }
@@ -324,14 +346,15 @@ mod tests {
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let mut commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let mut commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
             OwnedColumn::<ArkScalar>::VarChar(column_c.to_vec()),
             OwnedColumn::BigInt(column_d.to_vec()),
         ];
 
-        commitments.extend_columns_with_offset(&new_columns, 0);
+        commitments.extend_columns_with_offset(&new_columns, 0, &());
 
         let mut expected_commitments = vec![CompressedRistretto::default(); 4];
         compute_curve25519_commitments(
@@ -368,14 +391,15 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
             OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
-        let commitments_b = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
+        let commitments_b =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
 
         let commitments = commitments_a.try_add(commitments_b).unwrap();
 
@@ -407,17 +431,19 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = Vec::<Column<ArkScalar>>::new();
-        let new_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
+        let new_commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
-        let new_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
+        let new_commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
@@ -428,7 +454,8 @@ mod tests {
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
-        let new_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3);
+        let new_commitments =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.try_add(new_commitments),
             Err(NumColumnsMismatch)
@@ -445,14 +472,15 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let full_columns = vec![
             OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let commitments_b = Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
+        let commitments_b =
+            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
 
         let commitments = commitments_b.try_sub(commitments_a).unwrap();
 
@@ -479,11 +507,11 @@ mod tests {
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0);
+        let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let full_columns = Vec::<Column<ArkScalar>>::new();
         let full_commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
+            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.clone().try_sub(commitments.clone()),
             Err(NumColumnsMismatch)
@@ -491,7 +519,7 @@ mod tests {
 
         let full_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec())];
         let full_commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
+            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.try_sub(commitments.clone()),
             Err(NumColumnsMismatch)
@@ -503,7 +531,7 @@ mod tests {
             OwnedColumn::BigInt(column_a.to_vec()),
         ];
         let full_commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0);
+            Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.try_sub(commitments),
             Err(NumColumnsMismatch)

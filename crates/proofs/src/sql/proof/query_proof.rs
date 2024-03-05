@@ -85,7 +85,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
-        let commitments: CP::VecCommitment = builder.commit_intermediate_mles(generator_offset);
+        let commitments: CP::VecCommitment =
+            builder.commit_intermediate_mles(generator_offset, setup);
 
         // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
