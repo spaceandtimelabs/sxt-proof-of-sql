@@ -17,6 +17,15 @@ pub trait MultilinearExtension<S: Scalar> {
 
     /// pointer to identify the slice forming the MLE
     fn id(&self) -> *const c_void;
+
+    #[cfg(test)]
+    /// Given an evaluation point, compute the evaluation of the multilinear
+    /// extension. This is inefficient and should only be used for testing.
+    fn evaluate_at_point(&self, evaluation_point: &[S]) -> S {
+        let mut evaluation_vec = vec![Default::default(); 1 << evaluation_point.len()];
+        super::compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
+        self.inner_product(&evaluation_vec)
+    }
 }
 
 impl<'a, T: Sync, S: Scalar> MultilinearExtension<S> for &'a [T]

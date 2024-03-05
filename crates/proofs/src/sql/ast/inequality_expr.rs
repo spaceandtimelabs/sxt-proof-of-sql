@@ -45,6 +45,7 @@ impl<S: Scalar> InequalityExpr<S> {
 
 impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        builder.count_anchored_mles(1);
         count_equals_zero(builder);
         count_sign(builder)?;
         count_or(builder);
@@ -98,7 +99,7 @@ impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
         let table_length = builder.table_length();
 
         // lhs
-        let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
+        let (lhs, col) = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
             let lhs = alloc.alloc_slice_fill_default(table_length);
             if self.is_lte {
                 lhs.par_iter_mut()
@@ -109,12 +110,13 @@ impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
                     .zip(col)
                     .for_each(|(a, b)| *a = self.value - Into::<C::Scalar>::into(b));
             }
-            lhs
+            (lhs, col)
         } else {
             panic!("invalid column type")
         };
 
         // lhs == 0
+        builder.produce_anchored_mle(col);
         let equals_zero = prover_evaluate_equals_zero(builder, alloc, lhs);
 
         // sign(lhs) == -1
@@ -129,20 +131,22 @@ impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let one_commit = *builder.one_commit();
+        let one_eval = builder.mle_evaluations.one_evaluation;
 
-        // commit
-        let commit = if self.is_lte {
-            accessor.get_commitment(self.column_ref) - self.value * one_commit
+        let col_eval = builder.consume_anchored_mle(&accessor.get_commitment(self.column_ref));
+
+        // eval
+        let lhs_eval = if self.is_lte {
+            col_eval - self.value * one_eval
         } else {
-            self.value * one_commit - accessor.get_commitment(self.column_ref)
+            self.value * one_eval - col_eval
         };
 
         // lhs == 0
-        let equals_zero = verifier_evaluate_equals_zero(builder, &commit);
+        let equals_zero = verifier_evaluate_equals_zero(builder, lhs_eval);
 
         // sign(lhs) == -1
-        let sign = verifier_evaluate_sign(builder, &commit, &one_commit)?;
+        let sign = verifier_evaluate_sign(builder, lhs_eval, one_eval)?;
 
         // (lhs == 0) || (sign(lhs) == -1)
         Ok(verifier_evaluate_or(builder, &equals_zero, &sign))
