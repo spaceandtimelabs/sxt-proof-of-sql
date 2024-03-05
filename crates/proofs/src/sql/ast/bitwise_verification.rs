@@ -1,6 +1,4 @@
-use crate::base::{
-    bit::BitDistribution, commitment::Commitment, proof::ProofError, scalar::Scalar,
-};
+use crate::base::{bit::BitDistribution, proof::ProofError, scalar::Scalar};
 /// In order to avoid cases with large numbers where there can be both a positive and negative
 /// representation, we restrict the range of bit distributions that we accept.
 ///
@@ -20,28 +18,28 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     dist.most_significant_abs_bit() <= 128
 }
 
-/// Given a bit distribution for a column of data with a constant sign, the commitment of a column
-/// of ones, the constant column's commitment, and the commitment of varying absolute bits, verify
+/// Given a bit distribution for a column of data with a constant sign, the evaluation of a column
+/// of ones, the constant column's evaluation, and the evaluation of varying absolute bits, verify
 /// that the bit distribution is correct.
-pub fn verify_constant_sign_decomposition<C: Commitment>(
+pub fn verify_constant_sign_decomposition<S: Scalar>(
     dist: &BitDistribution,
-    commit: &C,
-    one_commit: &C,
-    bit_commits: &[C],
+    eval: S,
+    one_eval: S,
+    bit_evals: &[S],
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
             && is_within_acceptable_range(dist)
-            && dist.num_varying_bits() == bit_commits.len()
+            && dist.num_varying_bits() == bit_evals.len()
             && !dist.has_varying_sign_bit()
     );
-    let lhs = if dist.sign_bit() { -*commit } else { *commit };
-    let mut rhs = C::Scalar::from(dist.constant_part()) * one_commit;
+    let lhs = if dist.sign_bit() { -eval } else { eval };
+    let mut rhs = S::from(dist.constant_part()) * one_eval;
     let mut vary_index = 0;
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
-        rhs += C::Scalar::from(mult) * bit_commits[vary_index];
+        rhs += S::from(mult) * bit_evals[vary_index];
         vary_index += 1;
     });
     if lhs == rhs {
@@ -53,11 +51,11 @@ pub fn verify_constant_sign_decomposition<C: Commitment>(
     }
 }
 
-pub fn verify_constant_abs_decomposition<C: Commitment>(
+pub fn verify_constant_abs_decomposition<S: Scalar>(
     dist: &BitDistribution,
-    commit: &C,
-    one_commit: &C,
-    sign_commit: &C,
+    eval: S,
+    one_eval: S,
+    sign_eval: S,
 ) -> Result<(), ProofError> {
     assert!(
         dist.is_valid()
@@ -65,8 +63,8 @@ pub fn verify_constant_abs_decomposition<C: Commitment>(
             && dist.num_varying_bits() == 1
             && dist.has_varying_sign_bit()
     );
-    let t = *one_commit - C::Scalar::TWO * sign_commit;
-    if C::Scalar::from(dist.constant_part()) * t == *commit {
+    let t = one_eval - S::TWO * sign_eval;
+    if S::from(dist.constant_part()) * t == eval {
         Ok(())
     } else {
         Err(ProofError::VerificationError(

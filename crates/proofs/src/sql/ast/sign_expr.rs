@@ -15,7 +15,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use num_traits::Zero;
 
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
@@ -32,7 +31,6 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     builder.count_subpolynomials(dist.num_varying_bits());
     builder.count_degree(3);
     if dist.has_varying_sign_bit() && dist.num_varying_bits() > 1 {
-        builder.count_anchored_mles(1);
         builder.count_subpolynomials(1);
     }
     Ok(())
@@ -108,8 +106,8 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 /// See prover_evaluate_sign.
 pub fn verifier_evaluate_sign<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
-    commit: &C,
-    one_commit: &C,
+    eval: C::Scalar,
+    one_eval: C::Scalar,
 ) -> Result<C::Scalar, ProofError> {
     // bit_distribution
     let dist = builder.consume_bit_distribution();
@@ -118,11 +116,9 @@ pub fn verifier_evaluate_sign<C: Commitment>(
     // extract evaluations and commitmens of the multilinear extensions for the varying
     // bits of the expression
     let mut bit_evals = Vec::with_capacity(num_varying_bits);
-    let mut bit_commits = Vec::with_capacity(num_varying_bits);
     for _ in 0..num_varying_bits {
-        let (eval, commit) = builder.consume_intermediate_mle_with_commit();
+        let eval = builder.consume_intermediate_mle();
         bit_evals.push(eval);
-        bit_commits.push(commit);
     }
 
     // establish that the bits are binary
@@ -130,31 +126,30 @@ pub fn verifier_evaluate_sign<C: Commitment>(
 
     // handle the special case of the sign bit being constant
     if !dist.has_varying_sign_bit() {
-        return verifier_const_sign_evaluate(builder, &dist, commit, one_commit, &bit_commits);
+        return verifier_const_sign_evaluate(&dist, eval, one_eval, &bit_evals);
     }
 
     // handle the special case of the absolute part being constant
     if dist.num_varying_bits() == 1 {
-        verify_constant_abs_decomposition(&dist, commit, one_commit, &bit_commits[0])?;
+        verify_constant_abs_decomposition(&dist, eval, one_eval, bit_evals[0])?;
     } else {
-        verify_bit_decomposition(builder, commit, &bit_evals, &dist);
+        verify_bit_decomposition(builder, eval, &bit_evals, &dist);
     }
 
     Ok(*bit_evals.last().unwrap())
 }
 
-fn verifier_const_sign_evaluate<C: Commitment>(
-    builder: &VerificationBuilder<C>,
+fn verifier_const_sign_evaluate<S: Scalar>(
     dist: &BitDistribution,
-    commit: &C,
-    one_commit: &C,
-    bit_commits: &[C],
-) -> Result<C::Scalar, ProofError> {
-    verify_constant_sign_decomposition(dist, commit, one_commit, bit_commits)?;
+    eval: S,
+    one_eval: S,
+    bit_evals: &[S],
+) -> Result<S, ProofError> {
+    verify_constant_sign_decomposition(dist, eval, one_eval, bit_evals)?;
     if dist.sign_bit() {
-        Ok(builder.mle_evaluations.one_evaluation)
+        Ok(one_eval)
     } else {
-        Ok(C::Scalar::zero())
+        Ok(S::zero())
     }
 }
 
@@ -189,8 +184,6 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     bits: &[&'a [bool]],
     dist: &BitDistribution,
 ) {
-    builder.produce_anchored_mle(expr);
-
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
         alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
@@ -219,14 +212,14 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 
 fn verify_bit_decomposition<C: Commitment>(
     builder: &mut VerificationBuilder<'_, C>,
-    expr_commit: &C,
+    expr_eval: C::Scalar,
     bit_evals: &[C::Scalar],
     dist: &BitDistribution,
 ) {
+    let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
     let sign_eval = builder.mle_evaluations.one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;
-    let mut eval = builder.consume_anchored_mle(expr_commit);
     eval -= sign_eval * C::Scalar::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];

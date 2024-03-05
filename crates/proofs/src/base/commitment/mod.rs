@@ -59,17 +59,10 @@ pub trait Commitment:
         + core::ops::Mul<Self, Output = Self>
         + serde::Serialize
         + for<'a> serde::Deserialize<'a>;
-    /// Computes the commitment to the vector of scalars that are 1 in the given range and 0 elsewhere.
-    fn compute_ones_commit(range: core::ops::Range<u64>) -> Self;
 }
 
 impl Commitment for RistrettoPoint {
     type Scalar = ArkScalar;
-
-    fn compute_ones_commit(range: core::ops::Range<u64>) -> Self {
-        blitzar::compute::get_one_curve25519_commit(range.end)
-            - blitzar::compute::get_one_curve25519_commit(range.start)
-    }
 }
 
 mod commitment_evaluation_proof;
