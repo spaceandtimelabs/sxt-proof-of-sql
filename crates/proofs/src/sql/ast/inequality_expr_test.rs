@@ -260,6 +260,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let mut builder = ProofBuilder::new(3, 2, Vec::new());
 
     let lhs = [ArkScalar::zero(); 3];
+    builder.produce_anchored_mle(&lhs);
     let equals_zero = prover_evaluate_equals_zero(&mut builder, &alloc, &lhs);
 
     let mut bit_distribution = BitDistribution {

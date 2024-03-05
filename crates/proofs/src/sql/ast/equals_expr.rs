@@ -66,12 +66,14 @@ impl<S: Scalar> EqualsExpr<S> {
         lhs.par_iter_mut()
             .zip(col)
             .for_each(|(a, b)| *a = Into::<S>::into(b) - self.value);
+        builder.produce_anchored_mle(col);
         prover_evaluate_equals_zero(builder, alloc, lhs)
     }
 }
 
 impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        builder.count_anchored_mles(1);
         count_equals_zero(builder);
         Ok(())
     }
@@ -122,12 +124,13 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let one_commit = builder.one_commit();
+        let one_eval = builder.mle_evaluations.one_evaluation;
+        let col_eval = builder.consume_anchored_mle(&accessor.get_commitment(self.column_ref));
 
-        // lhs_commit
-        let lhs_commit = accessor.get_commitment(self.column_ref) - self.value * one_commit;
+        // lhs_eval
+        let lhs_eval = col_eval - self.value * one_eval;
 
-        Ok(verifier_evaluate_equals_zero(builder, &lhs_commit))
+        Ok(verifier_evaluate_equals_zero(builder, lhs_eval))
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
@@ -150,9 +153,6 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
     lhs: &'a [S],
 ) -> &'a [bool] {
     let table_length = builder.table_length();
-
-    // lhs
-    builder.produce_anchored_mle(lhs);
 
     // lhs_pseudo_inv
     let lhs_pseudo_inv = alloc.alloc_slice_copy(lhs);
@@ -190,10 +190,9 @@ pub fn prover_evaluate_equals_zero<'a, S: Scalar>(
 
 pub fn verifier_evaluate_equals_zero<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
-    lhs_commit: &C,
+    lhs_eval: C::Scalar,
 ) -> C::Scalar {
     // consume mle evaluations
-    let lhs_eval = builder.consume_anchored_mle(lhs_commit);
     let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
     let selection_not_eval = builder.consume_intermediate_mle();
     let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
@@ -212,7 +211,6 @@ pub fn verifier_evaluate_equals_zero<C: Commitment>(
 
 pub fn count_equals_zero(builder: &mut CountBuilder) {
     builder.count_subpolynomials(2);
-    builder.count_anchored_mles(1);
     builder.count_intermediate_mles(2);
     builder.count_degree(3);
 }

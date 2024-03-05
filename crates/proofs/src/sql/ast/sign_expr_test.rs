@@ -2,9 +2,9 @@ use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::Commitment,
         database::{RecordBatchTestAccessor, TestAccessor},
-        scalar::{compute_commitment_for_testing, ArkScalar},
+        polynomial::MultilinearExtension,
+        scalar::ArkScalar,
     },
     record_batch,
     sql::{
@@ -16,6 +16,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::RistrettoPoint;
 use num_traits::Zero;
 
 #[test]
@@ -68,7 +69,6 @@ fn count_fails_if_no_bit_distribution_is_available() {
 #[test]
 fn we_can_verify_a_constant_decomposition() {
     let data = [123_i64, 123, 123];
-    let one_commit = Commitment::compute_ones_commit(0..data.len() as u64);
 
     let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
@@ -82,18 +82,18 @@ fn we_can_verify_a_constant_decomposition() {
         &[],
         &Default::default(),
     );
+    let one_eval = sumcheck_evaluations.one_evaluation;
 
-    let mut builder =
+    let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
-    let commit = compute_commitment_for_testing(&data, 0);
-    let eval = verifier_evaluate_sign(&mut builder, &commit, &one_commit).unwrap();
+    let data_eval = (&data).evaluate_at_point(&evaluation_point);
+    let eval = verifier_evaluate_sign(&mut builder, data_eval, one_eval).unwrap();
     assert_eq!(eval, ArkScalar::zero());
 }
 
 #[test]
 fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_distribution() {
     let data = [123_i64, 123, 123];
-    let one_commit = Commitment::compute_ones_commit(0..data.len() as u64);
 
     let dists = [BitDistribution::new::<ArkScalar, _>(&data)];
     let scalars = [ArkScalar::from(97), ArkScalar::from(3432)];
@@ -107,11 +107,12 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &[],
         &Default::default(),
     );
+    let one_eval = sumcheck_evaluations.one_evaluation;
 
-    let mut builder =
+    let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
-    let commit = ArkScalar::from(2) * compute_commitment_for_testing(&data, 0);
-    assert!(verifier_evaluate_sign(&mut builder, &commit, &one_commit).is_err());
+    let data_eval = ArkScalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
+    assert!(verifier_evaluate_sign(&mut builder, data_eval, one_eval).is_err());
 }
 
 #[test]
