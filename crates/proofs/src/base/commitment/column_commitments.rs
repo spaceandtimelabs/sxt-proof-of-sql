@@ -105,7 +105,7 @@ impl ColumnCommitments {
         );
 
         let commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(committable_columns, offset);
+            Vec::<CompressedRistretto>::from_columns_with_offset(committable_columns, offset, &());
 
         Ok(ColumnCommitments {
             commitments,
@@ -157,7 +157,7 @@ impl ColumnCommitments {
         self.column_metadata = self.column_metadata.to_owned().try_union(column_metadata)?;
 
         self.commitments
-            .try_append_rows_with_offset(committable_columns, offset)
+            .try_append_rows_with_offset(committable_columns, offset, &())
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(())
@@ -340,6 +340,7 @@ mod tests {
         let expected_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
             owned_table.inner_table().values(),
             0,
+            &(),
         );
         assert_eq!(column_commitments.commitments(), &expected_commitments);
 
@@ -465,6 +466,7 @@ mod tests {
         let expected_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
             owned_table.inner_table().values(),
             0,
+            &(),
         );
 
         let mut iterator = column_commitments.iter();
