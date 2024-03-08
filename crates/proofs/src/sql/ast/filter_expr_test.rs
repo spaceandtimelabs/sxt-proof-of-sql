@@ -4,7 +4,7 @@ use crate::{
             ColumnField, ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RecordBatchTestAccessor, TableRef, TestAccessor,
         },
-        math::precision::Precision,
+        math::decimal::Precision,
         scalar::ArkScalar,
     },
     owned_table, record_batch,

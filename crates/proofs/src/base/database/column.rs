@@ -1,5 +1,5 @@
 use super::TableRef;
-use crate::base::{math::precision::Precision, scalar::Scalar};
+use crate::base::{math::decimal::Precision, scalar::Scalar};
 use arrow::datatypes::{DataType, Field};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};

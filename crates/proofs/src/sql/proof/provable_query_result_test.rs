@@ -2,7 +2,7 @@ use super::{ProvableQueryResult, ProvableResultColumn};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
-        math::precision::Precision,
+        math::decimal::Precision,
         scalar::{ArkScalar, Scalar},
     },
     sql::proof::Indexes,
