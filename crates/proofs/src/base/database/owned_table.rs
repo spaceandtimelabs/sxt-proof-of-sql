@@ -103,7 +103,7 @@ impl<S: Scalar> OwnedTable<S> {
         scale: i8,
         values: Vec<S>,
     ) {
-        use crate::base::math::precision::Precision;
+        use crate::base::math::decimal::Precision;
 
         let column = OwnedColumn::Decimal75(Precision::new(precision).unwrap(), scale, values);
         self.table.insert(name.parse().unwrap(), column);

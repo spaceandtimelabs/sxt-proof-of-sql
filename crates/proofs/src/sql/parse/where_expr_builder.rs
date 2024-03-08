@@ -8,7 +8,7 @@ use proofs_sql::{
 };
 use std::collections::HashMap;
 
-/// Buildder that enables building a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
+/// Builder that enables building a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
 /// intended to be used as the where clause in a filter expression or group by expression.
 pub struct WhereExprBuilder<'a> {
     column_mapping: &'a HashMap<Identifier, ColumnRef>,

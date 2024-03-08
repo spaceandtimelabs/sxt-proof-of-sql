@@ -1,5 +1,5 @@
 use crate::{
-    base::math::precision::Precision,
+    base::math::decimal::Precision,
     sql::ast::{
         test_utility::{and, not, or},
         BoolExprPlan,
