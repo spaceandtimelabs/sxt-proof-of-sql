@@ -1,6 +1,6 @@
 use super::{filter_columns, fold_vals};
 use crate::{
-    base::{database::Column, math::precision::Precision, scalar::ArkScalar},
+    base::{database::Column, math::decimal::Precision, scalar::ArkScalar},
     sql::ast::dense_filter_util::fold_columns,
 };
 use bumpalo::Bump;

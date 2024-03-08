@@ -3,7 +3,7 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::ColumnType;
-use crate::base::{math::precision::Precision, scalar::Scalar};
+use crate::base::{math::decimal::Precision, scalar::Scalar};
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 /// Supported types for OwnedColumn
