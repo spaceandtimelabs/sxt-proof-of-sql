@@ -1,6 +1,9 @@
 use super::QueryContext;
 use crate::{
-    base::database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
+    base::{
+        database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
+        math::decimal::Precision,
+    },
     sql::parse::{ConversionError, ConversionResult},
 };
 use proofs_sql::{
@@ -126,7 +129,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_expr(&mut self, expr: &mut Expression) -> ConversionResult<Option<ColumnType>> {
         match expr {
             Expression::Wildcard => self.visit_wildcard_expr(expr),
-            Expression::Literal(literal) => Ok(Some(self.visit_literal(literal.deref()))),
+            Expression::Literal(literal) => Ok(Some(self.visit_literal(literal.deref())?)),
             Expression::Column(_) => self.visit_column_expr(expr),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, expr),
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, left, right),
@@ -265,18 +268,22 @@ impl<'a> QueryContextBuilder<'a> {
             _ => panic!("Left side of comparison expression must be a column"),
         };
         let right_dtype = match right {
-            Expression::Literal(literal) => self.visit_literal(literal),
+            Expression::Literal(literal) => self.visit_literal(literal)?,
             _ => panic!("Right side of comparison expression must be a literal"),
         };
         check_dtypes(left_dtype, right_dtype)?;
         Ok(())
     }
 
-    fn visit_literal(&self, literal: &Literal) -> ColumnType {
+    fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
-            Literal::Int128(_) => ColumnType::Int128,
-            Literal::VarChar(_) => ColumnType::VarChar,
-            Literal::Decimal(_) => todo!(),
+            Literal::Int128(_) => Ok(ColumnType::Int128),
+            Literal::VarChar(_) => Ok(ColumnType::VarChar),
+            Literal::Decimal(d) => {
+                let precision =
+                    Precision::new(d.precision()).map_err(ConversionError::PrecisionParseError)?;
+                Ok(ColumnType::Decimal75(precision, d.scale()))
+            }
         }
     }
 
@@ -296,13 +303,33 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
+fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bool {
+    matches!(
+        (left_dtype, right_dtype),
+        (ColumnType::BigInt, ColumnType::BigInt)
+            | (ColumnType::BigInt, ColumnType::Int128)
+            | (
+                ColumnType::BigInt | ColumnType::Int128,
+                ColumnType::Decimal75(_, _)
+            )
+            | (ColumnType::Int128, ColumnType::Int128)
+            | (ColumnType::Int128, ColumnType::BigInt)
+            | (ColumnType::Decimal75(_, _), ColumnType::Decimal75(_, _))
+            | (
+                ColumnType::Decimal75(_, _),
+                ColumnType::BigInt | ColumnType::Int128
+            )
+            | (ColumnType::VarChar, ColumnType::VarChar)
+    )
+}
+
 fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> ConversionResult<()> {
-    match (left_dtype, right_dtype) {
-        (ColumnType::BigInt | ColumnType::Int128, ColumnType::BigInt | ColumnType::Int128)
-        | (ColumnType::VarChar, ColumnType::VarChar) => Ok(()),
-        _ => Err(ConversionError::DataTypeMismatch(
+    if are_types_compatible(&left_dtype, &right_dtype) {
+        Ok(())
+    } else {
+        Err(ConversionError::DataTypeMismatch(
             left_dtype.to_string(),
             right_dtype.to_string(),
-        )),
+        ))
     }
 }
