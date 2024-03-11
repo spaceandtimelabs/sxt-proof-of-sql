@@ -276,6 +276,7 @@ impl<'a> QueryContextBuilder<'a> {
         match literal {
             Literal::Int128(_) => ColumnType::Int128,
             Literal::VarChar(_) => ColumnType::VarChar,
+            Literal::Decimal(_) => todo!(),
         }
     }
 

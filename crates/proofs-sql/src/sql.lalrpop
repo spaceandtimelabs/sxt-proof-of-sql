@@ -2,6 +2,7 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
+use crate::decimal_unknown::DecimalUnknown;
 
 grammar;
 
@@ -325,6 +326,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
 
     <value: Int128UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::Int128(<>)),
+
+    <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -341,17 +344,22 @@ pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
     Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
 };
 
+DecimalNumericLiteral: DecimalUnknown = {
+    <lit:DECIMAL_LIT> => DecimalUnknown::new(lit),
+};
+
 Int128NumericLiteral: i128 = {
-    NUMERIC_LIT =>? <>.parse::<i128>().map_err(|_| User {error: "Integer out of range"}),
+    INTEGER_LIT =>? <>.parse::<i128>().map_err(|_| User {error: "i128 out of range"}),
 };
 
 Int64NumericLiteral: i64 = {
-    NUMERIC_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "Integer out of range"}),
+    INTEGER_LIT =>? <>.parse::<i64>().map_err(|_| User {error: "i64 out of range"}),
 };
 
 UInt64NumericLiteral: u64 = {
-    NUMERIC_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "Integer out of range"}),
+    INTEGER_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "u64 out of range"}),
 };
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Lexer specification, with the primary purpose of making language keywords case insensitive //
@@ -390,6 +398,9 @@ match {
     r"(!=|<>)" => "!=",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
-    r"[+-]?[0-9]+([0-9]*)" => NUMERIC_LIT,
+    // Decimal numbers with mandatory fractional part
+    r"[+-]?([0-9]*\.[0-9]+|[0-9]+\.[0-9]*)" => DECIMAL_LIT,
+    // Integer numbers (without a fractional part)
+    r"[+-]?[0-9]+" => INTEGER_LIT,
     r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
 }
