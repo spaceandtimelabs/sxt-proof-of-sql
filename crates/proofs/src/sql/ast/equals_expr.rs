@@ -110,7 +110,7 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         match accessor.get_column(self.column_ref) {
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
-            Column::Decimal75(_, _, _col) => todo!(),
+            Column::Decimal75(_, _, col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::VarChar((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this

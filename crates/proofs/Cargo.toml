@@ -35,6 +35,7 @@ itertools = { workspace = true }
 lazy_static = { workspace = true }
 merlin = { workspace = true }
 num-traits = { workspace = true }
+num-bigint = { workspace = true, default-features = false }
 polars = { workspace = true, features = ["lazy", "bigidx", "dtype-decimal", "serde-lazy"] }
 postcard = { workspace = true, features = ["alloc"] }
 proofs-sql = { workspace = true }

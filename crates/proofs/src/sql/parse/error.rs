@@ -16,6 +16,8 @@ pub enum ConversionError {
     InvalidGroupByColumnRef(String),
     #[error("Invalid expression: {0}")]
     InvalidExpression(String),
+    #[error("Error while parsing precision from query: {0}")]
+    PrecisionParseError(String),
 }
 
 impl ConversionError {
