@@ -3,7 +3,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::Identifier;
+use crate::{decimal_unknown::DecimalUnknown, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -227,6 +227,8 @@ pub enum Literal {
     Int128(i128),
     /// String Literal
     VarChar(String),
+    /// Decimal Literal
+    Decimal(DecimalUnknown),
 }
 
 macro_rules! impl_int_to_literal {

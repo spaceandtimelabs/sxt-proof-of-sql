@@ -1,3 +1,4 @@
+pub mod decimal_unknown;
 #[macro_use]
 extern crate lalrpop_util;
 

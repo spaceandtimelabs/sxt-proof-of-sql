@@ -89,6 +89,7 @@ impl WhereExprBuilder<'_> {
             Expression::Literal(literal) => match literal {
                 Literal::Int128(value) => value.into(),
                 Literal::VarChar(value) => value.into(),
+                Literal::Decimal(_) => todo!(), // Fill in once decimal_unknown merged
             },
             _ => panic!("The parser must ensure that the left side is a literal"),
         };
