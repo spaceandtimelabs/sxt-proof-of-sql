@@ -102,6 +102,7 @@ fn visit_expr(expr: &Expression) -> Expr {
         Expression::Literal(literal) => match literal {
             Literal::Int128(value) => value.to_lit(),
             Literal::VarChar(_) => panic!("Expression not supported"),
+            Literal::Decimal(_) => todo!(),
         },
         Expression::Column(identifier) => col(identifier.as_str()),
         Expression::Binary { op, left, right } => {
