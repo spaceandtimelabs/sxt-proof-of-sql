@@ -22,6 +22,8 @@ impl DecimalUnknown {
     ///
     /// A decimal must have a decimal point. The lexer does not route
     /// whole integers to this contructor.
+    /// The purpose and objective of this function is to parse a decimal
+    /// string into a fixed-point representation.
     pub fn new(decimal_string: &str) -> Self {
         // Split the value into integer and fractional parts
         let parts: Vec<&str> = decimal_string.split('.').collect();
