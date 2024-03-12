@@ -94,3 +94,10 @@ pub use vmv_state::{VMVProverState, VMVVerifierState};
 
 #[cfg(test)]
 mod vmv_state_test;
+
+mod dory_public_setup;
+pub use dory_public_setup::DoryProverPublicSetup;
+
+mod dory_commitment;
+mod dory_commitment_helper;
+pub use dory_commitment::{DoryCommitment, DoryScalar};
