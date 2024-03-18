@@ -1,6 +1,11 @@
 use super::committable_column::CommittableColumn;
 use thiserror::Error;
 
+/// Cannot construct bounds where min is greater than max.
+#[derive(Error, Debug)]
+#[error("cannot construct bounds where min is greater than max")]
+pub struct NegativeBounds;
+
 /// Inner value for [`Bounds::Sharp`] and [`Bounds::Bounded`].
 ///
 /// Creating a separate type for this provides two benefits.
@@ -21,6 +26,17 @@ impl<T> BoundsInner<T>
 where
     T: Ord,
 {
+    /// Construct a new [`BoundsInner`].
+    ///
+    /// Returns an error if min > max.
+    pub fn try_new(min: T, max: T) -> Result<Self, NegativeBounds> {
+        if min > max {
+            return Err(NegativeBounds);
+        }
+
+        Ok(BoundsInner { min, max })
+    }
+
     /// Immutable accessor for the minimum value.
     pub fn min(&self) -> &T {
         &self.min
@@ -48,7 +64,7 @@ where
     }
 }
 
-/// Minimum and maximum values of a collection of data, with some other variants for edge cases.
+/// Minimum and maximum values (inclusive) of a collection of data, with some other variants for edge cases.
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
 pub enum Bounds<T>
 where
@@ -61,7 +77,7 @@ where
     ///
     /// Instead, this variant underestimates the minimum and overestimates the maximum.
     Bounded(BoundsInner<T>),
-    /// The exact bounds of the values of the source collection.
+    /// The exact bounds of the values of the source collection (inclusive).
     Sharp(BoundsInner<T>),
 }
 
@@ -69,6 +85,20 @@ impl<T> Bounds<T>
 where
     T: Ord,
 {
+    /// Construct a new [`Bounds::Sharp`].
+    ///
+    /// Returns an error if min > max.
+    pub fn sharp(min: T, max: T) -> Result<Self, NegativeBounds> {
+        Ok(Bounds::Sharp(BoundsInner::try_new(min, max)?))
+    }
+
+    /// Construct a new [`Bounds::bounded`].
+    ///
+    /// Returns an error if min > max.
+    pub fn bounded(min: T, max: T) -> Result<Self, NegativeBounds> {
+        Ok(Bounds::Bounded(BoundsInner::try_new(min, max)?))
+    }
+
     /// Combine two [`Bounds`]s as if their source collections are being unioned.
     fn union(self, other: Bounds<T>) -> Self {
         match (self, other) {
@@ -225,6 +255,30 @@ impl ColumnBounds {
 mod tests {
     use super::*;
     use crate::base::{database::OwnedColumn, scalar::ArkScalar};
+
+    #[test]
+    fn we_can_construct_bounds_by_method() {
+        let sharp_bounds = Bounds::<i32>::sharp(-5, 10).unwrap();
+        assert_eq!(
+            sharp_bounds,
+            Bounds::Sharp(BoundsInner { min: -5, max: 10 })
+        );
+
+        let bounded_bounds = Bounds::<i32>::bounded(-15, -10).unwrap();
+        assert_eq!(
+            bounded_bounds,
+            Bounds::Bounded(BoundsInner { min: -15, max: -10 })
+        );
+    }
+
+    #[test]
+    fn we_cannot_construct_negative_bounds() {
+        let negative_sharp_bounds = Bounds::<i32>::sharp(10, 5);
+        assert!(matches!(negative_sharp_bounds, Err(NegativeBounds)));
+
+        let negative_bounded_bounds = Bounds::<i32>::bounded(-10, -15);
+        assert!(matches!(negative_bounded_bounds, Err(NegativeBounds)));
+    }
 
     #[test]
     fn we_can_construct_bounds_from_iterator() {

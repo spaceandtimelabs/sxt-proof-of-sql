@@ -3,6 +3,14 @@ use crate::base::database::ColumnType;
 use std::fmt::Debug;
 use thiserror::Error;
 
+/// Errors that can occur when constructing invalid [`ColumnCommitmentMetadata`].
+#[derive(Debug, Error)]
+pub enum InvalidColumnCommitmentMetadata {
+    /// Column of this type cannot have these bounds.
+    #[error("column of type {0} cannot have bounds like {1:?}")]
+    TypeBoundsMismatch(ColumnType, ColumnBounds),
+}
+
 /// During column operation, metadata indicates that the operand columns cannot be the same.
 #[derive(Debug, Error)]
 #[error("column with type {0} cannot operate with column with type {1}")]
@@ -18,6 +26,30 @@ pub struct ColumnCommitmentMetadata {
 }
 
 impl ColumnCommitmentMetadata {
+    /// Construct a new [`ColumnCommitmentMetadata`].
+    ///
+    /// Will error if the supplied metadata are invalid.
+    /// i.e., if The Bounds variant and column type do not match.
+    pub fn try_new(
+        column_type: ColumnType,
+        bounds: ColumnBounds,
+    ) -> Result<ColumnCommitmentMetadata, InvalidColumnCommitmentMetadata> {
+        match (column_type, bounds) {
+            (ColumnType::BigInt, ColumnBounds::BigInt(_))
+            | (ColumnType::Int128, ColumnBounds::Int128(_))
+            | (ColumnType::VarChar | ColumnType::Scalar, ColumnBounds::NoOrder) => {
+                Ok(ColumnCommitmentMetadata {
+                    column_type,
+                    bounds,
+                })
+            }
+            _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(
+                column_type,
+                bounds,
+            )),
+        }
+    }
+
     /// Immutable reference to this column's type.
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
@@ -94,6 +126,83 @@ mod tests {
     use crate::base::{
         commitment::column_bounds::Bounds, database::OwnedColumn, scalar::ArkScalar,
     };
+
+    #[test]
+    fn we_can_construct_metadata() {
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::BigInt,
+                ColumnBounds::BigInt(Bounds::Empty)
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::BigInt,
+                bounds: ColumnBounds::BigInt(Bounds::Empty)
+            }
+        );
+
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Int128,
+                ColumnBounds::Int128(Bounds::sharp(-5, 10).unwrap())
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::Int128,
+                bounds: ColumnBounds::Int128(Bounds::sharp(-5, 10).unwrap())
+            }
+        );
+
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(ColumnType::VarChar, ColumnBounds::NoOrder).unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::VarChar,
+                bounds: ColumnBounds::NoOrder
+            }
+        );
+    }
+
+    #[test]
+    fn we_cannot_construct_metadata_with_type_bounds_mismatch() {
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::BigInt,
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(ColumnType::BigInt, ColumnBounds::NoOrder),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Int128,
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(ColumnType::Int128, ColumnBounds::NoOrder),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::VarChar,
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::VarChar,
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+    }
 
     #[test]
     fn we_can_construct_metadata_from_column() {
