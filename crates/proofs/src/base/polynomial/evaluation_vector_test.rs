@@ -42,6 +42,14 @@ fn we_compute_the_evaluation_vectors_not_a_power_of_2() {
 }
 
 #[test]
+fn we_compute_the_evaluation_vector_for_an_empty_point() {
+    let mut v = [ArkScalar::zero(); 1];
+    compute_evaluation_vector(&mut v, &[]);
+    let expected_v = [ArkScalar::one()];
+    assert_eq!(v, expected_v);
+}
+
+#[test]
 fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
     let xs = [
         ArkScalar::from(3u64),

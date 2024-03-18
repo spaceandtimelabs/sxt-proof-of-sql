@@ -1,5 +1,6 @@
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use bytemuck::TransparentWrapper;
 use core::{
     cmp::Ordering,
     fmt::{Debug, Display, Formatter},
@@ -9,10 +10,11 @@ use core::{
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(CanonicalSerialize, CanonicalDeserialize)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, TransparentWrapper)]
 /// A wrapper struct around a `Fp256<MontBackend<T, 4>>` that can easily implement the `Scalar` trait.
 ///
 /// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
+#[repr(transparent)]
 pub struct MontScalar<T: MontConfig<4>>(pub Fp256<MontBackend<T, 4>>);
 
 // --------------------------------------------------------------------------------

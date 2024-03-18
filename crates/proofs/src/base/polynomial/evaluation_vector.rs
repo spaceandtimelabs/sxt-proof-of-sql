@@ -37,8 +37,12 @@ where
     F: One + Sub<Output = F> + MulAssign + Mul<Output = F> + Send + Sync + Copy,
 {
     let m = point.len();
-    assert!(m > 0);
     assert!(v.len() <= (1 << m));
+    if m == 0 {
+        // v is guarenteed to be at most length 1.
+        v.fill(F::one());
+        return;
+    }
     assert!(v.len() > (1 << (m - 1)) || v.len() == 1);
     v[0] = F::one() - point[0];
     if v.len() == 1 {
