@@ -4,7 +4,7 @@ use ark_ff::Field;
 use merlin::Transcript;
 use num_traits::Zero;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
 ///
