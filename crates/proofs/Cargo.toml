@@ -25,6 +25,7 @@ bit-iter = { workspace = true }
 blake3 = { workspace = true }
 blitzar = { workspace = true }
 bumpalo = { workspace = true, features = ["collections"] }
+bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }

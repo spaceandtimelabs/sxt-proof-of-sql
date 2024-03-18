@@ -1,4 +1,4 @@
-use super::PublicParameters;
+use super::{PublicParameters, VerifierSetup};
 
 /// The public setup required for the Dory PCS by the prover and the commitment computation.
 pub struct DoryProverPublicSetup {
@@ -31,5 +31,38 @@ impl DoryProverPublicSetup {
         R: ark_std::rand::Rng + ?Sized,
     {
         Self::new(PublicParameters::rand(max_nu, rng), sigma)
+    }
+}
+
+/// The verifier's public setup for the Dory PCS.
+pub struct DoryVerifierPublicSetup {
+    verifier_setup: VerifierSetup,
+    sigma: usize,
+}
+impl DoryVerifierPublicSetup {
+    /// Create a new public setup for the Dory PCS.
+    /// verifier_setup: The verifier's setup parameters for the Dory protocol.
+    /// sigma: A commitment with this setup is a matrix commitment with `1 << sigma` columns.
+    pub fn new(verifier_setup: VerifierSetup, sigma: usize) -> Self {
+        Self {
+            verifier_setup,
+            sigma,
+        }
+    }
+    /// Returns sigma. A commitment with this setup is a matrix commitment with `1<<sigma` columns.
+    pub fn sigma(&self) -> usize {
+        self.sigma
+    }
+    /// The verifier's setup parameters for the Dory protocol.
+    pub fn verifier_setup(&self) -> &VerifierSetup {
+        &self.verifier_setup
+    }
+}
+impl From<&DoryProverPublicSetup> for DoryVerifierPublicSetup {
+    fn from(prover_setup: &DoryProverPublicSetup) -> Self {
+        Self {
+            verifier_setup: prover_setup.public_parameters().into(),
+            sigma: prover_setup.sigma(),
+        }
     }
 }
