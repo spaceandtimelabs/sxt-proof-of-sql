@@ -297,6 +297,26 @@ impl<'a> IntoIterator for &'a ColumnCommitments {
     }
 }
 
+impl FromIterator<(Identifier, ColumnCommitmentMetadata, CompressedRistretto)>
+    for ColumnCommitments
+{
+    fn from_iter<
+        T: IntoIterator<Item = (Identifier, ColumnCommitmentMetadata, CompressedRistretto)>,
+    >(
+        iter: T,
+    ) -> Self {
+        let (column_metadata, commitments) = iter
+            .into_iter()
+            .map(|(identifier, metadata, commitment)| ((identifier, metadata), commitment))
+            .unzip();
+
+        ColumnCommitments {
+            commitments,
+            column_metadata,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -389,6 +409,30 @@ mod tests {
         );
     }
 
+    #[test]
+    fn we_can_construct_column_commitments_from_iter() {
+        let bigint_id: Identifier = "bigint_column".parse().unwrap();
+        let varchar_id: Identifier = "varchar_column".parse().unwrap();
+        let scalar_id: Identifier = "scalar_column".parse().unwrap();
+        let owned_table = owned_table!(
+        bigint_id => [1i64, 5, -5, 0],
+        // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
+        // supports it
+        varchar_id => ["Lorem", "ipsum", "dolor", "sit"],
+        scalar_id => [1000, 2000, -1000, 0].map(ArkScalar::from),
+        );
+
+        let column_commitments_from_columns =
+            ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 0).unwrap();
+
+        let column_commitments_from_iter =
+            ColumnCommitments::from_iter(column_commitments_from_columns.clone());
+
+        assert_eq!(
+            column_commitments_from_iter,
+            column_commitments_from_columns
+        );
+    }
     #[test]
     fn we_cannot_construct_commitments_with_duplicate_identifiers() {
         let duplicate_identifier_a = "duplicate_identifier_a".parse().unwrap();
