@@ -53,7 +53,7 @@ impl<C: Commitment> QueryExpr<C> {
 
         let filter = FilterExprBuilder::new(context.get_column_mapping())
             .add_table_expr(*context.get_table_ref())
-            .add_where_expr(context.get_where_expr().clone())
+            .add_where_expr(context.get_where_expr().clone())?
             .add_result_column_set(context.get_result_column_set())
             .build();
 

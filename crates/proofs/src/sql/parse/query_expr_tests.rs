@@ -31,7 +31,8 @@ fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &Record
     );
 }
 
-fn record_batch_to_accessor(
+#[cfg(test)]
+pub fn record_batch_to_accessor(
     table: TableRef,
     data: RecordBatch,
     offset: usize,

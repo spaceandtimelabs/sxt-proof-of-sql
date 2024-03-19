@@ -107,9 +107,12 @@ mod tests {
             ("123.", "123", 3, 0),
             ("123456789.987654321", "123456789987654321", 18, 9),
             (".123456789", "123456789", 9, 9),
-            // this should be ok for now because this
-            // type has no expectations about p/s
+            // leading zeros are fine here because they are parsed by num-bigint
+            // correctly and do not count towards precision
+            ("00123.4500", "0012345", 5, 2),
             (
+                // exceeds supported precision but is fine for now because
+                // decimalunknown has no expectations about p/s
                 "3618502788666131106986593281521497120428.558179689953803000975469142727125494",
                 "3618502788666131106986593281521497120428558179689953803000975469142727125494",
                 76,

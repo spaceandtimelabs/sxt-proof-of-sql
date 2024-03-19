@@ -18,6 +18,16 @@ pub enum ConversionError {
     InvalidExpression(String),
     #[error("Error while parsing precision from query: {0}")]
     PrecisionParseError(String),
+    #[error("Encountered parsing error: {0}")]
+    ParseError(String),
+    #[error("Unsupported operation: cannot round literal: {0}")]
+    LiteralRoundDownError(String),
+}
+
+impl From<String> for ConversionError {
+    fn from(value: String) -> Self {
+        ConversionError::ParseError(value)
+    }
 }
 
 impl ConversionError {
