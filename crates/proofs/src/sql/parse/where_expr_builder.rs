@@ -1,8 +1,14 @@
+use super::ConversionError;
 use crate::{
-    base::{commitment::Commitment, database::ColumnRef},
+    base::{
+        commitment::Commitment,
+        database::{ColumnRef, ColumnType},
+        math::decimal::match_decimal,
+    },
     sql::ast::BoolExprPlan,
 };
 use proofs_sql::{
+    decimal_unknown::DecimalUnknown,
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,
 };
@@ -23,8 +29,10 @@ impl<'a> WhereExprBuilder<'a> {
     pub fn build<C: Commitment>(
         self,
         where_expr: Option<Box<Expression>>,
-    ) -> Option<BoolExprPlan<C>> {
-        where_expr.map(|where_expr| self.visit_expr(*where_expr))
+    ) -> Result<Option<BoolExprPlan<C>>, ConversionError> {
+        where_expr
+            .map(|where_expr| self.visit_expr(*where_expr))
+            .transpose()
     }
 }
 
@@ -33,10 +41,10 @@ impl WhereExprBuilder<'_> {
     fn visit_expr<C: Commitment>(
         &self,
         expr: proofs_sql::intermediate_ast::Expression,
-    ) -> BoolExprPlan<C> {
+    ) -> Result<BoolExprPlan<C>, ConversionError> {
         match expr {
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
-            Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
+            Expression::Unary { op, expr } => Ok(self.visit_unary_expr(op, *expr)?),
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
     }
@@ -45,11 +53,11 @@ impl WhereExprBuilder<'_> {
         &self,
         op: UnaryOperator,
         expr: Expression,
-    ) -> BoolExprPlan<C> {
+    ) -> Result<BoolExprPlan<C>, ConversionError> {
         let expr = self.visit_expr(expr);
 
         match op {
-            UnaryOperator::Not => BoolExprPlan::new_not(expr),
+            UnaryOperator::Not => Ok(BoolExprPlan::new_not(expr?)),
         }
     }
 
@@ -58,17 +66,17 @@ impl WhereExprBuilder<'_> {
         op: BinaryOperator,
         left: Expression,
         right: Expression,
-    ) -> BoolExprPlan<C> {
+    ) -> Result<BoolExprPlan<C>, ConversionError> {
         match op {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                BoolExprPlan::new_and(left, right)
+                Ok(BoolExprPlan::new_and(left?, right?))
             }
             BinaryOperator::Or => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                BoolExprPlan::new_or(left, right)
+                Ok(BoolExprPlan::new_or(left?, right?))
             }
             BinaryOperator::Equal => self.visit_equal_expr(left, right),
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
@@ -79,21 +87,38 @@ impl WhereExprBuilder<'_> {
         &self,
         left: Expression,
         right: Expression,
-    ) -> BoolExprPlan<C> {
+    ) -> Result<BoolExprPlan<C>, ConversionError> {
         let left = match left {
             Expression::Column(identifier) => *self.column_mapping.get(&identifier).unwrap(),
             _ => panic!("The parser must ensure that the left side is a column"),
         };
 
-        let right = match right {
-            Expression::Literal(literal) => match literal {
-                Literal::Int128(value) => value.into(),
-                Literal::VarChar(value) => value.into(),
-                Literal::Decimal(_) => todo!(), // Fill in once decimal_unknown merged
+        let right = match (right, left.column_type()) {
+            (Expression::Literal(Literal::Decimal(d)), column_type) => match column_type {
+                ColumnType::Decimal75(_, scale) => match_decimal(&d, *scale)?,
+                ColumnType::Int128 if d.scale > 0 => {
+                    return Err(ConversionError::DataTypeMismatch(
+                        d.value().to_owned(),
+                        "Int128".to_owned(),
+                    ));
+                }
+                // 123.000 should match to 123, guarded by the match above
+                ColumnType::Int128 => match_decimal(&d, 0)?,
+                ColumnType::VarChar | ColumnType::BigInt | ColumnType::Scalar => {
+                    return Err(ConversionError::DataTypeMismatch(
+                        format!("Decimal75: {}", d.value()),
+                        left.column_type().to_string(),
+                    ));
+                }
             },
-            _ => panic!("The parser must ensure that the left side is a literal"),
-        };
+            (Expression::Literal(Literal::Int128(int)), ColumnType::Decimal75(_, scale)) => {
+                match_decimal(&DecimalUnknown::new(&int.to_string()), *scale)?
+            }
+            (Expression::Literal(Literal::Int128(value)), _) => value.into(),
+            (Expression::Literal(Literal::VarChar(value)), _) => value.into(),
 
-        BoolExprPlan::new_equals(left, right)
+            _ => panic!("Unexpected expression or column type"),
+        };
+        Ok(BoolExprPlan::new_equals(left, right))
     }
 }

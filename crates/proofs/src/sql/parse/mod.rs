@@ -1,4 +1,5 @@
 mod error;
+mod where_expr_builder_tests;
 pub use error::{ConversionError, ConversionResult};
 
 #[cfg(test)]

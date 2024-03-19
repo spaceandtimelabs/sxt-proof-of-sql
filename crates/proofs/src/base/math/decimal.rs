@@ -1,4 +1,4 @@
-use crate::base::scalar::Scalar;
+use crate::{base::scalar::Scalar, sql::parse::ConversionError};
 use num_bigint::{
     BigInt,
     Sign::{self, Minus},
@@ -55,25 +55,31 @@ impl<'de> Deserialize<'de> for Precision {
 /// less than the max supported value)
 /// because there is no loss of information,
 /// as opposed to scaling down which is lossy.
-pub fn match_decimal<S: Scalar>(d: &DecimalUnknown, scale: i8) -> S {
+pub fn match_decimal<S: Scalar>(d: &DecimalUnknown, scale: i8) -> Result<S, ConversionError> {
     // Convert limbs into Scalar and account for sign
-    let (limbs, sign) = get_limbs_and_sign(d, scale).unwrap();
+    let (limbs, sign) = get_limbs_and_sign(d, scale)?;
     let scalar = S::from(limbs);
     match sign {
-        Minus => -scalar,
-        _ => scalar,
+        Minus => Ok(-scalar),
+        _ => Ok(scalar),
     }
 }
 
 // determines how to safely scale an incoming decimal
-fn get_limbs_and_sign(d: &DecimalUnknown, scale: i8) -> Result<([u64; 4], Sign), String> {
+fn get_limbs_and_sign(d: &DecimalUnknown, scale: i8) -> Result<([u64; 4], Sign), ConversionError> {
     // Check for valid precision
     if d.precision() > MAX_SUPPORTED_PRECISION {
-        return Err("Unsupported precision".to_owned());
+        return Err(ConversionError::PrecisionParseError(
+            "Error while attempting decimal match: max precision exceeded".to_owned(),
+        ));
     }
     // scaling down is lossy behavior akin to rounding which postgresql does not support
     if d.scale() > scale {
-        return Err("Unsupported operation: cannot round literal".to_owned());
+        return Err(ConversionError::LiteralRoundDownError(format!(
+            "matching decimal would cause precision overflow: incoming scale() = {} is greater than db scale = {}",
+            d.scale(),
+            scale
+        )));
     }
     // check to make sure there is room to scale up
     // to the decimal we wish to match to
@@ -84,7 +90,10 @@ fn get_limbs_and_sign(d: &DecimalUnknown, scale: i8) -> Result<([u64; 4], Sign),
         return Ok(decimal_string_to_scaled_limbs(d, Some(scale)));
     } else if d.precision() + scale as u8 > MAX_SUPPORTED_PRECISION && scale > d.scale {
         // if scaling the value up exceeds supported precision, then error
-        return Err("Scaling factor exceeds maximum allowed precision".to_owned());
+        return Err(ConversionError::PrecisionParseError(format!(
+            "Scaling factor {} exceeds maximum allowed precision",
+            d.precision() as i8 + scale
+        )));
     }
     // If none of the error conditions are met, proceed with the conversion
     Ok(decimal_string_to_scaled_limbs(d, None))
@@ -156,6 +165,15 @@ mod scale_adjust_test {
         let target_scale = 3;
         let (limbs, sign) = get_limbs_and_sign(&decimal, target_scale).unwrap();
         assert_eq!(limbs, [123450, 0, 0, 0]);
+        assert_eq!(sign, Sign::Plus);
+    }
+
+    #[test]
+    fn we_can_match_integers_by_scaling_up() {
+        let decimal = DecimalUnknown::new("12345");
+        let target_scale = 2;
+        let (limbs, sign) = get_limbs_and_sign(&decimal, target_scale).unwrap();
+        assert_eq!(limbs, [1234500, 0, 0, 0]);
         assert_eq!(sign, Sign::Plus);
     }
 

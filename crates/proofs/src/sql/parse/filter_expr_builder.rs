@@ -1,4 +1,4 @@
-use super::where_expr_builder::WhereExprBuilder;
+use super::{where_expr_builder::WhereExprBuilder, ConversionError};
 use crate::{
     base::{
         commitment::Commitment,
@@ -32,9 +32,12 @@ impl<C: Commitment> FilterExprBuilder<C> {
         self
     }
 
-    pub fn add_where_expr(mut self, where_expr: Option<Box<Expression>>) -> Self {
-        self.where_expr = WhereExprBuilder::new(&self.column_mapping).build(where_expr);
-        self
+    pub fn add_where_expr(
+        mut self,
+        where_expr: Option<Box<Expression>>,
+    ) -> Result<Self, ConversionError> {
+        self.where_expr = WhereExprBuilder::new(&self.column_mapping).build(where_expr)?;
+        Ok(self)
     }
 
     pub fn add_result_column_set(mut self, columns: HashSet<Identifier>) -> Self {
