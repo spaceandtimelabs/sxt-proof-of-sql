@@ -1,6 +1,7 @@
 use super::test_utility::{and, cols_expr, equal, group_by, sums_expr, tab};
 use crate::{
     base::{
+        commitment::InnerProductProof,
         database::{ColumnType, OwnedTableTestAccessor, TestAccessor},
         scalar::ArkScalar,
     },
@@ -16,7 +17,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
         "c" => [101_i64, 102, 103, 104, 105],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = group_by(
         cols_expr(t, &["a"], &accessor),
@@ -72,7 +73,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     );
 
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
 
     // SELECT scalar_group, int128_group, bigint_group, sum(int128_filter) as sum_int, sum(bigint_filter) as sum_bigint, sum(scalar_filter) as sum_scal, count(*) as __count__

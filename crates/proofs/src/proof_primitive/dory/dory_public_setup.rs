@@ -1,6 +1,7 @@
 use super::{PublicParameters, VerifierSetup};
 
 /// The public setup required for the Dory PCS by the prover and the commitment computation.
+#[derive(Clone)]
 pub struct DoryProverPublicSetup {
     public_parameters: PublicParameters,
     sigma: usize,
@@ -24,7 +25,7 @@ impl DoryProverPublicSetup {
         &self.public_parameters
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test"))]
     /// Create a random public setup for the Dory PCS.
     pub fn rand<R>(max_nu: usize, sigma: usize, rng: &mut R) -> Self
     where

@@ -1,6 +1,7 @@
 use super::BoolExpr;
 use crate::{
     base::{
+        commitment::InnerProductProof,
         database::{
             make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
@@ -320,7 +321,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
             ArkScalar::from(-1),
         ],
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let equals_expr = equal(t, "e", 0, &accessor);

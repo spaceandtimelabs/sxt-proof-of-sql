@@ -1,6 +1,7 @@
 use super::{test_utility::*, BoolExpr, FilterExpr};
 use crate::{
     base::{
+        commitment::InnerProductProof,
         database::{
             make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, TestAccessor,
@@ -30,7 +31,7 @@ fn create_and_verify_test_and_expr(
     data: OwnedTable<ArkScalar>,
     offset: usize,
 ) -> OwnedTable<ArkScalar> {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let and_expr = and(
@@ -135,7 +136,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         "d" => ["ab", "t", "efg", "g"],
         "c" => [0_i64, 2, 2, 0],
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let and_expr = and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));

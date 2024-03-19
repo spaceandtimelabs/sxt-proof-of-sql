@@ -1,6 +1,7 @@
 use super::BoolExpr;
 use crate::{
     base::{
+        commitment::InnerProductProof,
         database::{
             make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
@@ -111,7 +112,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
         "b" => [0_i64, 1],
         "d" => ["alfa", "gama"]
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let not_expr = not(equal(t, "b", 1, &accessor));

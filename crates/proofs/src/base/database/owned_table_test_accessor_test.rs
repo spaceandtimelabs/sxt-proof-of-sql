@@ -6,10 +6,11 @@ use crate::{
     base::scalar::{compute_commitment_for_testing, ArkScalar},
     owned_table,
 };
+use blitzar::proof::InnerProductProof;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -33,7 +34,7 @@ fn we_can_query_the_length_of_a_table() {
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -104,7 +105,7 @@ fn we_can_access_the_columns_of_a_table() {
 
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -141,7 +142,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
 #[test]
 fn we_can_access_the_type_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -188,7 +189,7 @@ fn we_can_access_the_type_of_table_columns() {
 
 #[test]
 fn we_can_access_schema_and_column_names() {
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
 
     let data1 = owned_table!(
@@ -209,7 +210,7 @@ fn we_can_access_schema_and_column_names() {
 
 #[test]
 fn we_can_correctly_update_offsets() {
-    let mut accessor1 = OwnedTableTestAccessor::new_empty();
+    let mut accessor1 = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let table_ref = "sxt.test".parse().unwrap();
 
     let data = owned_table!(
@@ -219,7 +220,7 @@ fn we_can_correctly_update_offsets() {
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 
     let offset = 123;
-    let mut accessor2 = OwnedTableTestAccessor::new_empty();
+    let mut accessor2 = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor2.add_table(table_ref, data, offset);
 
     let column = ColumnRef::new(table_ref, "a".parse().unwrap(), ColumnType::BigInt);
