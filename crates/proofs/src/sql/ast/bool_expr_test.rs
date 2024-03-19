@@ -1,6 +1,9 @@
 use super::{test_utility::*, BoolExpr};
 use crate::{
-    base::database::{OwnedTableTestAccessor, TestAccessor},
+    base::{
+        commitment::InnerProductProof,
+        database::{OwnedTableTestAccessor, TestAccessor},
+    },
     owned_table,
 };
 use bumpalo::Bump;
@@ -12,7 +15,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
         "b" => ["g", "g", "t", "ghi", "g", "g", "jj", "f", "g", "g", "gar", "qwe", "g", "g", "poi", "zxc", "999"],
         "c" => [3_i128, 123, 3, 234, 3, 345, 3, 456, 3, 567, 3, 678, 3, 789, 3, 890, 999],
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     // (a <= 5 || b == "g") && c != 3

@@ -432,7 +432,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
         "a" => [-1_i64, 9, 1],
         "b" => [1_i64, 2, 3],
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let equals_expr =
@@ -449,7 +449,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
         "a" => [-1_i64, 9, 1],
         "b" => [1_i64, 2, 3],
     );
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let equals_expr =

@@ -123,7 +123,7 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
         "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = DishonestDenseFilterExpr::new(
         cols_expr(t, &["b", "c", "d", "e"], &accessor),

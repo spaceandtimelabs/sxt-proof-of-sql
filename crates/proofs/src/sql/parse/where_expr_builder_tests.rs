@@ -265,7 +265,7 @@ mod tests {
 
         use crate::{owned_table, sql::proof::QueryProof};
 
-        let mut accessor = OwnedTableTestAccessor::new_empty();
+        let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
         let mut data: OwnedTable<S> = owned_table!("a" => [1i64, 2, 3], "b" => ["t", "u", "v"]);
         data.append_decimal_columns_for_testing(
             "c",

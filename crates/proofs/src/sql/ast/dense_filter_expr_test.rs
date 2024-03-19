@@ -186,7 +186,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
         "e" => [ArkScalar::from(0);0],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = dense_filter(
@@ -231,7 +231,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = dense_filter(
@@ -276,7 +276,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = dense_filter(cols_expr(t, &[], &accessor), tab(t), where_clause);
@@ -302,7 +302,7 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = dense_filter(
@@ -351,7 +351,7 @@ fn we_can_prove_a_dense_filter_on_an_empty_table() {
         "e" => [ArkScalar::from(3); 0],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = dense_filter(
         cols_expr(t, &["b", "c", "d", "e"], &accessor),
@@ -380,7 +380,7 @@ fn we_can_prove_a_dense_filter_with_empty_results() {
         "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = dense_filter(
         cols_expr(t, &["b", "c", "d", "e"], &accessor),
@@ -409,7 +409,7 @@ fn we_can_prove_a_dense_filter() {
         "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = dense_filter(
         cols_expr(t, &["b", "c", "d", "e"], &accessor),
