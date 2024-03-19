@@ -1,15 +1,18 @@
-use super::{F, G1, G2};
-use ark_std::{
-    rand::{rngs::StdRng, Rng, SeedableRng},
-    UniformRand,
-};
+#[cfg(test)]
+use super::F;
+use super::{G1, G2};
+#[cfg(test)]
+use ark_std::rand::{rngs::StdRng, Rng, SeedableRng};
+use ark_std::UniformRand;
 
 /// Create a random number generator for testing.
+#[cfg(test)]
 pub fn test_rng() -> impl Rng {
     ark_std::test_rng()
 }
 
 /// Create a random number generator for testing with a specific seed.
+#[cfg(test)]
 pub fn test_seed_rng(seed: [u8; 32]) -> impl Rng {
     StdRng::from_seed(seed)
 }
@@ -25,6 +28,7 @@ where
 }
 
 /// Creates two vectors of random F elements with length 2^nu.
+#[cfg(test)]
 pub fn rand_F_vecs<R>(nu: usize, rng: &mut R) -> (Vec<F>, Vec<F>)
 where
     R: ark_std::rand::Rng + ?Sized,

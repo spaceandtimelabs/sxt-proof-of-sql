@@ -4,6 +4,7 @@ use super::{G1, G2};
 /// Note: even though H_1 and H_2 are marked as blue, they are still needed.
 ///
 /// Note: Gamma_1_fin is unused, so we leave it out.
+#[derive(Clone)]
 pub struct PublicParameters {
     /// This is the vector of G1 elements that are used in the Dory protocol. That is, Γ_1,0 in the Dory paper.
     pub(super) Gamma_1: Vec<G1>,
@@ -20,8 +21,8 @@ pub struct PublicParameters {
 }
 
 impl PublicParameters {
-    #[cfg(test)]
-    pub fn rand<R>(max_nu: usize, rng: &mut R) -> Self
+    #[cfg(any(test, feature = "test"))]
+    pub(crate) fn rand<R>(max_nu: usize, rng: &mut R) -> Self
     where
         R: ark_std::rand::Rng + ?Sized,
     {

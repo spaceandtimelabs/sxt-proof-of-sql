@@ -27,9 +27,11 @@ use crate::base::{
     commitment::{Commitment, CommittableColumn, NumColumnsMismatch, VecCommitmentExt},
     scalar::{MontScalar, Scalar},
 };
+use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub};
+use num_traits::One;
 use serde::{Deserialize, Serialize, Serializer};
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
@@ -43,9 +45,16 @@ impl Scalar for DoryScalar {
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
 
-#[derive(Debug, Sub, Eq, PartialEq, Neg, Copy, Clone, Default, AddAssign)]
+#[derive(Debug, Sub, Eq, PartialEq, Neg, Copy, Clone, AddAssign)]
 /// The Dory commitment type.
 pub struct DoryCommitment(pub(super) GT);
+
+/// The default for GT is the the additive identity, but should be the multiplicative identity.
+impl Default for DoryCommitment {
+    fn default() -> Self {
+        Self(PairingOutput(One::one()))
+    }
+}
 
 // Traits required for `DoryCommitment` to impl `Commitment`.
 impl Serialize for DoryCommitment {

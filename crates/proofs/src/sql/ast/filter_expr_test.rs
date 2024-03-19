@@ -172,7 +172,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         "e" => [ArkScalar::from(0);0],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = filter(
@@ -217,7 +217,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 999, &accessor);
     let expr = filter(
@@ -261,7 +261,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = filter(cols_result(t, &[], &accessor), tab(t), where_clause);
@@ -287,7 +287,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::new_empty();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let where_clause = equal(t, "a", 5, &accessor);
     let expr = filter(

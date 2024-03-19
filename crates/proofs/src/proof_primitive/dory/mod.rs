@@ -22,10 +22,12 @@ use ark_bls12_381::{Fr as F, G1Projective as G1, G2Projective as G2};
 /// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 mod rand_util;
+#[cfg(any(test, feature = "test"))]
+use rand_util::rand_G_vecs;
 #[cfg(test)]
-use rand_util::{rand_F_vecs, rand_G_vecs, test_rng};
+use rand_util::{rand_F_vecs, test_rng};
 
 mod dory_messages;
 pub use dory_messages::DoryMessages;
