@@ -1,9 +1,10 @@
 use super::{Commitment, VecCommitmentExt};
-use crate::base::{
-    scalar::{MontScalar, Scalar},
-    slice_ops,
-};
+use crate::base::scalar::Scalar;
+#[cfg(feature = "blitzar")]
+use crate::base::{scalar::MontScalar, slice_ops};
+#[cfg(feature = "blitzar")]
 use blitzar::proof::{InnerProductProof, ProofError};
+#[cfg(feature = "blitzar")]
 use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
@@ -59,6 +60,7 @@ pub trait CommitmentEvaluationProof {
     ) -> Result<(), Self::Error>;
 }
 
+#[cfg(feature = "blitzar")]
 impl CommitmentEvaluationProof for InnerProductProof {
     type Scalar = MontScalar<ark_curve25519::FrConfig>;
     type Commitment = RistrettoPoint;

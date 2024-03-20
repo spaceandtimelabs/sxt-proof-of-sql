@@ -23,7 +23,7 @@ ark-std = { workspace = true }
 arrow = { workspace = true }
 bit-iter = { workspace = true }
 blake3 = { workspace = true }
-blitzar = { workspace = true }
+blitzar = { workspace = true, optional = true }
 bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
@@ -49,6 +49,7 @@ tracing = { workspace = true, features = ["attributes"] }
 typetag = { workspace = true }
 
 [dev_dependencies]
+blitzar = { workspace = true }
 criterion = { workspace = true }
 polars = { workspace = true, features = ["lazy"] }
 rand = { workspace = true }
@@ -61,5 +62,5 @@ harness = false
 name = "sumcheck"
 
 [features]
-default = []
+default = ["blitzar"]
 test = ["dep:rand"]

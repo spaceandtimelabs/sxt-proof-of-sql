@@ -1,11 +1,14 @@
 use crate::base::commitment::committable_column::CommittableColumn;
+#[cfg(feature = "blitzar")]
 use blitzar::{
     compute::{compute_curve25519_commitments, update_curve25519_commitments},
     sequence::Sequence,
 };
+#[cfg(feature = "blitzar")]
 use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 use thiserror::Error;
 
+#[cfg(feature = "blitzar")]
 const INVALID_DECOMPRESSION_MESSAGE: &str =
     "invalid ristretto point decompression in VecCommitmentExt";
 
@@ -84,6 +87,7 @@ pub trait VecCommitmentExt {
     fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>>;
 }
 
+#[cfg(feature = "blitzar")]
 impl VecCommitmentExt for Vec<CompressedRistretto> {
     type CommitmentPublicSetup = ();
     fn from_columns_with_offset<'a, C>(
@@ -210,7 +214,7 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::base::{
