@@ -1,4 +1,4 @@
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use crate::{
         base::{

@@ -8,8 +8,10 @@ mod ark_scalar_from;
 mod ark_scalar_from_test;
 
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "blitzar")]
 mod commitment_utility;
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "blitzar")]
 pub use commitment_utility::compute_commitment_for_testing;
 
 /// A trait for the scalar field used in proofs.

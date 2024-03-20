@@ -1,16 +1,16 @@
 #![cfg(feature = "test")]
 use ark_std::test_rng;
+#[cfg(feature = "blitzar")]
+use proofs::base::commitment::InnerProductProof;
 use proofs::{
-    base::{
-        commitment::InnerProductProof,
-        database::{OwnedTableTestAccessor, TestAccessor},
-    },
+    base::database::{OwnedTableTestAccessor, TestAccessor},
     owned_table,
     proof_primitive::dory::{DoryEvaluationProof, DoryProverPublicSetup},
     sql::{parse::QueryExpr, proof::QueryProof},
 };
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(

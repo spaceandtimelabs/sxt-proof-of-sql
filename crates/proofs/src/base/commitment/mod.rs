@@ -1,5 +1,6 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
+#[cfg(feature = "blitzar")]
 pub use blitzar::{
     compute::{init_backend, init_backend_with_config, BackendConfig},
     proof::InnerProductProof,
@@ -25,18 +26,24 @@ pub use column_commitment_metadata_map::{
     ColumnCommitmentMetadataMap, ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch,
 };
 
+#[cfg(feature = "blitzar")]
 mod column_commitments;
+#[cfg(feature = "blitzar")]
 pub use column_commitments::{
     AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdentifiers,
 };
 
+#[cfg(feature = "blitzar")]
 mod table_commitment;
+#[cfg(feature = "blitzar")]
 pub use table_commitment::{
     AppendTableCommitmentError, MixedLengthColumns, NegativeRange, TableCommitment,
     TableCommitmentArithmeticError, TableCommitmentFromColumnsError,
 };
 
+#[cfg(feature = "blitzar")]
 mod query_commitments;
+#[cfg(feature = "blitzar")]
 pub use query_commitments::QueryCommitments;
 
 /// A trait for using commitment schemes generically.
