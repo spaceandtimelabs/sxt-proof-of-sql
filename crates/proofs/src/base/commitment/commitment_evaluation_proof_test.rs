@@ -1,6 +1,7 @@
 use super::CommitmentEvaluationProof;
 use crate::base::{commitment::vec_commitment_ext::VecCommitmentExt, database::Column};
 use ark_std::UniformRand;
+#[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
 use merlin::Transcript;
 use num_traits::{One, Zero};
@@ -145,16 +146,19 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_simple_ipa() {
     test_simple_commitment_evaluation_proof::<InnerProductProof>(&(), &());
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_1() {
     test_commitment_evaluation_proof_with_length_1::<InnerProductProof>(&(), &());
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_128() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(128, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(128, 1, &(), &());
@@ -164,6 +168,7 @@ fn test_random_ipa_with_length_128() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_100() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(100, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(100, 1, &(), &());
@@ -173,6 +178,7 @@ fn test_random_ipa_with_length_100() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_64() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(64, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(64, 1, &(), &());
@@ -182,6 +188,7 @@ fn test_random_ipa_with_length_64() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_50() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(50, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(50, 1, &(), &());
@@ -191,6 +198,7 @@ fn test_random_ipa_with_length_50() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_32() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(32, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(32, 1, &(), &());
@@ -200,6 +208,7 @@ fn test_random_ipa_with_length_32() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_20() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(20, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(20, 1, &(), &());
@@ -209,6 +218,7 @@ fn test_random_ipa_with_length_20() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_16() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(16, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(16, 1, &(), &());
@@ -218,6 +228,7 @@ fn test_random_ipa_with_length_16() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_10() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(10, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(10, 1, &(), &());
@@ -227,6 +238,7 @@ fn test_random_ipa_with_length_10() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_8() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(8, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(8, 1, &(), &());
@@ -236,6 +248,7 @@ fn test_random_ipa_with_length_8() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_5() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(5, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(5, 1, &(), &());
@@ -245,6 +258,7 @@ fn test_random_ipa_with_length_5() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_4() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(4, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(4, 1, &(), &());
@@ -254,6 +268,7 @@ fn test_random_ipa_with_length_4() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_3() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(3, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(3, 1, &(), &());
@@ -263,6 +278,7 @@ fn test_random_ipa_with_length_3() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn test_random_ipa_with_length_2() {
     test_random_commitment_evaluation_proof::<InnerProductProof>(2, 0, &(), &());
     test_random_commitment_evaluation_proof::<InnerProductProof>(2, 1, &(), &());

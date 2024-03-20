@@ -2,7 +2,7 @@ mod error;
 mod where_expr_builder_tests;
 pub use error::{ConversionError, ConversionResult};
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod query_expr_tests;
 
 mod query_expr;

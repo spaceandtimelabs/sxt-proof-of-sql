@@ -22,12 +22,14 @@ pub use record_batch_utility::*;
 
 #[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "blitzar")]
 mod record_batch_test_accessor;
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "blitzar")]
 pub use record_batch_test_accessor::RecordBatchTestAccessor;
 
 #[warn(missing_docs)]
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod record_batch_test_accessor_test;
 
 #[cfg(any(test, feature = "test"))]
@@ -63,7 +65,7 @@ pub use test_accessor::{TestAccessor, UnimplementedTestAccessor};
 mod owned_table_test_accessor;
 #[cfg(any(test, feature = "test"))]
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
 
 mod scalar_and_i256_conversions;

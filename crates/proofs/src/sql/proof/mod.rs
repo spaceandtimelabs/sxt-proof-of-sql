@@ -3,7 +3,7 @@ pub use count_builder::CountBuilder;
 
 mod proof_builder;
 pub use proof_builder::ProofBuilder;
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod proof_builder_test;
 
 mod composite_polynomial_builder;
@@ -46,7 +46,7 @@ mod query_proof;
 #[cfg(test)]
 pub use query_proof::make_transcript;
 pub use query_proof::QueryProof;
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod query_proof_test;
 
 #[warn(missing_docs)]
@@ -61,12 +61,12 @@ pub use sumcheck_subpolynomial::{
 
 mod verifiable_query_result;
 pub use verifiable_query_result::VerifiableQueryResult;
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod verifiable_query_result_test;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod verifiable_query_result_test_utility;
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 pub use verifiable_query_result_test_utility::exercise_verification;
 
 #[cfg(test)]

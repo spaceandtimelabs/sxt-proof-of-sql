@@ -4,6 +4,7 @@ use crate::base::{
     ref_into::RefInto,
     scalar::Scalar,
 };
+#[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
 
 /// Column data in "committable form".
@@ -141,6 +142,7 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
     }
 }
 
+#[cfg(feature = "blitzar")]
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
@@ -154,7 +156,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::base::scalar::ArkScalar;
