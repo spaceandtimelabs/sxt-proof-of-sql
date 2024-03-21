@@ -37,6 +37,7 @@ impl ColumnCommitmentMetadata {
         match (column_type, bounds) {
             (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
+            | (ColumnType::Decimal75(_, _), ColumnBounds::Decimal75(_))
             | (ColumnType::VarChar | ColumnType::Scalar, ColumnBounds::NoOrder) => {
                 Ok(ColumnCommitmentMetadata {
                     column_type,
@@ -124,7 +125,8 @@ impl ColumnCommitmentMetadata {
 mod tests {
     use super::*;
     use crate::base::{
-        commitment::column_bounds::Bounds, database::OwnedColumn, scalar::ArkScalar,
+        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
+        scalar::ArkScalar,
     };
 
     #[test]
@@ -138,6 +140,18 @@ mod tests {
             ColumnCommitmentMetadata {
                 column_type: ColumnType::BigInt,
                 bounds: ColumnBounds::BigInt(Bounds::Empty)
+            }
+        );
+
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
+                ColumnBounds::Decimal75(Bounds::Empty)
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
+                bounds: ColumnBounds::Decimal75(Bounds::Empty)
             }
         );
 
@@ -164,6 +178,13 @@ mod tests {
 
     #[test]
     fn we_cannot_construct_metadata_with_type_bounds_mismatch() {
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::BigInt,
@@ -350,6 +371,10 @@ mod tests {
             column_type: ColumnType::Int128,
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
+        let decimal75_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::Decimal75(Precision::new(4).unwrap(), 8),
+            bounds: ColumnBounds::Int128(Bounds::Empty),
+        };
 
         assert!(varchar_metadata.try_union(scalar_metadata).is_err());
         assert!(scalar_metadata.try_union(varchar_metadata).is_err());
@@ -359,6 +384,18 @@ mod tests {
 
         assert!(varchar_metadata.try_union(int128_metadata).is_err());
         assert!(int128_metadata.try_union(varchar_metadata).is_err());
+
+        assert!(decimal75_metadata.try_union(scalar_metadata).is_err());
+        assert!(scalar_metadata.try_union(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_union(bigint_metadata).is_err());
+        assert!(bigint_metadata.try_union(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata.try_union(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_union(int128_metadata).is_err());
+        assert!(int128_metadata.try_union(decimal75_metadata).is_err());
 
         assert!(scalar_metadata.try_union(bigint_metadata).is_err());
         assert!(bigint_metadata.try_union(scalar_metadata).is_err());
@@ -386,5 +423,36 @@ mod tests {
 
         assert!(bigint_metadata.try_difference(int128_metadata).is_err());
         assert!(int128_metadata.try_difference(bigint_metadata).is_err());
+
+        assert!(decimal75_metadata.try_difference(scalar_metadata).is_err());
+        assert!(scalar_metadata.try_difference(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_difference(bigint_metadata).is_err());
+        assert!(bigint_metadata.try_difference(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_difference(int128_metadata).is_err());
+        assert!(int128_metadata.try_difference(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_difference(varchar_metadata).is_err());
+        assert!(varchar_metadata.try_difference(decimal75_metadata).is_err());
+
+        let different_decimal75_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
+            bounds: ColumnBounds::Int128(Bounds::Empty),
+        };
+
+        assert!(decimal75_metadata
+            .try_difference(different_decimal75_metadata)
+            .is_err());
+        assert!(different_decimal75_metadata
+            .try_difference(decimal75_metadata)
+            .is_err());
+
+        assert!(decimal75_metadata
+            .try_union(different_decimal75_metadata)
+            .is_err());
+        assert!(different_decimal75_metadata
+            .try_union(decimal75_metadata)
+            .is_err());
     }
 }
