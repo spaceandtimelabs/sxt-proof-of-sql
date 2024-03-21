@@ -2,7 +2,6 @@ use super::{
     committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, VecCommitmentExt,
 };
-use curve25519_dalek::ristretto::CompressedRistretto;
 use proofs_sql::Identifier;
 use std::collections::HashSet;
 use thiserror::Error;
@@ -27,14 +26,24 @@ pub enum AppendColumnCommitmentsError {
 ///
 /// These columns do not need to belong to the same table, and can have differing lengths.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct ColumnCommitments {
-    commitments: Vec<CompressedRistretto>,
+pub struct ColumnCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
+    commitments: Vec<C>,
     column_metadata: ColumnCommitmentMetadataMap,
 }
 
-impl ColumnCommitments {
+/// Private convenience aliases.
+type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
+type Setup<C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup;
+
+impl<C> ColumnCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
     /// Returns a reference to the stored commitments.
-    pub fn commitments(&self) -> &Vec<CompressedRistretto> {
+    pub fn commitments(&self) -> &Vec<C> {
         &self.commitments
     }
 
@@ -54,10 +63,10 @@ impl ColumnCommitments {
     }
 
     /// Returns the commitment with the given identifier.
-    pub fn get_commitment(&self, identifier: &Identifier) -> Option<&CompressedRistretto> {
+    pub fn get_commitment(&self, identifier: &Identifier) -> Option<Decompressed<C>> {
         self.column_metadata
             .get_index_of(identifier)
-            .map(|index| &self.commitments[index])
+            .map(|index| self.commitments.get_decompressed_commitment(index).unwrap())
     }
 
     /// Returns the metadata for the commitment with the given identifier.
@@ -66,17 +75,18 @@ impl ColumnCommitments {
     }
 
     /// Iterate over the metadata and commitments by reference.
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<C> {
         self.into_iter()
     }
 
     /// Returns [`ColumnCommitments`] to the provided columns using the given generator offset
-    pub fn try_from_columns_with_offset<'a, C>(
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+    pub fn try_from_columns_with_offset<'a, COL>(
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-    ) -> Result<ColumnCommitments, DuplicateIdentifiers>
+        setup: &Setup<C>,
+    ) -> Result<ColumnCommitments<C>, DuplicateIdentifiers>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers
         let mut unique_identifiers = HashSet::new();
@@ -104,8 +114,7 @@ impl ColumnCommitments {
             identifiers.into_iter().zip(committable_columns.iter()),
         );
 
-        let commitments =
-            Vec::<CompressedRistretto>::from_columns_with_offset(committable_columns, offset, &());
+        let commitments = Vec::<C>::from_columns_with_offset(committable_columns, offset, setup);
 
         Ok(ColumnCommitments {
             commitments,
@@ -120,13 +129,14 @@ impl ColumnCommitments {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
-    pub fn try_append_rows_with_offset<'a, C>(
+    pub fn try_append_rows_with_offset<'a, COL>(
         &mut self,
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
+        setup: &Setup<C>,
     ) -> Result<(), AppendColumnCommitmentsError>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers.
         let mut unique_identifiers = HashSet::new();
@@ -157,20 +167,21 @@ impl ColumnCommitments {
         self.column_metadata = self.column_metadata.to_owned().try_union(column_metadata)?;
 
         self.commitments
-            .try_append_rows_with_offset(committable_columns, offset, &())
+            .try_append_rows_with_offset(committable_columns, offset, setup)
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(())
     }
 
     /// Add new columns to this [`ColumnCommitments`] using the given generator offset.
-    pub fn try_extend_columns_with_offset<'a, C>(
+    pub fn try_extend_columns_with_offset<'a, COL>(
         &mut self,
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
+        setup: &Setup<C>,
     ) -> Result<(), DuplicateIdentifiers>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicates *between* the existing and new columns.
         //
@@ -192,7 +203,7 @@ impl ColumnCommitments {
 
         // this constructor will check for duplicates among the new columns
         let new_column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(unique_columns, offset)?;
+            ColumnCommitments::try_from_columns_with_offset(unique_columns, offset, setup)?;
 
         self.commitments.extend(new_column_commitments.commitments);
         self.column_metadata
@@ -243,19 +254,17 @@ impl ColumnCommitments {
 }
 
 /// Owning iterator for [`ColumnCommitments`].
-pub type IntoIter = std::iter::Map<
-    std::iter::Zip<
-        <ColumnCommitmentMetadataMap as IntoIterator>::IntoIter,
-        std::vec::IntoIter<CompressedRistretto>,
-    >,
-    fn(
-        ((Identifier, ColumnCommitmentMetadata), CompressedRistretto),
-    ) -> (Identifier, ColumnCommitmentMetadata, CompressedRistretto),
+pub type IntoIter<C> = std::iter::Map<
+    std::iter::Zip<<ColumnCommitmentMetadataMap as IntoIterator>::IntoIter, std::vec::IntoIter<C>>,
+    fn(((Identifier, ColumnCommitmentMetadata), C)) -> (Identifier, ColumnCommitmentMetadata, C),
 >;
 
-impl IntoIterator for ColumnCommitments {
-    type Item = (Identifier, ColumnCommitmentMetadata, CompressedRistretto);
-    type IntoIter = IntoIter;
+impl<C> IntoIterator for ColumnCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
+    type Item = (Identifier, ColumnCommitmentMetadata, C);
+    type IntoIter = IntoIter<C>;
     fn into_iter(self) -> Self::IntoIter {
         self.column_metadata
             .into_iter()
@@ -265,30 +274,22 @@ impl IntoIterator for ColumnCommitments {
 }
 
 /// Borrowing iterator for [`ColumnCommitments`].
-pub type Iter<'a> = std::iter::Map<
+pub type Iter<'a, C> = std::iter::Map<
     std::iter::Zip<
         <&'a ColumnCommitmentMetadataMap as IntoIterator>::IntoIter,
-        std::slice::Iter<'a, CompressedRistretto>,
+        std::slice::Iter<'a, C>,
     >,
     fn(
-        (
-            (&'a Identifier, &'a ColumnCommitmentMetadata),
-            &'a CompressedRistretto,
-        ),
-    ) -> (
-        &'a Identifier,
-        &'a ColumnCommitmentMetadata,
-        &'a CompressedRistretto,
-    ),
+        ((&'a Identifier, &'a ColumnCommitmentMetadata), &'a C),
+    ) -> (&'a Identifier, &'a ColumnCommitmentMetadata, &'a C),
 >;
 
-impl<'a> IntoIterator for &'a ColumnCommitments {
-    type Item = (
-        &'a Identifier,
-        &'a ColumnCommitmentMetadata,
-        &'a CompressedRistretto,
-    );
-    type IntoIter = Iter<'a>;
+impl<'a, C> IntoIterator for &'a ColumnCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
+    type Item = (&'a Identifier, &'a ColumnCommitmentMetadata, &'a C);
+    type IntoIter = Iter<'a, C>;
     fn into_iter(self) -> Self::IntoIter {
         self.column_metadata
             .iter()
@@ -297,12 +298,11 @@ impl<'a> IntoIterator for &'a ColumnCommitments {
     }
 }
 
-impl FromIterator<(Identifier, ColumnCommitmentMetadata, CompressedRistretto)>
-    for ColumnCommitments
+impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
 {
-    fn from_iter<
-        T: IntoIterator<Item = (Identifier, ColumnCommitmentMetadata, CompressedRistretto)>,
-    >(
+    fn from_iter<T: IntoIterator<Item = (Identifier, ColumnCommitmentMetadata, C)>>(
         iter: T,
     ) -> Self {
         let (column_metadata, commitments) = iter
@@ -317,7 +317,7 @@ impl FromIterator<(Identifier, ColumnCommitmentMetadata, CompressedRistretto)>
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::{
@@ -328,13 +328,16 @@ mod tests {
         },
         owned_table,
     };
+    use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
     fn we_can_construct_column_commitments_from_columns_and_identifiers() {
         // empty case
         let column_commitments =
-            ColumnCommitments::try_from_columns_with_offset::<&OwnedColumn<ArkScalar>>([], 0)
-                .unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset::<
+                &OwnedColumn<ArkScalar>,
+            >([], 0, &())
+            .unwrap();
         assert_eq!(column_commitments.len(), 0);
         assert!(column_commitments.is_empty());
         assert!(column_commitments.commitments().is_empty());
@@ -353,7 +356,12 @@ mod tests {
         );
 
         let column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         assert_eq!(column_commitments.len(), 3);
 
@@ -381,7 +389,7 @@ mod tests {
         );
         assert_eq!(
             column_commitments.get_commitment(&bigint_id).unwrap(),
-            &expected_commitments[0]
+            expected_commitments[0].decompress().unwrap()
         );
 
         assert_eq!(
@@ -393,7 +401,7 @@ mod tests {
         );
         assert_eq!(
             column_commitments.get_commitment(&varchar_id).unwrap(),
-            &expected_commitments[1]
+            expected_commitments[1].decompress().unwrap()
         );
 
         assert_eq!(
@@ -405,7 +413,7 @@ mod tests {
         );
         assert_eq!(
             column_commitments.get_commitment(&scalar_id).unwrap(),
-            &expected_commitments[2]
+            expected_commitments[2].decompress().unwrap()
         );
     }
 
@@ -423,7 +431,12 @@ mod tests {
         );
 
         let column_commitments_from_columns =
-            ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let column_commitments_from_iter =
             ColumnCommitments::from_iter(column_commitments_from_columns.clone());
@@ -441,27 +454,31 @@ mod tests {
 
         let empty_column = OwnedColumn::<ArkScalar>::BigInt(vec![]);
 
-        let from_columns_result = ColumnCommitments::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_b, &empty_column),
-                (&duplicate_identifier_b, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-        );
+        let from_columns_result =
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_b, &empty_column),
+                    (&duplicate_identifier_b, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            );
         assert!(matches!(from_columns_result, Err(DuplicateIdentifiers(_))));
 
-        let mut existing_column_commitments = ColumnCommitments::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_a, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-        )
-        .unwrap();
+        let mut existing_column_commitments =
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_a, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            )
+            .unwrap();
 
         let extend_with_existing_column_result = existing_column_commitments
-            .try_extend_columns_with_offset([(&duplicate_identifier_a, &empty_column)], 0);
+            .try_extend_columns_with_offset([(&duplicate_identifier_a, &empty_column)], 0, &());
         assert!(matches!(
             extend_with_existing_column_result,
             Err(DuplicateIdentifiers(_))
@@ -474,6 +491,7 @@ mod tests {
                     (&duplicate_identifier_b, &empty_column),
                 ],
                 0,
+                &(),
             );
         assert!(matches!(
             extend_with_duplicate_columns_result,
@@ -487,6 +505,7 @@ mod tests {
                 (&duplicate_identifier_a, &empty_column),
             ],
             0,
+            &(),
         );
         assert!(matches!(
             append_result,
@@ -505,7 +524,12 @@ mod tests {
         scalar_id => [1000, 2000, -1000, 0].map(ArkScalar::from),
         );
         let column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let expected_commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
             owned_table.inner_table().values(),
@@ -549,8 +573,12 @@ mod tests {
         );
 
         let mut column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(initial_columns.inner_table(), 0)
-                .unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let append_columns: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -559,7 +587,7 @@ mod tests {
         );
 
         column_commitments
-            .try_append_rows_with_offset(append_columns.inner_table(), 2)
+            .try_append_rows_with_offset(append_columns.inner_table(), 2, &())
             .unwrap();
 
         let total_columns: OwnedTable<ArkScalar> = owned_table!(
@@ -569,7 +597,7 @@ mod tests {
         );
 
         let expected_column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(total_columns.inner_table(), 0)
+            ColumnCommitments::try_from_columns_with_offset(total_columns.inner_table(), 0, &())
                 .unwrap();
 
         assert_eq!(column_commitments, expected_column_commitments);
@@ -582,14 +610,19 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let mut base_commitments =
-            ColumnCommitments::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         assert!(matches!(
-            base_commitments.try_append_rows_with_offset(table_diff_type.inner_table(), 4),
+            base_commitments.try_append_rows_with_offset(table_diff_type.inner_table(), 4, &()),
             Err(AppendColumnCommitmentsError::Mismatch(
                 ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_)
             ))
@@ -601,10 +634,10 @@ mod tests {
         );
         println!(
             "{:?}",
-            base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4)
+            base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4, &())
         );
         assert!(matches!(
-            base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4),
+            base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4, &()),
             Err(AppendColumnCommitmentsError::Mismatch(
                 ColumnCommitmentsMismatch::Identifier(..)
             ))
@@ -614,7 +647,7 @@ mod tests {
             "column_a" => [5i64, 6, 7, 8],
         );
         assert!(matches!(
-            base_commitments.try_append_rows_with_offset(table_diff_len.inner_table(), 4),
+            base_commitments.try_append_rows_with_offset(table_diff_len.inner_table(), 4, &()),
             Err(AppendColumnCommitmentsError::Mismatch(
                 ColumnCommitmentsMismatch::NumColumns
             ))
@@ -637,14 +670,18 @@ mod tests {
         varchar_id => varchar_data,
         );
         let mut column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(initial_columns.inner_table(), 0)
-                .unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let new_columns = owned_table!(
         scalar_id => scalar_data,
         );
         column_commitments
-            .try_extend_columns_with_offset(new_columns.inner_table(), 0)
+            .try_extend_columns_with_offset(new_columns.inner_table(), 0, &())
             .unwrap();
 
         let expected_columns = owned_table!(
@@ -653,7 +690,7 @@ mod tests {
         scalar_id => scalar_data,
         );
         let expected_commitments =
-            ColumnCommitments::try_from_columns_with_offset(expected_columns.inner_table(), 0)
+            ColumnCommitments::try_from_columns_with_offset(expected_columns.inner_table(), 0, &())
                 .unwrap();
 
         assert_eq!(column_commitments, expected_commitments);
@@ -677,7 +714,12 @@ mod tests {
         );
 
         let column_commitments_a =
-            ColumnCommitments::try_from_columns_with_offset(columns_a.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_a.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_b: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -685,7 +727,8 @@ mod tests {
             scalar_id => scalar_data[2..].to_vec(),
         );
         let column_commitments_b =
-            ColumnCommitments::try_from_columns_with_offset(columns_b.inner_table(), 2).unwrap();
+            ColumnCommitments::try_from_columns_with_offset(columns_b.inner_table(), 2, &())
+                .unwrap();
 
         let columns_sum: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data,
@@ -693,7 +736,8 @@ mod tests {
             scalar_id => scalar_data,
         );
         let column_commitments_sum =
-            ColumnCommitments::try_from_columns_with_offset(columns_sum.inner_table(), 0).unwrap();
+            ColumnCommitments::try_from_columns_with_offset(columns_sum.inner_table(), 0, &())
+                .unwrap();
 
         assert_eq!(
             column_commitments_a.try_add(column_commitments_b).unwrap(),
@@ -708,14 +752,19 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let base_commitments =
-            ColumnCommitments::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let commitments_diff_type =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_type.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_type.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_type),
@@ -727,7 +776,7 @@ mod tests {
             "b" => ["amet", "ipsum", "dolor", "sit"],
         );
         let commitments_diff_id =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_id.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_id.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_id),
@@ -738,7 +787,7 @@ mod tests {
             "column_a" => [5i64, 6, 7, 8],
         );
         let commitments_diff_len =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_len),
@@ -764,8 +813,12 @@ mod tests {
         );
 
         let column_commitments_subtrahend =
-            ColumnCommitments::try_from_columns_with_offset(columns_subtrahend.inner_table(), 0)
-                .unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_subtrahend.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_minuend: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data,
@@ -773,7 +826,7 @@ mod tests {
             scalar_id => scalar_data,
         );
         let column_commitments_minuend =
-            ColumnCommitments::try_from_columns_with_offset(columns_minuend.inner_table(), 0)
+            ColumnCommitments::try_from_columns_with_offset(columns_minuend.inner_table(), 0, &())
                 .unwrap();
 
         let actual_difference = column_commitments_minuend
@@ -788,6 +841,7 @@ mod tests {
         let expected_difference = ColumnCommitments::try_from_columns_with_offset(
             expected_difference_columns.inner_table(),
             2,
+            &(),
         )
         .unwrap();
 
@@ -827,15 +881,19 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let minuend_commitments =
-            ColumnCommitments::try_from_columns_with_offset(minuend_table.inner_table(), 0)
-                .unwrap();
+            ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
+                minuend_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
             "column_a" => ["1", "2"],
             "column_b" => ["Lorem", "ipsum"],
         );
         let commitments_diff_type =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_type.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_type.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_type),
@@ -847,7 +905,7 @@ mod tests {
             "b" => ["Lorem", "ipsum"],
         );
         let commitments_diff_id =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_id.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_id.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_id),
@@ -858,7 +916,7 @@ mod tests {
             "column_a" => [1i64, 2],
         );
         let commitments_diff_len =
-            ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4)
+            ColumnCommitments::try_from_columns_with_offset(table_diff_len.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_len),

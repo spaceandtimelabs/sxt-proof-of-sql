@@ -1,8 +1,7 @@
-use super::TableCommitment;
+use super::{TableCommitment, VecCommitmentExt};
 use crate::base::database::{
     ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor, TableRef,
 };
-use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 use std::collections::HashMap;
 
@@ -12,9 +11,12 @@ use std::collections::HashMap;
 /// - [`MetadataAccessor`]
 /// - [`CommitmentAccessor`]
 /// - [`SchemaAccessor`]
-pub type QueryCommitments = HashMap<TableRef, TableCommitment>;
+pub type QueryCommitments<C> = HashMap<TableRef, TableCommitment<C>>;
 
-impl MetadataAccessor for QueryCommitments {
+impl<C> MetadataAccessor for QueryCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
     fn get_length(&self, table_ref: crate::base::database::TableRef) -> usize {
         let table_commitment = self.get(&table_ref).unwrap();
 
@@ -28,20 +30,27 @@ impl MetadataAccessor for QueryCommitments {
     }
 }
 
-impl CommitmentAccessor<RistrettoPoint> for QueryCommitments {
-    fn get_commitment(&self, column: ColumnRef) -> curve25519_dalek::ristretto::RistrettoPoint {
+/// Private convenience alias.
+type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
+
+impl<C> CommitmentAccessor<Decompressed<C>> for QueryCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
+    fn get_commitment(&self, column: ColumnRef) -> Decompressed<C> {
         let table_commitment = self.get(&column.table_ref()).unwrap();
 
         table_commitment
             .column_commitments()
             .get_commitment(&column.column_id())
             .unwrap()
-            .decompress()
-            .unwrap()
     }
 }
 
-impl SchemaAccessor for QueryCommitments {
+impl<C> SchemaAccessor for QueryCommitments<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
     fn lookup_column(
         &self,
         table_ref: crate::base::database::TableRef,
@@ -70,7 +79,7 @@ impl SchemaAccessor for QueryCommitments {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::{
@@ -80,6 +89,7 @@ mod tests {
         },
         owned_table,
     };
+    use curve25519_dalek::ristretto::CompressedRistretto;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
@@ -92,15 +102,17 @@ mod tests {
             "column_c" => [1, 2].map(ArkScalar::from)
         );
 
-        let offset_commitment = TableCommitment::from_owned_table_with_offset(&table_a, 2);
+        let offset_commitment =
+            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
         let offset_table_id = "off.table".parse().unwrap();
 
-        let no_offset_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0);
+        let no_offset_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let no_offset_id = "no.off".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
             Vec::<(&Identifier, &OwnedColumn<ArkScalar>)>::new(),
             0,
+            &(),
         )
         .unwrap();
         let no_columns_id = "no.columns".parse().unwrap();
@@ -111,6 +123,7 @@ mod tests {
                 &OwnedColumn::<ArkScalar>::BigInt(vec![]),
             )],
             3,
+            &(),
         )
         .unwrap();
         let no_rows_id = "no.rows".parse().unwrap();
@@ -148,10 +161,11 @@ mod tests {
             column_a_id => [1, 2].map(ArkScalar::from)
         );
 
-        let table_a_commitment = TableCommitment::from_owned_table_with_offset(&table_a, 2);
+        let table_a_commitment =
+            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
-        let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0);
+        let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let table_b_id = "table.b".parse().unwrap();
 
         let query_commitments = QueryCommitments::from_iter([
@@ -204,15 +218,17 @@ mod tests {
             column_a_id => [1, 2].map(ArkScalar::from)
         );
 
-        let table_a_commitment = TableCommitment::from_owned_table_with_offset(&table_a, 2);
+        let table_a_commitment =
+            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
-        let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0);
+        let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
         let table_b_id = "table.b".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
             Vec::<(&Identifier, &OwnedColumn<ArkScalar>)>::new(),
             0,
+            &(),
         )
         .unwrap();
         let no_columns_id = "no.columns".parse().unwrap();
