@@ -67,5 +67,5 @@ mod owned_table_test_accessor;
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
-
-mod scalar_and_i256_conversions;
+/// Contains traits for scalar <-> i256 conversions
+pub(crate) mod scalar_and_i256_conversions;

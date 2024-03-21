@@ -1,4 +1,8 @@
 use super::committable_column::CommittableColumn;
+use crate::base::{
+    database::scalar_and_i256_conversions::convert_scalar_to_i256, scalar::ArkScalar,
+};
+use arrow::datatypes::i256;
 use thiserror::Error;
 
 /// Cannot construct bounds where min is greater than max.
@@ -187,7 +191,7 @@ where
 /// Columns with different [`ColumnBounds`] variants cannot operate with each other.
 #[derive(Debug, Error)]
 #[error("column with bounds {0:?} cannot operate with column with bounds {1:?}")]
-pub struct ColumnBoundsMismatch(ColumnBounds, ColumnBounds);
+pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
 
 /// Column metadata storing the bounds for column types that have order.
 ///
@@ -202,6 +206,8 @@ pub enum ColumnBounds {
     BigInt(Bounds<i64>),
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
+    /// The bounds of a Decimal75 column.
+    Decimal75(Bounds<i256>),
 }
 
 impl ColumnBounds {
@@ -212,6 +218,12 @@ impl ColumnBounds {
         match column {
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
+            CommittableColumn::Decimal75(_, _, d) => ColumnBounds::Decimal75(Bounds::from_iter(
+                d.iter()
+                    .map(|&elem| convert_scalar_to_i256(&ArkScalar::from(elem)))
+                    .collect::<Vec<i256>>()
+                    .iter(),
+            )),
             _ => ColumnBounds::NoOrder,
         }
     }
@@ -228,7 +240,12 @@ impl ColumnBounds {
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.union(bounds_b)))
             }
-            (bounds_a, bounds_b) => Err(ColumnBoundsMismatch(bounds_a, bounds_b)),
+            (ColumnBounds::Decimal75(bounds_a), ColumnBounds::Decimal75(bounds_b)) => {
+                Ok(ColumnBounds::Decimal75(bounds_a.union(bounds_b)))
+            }
+            (bounds_a, bounds_b) => {
+                Err(ColumnBoundsMismatch(Box::new(bounds_a), Box::new(bounds_b)))
+            }
         }
     }
 
@@ -245,8 +262,11 @@ impl ColumnBounds {
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.difference(bounds_b)))
             }
+            (ColumnBounds::Decimal75(bounds_a), ColumnBounds::Decimal75(bounds_b)) => {
+                Ok(ColumnBounds::Decimal75(bounds_a.difference(bounds_b)))
+            }
 
-            (_, _) => Err(ColumnBoundsMismatch(self, other)),
+            (_, _) => Err(ColumnBoundsMismatch(Box::new(self), Box::new(other))),
         }
     }
 }
@@ -254,7 +274,7 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::OwnedColumn, scalar::ArkScalar};
+    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::ArkScalar};
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -465,6 +485,26 @@ mod tests {
             int128_column_bounds,
             ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
+
+        let decimal75_column = OwnedColumn::<ArkScalar>::Decimal75(
+            Precision::new(1).unwrap(),
+            0,
+            vec![
+                -ArkScalar::from([1, 0, 0, 0]),
+                ArkScalar::from([2, 0, 0, 0]),
+                ArkScalar::from([3, 0, 0, 0]),
+            ],
+        );
+        let committable_decimal75_column = CommittableColumn::from(&decimal75_column);
+        let decimal75_column_bounds = ColumnBounds::from_column(&committable_decimal75_column);
+
+        assert_eq!(
+            decimal75_column_bounds,
+            ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+                min: i256::from(-1),
+                max: i256::from(3)
+            }))
+        );
     }
 
     #[test]
@@ -485,6 +525,28 @@ mod tests {
             int128_a.try_union(int128_b).unwrap(),
             ColumnBounds::Int128(Bounds::Bounded(BoundsInner { min: 1, max: 6 }))
         );
+
+        let decimal75_a = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(1),
+            max: i256::from(3),
+        }));
+        let decimal75_b = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(2),
+            max: i256::from(4),
+        }));
+
+        match decimal75_a.try_union(decimal75_b).unwrap() {
+            ColumnBounds::Decimal75(result) => {
+                assert_eq!(
+                    result,
+                    Bounds::Sharp(BoundsInner {
+                        min: i256::from(1),
+                        max: i256::from(4)
+                    })
+                );
+            }
+            _ => panic!("Expected Decimal75 bounds"),
+        }
     }
 
     #[test]
@@ -492,6 +554,10 @@ mod tests {
         let no_order = ColumnBounds::NoOrder;
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let decimal75 = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(7),
+            max: i256::from(9),
+        }));
 
         assert!(no_order.try_union(bigint).is_err());
         assert!(bigint.try_union(no_order).is_err());
@@ -501,6 +567,15 @@ mod tests {
 
         assert!(bigint.try_union(int128).is_err());
         assert!(int128.try_union(bigint).is_err());
+
+        assert!(no_order.try_union(decimal75).is_err());
+        assert!(decimal75.try_union(no_order).is_err());
+
+        assert!(bigint.try_union(decimal75).is_err());
+        assert!(decimal75.try_union(bigint).is_err());
+
+        assert!(int128.try_union(decimal75).is_err());
+        assert!(decimal75.try_union(int128).is_err());
     }
 
     #[test]
@@ -518,6 +593,23 @@ mod tests {
             int128_a.try_difference(int128_b).unwrap(),
             ColumnBounds::Int128(Bounds::Bounded(BoundsInner { min: 1, max: 4 }))
         );
+
+        let decimal75_a = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(-1),
+            max: i256::from(3),
+        }));
+        let decimal75_b = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(2),
+            max: i256::from(4),
+        }));
+
+        assert_eq!(
+            decimal75_a.try_difference(decimal75_b).unwrap(),
+            ColumnBounds::Decimal75(Bounds::Bounded(BoundsInner {
+                min: i256::from(-1),
+                max: i256::from(3)
+            }))
+        );
     }
 
     #[test]
@@ -525,6 +617,10 @@ mod tests {
         let no_order = ColumnBounds::NoOrder;
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let decimal75 = ColumnBounds::Decimal75(Bounds::Sharp(BoundsInner {
+            min: i256::from(7),
+            max: i256::from(9),
+        }));
 
         assert!(no_order.try_difference(bigint).is_err());
         assert!(bigint.try_difference(no_order).is_err());
@@ -534,5 +630,14 @@ mod tests {
 
         assert!(bigint.try_difference(int128).is_err());
         assert!(int128.try_difference(bigint).is_err());
+
+        assert!(no_order.try_difference(decimal75).is_err());
+        assert!(decimal75.try_difference(no_order).is_err());
+
+        assert!(bigint.try_difference(decimal75).is_err());
+        assert!(decimal75.try_difference(bigint).is_err());
+
+        assert!(int128.try_difference(decimal75).is_err());
+        assert!(decimal75.try_difference(int128).is_err());
     }
 }
