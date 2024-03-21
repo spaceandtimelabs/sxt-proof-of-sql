@@ -1,6 +1,6 @@
 use super::{
     committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
-    ColumnCommitmentsMismatch, DuplicateIdentifiers,
+    ColumnCommitmentsMismatch, DuplicateIdentifiers, VecCommitmentExt,
 };
 use crate::base::{database::OwnedTable, scalar::Scalar};
 use proofs_sql::Identifier;
@@ -57,17 +57,26 @@ pub enum TableCommitmentArithmeticError {
 ///
 /// Unlike [`ColumnCommitments`], all columns in this commitment must have the same length.
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct TableCommitment {
-    column_commitments: ColumnCommitments,
+pub struct TableCommitment<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
+    column_commitments: ColumnCommitments<C>,
     range: Range<usize>,
 }
 
-impl TableCommitment {
+/// Private convenience alias.
+type Setup<C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup;
+
+impl<C> TableCommitment<C>
+where
+    Vec<C>: VecCommitmentExt,
+{
     /// Construct a new [`TableCommitment`].
     ///
     /// Will error if the range is "negative", i.e. if its end < start.
     pub fn try_new(
-        column_commitments: ColumnCommitments,
+        column_commitments: ColumnCommitments<C>,
         range: Range<usize>,
     ) -> Result<Self, NegativeRange> {
         if range.start <= range.end {
@@ -81,7 +90,7 @@ impl TableCommitment {
     }
 
     /// Returns a reference to this type's internal [`ColumnCommitments`].
-    pub fn column_commitments(&self) -> &ColumnCommitments {
+    pub fn column_commitments(&self) -> &ColumnCommitments<C> {
         &self.column_commitments
     }
 
@@ -103,12 +112,13 @@ impl TableCommitment {
     /// Returns a [`TableCommitment`] to the provided columns with the given row offset.
     ///
     /// Provided columns must have the same length and no duplicate identifiers.
-    pub fn try_from_columns_with_offset<'a, C>(
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+    pub fn try_from_columns_with_offset<'a, COL>(
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-    ) -> Result<TableCommitment, TableCommitmentFromColumnsError>
+        setup: &Setup<C>,
+    ) -> Result<TableCommitment<C>, TableCommitmentFromColumnsError>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         let (identifiers, committable_columns): (Vec<&Identifier>, Vec<CommittableColumn>) =
             columns
@@ -121,6 +131,7 @@ impl TableCommitment {
         let column_commitments = ColumnCommitments::try_from_columns_with_offset(
             identifiers.into_iter().zip(committable_columns.into_iter()),
             offset,
+            setup,
         )?;
 
         Ok(TableCommitment {
@@ -133,11 +144,12 @@ impl TableCommitment {
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,
-    ) -> TableCommitment
+        setup: &Setup<C>,
+    ) -> TableCommitment<C>
     where
         S: Scalar,
     {
-        Self::try_from_columns_with_offset(owned_table.inner_table(), offset)
+        Self::try_from_columns_with_offset(owned_table.inner_table(), offset, setup)
             .expect("OwnedTables cannot have columns of mixed length or duplicate identifiers")
     }
 
@@ -146,12 +158,13 @@ impl TableCommitment {
     /// The row offset is assumed to be the end of the [`TableCommitment`]'s current range.
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
-    pub fn try_append_rows<'a, C>(
+    pub fn try_append_rows<'a, COL>(
         &mut self,
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
+        setup: &Setup<C>,
     ) -> Result<(), AppendTableCommitmentError>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         let (identifiers, committable_columns): (Vec<&Identifier>, Vec<CommittableColumn>) =
             columns
@@ -164,6 +177,7 @@ impl TableCommitment {
         self.column_commitments.try_append_rows_with_offset(
             identifiers.into_iter().zip(committable_columns.into_iter()),
             self.range.end,
+            setup,
         )?;
         self.range.end += num_rows;
 
@@ -177,11 +191,12 @@ impl TableCommitment {
     pub fn append_owned_table<S>(
         &mut self,
         owned_table: &OwnedTable<S>,
+        setup: &Setup<C>,
     ) -> Result<(), ColumnCommitmentsMismatch>
     where
         S: Scalar,
     {
-        self.try_append_rows(owned_table.inner_table())
+        self.try_append_rows(owned_table.inner_table(), setup)
             .map_err(|e| match e {
                 AppendTableCommitmentError::AppendColumnCommitments(e) => match e {
                     AppendColumnCommitmentsError::Mismatch(e) => e,
@@ -198,12 +213,13 @@ impl TableCommitment {
     /// Add new columns to this [`TableCommitment`].
     ///
     /// Columns must have the same length as the current commitment and no duplicate identifiers.
-    pub fn try_extend_columns<'a, C>(
+    pub fn try_extend_columns<'a, COL>(
         &mut self,
-        columns: impl IntoIterator<Item = (&'a Identifier, C)>,
+        columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
+        setup: &Setup<C>,
     ) -> Result<(), TableCommitmentFromColumnsError>
     where
-        C: Into<CommittableColumn<'a>>,
+        COL: Into<CommittableColumn<'a>>,
     {
         let num_rows = self.range.len();
 
@@ -221,6 +237,7 @@ impl TableCommitment {
         self.column_commitments.try_extend_columns_with_offset(
             identifiers.into_iter().zip(committable_columns.into_iter()),
             self.range.start,
+            setup,
         )?;
 
         Ok(())
@@ -288,15 +305,6 @@ impl TableCommitment {
     }
 }
 
-impl<S> From<&OwnedTable<S>> for TableCommitment
-where
-    S: Scalar,
-{
-    fn from(value: &OwnedTable<S>) -> Self {
-        TableCommitment::from_owned_table_with_offset(value, 0)
-    }
-}
-
 /// Return the number of rows for the provided columns, erroring if they have mixed length.
 fn num_rows_of_columns<'a>(
     committable_columns: impl IntoIterator<Item = &'a CommittableColumn<'a>>,
@@ -315,19 +323,21 @@ fn num_rows_of_columns<'a>(
     Ok(num_rows)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::{
         base::{database::OwnedColumn, scalar::ArkScalar},
         owned_table,
     };
+    use curve25519_dalek::ristretto::CompressedRistretto;
     use indexmap::IndexMap;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
     fn we_cannot_construct_table_commitment_with_negative_range() {
-        let try_new_result = TableCommitment::try_new(ColumnCommitments::default(), 1..0);
+        let try_new_result =
+            TableCommitment::<CompressedRistretto>::try_new(ColumnCommitments::default(), 1..0);
 
         assert!(matches!(try_new_result, Err(NegativeRange)));
     }
@@ -337,10 +347,15 @@ mod tests {
         // no-columns case
         let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<ArkScalar>> = IndexMap::new();
         let empty_table_commitment =
-            TableCommitment::try_from_columns_with_offset(&empty_columns_iter, 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                &empty_columns_iter,
+                0,
+                &(),
+            )
+            .unwrap();
         assert_eq!(
             empty_table_commitment.column_commitments(),
-            &ColumnCommitments::try_from_columns_with_offset(&empty_columns_iter, 0).unwrap()
+            &ColumnCommitments::try_from_columns_with_offset(&empty_columns_iter, 0, &()).unwrap()
         );
         assert_eq!(empty_table_commitment.range(), &(0..0));
         assert_eq!(empty_table_commitment.num_columns(), 0);
@@ -349,10 +364,15 @@ mod tests {
         // no-rows case
         empty_columns_iter.insert("column_a".parse().unwrap(), OwnedColumn::BigInt(vec![]));
         let empty_table_commitment =
-            TableCommitment::try_from_columns_with_offset(&empty_columns_iter, 1).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                &empty_columns_iter,
+                1,
+                &(),
+            )
+            .unwrap();
         assert_eq!(
             empty_table_commitment.column_commitments(),
-            &ColumnCommitments::try_from_columns_with_offset(&empty_columns_iter, 1).unwrap()
+            &ColumnCommitments::try_from_columns_with_offset(&empty_columns_iter, 1, &()).unwrap()
         );
         assert_eq!(empty_table_commitment.range(), &(1..1));
         assert_eq!(empty_table_commitment.num_columns(), 1);
@@ -367,10 +387,16 @@ mod tests {
             "scalar_id" => [1000, 2000, -1000, 0].map(ArkScalar::from),
         );
         let table_commitment =
-            TableCommitment::try_from_columns_with_offset(owned_table.inner_table(), 2).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                2,
+                &(),
+            )
+            .unwrap();
         assert_eq!(
             table_commitment.column_commitments(),
-            &ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 2).unwrap()
+            &ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 2, &())
+                .unwrap()
         );
         assert_eq!(table_commitment.range(), &(2..6));
         assert_eq!(table_commitment.num_columns(), 3);
@@ -378,7 +404,7 @@ mod tests {
 
         // matches from_owned_table constructor
         let table_commitment_from_owned_table =
-            TableCommitment::from_owned_table_with_offset(&owned_table, 2);
+            TableCommitment::from_owned_table_with_offset(&owned_table, 2, &());
         assert_eq!(table_commitment_from_owned_table, table_commitment);
     }
 
@@ -390,40 +416,47 @@ mod tests {
 
         let empty_column = OwnedColumn::<ArkScalar>::BigInt(vec![]);
 
-        let from_columns_result = TableCommitment::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_a, &empty_column),
-                (&unique_identifier, &empty_column),
-                (&duplicate_identifier_a, &empty_column),
-            ],
-            0,
-        );
+        let from_columns_result =
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_a, &empty_column),
+                    (&unique_identifier, &empty_column),
+                    (&duplicate_identifier_a, &empty_column),
+                ],
+                0,
+                &(),
+            );
         assert!(matches!(
             from_columns_result,
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
         ));
 
-        let mut table_commitment = TableCommitment::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_a, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_a, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
-            table_commitment.try_extend_columns([(&duplicate_identifier_a, &empty_column)]);
+            table_commitment.try_extend_columns([(&duplicate_identifier_a, &empty_column)], &());
         assert!(matches!(
             extend_columns_result,
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
         ));
 
-        let extend_columns_result = table_commitment.try_extend_columns([
-            (&duplicate_identifier_b, &empty_column),
-            (&duplicate_identifier_b, &empty_column),
-        ]);
+        let extend_columns_result = table_commitment.try_extend_columns(
+            [
+                (&duplicate_identifier_b, &empty_column),
+                (&duplicate_identifier_b, &empty_column),
+            ],
+            &(),
+        );
         assert!(matches!(
             extend_columns_result,
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
@@ -443,34 +476,43 @@ mod tests {
         let one_row_column = OwnedColumn::<ArkScalar>::BigInt(vec![1]);
         let two_row_column = OwnedColumn::<ArkScalar>::BigInt(vec![1, 2]);
 
-        let from_columns_result = TableCommitment::try_from_columns_with_offset(
-            [
-                (&column_id_a, &one_row_column),
-                (&column_id_b, &two_row_column),
-            ],
-            0,
-        );
+        let from_columns_result =
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                [
+                    (&column_id_a, &one_row_column),
+                    (&column_id_b, &two_row_column),
+                ],
+                0,
+                &(),
+            );
         assert!(matches!(
             from_columns_result,
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
         ));
 
         let mut table_commitment =
-            TableCommitment::try_from_columns_with_offset([(&column_id_a, &one_row_column)], 0)
-                .unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                [(&column_id_a, &one_row_column)],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
-            table_commitment.try_extend_columns([(&column_id_b, &two_row_column)]);
+            table_commitment.try_extend_columns([(&column_id_b, &two_row_column)], &());
         assert!(matches!(
             extend_columns_result,
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
         ));
 
-        let extend_columns_result = table_commitment.try_extend_columns([
-            (&column_id_b, &one_row_column),
-            (&column_id_c, &two_row_column),
-        ]);
+        let extend_columns_result = table_commitment.try_extend_columns(
+            [
+                (&column_id_b, &one_row_column),
+                (&column_id_c, &two_row_column),
+            ],
+            &(),
+        );
         assert!(matches!(
             extend_columns_result,
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
@@ -499,8 +541,12 @@ mod tests {
         );
 
         let mut table_commitment =
-            TableCommitment::try_from_columns_with_offset(initial_columns.inner_table(), 0)
-                .unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let mut table_commitment_clone = table_commitment.clone();
 
         let append_columns: OwnedTable<ArkScalar> = owned_table!(
@@ -510,7 +556,7 @@ mod tests {
         );
 
         table_commitment
-            .try_append_rows(append_columns.inner_table())
+            .try_append_rows(append_columns.inner_table(), &())
             .unwrap();
 
         let total_columns: OwnedTable<ArkScalar> = owned_table!(
@@ -520,13 +566,14 @@ mod tests {
         );
 
         let expected_table_commitment =
-            TableCommitment::try_from_columns_with_offset(total_columns.inner_table(), 0).unwrap();
+            TableCommitment::try_from_columns_with_offset(total_columns.inner_table(), 0, &())
+                .unwrap();
 
         assert_eq!(table_commitment, expected_table_commitment);
 
         // matches append_owned_table result
         table_commitment_clone
-            .append_owned_table(&append_columns)
+            .append_owned_table(&append_columns, &())
             .unwrap();
         assert_eq!(table_commitment, table_commitment_clone)
     }
@@ -538,7 +585,12 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let mut table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
@@ -546,7 +598,7 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         assert!(matches!(
-            table_commitment.try_append_rows(table_diff_type.inner_table()),
+            table_commitment.try_append_rows(table_diff_type.inner_table(), &()),
             Err(AppendTableCommitmentError::AppendColumnCommitments(
                 AppendColumnCommitmentsError::Mismatch(
                     ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_)
@@ -566,18 +618,23 @@ mod tests {
 
         let column_data = OwnedColumn::<ArkScalar>::BigInt(vec![1, 2, 3]);
 
-        let mut table_commitment = TableCommitment::try_from_columns_with_offset(
-            [(&column_id_a, &column_data), (&column_id_b, &column_data)],
-            0,
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                [(&column_id_a, &column_data), (&column_id_b, &column_data)],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
-        let append_column_result = table_commitment.try_append_rows([
-            (&column_id_a, &column_data),
-            (&column_id_b, &column_data),
-            (&column_id_a, &column_data),
-        ]);
+        let append_column_result = table_commitment.try_append_rows(
+            [
+                (&column_id_a, &column_data),
+                (&column_id_b, &column_data),
+                (&column_id_a, &column_data),
+            ],
+            &(),
+        );
         assert!(matches!(
             append_column_result,
             Err(AppendTableCommitmentError::AppendColumnCommitments(
@@ -600,17 +657,25 @@ mod tests {
         );
 
         let mut table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let column_a_append_data = OwnedColumn::<ArkScalar>::BigInt(vec![5, 6, 7]);
         let column_b_append_data =
             OwnedColumn::VarChar(["amet", "consectetur"].map(String::from).to_vec());
 
-        let append_result = table_commitment.try_append_rows([
-            (&column_id_a, &column_a_append_data),
-            (&column_id_b, &column_b_append_data),
-        ]);
+        let append_result = table_commitment.try_append_rows(
+            [
+                (&column_id_a, &column_a_append_data),
+                (&column_id_b, &column_b_append_data),
+            ],
+            &(),
+        );
         assert!(matches!(
             append_result,
             Err(AppendTableCommitmentError::MixedLengthColumns(_))
@@ -637,14 +702,18 @@ mod tests {
         varchar_id => varchar_data,
         );
         let mut table_commitment =
-            TableCommitment::try_from_columns_with_offset(initial_columns.inner_table(), 2)
-                .unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                2,
+                &(),
+            )
+            .unwrap();
 
         let new_columns = owned_table!(
         scalar_id => scalar_data,
         );
         table_commitment
-            .try_extend_columns(new_columns.inner_table())
+            .try_extend_columns(new_columns.inner_table(), &())
             .unwrap();
 
         let expected_columns = owned_table!(
@@ -653,7 +722,7 @@ mod tests {
         scalar_id => scalar_data,
         );
         let expected_table_commitment =
-            TableCommitment::try_from_columns_with_offset(expected_columns.inner_table(), 2)
+            TableCommitment::try_from_columns_with_offset(expected_columns.inner_table(), 2, &())
                 .unwrap();
 
         assert_eq!(table_commitment, expected_table_commitment);
@@ -677,7 +746,12 @@ mod tests {
         );
 
         let table_commitment_a =
-            TableCommitment::try_from_columns_with_offset(columns_a.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_a.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_b: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -685,7 +759,7 @@ mod tests {
             scalar_id => scalar_data[2..].to_vec(),
         );
         let table_commitment_b =
-            TableCommitment::try_from_columns_with_offset(columns_b.inner_table(), 2).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_b.inner_table(), 2, &()).unwrap();
 
         let columns_sum: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data,
@@ -693,7 +767,8 @@ mod tests {
             scalar_id => scalar_data,
         );
         let table_commitment_sum =
-            TableCommitment::try_from_columns_with_offset(columns_sum.inner_table(), 0).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_sum.inner_table(), 0, &())
+                .unwrap();
 
         assert_eq!(
             table_commitment_a
@@ -716,14 +791,19 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let table_commitment_diff_type =
-            TableCommitment::try_from_columns_with_offset(table_diff_type.inner_table(), 4)
+            TableCommitment::try_from_columns_with_offset(table_diff_type.inner_table(), 4, &())
                 .unwrap();
         assert!(matches!(
             table_commitment.try_add(table_commitment_diff_type),
@@ -738,10 +818,16 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 5).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                5,
+                &(),
+            )
+            .unwrap();
 
         let high_disjoint_table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 10).unwrap();
+            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 10, &())
+                .unwrap();
         assert!(matches!(
             table_commitment
                 .clone()
@@ -750,7 +836,8 @@ mod tests {
         ));
 
         let high_overlapping_table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 7).unwrap();
+            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 7, &())
+                .unwrap();
         assert!(matches!(
             table_commitment
                 .clone()
@@ -759,7 +846,8 @@ mod tests {
         ));
 
         let equal_range_table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 5).unwrap();
+            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 5, &())
+                .unwrap();
         assert!(matches!(
             table_commitment
                 .clone()
@@ -768,7 +856,8 @@ mod tests {
         ));
 
         let low_overlapping_table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 3).unwrap();
+            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 3, &())
+                .unwrap();
         assert!(matches!(
             table_commitment
                 .clone()
@@ -777,7 +866,8 @@ mod tests {
         ));
 
         let low_disjoint_table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0, &())
+                .unwrap();
         assert!(matches!(
             table_commitment
                 .clone()
@@ -803,7 +893,12 @@ mod tests {
             scalar_id => scalar_data[..2].to_vec(),
         );
         let table_commitment_low =
-            TableCommitment::try_from_columns_with_offset(columns_low.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_low.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_high: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -811,7 +906,8 @@ mod tests {
             scalar_id => scalar_data[2..].to_vec(),
         );
         let table_commitment_high =
-            TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2, &())
+                .unwrap();
 
         let columns_all: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data,
@@ -819,7 +915,8 @@ mod tests {
             scalar_id => scalar_data,
         );
         let table_commitment_all =
-            TableCommitment::try_from_columns_with_offset(columns_all.inner_table(), 0).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_all.inner_table(), 0, &())
+                .unwrap();
 
         // case where we subtract the low commitment off the total to get the high commitment
         let high_difference = table_commitment_all
@@ -850,14 +947,19 @@ mod tests {
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
         let table_commitment =
-            TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
             "column_a" => ["1", "2"],
             "column_b" => ["Lorem", "ipsum"],
         );
         let table_commitment_diff_type =
-            TableCommitment::try_from_columns_with_offset(table_diff_type.inner_table(), 0)
+            TableCommitment::try_from_columns_with_offset(table_diff_type.inner_table(), 0, &())
                 .unwrap();
         assert!(matches!(
             table_commitment.try_sub(table_commitment_diff_type),
@@ -889,11 +991,15 @@ mod tests {
         );
 
         let minuend_table_commitment =
-            TableCommitment::try_from_columns_with_offset(columns_minuend.inner_table(), 4)
-                .unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_minuend.inner_table(),
+                4,
+                &(),
+            )
+            .unwrap();
 
         let high_contiguous_table_commitment =
-            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 9)
+            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 9, &())
                 .unwrap();
         assert!(matches!(
             minuend_table_commitment
@@ -903,7 +1009,7 @@ mod tests {
         ));
 
         let high_overlapping_table_commitment =
-            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 6)
+            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 6, &())
                 .unwrap();
         assert!(matches!(
             minuend_table_commitment
@@ -913,7 +1019,7 @@ mod tests {
         ));
 
         let low_overlapping_table_commitment =
-            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 3)
+            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 3, &())
                 .unwrap();
         assert!(matches!(
             minuend_table_commitment
@@ -923,7 +1029,7 @@ mod tests {
         ));
 
         let low_contiguous_table_commitment =
-            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 2)
+            TableCommitment::try_from_columns_with_offset(columns_subtrahend.inner_table(), 2, &())
                 .unwrap();
         assert!(matches!(
             minuend_table_commitment
@@ -950,7 +1056,12 @@ mod tests {
             scalar_id => scalar_data[..2].to_vec(),
         );
         let table_commitment_low =
-            TableCommitment::try_from_columns_with_offset(columns_low.inner_table(), 0).unwrap();
+            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+                columns_low.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_high: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -958,7 +1069,8 @@ mod tests {
             scalar_id => scalar_data[2..].to_vec(),
         );
         let table_commitment_high =
-            TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2, &())
+                .unwrap();
 
         let columns_all: OwnedTable<ArkScalar> = owned_table!(
             bigint_id => bigint_data,
@@ -966,7 +1078,8 @@ mod tests {
             scalar_id => scalar_data,
         );
         let table_commitment_all =
-            TableCommitment::try_from_columns_with_offset(columns_all.inner_table(), 0).unwrap();
+            TableCommitment::try_from_columns_with_offset(columns_all.inner_table(), 0, &())
+                .unwrap();
 
         // try to subtract the total commitment off the low to get the "negative" high commitment
         let try_negative_high_difference_result =

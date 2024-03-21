@@ -184,6 +184,10 @@ impl VecCommitmentExt for Vec<DoryCommitment> {
     fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>> {
         Some(self.to_vec())
     }
+
+    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment> {
+        Some(self[i])
+    }
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+use super::Commitment;
 use crate::base::commitment::committable_column::CommittableColumn;
 #[cfg(feature = "blitzar")]
 use blitzar::{
@@ -79,12 +80,15 @@ pub trait VecCommitmentExt {
     fn num_commitments(&self) -> usize;
 
     /// The decompressed commitment type.
-    type DecompressedCommitment;
+    type DecompressedCommitment: Commitment;
 
     /// Decompresses the commitments in the collection.
     ///
     /// Note: this _could_ be made to return an iterator, but the usage does not currently require it.
     fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>>;
+
+    /// Decompresses a single commitment in the collection.
+    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment>;
 }
 
 #[cfg(feature = "blitzar")]
@@ -211,6 +215,10 @@ impl VecCommitmentExt for Vec<CompressedRistretto> {
         self.iter()
             .map(|commitment| commitment.decompress())
             .collect()
+    }
+
+    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment> {
+        self[i].decompress()
     }
 }
 

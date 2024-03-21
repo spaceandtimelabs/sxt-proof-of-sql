@@ -26,24 +26,18 @@ pub use column_commitment_metadata_map::{
     ColumnCommitmentMetadataMap, ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch,
 };
 
-#[cfg(feature = "blitzar")]
 mod column_commitments;
-#[cfg(feature = "blitzar")]
 pub use column_commitments::{
     AppendColumnCommitmentsError, ColumnCommitments, DuplicateIdentifiers,
 };
 
-#[cfg(feature = "blitzar")]
 mod table_commitment;
-#[cfg(feature = "blitzar")]
 pub use table_commitment::{
     AppendTableCommitmentError, MixedLengthColumns, NegativeRange, TableCommitment,
     TableCommitmentArithmeticError, TableCommitmentFromColumnsError,
 };
 
-#[cfg(feature = "blitzar")]
 mod query_commitments;
-#[cfg(feature = "blitzar")]
 pub use query_commitments::QueryCommitments;
 
 /// A trait for using commitment schemes generically.
