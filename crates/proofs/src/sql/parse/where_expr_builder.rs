@@ -102,9 +102,16 @@ impl WhereExprBuilder<'_> {
                         "Int128".to_owned(),
                     ));
                 }
+                ColumnType::BigInt if d.scale > 0 => {
+                    return Err(ConversionError::DataTypeMismatch(
+                        d.value().to_owned(),
+                        "Int64".to_owned(),
+                    ));
+                }
                 // 123.000 should match to 123, guarded by the match above
                 ColumnType::Int128 => match_decimal(&d, 0)?,
-                ColumnType::VarChar | ColumnType::BigInt | ColumnType::Scalar => {
+                ColumnType::BigInt => match_decimal(&d, 0)?,
+                ColumnType::VarChar | ColumnType::Scalar => {
                     return Err(ConversionError::DataTypeMismatch(
                         format!("Decimal75: {}", d.value()),
                         left.column_type().to_string(),

@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn we_do_not_expect_an_error_while_trying_to_match_decimal_with_zero_scale_to_int_column() {
+    fn we_do_not_expect_an_error_while_trying_to_match_decimal_with_zero_scale_to_int128_column() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,
@@ -251,6 +251,44 @@ mod tests {
             &accessor,
         )
         .is_ok());
+    }
+
+    #[test]
+    fn we_do_not_expect_an_error_while_trying_to_match_decimal_with_zero_scale_to_bigint_column() {
+        let t = "sxt.sxt_tab".parse().unwrap();
+        let accessor = record_batch_to_accessor(
+            t,
+            record_batch!(
+                "b" => [123_i64],
+            ),
+            0,
+        );
+
+        assert!(QueryExpr::<RistrettoPoint>::try_new(
+            SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
+            t.schema_id(),
+            &accessor,
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn we_do_expect_an_error_while_trying_to_match_decimal_with_nonzero_scale_to_bigint_column() {
+        let t = "sxt.sxt_tab".parse().unwrap();
+        let accessor = record_batch_to_accessor(
+            t,
+            record_batch!(
+                "b" => [123_i64],
+            ),
+            0,
+        );
+
+        assert!(QueryExpr::<RistrettoPoint>::try_new(
+            SelectStatement::from_str("select * from sxt_tab where b = 123.456").unwrap(),
+            t.schema_id(),
+            &accessor,
+        )
+        .is_err());
     }
 
     #[cfg(test)]
