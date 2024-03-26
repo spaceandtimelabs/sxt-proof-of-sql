@@ -9,7 +9,7 @@ use crate::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
         },
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
         slice_ops,
     },
     sql::proof::{
@@ -61,7 +61,7 @@ impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
 
 impl<H: ProverHonestyMarker> ProofExpr<RistrettoPoint> for OstensibleDenseFilterExpr<H>
 where
-    OstensibleDenseFilterExpr<H>: ProverEvaluate<ArkScalar>,
+    OstensibleDenseFilterExpr<H>: ProverEvaluate<Curve25519Scalar>,
 {
     fn count(
         &self,
@@ -153,12 +153,12 @@ where
 /// Alias for a dense filter expression with a honest prover.
 pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
 
-impl ProverEvaluate<ArkScalar> for DenseFilterExpr {
+impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self
@@ -189,9 +189,9 @@ impl ProverEvaluate<ArkScalar> for DenseFilterExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -222,11 +222,11 @@ impl ProverEvaluate<ArkScalar> for DenseFilterExpr {
 
 fn verify_filter(
     builder: &mut VerificationBuilder<RistrettoPoint>,
-    alpha: ArkScalar,
-    beta: ArkScalar,
-    c_evals: Vec<ArkScalar>,
-    s_eval: ArkScalar,
-    d_evals: Vec<ArkScalar>,
+    alpha: Curve25519Scalar,
+    beta: Curve25519Scalar,
+    c_evals: Vec<Curve25519Scalar>,
+    s_eval: Curve25519Scalar,
+    d_evals: Vec<Curve25519Scalar>,
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
     let rand_eval = builder.mle_evaluations.random_evaluation;
@@ -259,13 +259,13 @@ fn verify_filter(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn prove_filter<'a>(
-    builder: &mut ProofBuilder<'a, ArkScalar>,
+    builder: &mut ProofBuilder<'a, Curve25519Scalar>,
     alloc: &'a Bump,
-    alpha: ArkScalar,
-    beta: ArkScalar,
-    c: &[Column<ArkScalar>],
+    alpha: Curve25519Scalar,
+    beta: Curve25519Scalar,
+    c: &[Column<Curve25519Scalar>],
     s: &'a [bool],
-    d: &[Column<ArkScalar>],
+    d: &[Column<Curve25519Scalar>],
     m: usize,
 ) {
     let n = builder.table_length();
@@ -291,10 +291,10 @@ pub(super) fn prove_filter<'a>(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
             (
-                ArkScalar::one(),
+                Curve25519Scalar::one(),
                 vec![Box::new(c_star as &[_]), Box::new(s)],
             ),
-            (-ArkScalar::one(), vec![Box::new(d_star as &[_])]),
+            (-Curve25519Scalar::one(), vec![Box::new(d_star as &[_])]),
         ],
     );
 
@@ -303,10 +303,10 @@ pub(super) fn prove_filter<'a>(
         SumcheckSubpolynomialType::Identity,
         vec![
             (
-                ArkScalar::one(),
+                Curve25519Scalar::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-ArkScalar::one(), vec![]),
+            (-Curve25519Scalar::one(), vec![]),
         ],
     );
 
@@ -315,10 +315,10 @@ pub(super) fn prove_filter<'a>(
         SumcheckSubpolynomialType::Identity,
         vec![
             (
-                ArkScalar::one(),
+                Curve25519Scalar::one(),
                 vec![Box::new(d_star as &[_]), Box::new(d_bar_fold as &[_])],
             ),
-            (-ArkScalar::one(), vec![Box::new(chi as &[_])]),
+            (-Curve25519Scalar::one(), vec![Box::new(chi as &[_])]),
         ],
     );
 }

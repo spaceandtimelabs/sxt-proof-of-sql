@@ -5,7 +5,7 @@ use super::{
         sum_aggregate_slice_by_index_counts,
     },
 };
-use crate::base::{database::Column, scalar::ArkScalar};
+use crate::base::{database::Column, scalar::Curve25519Scalar};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 
@@ -40,8 +40,8 @@ fn we_can_aggregate_columns() {
     let selection = &[
         false, true, true, true, true, true, true, true, true, true, true, true,
     ];
-    let scals_b: Vec<ArkScalar> = slice_b.iter().map(|s| s.into()).collect();
-    let scals_d: Vec<ArkScalar> = slice_d.iter().map(|s| s.into()).collect();
+    let scals_b: Vec<Curve25519Scalar> = slice_b.iter().map(|s| s.into()).collect();
+    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(|s| s.into()).collect();
     let column_a = Column::BigInt(slice_a);
     let column_b = Column::VarChar((slice_b, &scals_b));
     let column_c = Column::Int128(slice_c);
@@ -52,12 +52,12 @@ fn we_can_aggregate_columns() {
     let aggregate_result = aggregate_columns(&alloc, group_by, sum_columns, selection)
         .expect("Aggregation should succeed");
     let scals_res = [
-        ArkScalar::from("Cat"),
-        ArkScalar::from("Dog"),
-        ArkScalar::from("Cat"),
-        ArkScalar::from("Dog"),
-        ArkScalar::from("Cat"),
-        ArkScalar::from("Dog"),
+        Curve25519Scalar::from("Cat"),
+        Curve25519Scalar::from("Dog"),
+        Curve25519Scalar::from("Cat"),
+        Curve25519Scalar::from("Dog"),
+        Curve25519Scalar::from("Cat"),
+        Curve25519Scalar::from("Dog"),
     ];
     let expected_group_by_result = &[
         Column::BigInt(&[1, 1, 2, 2, 3, 3]),
@@ -65,20 +65,20 @@ fn we_can_aggregate_columns() {
     ];
     let expected_sum_result = &[
         &[
-            ArkScalar::from(105),
-            ArkScalar::from(106),
-            ArkScalar::from(103 + 107),
-            ArkScalar::from(104 + 108),
-            ArkScalar::from(101 + 109 + 111),
-            ArkScalar::from(102 + 110),
+            Curve25519Scalar::from(105),
+            Curve25519Scalar::from(106),
+            Curve25519Scalar::from(103 + 107),
+            Curve25519Scalar::from(104 + 108),
+            Curve25519Scalar::from(101 + 109 + 111),
+            Curve25519Scalar::from(102 + 110),
         ],
         &[
-            ArkScalar::from(205),
-            ArkScalar::from(206),
-            ArkScalar::from(203 + 207),
-            ArkScalar::from(204 + 208),
-            ArkScalar::from(201 + 209 + 211),
-            ArkScalar::from(202 + 210),
+            Curve25519Scalar::from(205),
+            Curve25519Scalar::from(206),
+            Curve25519Scalar::from(203 + 207),
+            Curve25519Scalar::from(204 + 208),
+            Curve25519Scalar::from(201 + 209 + 211),
+            Curve25519Scalar::from(202 + 210),
         ],
     ];
     let expected_count_result = &[1, 1, 2, 2, 3, 2];
@@ -129,7 +129,7 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     let slice_a = &["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let scals_a: Vec<ArkScalar> = slice_a.iter().map(|s| s.into()).collect();
+    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(|s| s.into()).collect();
     let column_a = Column::VarChar((slice_a, &scals_a));
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
@@ -159,7 +159,7 @@ fn we_can_compare_indexes_by_columns_for_scalar_columns() {
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let scals_a: Vec<ArkScalar> = slice_a.iter().map(|s| s.into()).collect();
+    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(|s| s.into()).collect();
     let column_a = Column::Scalar(&scals_a);
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
@@ -215,9 +215,9 @@ fn we_can_sum_aggregate_slice_by_counts() {
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4];
     let expected = &[
-        ArkScalar::from(112 + 111 + 101),
-        ArkScalar::from(110 + 102 + 103),
-        ArkScalar::from(106 + 114 + 113 + 109),
+        Curve25519Scalar::from(112 + 111 + 101),
+        Curve25519Scalar::from(110 + 102 + 103),
+        Curve25519Scalar::from(106 + 114 + 113 + 109),
     ];
     let alloc = Bump::new();
     let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
@@ -247,16 +247,16 @@ fn we_can_sum_aggregate_columns_by_counts() {
     let slice_c = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
-    let scals_c: Vec<ArkScalar> = slice_c.iter().map(|s| s.into()).collect();
+    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(|s| s.into()).collect();
     let column_a = Column::BigInt(slice_a);
     let columns_b = Column::Int128(slice_b);
     let columns_c = Column::Scalar(&scals_c);
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4];
     let expected = &[
-        ArkScalar::from(112 + 111 + 101),
-        ArkScalar::from(110 + 102 + 103),
-        ArkScalar::from(106 + 114 + 113 + 109),
+        Curve25519Scalar::from(112 + 111 + 101),
+        Curve25519Scalar::from(110 + 102 + 103),
+        Curve25519Scalar::from(106 + 114 + 113 + 109),
     ];
     let alloc = Bump::new();
     let result = sum_aggregate_column_by_index_counts(&alloc, &column_a, counts, indexes);

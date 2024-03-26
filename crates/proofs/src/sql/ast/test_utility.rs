@@ -5,7 +5,7 @@ use super::{
 use crate::base::{
     commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
-    scalar::ArkScalar,
+    scalar::Curve25519Scalar,
 };
 use curve25519_dalek::RistrettoPoint;
 
@@ -15,7 +15,7 @@ pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnR
     ColumnRef::new(tab, name, type_col)
 }
 
-pub fn equal<T: Into<ArkScalar>>(
+pub fn equal<T: Into<Curve25519Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,
@@ -24,7 +24,7 @@ pub fn equal<T: Into<ArkScalar>>(
     BoolExprPlan::new_equals(col(tab, name, accessor), val.into())
 }
 
-pub fn lte<T: Into<ArkScalar>>(
+pub fn lte<T: Into<Curve25519Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,
@@ -33,7 +33,7 @@ pub fn lte<T: Into<ArkScalar>>(
     BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
-pub fn gte<T: Into<ArkScalar>>(
+pub fn gte<T: Into<Curve25519Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,

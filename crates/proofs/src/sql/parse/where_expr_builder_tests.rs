@@ -4,7 +4,7 @@ mod tests {
         base::{
             database::{ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, TestAccessor},
             math::decimal::Precision,
-            scalar::{ArkScalar as S, Scalar},
+            scalar::{Curve25519Scalar as S, Scalar},
         },
         record_batch,
         sql::parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},

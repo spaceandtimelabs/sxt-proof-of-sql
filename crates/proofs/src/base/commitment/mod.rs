@@ -15,7 +15,7 @@ mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
 
 mod column_bounds;
-use super::scalar::ArkScalar;
+use super::scalar::Curve25519Scalar;
 pub use column_bounds::{Bounds, ColumnBounds, ColumnBoundsMismatch, NegativeBounds};
 
 mod column_commitment_metadata;
@@ -63,7 +63,7 @@ pub trait Commitment:
 }
 
 impl Commitment for RistrettoPoint {
-    type Scalar = ArkScalar;
+    type Scalar = Curve25519Scalar;
 }
 
 mod commitment_evaluation_proof;

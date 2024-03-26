@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{CommitmentAccessor, DataAccessor, RecordBatchTestAccessor, TestAccessor},
-        scalar::{compute_commitment_for_testing, ArkScalar},
+        scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
@@ -29,7 +29,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -37,22 +37,22 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
+            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
         );
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
-        assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
+        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
+        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
     }
     let expr = TestQueryExpr {
         table_length: n,
@@ -107,7 +107,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -115,22 +115,22 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 123i64);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
+            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
         );
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
-        assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
+        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
+        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
     }
     let expr = TestQueryExpr {
         table_length: 2,
@@ -158,7 +158,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -166,23 +166,23 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
+            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
         );
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
-        assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
+        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
         // specify an arbitrary evaluation so that verify fails
-        builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::from(123u64));
+        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::from(123u64));
     }
     let expr = TestQueryExpr {
         table_length: 2,
@@ -210,7 +210,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -218,22 +218,22 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
+            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
         );
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
-        assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
+        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
+        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
     }
     let expr = TestQueryExpr {
         table_length: 2,
@@ -267,7 +267,7 @@ fn verify_fails_if_counts_dont_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         let indexes = Indexes::Sparse(vec![0u64]);
@@ -275,22 +275,22 @@ fn verify_fails_if_counts_dont_match() {
         builder.produce_result_column(col as &[_]);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let col = alloc.alloc_slice_fill_copy(2, 0i64);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(ArkScalar::one(), vec![Box::new(col as &[_])])],
+            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
         );
     }
     fn verifier_eval(
         builder: &mut VerificationBuilder<RistrettoPoint>,
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
-        assert_eq!(builder.consume_result_mle(), ArkScalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&ArkScalar::zero());
+        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
+        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
     }
     counts.anchored_mles += 1;
     let expr = TestQueryExpr {
@@ -323,22 +323,22 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
     }
@@ -421,22 +421,22 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
     }
@@ -481,22 +481,22 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
     }
@@ -505,7 +505,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
         _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
     ) {
         let res_eval = builder.consume_result_mle();
-        let x_commit = ArkScalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
+        let x_commit = Curve25519Scalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
         let x_eval = builder.consume_anchored_mle(&x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
@@ -543,15 +543,15 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -560,8 +560,8 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&Z)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
 
@@ -569,8 +569,8 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
             ],
         );
     }
@@ -666,15 +666,15 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -683,8 +683,8 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&Z)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
 
@@ -692,8 +692,8 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
             ],
         );
     }
@@ -725,7 +725,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     let accessor = RecordBatchTestAccessor::new_empty();
     let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     proof.commitments[0] =
-        (proof.commitments[0].decompress().unwrap() * ArkScalar::from(2u64)).compress();
+        (proof.commitments[0].decompress().unwrap() * Curve25519Scalar::from(2u64)).compress();
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
@@ -750,15 +750,15 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -767,8 +767,8 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&Z)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
 
@@ -776,8 +776,8 @@ fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
             ],
         );
     }
@@ -839,15 +839,15 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -856,8 +856,8 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&Z)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
 
@@ -865,8 +865,8 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
             ],
         );
     }
@@ -923,15 +923,15 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.produce_anchored_mle(&X);
         builder.produce_intermediate_mle(&Z[..]);
@@ -940,8 +940,8 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&Z)]),
-                (-ArkScalar::one(), vec![Box::new(&X), Box::new(&X)]),
+                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
             ],
         );
 
@@ -949,8 +949,8 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
-                (ArkScalar::one(), vec![Box::new(&RES)]),
-                (-ArkScalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
+                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
+                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
             ],
         );
     }
@@ -1003,16 +1003,16 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
     fn result_eval<'a>(
         builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
         builder.produce_result_column(RES);
         builder.request_post_result_challenges(2);
     }
     fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<ArkScalar>,
+        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();

@@ -324,7 +324,7 @@ mod tests {
         base::{
             commitment::{column_bounds::Bounds, ColumnBounds},
             database::{ColumnType, OwnedColumn, OwnedTable},
-            scalar::ArkScalar,
+            scalar::Curve25519Scalar,
         },
         owned_table,
     };
@@ -335,7 +335,7 @@ mod tests {
         // empty case
         let column_commitments =
             ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset::<
-                &OwnedColumn<ArkScalar>,
+                &OwnedColumn<Curve25519Scalar>,
             >([], 0, &())
             .unwrap();
         assert_eq!(column_commitments.len(), 0);
@@ -352,7 +352,7 @@ mod tests {
         // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
         // supports it
         varchar_id => ["Lorem", "ipsum", "dolor", "sit"],
-        scalar_id => [1000, 2000, -1000, 0].map(ArkScalar::from),
+        scalar_id => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
         );
 
         let column_commitments =
@@ -427,7 +427,7 @@ mod tests {
         // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
         // supports it
         varchar_id => ["Lorem", "ipsum", "dolor", "sit"],
-        scalar_id => [1000, 2000, -1000, 0].map(ArkScalar::from),
+        scalar_id => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
         );
 
         let column_commitments_from_columns =
@@ -452,7 +452,7 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<ArkScalar>::BigInt(vec![]);
+        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![]);
 
         let from_columns_result =
             ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
@@ -521,7 +521,7 @@ mod tests {
         let owned_table = owned_table!(
         bigint_id => [1i64, 5, -5, 0],
         varchar_id => ["Lorem", "ipsum", "dolor", "sit"],
-        scalar_id => [1000, 2000, -1000, 0].map(ArkScalar::from),
+        scalar_id => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
         );
         let column_commitments =
             ColumnCommitments::<CompressedRistretto>::try_from_columns_with_offset(
@@ -564,9 +564,9 @@ mod tests {
         let varchar_data = ["Lorem", "ipsum", "dolor", "sit", "amet"];
 
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let scalar_data = [1000, 2000, 3000, -1000, 0].map(ArkScalar::from);
+        let scalar_data = [1000, 2000, 3000, -1000, 0].map(Curve25519Scalar::from);
 
-        let initial_columns: OwnedTable<ArkScalar> = owned_table!(
+        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[..2].to_vec(),
             varchar_id => varchar_data[..2].to_vec(),
             scalar_id => scalar_data[..2].to_vec(),
@@ -580,7 +580,7 @@ mod tests {
             )
             .unwrap();
 
-        let append_columns: OwnedTable<ArkScalar> = owned_table!(
+        let append_columns: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
             varchar_id => varchar_data[2..].to_vec(),
             scalar_id => scalar_data[2..].to_vec(),
@@ -590,7 +590,7 @@ mod tests {
             .try_append_rows_with_offset(append_columns.inner_table(), 2, &())
             .unwrap();
 
-        let total_columns: OwnedTable<ArkScalar> = owned_table!(
+        let total_columns: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data,
             varchar_id => varchar_data,
             scalar_id => scalar_data,
@@ -605,7 +605,7 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_to_mismatched_column_commitments() {
-        let base_table: OwnedTable<ArkScalar> = owned_table!(
+        let base_table: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
@@ -617,7 +617,7 @@ mod tests {
             )
             .unwrap();
 
-        let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
@@ -628,7 +628,7 @@ mod tests {
             ))
         ));
 
-        let table_diff_id: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [5i64, 6, 7, 8],
             "b" => ["amet", "ipsum", "dolor", "sit"],
         );
@@ -643,7 +643,7 @@ mod tests {
             ))
         ));
 
-        let table_diff_len: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_len: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [5i64, 6, 7, 8],
         );
         assert!(matches!(
@@ -663,9 +663,9 @@ mod tests {
         let varchar_data = ["Lorem", "ipsum", "dolor", "sit", "amet"];
 
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let scalar_data = [1000, 2000, 3000, -1000, 0].map(ArkScalar::from);
+        let scalar_data = [1000, 2000, 3000, -1000, 0].map(Curve25519Scalar::from);
 
-        let initial_columns: OwnedTable<ArkScalar> = owned_table!(
+        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table!(
         bigint_id => bigint_data,
         varchar_id => varchar_data,
         );
@@ -705,9 +705,9 @@ mod tests {
         let varchar_data = ["Lorem", "ipsum", "dolor", "sit", "amet"];
 
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let scalar_data = [1000, 2000, 3000, -1000, 0].map(ArkScalar::from);
+        let scalar_data = [1000, 2000, 3000, -1000, 0].map(Curve25519Scalar::from);
 
-        let columns_a: OwnedTable<ArkScalar> = owned_table!(
+        let columns_a: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[..2].to_vec(),
             varchar_id => varchar_data[..2].to_vec(),
             scalar_id => scalar_data[..2].to_vec(),
@@ -721,7 +721,7 @@ mod tests {
             )
             .unwrap();
 
-        let columns_b: OwnedTable<ArkScalar> = owned_table!(
+        let columns_b: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
             varchar_id => varchar_data[2..].to_vec(),
             scalar_id => scalar_data[2..].to_vec(),
@@ -730,7 +730,7 @@ mod tests {
             ColumnCommitments::try_from_columns_with_offset(columns_b.inner_table(), 2, &())
                 .unwrap();
 
-        let columns_sum: OwnedTable<ArkScalar> = owned_table!(
+        let columns_sum: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data,
             varchar_id => varchar_data,
             scalar_id => scalar_data,
@@ -747,7 +747,7 @@ mod tests {
 
     #[test]
     fn we_cannot_add_mismatched_column_commitments() {
-        let base_table: OwnedTable<ArkScalar> = owned_table!(
+        let base_table: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
@@ -759,7 +759,7 @@ mod tests {
             )
             .unwrap();
 
-        let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
@@ -771,7 +771,7 @@ mod tests {
             Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
         ));
 
-        let table_diff_id: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [5i64, 6, 7, 8],
             "b" => ["amet", "ipsum", "dolor", "sit"],
         );
@@ -783,7 +783,7 @@ mod tests {
             Err(ColumnCommitmentsMismatch::Identifier(..))
         ));
 
-        let table_diff_len: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_len: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [5i64, 6, 7, 8],
         );
         let commitments_diff_len =
@@ -804,9 +804,9 @@ mod tests {
         let varchar_data = ["Lorem", "ipsum", "dolor", "sit", "amet"];
 
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
-        let scalar_data = [1000, 2000, 3000, -1000, 0].map(ArkScalar::from);
+        let scalar_data = [1000, 2000, 3000, -1000, 0].map(Curve25519Scalar::from);
 
-        let columns_subtrahend: OwnedTable<ArkScalar> = owned_table!(
+        let columns_subtrahend: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[..2].to_vec(),
             varchar_id => varchar_data[..2].to_vec(),
             scalar_id => scalar_data[..2].to_vec(),
@@ -820,7 +820,7 @@ mod tests {
             )
             .unwrap();
 
-        let columns_minuend: OwnedTable<ArkScalar> = owned_table!(
+        let columns_minuend: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data,
             varchar_id => varchar_data,
             scalar_id => scalar_data,
@@ -833,7 +833,7 @@ mod tests {
             .try_sub(column_commitments_subtrahend)
             .unwrap();
 
-        let expected_difference_columns: OwnedTable<ArkScalar> = owned_table!(
+        let expected_difference_columns: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
             varchar_id => varchar_data[2..].to_vec(),
             scalar_id => scalar_data[2..].to_vec(),
@@ -876,7 +876,7 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_mismatched_column_commitments() {
-        let minuend_table: OwnedTable<ArkScalar> = owned_table!(
+        let minuend_table: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
@@ -888,7 +888,7 @@ mod tests {
             )
             .unwrap();
 
-        let table_diff_type: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => ["1", "2"],
             "column_b" => ["Lorem", "ipsum"],
         );
@@ -900,7 +900,7 @@ mod tests {
             Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
         ));
 
-        let table_diff_id: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2,],
             "b" => ["Lorem", "ipsum"],
         );
@@ -912,7 +912,7 @@ mod tests {
             Err(ColumnCommitmentsMismatch::Identifier(..))
         ));
 
-        let table_diff_len: OwnedTable<ArkScalar> = owned_table!(
+        let table_diff_len: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2],
         );
         let commitments_diff_len =

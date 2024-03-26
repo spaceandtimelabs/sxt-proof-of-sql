@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{ColumnType, OwnedTableTestAccessor, TestAccessor},
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table,
     sql::proof::{exercise_verification, VerifiableQueryResult},
@@ -39,19 +39,19 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
 
 #[test]
 fn we_can_prove_a_complex_group_by_query_with_many_columns() {
-    let scalar_filter_data: Vec<ArkScalar> = [
+    let scalar_filter_data: Vec<Curve25519Scalar> = [
         333, 222, 222, 333, 222, 333, 333, 333, 222, 222, 222, 333, 222, 222, 222, 222, 222, 222,
         333, 333,
     ]
     .iter()
     .map(|i| i.into())
     .collect();
-    let scalar_group_data: Vec<ArkScalar> =
+    let scalar_group_data: Vec<Curve25519Scalar> =
         [5, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 5]
             .iter()
             .map(|i| i.into())
             .collect();
-    let scalar_sum_data: Vec<ArkScalar> = [
+    let scalar_sum_data: Vec<Curve25519Scalar> = [
         119, 522, 100, 325, 501, 447, 759, 375, 212, 532, 459, 616, 579, 179, 695, 963, 532, 868,
         331, 830,
     ]
@@ -103,12 +103,12 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     exercise_verification(&res, &expr, &accessor, t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table!(
-        "scalar_group" => [ArkScalar::from(4), ArkScalar::from(4), ArkScalar::from(4)],
+        "scalar_group" => [Curve25519Scalar::from(4), Curve25519Scalar::from(4), Curve25519Scalar::from(4)],
         "int128_group" => [8_i128, 8, 9],
         "bigint_group" => [6_i64, 7, 6],
         "sum_int" => [1406_i64, 927, 637],
         "sum_128" => [1342_i128, 1262, 513],
-        "sum_scal" => [ArkScalar::from(1116), ArkScalar::from(1033), ArkScalar::from(375)],
+        "sum_scal" => [Curve25519Scalar::from(1116), Curve25519Scalar::from(1033), Curve25519Scalar::from(375)],
         "__count__" => [3_i64, 2, 1],
     );
     assert_eq!(res, expected);
@@ -137,7 +137,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     let expected = owned_table!(
         "sum_int" => [1406_i64 + 927 + 637],
         "sum_128" => [1342_i128 + 1262 + 513],
-        "sum_scal" => [ArkScalar::from(1116) + ArkScalar::from(1033) + ArkScalar::from(375)],
+        "sum_scal" => [Curve25519Scalar::from(1116) + Curve25519Scalar::from(1033) + Curve25519Scalar::from(375)],
         "__count__" => [3_i64 + 2 + 1],
     );
     assert_eq!(res, expected);

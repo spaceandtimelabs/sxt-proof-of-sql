@@ -6,7 +6,7 @@ use crate::{
             make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table, record_batch,
     sql::ast::{
@@ -23,7 +23,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_not_expr<T: Into<ArkScalar> + Copy + Literal>(
+fn create_test_not_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,

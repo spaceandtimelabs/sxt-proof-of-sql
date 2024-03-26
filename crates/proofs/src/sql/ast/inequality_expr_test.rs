@@ -8,7 +8,7 @@ use crate::{
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         proof::{MessageLabel, TranscriptProtocol},
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table, record_batch,
     sql::{
@@ -255,11 +255,11 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let generator_offset = expr.get_offset(&accessor);
 
     let mut transcript = make_transcript(&expr, &provable_result, table_length, generator_offset);
-    transcript.challenge_ark_scalars(&mut [], MessageLabel::PostResultChallenges);
+    transcript.challenge_curve25519_scalars(&mut [], MessageLabel::PostResultChallenges);
 
     let mut builder = ProofBuilder::new(3, 2, Vec::new());
 
-    let lhs = [ArkScalar::zero(); 3];
+    let lhs = [Curve25519Scalar::zero(); 3];
     builder.produce_anchored_mle(&lhs);
     let equals_zero = prover_evaluate_equals_zero(&mut builder, &alloc, &lhs);
 
@@ -388,7 +388,7 @@ fn verification_fails_if_commitments_dont_match() {
     assert!(res.verify(&expr, &accessor, &()).is_err());
 }
 
-fn create_test_lte_expr<T: Into<ArkScalar> + Copy + Literal>(
+fn create_test_lte_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     table_ref: &str,
     result_col: &str,
     filter_col: &str,

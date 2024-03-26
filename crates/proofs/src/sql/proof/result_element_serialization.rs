@@ -119,7 +119,7 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
 mod tests {
 
     use super::*;
-    use crate::base::scalar::ArkScalar;
+    use crate::base::scalar::Curve25519Scalar;
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::StdRng,
@@ -172,12 +172,12 @@ mod tests {
     }
     #[test]
     fn we_cannnot_decode_a_128_bit_integer_that_is_out_of_range() {
-        let value = ArkScalar::from(i128::MAX) + ArkScalar::from(1);
+        let value = Curve25519Scalar::from(i128::MAX) + Curve25519Scalar::from(1);
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(<i128>::decode(&out[..]), None);
 
-        let value = ArkScalar::from(i128::MIN) - ArkScalar::from(1);
+        let value = Curve25519Scalar::from(i128::MIN) - Curve25519Scalar::from(1);
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(<i128>::decode(&out[..]), None);
@@ -208,7 +208,7 @@ mod tests {
         let value = 123_i64;
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
+        let (decoded_value, read_bytes) = Curve25519Scalar::decode_var(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -218,7 +218,8 @@ mod tests {
         let value = "test string";
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = decode_and_convert::<&str, ArkScalar>(&out[..]).unwrap();
+        let (decoded_value, read_bytes) =
+            decode_and_convert::<&str, Curve25519Scalar>(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -228,7 +229,8 @@ mod tests {
         let value = &[1_u8, 3_u8, 5_u8][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        let (decoded_value, read_bytes) = decode_and_convert::<&[u8], ArkScalar>(&out[..]).unwrap();
+        let (decoded_value, read_bytes) =
+            decode_and_convert::<&[u8], Curve25519Scalar>(&out[..]).unwrap();
         assert_eq!(read_bytes, out.len());
         assert_eq!(decoded_value, value.into());
     }
@@ -248,7 +250,7 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = Curve25519Scalar::decode_var(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value.into());
         }
@@ -269,7 +271,7 @@ mod tests {
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value);
 
-            let (decoded_value, read_bytes) = ArkScalar::decode_var(&out[..]).unwrap();
+            let (decoded_value, read_bytes) = Curve25519Scalar::decode_var(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value.into());
         }
@@ -295,7 +297,7 @@ mod tests {
             assert_eq!(decoded_value, str_slice);
 
             let (decoded_value, read_bytes) =
-                decode_and_convert::<&str, ArkScalar>(&out[..]).unwrap();
+                decode_and_convert::<&str, Curve25519Scalar>(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, str_slice.into());
         }
@@ -320,7 +322,7 @@ mod tests {
             assert_eq!(decoded_value, value_slice);
 
             let (decoded_value, read_bytes) =
-                decode_and_convert::<&[u8], ArkScalar>(&out[..]).unwrap();
+                decode_and_convert::<&[u8], Curve25519Scalar>(&out[..]).unwrap();
             assert_eq!(read_bytes, out.len());
             assert_eq!(decoded_value, value_slice.into());
         }

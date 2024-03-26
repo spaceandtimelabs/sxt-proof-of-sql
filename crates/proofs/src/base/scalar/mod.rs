@@ -1,11 +1,11 @@
-mod ark_scalar;
+mod mont_scalar;
 #[cfg(test)]
-mod ark_scalar_test;
-pub use ark_scalar::{ArkScalar, MontScalar};
+mod mont_scalar_test;
 use core::ops::Sub;
-mod ark_scalar_from;
+pub use mont_scalar::{Curve25519Scalar, MontScalar};
+mod mont_scalar_from;
 #[cfg(test)]
-mod ark_scalar_from_test;
+mod mont_scalar_from_test;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]

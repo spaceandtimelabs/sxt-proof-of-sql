@@ -6,7 +6,7 @@ use crate::{
             make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, TestAccessor,
         },
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table,
     sql::{
@@ -26,11 +26,11 @@ use rand_core::SeedableRng;
 fn create_and_verify_test_and_expr(
     table_ref: &str,
     results: &[&str],
-    lhs: (&str, impl Into<ArkScalar>),
-    rhs: (&str, impl Into<ArkScalar>),
-    data: OwnedTable<ArkScalar>,
+    lhs: (&str, impl Into<Curve25519Scalar>),
+    rhs: (&str, impl Into<Curve25519Scalar>),
+    data: OwnedTable<Curve25519Scalar>,
     offset: usize,
-) -> OwnedTable<ArkScalar> {
+) -> OwnedTable<Curve25519Scalar> {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
@@ -48,8 +48,8 @@ fn filter_test_and_expr(
     results: &[&str],
     lhs: (&str, impl polars::prelude::Literal),
     rhs: (&str, impl polars::prelude::Literal),
-    data: OwnedTable<ArkScalar>,
-) -> OwnedTable<ArkScalar> {
+    data: OwnedTable<Curve25519Scalar>,
+) -> OwnedTable<Curve25519Scalar> {
     let df_filter = polars::prelude::col(lhs.0)
         .eq(lit(lhs.1))
         .and(polars::prelude::col(rhs.0).eq(lit(rhs.1)));

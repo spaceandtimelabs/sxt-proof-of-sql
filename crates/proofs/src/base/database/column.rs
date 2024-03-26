@@ -17,12 +17,12 @@ pub enum Column<'a, S: Scalar> {
     BigInt(&'a [i64]),
     /// String columns
     ///  - the first element maps to the str values.
-    ///  - the second element maps to the str hashes (see [crate::base::scalar::ArkScalar]).
+    ///  - the second element maps to the str hashes (see [crate::base::scalar::Curve25519Scalar]).
     VarChar((&'a [&'a str], &'a [S])),
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::ArkScalar]
+    ///  - the backing store maps to the type [crate::base::scalar::Curve25519Scalar]
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
@@ -80,7 +80,7 @@ pub enum ColumnType {
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
     VarChar,
-    /// Mapped to ArkScalar
+    /// Mapped to Curve25519Scalar
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
     /// Mapped to i256
@@ -214,7 +214,7 @@ impl From<&ColumnField> for Field {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::scalar::ArkScalar;
+    use crate::base::scalar::Curve25519Scalar;
 
     #[test]
     fn column_type_serializes_to_string() {
@@ -395,9 +395,13 @@ mod tests {
 
     #[test]
     fn we_can_get_the_len_of_a_column() {
-        let scals = [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3)];
+        let scals = [
+            Curve25519Scalar::from(1),
+            Curve25519Scalar::from(2),
+            Curve25519Scalar::from(3),
+        ];
 
-        let column = Column::<ArkScalar>::BigInt(&[1, 2, 3]);
+        let column = Column::<Curve25519Scalar>::BigInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -405,7 +409,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<ArkScalar>::Int128(&[1, 2, 3]);
+        let column = Column::<Curve25519Scalar>::Int128(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -413,32 +417,36 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<ArkScalar>::BigInt(&[]);
+        let column = Column::<Curve25519Scalar>::BigInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<ArkScalar>::VarChar((&[], &[]));
+        let column = Column::<Curve25519Scalar>::VarChar((&[], &[]));
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<ArkScalar>::Int128(&[]);
+        let column = Column::<Curve25519Scalar>::Int128(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<ArkScalar>::Scalar(&[]);
+        let column = Column::<Curve25519Scalar>::Scalar(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
         let precision = 10;
         let scale = 2;
-        let decimal_data = [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3)];
+        let decimal_data = [
+            Curve25519Scalar::from(1),
+            Curve25519Scalar::from(2),
+            Curve25519Scalar::from(3),
+        ];
 
         let precision = Precision::new(precision).unwrap();
         let column = Column::Decimal75(precision, scale, &decimal_data);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column: Column<'_, ArkScalar> = Column::Decimal75(precision, scale, &[]);
+        let column: Column<'_, Curve25519Scalar> = Column::Decimal75(precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
     }

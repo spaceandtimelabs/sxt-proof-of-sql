@@ -114,7 +114,7 @@ impl<T: MontConfig<4>> Ord for MontScalar<T> {
 /// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
 ///
 /// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
-pub type ArkScalar = MontScalar<ark_curve25519::FrConfig>;
+pub type Curve25519Scalar = MontScalar<ark_curve25519::FrConfig>;
 
 impl<T: MontConfig<4>> MontScalar<T> {
     /// Convenience function for creating a new `MontScalar<T>` from the underlying `Fp256<MontBackend<T, 4>>`. Should only be used in tests.
@@ -134,12 +134,12 @@ impl<T: MontConfig<4>> MontScalar<T> {
     pub fn to_bytes_le(&self) -> Vec<u8> {
         self.0.into_bigint().to_bytes_le()
     }
-    /// Convenience function for converting a slice of `ark_curve25519::Fr` into a vector of `ArkScalar`. Should not be used outside of tests.
+    /// Convenience function for converting a slice of `ark_curve25519::Fr` into a vector of `Curve25519Scalar`. Should not be used outside of tests.
     #[cfg(test)]
     pub fn wrap_slice(slice: &[Fp256<MontBackend<T, 4>>]) -> Vec<Self> {
         slice.iter().copied().map(Self).collect()
     }
-    /// Convenience function for converting a slice of `ArkScalar` into a vector of `ark_curve25519::Fr`. Should not be used outside of tests.
+    /// Convenience function for converting a slice of `Curve25519Scalar` into a vector of `ark_curve25519::Fr`. Should not be used outside of tests.
     #[cfg(test)]
     pub fn unwrap_slice(slice: &[Self]) -> Vec<Fp256<MontBackend<T, 4>>> {
         slice.iter().map(|x| x.0).collect()
@@ -158,27 +158,27 @@ impl<T: MontConfig<4>> ark_std::UniformRand for MontScalar<T> {
     }
 }
 
-impl core::ops::Mul<curve25519_dalek::ristretto::RistrettoPoint> for ArkScalar {
+impl core::ops::Mul<curve25519_dalek::ristretto::RistrettoPoint> for Curve25519Scalar {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
         curve25519_dalek::scalar::Scalar::from(self) * rhs
     }
 }
-impl core::ops::Mul<ArkScalar> for curve25519_dalek::ristretto::RistrettoPoint {
+impl core::ops::Mul<Curve25519Scalar> for curve25519_dalek::ristretto::RistrettoPoint {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: ArkScalar) -> Self::Output {
+    fn mul(self, rhs: Curve25519Scalar) -> Self::Output {
         self * curve25519_dalek::scalar::Scalar::from(rhs)
     }
 }
-impl core::ops::Mul<&curve25519_dalek::ristretto::RistrettoPoint> for ArkScalar {
+impl core::ops::Mul<&curve25519_dalek::ristretto::RistrettoPoint> for Curve25519Scalar {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
     fn mul(self, rhs: &curve25519_dalek::ristretto::RistrettoPoint) -> Self::Output {
         curve25519_dalek::scalar::Scalar::from(self) * rhs
     }
 }
-impl core::ops::Mul<ArkScalar> for &curve25519_dalek::ristretto::RistrettoPoint {
+impl core::ops::Mul<Curve25519Scalar> for &curve25519_dalek::ristretto::RistrettoPoint {
     type Output = curve25519_dalek::ristretto::RistrettoPoint;
-    fn mul(self, rhs: ArkScalar) -> Self::Output {
+    fn mul(self, rhs: Curve25519Scalar) -> Self::Output {
         self * curve25519_dalek::scalar::Scalar::from(rhs)
     }
 }
@@ -230,14 +230,14 @@ impl<T: MontConfig<4>> core::ops::Neg for &MontScalar<T> {
         MontScalar(-self.0)
     }
 }
-impl From<ArkScalar> for curve25519_dalek::scalar::Scalar {
-    fn from(value: ArkScalar) -> Self {
+impl From<Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
+    fn from(value: Curve25519Scalar) -> Self {
         (&value).into()
     }
 }
 
-impl From<&ArkScalar> for curve25519_dalek::scalar::Scalar {
-    fn from(value: &ArkScalar) -> Self {
+impl From<&Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
+    fn from(value: &Curve25519Scalar) -> Self {
         let bytes = ark_ff::BigInteger::to_bytes_le(&value.0.into_bigint());
         curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
     }
@@ -320,7 +320,7 @@ impl<T: MontConfig<4>> Display for MontScalar<T> {
     }
 }
 
-impl super::Scalar for ArkScalar {
+impl super::Scalar for Curve25519Scalar {
     const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
         "3618502788666131106986593281521497120428558179689953803000975469142727125494"
     ));

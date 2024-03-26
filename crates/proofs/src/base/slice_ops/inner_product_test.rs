@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::Curve25519Scalar;
 
 #[test]
 fn test_inner_product() {
@@ -19,39 +19,39 @@ fn test_inner_product_different_lengths() {
 /// test inner producr with scalar
 #[test]
 fn test_inner_product_scalar() {
-    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
-    let b = vec![ArkScalar::from(2u64), ArkScalar::from(3u64)];
-    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
+    let a = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
+    let b = vec![Curve25519Scalar::from(2u64), Curve25519Scalar::from(3u64)];
+    assert_eq!(Curve25519Scalar::from(8u64), inner_product(&a, &b));
 }
 
 /// test uneven inner product with scalars
 #[test]
 fn test_inner_product_scalar_uneven() {
-    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
+    let a = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
     let b = vec![
-        ArkScalar::from(2u64),
-        ArkScalar::from(3u64),
-        ArkScalar::from(4u64),
+        Curve25519Scalar::from(2u64),
+        Curve25519Scalar::from(3u64),
+        Curve25519Scalar::from(4u64),
     ];
-    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
+    assert_eq!(Curve25519Scalar::from(8u64), inner_product(&a, &b));
 }
 
-/// test inner product with arkscalar
+/// test inner product with curve25519scalar
 #[test]
-fn test_inner_product_arkscalar() {
-    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
-    let b = vec![ArkScalar::from(2u64), ArkScalar::from(3u64)];
-    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
+fn test_inner_product_curve25519scalar() {
+    let a = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
+    let b = vec![Curve25519Scalar::from(2u64), Curve25519Scalar::from(3u64)];
+    assert_eq!(Curve25519Scalar::from(8u64), inner_product(&a, &b));
 }
 
-/// test uneven inner product with arkscalars
+/// test uneven inner product with curve25519scalars
 #[test]
-fn test_inner_product_arkscalar_uneven() {
-    let a = vec![ArkScalar::from(1u64), ArkScalar::from(2u64)];
+fn test_inner_product_curve25519scalar_uneven() {
+    let a = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
     let b = vec![
-        ArkScalar::from(2u64),
-        ArkScalar::from(3u64),
-        ArkScalar::from(4u64),
+        Curve25519Scalar::from(2u64),
+        Curve25519Scalar::from(3u64),
+        Curve25519Scalar::from(4u64),
     ];
-    assert_eq!(ArkScalar::from(8u64), inner_product(&a, &b));
+    assert_eq!(Curve25519Scalar::from(8u64), inner_product(&a, &b));
 }

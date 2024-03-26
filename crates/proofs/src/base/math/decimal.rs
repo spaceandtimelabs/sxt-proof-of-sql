@@ -278,7 +278,7 @@ pub mod limb_tests {
 
     use crate::base::{
         math::decimal::decimal_string_to_scaled_limbs,
-        scalar::{ArkScalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar},
     };
     use proofs_sql::decimal_unknown::DecimalUnknown;
 
@@ -325,7 +325,7 @@ pub mod limb_tests {
     }
 
     #[test]
-    fn we_can_convert_decimals_correctly_at_arkscalar_boundaries() {
+    fn we_can_convert_decimals_correctly_at_curve25519scalar_boundaries() {
         // Test that we parse max signed correctly
         let integer_result = decimal_string_to_scaled_limbs(
             &DecimalUnknown::new(
@@ -334,7 +334,10 @@ pub mod limb_tests {
             None,
         );
 
-        assert_eq!(ArkScalar::from(integer_result.0), ArkScalar::MAX_SIGNED);
+        assert_eq!(
+            Curve25519Scalar::from(integer_result.0),
+            Curve25519Scalar::MAX_SIGNED
+        );
 
         // Test that we parse min signed +1 properly
         let integer_result = decimal_string_to_scaled_limbs(
@@ -344,7 +347,10 @@ pub mod limb_tests {
             None,
         );
 
-        assert_eq!(ArkScalar::from(integer_result.0), ArkScalar::ZERO);
+        assert_eq!(
+            Curve25519Scalar::from(integer_result.0),
+            Curve25519Scalar::ZERO
+        );
 
         // Test that we parse inverses correctly for -1 = p -1
         let integer_result = decimal_string_to_scaled_limbs(
@@ -355,8 +361,8 @@ pub mod limb_tests {
             None,
         );
         assert_eq!(
-            (ArkScalar::ZERO - ArkScalar::ONE),
-            ArkScalar::from(integer_result.0)
+            (Curve25519Scalar::ZERO - Curve25519Scalar::ONE),
+            Curve25519Scalar::from(integer_result.0)
         );
 
         // Test that Fr + 1 is correct
@@ -370,8 +376,8 @@ pub mod limb_tests {
 
         // Test that curve order + 1 = 0
         assert_eq!(
-            (ArkScalar::ZERO),
-            ArkScalar::from(integer_result.0) + ArkScalar::ONE
+            (Curve25519Scalar::ZERO),
+            Curve25519Scalar::from(integer_result.0) + Curve25519Scalar::ONE
         );
     }
 }

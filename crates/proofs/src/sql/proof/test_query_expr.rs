@@ -7,7 +7,7 @@ use crate::base::{
         ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     },
     proof::ProofError,
-    scalar::ArkScalar,
+    scalar::Curve25519Scalar,
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
@@ -16,12 +16,17 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt, fmt::Debug};
 
 type ResultFn = Box<
-    dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor<ArkScalar>) + Send + Sync,
+    dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor<Curve25519Scalar>)
+        + Send
+        + Sync,
 >;
 
 type ProveFn = Box<
-    dyn for<'a> Fn(&mut ProofBuilder<'a, ArkScalar>, &'a Bump, &'a dyn DataAccessor<ArkScalar>)
-        + Send
+    dyn for<'a> Fn(
+            &mut ProofBuilder<'a, Curve25519Scalar>,
+            &'a Bump,
+            &'a dyn DataAccessor<Curve25519Scalar>,
+        ) + Send
         + Sync,
 >;
 
@@ -98,12 +103,12 @@ impl ProofExpr<RistrettoPoint> for TestQueryExpr {
     }
 }
 
-impl ProverEvaluate<ArkScalar> for TestQueryExpr {
+impl ProverEvaluate<Curve25519Scalar> for TestQueryExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         if let Some(f) = &self.result_fn {
             f(builder, alloc, accessor);
@@ -112,9 +117,9 @@ impl ProverEvaluate<ArkScalar> for TestQueryExpr {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         if let Some(f) = &self.prover_fn {
             f(builder, alloc, accessor);
