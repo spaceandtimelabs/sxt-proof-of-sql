@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::{compute_commitment_for_testing, ArkScalar},
+        scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::{Indexes, ResultBuilder, SumcheckSubpolynomialType},
 };
@@ -20,7 +20,7 @@ use std::sync::Arc;
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::<ArkScalar>::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<Curve25519Scalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
@@ -36,7 +36,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::<ArkScalar>::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<Curve25519Scalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
@@ -55,9 +55,15 @@ fn we_can_evaluate_pre_result_mles() {
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
-    let evaluation_vec = [ArkScalar::from(100u64), ArkScalar::from(10u64)];
+    let evaluation_vec = [
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(10u64),
+    ];
     let evals = builder.evaluate_pre_result_mles(&evaluation_vec);
-    let expected_evals = [ArkScalar::from(120u64), ArkScalar::from(1200u64)];
+    let expected_evals = [
+        Curve25519Scalar::from(120u64),
+        Curve25519Scalar::from(1200u64),
+    ];
     assert_eq!(evals, expected_evals);
 }
 
@@ -73,23 +79,23 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
-        vec![(-ArkScalar::one(), vec![Box::new(&mle1)])],
+        vec![(-Curve25519Scalar::one(), vec![Box::new(&mle1)])],
     );
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::Identity,
-        vec![(-ArkScalar::from(10u64), vec![Box::new(&mle2)])],
+        vec![(-Curve25519Scalar::from(10u64), vec![Box::new(&mle2)])],
     );
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
-        vec![(ArkScalar::from(9876u64), vec![Box::new(&mle3)])],
+        vec![(Curve25519Scalar::from(9876u64), vec![Box::new(&mle3)])],
     );
 
     let multipliers = [
-        ArkScalar::from(5u64),
-        ArkScalar::from(2u64),
-        ArkScalar::from(50u64),
-        ArkScalar::from(25u64),
-        ArkScalar::from(11u64),
+        Curve25519Scalar::from(5u64),
+        Curve25519Scalar::from(2u64),
+        Curve25519Scalar::from(50u64),
+        Curve25519Scalar::from(25u64),
+        Curve25519Scalar::from(11u64),
     ];
 
     let mut evaluation_vector = vec![Zero::zero(); 4];
@@ -100,17 +106,20 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     let fr = (&evaluation_vector).to_sumcheck_term(2);
     expected_poly.add_product(
         [fr.clone(), (&mle1).to_sumcheck_term(2)],
-        -ArkScalar::from(1u64) * multipliers[2],
+        -Curve25519Scalar::from(1u64) * multipliers[2],
     );
     expected_poly.add_product(
         [fr, (&mle2).to_sumcheck_term(2)],
-        -ArkScalar::from(10u64) * multipliers[3],
+        -Curve25519Scalar::from(10u64) * multipliers[3],
     );
     expected_poly.add_product(
         [(&mle3).to_sumcheck_term(2)],
-        ArkScalar::from(9876u64) * multipliers[4],
+        Curve25519Scalar::from(9876u64) * multipliers[4],
     );
-    let random_point = [ArkScalar::from(123u64), ArkScalar::from(101112u64)];
+    let random_point = [
+        Curve25519Scalar::from(123u64),
+        Curve25519Scalar::from(101112u64),
+    ];
     let eval = poly.evaluate(&random_point);
     let expected_eval = expected_poly.evaluate(&random_point);
     assert_eq!(eval, expected_eval);
@@ -154,9 +163,12 @@ fn we_can_fold_pre_result_mles() {
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
-    let multipliers = [ArkScalar::from(100u64), ArkScalar::from(2u64)];
+    let multipliers = [Curve25519Scalar::from(100u64), Curve25519Scalar::from(2u64)];
     let z = builder.fold_pre_result_mles(&multipliers);
-    let expected_z = [ArkScalar::from(120u64), ArkScalar::from(240u64)];
+    let expected_z = [
+        Curve25519Scalar::from(120u64),
+        Curve25519Scalar::from(240u64),
+    ];
     assert_eq!(z, expected_z);
 }
 
@@ -166,21 +178,21 @@ fn we_can_consume_post_result_challenges_in_proof_builder() {
         0,
         0,
         vec![
-            ArkScalar::from(123),
-            ArkScalar::from(456),
-            ArkScalar::from(789),
+            Curve25519Scalar::from(123),
+            Curve25519Scalar::from(456),
+            Curve25519Scalar::from(789),
         ],
     );
     assert_eq!(
-        ArkScalar::from(789),
+        Curve25519Scalar::from(789),
         builder.consume_post_result_challenge()
     );
     assert_eq!(
-        ArkScalar::from(456),
+        Curve25519Scalar::from(456),
         builder.consume_post_result_challenge()
     );
     assert_eq!(
-        ArkScalar::from(123),
+        Curve25519Scalar::from(123),
         builder.consume_post_result_challenge()
     );
 }

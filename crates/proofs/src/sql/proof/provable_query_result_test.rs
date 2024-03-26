@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{ColumnField, ColumnType},
         math::decimal::Precision,
-        scalar::{ArkScalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar},
     },
     sql::proof::Indexes,
 };
@@ -35,18 +35,18 @@ fn we_can_evaluate_result_columns_as_mles() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
 
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     #[allow(clippy::possible_missing_comma)]
-    let expected_evals =
-        [ArkScalar::from(10u64) * evaluation_vec[0] - ArkScalar::from(12u64) * evaluation_vec[2]];
+    let expected_evals = [Curve25519Scalar::from(10u64) * evaluation_vec[0]
+        - Curve25519Scalar::from(12u64) * evaluation_vec[2]];
     assert_eq!(evals, expected_evals);
 }
 
@@ -57,15 +57,15 @@ fn we_can_evaluate_result_columns_with_no_rows() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
-    let expected_evals = [ArkScalar::zero()];
+    let expected_evals = [Curve25519Scalar::zero()];
     assert_eq!(evals, expected_evals);
 }
 
@@ -77,17 +77,19 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
-        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
-        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
+        Curve25519Scalar::from(10u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(12u64) * evaluation_vec[2],
+        Curve25519Scalar::from(5u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(9u64) * evaluation_vec[2],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -100,17 +102,19 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::Int128); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
-        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
-        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
+        Curve25519Scalar::from(10u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(12u64) * evaluation_vec[2],
+        Curve25519Scalar::from(5u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(9u64) * evaluation_vec[2],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -118,22 +122,24 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values1: [ArkScalar; 3] = [10.into(), 11.into(), 12.into()];
-    let values2: [ArkScalar; 3] = [5.into(), 7.into(), 9.into()];
+    let values1: [Curve25519Scalar; 3] = [10.into(), 11.into(), 12.into()];
+    let values2: [Curve25519Scalar; 3] = [5.into(), 7.into(), 9.into()];
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::Scalar); cols.len()];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
-        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
-        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
+        Curve25519Scalar::from(10u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(12u64) * evaluation_vec[2],
+        Curve25519Scalar::from(5u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(9u64) * evaluation_vec[2],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -146,10 +152,10 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields = [
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
@@ -157,8 +163,10 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     ];
     let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
     let expected_evals = [
-        ArkScalar::from(10u64) * evaluation_vec[0] + ArkScalar::from(12u64) * evaluation_vec[2],
-        ArkScalar::from(5u64) * evaluation_vec[0] + ArkScalar::from(9u64) * evaluation_vec[2],
+        Curve25519Scalar::from(10u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(12u64) * evaluation_vec[2],
+        Curve25519Scalar::from(5u64) * evaluation_vec[0]
+            + Curve25519Scalar::from(9u64) * evaluation_vec[2],
     ];
     assert_eq!(evals, expected_evals);
 }
@@ -174,10 +182,10 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
         _ => panic!("unexpected indexes type"),
     }
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -191,10 +199,10 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -209,10 +217,10 @@ fn evaluation_fails_if_extra_data_is_included() {
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data_mut().push(3u8);
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
@@ -228,10 +236,10 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     );
     res.data_mut()[37] = 0b00000001_u8;
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
@@ -246,10 +254,10 @@ fn evaluation_fails_if_data_is_missing() {
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     *res.num_columns_mut() = 3;
     let evaluation_vec = [
-        ArkScalar::from(10u64),
-        ArkScalar::from(100u64),
-        ArkScalar::from(1000u64),
-        ArkScalar::from(10000u64),
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+        Curve25519Scalar::from(1000u64),
+        Curve25519Scalar::from(10000u64),
     ];
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
@@ -297,9 +305,9 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
 fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values = [
-        ArkScalar::from(10),
-        ArkScalar::from(11),
-        ArkScalar::MAX_SIGNED,
+        Curve25519Scalar::from(10),
+        Curve25519Scalar::from(11),
+        Curve25519Scalar::MAX_SIGNED,
     ];
 
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
@@ -315,7 +323,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let expected_res = RecordBatch::try_new(
         schema,
         vec![Arc::new(
-            Decimal256Array::from([i256::from(10), ArkScalar::MAX_SIGNED.into()].to_vec())
+            Decimal256Array::from([i256::from(10), Curve25519Scalar::MAX_SIGNED.into()].to_vec())
                 .with_precision_and_scale(75, 0)
                 .unwrap(),
         )],
@@ -331,9 +339,9 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values2: [i128; 3] = [10, 11, i128::MAX];
     let values3 = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
     let values4 = [
-        ArkScalar::from(10),
-        ArkScalar::from(11),
-        ArkScalar::MAX_SIGNED,
+        Curve25519Scalar::from(10),
+        Curve25519Scalar::from(11),
+        Curve25519Scalar::MAX_SIGNED,
     ];
 
     let cols: [Box<dyn ProvableResultColumn>; 4] = [
@@ -367,7 +375,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ),
             Arc::new(StringArray::from(vec!["abc", "de"])),
             Arc::new(
-                Decimal256Array::from(vec![i256::from(10), ArkScalar::MAX_SIGNED.into()])
+                Decimal256Array::from(vec![i256::from(10), Curve25519Scalar::MAX_SIGNED.into()])
                     .with_precision_and_scale(75, 0)
                     .unwrap(),
             ),

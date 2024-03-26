@@ -1,6 +1,6 @@
 use super::{filter_columns, fold_vals};
 use crate::{
-    base::{database::Column, math::decimal::Precision, scalar::ArkScalar},
+    base::{database::Column, math::decimal::Precision, scalar::Curve25519Scalar},
     sql::ast::dense_filter_util::fold_columns,
 };
 use bumpalo::Bump;
@@ -92,11 +92,16 @@ fn we_can_filter_empty_columns() {
 #[test]
 fn we_can_fold_columns_with_scalars() {
     let expected = vec![
-        ArkScalar::from(77 + 2061 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("1"),
-        ArkScalar::from(77 + 3072 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("2"),
-        ArkScalar::from(77 + 5083 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("3"),
-        ArkScalar::from(77 + 7094 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("4"),
-        ArkScalar::from(77 + 1005 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("5"),
+        Curve25519Scalar::from(77 + 2061 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
+        Curve25519Scalar::from(77 + 3072 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("2"),
+        Curve25519Scalar::from(77 + 5083 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("3"),
+        Curve25519Scalar::from(77 + 7094 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("4"),
+        Curve25519Scalar::from(77 + 1005 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("5"),
     ];
 
     let str_scalars = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
@@ -127,17 +132,20 @@ fn we_can_fold_columns_with_scalars() {
 #[test]
 fn we_can_fold_columns_with_that_get_padded() {
     let expected = vec![
-        ArkScalar::from(77 + 2061 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("1"),
-        ArkScalar::from(77 + 3072 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("2"),
-        ArkScalar::from(77 + 83 * 33) + ArkScalar::from(100 * 33) * ArkScalar::from("3"),
-        ArkScalar::from(77 + 94 * 33),
-        ArkScalar::from(77 + 5 * 33),
-        ArkScalar::from(77),
-        ArkScalar::from(77),
-        ArkScalar::from(77),
-        ArkScalar::from(77),
-        ArkScalar::from(77),
-        ArkScalar::from(77),
+        Curve25519Scalar::from(77 + 2061 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("1"),
+        Curve25519Scalar::from(77 + 3072 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("2"),
+        Curve25519Scalar::from(77 + 83 * 33)
+            + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("3"),
+        Curve25519Scalar::from(77 + 94 * 33),
+        Curve25519Scalar::from(77 + 5 * 33),
+        Curve25519Scalar::from(77),
+        Curve25519Scalar::from(77),
+        Curve25519Scalar::from(77),
+        Curve25519Scalar::from(77),
+        Curve25519Scalar::from(77),
+        Curve25519Scalar::from(77),
     ];
 
     let str_scalars = ["1".into(), "2".into(), "3".into()];
@@ -185,7 +193,13 @@ fn we_can_fold_vals() {
     assert_eq!(
         fold_vals(
             10.into(),
-            &[ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()]
+            &[
+                Curve25519Scalar::from(1),
+                2.into(),
+                3.into(),
+                4.into(),
+                5.into()
+            ]
         ),
         (54321).into()
     );

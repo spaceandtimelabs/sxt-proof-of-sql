@@ -6,7 +6,7 @@ use crate::{
             make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
-        scalar::{ArkScalar, Scalar},
+        scalar::{Curve25519Scalar, Scalar},
     },
     owned_table, record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::equal},
@@ -20,7 +20,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_equals_expr<T: Into<ArkScalar> + Copy + Literal>(
+fn create_test_equals_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,
@@ -38,7 +38,7 @@ fn create_test_equals_expr<T: Into<ArkScalar> + Copy + Literal>(
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
-    let mut data: OwnedTable<ArkScalar> =
+    let mut data: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
     data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
 
@@ -60,9 +60,9 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
-    let mut data: OwnedTable<ArkScalar> =
+    let mut data: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [123_i64], "b" => [0_i64], "d" => ["abc"], );
-    data.append_decimal_columns_for_testing("e", 75, 0, [ArkScalar::from(0)].to_vec());
+    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::from(0)].to_vec());
 
     let test_expr = create_test_equals_expr(
         "sxt.t",
@@ -84,9 +84,9 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
-    let mut data: OwnedTable<ArkScalar> =
+    let mut data: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [123_i64], "b" => [55_i64], "d" => ["abc"], );
-    data.append_decimal_columns_for_testing("e", 75, 0, [ArkScalar::MAX_SIGNED].to_vec());
+    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::MAX_SIGNED].to_vec());
 
     let test_expr = create_test_equals_expr(
         "sxt.t",
@@ -98,25 +98,25 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<ArkScalar> =
+    let mut expected_res: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [0_i64; 0], "d" => [""; 0], );
-    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![ArkScalar::ZERO; 0]);
+    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![Curve25519Scalar::ZERO; 0]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
-    let mut data: OwnedTable<ArkScalar> = owned_table!( "a" => [1_i64, 2, 3, 4], "b" => [0_i64, 5, 0, 5], "c" =>  ["t", "ghi", "jj", "f"], );
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "a" => [1_i64, 2, 3, 4], "b" => [0_i64, 5, 0, 5], "c" =>  ["t", "ghi", "jj", "f"], );
     data.append_decimal_columns_for_testing(
         "e",
         75,
         0,
         vec![
-            ArkScalar::ZERO,
-            ArkScalar::ONE,
-            ArkScalar::TWO,
-            ArkScalar::MAX_SIGNED,
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::ONE,
+            Curve25519Scalar::TWO,
+            Curve25519Scalar::MAX_SIGNED,
         ],
     );
 
@@ -130,13 +130,13 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<ArkScalar> =
+    let mut expected_res: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [1_i64, 3], "c" => ["t".to_string(), "jj".to_string()], );
     expected_res.append_decimal_columns_for_testing(
         "e",
         75,
         0,
-        vec![ArkScalar::ZERO, ArkScalar::TWO],
+        vec![Curve25519Scalar::ZERO, Curve25519Scalar::TWO],
     );
 
     assert_eq!(res, expected_res.try_into().unwrap());
@@ -144,17 +144,17 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
-    let mut data: OwnedTable<ArkScalar> = owned_table!( "a" => [1_i64, 2, 3, 4, 5], "b" => [123_i64, 5, 123, 5, 0], "c" =>  ["t", "ghi", "jj", "f", "abc"], );
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "a" => [1_i64, 2, 3, 4, 5], "b" => [123_i64, 5, 123, 5, 0], "c" =>  ["t", "ghi", "jj", "f", "abc"], );
     data.append_decimal_columns_for_testing(
         "e",
         42,
         10,
         vec![
-            ArkScalar::ZERO,
-            ArkScalar::ONE,
-            ArkScalar::TWO,
-            ArkScalar::from(3),
-            ArkScalar::MAX_SIGNED,
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::ONE,
+            Curve25519Scalar::TWO,
+            Curve25519Scalar::from(3),
+            Curve25519Scalar::MAX_SIGNED,
         ],
     );
 
@@ -168,7 +168,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<ArkScalar> = owned_table!(
+    let mut expected_res: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [1_i64, 3],
         "c" => ["t".to_string(), "jj".to_string()],
     );
@@ -177,7 +177,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
         "e",
         42,
         10,
-        vec![ArkScalar::ZERO, ArkScalar::TWO],
+        vec![Curve25519Scalar::ZERO, Curve25519Scalar::TWO],
     );
 
     assert_eq!(res, expected_res.try_into().unwrap());
@@ -185,7 +185,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_string_comparison() {
-    let mut data: OwnedTable<ArkScalar> = owned_table!(
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [1_i64, 2, 3, 4, 5, 5],
         "b" => [123_i64, 5, 123, 123, 5, 0],
         "c" => ["t", "ghi", "jj", "f", "abc", "ghi"],
@@ -196,12 +196,12 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
         42, // precision
         10, // scale
         vec![
-            ArkScalar::ZERO,
-            ArkScalar::ONE,
-            ArkScalar::TWO,
-            ArkScalar::from(3),
-            ArkScalar::MAX_SIGNED,
-            ArkScalar::from(-1),
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::ONE,
+            Curve25519Scalar::TWO,
+            Curve25519Scalar::from(3),
+            Curve25519Scalar::MAX_SIGNED,
+            Curve25519Scalar::from(-1),
         ],
     );
 
@@ -215,7 +215,7 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<ArkScalar> = owned_table!(
+    let mut expected_res: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [2_i64, 5],
         "b" => [5_i64, 0],
     );
@@ -224,7 +224,7 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
         "e",
         42,
         10,
-        vec![ArkScalar::ONE, ArkScalar::from(-1)],
+        vec![Curve25519Scalar::ONE, Curve25519Scalar::from(-1)],
     );
 
     assert_eq!(res, expected_res.try_into().unwrap());
@@ -304,7 +304,7 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
-    let mut data: OwnedTable<ArkScalar> = owned_table!(
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [1_i64, 2, 3, 4],
         "b" => [0_i64, 5, 0, 5],
         "c" => ["t", "ghi", "jj", "f"]
@@ -315,10 +315,10 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
         42,
         10,
         vec![
-            ArkScalar::ZERO,
-            ArkScalar::MAX_SIGNED,
-            ArkScalar::ZERO,
-            ArkScalar::from(-1),
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::MAX_SIGNED,
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::from(-1),
         ],
     );
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());

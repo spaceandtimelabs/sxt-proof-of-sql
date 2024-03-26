@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table,
     sql::{
@@ -25,12 +25,12 @@ struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
 type DishonestDenseFilterExpr = OstensibleDenseFilterExpr<Dishonest>;
 
-impl ProverEvaluate<ArkScalar> for DishonestDenseFilterExpr {
+impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self
@@ -62,9 +62,9 @@ impl ProverEvaluate<ArkScalar> for DishonestDenseFilterExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -97,14 +97,14 @@ impl ProverEvaluate<ArkScalar> for DishonestDenseFilterExpr {
 /// Tamper with the first element of the first column that is a Scalar. This could be changed for different types of tests.
 fn tamper_column<'a>(
     alloc: &'a Bump,
-    mut columns: Vec<Column<'a, ArkScalar>>,
-) -> Vec<Column<'a, ArkScalar>> {
+    mut columns: Vec<Column<'a, Curve25519Scalar>>,
+) -> Vec<Column<'a, Curve25519Scalar>> {
     for column in columns.iter_mut() {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);
                 // The following could be changed for different types of tests, but for the simplest one, we will simply increase the first element by 1.
-                tampered_column[0] += ArkScalar::one();
+                tampered_column[0] += Curve25519Scalar::one();
                 *column = Column::Scalar(tampered_column);
                 break;
             }
@@ -120,7 +120,7 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
-        "e" => [ArkScalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
+        "e" => [Curve25519Scalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());

@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         database::{CommitmentAccessor, RecordBatchTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, ArkScalar},
+        scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::Indexes,
 };
@@ -40,7 +40,7 @@ pub fn exercise_verification(
     // try changing MLE evaluations
     for i in 0..proof.pre_result_mle_evaluations.len() {
         let mut res_p = res.clone();
-        res_p.proof.as_mut().unwrap().pre_result_mle_evaluations[i] += ArkScalar::one();
+        res_p.proof.as_mut().unwrap().pre_result_mle_evaluations[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 

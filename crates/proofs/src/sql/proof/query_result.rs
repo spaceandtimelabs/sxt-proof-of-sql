@@ -1,7 +1,7 @@
 use crate::base::{
     database::{OwnedTable, OwnedTableError},
     proof::ProofError,
-    scalar::ArkScalar,
+    scalar::Curve25519Scalar,
 };
 use arrow::{error::ArrowError, record_batch::RecordBatch};
 use thiserror::Error;
@@ -32,7 +32,7 @@ pub struct QueryData {
     /// Apache Arrow Flight.
     ///
     /// See `<https://voltrondata.com/blog/apache-arrow-flight-primer/>`
-    pub table: OwnedTable<ArkScalar>,
+    pub table: OwnedTable<Curve25519Scalar>,
     /// Additionally, there is a 32-byte verification hash that is included with this table.
     /// This hash provides evidence that the verification has been run.
     pub verification_hash: [u8; 32],

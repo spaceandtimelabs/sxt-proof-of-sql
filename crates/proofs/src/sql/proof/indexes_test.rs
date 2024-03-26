@@ -1,5 +1,5 @@
 use super::Indexes;
-use crate::base::{polynomial::compute_evaluation_vector, scalar::ArkScalar};
+use crate::base::{polynomial::compute_evaluation_vector, scalar::Curve25519Scalar};
 use num_traits::Zero;
 
 #[test]
@@ -165,9 +165,9 @@ fn we_can_calculate_the_sum_and_prod_using_iter_for_indexes() {
 #[test]
 fn we_can_evaluate_indexes_at_an_evaluation_point() {
     let evaluation_point = [
-        ArkScalar::from(3u64),
-        ArkScalar::from(5u64),
-        ArkScalar::from(7u64),
+        Curve25519Scalar::from(3u64),
+        Curve25519Scalar::from(5u64),
+        Curve25519Scalar::from(7u64),
     ];
     let mut evaluation_vector = vec![Default::default(); 8];
     compute_evaluation_vector(&mut evaluation_vector, &evaluation_point);

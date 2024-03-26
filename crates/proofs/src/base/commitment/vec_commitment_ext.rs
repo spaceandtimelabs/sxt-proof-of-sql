@@ -227,14 +227,14 @@ mod tests {
     use super::*;
     use crate::base::{
         database::{Column, OwnedColumn},
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     };
 
     #[test]
     fn we_can_convert_from_columns() {
         // empty case
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(
-            &Vec::<Column<ArkScalar>>::new(),
+            &Vec::<Column<Curve25519Scalar>>::new(),
             0,
             &(),
         );
@@ -246,7 +246,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
@@ -259,7 +259,7 @@ mod tests {
                 Sequence::from(column_a.as_slice()),
                 Sequence::from(
                     column_b
-                        .map(ArkScalar::from)
+                        .map(Curve25519Scalar::from)
                         .map(<[u64; 4]>::from)
                         .as_slice(),
                 ),
@@ -276,7 +276,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
@@ -284,7 +284,7 @@ mod tests {
             Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
@@ -299,7 +299,7 @@ mod tests {
                 Sequence::from(column_a.as_slice()),
                 Sequence::from(
                     column_b
-                        .map(ArkScalar::from)
+                        .map(Curve25519Scalar::from)
                         .map(<[u64; 4]>::from)
                         .as_slice(),
                 ),
@@ -316,27 +316,29 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let mut commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
-        let new_columns = Vec::<Column<ArkScalar>>::new();
+        let new_columns = Vec::<Column<Curve25519Scalar>>::new();
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(
+            column_a[3..].to_vec(),
+        )];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
@@ -354,7 +356,7 @@ mod tests {
         let column_d = [78i64, 90, 1112];
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
@@ -362,7 +364,7 @@ mod tests {
             Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<ArkScalar>::VarChar(column_c.to_vec()),
+            OwnedColumn::<Curve25519Scalar>::VarChar(column_c.to_vec()),
             OwnedColumn::BigInt(column_d.to_vec()),
         ];
 
@@ -375,13 +377,13 @@ mod tests {
                 Sequence::from(column_a.as_slice()),
                 Sequence::from(
                     column_b
-                        .map(ArkScalar::from)
+                        .map(Curve25519Scalar::from)
                         .map(<[u64; 4]>::from)
                         .as_slice(),
                 ),
                 Sequence::from(
                     column_c
-                        .map(ArkScalar::from)
+                        .map(Curve25519Scalar::from)
                         .map(<[u64; 4]>::from)
                         .as_slice(),
                 ),
@@ -399,14 +401,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
@@ -422,7 +424,7 @@ mod tests {
                 Sequence::from(column_a.as_slice()),
                 Sequence::from(
                     column_b
-                        .map(ArkScalar::from)
+                        .map(Curve25519Scalar::from)
                         .map(<[u64; 4]>::from)
                         .as_slice(),
                 ),
@@ -439,13 +441,13 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
-        let new_columns = Vec::<Column<ArkScalar>>::new();
+        let new_columns = Vec::<Column<Curve25519Scalar>>::new();
         let new_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
@@ -453,7 +455,9 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec())];
+        let new_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(
+            column_a[3..].to_vec(),
+        )];
         let new_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
@@ -462,7 +466,7 @@ mod tests {
         ));
 
         let new_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
@@ -480,14 +484,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments_a = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
         let full_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
@@ -501,7 +505,7 @@ mod tests {
             &mut expected_commitments,
             &[
                 Sequence::from(&column_a[3..]),
-                Sequence::from(&column_b.map(ArkScalar::from).map(<[u64; 4]>::from)[3..]),
+                Sequence::from(&column_b.map(Curve25519Scalar::from).map(<[u64; 4]>::from)[3..]),
             ],
             3,
         );
@@ -515,13 +519,13 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
         let commitments = Vec::<CompressedRistretto>::from_columns_with_offset(&columns, 0, &());
 
-        let full_columns = Vec::<Column<ArkScalar>>::new();
+        let full_columns = Vec::<Column<Curve25519Scalar>>::new();
         let full_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
@@ -529,7 +533,7 @@ mod tests {
             Err(NumColumnsMismatch)
         ));
 
-        let full_columns = vec![OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec())];
+        let full_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec())];
         let full_commitments =
             Vec::<CompressedRistretto>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
@@ -538,7 +542,7 @@ mod tests {
         ));
 
         let full_columns = vec![
-            OwnedColumn::<ArkScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
             OwnedColumn::BigInt(column_a.to_vec()),
         ];

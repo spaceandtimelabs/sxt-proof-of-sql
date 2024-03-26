@@ -1,13 +1,13 @@
-use crate::base::{proof::transcript_protocol::*, scalar::ArkScalar};
+use crate::base::{proof::transcript_protocol::*, scalar::Curve25519Scalar};
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 #[test]
-fn test_challenge_ark_scalars() {
-    let zero = ArkScalar::from(0u64);
+fn test_challenge_curve25519_scalars() {
+    let zero = Curve25519Scalar::from(0u64);
     let mut transcript = Transcript::new(b"multiplicationtest");
     let mut v = [zero; 3];
-    transcript.challenge_ark_scalars(&mut v, MessageLabel::SumcheckChallenge);
+    transcript.challenge_curve25519_scalars(&mut v, MessageLabel::SumcheckChallenge);
     assert_ne!(v[0], zero);
     assert_ne!(v[1], zero);
     assert_ne!(v[2], zero);
@@ -30,13 +30,13 @@ fn test_challenge_ark_group_elements() {
 
 #[test]
 fn we_get_different_results_with_different_transcripts() {
-    let zero = ArkScalar::from(0u64);
+    let zero = Curve25519Scalar::from(0u64);
     let mut transcript = Transcript::new(b"same");
     let mut transcript2 = Transcript::new(b"different");
     let mut v = [zero; 3];
     let mut w = [zero; 3];
-    transcript.challenge_ark_scalars(&mut v, MessageLabel::SumcheckChallenge);
-    transcript2.challenge_ark_scalars(&mut w, MessageLabel::SumcheckChallenge);
+    transcript.challenge_curve25519_scalars(&mut v, MessageLabel::SumcheckChallenge);
+    transcript2.challenge_curve25519_scalars(&mut w, MessageLabel::SumcheckChallenge);
     assert_ne!(v[0], w[0]);
     assert_ne!(v[1], w[1]);
     assert_ne!(v[2], w[2]);
@@ -44,13 +44,13 @@ fn we_get_different_results_with_different_transcripts() {
 
 #[test]
 fn we_get_equivalent_results_with_equivalent_transcripts() {
-    let zero = ArkScalar::from(0u64);
+    let zero = Curve25519Scalar::from(0u64);
     let mut transcript = Transcript::new(b"same");
     let mut transcript2 = Transcript::new(b"same");
     let mut v = [zero; 3];
     let mut w = [zero; 3];
-    transcript.challenge_ark_scalars(&mut v, MessageLabel::SumcheckChallenge);
-    transcript2.challenge_ark_scalars(&mut w, MessageLabel::SumcheckChallenge);
+    transcript.challenge_curve25519_scalars(&mut v, MessageLabel::SumcheckChallenge);
+    transcript2.challenge_curve25519_scalars(&mut w, MessageLabel::SumcheckChallenge);
     assert_eq!(v, w);
 }
 
@@ -63,11 +63,11 @@ fn we_can_append_ristretto_points() {
     let pts = [CompressedRistretto(bytes1), CompressedRistretto(bytes2)];
     let mut transcript1 = Transcript::new(b"ristrettotest");
     transcript1.append_points(MessageLabel::InnerProduct, &pts[..1]);
-    let scalar1 = transcript1.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
+    let scalar1 = transcript1.challenge_curve25519_scalar(MessageLabel::InnerProductChallenge);
 
     let mut transcript2 = Transcript::new(b"ristrettotest");
     transcript2.append_points(MessageLabel::InnerProduct, &pts);
-    let scalar2 = transcript2.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
+    let scalar2 = transcript2.challenge_curve25519_scalar(MessageLabel::InnerProductChallenge);
 
     assert_ne!(scalar1, scalar2);
 }
@@ -81,11 +81,11 @@ fn we_can_append_ark_group_elements() {
     ];
     let mut transcript1 = Transcript::new(b"arktest");
     transcript1.append_canonical_serialize(MessageLabel::InnerProduct, &pts[..1]);
-    let scalar1 = transcript1.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
+    let scalar1 = transcript1.challenge_curve25519_scalar(MessageLabel::InnerProductChallenge);
 
     let mut transcript2 = Transcript::new(b"arktest");
     transcript2.append_canonical_serialize(MessageLabel::InnerProduct, &pts);
-    let scalar2 = transcript2.challenge_ark_scalar(MessageLabel::InnerProductChallenge);
+    let scalar2 = transcript2.challenge_curve25519_scalar(MessageLabel::InnerProductChallenge);
 
     assert_ne!(scalar1, scalar2);
 }

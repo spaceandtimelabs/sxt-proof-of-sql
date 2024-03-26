@@ -5,7 +5,7 @@ use crate::{
             RecordBatchTestAccessor, TableRef, TestAccessor,
         },
         math::decimal::Precision,
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table, record_batch,
     sql::{
@@ -44,7 +44,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt,
             ),
-            ArkScalar::from(123_u64),
+            Curve25519Scalar::from(123_u64),
         ),
     );
 
@@ -89,7 +89,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    ArkScalar::from(45_u64),
+                    Curve25519Scalar::from(45_u64),
                 ),
                 BoolExprPlan::new_equals(
                     ColumnRef::new(
@@ -97,7 +97,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ),
-                    -ArkScalar::from(2_u64),
+                    -Curve25519Scalar::from(2_u64),
                 ),
             ),
             BoolExprPlan::new_equals(
@@ -106,7 +106,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ),
-                ArkScalar::from(3_u64),
+                Curve25519Scalar::from(3_u64),
             ),
         )),
     );
@@ -169,7 +169,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         "b" => [0_i64;0],
         "c" => [0_i128;0],
         "d" => ["";0],
-        "e" => [ArkScalar::from(0);0],
+        "e" => [Curve25519Scalar::from(0);0],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -196,13 +196,13 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [0_i64; 0],
         "c" => [0_i128; 0],
         "d" => [""; 0],
     );
 
-    expected.append_decimal_columns_for_testing("e", 75, 0, vec![ArkScalar::from(0); 0]);
+    expected.append_decimal_columns_for_testing("e", 75, 0, vec![Curve25519Scalar::from(0); 0]);
 
     assert_eq!(res, expected);
 }
@@ -214,7 +214,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
-        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
+        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -241,13 +241,13 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [0_i64; 0],
         "c" => [0_i128; 0],
         "d" => ["".to_string(); 0],
     );
 
-    expected.append_decimal_columns_for_testing("e", 1, 0, vec![ArkScalar::from(0); 0]);
+    expected.append_decimal_columns_for_testing("e", 1, 0, vec![Curve25519Scalar::from(0); 0]);
     assert_eq!(res, expected);
 }
 
@@ -258,7 +258,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
-        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
+        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -284,7 +284,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         "b" => [1_i64, 2, 3, 4, 5],
         "c" => [1_i128, 2, 3, 4, 5],
         "d" => ["1", "2", "3", "4", "5"],
-        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4), ArkScalar::from(5),],
+        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
     );
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -311,7 +311,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         .make_provable_query_result()
         .into_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<ArkScalar> = owned_table!(
+    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [3_i64, 5_i64],
         "c" => [3_i128, 5_i128],
         "d" => ["3".to_string(), "5".to_string()],
@@ -321,7 +321,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         "e",
         1,
         0,
-        vec![ArkScalar::from(3), ArkScalar::from(5)],
+        vec![Curve25519Scalar::from(3), Curve25519Scalar::from(5)],
     );
     assert_eq!(res, expected);
 }
