@@ -1,16 +1,19 @@
 use super::{Indexes, SumcheckMleEvaluations};
-use crate::{base::scalar::ArkScalar, sql::proof::SumcheckRandomScalars};
+use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckRandomScalars};
 use num_traits::One;
 
 #[test]
 fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
-    let evaluation_point = [ArkScalar::from(3u64), ArkScalar::from(5u64)];
-    let random_scalars = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
+    let evaluation_point = [Curve25519Scalar::from(3u64), Curve25519Scalar::from(5u64)];
+    let random_scalars = [
+        Curve25519Scalar::from(123u64),
+        Curve25519Scalar::from(456u64),
+    ];
 
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&random_scalars, 3, 2);
 
-    let pre_result_evaluations = [ArkScalar::from(42u64)];
-    let result_evaluations = [ArkScalar::from(51u64)];
+    let pre_result_evaluations = [Curve25519Scalar::from(42u64)];
+    let result_evaluations = [Curve25519Scalar::from(51u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
         &evaluation_point,
@@ -19,37 +22,40 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
         &result_evaluations,
         &Indexes::Sparse(vec![]),
     );
-    let expected_eval = (ArkScalar::one() - evaluation_point[0])
-        * (ArkScalar::one() - evaluation_point[1])
-        * (ArkScalar::one() - random_scalars[0])
-        * (ArkScalar::one() - random_scalars[1])
+    let expected_eval = (Curve25519Scalar::one() - evaluation_point[0])
+        * (Curve25519Scalar::one() - evaluation_point[1])
+        * (Curve25519Scalar::one() - random_scalars[0])
+        * (Curve25519Scalar::one() - random_scalars[1])
         + (evaluation_point[0])
-            * (ArkScalar::one() - evaluation_point[1])
+            * (Curve25519Scalar::one() - evaluation_point[1])
             * (random_scalars[0])
-            * (ArkScalar::one() - random_scalars[1])
-        + (ArkScalar::one() - evaluation_point[0])
+            * (Curve25519Scalar::one() - random_scalars[1])
+        + (Curve25519Scalar::one() - evaluation_point[0])
             * (evaluation_point[1])
-            * (ArkScalar::one() - random_scalars[0])
+            * (Curve25519Scalar::one() - random_scalars[0])
             * (random_scalars[1]);
     assert_eq!(evals.random_evaluation, expected_eval);
 
-    let expected_eval = (ArkScalar::one() - evaluation_point[0])
-        * (ArkScalar::one() - evaluation_point[1])
-        + (evaluation_point[0]) * (ArkScalar::one() - evaluation_point[1])
-        + (ArkScalar::one() - evaluation_point[0]) * (evaluation_point[1]);
+    let expected_eval = (Curve25519Scalar::one() - evaluation_point[0])
+        * (Curve25519Scalar::one() - evaluation_point[1])
+        + (evaluation_point[0]) * (Curve25519Scalar::one() - evaluation_point[1])
+        + (Curve25519Scalar::one() - evaluation_point[0]) * (evaluation_point[1]);
     assert_eq!(evals.one_evaluation, expected_eval);
     // Because the Indexes are sparse, this should not be evaluated.
     assert_eq!(evals.result_indexes_evaluation, None);
 }
 #[test]
 fn we_can_track_the_evaluation_of_dense_indexes() {
-    let evaluation_point = [ArkScalar::from(3u64), ArkScalar::from(5u64)];
-    let random_scalars = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
+    let evaluation_point = [Curve25519Scalar::from(3u64), Curve25519Scalar::from(5u64)];
+    let random_scalars = [
+        Curve25519Scalar::from(123u64),
+        Curve25519Scalar::from(456u64),
+    ];
 
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&random_scalars, 3, 2);
 
-    let pre_result_evaluations = [ArkScalar::from(42u64)];
-    let result_evaluations = [ArkScalar::from(51u64)];
+    let pre_result_evaluations = [Curve25519Scalar::from(42u64)];
+    let result_evaluations = [Curve25519Scalar::from(51u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
         &evaluation_point,

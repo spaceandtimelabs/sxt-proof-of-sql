@@ -114,13 +114,15 @@ mod tests {
         base::{
             commitment::{column_bounds::Bounds, ColumnBounds},
             database::{ColumnType, OwnedTable},
-            scalar::ArkScalar,
+            scalar::Curve25519Scalar,
         },
         owned_table,
     };
     use itertools::Itertools;
 
-    fn metadata_map_from_owned_table(table: OwnedTable<ArkScalar>) -> ColumnCommitmentMetadataMap {
+    fn metadata_map_from_owned_table(
+        table: OwnedTable<Curve25519Scalar>,
+    ) -> ColumnCommitmentMetadataMap {
         let (identifiers, columns): (Vec<&Identifier>, Vec<CommittableColumn>) = table
             .inner_table()
             .into_iter()
@@ -137,11 +139,11 @@ mod tests {
         assert_eq!(empty_metadata_map.len(), 0);
 
         // With columns
-        let table: OwnedTable<ArkScalar> = owned_table!(
+        let table: OwnedTable<Curve25519Scalar> = owned_table!(
         "bigint_column" => [1i64, 5, -5, 0],
         "int128_column" => [100i128, 200, 300, 400],
         "varchar_column" => ["Lorem", "ipsum", "dolor", "sit"],
-        "scalar_column" => [1000, 2000, -1000, 0].map(ArkScalar::from),
+        "scalar_column" => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
         );
 
         let metadata_map = metadata_map_from_owned_table(table);
@@ -185,7 +187,7 @@ mod tests {
             "bigint_column" => [1i64, 5],
             "int128_column" => [100i128, 200],
             "varchar_column" => ["Lorem", "ipsum"],
-            "scalar_column" => [1000, 2000].map(ArkScalar::from),
+            "scalar_column" => [1000, 2000].map(Curve25519Scalar::from),
         );
         let metadata_a = metadata_map_from_owned_table(table_a);
 
@@ -193,7 +195,7 @@ mod tests {
             "bigint_column" => [-5i64, 0, 10],
             "int128_column" => [300i128, 400, 500],
             "varchar_column" => ["dolor", "sit", "amet"],
-            "scalar_column" => [-1000, 0, -2000].map(ArkScalar::from),
+            "scalar_column" => [-1000, 0, -2000].map(Curve25519Scalar::from),
         );
         let metadata_b = metadata_map_from_owned_table(table_b);
 
@@ -201,7 +203,7 @@ mod tests {
             "bigint_column" => [1i64, 5, -5, 0, 10],
             "int128_column" => [100i128, 200, 300, 400, 500],
             "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(ArkScalar::from),
+            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
         );
         let metadata_c = metadata_map_from_owned_table(table_c);
 
@@ -214,7 +216,7 @@ mod tests {
             "bigint_column" => [1i64, 5],
             "int128_column" => [100i128, 200],
             "varchar_column" => ["Lorem", "ipsum"],
-            "scalar_column" => [1000, 2000].map(ArkScalar::from),
+            "scalar_column" => [1000, 2000].map(Curve25519Scalar::from),
         );
         let metadata_a = metadata_map_from_owned_table(table_a);
 
@@ -222,7 +224,7 @@ mod tests {
             "bigint_column" => [1i64, 5, -5, 0, 10],
             "int128_column" => [100i128, 200, 300, 400, 500],
             "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(ArkScalar::from),
+            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
         );
         let metadata_b = metadata_map_from_owned_table(table_b);
 
@@ -269,7 +271,7 @@ mod tests {
             "bigint_column" => [1i64, 5, -5, 0, 10],
             "int128_column" => [100i128, 200, 300, 400, 500],
             "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(ArkScalar::from),
+            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
         );
         let metadata_a = metadata_map_from_owned_table(table_a);
 

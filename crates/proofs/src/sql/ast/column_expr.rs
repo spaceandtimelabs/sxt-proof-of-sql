@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor},
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
@@ -40,8 +40,8 @@ impl ColumnExpr {
     /// add the result to the ResultBuilder
     pub fn result_evaluate<'a>(
         &self,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
-    ) -> Column<'a, ArkScalar> {
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> Column<'a, Curve25519Scalar> {
         accessor.get_column(self.column_ref)
     }
 
@@ -49,9 +49,9 @@ impl ColumnExpr {
     /// add the components needed to prove the result
     pub fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
-    ) -> Column<'a, ArkScalar> {
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> Column<'a, Curve25519Scalar> {
         let column = accessor.get_column(self.column_ref);
         match column {
             Column::BigInt(col) => builder.produce_anchored_mle(col),
@@ -69,7 +69,7 @@ impl ColumnExpr {
         &self,
         builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> ArkScalar {
+    ) -> Curve25519Scalar {
         let col_commit = accessor.get_commitment(self.column_ref);
 
         builder.consume_anchored_mle(&col_commit)

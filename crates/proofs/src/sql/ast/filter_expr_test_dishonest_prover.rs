@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{DataAccessor, RecordBatchTestAccessor, TestAccessor},
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     record_batch,
     sql::{
@@ -23,12 +23,12 @@ struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExpr = OstensibleFilterExpr<RistrettoPoint, Dishonest>;
 
-impl ProverEvaluate<ArkScalar> for DishonestFilterExpr {
+impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // evaluate where clause
         let selection = self
@@ -53,9 +53,9 @@ impl ProverEvaluate<ArkScalar> for DishonestFilterExpr {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // evaluate where clause
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);

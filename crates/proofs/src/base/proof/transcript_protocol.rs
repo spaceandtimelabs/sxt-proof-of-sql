@@ -1,4 +1,4 @@
-use crate::base::scalar::ArkScalar;
+use crate::base::scalar::Curve25519Scalar;
 use ark_serialize::CanonicalSerialize;
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
@@ -50,8 +50,8 @@ pub trait TranscriptProtocol {
     /// Append some scalars to the transcript under a specific label.
     ///
     /// For most types, prefer to include it as part of the message with append_auto.
-    /// But ArkScalars are not Serialize, so you must use this method instead, creating a separate message.
-    fn append_ark_scalars(&mut self, label: MessageLabel, scalars: &[ArkScalar]) {
+    /// But Curve25519Scalars are not Serialize, so you must use this method instead, creating a separate message.
+    fn append_curve25519_scalars(&mut self, label: MessageLabel, scalars: &[Curve25519Scalar]) {
         self.append_canonical_serialize(label, scalars)
     }
 
@@ -69,7 +69,7 @@ pub trait TranscriptProtocol {
     /// because using this method creates a need for more labels
     fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
 
-    /// Compute multiple challenge values of a type that extends `ark_std::UniformRand` (which requires a label). This generalizes `challenge_ark_scalars`.
+    /// Compute multiple challenge values of a type that extends `ark_std::UniformRand` (which requires a label). This generalizes `challenge_curve25519_scalars`.
     fn challenge_ark<'a, U: ark_std::UniformRand + 'a>(
         &mut self,
         buf: impl IntoIterator<Item = &'a mut U>,
@@ -77,12 +77,16 @@ pub trait TranscriptProtocol {
     );
 
     /// Compute multiple challenge variables (which requires a label).
-    fn challenge_ark_scalars(&mut self, scalars: &mut [ArkScalar], label: MessageLabel) {
+    fn challenge_curve25519_scalars(
+        &mut self,
+        scalars: &mut [Curve25519Scalar],
+        label: MessageLabel,
+    ) {
         self.challenge_ark(scalars.iter_mut().map(|a| &mut a.0), label)
     }
 
     /// Compute a challenge variable (which requires a label).
-    fn challenge_ark_single<U: ark_std::UniformRand + Default>(
+    fn challenge_curve25519_single<U: ark_std::UniformRand + Default>(
         &mut self,
         label: MessageLabel,
     ) -> U {
@@ -92,8 +96,8 @@ pub trait TranscriptProtocol {
     }
 
     /// Compute a challenge variable (which requires a label).
-    fn challenge_ark_scalar(&mut self, label: MessageLabel) -> ArkScalar {
-        let mut res: ArkScalar = Default::default();
+    fn challenge_curve25519_scalar(&mut self, label: MessageLabel) -> Curve25519Scalar {
+        let mut res: Curve25519Scalar = Default::default();
         self.challenge_ark(core::iter::once(&mut res.0), label);
         res
     }

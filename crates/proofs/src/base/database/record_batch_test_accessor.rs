@@ -3,7 +3,7 @@ use super::{
     ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
     TestAccessor,
 };
-use crate::base::scalar::{compute_commitment_for_testing, ArkScalar};
+use crate::base::scalar::{compute_commitment_for_testing, Curve25519Scalar};
 use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
@@ -67,7 +67,7 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
             .map(|(k, v)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&v.to_ark_scalars()[..], table_offset),
+                    compute_commitment_for_testing(&v.to_curve25519_scalars()[..], table_offset),
                 )
             })
             .collect();
@@ -99,7 +99,7 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
             .map(|(k, col)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&col.to_ark_scalars()[..], new_offset),
+                    compute_commitment_for_testing(&col.to_curve25519_scalars()[..], new_offset),
                 )
             })
             .collect();
@@ -176,12 +176,12 @@ impl CommitmentAccessor<RistrettoPoint> for RecordBatchTestAccessor {
 }
 
 /// DataAccessor implementation for TestAccessor
-impl DataAccessor<ArkScalar> for RecordBatchTestAccessor {
+impl DataAccessor<Curve25519Scalar> for RecordBatchTestAccessor {
     /// Return the data slice wrapped within the Column::<some_type>
     ///
     /// Note: this function expects the column_ref to exist
     /// and also have the same type specified by column_ref.column_type()
-    fn get_column(&self, column_ref: ColumnRef) -> Column<ArkScalar> {
+    fn get_column(&self, column_ref: ColumnRef) -> Column<Curve25519Scalar> {
         let table = self.tables.get(&column_ref.table_ref()).unwrap();
         table
             .columns

@@ -2,7 +2,7 @@ use crate::base::scalar::MontScalar;
 use ark_ff::MontConfig;
 use num_traits::Zero;
 
-macro_rules! impl_from_for_ark_scalar_for_type_supported_by_from {
+macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
     ($tt:ty) => {
         impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
             fn from(x: $tt) -> Self {
@@ -24,7 +24,7 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
         Self::from_le_bytes_mod_order(&bytes)
     }
 }
-macro_rules! impl_from_for_ark_scalar_for_string {
+macro_rules! impl_from_for_mont_scalar_for_string {
     ($tt:ty) => {
         impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
             fn from(x: $tt) -> Self {
@@ -34,19 +34,19 @@ macro_rules! impl_from_for_ark_scalar_for_string {
     };
 }
 
-impl_from_for_ark_scalar_for_type_supported_by_from!(bool);
-impl_from_for_ark_scalar_for_type_supported_by_from!(u8);
-impl_from_for_ark_scalar_for_type_supported_by_from!(u16);
-impl_from_for_ark_scalar_for_type_supported_by_from!(u32);
-impl_from_for_ark_scalar_for_type_supported_by_from!(u64);
-impl_from_for_ark_scalar_for_type_supported_by_from!(u128);
-impl_from_for_ark_scalar_for_type_supported_by_from!(i8);
-impl_from_for_ark_scalar_for_type_supported_by_from!(i16);
-impl_from_for_ark_scalar_for_type_supported_by_from!(i32);
-impl_from_for_ark_scalar_for_type_supported_by_from!(i64);
-impl_from_for_ark_scalar_for_type_supported_by_from!(i128);
-impl_from_for_ark_scalar_for_string!(&str);
-impl_from_for_ark_scalar_for_string!(String);
+impl_from_for_mont_scalar_for_type_supported_by_from!(bool);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u128);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i128);
+impl_from_for_mont_scalar_for_string!(&str);
+impl_from_for_mont_scalar_for_string!(String);
 
 impl<F: MontConfig<4>, T> From<&T> for MontScalar<F>
 where

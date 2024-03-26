@@ -85,7 +85,7 @@ mod tests {
     use crate::{
         base::{
             database::{OwnedColumn, OwnedTable},
-            scalar::ArkScalar,
+            scalar::Curve25519Scalar,
         },
         owned_table,
     };
@@ -93,13 +93,13 @@ mod tests {
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
-        let table_a: OwnedTable<ArkScalar> = owned_table!(
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"]
         );
 
-        let table_b: OwnedTable<ArkScalar> = owned_table!(
-            "column_c" => [1, 2].map(ArkScalar::from)
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
+            "column_c" => [1, 2].map(Curve25519Scalar::from)
         );
 
         let offset_commitment =
@@ -110,7 +110,7 @@ mod tests {
         let no_offset_id = "no.off".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<ArkScalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
             0,
             &(),
         )
@@ -120,7 +120,7 @@ mod tests {
         let no_rows_commitment = TableCommitment::try_from_columns_with_offset(
             [(
                 &"column_c".parse().unwrap(),
-                &OwnedColumn::<ArkScalar>::BigInt(vec![]),
+                &OwnedColumn::<Curve25519Scalar>::BigInt(vec![]),
             )],
             3,
             &(),
@@ -153,12 +153,12 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<ArkScalar> = owned_table!(
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
             column_a_id => [1i64, 2, 3, 4],
             column_b_id => ["Lorem", "ipsum", "dolor", "sit"]
         );
-        let table_b: OwnedTable<ArkScalar> = owned_table!(
-            column_a_id => [1, 2].map(ArkScalar::from)
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
+            column_a_id => [1, 2].map(Curve25519Scalar::from)
         );
 
         let table_a_commitment =
@@ -210,12 +210,12 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<ArkScalar> = owned_table!(
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
             column_a_id => [1i64, 2, 3, 4],
             column_b_id => ["Lorem", "ipsum", "dolor", "sit"]
         );
-        let table_b: OwnedTable<ArkScalar> = owned_table!(
-            column_a_id => [1, 2].map(ArkScalar::from)
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
+            column_a_id => [1, 2].map(Curve25519Scalar::from)
         );
 
         let table_a_commitment =
@@ -226,7 +226,7 @@ mod tests {
         let table_b_id = "table.b".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<ArkScalar>)>::new(),
+            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
             0,
             &(),
         )

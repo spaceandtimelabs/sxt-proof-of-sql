@@ -1,4 +1,4 @@
-use crate::base::{database::Column, polynomial::MultilinearExtension, scalar::ArkScalar};
+use crate::base::{database::Column, polynomial::MultilinearExtension, scalar::Curve25519Scalar};
 use bumpalo::Bump;
 use num_traits::One;
 
@@ -10,9 +10,9 @@ use num_traits::One;
 /// rows in the filtered columns.
 pub fn filter_columns<'a>(
     alloc: &'a Bump,
-    columns: &[Column<'a, ArkScalar>],
+    columns: &[Column<'a, Curve25519Scalar>],
     selection: &[bool],
-) -> (Vec<Column<'a, ArkScalar>>, usize) {
+) -> (Vec<Column<'a, Curve25519Scalar>>, usize) {
     for col in columns {
         assert_eq!(col.len(), selection.len());
     }
@@ -35,9 +35,9 @@ pub fn filter_columns<'a>(
 /// the indexes are valid.
 pub fn filter_column_by_index<'a>(
     alloc: &'a Bump,
-    column: &Column<'a, ArkScalar>,
+    column: &Column<'a, Curve25519Scalar>,
     indexes: &[usize],
-) -> Column<'a, ArkScalar> {
+) -> Column<'a, Curve25519Scalar> {
     match column {
         Column::BigInt(col) => {
             Column::BigInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
@@ -69,10 +69,10 @@ pub fn filter_column_by_index<'a>(
 /// This is similar to adding `mul * fold_vals(beta,...)` on each row.
 
 pub fn fold_columns(
-    res: &mut [ArkScalar],
-    mul: ArkScalar,
-    beta: ArkScalar,
-    columns: &[impl MultilinearExtension<ArkScalar>],
+    res: &mut [Curve25519Scalar],
+    mul: Curve25519Scalar,
+    beta: Curve25519Scalar,
+    columns: &[impl MultilinearExtension<Curve25519Scalar>],
 ) {
     for (m, col) in powers(mul, beta).zip(columns) {
         col.mul_add(res, &m);
@@ -84,12 +84,15 @@ pub fn fold_columns(
 ///
 /// The result is
 /// `sum (beta^j * vals[j]) for j in 0..vals.len()`
-pub fn fold_vals(beta: ArkScalar, vals: &[ArkScalar]) -> ArkScalar {
-    let beta_powers = powers(ArkScalar::one(), beta);
+pub fn fold_vals(beta: Curve25519Scalar, vals: &[Curve25519Scalar]) -> Curve25519Scalar {
+    let beta_powers = powers(Curve25519Scalar::one(), beta);
     beta_powers.zip(vals).map(|(pow, &val)| pow * val).sum()
 }
 
 /// Returns an iterator for the lazily evaluated sequence `init, init * base, init * base^2, ...`
-fn powers(init: ArkScalar, base: ArkScalar) -> impl Iterator<Item = ArkScalar> {
+fn powers(
+    init: Curve25519Scalar,
+    base: Curve25519Scalar,
+) -> impl Iterator<Item = Curve25519Scalar> {
     core::iter::successors(Some(init), move |&m| Some(m * base))
 }

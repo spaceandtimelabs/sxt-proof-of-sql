@@ -1,6 +1,6 @@
 use super::committable_column::CommittableColumn;
 use crate::base::{
-    database::scalar_and_i256_conversions::convert_scalar_to_i256, scalar::ArkScalar,
+    database::scalar_and_i256_conversions::convert_scalar_to_i256, scalar::Curve25519Scalar,
 };
 use arrow::datatypes::i256;
 use thiserror::Error;
@@ -220,7 +220,7 @@ impl ColumnBounds {
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
             CommittableColumn::Decimal75(_, _, d) => ColumnBounds::Decimal75(Bounds::from_iter(
                 d.iter()
-                    .map(|&elem| convert_scalar_to_i256(&ArkScalar::from(elem)))
+                    .map(|&elem| convert_scalar_to_i256(&Curve25519Scalar::from(elem)))
                     .collect::<Vec<i256>>()
                     .iter(),
             )),
@@ -274,7 +274,7 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::ArkScalar};
+    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -461,7 +461,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_column_bounds_from_column() {
-        let varchar_column = OwnedColumn::<ArkScalar>::VarChar(
+        let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
                 .to_vec(),
@@ -470,7 +470,7 @@ mod tests {
         let varchar_column_bounds = ColumnBounds::from_column(&committable_varchar_column);
         assert_eq!(varchar_column_bounds, ColumnBounds::NoOrder);
 
-        let bigint_column = OwnedColumn::<ArkScalar>::BigInt([1, 2, 3, 1, 0].to_vec());
+        let bigint_column = OwnedColumn::<Curve25519Scalar>::BigInt([1, 2, 3, 1, 0].to_vec());
         let committable_bigint_column = CommittableColumn::from(&bigint_column);
         let bigint_column_bounds = ColumnBounds::from_column(&committable_bigint_column);
         assert_eq!(
@@ -478,7 +478,7 @@ mod tests {
             ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let int128_column = OwnedColumn::<ArkScalar>::Int128([1, 2, 3, 1, 0].to_vec());
+        let int128_column = OwnedColumn::<Curve25519Scalar>::Int128([1, 2, 3, 1, 0].to_vec());
         let committable_int128_column = CommittableColumn::from(&int128_column);
         let int128_column_bounds = ColumnBounds::from_column(&committable_int128_column);
         assert_eq!(
@@ -486,13 +486,13 @@ mod tests {
             ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let decimal75_column = OwnedColumn::<ArkScalar>::Decimal75(
+        let decimal75_column = OwnedColumn::<Curve25519Scalar>::Decimal75(
             Precision::new(1).unwrap(),
             0,
             vec![
-                -ArkScalar::from([1, 0, 0, 0]),
-                ArkScalar::from([2, 0, 0, 0]),
-                ArkScalar::from([3, 0, 0, 0]),
+                -Curve25519Scalar::from([1, 0, 0, 0]),
+                Curve25519Scalar::from([2, 0, 0, 0]),
+                Curve25519Scalar::from([3, 0, 0, 0]),
             ],
         );
         let committable_decimal75_column = CommittableColumn::from(&decimal75_column);

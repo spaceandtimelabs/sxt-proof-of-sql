@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{OwnedColumn, OwnedTable, OwnedTableError},
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     owned_table,
 };
@@ -10,7 +10,7 @@ use proofs_sql::Identifier;
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
-    let table = OwnedTable::<ArkScalar>::try_new(IndexMap::new()).unwrap();
+    let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap();
     assert_eq!(table.num_columns(), 0);
 }
 #[test]
@@ -19,7 +19,7 @@ fn we_can_create_an_empty_owned_table() {
         "a" => [0_i64; 0],
         "b" => [0_i128; 0],
         "c" => ["0"; 0],
-        "d" => [ArkScalar::from(0); 0],
+        "d" => [Curve25519Scalar::from(0); 0],
     );
     let mut table = IndexMap::new();
     table.insert(
@@ -46,7 +46,7 @@ fn we_can_create_an_owned_table_with_data() {
         "a" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         "b" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
         "c" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
-        "d" => [ArkScalar::from(0), 1.into(), 2.into(), 3.into(), 4.into(), 5.into(), 6.into(), 7.into(), 8.into()],
+        "d" => [Curve25519Scalar::from(0), 1.into(), 2.into(), 3.into(), 4.into(), 5.into(), 6.into(), 7.into(), 8.into()],
     );
     let mut table = IndexMap::new();
     table.insert(
@@ -74,7 +74,7 @@ fn we_can_create_an_owned_table_with_data() {
     table.insert(
         Identifier::try_new("d").unwrap(),
         OwnedColumn::Scalar(vec![
-            ArkScalar::from(0),
+            Curve25519Scalar::from(0),
             1.into(),
             2.into(),
             3.into(),
@@ -89,12 +89,12 @@ fn we_can_create_an_owned_table_with_data() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_column_order() {
-    let owned_table_a: OwnedTable<ArkScalar> = owned_table!(
+    let owned_table_a: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [0_i64; 0],
         "b" => [0_i128; 0],
         "c" => ["0"; 0],
     );
-    let owned_table_b: OwnedTable<ArkScalar> = owned_table!(
+    let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [0_i128; 0],
         "a" => [0_i64; 0],
         "c" => ["0"; 0],
@@ -103,12 +103,12 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_data() {
-    let owned_table_a: OwnedTable<ArkScalar> = owned_table!(
+    let owned_table_a: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [0_i64],
         "b" => [0_i128],
         "c" => ["0"],
     );
-    let owned_table_b: OwnedTable<ArkScalar> = owned_table!(
+    let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table!(
         "a" => [1_i64],
         "b" => [0_i128],
         "c" => ["0"],
@@ -118,7 +118,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
     assert!(matches!(
-        OwnedTable::<ArkScalar>::try_from_iter([
+        OwnedTable::<Curve25519Scalar>::try_from_iter([
             ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
             ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
         ]),

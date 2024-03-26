@@ -1,7 +1,7 @@
 use crate::base::{
     polynomial::CompositePolynomial,
     proof::{MessageLabel, TranscriptProtocol},
-    scalar::ArkScalar,
+    scalar::Curve25519Scalar,
 };
 /**
  * Adopted from arkworks
@@ -17,20 +17,27 @@ use std::rc::Rc;
 #[test]
 fn test_create_verify_proof() {
     let num_vars = 1;
-    let mut evaluation_point: [ArkScalar; 1] = [ArkScalar::zero(); 1];
+    let mut evaluation_point: [Curve25519Scalar; 1] = [Curve25519Scalar::zero(); 1];
 
     // create a proof
     let mut poly = CompositePolynomial::new(num_vars);
-    let a_vec: [ArkScalar; 2] = [ArkScalar::from(123u64), ArkScalar::from(456u64)];
+    let a_vec: [Curve25519Scalar; 2] = [
+        Curve25519Scalar::from(123u64),
+        Curve25519Scalar::from(456u64),
+    ];
     let fa = Rc::new(a_vec.to_vec());
-    poly.add_product([fa], ArkScalar::from(1u64));
+    poly.add_product([fa], Curve25519Scalar::from(1u64));
     let mut transcript = Transcript::new(b"sumchecktest");
     let mut proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
     // verify proof
     let mut transcript = Transcript::new(b"sumchecktest");
     let subclaim = proof
-        .verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64))
+        .verify_without_evaluation(
+            &mut transcript,
+            poly.info(),
+            &Curve25519Scalar::from(579u64),
+        )
         .expect("verify failed");
     assert_eq!(subclaim.evaluation_point, evaluation_point);
     assert_eq!(
@@ -42,20 +49,30 @@ fn test_create_verify_proof() {
     let mut transcript = Transcript::new(b"sumchecktest");
     transcript.append_auto(MessageLabel::SumcheckChallenge, &123u64);
     let subclaim = proof
-        .verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64))
+        .verify_without_evaluation(
+            &mut transcript,
+            poly.info(),
+            &Curve25519Scalar::from(579u64),
+        )
         .expect("verify failed");
     assert_ne!(subclaim.evaluation_point, evaluation_point);
 
     // verify fails if sum is wrong
     let mut transcript = Transcript::new(b"sumchecktest");
-    let subclaim =
-        proof.verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(123u64));
+    let subclaim = proof.verify_without_evaluation(
+        &mut transcript,
+        poly.info(),
+        &Curve25519Scalar::from(123u64),
+    );
     assert!(subclaim.is_err());
 
     // verify fails if evaluations are changed
-    proof.evaluations[0][1] += ArkScalar::from(3u64);
-    let subclaim =
-        proof.verify_without_evaluation(&mut transcript, poly.info(), &ArkScalar::from(579u64));
+    proof.evaluations[0][1] += Curve25519Scalar::from(3u64);
+    let subclaim = proof.verify_without_evaluation(
+        &mut transcript,
+        poly.info(),
+        &Curve25519Scalar::from(579u64),
+    );
     assert!(subclaim.is_err());
 }
 
@@ -63,17 +80,17 @@ fn random_product(
     nv: usize,
     num_multiplicands: usize,
     rng: &mut ark_std::rand::rngs::StdRng,
-) -> (Vec<Rc<Vec<ArkScalar>>>, ArkScalar) {
+) -> (Vec<Rc<Vec<Curve25519Scalar>>>, Curve25519Scalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
         multiplicands.push(Vec::with_capacity(1 << nv))
     }
-    let mut sum = ArkScalar::zero();
+    let mut sum = Curve25519Scalar::zero();
 
     for _ in 0..(1 << nv) {
-        let mut product = ArkScalar::one();
+        let mut product = Curve25519Scalar::one();
         for multiplicand in multiplicands.iter_mut().take(num_multiplicands) {
-            let val = ArkScalar::rand(rng);
+            let val = Curve25519Scalar::rand(rng);
             multiplicand.push(val);
             product *= val;
         }
@@ -88,14 +105,14 @@ fn random_polynomial(
     num_multiplicands_range: (usize, usize),
     num_products: usize,
     rng: &mut ark_std::rand::rngs::StdRng,
-) -> (CompositePolynomial<ArkScalar>, ArkScalar) {
+) -> (CompositePolynomial<Curve25519Scalar>, Curve25519Scalar) {
     use ark_std::rand::Rng;
-    let mut sum = ArkScalar::zero();
+    let mut sum = Curve25519Scalar::zero();
     let mut poly = CompositePolynomial::new(nv);
     for _ in 0..num_products {
         let num_multiplicands = rng.gen_range(num_multiplicands_range.0..num_multiplicands_range.1);
         let (product, product_sum) = random_product(nv, num_multiplicands, rng);
-        let coefficient = ArkScalar::rand(rng);
+        let coefficient = Curve25519Scalar::rand(rng);
         poly.add_product(product.into_iter(), coefficient);
         sum += product_sum * coefficient;
     }
@@ -111,7 +128,7 @@ fn test_polynomial(nv: usize, num_multiplicands_range: (usize, usize), num_produ
 
     // create a proof
     let mut transcript = Transcript::new(b"sumchecktest");
-    let mut evaluation_point = vec![ArkScalar::zero(); poly_info.num_variables];
+    let mut evaluation_point = vec![Curve25519Scalar::zero(); poly_info.num_variables];
     let proof = SumcheckProof::create(&mut transcript, &mut evaluation_point, &poly);
 
     // verify proof

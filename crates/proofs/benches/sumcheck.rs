@@ -2,16 +2,19 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use merlin::Transcript;
 use num_traits::{One, Zero};
 use proofs::{
-    base::{polynomial::CompositePolynomial, scalar::ArkScalar},
+    base::{polynomial::CompositePolynomial, scalar::Curve25519Scalar},
     proof_primitive::sumcheck::SumcheckProof,
 };
 use rand::{thread_rng, Rng};
 use std::{rc::Rc, time::Duration};
 
-fn random_mle_with_num_vars<R: Rng>(v: usize, rng: &mut R) -> (ArkScalar, Vec<ArkScalar>) {
-    let scalars: Vec<ArkScalar> = (0..2u32.pow(v as u32))
+fn random_mle_with_num_vars<R: Rng>(
+    v: usize,
+    rng: &mut R,
+) -> (Curve25519Scalar, Vec<Curve25519Scalar>) {
+    let scalars: Vec<Curve25519Scalar> = (0..2u32.pow(v as u32))
         .map(|_| rng.gen::<u32>())
-        .map(ArkScalar::from)
+        .map(Curve25519Scalar::from)
         .collect();
 
     let sum = scalars.iter().sum();
@@ -23,7 +26,7 @@ pub fn bench_sumcheck_prove_degree(c: &mut Criterion) {
     let mut rng = thread_rng();
     let num_vars = 10;
 
-    let zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+    let zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
 
     let mut mles = Vec::new();
 
@@ -63,9 +66,9 @@ pub fn bench_sumcheck_verify_degree(c: &mut Criterion) {
     let mut rng = thread_rng();
     let num_vars = 10;
 
-    let zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+    let zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
 
-    let mut expected = ArkScalar::one();
+    let mut expected = Curve25519Scalar::one();
     let mut mles = Vec::new();
 
     let mut group = c.benchmark_group("sumcheck_verify_degree");
@@ -107,7 +110,7 @@ pub fn bench_sumcheck_prove_terms(c: &mut Criterion) {
     let mut rng = thread_rng();
     let num_vars = 10;
 
-    let zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+    let zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
     let mut polynomial = CompositePolynomial::new(num_vars);
 
     let mut group = c.benchmark_group("sumcheck_prove_terms");
@@ -140,9 +143,9 @@ pub fn bench_sumcheck_verify_terms(c: &mut Criterion) {
     let mut rng = thread_rng();
     let num_vars = 10;
 
-    let zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+    let zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
 
-    let mut expected_sum = ArkScalar::zero();
+    let mut expected_sum = Curve25519Scalar::zero();
     let mut polynomial = CompositePolynomial::new(num_vars);
 
     let mut group = c.benchmark_group("sumcheck_verify_terms");
@@ -193,7 +196,7 @@ pub fn bench_sumcheck_prove_rows(c: &mut Criterion) {
         polynomial.add_product([Rc::new(mle.clone())], One::one());
 
         let mut transcript = Transcript::new(b"sumcheck_rows");
-        let mut zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+        let mut zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
 
         group.throughput(Throughput::Elements(rows as u64));
         group.bench_with_input(
@@ -226,7 +229,7 @@ pub fn bench_sumcheck_verify_rows(c: &mut Criterion) {
 
         // Create proof
         let mut transcript = Transcript::new(b"sumcheck_rows");
-        let mut zero_evaluation_point = vec![ArkScalar::zero(); num_vars];
+        let mut zero_evaluation_point = vec![Curve25519Scalar::zero(); num_vars];
         let proof = SumcheckProof::create(&mut transcript, &mut zero_evaluation_point, &polynomial);
 
         // Verify proof w/ measurements

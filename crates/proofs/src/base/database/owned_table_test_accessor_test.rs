@@ -3,7 +3,7 @@ use super::{
     OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
 use crate::{
-    base::scalar::{compute_commitment_for_testing, ArkScalar},
+    base::scalar::{compute_commitment_for_testing, Curve25519Scalar},
     owned_table,
 };
 use blitzar::proof::InnerProductProof;
@@ -55,7 +55,7 @@ fn we_can_access_the_columns_of_a_table() {
         "b" => [4_i64, 5, 6, 5],
         "c128" => [1_i128, 2, 3, 4],
         "d" => ["a", "bc", "d", "e"],
-        "e" => [ArkScalar::from(1), ArkScalar::from(2), ArkScalar::from(3), ArkScalar::from(4)],
+        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4)],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -93,10 +93,10 @@ fn we_can_access_the_columns_of_a_table() {
         Column::Scalar(col) => assert_eq!(
             col.to_vec(),
             vec![
-                ArkScalar::from(1),
-                ArkScalar::from(2),
-                ArkScalar::from(3),
-                ArkScalar::from(4)
+                Curve25519Scalar::from(1),
+                Curve25519Scalar::from(2),
+                Curve25519Scalar::from(3),
+                Curve25519Scalar::from(4)
             ]
         ),
         _ => panic!("Invalid column type"),

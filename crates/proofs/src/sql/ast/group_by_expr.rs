@@ -8,7 +8,7 @@ use crate::{
             ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
         },
         proof::ProofError,
-        scalar::ArkScalar,
+        scalar::Curve25519Scalar,
     },
     sql::proof::{
         CountBuilder, Indexes, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
@@ -159,12 +159,12 @@ impl ProofExpr<RistrettoPoint> for GroupByExpr {
     }
 }
 
-impl ProverEvaluate<ArkScalar> for GroupByExpr {
+impl ProverEvaluate<Curve25519Scalar> for GroupByExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self
@@ -208,9 +208,9 @@ impl ProverEvaluate<ArkScalar> for GroupByExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, ArkScalar>,
+        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<ArkScalar>,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
