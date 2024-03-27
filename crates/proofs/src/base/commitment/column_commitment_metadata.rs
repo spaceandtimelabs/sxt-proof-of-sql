@@ -37,13 +37,13 @@ impl ColumnCommitmentMetadata {
         match (column_type, bounds) {
             (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
-            | (ColumnType::Decimal75(_, _), ColumnBounds::Decimal75(_))
-            | (ColumnType::VarChar | ColumnType::Scalar, ColumnBounds::NoOrder) => {
-                Ok(ColumnCommitmentMetadata {
-                    column_type,
-                    bounds,
-                })
-            }
+            | (
+                ColumnType::VarChar | ColumnType::Scalar | ColumnType::Decimal75(..),
+                ColumnBounds::NoOrder,
+            ) => Ok(ColumnCommitmentMetadata {
+                column_type,
+                bounds,
+            }),
             _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(
                 column_type,
                 bounds,
@@ -146,12 +146,12 @@ mod tests {
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
-                ColumnBounds::Decimal75(Bounds::Empty)
+                ColumnBounds::NoOrder,
             )
             .unwrap(),
             ColumnCommitmentMetadata {
                 column_type: ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
-                bounds: ColumnBounds::Decimal75(Bounds::Empty)
+                bounds: ColumnBounds::NoOrder,
             }
         );
 
