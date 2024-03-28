@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["benches/ec_ops", "benches/provable_sql", "crates/proofs", "crates/proofs-sql"]
+members = ["benches/ec_ops", "benches/provable_sql", "crates/proofs", "crates/proofs-sql", "crates/proofs-wasm-test"]
 
 [workspace.package]
 edition = "2021"
@@ -24,7 +24,7 @@ blitzar = { version = "2.0.0" }
 bumpalo = { version = "3.11.0" }
 bytemuck = {version = "1.14.2" }
 byte-slice-cast = { version = "1.2.1" }
-criterion = { version = "0.5" }
+criterion = { version = "0.5", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 dyn_partial_eq = { version = "0.1.2" }
@@ -39,7 +39,7 @@ num-traits = { version = "0.2" }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.22.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
-polars = { version = "0.33.1" }
+polars = { version = "0.33.1", default-features = false }
 postcard = { version = "1.0" }
 proofs = { path = "crates/proofs" } # We automatically update this line during release. So do not modify it!
 proofs-sql = { path = "crates/proofs-sql" } # We automatically update this line during release. So do not modify it!
@@ -53,3 +53,4 @@ tracing = { version = "0.1.36" }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }
 typetag = { version = "0.2.13" }
+wasm-bindgen = { version = "0.2.92" }
