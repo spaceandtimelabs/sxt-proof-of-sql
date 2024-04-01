@@ -1,7 +1,7 @@
 //! Contains the utility functions for the `GroupByExpr` node.
 
 use super::filter_column_by_index;
-use crate::base::{database::Column, scalar::Curve25519Scalar};
+use crate::base::{database::Column, scalar::Scalar};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
@@ -9,12 +9,12 @@ use rayon::prelude::ParallelSliceMut;
 use thiserror::Error;
 
 /// The output of the `aggregate_columns` function.
-pub struct AggregatedColumns<'a> {
+pub struct AggregatedColumns<'a, S: Scalar> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
     /// This is effectively just the original group_by columns filtered by the selection.
-    pub group_by_columns: Vec<Column<'a, Curve25519Scalar>>,
+    pub group_by_columns: Vec<Column<'a, S>>,
     /// Resulting sums of the groups for the columns in `sum_columns_in`.
-    pub sum_columns: Vec<&'a [Curve25519Scalar]>,
+    pub sum_columns: Vec<&'a [S]>,
     /// The number of rows in each group.
     pub count_column: &'a [i64],
 }
@@ -32,12 +32,12 @@ pub enum AggregateColumnsError {
 ///
 /// This function takes a selection vector and a set of group_by and sum columns and returns
 /// the given columns aggregated by the group_by columns only for the selected rows.
-pub fn aggregate_columns<'a>(
+pub fn aggregate_columns<'a, S: Scalar>(
     alloc: &'a Bump,
-    group_by_columns_in: &[Column<'a, Curve25519Scalar>],
-    sum_columns_in: &[Column<Curve25519Scalar>],
+    group_by_columns_in: &[Column<'a, S>],
+    sum_columns_in: &[Column<S>],
     selection_column_in: &[bool],
-) -> Result<AggregatedColumns<'a>, AggregateColumnsError> {
+) -> Result<AggregatedColumns<'a, S>, AggregateColumnsError> {
     for col in group_by_columns_in {
         if col.len() != selection_column_in.len() {
             return Err(AggregateColumnsError::ColumnLengthMismatch);
@@ -77,7 +77,7 @@ pub fn aggregate_columns<'a>(
     );
 
     // This calls the `sum_aggregate_column_by_index_counts` function on each column in `sum_columns`
-    // and gives a vector of `Curve25519Scalar` slices
+    // and gives a vector of `S` slices
     let sum_columns_out = Vec::from_iter(sum_columns_in.iter().map(|column| {
         sum_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
     }));
@@ -97,12 +97,12 @@ pub fn aggregate_columns<'a>(
 /// contains the indexes of the elements in `column`.
 ///
 /// See [`sum_aggregate_slice_by_index_counts`] for an example. This is a helper wrapper around that function.
-pub(super) fn sum_aggregate_column_by_index_counts<'a>(
+pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
     alloc: &'a Bump,
-    column: &Column<Curve25519Scalar>,
+    column: &Column<S>,
     counts: &[usize],
     indexes: &[usize],
-) -> &'a [Curve25519Scalar] {
+) -> &'a [S] {
     match column {
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -135,27 +135,30 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a>(
 /// let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
 /// assert_eq!(result, expected);
 /// ```
-pub(super) fn sum_aggregate_slice_by_index_counts<'a, T: Copy + Into<Curve25519Scalar>>(
+pub(super) fn sum_aggregate_slice_by_index_counts<'a, S, T>(
     alloc: &'a Bump,
     slice: &[T],
     counts: &[usize],
     indexes: &[usize],
-) -> &'a [Curve25519Scalar] {
+) -> &'a [S]
+where
+    for<'b> S: From<&'b T> + Scalar,
+{
     let mut index = 0;
     alloc.alloc_slice_fill_iter(counts.iter().map(|&count| {
         let start = index;
         index += count;
         indexes[start..index]
             .iter()
-            .map(|&i| Into::<Curve25519Scalar>::into(slice[i]))
+            .map(|i| S::from(&slice[*i]))
             .sum()
     }))
 }
 
 /// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
 /// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
-pub(super) fn compare_indexes_by_columns(
-    group_by: &[Column<Curve25519Scalar>],
+pub(super) fn compare_indexes_by_columns<S: Scalar>(
+    group_by: &[Column<S>],
     i: usize,
     j: usize,
 ) -> Ordering {

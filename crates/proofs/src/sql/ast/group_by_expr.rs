@@ -4,11 +4,11 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::Commitment,
         database::{
             ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
         },
         proof::ProofError,
-        scalar::Curve25519Scalar,
     },
     sql::proof::{
         CountBuilder, Indexes, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
@@ -17,7 +17,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -34,22 +33,22 @@ use std::collections::HashSet;
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GroupByExpr {
+pub struct GroupByExpr<C: Commitment> {
     pub(super) group_by_exprs: Vec<ColumnExpr>,
     pub(super) sum_expr: Vec<(ColumnExpr, ColumnField)>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
+    pub(super) where_clause: BoolExprPlan<C>,
 }
 
-impl GroupByExpr {
+impl<C: Commitment> GroupByExpr<C> {
     /// Creates a new group_by expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr>,
         sum_expr: Vec<(ColumnExpr, ColumnField)>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: BoolExprPlan<RistrettoPoint>,
+        where_clause: BoolExprPlan<C>,
     ) -> Self {
         Self {
             group_by_exprs,
@@ -61,7 +60,7 @@ impl GroupByExpr {
     }
 }
 
-impl ProofExpr<RistrettoPoint> for GroupByExpr {
+impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -96,8 +95,8 @@ impl ProofExpr<RistrettoPoint> for GroupByExpr {
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<(), ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -159,12 +158,12 @@ impl ProofExpr<RistrettoPoint> for GroupByExpr {
     }
 }
 
-impl ProverEvaluate<Curve25519Scalar> for GroupByExpr {
+impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
         let selection = self
@@ -174,12 +173,12 @@ impl ProverEvaluate<Curve25519Scalar> for GroupByExpr {
         let group_by_columns = Vec::from_iter(
             self.group_by_exprs
                 .iter()
-                .map(|expr| expr.result_evaluate(accessor)),
+                .map(|expr| expr.result_evaluate::<C::Scalar>(accessor)),
         );
         let sum_columns = Vec::from_iter(
             self.sum_expr
                 .iter()
-                .map(|expr| expr.0.result_evaluate(accessor)),
+                .map(|expr| expr.0.result_evaluate::<C::Scalar>(accessor)),
         );
         // Compute filtered_columns and indexes
         let AggregatedColumns {
@@ -208,9 +207,9 @@ impl ProverEvaluate<Curve25519Scalar> for GroupByExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -218,12 +217,12 @@ impl ProverEvaluate<Curve25519Scalar> for GroupByExpr {
         let group_by_columns = Vec::from_iter(
             self.group_by_exprs
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, accessor)),
+                .map(|expr| expr.prover_evaluate::<C::Scalar>(builder, accessor)),
         );
         let sum_columns = Vec::from_iter(
             self.sum_expr
                 .iter()
-                .map(|expr| expr.0.prover_evaluate(builder, accessor)),
+                .map(|expr| expr.0.prover_evaluate::<C::Scalar>(builder, accessor)),
         );
         // Compute filtered_columns and indexes
         let AggregatedColumns {

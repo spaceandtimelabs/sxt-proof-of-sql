@@ -5,13 +5,16 @@ use super::{
         sum_aggregate_slice_by_index_counts,
     },
 };
-use crate::base::{database::Column, scalar::Curve25519Scalar};
+use crate::{
+    base::{database::Column, scalar::Curve25519Scalar},
+    proof_primitive::dory::DoryScalar,
+};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 
 #[test]
 fn we_can_aggregate_empty_columns() {
-    let column_a = Column::BigInt(&[]);
+    let column_a = Column::BigInt::<Curve25519Scalar>(&[]);
     let column_b = Column::VarChar((&[], &[]));
     let column_c = Column::Int128(&[]);
     let column_d = Column::Scalar(&[]);
@@ -89,7 +92,7 @@ fn we_can_aggregate_columns() {
 
 #[test]
 fn we_can_compare_indexes_by_columns_with_no_columns() {
-    let columns = &[];
+    let columns: &[Column<Curve25519Scalar>; 0] = &[];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Equal);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Equal);
     assert_eq!(compare_indexes_by_columns(columns, 3, 2), Ordering::Equal);
@@ -100,9 +103,9 @@ fn we_can_compare_indexes_by_columns_for_bigint_columns() {
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let column_a = Column::BigInt(slice_a);
-    let column_b = Column::BigInt(slice_b);
-    let column_c = Column::BigInt(slice_c);
+    let column_a = Column::BigInt::<DoryScalar>(slice_a);
+    let column_b = Column::BigInt::<DoryScalar>(slice_b);
+    let column_c = Column::BigInt::<DoryScalar>(slice_c);
 
     let columns = &[column_a.clone()];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
@@ -190,9 +193,10 @@ fn we_can_sum_aggregate_slice_by_counts_for_empty_slice() {
     let slice_a: &[i64; 0] = &[];
     let indexes = &[];
     let counts = &[];
-    let expected = &[];
+    let expected: &[DoryScalar; 0] = &[];
     let alloc = Bump::new();
-    let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
+    let result: &[DoryScalar] =
+        sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
     assert_eq!(result, expected);
 }
 
@@ -201,9 +205,10 @@ fn we_can_sum_aggregate_slice_by_counts_with_empty_result() {
     let slice_a = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109];
     let indexes = &[];
     let counts = &[];
-    let expected = &[];
+    let expected: &[DoryScalar; 0] = &[];
     let alloc = Bump::new();
-    let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
+    let result: &[DoryScalar] =
+        sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
     assert_eq!(result, expected);
 }
 
@@ -220,19 +225,21 @@ fn we_can_sum_aggregate_slice_by_counts() {
         Curve25519Scalar::from(106 + 114 + 113 + 109),
     ];
     let alloc = Bump::new();
-    let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
+    let result: &[Curve25519Scalar] =
+        sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
     assert_eq!(result, expected);
 }
 
 #[test]
 fn we_can_sum_aggregate_columns_by_counts_for_empty_column() {
     let slice_a: &[i64; 0] = &[];
-    let column_a = Column::BigInt(slice_a);
+    let column_a = Column::BigInt::<DoryScalar>(slice_a);
     let indexes = &[];
     let counts = &[];
-    let expected = &[];
+    let expected: &[DoryScalar; 0] = &[];
     let alloc = Bump::new();
-    let result = sum_aggregate_column_by_index_counts(&alloc, &column_a, counts, indexes);
+    let result: &[DoryScalar] =
+        sum_aggregate_column_by_index_counts(&alloc, &column_a, counts, indexes);
     assert_eq!(result, expected);
 }
 
@@ -248,8 +255,8 @@ fn we_can_sum_aggregate_columns_by_counts() {
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
     let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(|s| s.into()).collect();
-    let column_a = Column::BigInt(slice_a);
-    let columns_b = Column::Int128(slice_b);
+    let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
+    let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
     let columns_c = Column::Scalar(&scals_c);
     let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
     let counts = &[3, 3, 4];

@@ -1,11 +1,11 @@
 use crate::{
     base::{
+        commitment::Commitment,
         database::{Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor},
-        scalar::Curve25519Scalar,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
-use curve25519_dalek::ristretto::RistrettoPoint;
 use serde::{Deserialize, Serialize};
 /// Provable expression for a column
 ///
@@ -38,20 +38,20 @@ impl ColumnExpr {
 
     /// Evaluate the column expression and
     /// add the result to the ResultBuilder
-    pub fn result_evaluate<'a>(
+    pub fn result_evaluate<'a, S: Scalar>(
         &self,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) -> Column<'a, Curve25519Scalar> {
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         accessor.get_column(self.column_ref)
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
     /// add the components needed to prove the result
-    pub fn prover_evaluate<'a>(
+    pub fn prover_evaluate<'a, S: Scalar>(
         &self,
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) -> Column<'a, Curve25519Scalar> {
+        builder: &mut ProofBuilder<'a, S>,
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Column<'a, S> {
         let column = accessor.get_column(self.column_ref);
         match column {
             Column::BigInt(col) => builder.produce_anchored_mle(col),
@@ -65,11 +65,11 @@ impl ColumnExpr {
 
     /// Evaluate the column expression at the sumcheck's random point,
     /// add components needed to verify this column expression
-    pub fn verifier_evaluate(
+    pub fn verifier_evaluate<C: Commitment>(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) -> Curve25519Scalar {
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+    ) -> C::Scalar {
         let col_commit = accessor.get_commitment(self.column_ref);
 
         builder.consume_anchored_mle(&col_commit)

@@ -9,7 +9,8 @@ use num_traits::Zero;
 #[test]
 fn we_can_filter_columns() {
     let selection = vec![true, false, true, false, true];
-    let str_scalars = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [Curve25519Scalar; 5] =
+        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![
@@ -40,7 +41,8 @@ fn we_can_filter_columns() {
 #[test]
 fn we_can_filter_columns_with_empty_result() {
     let selection = vec![false, false, false, false, false];
-    let str_scalars = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [Curve25519Scalar; 5] =
+        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![
@@ -68,7 +70,7 @@ fn we_can_filter_columns_with_empty_result() {
 fn we_can_filter_empty_columns() {
     let selection = vec![];
     let columns = vec![
-        Column::BigInt(&[]),
+        Column::<Curve25519Scalar>::BigInt(&[]),
         Column::Int128(&[]),
         Column::VarChar((&[], &[])),
         Column::Scalar(&[]),
@@ -104,7 +106,8 @@ fn we_can_fold_columns_with_scalars() {
             + Curve25519Scalar::from(100 * 33) * Curve25519Scalar::from("5"),
     ];
 
-    let str_scalars = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [Curve25519Scalar; 5] =
+        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [2.into(), 3.into(), 5.into(), 7.into(), 1.into()];
     let mut columns = vec![
         Column::BigInt(&[1, 2, 3, 4, 5]),
@@ -148,7 +151,7 @@ fn we_can_fold_columns_with_that_get_padded() {
         Curve25519Scalar::from(77),
     ];
 
-    let str_scalars = ["1".into(), "2".into(), "3".into()];
+    let str_scalars: [Curve25519Scalar; 3] = ["1".into(), "2".into(), "3".into()];
     let scalars = [2.into(), 3.into()];
     let mut columns = vec![
         Column::BigInt(&[1, 2, 3, 4, 5]),
@@ -175,7 +178,7 @@ fn we_can_fold_columns_with_that_get_padded() {
 #[test]
 fn we_can_fold_empty_columns() {
     let columns = vec![
-        Column::BigInt(&[]),
+        Column::BigInt::<Curve25519Scalar>(&[]),
         Column::Int128(&[]),
         Column::VarChar((&[], &[])),
         Column::Scalar(&[]),
@@ -189,7 +192,7 @@ fn we_can_fold_empty_columns() {
 
 #[test]
 fn we_can_fold_vals() {
-    assert_eq!(fold_vals(10.into(), &[]), Zero::zero());
+    assert_eq!(fold_vals(Curve25519Scalar::from(10), &[]), Zero::zero());
     assert_eq!(
         fold_vals(
             10.into(),

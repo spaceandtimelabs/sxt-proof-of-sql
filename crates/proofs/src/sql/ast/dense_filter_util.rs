@@ -1,6 +1,5 @@
-use crate::base::{database::Column, polynomial::MultilinearExtension, scalar::Curve25519Scalar};
+use crate::base::{database::Column, polynomial::MultilinearExtension, scalar::Scalar};
 use bumpalo::Bump;
-use num_traits::One;
 
 /// This function takes a selection vector and a set of columns and returns a
 /// new set of columns that only contains the selected rows. The function
@@ -8,11 +7,11 @@ use num_traits::One;
 ///
 /// The function returns a tuple of the filtered columns and the number of
 /// rows in the filtered columns.
-pub fn filter_columns<'a>(
+pub fn filter_columns<'a, S: Scalar>(
     alloc: &'a Bump,
-    columns: &[Column<'a, Curve25519Scalar>],
+    columns: &[Column<'a, S>],
     selection: &[bool],
-) -> (Vec<Column<'a, Curve25519Scalar>>, usize) {
+) -> (Vec<Column<'a, S>>, usize) {
     for col in columns {
         assert_eq!(col.len(), selection.len());
     }
@@ -33,11 +32,11 @@ pub fn filter_columns<'a>(
 /// This function takes an index vector and a `Column` and returns a
 /// new set of columns that only contains the selected indexes. It is assumed that
 /// the indexes are valid.
-pub fn filter_column_by_index<'a>(
+pub fn filter_column_by_index<'a, S: Scalar>(
     alloc: &'a Bump,
-    column: &Column<'a, Curve25519Scalar>,
+    column: &Column<'a, S>,
     indexes: &[usize],
-) -> Column<'a, Curve25519Scalar> {
+) -> Column<'a, S> {
     match column {
         Column::BigInt(col) => {
             Column::BigInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
@@ -68,11 +67,11 @@ pub fn filter_column_by_index<'a>(
 ///
 /// This is similar to adding `mul * fold_vals(beta,...)` on each row.
 
-pub fn fold_columns(
-    res: &mut [Curve25519Scalar],
-    mul: Curve25519Scalar,
-    beta: Curve25519Scalar,
-    columns: &[impl MultilinearExtension<Curve25519Scalar>],
+pub fn fold_columns<S: Scalar>(
+    res: &mut [S],
+    mul: S,
+    beta: S,
+    columns: &[impl MultilinearExtension<S>],
 ) {
     for (m, col) in powers(mul, beta).zip(columns) {
         col.mul_add(res, &m);
@@ -84,15 +83,12 @@ pub fn fold_columns(
 ///
 /// The result is
 /// `sum (beta^j * vals[j]) for j in 0..vals.len()`
-pub fn fold_vals(beta: Curve25519Scalar, vals: &[Curve25519Scalar]) -> Curve25519Scalar {
-    let beta_powers = powers(Curve25519Scalar::one(), beta);
+pub fn fold_vals<S: Scalar>(beta: S, vals: &[S]) -> S {
+    let beta_powers = powers(S::one(), beta);
     beta_powers.zip(vals).map(|(pow, &val)| pow * val).sum()
 }
 
 /// Returns an iterator for the lazily evaluated sequence `init, init * base, init * base^2, ...`
-fn powers(
-    init: Curve25519Scalar,
-    base: Curve25519Scalar,
-) -> impl Iterator<Item = Curve25519Scalar> {
+fn powers<S: Scalar>(init: S, base: S) -> impl Iterator<Item = S> {
     core::iter::successors(Some(init), move |&m| Some(m * base))
 }

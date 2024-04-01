@@ -5,11 +5,12 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::Commitment,
         database::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
         },
         proof::ProofError,
-        scalar::Curve25519Scalar,
+        scalar::Scalar,
         slice_ops,
     },
     sql::proof::{
@@ -19,7 +20,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
@@ -31,20 +31,16 @@ use std::{collections::HashSet, marker::PhantomData};
 ///
 /// This differs from the [`FilterExpr`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleDenseFilterExpr<H: ProverHonestyMarker> {
+pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<ColumnExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<RistrettoPoint>,
+    pub(super) where_clause: BoolExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
-impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
-    pub fn new(
-        results: Vec<ColumnExpr>,
-        table: TableExpr,
-        where_clause: BoolExprPlan<RistrettoPoint>,
-    ) -> Self {
+    pub fn new(results: Vec<ColumnExpr>, table: TableExpr, where_clause: BoolExprPlan<C>) -> Self {
         Self {
             results,
             table,
@@ -59,9 +55,9 @@ impl<H: ProverHonestyMarker> OstensibleDenseFilterExpr<H> {
     }
 }
 
-impl<H: ProverHonestyMarker> ProofExpr<RistrettoPoint> for OstensibleDenseFilterExpr<H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofExpr<C> for OstensibleDenseFilterExpr<C, H>
 where
-    OstensibleDenseFilterExpr<H>: ProverEvaluate<Curve25519Scalar>,
+    OstensibleDenseFilterExpr<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -96,8 +92,8 @@ where
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<(), ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -151,14 +147,14 @@ where
 }
 
 /// Alias for a dense filter expression with a honest prover.
-pub type DenseFilterExpr = OstensibleDenseFilterExpr<HonestProver>;
+pub type DenseFilterExpr<C> = OstensibleDenseFilterExpr<C, HonestProver>;
 
-impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
+impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
         let selection = self
@@ -168,7 +164,7 @@ impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.result_evaluate(accessor)),
+                .map(|expr| expr.result_evaluate::<C::Scalar>(accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -189,9 +185,9 @@ impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
         let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -199,7 +195,7 @@ impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, accessor)),
+                .map(|expr| expr.prover_evaluate::<C::Scalar>(builder, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -207,7 +203,7 @@ impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
 
-        prove_filter(
+        prove_filter::<C::Scalar>(
             builder,
             alloc,
             alpha,
@@ -220,13 +216,13 @@ impl ProverEvaluate<Curve25519Scalar> for DenseFilterExpr {
     }
 }
 
-fn verify_filter(
-    builder: &mut VerificationBuilder<RistrettoPoint>,
-    alpha: Curve25519Scalar,
-    beta: Curve25519Scalar,
-    c_evals: Vec<Curve25519Scalar>,
-    s_eval: Curve25519Scalar,
-    d_evals: Vec<Curve25519Scalar>,
+fn verify_filter<C: Commitment>(
+    builder: &mut VerificationBuilder<C>,
+    alpha: C::Scalar,
+    beta: C::Scalar,
+    c_evals: Vec<C::Scalar>,
+    s_eval: C::Scalar,
+    d_evals: Vec<C::Scalar>,
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
     let rand_eval = builder.mle_evaluations.random_evaluation;
@@ -258,14 +254,14 @@ fn verify_filter(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn prove_filter<'a>(
-    builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+pub(super) fn prove_filter<'a, S: Scalar + 'a>(
+    builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
-    alpha: Curve25519Scalar,
-    beta: Curve25519Scalar,
-    c: &[Column<Curve25519Scalar>],
+    alpha: S,
+    beta: S,
+    c: &[Column<S>],
     s: &'a [bool],
-    d: &[Column<Curve25519Scalar>],
+    d: &[Column<S>],
     m: usize,
 ) {
     let n = builder.table_length();
@@ -290,11 +286,8 @@ pub(super) fn prove_filter<'a>(
     builder.produce_sumcheck_subpolynomial(
         SumcheckSubpolynomialType::ZeroSum,
         vec![
-            (
-                Curve25519Scalar::one(),
-                vec![Box::new(c_star as &[_]), Box::new(s)],
-            ),
-            (-Curve25519Scalar::one(), vec![Box::new(d_star as &[_])]),
+            (S::one(), vec![Box::new(c_star as &[_]), Box::new(s)]),
+            (-S::one(), vec![Box::new(d_star as &[_])]),
         ],
     );
 
@@ -303,10 +296,10 @@ pub(super) fn prove_filter<'a>(
         SumcheckSubpolynomialType::Identity,
         vec![
             (
-                Curve25519Scalar::one(),
+                S::one(),
                 vec![Box::new(c_star as &[_]), Box::new(c_fold as &[_])],
             ),
-            (-Curve25519Scalar::one(), vec![]),
+            (-S::one(), vec![]),
         ],
     );
 
@@ -315,10 +308,10 @@ pub(super) fn prove_filter<'a>(
         SumcheckSubpolynomialType::Identity,
         vec![
             (
-                Curve25519Scalar::one(),
+                S::one(),
                 vec![Box::new(d_star as &[_]), Box::new(d_bar_fold as &[_])],
             ),
-            (-Curve25519Scalar::one(), vec![Box::new(chi as &[_])]),
+            (-S::one(), vec![Box::new(chi as &[_])]),
         ],
     );
 }
