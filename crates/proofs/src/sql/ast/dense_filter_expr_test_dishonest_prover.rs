@@ -18,14 +18,15 @@ use crate::{
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::One;
 
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestDenseFilterExpr = OstensibleDenseFilterExpr<Dishonest>;
+type DishonestDenseFilterExpr<C> = OstensibleDenseFilterExpr<C, Dishonest>;
 
-impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr {
+impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr<RistrettoPoint> {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
