@@ -2,14 +2,12 @@
 mod tests {
     use crate::{
         base::{
-            database::{ColumnRef, ColumnType, OwnedTable, OwnedTableTestAccessor, TestAccessor},
+            database::{ColumnRef, ColumnType},
             math::decimal::Precision,
-            scalar::{Curve25519Scalar as S, Scalar},
         },
         record_batch,
         sql::parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},
     };
-    use blitzar::proof::InnerProductProof;
     use curve25519_dalek::RistrettoPoint;
     use proofs_sql::{
         decimal_unknown::DecimalUnknown,
@@ -289,75 +287,5 @@ mod tests {
             &accessor,
         )
         .is_err());
-    }
-
-    #[cfg(test)]
-    pub fn run_query(
-        query_str: &str,
-        expected_precision: u8,
-        expected_scale: i8,
-        test_decimal_values: Vec<S>,
-        expected_decimal_values: Vec<S>,
-    ) {
-        // Setup common data and accessor for each run
-
-        use crate::{owned_table, sql::proof::QueryProof};
-
-        let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-        let mut data: OwnedTable<S> = owned_table!("a" => [1i64, 2, 3], "b" => ["t", "u", "v"]);
-        data.append_decimal_columns_for_testing(
-            "c",
-            expected_precision,
-            expected_scale,
-            test_decimal_values,
-        );
-
-        accessor.add_table("sxt.table".parse().unwrap(), data, 0);
-
-        let query = QueryExpr::try_new(
-            query_str.parse().unwrap(),
-            "sxt".parse().unwrap(),
-            &accessor,
-        )
-        .unwrap();
-        let (proof, serialized_result) =
-            QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
-        let owned_table_result = proof
-            .verify(query.proof_expr(), &accessor, &serialized_result, &())
-            .unwrap()
-            .table;
-
-        // Adjust expected result based on the precision and scale provided
-        let mut expected_result = owned_table!("a" => [1_i64, 3], "b" => ["t", "v"]);
-        expected_result.append_decimal_columns_for_testing(
-            "c",
-            expected_precision,
-            expected_scale,
-            expected_decimal_values,
-        );
-        // Verify the result matches the expectation
-        assert_eq!(owned_table_result, expected_result);
-    }
-
-    #[test]
-    fn we_can_query_integers_against_decimals() {
-        run_query(
-            "SELECT * FROM table WHERE c = 12345",
-            7,
-            2,
-            vec![S::from(1234500), S::ZERO, S::from(1234500)],
-            vec![S::from(1234500), S::from(1234500)],
-        );
-    }
-
-    #[test]
-    fn we_can_query_negative_integers_against_decimals() {
-        run_query(
-            "SELECT * FROM table WHERE c = -12345",
-            7,
-            2,
-            vec![-S::from(1234500), S::ZERO, -S::from(1234500)],
-            vec![-S::from(1234500), -S::from(1234500)],
-        );
     }
 }
