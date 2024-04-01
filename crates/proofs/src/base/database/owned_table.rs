@@ -93,7 +93,7 @@ impl<S: Scalar> OwnedTable<S> {
         .unwrap()
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test"))]
     /// Simple convenience function for appending more complex types like decimal75
     /// to an owned table.
     pub fn append_decimal_columns_for_testing(
