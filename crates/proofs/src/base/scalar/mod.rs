@@ -39,7 +39,7 @@ pub trait Scalar:
     + for<'a> std::convert::From<&'a i32>
     + std::convert::Into<[u64; 4]>
     + std::convert::From<[u64; 4]>
-    + core::cmp::PartialOrd
+    + core::cmp::Ord
     + std::ops::Neg<Output = Self>
     + num_traits::Zero
     + std::ops::AddAssign

@@ -106,7 +106,7 @@ pub fn dense_filter(
     results: Vec<ColumnExpr>,
     table: TableExpr,
     where_clause: BoolExprPlan<RistrettoPoint>,
-) -> DenseFilterExpr {
+) -> DenseFilterExpr<RistrettoPoint> {
     DenseFilterExpr::new(results, table, where_clause)
 }
 
@@ -143,7 +143,7 @@ pub fn group_by(
     count_alias: &str,
     table: TableExpr,
     where_clause: BoolExprPlan<RistrettoPoint>,
-) -> GroupByExpr {
+) -> GroupByExpr<RistrettoPoint> {
     GroupByExpr::new(
         group_by_exprs,
         sum_expr,
