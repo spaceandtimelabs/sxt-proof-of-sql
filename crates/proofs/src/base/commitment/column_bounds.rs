@@ -1,4 +1,5 @@
 use super::committable_column::CommittableColumn;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Cannot construct bounds where min is greater than max.
@@ -11,7 +12,7 @@ pub struct NegativeBounds;
 /// Creating a separate type for this provides two benefits.
 /// 1. reduced repeated code between the two variants
 /// 2. privatization of the min/max for these variants, preventing invalid states
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BoundsInner<T>
 where
     T: Ord,
@@ -65,7 +66,7 @@ where
 }
 
 /// Minimum and maximum values (inclusive) of a collection of data, with some other variants for edge cases.
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Bounds<T>
 where
     T: Ord,
@@ -194,7 +195,7 @@ pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
 /// Other Ord column variants do exist (like Scalar/Boolean).
 /// However, bounding these is useless unless we are performing indexing on these columns.
 /// This functionality only be considered after we support them in the user-facing sql.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,

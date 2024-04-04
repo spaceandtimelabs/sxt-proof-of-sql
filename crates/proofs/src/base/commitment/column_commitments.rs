@@ -3,6 +3,7 @@ use super::{
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, VecCommitmentExt,
 };
 use proofs_sql::Identifier;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -25,7 +26,7 @@ pub enum AppendColumnCommitmentsError {
 /// Commitments for a collection of columns with some metadata.
 ///
 /// These columns do not need to belong to the same table, and can have differing lengths.
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ColumnCommitments<C>
 where
     Vec<C>: VecCommitmentExt,
