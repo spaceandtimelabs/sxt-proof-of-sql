@@ -4,6 +4,7 @@ use super::{
 };
 use crate::base::{database::OwnedTable, scalar::Scalar};
 use proofs_sql::Identifier;
+use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use thiserror::Error;
 
@@ -56,7 +57,7 @@ pub enum TableCommitmentArithmeticError {
 /// Commitment for an entire table, with column and table metadata.
 ///
 /// Unlike [`ColumnCommitments`], all columns in this commitment must have the same length.
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TableCommitment<C>
 where
     Vec<C>: VecCommitmentExt,
