@@ -1,5 +1,6 @@
 use super::{committable_column::CommittableColumn, ColumnBounds};
 use crate::base::database::ColumnType;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use thiserror::Error;
 
@@ -19,7 +20,7 @@ pub struct ColumnCommitmentMetadataMismatch(ColumnType, ColumnType);
 const EXPECT_BOUNDS_MATCH_MESSAGE: &str = "we've already checked the column types match, which is a stronger requirement (mapping of type variants to bounds variants is surjective)";
 
 /// Anonymous metadata associated with a column commitment.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ColumnCommitmentMetadata {
     column_type: ColumnType,
     bounds: ColumnBounds,
