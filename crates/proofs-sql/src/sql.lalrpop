@@ -242,6 +242,34 @@ ComparativeExpression: Box<intermediate_ast::Expression> = {
                 right: Box::new(intermediate_ast::Expression::Literal(*left)), 
             }), 
         }),
+
+    <left: QualifiedColumnIdentifier> ">=" <right: LiteralValue> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+            left: Box::new(intermediate_ast::Expression::Column(left)),
+            right: Box::new(intermediate_ast::Expression::Literal(*right)), 
+        }),
+
+    <left: LiteralValue> ">=" <right: QualifiedColumnIdentifier> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+            left: Box::new(intermediate_ast::Expression::Column(right)),
+            right: Box::new(intermediate_ast::Expression::Literal(*left)), 
+        }),
+    
+    <left: QualifiedColumnIdentifier> "<=" <right: LiteralValue> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+            left: Box::new(intermediate_ast::Expression::Column(left)),
+            right: Box::new(intermediate_ast::Expression::Literal(*right)), 
+        }),
+
+    <left: LiteralValue> "<=" <right: QualifiedColumnIdentifier> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+            left: Box::new(intermediate_ast::Expression::Column(right)),
+            right: Box::new(intermediate_ast::Expression::Literal(*left)), 
+        }),
 };
 
 AggregationExpression: (intermediate_ast::AggregationOperator, Box<intermediate_ast::Expression>) = {
@@ -396,6 +424,8 @@ match {
     "/" => "/",
     "=" => "=",
     r"(!=|<>)" => "!=",
+    ">=" => ">=",
+    "<=" => "<=",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     // Decimal numbers with mandatory fractional part
