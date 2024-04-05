@@ -9,6 +9,22 @@ pub fn equal<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
     })
 }
 
+pub fn ge<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::GreaterThanOrEqual,
+        left: Box::new(Expression::Column(name.parse().unwrap())),
+        right: Box::new(Expression::Literal(literal.into())),
+    })
+}
+
+pub fn le<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::LessThanOrEqual,
+        left: Box::new(Expression::Column(name.parse().unwrap())),
+        right: Box::new(Expression::Literal(literal.into())),
+    })
+}
+
 pub fn not(expr: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Unary {
         op: UnaryOperator::Not,
