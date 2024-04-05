@@ -853,10 +853,16 @@ fn we_cannot_parse_a_query_with_filter_gt() {
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_filter_ge() {
-    assert!("select a from tab where b >= 4"
+fn we_can_parse_a_query_with_filter_ge() {
+    let ast = "select a from tab where b >= 4"
         .parse::<SelectStatement>()
-        .is_err());
+        .unwrap();
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "tab"), ge("b", 4), vec![]),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]
@@ -867,10 +873,16 @@ fn we_cannot_parse_a_query_with_filter_lt() {
 }
 
 #[test]
-fn we_cannot_parse_a_query_with_filter_le() {
-    assert!("select a from tab where b <= 4"
+fn we_can_parse_a_query_with_filter_le() {
+    let ast = "select a from tab where b <= 4"
         .parse::<SelectStatement>()
-        .is_err());
+        .unwrap();
+    let expected_ast = select(
+        query(cols_res(&["a"]), tab(None, "tab"), le("b", 4), vec![]),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
 }
 
 #[test]

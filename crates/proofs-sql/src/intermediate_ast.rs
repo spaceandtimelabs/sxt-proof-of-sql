@@ -80,6 +80,12 @@ pub enum BinaryOperator {
 
     /// Comparison =
     Equal,
+
+    /// Comparison <=
+    LessThanOrEqual,
+
+    /// Comparison >=
+    GreaterThanOrEqual,
 }
 
 /// Possible unary operators for simple expressions

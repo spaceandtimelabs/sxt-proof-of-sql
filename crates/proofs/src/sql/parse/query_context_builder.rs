@@ -189,6 +189,7 @@ impl<'a> QueryContextBuilder<'a> {
                 self.visit_equal_expr(left, right)?;
                 Ok(None)
             }
+            BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => todo!(),
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
