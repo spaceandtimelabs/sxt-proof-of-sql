@@ -1,4 +1,5 @@
 use super::{PublicParameters, VerifierSetup};
+use serde::{Deserialize, Serialize};
 
 /// The public setup required for the Dory PCS by the prover and the commitment computation.
 #[derive(Clone)]
@@ -36,6 +37,7 @@ impl DoryProverPublicSetup {
 }
 
 /// The verifier's public setup for the Dory PCS.
+#[derive(Serialize, Deserialize)]
 pub struct DoryVerifierPublicSetup {
     verifier_setup: VerifierSetup,
     sigma: usize,

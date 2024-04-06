@@ -1,6 +1,9 @@
 use super::{PublicParameters, G1, G2, GT};
-use ark_ec::pairing::Pairing;
+use crate::base::impl_serde_for_ark_serde;
+use ark_ec::pairing::{Pairing, PairingOutput};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use itertools::MultiUnzip;
+use num_traits::One;
 
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
@@ -72,6 +75,7 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
 /// Note:
 /// We use nu = m and k = m-i or m-j.
 /// This indexing is more convenient for coding because lengths of the arrays used are typically 2^k rather than 2^i or 2^j.
+#[derive(CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug, Clone)]
 pub struct VerifierSetup {
     /// `Delta_1L[k]` = Δ_1L,(m-k) in the Dory paper, so `Delta_1L[0]` is unused. Note, this is the same as `Delta_2L`.
     pub(super) Delta_1L: Vec<GT>,
@@ -99,6 +103,8 @@ pub struct VerifierSetup {
     pub(super) max_nu: usize,
 }
 
+impl_serde_for_ark_serde!(VerifierSetup);
+
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.
     pub(super) fn new(
@@ -116,9 +122,9 @@ impl VerifierSetup {
             .map(|k| {
                 if k == 0 {
                     (
-                        Default::default(),
-                        Default::default(),
-                        Default::default(),
+                        PairingOutput(One::one()),
+                        PairingOutput(One::one()),
+                        PairingOutput(One::one()),
                         Pairing::pairing(Gamma_1_nu[0], Gamma_2_nu[0]),
                     )
                 } else {
