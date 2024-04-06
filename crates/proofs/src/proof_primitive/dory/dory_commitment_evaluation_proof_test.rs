@@ -1,5 +1,7 @@
-use super::{test_rng, DoryEvaluationProof, DoryProverPublicSetup};
-use crate::base::commitment::commitment_evaluation_proof_test::*;
+use super::{test_rng, DoryEvaluationProof, DoryProverPublicSetup, DoryScalar};
+use crate::base::commitment::{commitment_evaluation_proof_test::*, CommitmentEvaluationProof};
+use ark_std::UniformRand;
+use merlin::Transcript;
 
 #[test]
 fn test_simple_ipa() {
@@ -52,4 +54,21 @@ fn test_random_ipa_with_various_lengths() {
             );
         }
     }
+}
+
+#[test]
+fn we_can_serialize_and_deserialize_dory_evaluation_proofs() {
+    let mut rng = ark_std::test_rng();
+    let prover_setup = DoryProverPublicSetup::rand(4, 3, &mut rng);
+    let a = core::iter::repeat_with(|| DoryScalar::rand(&mut rng))
+        .take(30)
+        .collect::<Vec<_>>();
+    let b_point = core::iter::repeat_with(|| DoryScalar::rand(&mut rng))
+        .take(5)
+        .collect::<Vec<_>>();
+    let mut transcript = Transcript::new(b"evaluation_proof");
+    let proof = DoryEvaluationProof::new(&mut transcript, &a, &b_point, 0, &prover_setup);
+    let encoded = postcard::to_allocvec(&proof).unwrap();
+    let decoded: DoryEvaluationProof = postcard::from_bytes(&encoded).unwrap();
+    assert_eq!(decoded, proof);
 }
