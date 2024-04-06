@@ -25,6 +25,7 @@
 use super::{DoryProverPublicSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn, NumColumnsMismatch, VecCommitmentExt},
+    impl_serde_for_ark_serde,
     scalar::{MontScalar, Scalar},
 };
 use ark_ec::pairing::PairingOutput;
@@ -32,7 +33,6 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub};
 use num_traits::One;
-use serde::{Deserialize, Serialize, Serializer};
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
 pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
@@ -45,7 +45,9 @@ impl Scalar for DoryScalar {
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
 
-#[derive(Debug, Sub, Eq, PartialEq, Neg, Copy, Clone, AddAssign)]
+#[derive(
+    Debug, Sub, Eq, PartialEq, Neg, Copy, Clone, AddAssign, CanonicalSerialize, CanonicalDeserialize,
+)]
 /// The Dory commitment type.
 pub struct DoryCommitment(pub(super) GT);
 
@@ -57,29 +59,7 @@ impl Default for DoryCommitment {
 }
 
 // Traits required for `DoryCommitment` to impl `Commitment`.
-impl Serialize for DoryCommitment {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where
-        S: Serializer,
-    {
-        let mut bytes = Vec::with_capacity(self.0.compressed_size());
-        self.0
-            .serialize_compressed(&mut bytes)
-            .map_err(serde::ser::Error::custom)?;
-        bytes.serialize(serializer)
-    }
-}
-impl<'de> Deserialize<'de> for DoryCommitment {
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as serde::Deserializer<'de>>::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let bytes = Vec::deserialize(deserializer)?;
-        GT::deserialize_compressed_unchecked(&bytes[..])
-            .map_err(serde::de::Error::custom)
-            .map(Self)
-    }
-}
+impl_serde_for_ark_serde!(DoryCommitment);
 impl Mul<DoryCommitment> for DoryScalar {
     type Output = DoryCommitment;
     fn mul(self, rhs: DoryCommitment) -> Self::Output {

@@ -133,3 +133,15 @@ fn we_can_create_verifier_setups_with_various_sizes() {
         assert_eq!(setup.Gamma_2_fin, pp.Gamma_2_fin);
     }
 }
+
+#[test]
+fn we_can_serialize_and_deserialize_verifier_setups() {
+    let mut rng = test_rng();
+    for nu in 0..5 {
+        let pp = PublicParameters::rand(nu, &mut rng);
+        let setup = VerifierSetup::from(&pp);
+        let serialized = postcard::to_allocvec(&setup).unwrap();
+        let deserialized: VerifierSetup = postcard::from_bytes(&serialized).unwrap();
+        assert_eq!(setup, deserialized);
+    }
+}

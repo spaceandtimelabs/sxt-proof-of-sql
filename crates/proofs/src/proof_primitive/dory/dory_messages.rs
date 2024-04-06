@@ -1,10 +1,14 @@
 use super::{F, G1, G2, GT};
-use crate::base::proof::{MessageLabel, TranscriptProtocol};
+use crate::base::{
+    impl_serde_for_ark_serde,
+    proof::{MessageLabel, TranscriptProtocol},
+};
 use ark_ff::Field;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use merlin::Transcript;
 use num_traits::Zero;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
 ///
@@ -21,6 +25,7 @@ pub struct DoryMessages {
     /// The GT elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
     pub(super) GT_messages: Vec<GT>,
 }
+impl_serde_for_ark_serde!(DoryMessages);
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl DoryMessages {
