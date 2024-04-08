@@ -14,7 +14,7 @@ pub struct Subclaim<S: Scalar> {
 impl<S: Scalar> Subclaim<S> {
     pub(super) fn create(
         evaluation_point: Vec<S>,
-        evaluations: &Vec<Vec<S>>,
+        evaluations: &[Vec<S>],
         max_multiplicands: usize,
         claimed_sum: &S,
     ) -> Result<Subclaim<S>, ProofError> {

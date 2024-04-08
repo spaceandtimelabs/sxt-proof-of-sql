@@ -154,7 +154,7 @@ fn time_single_commitment_updates() {
     }
 }
 
-fn bls12_381_g1_multi(data: &Vec<Vec<[u8; 32]>>) {
+fn bls12_381_g1_multi(data: &[Vec<[u8; 32]>]) {
     // Randomly obtain the generator points
     let mut rng = ark_std::test_rng();
     let generator_points: Vec<G1Affine> = (0..data[0].len())
@@ -179,7 +179,7 @@ fn bls12_381_g1_multi(data: &Vec<Vec<[u8; 32]>>) {
     );
 }
 
-fn curve25519_multi(data: &Vec<Vec<[u8; 32]>>) {
+fn curve25519_multi(data: &[Vec<[u8; 32]>]) {
     // Randomly obtain the generator points
     let mut rng = rand::thread_rng();
     let gs: Vec<RistrettoPoint> = (0..data[0].len())
