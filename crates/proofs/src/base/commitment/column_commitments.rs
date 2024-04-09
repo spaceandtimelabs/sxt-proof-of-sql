@@ -2,6 +2,7 @@ use super::{
     committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, VecCommitmentExt,
 };
+use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -43,6 +44,36 @@ impl<C> ColumnCommitments<C>
 where
     Vec<C>: VecCommitmentExt,
 {
+    /// Create a new [`ColumnCommitments`] for a table from a commitment accessor.
+    pub fn from_accessor_with_max_bounds(
+        table: TableRef,
+        columns: &[ColumnField],
+        accessor: &impl CommitmentAccessor<Decompressed<C>>,
+    ) -> Self
+    where
+        Decompressed<C>: Into<C>,
+    {
+        let column_metadata =
+            ColumnCommitmentMetadataMap::from_column_fields_with_max_bounds(columns);
+        let commitments = columns
+            .iter()
+            .map(|c| {
+                accessor
+                    .get_commitment(ColumnRef::new(table, c.name(), c.data_type()))
+                    .into()
+            })
+            .collect();
+        ColumnCommitments {
+            commitments,
+            column_metadata,
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn column_metadata_mut(&mut self) -> &mut ColumnCommitmentMetadataMap {
+        &mut self.column_metadata
+    }
+
     /// Returns a reference to the stored commitments.
     pub fn commitments(&self) -> &Vec<C> {
         &self.commitments
