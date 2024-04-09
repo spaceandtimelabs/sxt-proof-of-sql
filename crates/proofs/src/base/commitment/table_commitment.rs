@@ -2,7 +2,10 @@ use super::{
     committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
     ColumnCommitmentsMismatch, DuplicateIdentifiers, VecCommitmentExt,
 };
-use crate::base::{database::OwnedTable, scalar::Scalar};
+use crate::base::{
+    database::{ColumnField, CommitmentAccessor, OwnedTable, TableRef},
+    scalar::Scalar,
+};
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
@@ -68,11 +71,35 @@ where
 
 /// Private convenience alias.
 type Setup<C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup;
+type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
 
 impl<C> TableCommitment<C>
 where
     Vec<C>: VecCommitmentExt,
 {
+    /// Create a new [`TableCommitment`] for a table from a commitment accessor.
+    pub fn from_accessor_with_max_bounds<A: CommitmentAccessor<Decompressed<C>>>(
+        table_ref: TableRef,
+        columns: &[ColumnField],
+        accessor: &A,
+    ) -> Self
+    where
+        Decompressed<C>: Into<C>,
+    {
+        let length = accessor.get_length(table_ref);
+        let offset = accessor.get_offset(table_ref);
+        Self::try_new(
+            ColumnCommitments::from_accessor_with_max_bounds(table_ref, columns, accessor),
+            offset..offset + length,
+        )
+        .expect("from_accessor should not create columns with a negative range")
+    }
+
+    #[cfg(test)]
+    pub(super) fn column_commitments_mut(&mut self) -> &mut ColumnCommitments<C> {
+        &mut self.column_commitments
+    }
+
     /// Construct a new [`TableCommitment`].
     ///
     /// Will error if the range is "negative", i.e. if its end < start.
