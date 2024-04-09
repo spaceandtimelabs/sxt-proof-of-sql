@@ -1,4 +1,4 @@
-use super::{committable_column::CommittableColumn, ColumnBounds};
+use super::{column_bounds::BoundsInner, committable_column::CommittableColumn, ColumnBounds};
 use crate::base::database::ColumnType;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -50,6 +50,27 @@ impl ColumnCommitmentMetadata {
                 bounds,
             )),
         }
+    }
+
+    /// Construct a [`ColumnCommitmentMetadata`] with widest possiblr bounds for the column type.
+    pub fn from_column_type_with_max_bounds(column_type: ColumnType) -> Self {
+        let bounds = match column_type {
+            ColumnType::BigInt => ColumnBounds::BigInt(super::Bounds::Bounded(
+                BoundsInner::try_new(i64::MIN, i64::MAX)
+                    .expect("i64::MIN and i64::MAX are valid bounds for BigInt"),
+            )),
+            ColumnType::Int128 => ColumnBounds::Int128(super::Bounds::Bounded(
+                BoundsInner::try_new(i128::MIN, i128::MAX)
+                    .expect("i128::MIN and i128::MAX are valid bounds for Int128"),
+            )),
+            _ => ColumnBounds::NoOrder,
+        };
+        Self::try_new(column_type, bounds).expect("default bounds for column type are valid")
+    }
+
+    #[cfg(test)]
+    pub(super) fn bounds_mut(&mut self) -> &mut ColumnBounds {
+        &mut self.bounds
     }
 
     /// Immutable reference to this column's type.

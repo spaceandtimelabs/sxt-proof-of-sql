@@ -2,6 +2,7 @@ use super::{
     column_commitment_metadata::ColumnCommitmentMetadataMismatch, ColumnCommitmentMetadata,
     CommittableColumn,
 };
+use crate::base::database::ColumnField;
 use indexmap::IndexMap;
 use proofs_sql::Identifier;
 use thiserror::Error;
@@ -27,6 +28,10 @@ pub enum ColumnCommitmentsMismatch {
 
 /// Extension trait intended for [`ColumnCommitmentMetadataMap`].
 pub trait ColumnCommitmentMetadataMapExt {
+    /// Construct this mapping from a slice of column fields, with the bounds of each column set to
+    /// the widest possible bounds for the column type.
+    fn from_column_fields_with_max_bounds(columns: &[ColumnField]) -> Self;
+
     /// Construct this mapping from an iterator of column identifiers and columns.
     fn from_columns<'a>(
         columns: impl IntoIterator<Item = (&'a Identifier, &'a CommittableColumn<'a>)>,
@@ -46,6 +51,18 @@ pub trait ColumnCommitmentMetadataMapExt {
 }
 
 impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
+    fn from_column_fields_with_max_bounds(columns: &[ColumnField]) -> Self {
+        columns
+            .iter()
+            .map(|f| {
+                (
+                    f.name(),
+                    ColumnCommitmentMetadata::from_column_type_with_max_bounds(f.data_type()),
+                )
+            })
+            .collect()
+    }
+
     fn from_columns<'a>(
         columns: impl IntoIterator<Item = (&'a Identifier, &'a CommittableColumn<'a>)>,
     ) -> Self
