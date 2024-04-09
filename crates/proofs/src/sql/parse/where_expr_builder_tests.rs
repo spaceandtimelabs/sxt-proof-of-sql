@@ -6,7 +6,10 @@ mod tests {
             math::decimal::Precision,
         },
         record_batch,
-        sql::parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},
+        sql::{
+            ast::BoolExprPlan,
+            parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},
+        },
     };
     use curve25519_dalek::RistrettoPoint;
     use proofs_sql::{
@@ -34,11 +37,19 @@ mod tests {
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("int_column").unwrap(),
+            Identifier::try_new("int128_column").unwrap(),
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("int_column").unwrap(),
+                Identifier::try_new("int128_column").unwrap(),
                 ColumnType::Int128,
+            ),
+        );
+        column_mapping.insert(
+            Identifier::try_new("bigint_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("bigint_column").unwrap(),
+                ColumnType::BigInt,
             ),
         );
 
@@ -82,13 +93,13 @@ mod tests {
     }
 
     #[test]
-    fn we_can_directly_compare_integer_to_integer_columns() {
+    fn we_can_directly_check_whether_integer_columns_eq_integer() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
         let expr_integer_to_integer = Expression::Binary {
             op: BinaryOperator::Equal,
             left: Box::new(Expression::Column(
-                Identifier::try_new("int_column").unwrap(),
+                Identifier::try_new("int128_column").unwrap(),
             )),
             right: Box::new(Expression::Literal(Literal::Int128(12345))),
         };
@@ -98,7 +109,61 @@ mod tests {
     }
 
     #[test]
-    fn we_can_match_varchar_to_varchar() {
+    fn we_can_directly_check_whether_bigint_columns_ge_int128() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_integer_to_integer = Expression::Binary {
+            op: BinaryOperator::GreaterThanOrEqual,
+            left: Box::new(Expression::Column(
+                Identifier::try_new("bigint_column").unwrap(),
+            )),
+            right: Box::new(Expression::Literal(Literal::Int128(-12345))),
+        };
+        let actual = builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
+            .unwrap()
+            .unwrap();
+        let expected = BoolExprPlan::new_inequality(
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("bigint_column").unwrap(),
+                ColumnType::BigInt,
+            ),
+            (-12345).into(),
+            false,
+        );
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn we_can_directly_check_whether_bigint_columns_le_int128() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_integer_to_integer = Expression::Binary {
+            op: BinaryOperator::LessThanOrEqual,
+            left: Box::new(Expression::Column(
+                Identifier::try_new("bigint_column").unwrap(),
+            )),
+            right: Box::new(Expression::Literal(Literal::Int128(-12345))),
+        };
+        let actual = builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
+            .unwrap()
+            .unwrap();
+        let expected = BoolExprPlan::new_inequality(
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("bigint_column").unwrap(),
+                ColumnType::BigInt,
+            ),
+            (-12345).into(),
+            true,
+        );
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn we_can_directly_check_whether_varchar_columns_eq_varchar() {
         let column_mapping = get_column_mappings_for_testing();
         // VarChar column with VarChar literal
         let expr_varchar_to_varchar = Expression::Binary {
@@ -115,14 +180,14 @@ mod tests {
     }
 
     #[test]
-    fn we_can_match_non_decimal_columns_to_integer_literals() {
+    fn we_can_check_non_decimal_columns_eq_integer_literals() {
         let column_mapping = get_column_mappings_for_testing();
 
         // Non-decimal column with integer literal
         let expr_integer_to_integer = Expression::Binary {
             op: BinaryOperator::Equal,
             left: Box::new(Expression::Column(
-                Identifier::try_new("int_column").unwrap(),
+                Identifier::try_new("int128_column").unwrap(),
             )),
             right: Box::new(Expression::Literal(Literal::Int128(12345))),
         };
@@ -130,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_match_to_scaled_integers_correctly() {
+    fn we_can_check_scaled_integers_eq_correctly() {
         let column_mapping = get_column_mappings_for_testing();
 
         // Decimal column with integer literal that can be appropriately scaled
@@ -145,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_match_to_exact_scale_and_precision() {
+    fn we_can_check_exact_scale_and_precision_eq() {
         let column_mapping = get_column_mappings_for_testing();
 
         // Decimal column with matching scale decimal literal
@@ -195,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn we_expect_an_error_while_trying_to_match_decimal_to_varchar_column() {
+    fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,
@@ -214,7 +279,26 @@ mod tests {
     }
 
     #[test]
-    fn we_expect_an_error_while_trying_to_match_decimal_to_int128_column() {
+    fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
+        let t = "sxt.sxt_tab".parse().unwrap();
+        let accessor = record_batch_to_accessor(
+            t,
+            record_batch!(
+                "b" => ["abc"],
+            ),
+            0,
+        );
+
+        assert!(QueryExpr::<RistrettoPoint>::try_new(
+            SelectStatement::from_str("select * from sxt_tab where b >= 123").unwrap(),
+            t.schema_id(),
+            &accessor,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn we_expect_an_error_while_trying_to_check_int128_column_eq_decimal() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,
@@ -233,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn we_do_not_expect_an_error_while_trying_to_match_decimal_with_zero_scale_to_int128_column() {
+    fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with_zero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,
@@ -252,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn we_do_not_expect_an_error_while_trying_to_match_decimal_with_zero_scale_to_bigint_column() {
+    fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with_zero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,
@@ -271,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn we_do_expect_an_error_while_trying_to_match_decimal_with_nonzero_scale_to_bigint_column() {
+    fn we_do_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with_nonzero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
             t,

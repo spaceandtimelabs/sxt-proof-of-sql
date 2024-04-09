@@ -78,16 +78,28 @@ impl WhereExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 Ok(BoolExprPlan::new_or(left?, right?))
             }
-            BinaryOperator::Equal => self.visit_equal_expr(left, right),
+            BinaryOperator::Equal => {
+                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
+                Ok(BoolExprPlan::new_equals(left, right))
+            }
+            BinaryOperator::GreaterThanOrEqual => {
+                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
+                Ok(BoolExprPlan::new_inequality(left, right, false))
+            }
+            BinaryOperator::LessThanOrEqual => {
+                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
+                Ok(BoolExprPlan::new_inequality(left, right, true))
+            }
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
     }
 
-    fn visit_equal_expr<C: Commitment>(
+    /// Ensure that left is a Column and right is a Literal, then get the column reference and the literal value
+    fn process_comparison_expr<C: Commitment>(
         &self,
         left: Expression,
         right: Expression,
-    ) -> Result<BoolExprPlan<C>, ConversionError> {
+    ) -> Result<(ColumnRef, C::Scalar), ConversionError> {
         let left = match left {
             Expression::Column(identifier) => *self.column_mapping.get(&identifier).unwrap(),
             _ => panic!("The parser must ensure that the left side is a column"),
@@ -123,9 +135,8 @@ impl WhereExprBuilder<'_> {
             }
             (Expression::Literal(Literal::Int128(value)), _) => value.into(),
             (Expression::Literal(Literal::VarChar(value)), _) => value.into(),
-
             _ => panic!("Unexpected expression or column type"),
         };
-        Ok(BoolExprPlan::new_equals(left, right))
+        Ok((left, right))
     }
 }
