@@ -189,7 +189,10 @@ impl<'a> QueryContextBuilder<'a> {
                 self.visit_equal_expr(left, right)?;
                 Ok(None)
             }
-            BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => todo!(),
+            BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
+                self.visit_inequality_expr(left, right)?;
+                Ok(None)
+            }
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
@@ -273,6 +276,30 @@ impl<'a> QueryContextBuilder<'a> {
             _ => panic!("Right side of comparison expression must be a literal"),
         };
         check_dtypes(left_dtype, right_dtype)?;
+        Ok(())
+    }
+
+    fn visit_inequality_expr(
+        &mut self,
+        left: &Expression,
+        right: &Expression,
+    ) -> ConversionResult<()> {
+        let left_dtype = match left {
+            Expression::Column(identifier) => self.visit_column_identifier(*identifier)?,
+            _ => panic!("Left side of comparison expression must be a column"),
+        };
+        let right_dtype = match right {
+            Expression::Literal(literal) => self.visit_literal(literal)?,
+            _ => panic!("Right side of comparison expression must be a literal"),
+        };
+        check_dtypes(left_dtype, right_dtype)?;
+
+        // Currently, we only support comparisons between bigint/int64 cols and int128 literals
+        if ColumnType::BigInt != left_dtype || ColumnType::Int128 != right_dtype {
+            return Err(ConversionError::InvalidExpression(format!(
+                "Currently >= and <= operators only support BigInt. Unsupported comparison between '{}' and '{}'", left_dtype, right_dtype
+            )));
+        }
         Ok(())
     }
 
