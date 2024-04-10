@@ -5,9 +5,12 @@ use blitzar::{
 use clap::Parser;
 use curve25519_dalek::RistrettoPoint;
 use proofs::{
-    base::database::{
-        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
-        RecordBatchTestAccessor, TestAccessor,
+    base::{
+        database::{
+            make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+            RecordBatchTestAccessor, TestAccessor,
+        },
+        scalar::Curve25519Scalar,
     },
     sql::{
         ast::ProofPlan,
@@ -118,7 +121,7 @@ fn process_query(
     _args: &Args,
     query: &str,
     sample_iter: usize,
-) -> QueryResult {
+) -> QueryResult<Curve25519Scalar> {
     // generate and verify proof
     let verifiable_result =
         VerifiableQueryResult::<InnerProductProof>::new(provable_ast, accessor, &());

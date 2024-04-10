@@ -3,7 +3,7 @@ use super::{
 };
 use crate::base::{
     database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
-    scalar::{Curve25519Scalar, Scalar},
+    scalar::Scalar,
 };
 use serde::{Deserialize, Serialize};
 
@@ -132,10 +132,10 @@ impl ProvableQueryResult {
         level = "debug",
         skip_all
     )]
-    pub fn into_owned_table(
+    pub fn into_owned_table<S: Scalar>(
         &self,
         column_result_fields: &[ColumnField],
-    ) -> Result<OwnedTable<Curve25519Scalar>, QueryError> {
+    ) -> Result<OwnedTable<S>, QueryError> {
         assert_eq!(column_result_fields.len(), self.num_columns());
 
         let n = self.indexes.len();

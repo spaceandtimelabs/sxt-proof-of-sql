@@ -271,7 +271,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let fields = &[];
     let res = builder
         .make_provable_query_result()
-        .into_owned_table(fields)
+        .into_owned_table::<Curve25519Scalar>(fields)
         .unwrap();
     let expected = OwnedTable::try_new(IndexMap::new()).unwrap();
     assert_eq!(res, expected);

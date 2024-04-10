@@ -20,7 +20,11 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
     let res = ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
@@ -271,7 +275,11 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
@@ -286,7 +294,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
@@ -316,7 +328,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
         "a1".parse().unwrap(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 
@@ -360,7 +376,11 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     println!("{:?}", res);
@@ -392,15 +412,15 @@ fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::VarChar)];
     let indexes = Indexes::Sparse(vec![0]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table(&column_fields)
+        .into_owned_table::<Curve25519Scalar>(&column_fields)
         .is_ok());
     let indexes = Indexes::Sparse(vec![2]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table(&column_fields)
+        .into_owned_table::<Curve25519Scalar>(&column_fields)
         .is_ok());
     let indexes = Indexes::Sparse(vec![1]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table(&column_fields)
+        .into_owned_table::<Curve25519Scalar>(&column_fields)
         .is_err());
 }
 

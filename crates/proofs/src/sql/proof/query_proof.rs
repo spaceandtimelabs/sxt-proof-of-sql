@@ -157,7 +157,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup,
-    ) -> QueryResult {
+    ) -> QueryResult<CP::Scalar> {
         let table_length = expr.get_length(accessor);
         let generator_offset = expr.get_offset(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
