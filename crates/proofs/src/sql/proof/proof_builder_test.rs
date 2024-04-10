@@ -141,7 +141,11 @@ fn we_can_form_the_provable_query_result() {
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
     ];
-    let res = RecordBatch::try_from(res.into_owned_table(&column_fields).unwrap()).unwrap();
+    let res = RecordBatch::try_from(
+        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+            .unwrap(),
+    )
+    .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 

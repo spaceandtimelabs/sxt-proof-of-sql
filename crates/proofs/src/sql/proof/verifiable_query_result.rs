@@ -5,6 +5,7 @@ use crate::base::{
         ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
     },
     proof::ProofError,
+    scalar::Scalar,
 };
 use serde::{Deserialize, Serialize};
 
@@ -110,7 +111,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup,
-    ) -> QueryResult {
+    ) -> QueryResult<CP::Scalar> {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
 
@@ -142,7 +143,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     }
 }
 
-fn make_empty_query_result(result_fields: Vec<ColumnField>) -> QueryResult {
+fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryResult<S> {
     let table = OwnedTable::try_new(
         result_fields
             .iter()

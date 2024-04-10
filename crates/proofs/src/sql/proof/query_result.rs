@@ -1,7 +1,7 @@
 use crate::base::{
     database::{OwnedTable, OwnedTableError},
     proof::ProofError,
-    scalar::Curve25519Scalar,
+    scalar::Scalar,
 };
 use arrow::{error::ArrowError, record_batch::RecordBatch};
 use thiserror::Error;
@@ -26,32 +26,32 @@ pub enum QueryError {
 }
 
 /// The verified results of a query along with metadata produced by verification
-pub struct QueryData {
+pub struct QueryData<S: Scalar> {
     /// We use Apache Arrow's RecordBatch to represent a table
     /// result so as to allow for easy interoperability with
     /// Apache Arrow Flight.
     ///
     /// See `<https://voltrondata.com/blog/apache-arrow-flight-primer/>`
-    pub table: OwnedTable<Curve25519Scalar>,
+    pub table: OwnedTable<S>,
     /// Additionally, there is a 32-byte verification hash that is included with this table.
     /// This hash provides evidence that the verification has been run.
     pub verification_hash: [u8; 32],
 }
 
-impl QueryData {
+impl<S: Scalar> QueryData<S> {
     #[cfg(test)]
     pub fn into_record_batch(self) -> RecordBatch {
         self.try_into().unwrap()
     }
 }
 
-impl TryFrom<QueryData> for RecordBatch {
+impl<S: Scalar> TryFrom<QueryData<S>> for RecordBatch {
     type Error = ArrowError;
 
-    fn try_from(value: QueryData) -> Result<Self, Self::Error> {
+    fn try_from(value: QueryData<S>) -> Result<Self, Self::Error> {
         Self::try_from(value.table)
     }
 }
 
 /// The result of a query -- either an error or a table.
-pub type QueryResult = Result<QueryData, QueryError>;
+pub type QueryResult<S> = Result<QueryData<S>, QueryError>;
