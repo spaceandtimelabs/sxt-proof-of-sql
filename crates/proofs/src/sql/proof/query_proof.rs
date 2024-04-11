@@ -28,7 +28,7 @@ use std::cmp;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProof<CP: CommitmentEvaluationProof> {
     pub bit_distributions: Vec<BitDistribution>,
-    pub commitments: CP::VecCommitment,
+    pub commitments: Vec<CP::Commitment>,
     pub sumcheck_proof: SumcheckProof<CP::Scalar>,
     pub pre_result_mle_evaluations: Vec<CP::Scalar>,
     pub evaluation_proof: CP,
@@ -85,8 +85,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let table_length = builder.table_length();
 
         // commit to any intermediate MLEs
-        let commitments: CP::VecCommitment =
-            builder.commit_intermediate_mles(generator_offset, setup);
+        let commitments = builder.commit_intermediate_mles(generator_offset, setup);
 
         // add the commitments and bit distributions to the proof
         extend_transcript(&mut transcript, &commitments, builder.bit_distributions());
