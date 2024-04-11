@@ -13,7 +13,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use bumpalo::Bump;
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::{One, Zero};
 use std::sync::Arc;
 
@@ -724,95 +724,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     };
     let accessor = RecordBatchTestAccessor::new_empty();
     let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    proof.commitments[0] =
-        (proof.commitments[0].decompress().unwrap() * Curve25519Scalar::from(2u64)).compress();
-    assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
-}
-
-#[test]
-fn verify_fails_if_an_intermediate_commitment_cant_be_decompressed() {
-    // prove and verify an artificial query where
-    //     z_i = x_i * x_i
-    //     res_i = z_i * z_i
-    // where the commitment for x is known
-    static RES: [i64; 2] = [81, 625];
-    static Z: [i64; 2] = [9, 25];
-    static X: [i64; 2] = [3, 5];
-    static INDEXES: [u64; 2] = [0u64, 1u64];
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 3,
-        result_columns: 1,
-        sumcheck_subpolynomials: 2,
-        anchored_mles: 1,
-        intermediate_mles: 1,
-        post_result_challenges: 0,
-    };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
-        builder.produce_result_column(RES);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.produce_anchored_mle(&X);
-        builder.produce_intermediate_mle(&Z[..]);
-
-        // poly1
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (Curve25519Scalar::one(), vec![Box::new(&Z)]),
-                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
-            ],
-        );
-
-        // poly2
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
-                (-Curve25519Scalar::one(), vec![Box::new(&Z), Box::new(&Z)]),
-            ],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        let x_commit = compute_commitment_for_testing(&X, 0_usize);
-        let res_eval = builder.consume_result_mle();
-        let x_eval = builder.consume_anchored_mle(&x_commit);
-        let z_eval = builder.consume_intermediate_mle();
-
-        // poly1
-        let eval = builder.mle_evaluations.random_evaluation * (z_eval - x_eval * x_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-
-        // poly2
-        let eval = builder.mle_evaluations.random_evaluation * (res_eval - z_eval * z_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
-    let (mut proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    let mut bytes = [0u8; 32];
-    bytes[31] = 1u8;
-    let commit = CompressedRistretto::from_slice(&bytes).unwrap();
-    assert!(commit.decompress().is_none());
-    proof.commitments[0] = commit;
+    proof.commitments[0] = proof.commitments[0] * Curve25519Scalar::from(2u64);
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 

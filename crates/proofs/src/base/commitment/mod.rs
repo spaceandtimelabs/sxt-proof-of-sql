@@ -5,7 +5,7 @@ pub use blitzar::{
     compute::{init_backend, init_backend_with_config, BackendConfig},
     proof::InnerProductProof,
 };
-use core::ops::AddAssign;
+use core::ops::{AddAssign, SubAssign};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
@@ -43,6 +43,7 @@ pub use query_commitments::{QueryCommitments, QueryCommitmentsExt};
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
+    + SubAssign
     + Sized
     + Default
     + Copy
@@ -60,10 +61,54 @@ pub trait Commitment:
         + core::ops::Mul<Self, Output = Self>
         + serde::Serialize
         + for<'a> serde::Deserialize<'a>;
+
+    /// The public setup for the commitment scheme.
+    type PublicSetup;
+
+    /// Compute the commitments for the given columns.
+    fn compute_commitments(
+        commitments: &mut [Self],
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+        setup: &Self::PublicSetup,
+    );
 }
 
 impl Commitment for RistrettoPoint {
     type Scalar = Curve25519Scalar;
+    type PublicSetup = ();
+    #[cfg(feature = "blitzar")]
+    fn compute_commitments(
+        commitments: &mut [Self],
+        committable_columns: &[CommittableColumn],
+        offset: usize,
+        _setup: &Self::PublicSetup,
+    ) {
+        let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
+        let mut compressed_commitments = vec![Default::default(); committable_columns.len()];
+        blitzar::compute::compute_curve25519_commitments(
+            &mut compressed_commitments,
+            &sequences,
+            offset as u64,
+        );
+        commitments
+            .iter_mut()
+            .zip(compressed_commitments.iter())
+            .for_each(|(c, cc)| {
+                *c = cc.decompress().expect(
+                    "invalid ristretto point decompression in Commitment::compute_commitments",
+                );
+            });
+    }
+    #[cfg(not(feature = "blitzar"))]
+    fn compute_commitments(
+        _commitments: &mut [Self],
+        _committable_columns: &[CommittableColumn],
+        _offset: usize,
+        _setup: &Self::PublicSetup,
+    ) {
+        unimplemented!()
+    }
 }
 
 mod commitment_evaluation_proof;

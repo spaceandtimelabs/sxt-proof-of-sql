@@ -1,11 +1,11 @@
-use super::{Commitment, VecCommitmentExt};
+use super::Commitment;
 use crate::base::scalar::Scalar;
 #[cfg(feature = "blitzar")]
 use crate::base::{scalar::MontScalar, slice_ops};
 #[cfg(feature = "blitzar")]
 use blitzar::proof::{InnerProductProof, ProofError};
 #[cfg(feature = "blitzar")]
-use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
+use curve25519_dalek::RistrettoPoint;
 use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 
@@ -14,13 +14,8 @@ pub trait CommitmentEvaluationProof {
     /// The associated scalar that the commitment is for.
     type Scalar: Scalar + Serialize + for<'a> Deserialize<'a>;
     /// The associated commitment type.
-    type Commitment: Commitment<Scalar = Self::Scalar>;
-    /// A collection of commitments. Most commonly this is a `Vec`.
-    type VecCommitment: VecCommitmentExt<
-            DecompressedCommitment = Self::Commitment,
-            CommitmentPublicSetup = Self::ProverPublicSetup,
-        > + Serialize
-        + Clone
+    type Commitment: Commitment<Scalar = Self::Scalar, PublicSetup = Self::ProverPublicSetup>
+        + Serialize
         + for<'a> Deserialize<'a>;
     /// The error type for the proof.
     type Error;
@@ -64,7 +59,6 @@ pub trait CommitmentEvaluationProof {
 impl CommitmentEvaluationProof for InnerProductProof {
     type Scalar = MontScalar<ark_curve25519::FrConfig>;
     type Commitment = RistrettoPoint;
-    type VecCommitment = Vec<CompressedRistretto>;
     type Error = ProofError;
     type ProverPublicSetup = ();
     type VerifierPublicSetup = ();
