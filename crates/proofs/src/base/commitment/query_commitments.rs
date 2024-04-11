@@ -137,7 +137,7 @@ mod tests {
         },
     };
     use ark_std::test_rng;
-    use curve25519_dalek::ristretto::CompressedRistretto;
+    use curve25519_dalek::RistrettoPoint;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
@@ -151,7 +151,7 @@ mod tests {
         );
 
         let offset_commitment =
-            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
         let offset_table_id = "off.table".parse().unwrap();
 
         let no_offset_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
@@ -210,7 +210,7 @@ mod tests {
         );
 
         let table_a_commitment =
-            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());
@@ -228,8 +228,6 @@ mod tests {
                 ColumnType::BigInt
             )),
             table_a_commitment.column_commitments().commitments()[0]
-                .decompress()
-                .unwrap()
         );
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
@@ -238,8 +236,6 @@ mod tests {
                 ColumnType::VarChar
             )),
             table_a_commitment.column_commitments().commitments()[1]
-                .decompress()
-                .unwrap()
         );
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
@@ -248,8 +244,6 @@ mod tests {
                 ColumnType::Scalar
             )),
             table_b_commitment.column_commitments().commitments()[0]
-                .decompress()
-                .unwrap()
         );
     }
 
@@ -267,7 +261,7 @@ mod tests {
         );
 
         let table_a_commitment =
-            TableCommitment::<CompressedRistretto>::from_owned_table_with_offset(&table_a, 2, &());
+            TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
         let table_a_id = "table.a".parse().unwrap();
 
         let table_b_commitment = TableCommitment::from_owned_table_with_offset(&table_b, 0, &());

@@ -29,7 +29,6 @@ pub enum DoryError {
 impl CommitmentEvaluationProof for DoryEvaluationProof {
     type Scalar = DoryScalar;
     type Commitment = DoryCommitment;
-    type VecCommitment = Vec<DoryCommitment>;
     type Error = DoryError;
     type ProverPublicSetup = DoryProverPublicSetup;
     type VerifierPublicSetup = DoryVerifierPublicSetup;

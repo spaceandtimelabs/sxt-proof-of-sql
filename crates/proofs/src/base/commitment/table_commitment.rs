@@ -358,14 +358,14 @@ mod tests {
         base::{database::OwnedColumn, scalar::Curve25519Scalar},
         owned_table,
     };
-    use curve25519_dalek::ristretto::CompressedRistretto;
+    use curve25519_dalek::RistrettoPoint;
     use indexmap::IndexMap;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
     fn we_cannot_construct_table_commitment_with_negative_range() {
         let try_new_result =
-            TableCommitment::<CompressedRistretto>::try_new(ColumnCommitments::default(), 1..0);
+            TableCommitment::<RistrettoPoint>::try_new(ColumnCommitments::default(), 1..0);
 
         assert!(matches!(try_new_result, Err(NegativeRange)));
     }
@@ -376,7 +376,7 @@ mod tests {
         let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<Curve25519Scalar>> =
             IndexMap::new();
         let empty_table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 &empty_columns_iter,
                 0,
                 &(),
@@ -393,7 +393,7 @@ mod tests {
         // no-rows case
         empty_columns_iter.insert("column_a".parse().unwrap(), OwnedColumn::BigInt(vec![]));
         let empty_table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 &empty_columns_iter,
                 1,
                 &(),
@@ -415,13 +415,12 @@ mod tests {
             "varchar_id" => ["Lorem", "ipsum", "dolor", "sit"],
             "scalar_id" => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
         );
-        let table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                owned_table.inner_table(),
-                2,
-                &(),
-            )
-            .unwrap();
+        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            owned_table.inner_table(),
+            2,
+            &(),
+        )
+        .unwrap();
         assert_eq!(
             table_commitment.column_commitments(),
             &ColumnCommitments::try_from_columns_with_offset(owned_table.inner_table(), 2, &())
@@ -445,31 +444,29 @@ mod tests {
 
         let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![]);
 
-        let from_columns_result =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                [
-                    (&duplicate_identifier_a, &empty_column),
-                    (&unique_identifier, &empty_column),
-                    (&duplicate_identifier_a, &empty_column),
-                ],
-                0,
-                &(),
-            );
+        let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            [
+                (&duplicate_identifier_a, &empty_column),
+                (&unique_identifier, &empty_column),
+                (&duplicate_identifier_a, &empty_column),
+            ],
+            0,
+            &(),
+        );
         assert!(matches!(
             from_columns_result,
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
         ));
 
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                [
-                    (&duplicate_identifier_a, &empty_column),
-                    (&unique_identifier, &empty_column),
-                ],
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            [
+                (&duplicate_identifier_a, &empty_column),
+                (&unique_identifier, &empty_column),
+            ],
+            0,
+            &(),
+        )
+        .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
@@ -505,27 +502,25 @@ mod tests {
         let one_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1]);
         let two_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1, 2]);
 
-        let from_columns_result =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                [
-                    (&column_id_a, &one_row_column),
-                    (&column_id_b, &two_row_column),
-                ],
-                0,
-                &(),
-            );
+        let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            [
+                (&column_id_a, &one_row_column),
+                (&column_id_b, &two_row_column),
+            ],
+            0,
+            &(),
+        );
         assert!(matches!(
             from_columns_result,
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
         ));
 
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                [(&column_id_a, &one_row_column)],
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            [(&column_id_a, &one_row_column)],
+            0,
+            &(),
+        )
+        .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
@@ -569,13 +564,12 @@ mod tests {
             scalar_id => scalar_data[..2].to_vec(),
         );
 
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                initial_columns.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            initial_columns.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
         let mut table_commitment_clone = table_commitment.clone();
 
         let append_columns: OwnedTable<Curve25519Scalar> = owned_table!(
@@ -613,13 +607,12 @@ mod tests {
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                base_table.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            base_table.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
@@ -647,13 +640,12 @@ mod tests {
 
         let column_data = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1, 2, 3]);
 
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                [(&column_id_a, &column_data), (&column_id_b, &column_data)],
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            [(&column_id_a, &column_data), (&column_id_b, &column_data)],
+            0,
+            &(),
+        )
+        .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let append_column_result = table_commitment.try_append_rows(
@@ -685,13 +677,12 @@ mod tests {
             column_id_b => ["Lorem", "ipsum", "dolor", "sit"],
         );
 
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                base_table.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            base_table.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let column_a_append_data = OwnedColumn::<Curve25519Scalar>::BigInt(vec![5, 6, 7]);
@@ -730,13 +721,12 @@ mod tests {
         bigint_id => bigint_data,
         varchar_id => varchar_data,
         );
-        let mut table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                initial_columns.inner_table(),
-                2,
-                &(),
-            )
-            .unwrap();
+        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            initial_columns.inner_table(),
+            2,
+            &(),
+        )
+        .unwrap();
 
         let new_columns = owned_table!(
         scalar_id => scalar_data,
@@ -774,13 +764,12 @@ mod tests {
             scalar_id => scalar_data[..2].to_vec(),
         );
 
-        let table_commitment_a =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                columns_a.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let table_commitment_a = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            columns_a.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
 
         let columns_b: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -819,13 +808,12 @@ mod tests {
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
-        let table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                base_table.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            base_table.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
 
         let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => ["5", "6", "7", "8"],
@@ -846,13 +834,12 @@ mod tests {
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
-        let table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                base_table.inner_table(),
-                5,
-                &(),
-            )
-            .unwrap();
+        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            base_table.inner_table(),
+            5,
+            &(),
+        )
+        .unwrap();
 
         let high_disjoint_table_commitment =
             TableCommitment::try_from_columns_with_offset(base_table.inner_table(), 10, &())
@@ -921,13 +908,12 @@ mod tests {
             varchar_id => varchar_data[..2].to_vec(),
             scalar_id => scalar_data[..2].to_vec(),
         );
-        let table_commitment_low =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                columns_low.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let table_commitment_low = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            columns_low.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
 
         let columns_high: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),
@@ -975,13 +961,12 @@ mod tests {
             "column_a" => [1i64, 2, 3, 4],
             "column_b" => ["Lorem", "ipsum", "dolor", "sit"],
         );
-        let table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                base_table.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            base_table.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
 
         let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table!(
             "column_a" => ["1", "2"],
@@ -1020,7 +1005,7 @@ mod tests {
         );
 
         let minuend_table_commitment =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
+            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 columns_minuend.inner_table(),
                 4,
                 &(),
@@ -1084,13 +1069,12 @@ mod tests {
             varchar_id => varchar_data[..2].to_vec(),
             scalar_id => scalar_data[..2].to_vec(),
         );
-        let table_commitment_low =
-            TableCommitment::<CompressedRistretto>::try_from_columns_with_offset(
-                columns_low.inner_table(),
-                0,
-                &(),
-            )
-            .unwrap();
+        let table_commitment_low = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            columns_low.inner_table(),
+            0,
+            &(),
+        )
+        .unwrap();
 
         let columns_high: OwnedTable<Curve25519Scalar> = owned_table!(
             bigint_id => bigint_data[2..].to_vec(),

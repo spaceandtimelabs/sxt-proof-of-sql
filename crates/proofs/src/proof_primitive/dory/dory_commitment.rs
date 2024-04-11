@@ -24,14 +24,14 @@
 
 use super::{DoryProverPublicSetup, GT};
 use crate::base::{
-    commitment::{Commitment, CommittableColumn, NumColumnsMismatch, VecCommitmentExt},
+    commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde,
     scalar::{MontScalar, Scalar},
 };
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
-use derive_more::{AddAssign, Neg, Sub};
+use derive_more::{AddAssign, Neg, Sub, SubAssign};
 use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
@@ -46,7 +46,17 @@ impl Scalar for DoryScalar {
 }
 
 #[derive(
-    Debug, Sub, Eq, PartialEq, Neg, Copy, Clone, AddAssign, CanonicalSerialize, CanonicalDeserialize,
+    Debug,
+    Sub,
+    Eq,
+    PartialEq,
+    Neg,
+    Copy,
+    Clone,
+    AddAssign,
+    SubAssign,
+    CanonicalSerialize,
+    CanonicalDeserialize,
 )]
 /// The Dory commitment type.
 pub struct DoryCommitment(pub(super) GT);
@@ -74,99 +84,21 @@ impl<'a> Mul<&'a DoryCommitment> for DoryScalar {
 }
 impl Commitment for DoryCommitment {
     type Scalar = DoryScalar;
-}
+    type PublicSetup = DoryProverPublicSetup;
 
-impl VecCommitmentExt for Vec<DoryCommitment> {
-    type CommitmentPublicSetup = DoryProverPublicSetup;
-    fn from_commitable_columns_with_offset(
+    fn compute_commitments(
+        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
-    ) -> Self {
-        super::dory_commitment_helper::compute_dory_commitments(committable_columns, offset, setup)
-    }
-
-    fn try_append_rows_with_offset<'a, C>(
-        &mut self,
-        columns: impl IntoIterator<Item = C>,
-        offset: usize,
-        setup: &Self::CommitmentPublicSetup,
-    ) -> Result<(), NumColumnsMismatch>
-    where
-        C: Into<CommittableColumn<'a>>,
-    {
-        let committable_columns: Vec<CommittableColumn<'a>> =
-            columns.into_iter().map(Into::into).collect::<Vec<_>>();
-        if self.len() != committable_columns.len() {
-            return Err(NumColumnsMismatch);
-        }
-        let other = Self::from_commitable_columns_with_offset(&committable_columns, offset, setup);
-        for (commitment_a, commitment_b) in self.iter_mut().zip(other) {
-            commitment_a.0 += commitment_b.0
-        }
-        Ok(())
-    }
-
-    fn from_columns_with_offset<'a, C>(
-        columns: impl IntoIterator<Item = C>,
-        offset: usize,
-        setup: &Self::CommitmentPublicSetup,
-    ) -> Self
-    where
-        C: Into<CommittableColumn<'a>>,
-    {
-        let committable_columns: Vec<CommittableColumn<'a>> =
-            columns.into_iter().map(Into::into).collect::<Vec<_>>();
-        Self::from_commitable_columns_with_offset(&committable_columns, offset, setup)
-    }
-    fn extend_columns_with_offset<'a, C>(
-        &mut self,
-        columns: impl IntoIterator<Item = C>,
-        offset: usize,
-        setup: &Self::CommitmentPublicSetup,
-    ) where
-        C: Into<CommittableColumn<'a>>,
-    {
-        self.extend(Self::from_columns_with_offset(columns, offset, setup))
-    }
-    fn try_add(self, other: Self) -> Result<Self, NumColumnsMismatch>
-    where
-        Self: Sized,
-    {
-        if self.len() != other.len() {
-            return Err(NumColumnsMismatch);
-        }
-        let commitments = self
-            .into_iter()
-            .zip(other)
-            .map(|(commitment_a, commitment_b)| DoryCommitment(commitment_a.0 + commitment_b.0))
-            .collect();
-        Ok(commitments)
-    }
-    fn try_sub(self, other: Self) -> Result<Self, NumColumnsMismatch>
-    where
-        Self: Sized,
-    {
-        if self.len() != other.len() {
-            return Err(NumColumnsMismatch);
-        }
-        let commitments = self
-            .into_iter()
-            .zip(other)
-            .map(|(commitment_a, commitment_b)| DoryCommitment(commitment_a.0 - commitment_b.0))
-            .collect();
-        Ok(commitments)
-    }
-    fn num_commitments(&self) -> usize {
-        self.len()
-    }
-    type DecompressedCommitment = DoryCommitment;
-    fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>> {
-        Some(self.to_vec())
-    }
-
-    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment> {
-        Some(self[i])
+        setup: &Self::PublicSetup,
+    ) {
+        assert_eq!(commitments.len(), committable_columns.len());
+        let c = super::dory_commitment_helper::compute_dory_commitments(
+            committable_columns,
+            offset,
+            setup,
+        );
+        commitments.copy_from_slice(&c);
     }
 }
 
@@ -174,7 +106,10 @@ impl VecCommitmentExt for Vec<DoryCommitment> {
 mod tests {
     use super::*;
     use crate::{
-        base::database::{Column, OwnedColumn},
+        base::{
+            commitment::{NumColumnsMismatch, VecCommitmentExt},
+            database::{Column, OwnedColumn},
+        },
         proof_primitive::dory::rand_util::test_rng,
     };
     use ark_ec::pairing::Pairing;

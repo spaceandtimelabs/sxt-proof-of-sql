@@ -12,7 +12,7 @@ use arrow::{
     datatypes::{Field, Schema},
     record_batch::RecordBatch,
 };
-use curve25519_dalek::ristretto::CompressedRistretto;
+use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
 use std::sync::Arc;
 
@@ -24,11 +24,10 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
-    let commitments: Vec<CompressedRistretto> =
-        builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators).compress()]
+        [compute_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 
@@ -40,11 +39,10 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
-    let commitments: Vec<CompressedRistretto> =
-        builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators).compress()]
+        [compute_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 

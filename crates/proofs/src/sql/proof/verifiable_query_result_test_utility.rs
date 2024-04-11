@@ -10,10 +10,7 @@ use crate::{
     sql::proof::Indexes,
 };
 use blitzar::proof::InnerProductProof;
-use curve25519_dalek::{
-    ristretto::{CompressedRistretto, RistrettoPoint},
-    traits::Identity,
-};
+use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
 
@@ -48,8 +45,7 @@ pub fn exercise_verification(
     let commit_p = compute_commitment_for_testing(
         &[353453245u64, 93402346u64][..], // some arbitrary values
         0_usize,
-    )
-    .compress();
+    );
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
@@ -62,10 +58,7 @@ pub fn exercise_verification(
     // the inner product proof isn't dependent on the generators since it simply sends the input
     // vector; hence, changing the offset would have no effect.
     if accessor.get_length(table_ref) > 1
-        || proof
-            .commitments
-            .iter()
-            .any(|&c| c != CompressedRistretto::identity())
+        || proof.commitments.iter().any(|&c| c != Identity::identity())
     {
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
