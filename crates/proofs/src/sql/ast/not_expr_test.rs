@@ -12,10 +12,12 @@ use crate::{
     sql::ast::{
         test_expr::TestExprNode,
         test_utility::{equal, not},
+        BoolExprPlan,
     },
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -115,7 +117,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let not_expr = not(equal(t, "b", 1, &accessor));
+    let not_expr: BoolExprPlan<RistrettoPoint> = not(equal(t, "b", 1, &accessor));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
     let expected_res = &[true, false];
