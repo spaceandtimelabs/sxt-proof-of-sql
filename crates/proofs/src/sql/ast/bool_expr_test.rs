@@ -1,4 +1,4 @@
-use super::{test_utility::*, BoolExpr};
+use super::{test_utility::*, BoolExpr, BoolExprPlan};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -7,6 +7,7 @@ use crate::{
     owned_table,
 };
 use bumpalo::Bump;
+use curve25519_dalek::RistrettoPoint;
 
 #[test]
 fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluate() {
@@ -19,7 +20,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     // (a <= 5 || b == "g") && c != 3
-    let bool_expr = and(
+    let bool_expr: BoolExprPlan<RistrettoPoint> = and(
         or(lte(t, "a", 5, &accessor), equal(t, "b", "g", &accessor)),
         not(equal(t, "c", 3, &accessor)),
     );

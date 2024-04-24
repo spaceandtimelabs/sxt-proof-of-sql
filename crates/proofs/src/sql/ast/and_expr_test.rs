@@ -10,11 +10,15 @@ use crate::{
     },
     owned_table,
     sql::{
-        ast::test_utility::{and, equal},
+        ast::{
+            test_utility::{and, equal},
+            BoolExprPlan,
+        },
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -139,7 +143,8 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr = and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));
+    let and_expr: BoolExprPlan<RistrettoPoint> =
+        and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = &[false, true, false, false];

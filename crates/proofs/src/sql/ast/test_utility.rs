@@ -5,9 +5,7 @@ use super::{
 use crate::base::{
     commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
-    scalar::Curve25519Scalar,
 };
-use curve25519_dalek::RistrettoPoint;
 
 pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -15,52 +13,46 @@ pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnR
     ColumnRef::new(tab, name, type_col)
 }
 
-pub fn equal<T: Into<Curve25519Scalar>>(
+pub fn equal<C: Commitment, T: Into<C::Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<RistrettoPoint> {
+) -> BoolExprPlan<C> {
     BoolExprPlan::new_equals(col(tab, name, accessor), val.into())
 }
 
-pub fn lte<T: Into<Curve25519Scalar>>(
+pub fn lte<C: Commitment, T: Into<C::Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<RistrettoPoint> {
+) -> BoolExprPlan<C> {
     BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
-pub fn gte<T: Into<Curve25519Scalar>>(
+pub fn gte<C: Commitment, T: Into<C::Scalar>>(
     tab: TableRef,
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<RistrettoPoint> {
+) -> BoolExprPlan<C> {
     BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
 }
 
-pub fn not(expr: BoolExprPlan<RistrettoPoint>) -> BoolExprPlan<RistrettoPoint> {
+pub fn not<C: Commitment>(expr: BoolExprPlan<C>) -> BoolExprPlan<C> {
     BoolExprPlan::new_not(expr)
 }
 
-pub fn and(
-    left: BoolExprPlan<RistrettoPoint>,
-    right: BoolExprPlan<RistrettoPoint>,
-) -> BoolExprPlan<RistrettoPoint> {
+pub fn and<C: Commitment>(left: BoolExprPlan<C>, right: BoolExprPlan<C>) -> BoolExprPlan<C> {
     BoolExprPlan::new_and(left, right)
 }
 
-pub fn or(
-    left: BoolExprPlan<RistrettoPoint>,
-    right: BoolExprPlan<RistrettoPoint>,
-) -> BoolExprPlan<RistrettoPoint> {
+pub fn or<C: Commitment>(left: BoolExprPlan<C>, right: BoolExprPlan<C>) -> BoolExprPlan<C> {
     BoolExprPlan::new_or(left, right)
 }
 
-pub fn const_v(val: bool) -> BoolExprPlan<RistrettoPoint> {
+pub fn const_v<C: Commitment>(val: bool) -> BoolExprPlan<C> {
     BoolExprPlan::new_const_bool(val)
 }
 
@@ -102,11 +94,11 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
         .collect()
 }
 
-pub fn dense_filter(
+pub fn dense_filter<C: Commitment>(
     results: Vec<ColumnExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan<RistrettoPoint>,
-) -> DenseFilterExpr<RistrettoPoint> {
+    where_clause: BoolExprPlan<C>,
+) -> DenseFilterExpr<C> {
     DenseFilterExpr::new(results, table, where_clause)
 }
 
@@ -137,13 +129,13 @@ pub fn sums_expr(
         .collect()
 }
 
-pub fn group_by(
+pub fn group_by<C: Commitment>(
     group_by_exprs: Vec<ColumnExpr>,
     sum_expr: Vec<(ColumnExpr, ColumnField)>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: BoolExprPlan<RistrettoPoint>,
-) -> GroupByExpr<RistrettoPoint> {
+    where_clause: BoolExprPlan<C>,
+) -> GroupByExpr<C> {
     GroupByExpr::new(
         group_by_exprs,
         sum_expr,
