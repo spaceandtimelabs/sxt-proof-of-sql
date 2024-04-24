@@ -9,10 +9,11 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     owned_table, record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::equal},
+    sql::ast::{test_expr::TestExprNode, test_utility::equal, BoolExprPlan},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use polars::prelude::*;
 use rand::{
     distributions::{Distribution, Uniform},
@@ -324,7 +325,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr = equal(t, "e", 0, &accessor);
+    let equals_expr: BoolExprPlan<RistrettoPoint> = equal(t, "e", 0, &accessor);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = &[true, false, true, false];
