@@ -38,6 +38,9 @@ pub fn filter_column_by_index<'a, S: Scalar>(
     indexes: &[usize],
 ) -> Column<'a, S> {
     match column {
+        Column::Boolean(col) => {
+            Column::Boolean(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        }
         Column::BigInt(col) => {
             Column::BigInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }

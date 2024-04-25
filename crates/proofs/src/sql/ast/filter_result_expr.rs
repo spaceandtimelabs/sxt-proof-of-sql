@@ -64,6 +64,7 @@ impl FilterResultExpr {
         selection: &'a [bool],
     ) {
         match accessor.get_column(self.column_ref) {
+            Column::Boolean(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),

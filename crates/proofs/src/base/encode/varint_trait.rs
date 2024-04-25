@@ -119,6 +119,26 @@ impl_varint!(i32, signed);
 impl_varint!(i16, signed);
 impl_varint!(i8, signed);
 
+impl VarInt for bool {
+    fn required_space(self) -> usize {
+        (self as u64).required_space()
+    }
+
+    fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
+        let (n, s) = u64::decode_var(src)?;
+        // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
+        match n {
+            0 => Some((false, s)),
+            1 => Some((true, s)),
+            _ => None,
+        }
+    }
+
+    fn encode_var(self, dst: &mut [u8]) -> usize {
+        (self as u64).encode_var(dst)
+    }
+}
+
 // Below are the "base implementations" doing the actual encodings; all other integer types are
 // first cast to these biggest types before being encoded.
 

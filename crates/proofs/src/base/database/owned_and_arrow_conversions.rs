@@ -2,6 +2,7 @@
 //! The mapping is as follows:
 //! OwnedType <-> Array/ArrayRef
 //! OwnedTable <-> RecordBatch
+//! Boolean <-> Boolean
 //! BigInt <-> Int64
 //! VarChar <-> Utf8/String
 //! Int128 <-> Decimal128(38,0)
@@ -17,7 +18,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use arrow::{
-    array::{ArrayRef, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::{i256, DataType, Schema, SchemaRef},
     error::ArrowError,
     record_batch::RecordBatch,
@@ -43,11 +44,15 @@ pub enum OwnedArrowConversionError {
     #[error(transparent)]
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
     InvalidTable(#[from] OwnedTableError),
+    /// This error occurs when trying to convert from an Arrow array with nulls.
+    #[error("null values are not supported in OwnedColumn yet")]
+    NullNotSupportedYet,
 }
 
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
+            OwnedColumn::Boolean(col) => Arc::new(BooleanArray::from(col)),
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
             OwnedColumn::Int128(col) => Arc::new(
@@ -95,6 +100,17 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
+            // Arrow uses a bit-packed representation for booleans.
+            // Hence we need to unpack the bits to get the actual boolean values.
+            DataType::Boolean => Ok(Self::Boolean(
+                value
+                    .as_any()
+                    .downcast_ref::<BooleanArray>()
+                    .unwrap()
+                    .iter()
+                    .collect::<Option<Vec<bool>>>()
+                    .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
+            )),
             DataType::Int64 => Ok(Self::BigInt(
                 value
                     .as_any()

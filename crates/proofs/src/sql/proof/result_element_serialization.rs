@@ -129,7 +129,7 @@ mod tests {
     #[test]
     fn we_can_encode_and_decode_empty_buffers() {
         let mut out = vec![0_u8; 0_usize.required_space()];
-        let empty_buf = &[][..];
+        let empty_buf: &[u8] = &[][..];
         assert_eq!(empty_buf.required_bytes(), 0_usize.required_space());
         empty_buf.encode(&mut out[..]);
         let (decoded_buf, read_bytes) = <&[u8]>::decode(&out[..]).unwrap();
@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn buffers_smaller_than_sizeof_usize_will_fail_to_decode() {
-        let value = &[][..];
+        let value: &[u8] = &[][..];
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(out.len(), value.len().required_space());

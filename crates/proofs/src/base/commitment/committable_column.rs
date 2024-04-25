@@ -69,9 +69,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             }
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
-            CommittableColumn::Boolean(_) => {
-                unimplemented!("Boolean columns are not supported yet")
-            }
+            CommittableColumn::Boolean(_) => ColumnType::Boolean,
         }
     }
 }
@@ -79,6 +77,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
 impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
+            Column::Boolean(bools) => CommittableColumn::Boolean(bools),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),
             Column::Int128(ints) => CommittableColumn::Int128(ints),
 
@@ -98,6 +97,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
 impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
+            OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int128(ints) => (ints as &[_]).into(),
             OwnedColumn::Decimal75(precision, scale, decimals) => CommittableColumn::Decimal75(
@@ -159,7 +159,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
+    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 
@@ -270,22 +270,17 @@ mod tests {
     }
 
     #[test]
-    fn we_can_get_length_of_boolean_column() {
+    fn we_can_get_type_and_length_of_boolean_column() {
         // empty case
         let bool_committable_column = CommittableColumn::Boolean(&[]);
         assert_eq!(bool_committable_column.len(), 0);
+        assert!(bool_committable_column.is_empty());
+        assert_eq!(bool_committable_column.column_type(), ColumnType::Boolean);
 
         let bool_committable_column = CommittableColumn::Boolean(&[true, false, true]);
         assert_eq!(bool_committable_column.len(), 3);
         assert!(!bool_committable_column.is_empty());
-    }
-
-    #[test]
-    #[should_panic]
-    fn we_cannot_get_type_of_boolean_column() {
-        // empty case
-        let bool_committable_column = CommittableColumn::Boolean(&[]);
-        let _ = bool_committable_column.column_type();
+        assert_eq!(bool_committable_column.column_type(), ColumnType::Boolean);
     }
 
     #[test]
@@ -375,6 +370,21 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_borrowing_boolean_column() {
+        // empty case
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::Boolean(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::Boolean(&[true, false, true]));
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::Boolean(&[true, false, true])
+        );
+    }
+
+    #[test]
     fn we_can_convert_from_owned_bigint_column() {
         // empty case
         let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(Vec::new());
@@ -433,6 +443,19 @@ mod tests {
             from_owned_column,
             CommittableColumn::Scalar(scalars.map(<[u64; 4]>::from).into())
         );
+    }
+
+    #[test]
+    fn we_can_convert_from_owned_boolean_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::Boolean(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::Boolean(&[]));
+
+        let booleans = [true, false, true];
+        let owned_column: OwnedColumn<DoryScalar> = OwnedColumn::Boolean(booleans.to_vec());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::Boolean(&booleans));
     }
 
     #[test]

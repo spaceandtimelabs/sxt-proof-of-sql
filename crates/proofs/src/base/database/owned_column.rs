@@ -8,6 +8,8 @@ use crate::base::{math::decimal::Precision, scalar::Scalar};
 #[non_exhaustive]
 /// Supported types for OwnedColumn
 pub enum OwnedColumn<S: Scalar> {
+    /// Boolean columns
+    Boolean(Vec<bool>),
     /// i64 columns
     BigInt(Vec<i64>),
     /// String columns
@@ -24,6 +26,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Returns the length of the column.
     pub fn len(&self) -> usize {
         match self {
+            OwnedColumn::Boolean(col) => col.len(),
             OwnedColumn::BigInt(col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
@@ -34,6 +37,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Returns true if the column is empty.
     pub fn is_empty(&self) -> bool {
         match self {
+            OwnedColumn::Boolean(col) => col.is_empty(),
             OwnedColumn::BigInt(col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
@@ -44,6 +48,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Returns the type of the column.
     pub fn column_type(&self) -> ColumnType {
         match self {
+            OwnedColumn::Boolean(_) => ColumnType::Boolean,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
             OwnedColumn::VarChar(_) => ColumnType::VarChar,
             OwnedColumn::Int128(_) => ColumnType::Int128,
@@ -55,6 +60,11 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 }
 
+impl<S: Scalar> FromIterator<bool> for OwnedColumn<S> {
+    fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
+        Self::Boolean(Vec::from_iter(iter))
+    }
+}
 impl<S: Scalar> FromIterator<i64> for OwnedColumn<S> {
     fn from_iter<T: IntoIterator<Item = i64>>(iter: T) -> Self {
         Self::BigInt(Vec::from_iter(iter))
