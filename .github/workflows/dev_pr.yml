@@ -30,6 +30,6 @@ jobs:
              github.event.action == 'synchronize')
         uses: actions/labeler@4.1.0
         with:
-          repo-token: ${{ env.GH_TOKEN }}
+          repo-token: ${{ secrets.GH_TOKEN }}
           configuration-path: .github/workflows/dev_pr/labeler.yml@fix/actions_secrets
           sync-labels: true
