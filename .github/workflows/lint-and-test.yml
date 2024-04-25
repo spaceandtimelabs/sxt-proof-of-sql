@@ -53,7 +53,7 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ubuntu-22.04-8core
+    runs-on: large-8-core-32gb-22-04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -82,7 +82,7 @@ jobs:
 
   test-wasm:
     name: Test Wasm
-    runs-on: ubuntu-22.04-8core
+    runs-on: large-8-core-32gb-22-04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -118,7 +118,7 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-22.04-8core
+    runs-on: large-8-core-32gb-22-04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
