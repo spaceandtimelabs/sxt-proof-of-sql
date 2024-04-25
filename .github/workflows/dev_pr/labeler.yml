@@ -1,0 +1,18 @@
+ci:
+  - .github/**.*
+  - ci/**.*
+
+documentation:
+  - README.md
+  - ./**/README.md
+  - CONTRIBUTING.md
+  - docs/**/*
+
+proofs:
+  - crates/proofs/**/*
+
+proofs-sql:
+  - crates/proofs-sql/**/*
+
+benches:
+  - benches/**/*

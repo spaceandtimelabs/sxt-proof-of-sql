@@ -1,0 +1,16 @@
+version: 2
+registries:
+  artifactory:
+    type: git
+    url: https://spaceandtime.jfrog.io
+    username: ${{secrets.ARTIFACTORY_USER}}
+    password: ${{secrets.ARTIFACTORY_API_KEY}}
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    registries:
+      - artifactory
+    commit-message:
+      prefix: "ci"

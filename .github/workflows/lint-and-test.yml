@@ -1,0 +1,170 @@
+name: CI-Lint-And-Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Run cargo check (with various feature permutations)
+  check:
+    name: Check Package
+    runs-on: large-8-core-32gb-22-04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default 1.77.1
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld valgrind
+      - name: Run cargo check (no features, exclude examples)
+        run: cargo check --no-default-features
+      - name: Run cargo check (default features)
+        run: cargo check --all-targets
+      - name: Run cargo check (all features)
+        run: cargo check --all-targets --all-features
+      - name: Run cargo check (proofs) (no features)
+        run: cargo check -p proofs --no-default-features
+      - name: Run cargo check (proofs) (all features)
+        run: cargo check -p proofs --all-features
+      - name: Run cargo check (proofs) (just "test" feature)
+        run: cargo check -p proofs --no-default-features --features="test"
+      - name: Run cargo check (proofs) (just "blitzar" feature)
+        run: cargo check -p proofs --no-default-features --features="blitzar"
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-22.04-8core
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default 1.77.1
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld valgrind
+      - name: Run cargo test
+        run: cargo test --all-features
+      - name: Dry run cargo test (proofs) (test feature only)
+        run: cargo test -p proofs --no-run --no-default-features --features="test"
+      - name: Dry run cargo test (proofs) (blitzar feature only)
+        run: cargo test -p proofs --no-run --no-default-features --features="blitzar"
+      - name: Dry run cargo test (proofs) (no features)
+        run: cargo test -p proofs --no-run --no-default-features
+
+  test-wasm:
+    name: Test Wasm
+    runs-on: ubuntu-22.04-8core
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default 1.77.1
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld valgrind
+      - name: Add Wasm toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install --force wasm-bindgen-cli
+      - name: Install Deno
+        run: curl -fsSL https://deno.land/install.sh | sh
+      - name: Build a Wasm
+        run: |
+          cargo build -p proofs-wasm-test --release --no-default-features --target wasm32-unknown-unknown
+          wasm-bindgen --target deno ./target/wasm32-unknown-unknown/release/proofs-wasm-test.wasm --out-dir ./wasm-deno-test
+      - name: Run Wasm with Deno
+        run: |
+          export DENO_INSTALL="$HOME/.deno"
+          export PATH="$DENO_INSTALL/bin:$PATH"
+          deno run --allow-read ./wasm-deno-test/proofs-wasm-test.js | grep -F 'Result matches: true'
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-22.04-8core
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default 1.77.1
+          rustup component add clippy
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld valgrind
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install stable toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default 1.77.1
+          rustup component add rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+
+  udeps:
+    name: Unused Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install nightly toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default nightly
+          cargo install cargo-udeps --locked
+      - name: Run cargo udeps
+        run: cargo +nightly udeps --all-targets
+  

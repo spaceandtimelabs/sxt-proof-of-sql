@@ -1,0 +1,47 @@
+name: dev_pr
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+# Trigger whenever a PR is changed (title as well as new / changed commits)
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+jobs:
+  process:
+    name: Process
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+
+      # Load required tokens
+      - name: Load secret
+        uses: 1password/load-secrets-action@v1
+        with:
+          # Export loaded secrets as environment variables
+          export-env: true
+        env:
+          OP_CONNECT_HOST: ${{ secrets.OP_CONNECT_HOST }}
+          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
+          # Path to GitHub Credentials
+          GH_TOKEN: op://op-github-devops/GH_TOKEN/proofs
+
+      - uses: actions/checkout@v3
+
+      - name: Assign GitHub labels
+        if: |
+          github.event_name == 'pull_request_target' &&
+            (github.event.action == 'opened' ||
+             github.event.action == 'synchronize')
+        uses: actions/labeler@4.1.0
+        with:
+          repo-token: ${{ env.GH_TOKEN }}
+          configuration-path: .github/workflows/dev_pr/labeler.yml
+          sync-labels: true
