@@ -21,18 +21,6 @@ jobs:
       pull-requests: write
     steps:
 
-      # Load required tokens
-      - name: Load secret
-        uses: 1password/load-secrets-action@v1
-        with:
-          # Export loaded secrets as environment variables
-          export-env: true
-        env:
-          OP_CONNECT_HOST: ${{ secrets.OP_CONNECT_HOST }}
-          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
-          # Path to GitHub Credentials
-          GH_TOKEN: op://op-github-devops/GH_TOKEN/proofs
-
       - uses: actions/checkout@v3
 
       - name: Assign GitHub labels
@@ -42,6 +30,6 @@ jobs:
              github.event.action == 'synchronize')
         uses: actions/labeler@4.1.0
         with:
-          repo-token: ${{ env.GH_TOKEN }}
-          configuration-path: .github/workflows/dev_pr/labeler.yml
+          repo-token: ${{ secrets.GH_TOKEN }}
+          configuration-path: .github/workflows/dev_pr/labeler.yml@fix/actions_secrets
           sync-labels: true

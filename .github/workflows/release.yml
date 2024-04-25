@@ -10,23 +10,10 @@ jobs:
     environment: deploy
     runs-on: large-8-core-32gb-22-04
     steps:
-      # Load required tokens
-      - name: Load secret
-        uses: 1password/load-secrets-action@v1
-        with:
-          # Export loaded secrets as environment variables
-          export-env: true
-        env:
-          OP_CONNECT_HOST: ${{ secrets.OP_CONNECT_HOST }}
-          OP_CONNECT_TOKEN: ${{ secrets.OP_CONNECT_TOKEN }}
-          # Path to GitHub Credentials
-          GH_TOKEN: op://op-github-devops/GH_TOKEN/proofs
-
-
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - run: git config --global --add safe.directory $(realpath .)
 
@@ -40,4 +27,4 @@ jobs:
           npm install semantic-release
           npx semantic-release
         env:
-          GH_TOKEN: ${{ env.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
