@@ -135,12 +135,12 @@ pub fn group_by<C: Commitment>(
     count_alias: &str,
     table: TableExpr,
     where_clause: BoolExprPlan<C>,
-) -> GroupByExpr<C> {
-    GroupByExpr::new(
+) -> ProofPlan<C> {
+    ProofPlan::GroupBy(GroupByExpr::new(
         group_by_exprs,
         sum_expr,
         count_alias.parse().unwrap(),
         table,
         where_clause,
-    )
+    ))
 }

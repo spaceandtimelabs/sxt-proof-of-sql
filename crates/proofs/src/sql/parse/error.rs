@@ -22,6 +22,8 @@ pub enum ConversionError {
     ParseError(String),
     #[error("Unsupported operation: cannot round literal: {0}")]
     LiteralRoundDownError(String),
+    #[error("Query not provable because: {0}")]
+    Unprovable(String),
 }
 
 impl From<String> for ConversionError {
