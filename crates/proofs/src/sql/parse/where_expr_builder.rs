@@ -123,7 +123,7 @@ impl WhereExprBuilder<'_> {
                 // 123.000 should match to 123, guarded by the match above
                 ColumnType::Int128 => match_decimal(&d, 0)?,
                 ColumnType::BigInt => match_decimal(&d, 0)?,
-                ColumnType::VarChar | ColumnType::Scalar => {
+                ColumnType::VarChar | ColumnType::Scalar | ColumnType::Boolean => {
                     return Err(ConversionError::DataTypeMismatch(
                         format!("Decimal75: {}", d.value()),
                         left.column_type().to_string(),

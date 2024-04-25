@@ -58,6 +58,7 @@ fn we_can_access_the_columns_of_a_table() {
         "d" => ["a", "bc", "d", "e"],
         "b" => [4_i64, 5, 6, 5],
         "c128" => [1_i128, 2, 3, 4],
+        "boolean" => [true, false, true, false],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -76,6 +77,12 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(table_ref_2, "c128".parse().unwrap(), ColumnType::Int128);
     match accessor.get_column(column) {
         Column::Int128(col) => assert_eq!(col.to_vec(), vec![1, 2, 3, 4]),
+        _ => panic!("Invalid column type"),
+    };
+
+    let column = ColumnRef::new(table_ref_2, "boolean".parse().unwrap(), ColumnType::Boolean);
+    match accessor.get_column(column) {
+        Column::Boolean(col) => assert_eq!(col.to_vec(), vec![true, false, true, false]),
         _ => panic!("Invalid column type"),
     };
 

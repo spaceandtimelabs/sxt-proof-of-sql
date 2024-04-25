@@ -104,6 +104,7 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
     indexes: &[usize],
 ) -> &'a [S] {
     match column {
+        Column::Boolean(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -165,6 +166,7 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
     group_by
         .iter()
         .map(|col| match col {
+            Column::Boolean(col) => col[i].cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::BigInt(col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),

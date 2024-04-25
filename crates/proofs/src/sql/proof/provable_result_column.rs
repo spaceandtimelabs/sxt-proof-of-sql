@@ -34,6 +34,7 @@ impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
 impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         match self {
+            Column::Boolean(col) => col.num_bytes(selection),
             Column::BigInt(col) => col.num_bytes(selection),
             Column::Int128(col) => col.num_bytes(selection),
             Column::VarChar((col, _)) => col.num_bytes(selection),
@@ -44,6 +45,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
 
     fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
         match self {
+            Column::Boolean(col) => col.write(out, selection),
             Column::BigInt(col) => col.write(out, selection),
             Column::Int128(col) => col.write(out, selection),
             Column::VarChar((col, _)) => col.write(out, selection),

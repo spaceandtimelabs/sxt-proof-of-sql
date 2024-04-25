@@ -77,6 +77,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             .get(&column.column_id())
             .unwrap()
         {
+            OwnedColumn::Boolean(col) => Column::Boolean(col),
             OwnedColumn::BigInt(col) => Column::BigInt(col),
             OwnedColumn::VarChar(col) => {
                 let col: &mut [&str] = self

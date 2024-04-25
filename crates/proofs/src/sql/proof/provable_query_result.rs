@@ -104,6 +104,7 @@ impl ProvableQueryResult {
             let mut val = S::zero();
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
+                    ColumnType::Boolean => S::decode_var(&self.data[offset..]),
                     ColumnType::BigInt => S::decode_var(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                     ColumnType::Int128 => S::decode_var(&self.data[offset..]),
@@ -145,6 +146,12 @@ impl ProvableQueryResult {
             column_result_fields
                 .iter()
                 .map(|field| match field.data_type() {
+                    ColumnType::Boolean => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::Boolean(col)))
+                    }
                     ColumnType::BigInt => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
                             .ok_or(QueryError::Overflow)?;

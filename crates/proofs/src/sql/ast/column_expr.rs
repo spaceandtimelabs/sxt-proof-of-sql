@@ -54,6 +54,7 @@ impl ColumnExpr {
     ) -> Column<'a, S> {
         let column = accessor.get_column(self.column_ref);
         match column {
+            Column::Boolean(col) => builder.produce_anchored_mle(col),
             Column::BigInt(col) => builder.produce_anchored_mle(col),
             Column::Int128(col) => builder.produce_anchored_mle(col),
             Column::VarChar((_, scals)) => builder.produce_anchored_mle(scals),

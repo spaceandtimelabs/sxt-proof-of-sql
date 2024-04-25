@@ -4,7 +4,7 @@ use crate::{
     owned_table, record_batch,
 };
 use arrow::{
-    array::{ArrayRef, Decimal128Array, Float32Array, Int64Array, StringArray},
+    array::{ArrayRef, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray},
     datatypes::Schema,
     record_batch::RecordBatch,
 };
@@ -20,6 +20,12 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
 
     assert!(ic_to_ar == array_ref);
     assert_eq!(owned_column, ar_to_ic);
+}
+fn we_can_convert_between_boolean_owned_column_and_array_ref_impl(data: Vec<bool>) {
+    we_can_convert_between_owned_column_and_array_ref_impl(
+        OwnedColumn::<Curve25519Scalar>::Boolean(data.clone()),
+        Arc::new(BooleanArray::from(data)),
+    );
 }
 fn we_can_convert_between_bigint_owned_column_and_array_ref_impl(data: Vec<i64>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
@@ -45,9 +51,12 @@ fn we_can_convert_between_varchar_owned_column_and_array_ref_impl(data: Vec<Stri
 }
 #[test]
 fn we_can_convert_between_owned_column_and_array_ref() {
+    we_can_convert_between_boolean_owned_column_and_array_ref_impl(vec![]);
     we_can_convert_between_bigint_owned_column_and_array_ref_impl(vec![]);
     we_can_convert_between_int128_owned_column_and_array_ref_impl(vec![]);
     we_can_convert_between_varchar_owned_column_and_array_ref_impl(vec![]);
+    let data = vec![true, false, true, false, true, false, true, false, true];
+    we_can_convert_between_boolean_owned_column_and_array_ref_impl(data);
     let data = vec![0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX];
     we_can_convert_between_bigint_owned_column_and_array_ref_impl(data);
     let data = vec![0, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX];
@@ -86,26 +95,30 @@ fn we_can_convert_between_owned_table_and_record_batch() {
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
         owned_table!(
-            "a" => [0_i64; 0],
-            "b" => [0_i128; 0],
-            "c" => ["0"; 0],
+            "int64" => [0_i64; 0],
+            "int128" => [0_i128; 0],
+            "string" => ["0"; 0],
+            "boolean" => [true; 0],
         ),
         record_batch!(
-            "a" => [0_i64; 0],
-            "b" => [0_i128; 0],
-            "c" => ["0"; 0],
+            "int64" => [0_i64; 0],
+            "int128" => [0_i128; 0],
+            "string" => ["0"; 0],
+            "boolean" => [true; 0],
         ),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
         owned_table!(
-            "a" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
-            "b" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
-            "c" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+            "int64" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+            "int128" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
+            "string" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+            "boolean" => [true, false, true, false, true, false, true, false, true],
         ),
         record_batch!(
-            "a" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
-            "b" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
-            "c" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+            "int64" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+            "int128" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
+            "string" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+            "boolean" => [true, false, true, false, true, false, true, false, true],
         ),
     );
 }

@@ -85,6 +85,7 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
+            Column::Boolean(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::Decimal75(_, _, col) => self.result_evaluate_impl(table_length, alloc, col),
@@ -108,6 +109,7 @@ impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> &'a [bool] {
         match accessor.get_column(self.column_ref) {
+            Column::Boolean(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Decimal75(_, _, col) => self.prover_evaluate_impl(builder, alloc, col),
