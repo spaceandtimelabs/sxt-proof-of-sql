@@ -67,7 +67,7 @@ pub mod test_utility;
 
 #[warn(missing_docs)]
 mod column_expr;
-use column_expr::ColumnExpr;
+pub use column_expr::ColumnExpr;
 
 #[warn(missing_docs)]
 mod dense_filter_expr;

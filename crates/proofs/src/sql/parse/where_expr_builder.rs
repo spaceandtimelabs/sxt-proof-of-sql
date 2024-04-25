@@ -44,7 +44,7 @@ impl WhereExprBuilder<'_> {
     ) -> Result<BoolExprPlan<C>, ConversionError> {
         match expr {
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
-            Expression::Unary { op, expr } => Ok(self.visit_unary_expr(op, *expr)?),
+            Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
     }
