@@ -4,32 +4,44 @@ import platform
 import webbrowser
 from datetime import datetime
 
+
 def generate_html_specs():
-    html_specs = """
+    html_specs = (
+        """
     <table style='border: 1px solid black'>
         <tr>
             <th style='border: 1px solid black'>Architecture</th>
-            <th style='border: 1px solid black'>""" + platform.machine() + """</th>
+            <th style='border: 1px solid black'>"""
+        + platform.machine()
+        + """</th>
         </tr>
 
         <tr>
             <th style='border: 1px solid black'>Platform</th>
-            <th style='border: 1px solid black'>""" + platform.system() + """</th>
+            <th style='border: 1px solid black'>"""
+        + platform.system()
+        + """</th>
         </tr>
 
         <tr>
             <th style='border: 1px solid black'>CPU Cores</th>
-            <th style='border: 1px solid black'>""" + str(psutil.cpu_count()) + """</th>
+            <th style='border: 1px solid black'>"""
+        + str(psutil.cpu_count())
+        + """</th>
         </tr>
 
         <tr>
             <th style='border: 1px solid black'>RAM</th>
-            <th style='border: 1px solid black'>""" + str(round(psutil.virtual_memory().total / (1024.0 **3))) + """GB</th>
+            <th style='border: 1px solid black'>"""
+        + str(round(psutil.virtual_memory().total / (1024.0**3)))
+        + """GB</th>
         </tr>
     </table>
     """
-    
+    )
+
     return html_specs
+
 
 def generate_queries_table(all_benches):
     html_queries = """
@@ -68,40 +80,59 @@ def generate_queries_table(all_benches):
     """
 
     for count, bench in enumerate(all_benches):
-        html_queries += """
+        html_queries += (
+            """
         <tr>
             <th style='border: 1px solid black'>
-            """ + str(count) + """
+            """
+            + str(count)
+            + """
             </th>
             <th style='border: 1px solid black'>
-            """ + bench.select_statement() + """
+            """
+            + bench.select_statement()
+            + """
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.plot_bench_params_file() + """'>Params</a>
+                <a href='"""
+            + bench.plot_bench_params_file()
+            + """'>Params</a>
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.plot_bench_svg_file() + """'>Plot</a>
+                <a href='"""
+            + bench.plot_bench_svg_file()
+            + """'>Plot</a>
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.callgrind_params_file() + """'>Params</a>
+                <a href='"""
+            + bench.callgrind_params_file()
+            + """'>Params</a>
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.callgrind_svg_file() + """'>Plot</a>
+                <a href='"""
+            + bench.callgrind_svg_file()
+            + """'>Plot</a>
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.callgrind_out_file() + """'>File</a>
+                <a href='"""
+            + bench.callgrind_out_file()
+            + """'>File</a>
             </th>
             <th style='border: 1px solid black'>
-                <a href='""" + bench.ref_callgrind_svg_file() + """'>Reference File</a>
+                <a href='"""
+            + bench.ref_callgrind_svg_file()
+            + """'>Reference File</a>
             </th>
         </tr>
         """
+        )
 
     html_queries += """</table>
         <br>
     """
 
     return html_queries
+
 
 def generate_summary_table(all_benches):
     html_summary_tables = """
@@ -149,43 +180,69 @@ def generate_summary_table(all_benches):
 
     for count_query, bench in enumerate(all_benches):
         for count_table, curr_table_length in enumerate(bench.table_lengths()):
-            speedup = '?'
-            exec_time = '?'
-            throughput = '?'
+            speedup = "?"
+            exec_time = "?"
+            throughput = "?"
 
-            ref_exec_time = '?'
-            ref_throughput = '?'
-            ref_status = '?'
+            ref_exec_time = "?"
+            ref_throughput = "?"
+            ref_status = "?"
 
             if int(count_table) < len(bench.execution_times()):
                 exec_time = bench.execution_times()[count_table]
                 throughput = curr_table_length / float(exec_time) * 1e3 * 60
-                throughput = '%.2g' % throughput
+                throughput = "%.2g" % throughput
 
                 if int(count_table) < len(bench.ref_execution_times()):
                     ref_exec_time = float(bench.ref_execution_times()[count_table])
-                    ref_throughput = curr_table_length / float(bench.ref_execution_times()[count_table]) * 1e3 * 60
-                    ref_throughput = '%.2g' % ref_throughput
+                    ref_throughput = (
+                        curr_table_length
+                        / float(bench.ref_execution_times()[count_table])
+                        * 1e3
+                        * 60
+                    )
+                    ref_throughput = "%.2g" % ref_throughput
                     speedup = ref_exec_time / exec_time
 
-                    if math.fabs(1 - speedup) < 1e-3: ref_status = 'not changed'
-                    elif float(ref_exec_time) < float(exec_time): ref_status = 'deteriorated'
-                    else: ref_status = 'improved'
+                    if math.fabs(1 - speedup) < 1e-3:
+                        ref_status = "not changed"
+                    elif float(ref_exec_time) < float(exec_time):
+                        ref_status = "deteriorated"
+                    else:
+                        ref_status = "improved"
 
-                    speedup = '%.2fx' % speedup
+                    speedup = "%.2fx" % speedup
 
-            html_summary_tables += """
+            html_summary_tables += (
+                """
                 <tr>
-                    <th style='border: 1px solid black'>""" + str(count_query) + """</th>
-                    <th style='border: 1px solid black'>""" + str(curr_table_length) + """</th>
-                    <th style='border: 1px solid black'>""" + str(exec_time) + """</th>
-                    <th style='border: 1px solid black'>""" + str(throughput) + """</th>
-                    <th style='border: 1px solid black'>""" + str(ref_exec_time) + """</th>
-                    <th style='border: 1px solid black'>""" + str(ref_throughput) + """</th>
-                    <th style='border: 1px solid black'>""" + str(ref_status) + """</th>
-                    <th style='border: 1px solid black'>""" + str(speedup) + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(count_query)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(curr_table_length)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(exec_time)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(throughput)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(ref_exec_time)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(ref_throughput)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(ref_status)
+                + """</th>
+                    <th style='border: 1px solid black'>"""
+                + str(speedup)
+                + """</th>
                 </tr>
             """
+            )
 
         if count_query + 1 < len(all_benches):
             html_summary_tables += """
@@ -204,6 +261,7 @@ def generate_summary_table(all_benches):
     html_summary_tables += "</table>"
 
     return html_summary_tables
+
 
 def get_introduction_text():
     intro = """
@@ -235,61 +293,90 @@ def get_introduction_text():
 
     return intro
 
-def create_html_files(html_file, all_benches, statistics_data_file, all_plots_data_file, tar_tgz_data_file, open_html):
+
+def create_html_files(
+    html_file,
+    all_benches,
+    statistics_data_file,
+    all_plots_data_file,
+    tar_tgz_data_file,
+    open_html,
+):
     html_summary_tables = generate_summary_table(all_benches)
 
     html_queries = generate_queries_table(all_benches)
 
     html_specs = generate_html_specs()
 
-    with open(html_file, 'w') as f:
-        curr_date = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
+    with open(html_file, "w") as f:
+        curr_date = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 
         # the html code which will go in the file index.html
-        html_template = """<html>
+        html_template = (
+            """<html>
         <head>
         <title>Proofs Benchmarks</title>
         </head>
         <body>
 
-        <h1> Proofs Benchmarks (""" + curr_date +  """) <h1>
+        <h1> Proofs Benchmarks ("""
+            + curr_date
+            + """) <h1>
 
         <hr>
 
-        <h3 style="font-weight: normal;">""" + get_introduction_text() + """</h3>
+        <h3 style="font-weight: normal;">"""
+            + get_introduction_text()
+            + """</h3>
 
         <hr>
 
         <h2> Query Plots (
-            <a href='""" + all_plots_data_file + """'>all_plots.svg</a>,
-            <a href='""" + tar_tgz_data_file + """'>all_benchmark_data.tgz</a>
+            <a href='"""
+            + all_plots_data_file
+            + """'>all_plots.svg</a>,
+            <a href='"""
+            + tar_tgz_data_file
+            + """'>all_benchmark_data.tgz</a>
         ): </h2>
 
-        """ + html_queries + """
+        """
+            + html_queries
+            + """
 
         <hr>
 
         <h2>
             Query Statistics (
-                <a href='""" + statistics_data_file + """'>current benchmark data</a>,
-                <a href='ref_""" + statistics_data_file + """'>reference benchmark data</a>
+                <a href='"""
+            + statistics_data_file
+            + """'>current benchmark data</a>,
+                <a href='ref_"""
+            + statistics_data_file
+            + """'>reference benchmark data</a>
             ):
         </h2>
 
-        """ + html_summary_tables + """
+        """
+            + html_summary_tables
+            + """
 
         <hr>
 
         <h2> System Specs: </h2>
 
-        """ + html_specs + """
+        """
+            + html_specs
+            + """
 
         <hr>
         
         </body>
         </html>
         """
+        )
 
         f.write(html_template)
 
-    if open_html: webbrowser.open(html_file)
+    if open_html:
+        webbrowser.open(html_file)
