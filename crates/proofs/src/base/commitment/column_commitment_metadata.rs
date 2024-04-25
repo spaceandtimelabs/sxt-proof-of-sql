@@ -39,7 +39,10 @@ impl ColumnCommitmentMetadata {
             (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
             | (
-                ColumnType::VarChar | ColumnType::Scalar | ColumnType::Decimal75(..),
+                ColumnType::Boolean
+                | ColumnType::VarChar
+                | ColumnType::Scalar
+                | ColumnType::Decimal75(..),
                 ColumnBounds::NoOrder,
             ) => Ok(ColumnCommitmentMetadata {
                 column_type,
@@ -166,6 +169,14 @@ mod tests {
         );
 
         assert_eq!(
+            ColumnCommitmentMetadata::try_new(ColumnType::Boolean, ColumnBounds::NoOrder,).unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::Boolean,
+                bounds: ColumnBounds::NoOrder,
+            }
+        );
+
+        assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
                 ColumnBounds::NoOrder,
@@ -202,11 +213,49 @@ mod tests {
     fn we_cannot_construct_metadata_with_type_bounds_mismatch() {
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
+                ColumnType::Boolean,
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Boolean,
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
                 ColumnBounds::Int128(Bounds::Empty)
             ),
             Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
         ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Scalar,
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::Scalar,
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+        ));
+
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::BigInt,
@@ -249,6 +298,26 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata_from_column() {
+        let boolean_column =
+            OwnedColumn::<Curve25519Scalar>::Boolean([true, false, true, false, true].to_vec());
+        let committable_boolean_column = CommittableColumn::from(&boolean_column);
+        let boolean_metadata = ColumnCommitmentMetadata::from_column(&committable_boolean_column);
+        assert_eq!(boolean_metadata.column_type(), &ColumnType::Boolean);
+        assert_eq!(boolean_metadata.bounds(), &ColumnBounds::NoOrder);
+
+        let decimal_column = OwnedColumn::<Curve25519Scalar>::Decimal75(
+            Precision::new(10).unwrap(),
+            0,
+            [1, 2, 3, 4, 5].map(Curve25519Scalar::from).to_vec(),
+        );
+        let committable_decimal_column = CommittableColumn::from(&decimal_column);
+        let decimal_metadata = ColumnCommitmentMetadata::from_column(&committable_decimal_column);
+        assert_eq!(
+            decimal_metadata.column_type(),
+            &ColumnType::Decimal75(Precision::new(10).unwrap(), 0)
+        );
+        assert_eq!(decimal_metadata.bounds(), &ColumnBounds::NoOrder);
+
         let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
@@ -290,6 +359,24 @@ mod tests {
     #[test]
     fn we_can_union_matching_metadata() {
         // NoOrder cases
+        let boolean_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::Boolean,
+            bounds: ColumnBounds::NoOrder,
+        };
+        assert_eq!(
+            boolean_metadata.try_union(boolean_metadata).unwrap(),
+            boolean_metadata
+        );
+
+        let decimal_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::Decimal75(Precision::new(12).unwrap(), 0),
+            bounds: ColumnBounds::NoOrder,
+        };
+        assert_eq!(
+            decimal_metadata.try_union(decimal_metadata).unwrap(),
+            decimal_metadata
+        );
+
         let varchar_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::VarChar,
             bounds: ColumnBounds::NoOrder,
@@ -324,25 +411,6 @@ mod tests {
 
     #[test]
     fn we_can_difference_matching_metadata() {
-        // NoOrder cases
-        let varchar_metadata = ColumnCommitmentMetadata {
-            column_type: ColumnType::VarChar,
-            bounds: ColumnBounds::NoOrder,
-        };
-        assert_eq!(
-            varchar_metadata.try_union(varchar_metadata).unwrap(),
-            varchar_metadata
-        );
-
-        let scalar_metadata = ColumnCommitmentMetadata {
-            column_type: ColumnType::Scalar,
-            bounds: ColumnBounds::NoOrder,
-        };
-        assert_eq!(
-            scalar_metadata.try_union(scalar_metadata).unwrap(),
-            scalar_metadata
-        );
-
         // Ordered case
         let ints = [1, 2, 3, 1, 0];
         let bigint_column_a = CommittableColumn::BigInt(&ints[..2]);
@@ -378,6 +446,10 @@ mod tests {
 
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata() {
+        let boolean_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::Boolean,
+            bounds: ColumnBounds::NoOrder,
+        };
         let varchar_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::VarChar,
             bounds: ColumnBounds::NoOrder,
@@ -458,6 +530,21 @@ mod tests {
 
         assert!(decimal75_metadata.try_difference(varchar_metadata).is_err());
         assert!(varchar_metadata.try_difference(decimal75_metadata).is_err());
+
+        assert!(decimal75_metadata.try_difference(boolean_metadata).is_err());
+        assert!(boolean_metadata.try_difference(decimal75_metadata).is_err());
+
+        assert!(boolean_metadata.try_difference(bigint_metadata).is_err());
+        assert!(bigint_metadata.try_difference(boolean_metadata).is_err());
+
+        assert!(boolean_metadata.try_difference(int128_metadata).is_err());
+        assert!(int128_metadata.try_difference(boolean_metadata).is_err());
+
+        assert!(boolean_metadata.try_difference(varchar_metadata).is_err());
+        assert!(varchar_metadata.try_difference(boolean_metadata).is_err());
+
+        assert!(boolean_metadata.try_difference(scalar_metadata).is_err());
+        assert!(scalar_metadata.try_difference(boolean_metadata).is_err());
 
         let different_decimal75_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Decimal75(Precision::new(75).unwrap(), 0),

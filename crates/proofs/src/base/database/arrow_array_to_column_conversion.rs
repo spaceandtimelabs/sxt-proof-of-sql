@@ -5,7 +5,9 @@ use crate::base::{
     scalar::{Curve25519Scalar, Scalar},
 };
 use arrow::{
-    array::{Array, ArrayRef, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{
+        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int64Array, StringArray,
+    },
     datatypes::{i256, DataType},
 };
 use bumpalo::Bump;
@@ -55,10 +57,16 @@ pub trait ArrayRefExt {
 }
 
 impl ArrayRefExt for ArrayRef {
+    ///TODO: This needs to return Result one day
     fn to_curve25519_scalars(&self) -> Vec<Curve25519Scalar> {
         assert!(self.null_count() == 0);
 
         match self.data_type() {
+            DataType::Boolean => self
+                .as_any()
+                .downcast_ref::<BooleanArray>()
+                .map(|array| array.iter().map(|v| v.unwrap().into()).collect())
+                .unwrap(),
             DataType::Int64 => self
                 .as_any()
                 .downcast_ref::<Int64Array>()
@@ -124,6 +132,20 @@ impl ArrayRefExt for ArrayRef {
         }
         // Match supported types and attempt conversion
         match self.data_type() {
+            DataType::Boolean => {
+                let array = self.as_any().downcast_ref::<BooleanArray>().expect(
+                    "Failed to downcast to BooleanArray in arrow_array_to_column_conversion",
+                );
+                let boolean_slice = &array
+                    .iter()
+                    .skip(range.start)
+                    .take(range.len())
+                    .collect::<Option<Vec<bool>>>()
+                    .ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)?;
+                let values = alloc.alloc_slice_fill_with(range.len(), |i| boolean_slice[i]);
+
+                Ok(Column::Boolean(values))
+            }
             DataType::Int64 => {
                 let array = self
                     .as_any()
@@ -205,6 +227,16 @@ mod tests {
         array
             .to_column::<Curve25519Scalar>(&alloc, &(5..5), None)
             .unwrap();
+    }
+
+    #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_boolean() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(vec![true, false]));
+        let result = array
+            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .unwrap();
+        assert_eq!(result, Column::Boolean(&[]));
     }
 
     #[test]
@@ -293,6 +325,32 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_boolean_array_refs_into_valid_columns() {
+        let alloc = Bump::new();
+        let data = vec![true, false];
+        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .unwrap(),
+            Column::Boolean(&data[..])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_valid_boolean_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
+    {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(vec![true, false, true]));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .unwrap(),
+            Column::Boolean(&[false, true])
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_integer_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
     {
         let alloc = Bump::new();
@@ -344,6 +402,18 @@ mod tests {
             .to_column::<Curve25519Scalar>(&alloc, &(0..0), None)
             .unwrap();
         assert_eq!(result, Column::VarChar((&[], &[])));
+    }
+
+    #[test]
+    fn we_can_convert_valid_boolean_array_refs_into_valid_vec_scalars() {
+        let data = vec![false, true];
+        let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
+        assert_eq!(
+            array.to_curve25519_scalars(),
+            data.iter()
+                .map(|v| v.into())
+                .collect::<Vec<Curve25519Scalar>>()
+        );
     }
 
     #[test]

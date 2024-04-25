@@ -8,6 +8,16 @@ pub trait ToArrow {
     fn to_array(self) -> Arc<dyn arrow::array::Array>;
 }
 
+impl ToArrow for Vec<bool> {
+    fn to_type(&self) -> arrow::datatypes::DataType {
+        arrow::datatypes::DataType::Boolean
+    }
+
+    fn to_array(self) -> Arc<dyn arrow::array::Array> {
+        Arc::new(<arrow::array::BooleanArray>::from(self))
+    }
+}
+
 macro_rules! int_to_arrow_array {
     ($tt:ty, $dtt:expr, $att:ty) => {
         impl ToArrow for Vec<$tt> {
@@ -105,7 +115,8 @@ mod tests {
     fn test_record_batch_macro() {
         let batch = record_batch!(
             "f" => ["abc", "t", "fg"],
-            "ghisi" => [-99_i64, 1230, 222]
+            "ghisi" => [-99_i64, 1230, 222],
+            "boolean" => [true, false, true],
         );
 
         let arrays: Vec<Arc<dyn arrow::array::Array>> = vec![
@@ -113,11 +124,15 @@ mod tests {
             Arc::new(arrow::array::Int64Array::from(
                 [-99_i64, 1230, 222].to_vec(),
             )),
+            Arc::new(arrow::array::BooleanArray::from(
+                [true, false, true].to_vec(),
+            )),
         ];
 
         let schema = Arc::new(Schema::new(vec![
             Field::new("f", arrow::datatypes::DataType::Utf8, false),
             Field::new("ghisi", arrow::datatypes::DataType::Int64, false),
+            Field::new("boolean", arrow::datatypes::DataType::Boolean, false),
         ]));
 
         let expected_batch = RecordBatch::try_new(schema, arrays).unwrap();

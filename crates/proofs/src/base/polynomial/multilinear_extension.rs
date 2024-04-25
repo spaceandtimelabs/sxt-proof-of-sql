@@ -94,6 +94,7 @@ where
 impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
     fn inner_product(&self, evaluation_vec: &[S]) -> S {
         match self {
+            Column::Boolean(c) => c.inner_product(evaluation_vec),
             Column::Scalar(c) => c.inner_product(evaluation_vec),
             Column::BigInt(c) => c.inner_product(evaluation_vec),
             Column::VarChar((_, c)) => c.inner_product(evaluation_vec),
@@ -104,6 +105,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
 
     fn mul_add(&self, res: &mut [S], multiplier: &S) {
         match self {
+            Column::Boolean(c) => c.mul_add(res, multiplier),
             Column::Scalar(c) => c.mul_add(res, multiplier),
             Column::BigInt(c) => c.mul_add(res, multiplier),
             Column::VarChar((_, c)) => c.mul_add(res, multiplier),
@@ -114,6 +116,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
         match self {
+            Column::Boolean(c) => c.to_sumcheck_term(num_vars),
             Column::Scalar(c) => c.to_sumcheck_term(num_vars),
             Column::BigInt(c) => c.to_sumcheck_term(num_vars),
             Column::VarChar((_, c)) => c.to_sumcheck_term(num_vars),
@@ -124,6 +127,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
 
     fn id(&self) -> *const c_void {
         match self {
+            Column::Boolean(c) => MultilinearExtension::<S>::id(c),
             Column::Scalar(c) => MultilinearExtension::<S>::id(c),
             Column::BigInt(c) => MultilinearExtension::<S>::id(c),
             Column::VarChar((_, c)) => MultilinearExtension::<S>::id(c),

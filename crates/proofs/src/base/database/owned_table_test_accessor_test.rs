@@ -54,8 +54,9 @@ fn we_can_access_the_columns_of_a_table() {
         "a" => [1_i64, 2, 3, 4],
         "b" => [4_i64, 5, 6, 5],
         "c128" => [1_i128, 2, 3, 4],
-        "d" => ["a", "bc", "d", "e"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4)],
+        "varchar" => ["a", "bc", "d", "e"],
+        "scalar" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4)],
+        "boolean" => [true, false, true, false],
     );
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -79,7 +80,7 @@ fn we_can_access_the_columns_of_a_table() {
 
     let col_slice: Vec<_> = vec!["a", "bc", "d", "e"];
     let col_scalars: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.into()).collect();
-    let column = ColumnRef::new(table_ref_2, "d".parse().unwrap(), ColumnType::VarChar);
+    let column = ColumnRef::new(table_ref_2, "varchar".parse().unwrap(), ColumnType::VarChar);
     match accessor.get_column(column) {
         Column::VarChar((col, scals)) => {
             assert_eq!(col.to_vec(), col_slice);
@@ -88,7 +89,7 @@ fn we_can_access_the_columns_of_a_table() {
         _ => panic!("Invalid column type"),
     };
 
-    let column = ColumnRef::new(table_ref_2, "e".parse().unwrap(), ColumnType::Scalar);
+    let column = ColumnRef::new(table_ref_2, "scalar".parse().unwrap(), ColumnType::Scalar);
     match accessor.get_column(column) {
         Column::Scalar(col) => assert_eq!(
             col.to_vec(),
@@ -99,6 +100,12 @@ fn we_can_access_the_columns_of_a_table() {
                 Curve25519Scalar::from(4)
             ]
         ),
+        _ => panic!("Invalid column type"),
+    };
+
+    let column = ColumnRef::new(table_ref_2, "boolean".parse().unwrap(), ColumnType::Boolean);
+    match accessor.get_column(column) {
+        Column::Boolean(col) => assert_eq!(col.to_vec(), vec![true, false, true, false]),
         _ => panic!("Invalid column type"),
     };
 }

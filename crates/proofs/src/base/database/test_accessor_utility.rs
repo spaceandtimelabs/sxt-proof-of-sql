@@ -1,6 +1,6 @@
 use crate::base::database::ColumnType;
 use arrow::{
-    array::{Array, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{Array, BooleanArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
@@ -49,6 +49,11 @@ pub fn make_random_test_accessor_data(
         let values: Vec<i64> = dist.sample_iter(&mut *rng).take(n).collect();
 
         match col_type {
+            ColumnType::Boolean => {
+                column_fields.push(Field::new(*col_name, DataType::Boolean, false));
+                let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
+                columns.push(Arc::new(BooleanArray::from(boolean_values)));
+            }
             ColumnType::BigInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int64, false));
 
