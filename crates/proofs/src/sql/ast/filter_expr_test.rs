@@ -11,7 +11,7 @@ use crate::{
     proof_primitive::dory::{DoryCommitment, DoryScalar},
     record_batch,
     sql::{
-        ast::{test_utility::*, BoolExprPlan, FilterExpr, FilterResultExpr, TableExpr},
+        ast::{test_utility::*, FilterExpr, FilterResultExpr, ProvableExprPlan, TableExpr},
         proof::{ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult},
     },
 };
@@ -40,7 +40,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             )),
         ],
         TableExpr { table_ref },
-        BoolExprPlan::new_equals(
+        ProvableExprPlan::new_equals(
             ColumnRef::new(
                 table_ref,
                 Identifier::try_new("c").unwrap(),
@@ -85,7 +85,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         TableExpr { table_ref },
         not(and(
             or(
-                BoolExprPlan::<DoryCommitment>::new_equals(
+                ProvableExprPlan::<DoryCommitment>::new_equals(
                     ColumnRef::new(
                         table_ref,
                         Identifier::try_new("f").unwrap(),
@@ -93,7 +93,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     ),
                     DoryScalar::from(45_u64),
                 ),
-                BoolExprPlan::<DoryCommitment>::new_equals(
+                ProvableExprPlan::<DoryCommitment>::new_equals(
                     ColumnRef::new(
                         table_ref,
                         Identifier::try_new("c").unwrap(),
@@ -102,7 +102,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     -DoryScalar::from(2_u64),
                 ),
             ),
-            BoolExprPlan::<DoryCommitment>::new_equals(
+            ProvableExprPlan::<DoryCommitment>::new_equals(
                 ColumnRef::new(
                     table_ref,
                     Identifier::try_new("b").unwrap(),
@@ -176,7 +176,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: BoolExprPlan<RistrettoPoint> = equal(t, "a", 999, &accessor);
+    let where_clause: ProvableExprPlan<RistrettoPoint> = equal(t, "a", 999, &accessor);
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
@@ -221,7 +221,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: BoolExprPlan<RistrettoPoint> = equal(t, "a", 999, &accessor);
+    let where_clause: ProvableExprPlan<RistrettoPoint> = equal(t, "a", 999, &accessor);
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
@@ -265,7 +265,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: BoolExprPlan<RistrettoPoint> = equal(t, "a", 5, &accessor);
+    let where_clause: ProvableExprPlan<RistrettoPoint> = equal(t, "a", 5, &accessor);
     let expr = filter(cols_result(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
@@ -291,7 +291,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: BoolExprPlan<RistrettoPoint> = equal(t, "a", 5, &accessor);
+    let where_clause: ProvableExprPlan<RistrettoPoint> = equal(t, "a", 5, &accessor);
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),

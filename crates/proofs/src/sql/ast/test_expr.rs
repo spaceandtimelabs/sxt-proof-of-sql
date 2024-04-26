@@ -1,4 +1,4 @@
-use super::{BoolExprPlan, FilterExpr};
+use super::{FilterExpr, ProvableExprPlan};
 use crate::{
     base::database::{RecordBatchTestAccessor, TableRef},
     sql::{
@@ -23,7 +23,7 @@ impl TestExprNode {
     pub fn new(
         table_ref: TableRef,
         results: &[&str],
-        filter_expr: BoolExprPlan<RistrettoPoint>,
+        filter_expr: ProvableExprPlan<RistrettoPoint>,
         df_filter: Expr,
         accessor: RecordBatchTestAccessor,
     ) -> Self {

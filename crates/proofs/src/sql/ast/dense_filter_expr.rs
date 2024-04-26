@@ -1,7 +1,8 @@
 use super::{
-    bool_expr_plan::BoolExprPlan,
     dense_filter_util::{fold_columns, fold_vals},
-    filter_columns, ColumnExpr, ProvableExpr, TableExpr,
+    filter_columns,
+    provable_expr_plan::ProvableExprPlan,
+    ColumnExpr, ProvableExpr, TableExpr,
 };
 use crate::{
     base::{
@@ -34,13 +35,17 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<ColumnExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<C>,
+    pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
 impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
-    pub fn new(results: Vec<ColumnExpr>, table: TableExpr, where_clause: BoolExprPlan<C>) -> Self {
+    pub fn new(
+        results: Vec<ColumnExpr>,
+        table: TableExpr,
+        where_clause: ProvableExprPlan<C>,
+    ) -> Self {
         Self {
             results,
             table,

@@ -13,8 +13,8 @@ use bitwise_verification::*;
 #[cfg(test)]
 mod bitwise_verification_test;
 
-mod bool_expr_plan;
-pub use bool_expr_plan::BoolExprPlan;
+mod provable_expr_plan;
+pub use provable_expr_plan::ProvableExprPlan;
 
 mod provable_expr;
 pub use provable_expr::ProvableExpr;

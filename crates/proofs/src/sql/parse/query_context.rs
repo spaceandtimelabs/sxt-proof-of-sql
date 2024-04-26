@@ -4,7 +4,7 @@ use crate::{
         database::{ColumnField, ColumnRef, ColumnType, TableRef},
     },
     sql::{
-        ast::{BoolExprPlan, ColumnExpr, GroupByExpr, TableExpr},
+        ast::{ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
         parse::{ConversionError, ConversionResult, WhereExprBuilder},
     },
 };
@@ -250,7 +250,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
         }
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
-            .unwrap_or_else(|| BoolExprPlan::new_const_bool(true));
+            .unwrap_or_else(|| ProvableExprPlan::new_const_bool(true));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
             ConversionError::InvalidExpression("QueryContext has no table_ref".to_owned()),
         )?;
