@@ -4,14 +4,14 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, TableRef},
     },
-    sql::ast::{BoolExprPlan, FilterExpr, FilterResultExpr, TableExpr},
+    sql::ast::{FilterExpr, FilterResultExpr, ProvableExprPlan, TableExpr},
 };
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
 
 pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
-    where_expr: Option<BoolExprPlan<C>>,
+    where_expr: Option<ProvableExprPlan<C>>,
     filter_result_expr_list: Vec<FilterResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
@@ -59,7 +59,7 @@ impl<C: Commitment> FilterExprBuilder<C> {
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
-                .unwrap_or_else(|| BoolExprPlan::new_const_bool(true)),
+                .unwrap_or_else(|| ProvableExprPlan::new_const_bool(true)),
         )
     }
 }

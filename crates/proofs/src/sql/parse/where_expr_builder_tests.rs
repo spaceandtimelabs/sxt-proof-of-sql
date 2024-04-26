@@ -7,7 +7,7 @@ mod tests {
         },
         record_batch,
         sql::{
-            ast::BoolExprPlan,
+            ast::ProvableExprPlan,
             parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},
         },
     };
@@ -123,7 +123,7 @@ mod tests {
             .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
             .unwrap()
             .unwrap();
-        let expected = BoolExprPlan::new_inequality(
+        let expected = ProvableExprPlan::new_inequality(
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("bigint_column").unwrap(),
@@ -150,7 +150,7 @@ mod tests {
             .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
             .unwrap()
             .unwrap();
-        let expected = BoolExprPlan::new_inequality(
+        let expected = ProvableExprPlan::new_inequality(
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("bigint_column").unwrap(),
