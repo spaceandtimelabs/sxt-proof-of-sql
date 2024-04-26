@@ -1,4 +1,4 @@
-use super::{prover_evaluate_equals_zero, prover_evaluate_or, BoolExpr, FilterExpr};
+use super::{prover_evaluate_equals_zero, prover_evaluate_or, FilterExpr, ProvableExpr};
 use crate::{
     base::{
         bit::BitDistribution,

@@ -1,4 +1,4 @@
-use super::{bool_expr_plan::BoolExprPlan, BoolExpr, FilterResultExpr, TableExpr};
+use super::{bool_expr_plan::BoolExprPlan, FilterResultExpr, ProvableExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,

@@ -1,12 +1,12 @@
 use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
-    verifier_evaluate_equals_zero, verifier_evaluate_or, verifier_evaluate_sign, BoolExpr,
+    verifier_evaluate_equals_zero, verifier_evaluate_or, verifier_evaluate_sign, ProvableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -43,13 +43,17 @@ impl<S: Scalar> InequalityExpr<S> {
     }
 }
 
-impl<C: Commitment> BoolExpr<C> for InequalityExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
         count_equals_zero(builder);
         count_sign(builder)?;
         count_or(builder);
         Ok(())
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(

@@ -1,4 +1,6 @@
-use super::{dense_filter_expr::prove_filter, filter_columns, BoolExpr, OstensibleDenseFilterExpr};
+use super::{
+    dense_filter_expr::prove_filter, filter_columns, OstensibleDenseFilterExpr, ProvableExpr,
+};
 use crate::{
     base::{
         database::{Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},

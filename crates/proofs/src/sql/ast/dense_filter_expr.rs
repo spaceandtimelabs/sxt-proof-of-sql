@@ -1,7 +1,7 @@
 use super::{
     bool_expr_plan::BoolExprPlan,
     dense_filter_util::{fold_columns, fold_vals},
-    filter_columns, BoolExpr, ColumnExpr, TableExpr,
+    filter_columns, ColumnExpr, ProvableExpr, TableExpr,
 };
 use crate::{
     base::{

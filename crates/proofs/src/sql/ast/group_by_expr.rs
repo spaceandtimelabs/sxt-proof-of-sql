@@ -1,6 +1,6 @@
 use super::{
-    aggregate_columns, bool_expr_plan::BoolExprPlan, group_by_util::AggregatedColumns, BoolExpr,
-    ColumnExpr, TableExpr,
+    aggregate_columns, bool_expr_plan::BoolExprPlan, group_by_util::AggregatedColumns, ColumnExpr,
+    ProvableExpr, TableExpr,
 };
 use crate::{
     base::{

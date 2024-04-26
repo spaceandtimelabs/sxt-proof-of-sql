@@ -1,8 +1,8 @@
-use super::BoolExpr;
+use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
@@ -13,12 +13,12 @@ use std::{collections::HashSet, marker::PhantomData};
 
 /// Provable logical NOT expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct NotExpr<C: Commitment, B: BoolExpr<C>> {
+pub struct NotExpr<C: Commitment, B: ProvableExpr<C, bool>> {
     expr: Box<B>,
     _phantom: PhantomData<C>,
 }
 
-impl<C: Commitment, B: BoolExpr<C>> NotExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> NotExpr<C, B> {
     /// Create logical NOT expression
     pub fn new(expr: Box<B>) -> Self {
         Self {
@@ -28,9 +28,13 @@ impl<C: Commitment, B: BoolExpr<C>> NotExpr<C, B> {
     }
 }
 
-impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for NotExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for NotExpr<C, B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(
