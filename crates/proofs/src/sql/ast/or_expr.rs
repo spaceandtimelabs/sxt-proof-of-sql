@@ -1,8 +1,8 @@
-use super::BoolExpr;
+use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::Scalar,
     },
@@ -15,13 +15,13 @@ use std::collections::HashSet;
 
 /// Provable logical OR expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OrExpr<C: Commitment, B: BoolExpr<C>> {
+pub struct OrExpr<C: Commitment, B: ProvableExpr<C, bool>> {
     lhs: Box<B>,
     rhs: Box<B>,
     _phantom: PhantomData<C>,
 }
 
-impl<C: Commitment, B: BoolExpr<C>> OrExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> OrExpr<C, B> {
     /// Create logical OR expression
     pub fn new(lhs: Box<B>, rhs: Box<B>) -> Self {
         Self {
@@ -32,12 +32,16 @@ impl<C: Commitment, B: BoolExpr<C>> OrExpr<C, B> {
     }
 }
 
-impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for OrExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for OrExpr<C, B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
         count_or(builder);
         Ok(())
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(

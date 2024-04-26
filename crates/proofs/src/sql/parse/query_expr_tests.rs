@@ -985,7 +985,167 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
 }
 
 ///////////////////////////
-// Group By Expressions
+// Group By Expressions - Prover
+///////////////////////////
+#[ignore]
+#[test]
+fn we_can_do_provable_group_by() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4_i64, 7, 2],
+            "department" => [5_i64, 5, 2],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select department, sum(salary) as total_salary, count(*) as num_employee from employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        group_by(
+            cols_expr(t, &["department"], &accessor),
+            sums_expr(
+                t,
+                &["salary"],
+                &["total_salary"],
+                &[ColumnType::BigInt],
+                &accessor,
+            ),
+            "num_employee",
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![select(&[
+            pc("department").first().alias("department"),
+            pc("salary").sum().alias("total_salary"),
+            pc("department").count().alias("num_employee"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+#[ignore]
+#[test]
+fn we_can_do_provable_group_by_without_sum() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "salary" => [4_i64, 7, 2],
+            "department" => [5_i64, 5, 2],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select department, count(*) as num_employee from employees group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        group_by(
+            cols_expr(t, &["department"], &accessor),
+            vec![],
+            "num_employee",
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![select(&[
+            pc("department").first().alias("department"),
+            pc("department").count().alias("num_employee"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+#[ignore]
+#[test]
+fn we_can_do_provable_group_by_with_two_group_by_columns() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "state" => ["CA", "CA", "NY", "NY", "CA", "CA", "NY"],
+            "salary" => [4_i64, 7, 2, 3, 4, 5, 7],
+            "department" => [5_i64, 5, 2, 5, 2, 5, 2],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select state, department, sum(salary) as total_salary, count(*) as num_employee from employees group by state, department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        group_by(
+            cols_expr(t, &["state", "department"], &accessor),
+            sums_expr(
+                t,
+                &["salary"],
+                &["total_salary"],
+                &[ColumnType::BigInt],
+                &accessor,
+            ),
+            "num_employee",
+            tab(t),
+            const_v(true),
+        ),
+        composite_result(vec![select(&[
+            pc("state").first().alias("state"),
+            pc("department").first().alias("department"),
+            pc("salary").sum().alias("total_salary"),
+            pc("department").count().alias("num_employee"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_do_provable_group_by_with_two_sums_and_filter() {
+    let t = "sxt.employees".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "tax" => [1_i64, 2, 1, 1, 1, 1, 2],
+            "salary" => [4_i64, 7, 2, 3, 4, 5, 7],
+            "department" => [5_i64, 5, 2, 5, 2, 5, 2],
+        ),
+        0,
+    );
+
+    let ast = query_to_provable_ast(
+        t,
+        "select department, sum(salary) as total_salary, sum(tax) as total_tax, count(*) as num_employee from employees where tax <= 1 group by department",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        group_by(
+            cols_expr(t, &["department"], &accessor),
+            sums_expr(
+                t,
+                &["salary", "tax"],
+                &["total_salary", "total_tax"],
+                &[ColumnType::BigInt, ColumnType::BigInt],
+                &accessor,
+            ),
+            "num_employee",
+            tab(t),
+            lte(t, "tax", 1, &accessor),
+        ),
+        composite_result(vec![select(&[
+            pc("department").first().alias("department"),
+            pc("salary").sum().alias("total_salary"),
+            pc("tax").sum().alias("total_tax"),
+            pc("department").count().alias("num_employee"),
+        ])]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+///////////////////////////
+// Group By Expressions - Polars
 ///////////////////////////
 #[test]
 fn we_can_group_by_without_using_aggregate_functions() {

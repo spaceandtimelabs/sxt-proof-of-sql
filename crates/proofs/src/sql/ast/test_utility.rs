@@ -1,6 +1,6 @@
 use super::{
-    BoolExprPlan, ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr, GroupByExpr,
-    ProofPlan, TableExpr,
+    ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr, GroupByExpr, ProofPlan,
+    ProvableExprPlan, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -18,8 +18,8 @@ pub fn equal<C: Commitment, T: Into<C::Scalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<C> {
-    BoolExprPlan::new_equals(col(tab, name, accessor), val.into())
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_equals(col(tab, name, accessor), val.into())
 }
 
 pub fn lte<C: Commitment, T: Into<C::Scalar>>(
@@ -27,8 +27,8 @@ pub fn lte<C: Commitment, T: Into<C::Scalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<C> {
-    BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
 pub fn gte<C: Commitment, T: Into<C::Scalar>>(
@@ -36,24 +36,30 @@ pub fn gte<C: Commitment, T: Into<C::Scalar>>(
     name: &str,
     val: T,
     accessor: &impl SchemaAccessor,
-) -> BoolExprPlan<C> {
-    BoolExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
 }
 
-pub fn not<C: Commitment>(expr: BoolExprPlan<C>) -> BoolExprPlan<C> {
-    BoolExprPlan::new_not(expr)
+pub fn not<C: Commitment>(expr: ProvableExprPlan<C>) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_not(expr)
 }
 
-pub fn and<C: Commitment>(left: BoolExprPlan<C>, right: BoolExprPlan<C>) -> BoolExprPlan<C> {
-    BoolExprPlan::new_and(left, right)
+pub fn and<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_and(left, right)
 }
 
-pub fn or<C: Commitment>(left: BoolExprPlan<C>, right: BoolExprPlan<C>) -> BoolExprPlan<C> {
-    BoolExprPlan::new_or(left, right)
+pub fn or<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_or(left, right)
 }
 
-pub fn const_v<C: Commitment>(val: bool) -> BoolExprPlan<C> {
-    BoolExprPlan::new_const_bool(val)
+pub fn const_v<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_const_bool(val)
 }
 
 pub fn tab(tab: TableRef) -> TableExpr {
@@ -78,7 +84,7 @@ pub fn cols_result(
 pub fn filter<C: Commitment>(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan<C>,
+    where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
@@ -97,7 +103,7 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 pub fn dense_filter<C: Commitment>(
     results: Vec<ColumnExpr>,
     table: TableExpr,
-    where_clause: BoolExprPlan<C>,
+    where_clause: ProvableExprPlan<C>,
 ) -> DenseFilterExpr<C> {
     DenseFilterExpr::new(results, table, where_clause)
 }
@@ -134,13 +140,13 @@ pub fn group_by<C: Commitment>(
     sum_expr: Vec<(ColumnExpr, ColumnField)>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: BoolExprPlan<C>,
-) -> GroupByExpr<C> {
-    GroupByExpr::new(
+    where_clause: ProvableExprPlan<C>,
+) -> ProofPlan<C> {
+    ProofPlan::GroupBy(GroupByExpr::new(
         group_by_exprs,
         sum_expr,
         count_alias.parse().unwrap(),
         table,
         where_clause,
-    )
+    ))
 }

@@ -1,14 +1,20 @@
 use crate::{
-    base::database::{ColumnRef, ColumnType, TableRef},
-    sql::parse::{ConversionError, ConversionResult},
+    base::{
+        commitment::Commitment,
+        database::{ColumnField, ColumnRef, ColumnType, TableRef},
+    },
+    sql::{
+        ast::{ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
+        parse::{ConversionError, ConversionResult, WhereExprBuilder},
+    },
 };
 use proofs_sql::{
-    intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice},
+    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,
 };
 use std::collections::{HashMap, HashSet};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct QueryContext {
     in_agg_scope: bool,
     agg_counter: usize,
@@ -145,7 +151,12 @@ impl QueryContext {
     }
 
     pub fn get_any_result_column_ref(&self) -> Option<(Identifier, ColumnType)> {
-        self.result_column_set.iter().next().map(|c| {
+        // For tests to work we need to make it deterministic by sorting the columns
+        // In the long run we simply need to let * be *
+        // and get rid of this workaround altogether
+        let mut columns = self.result_column_set.iter().collect::<Vec<_>>();
+        columns.sort();
+        columns.first().map(|c| {
             let column = self.column_mapping[c];
             (column.column_id(), *column.column_type())
         })
@@ -222,5 +233,126 @@ impl QueryContext {
 
     pub fn get_column_mapping(&self) -> HashMap<Identifier, ColumnRef> {
         self.column_mapping.clone()
+    }
+}
+
+/// Converts a `QueryContext` into a `Option<GroupByExpr>`.
+///
+/// We use Some if the query is provable and None if it is not
+/// We error out if the query is wrong
+impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
+    type Error = ConversionError;
+
+    fn try_from(value: &QueryContext) -> Result<Option<GroupByExpr<C>>, Self::Error> {
+        // Currently if there is no where clause, we can't prove the query
+        if value.where_expr.is_none() {
+            return Ok(None);
+        }
+        let where_clause = WhereExprBuilder::new(&value.column_mapping)
+            .build(value.where_expr.clone())?
+            .unwrap_or_else(|| ProvableExprPlan::new_const_bool(true));
+        let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
+            ConversionError::InvalidExpression("QueryContext has no table_ref".to_owned()),
+        )?;
+        let resource_id = table.table_ref.resource_id();
+        let group_by_exprs = value
+            .group_by_exprs
+            .iter()
+            .map(|expr| -> Result<ColumnExpr, ConversionError> {
+                value
+                    .column_mapping
+                    .get(expr)
+                    .ok_or(ConversionError::MissingColumn(
+                        Box::new(*expr),
+                        Box::new(resource_id),
+                    ))
+                    .map(|column_ref| ColumnExpr::new(*column_ref))
+            })
+            .collect::<Result<Vec<ColumnExpr>, ConversionError>>()?;
+        // For a query to be provable the result columns must be of one of three kinds below:
+        // 1. Group by columns (it is mandatory to have all of them in the correct order)
+        // 2. Sum(col) expressions (it is optional to have any)
+        // 3. count(*) with an alias (it is mandatory to have one and only one)
+        let num_group_by_columns = group_by_exprs.len();
+        let num_result_columns = value.res_aliased_exprs.len();
+        if num_result_columns < num_group_by_columns + 1 {
+            return Ok(None);
+        }
+        let res_group_by_columns = &value.res_aliased_exprs[..num_group_by_columns].to_vec();
+        let sum_expr_columns =
+            &value.res_aliased_exprs[num_group_by_columns..num_result_columns - 1].to_vec();
+        // Check group by columns
+        let group_by_compliance = value
+            .group_by_exprs
+            .iter()
+            .zip(res_group_by_columns.iter())
+            .all(|(ident, res)| {
+                //TODO: This is due to a workaround related to polars
+                //Need to remove it when possible (PROOF-850)
+                if let Expression::Aggregation {
+                    op: AggregationOperator::First,
+                    expr,
+                } = (*res.expr).clone()
+                {
+                    if let Expression::Column(res_ident) = *expr {
+                        res_ident == *ident
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            });
+        // Check sums
+        let sum_expr = sum_expr_columns
+            .iter()
+            .map(|res| {
+                if let Expression::Aggregation {
+                    op: AggregationOperator::Sum,
+                    expr,
+                } = (*res.expr).clone()
+                {
+                    if let Expression::Column(ident) = *expr {
+                        // For sums the outgoing ColumnType is the same as the incoming ColumnType
+                        let column_type = *value
+                            .column_mapping
+                            .get(&ident)
+                            .expect("QueryContext should never allow unknown cols to be in sum")
+                            .column_type();
+                        let res_column_field = ColumnField::new(res.alias, column_type);
+                        let column_expr =
+                            ColumnExpr::new(ColumnRef::new(table.table_ref, ident, column_type));
+                        Some((column_expr, res_column_field))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<Option<Vec<(ColumnExpr, ColumnField)>>>();
+
+        // Check count(*)
+        let count_column = &value.res_aliased_exprs[num_result_columns - 1];
+        let count_column_compliant = if let Expression::Aggregation {
+            op: AggregationOperator::Count,
+            expr,
+        } = (*count_column.expr).clone()
+        {
+            //TODO: This is due to a workaround related to polars
+            matches!(*expr, Expression::Column(_))
+        } else {
+            false
+        };
+        if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
+            return Ok(None);
+        }
+        Ok(Some(GroupByExpr::new(
+            group_by_exprs,
+            sum_expr.expect("the none case was just checked"),
+            count_column.alias,
+            table,
+            where_clause,
+        )))
     }
 }

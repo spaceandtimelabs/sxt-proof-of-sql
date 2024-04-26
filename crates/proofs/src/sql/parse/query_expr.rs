@@ -1,7 +1,11 @@
 use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
-    sql::{ast::ProofPlan, parse::ConversionResult, transform::ResultExpr},
+    sql::{
+        ast::{GroupByExpr, ProofPlan},
+        parse::ConversionResult,
+        transform::ResultExpr,
+    },
 };
 use proofs_sql::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
@@ -50,14 +54,26 @@ impl<C: Commitment> QueryExpr<C> {
                 .visit_slice_expr(ast.slice)
                 .build()?,
         };
+        let result_aliased_exprs = context.get_aliased_result_exprs()?;
+        let group_by = context.get_group_by_exprs();
+        if !group_by.is_empty() {
+            if let Some(group_by_expr) = Option::<GroupByExpr<C>>::try_from(&context)? {
+                return Ok(Self {
+                    proof_expr: ProofPlan::GroupBy(group_by_expr),
+                    result: ResultExprBuilder::default()
+                        .add_select_exprs(result_aliased_exprs)
+                        .add_order_by_exprs(context.get_order_by_exprs()?)
+                        .add_slice_expr(context.get_slice_expr())
+                        .build(),
+                });
+            }
+        }
 
         let filter = FilterExprBuilder::new(context.get_column_mapping())
             .add_table_expr(*context.get_table_ref())
             .add_where_expr(context.get_where_expr().clone())?
             .add_result_column_set(context.get_result_column_set())
             .build();
-
-        let result_aliased_exprs = context.get_aliased_result_exprs()?;
         let result = ResultExprBuilder::default()
             .add_group_by_exprs(context.get_group_by_exprs(), result_aliased_exprs)
             .add_select_exprs(result_aliased_exprs)

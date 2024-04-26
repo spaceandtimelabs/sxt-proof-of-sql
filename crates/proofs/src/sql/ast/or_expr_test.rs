@@ -1,4 +1,3 @@
-use super::BoolExpr;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -12,7 +11,7 @@ use crate::{
     sql::ast::{
         test_expr::TestExprNode,
         test_utility::{equal, or},
-        BoolExprPlan,
+        ProvableExpr, ProvableExprPlan,
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -151,7 +150,7 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr: BoolExprPlan<RistrettoPoint> =
+    let and_expr: ProvableExprPlan<RistrettoPoint> =
         or(equal(t, "b", 1, &accessor), equal(t, "d", "g", &accessor));
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);

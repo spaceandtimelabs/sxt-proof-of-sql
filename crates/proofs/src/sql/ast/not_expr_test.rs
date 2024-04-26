@@ -1,4 +1,3 @@
-use super::BoolExpr;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -12,7 +11,7 @@ use crate::{
     sql::ast::{
         test_expr::TestExprNode,
         test_utility::{equal, not},
-        BoolExprPlan,
+        ProvableExpr, ProvableExprPlan,
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -117,7 +116,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let not_expr: BoolExprPlan<RistrettoPoint> = not(equal(t, "b", 1, &accessor));
+    let not_expr: ProvableExprPlan<RistrettoPoint> = not(equal(t, "b", 1, &accessor));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
     let expected_res = &[true, false];

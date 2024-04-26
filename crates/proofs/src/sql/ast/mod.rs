@@ -13,13 +13,13 @@ use bitwise_verification::*;
 #[cfg(test)]
 mod bitwise_verification_test;
 
-mod bool_expr_plan;
-pub use bool_expr_plan::BoolExprPlan;
+mod provable_expr_plan;
+pub use provable_expr_plan::ProvableExprPlan;
 
-mod bool_expr;
-pub use bool_expr::BoolExpr;
+mod provable_expr;
+pub use provable_expr::ProvableExpr;
 #[cfg(all(test, feature = "blitzar"))]
-mod bool_expr_test;
+mod provable_expr_test;
 
 mod const_bool_expr;
 use const_bool_expr::ConstBoolExpr;
@@ -67,7 +67,7 @@ pub mod test_utility;
 
 #[warn(missing_docs)]
 mod column_expr;
-use column_expr::ColumnExpr;
+pub use column_expr::ColumnExpr;
 
 #[warn(missing_docs)]
 mod dense_filter_expr;

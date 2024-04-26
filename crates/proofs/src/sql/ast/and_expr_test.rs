@@ -1,4 +1,4 @@
-use super::{test_utility::*, BoolExpr, FilterExpr};
+use super::{test_utility::*, FilterExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -12,7 +12,7 @@ use crate::{
     sql::{
         ast::{
             test_utility::{and, equal},
-            BoolExprPlan,
+            ProvableExprPlan,
         },
         proof::{exercise_verification, VerifiableQueryResult},
     },
@@ -143,7 +143,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr: BoolExprPlan<RistrettoPoint> =
+    let and_expr: ProvableExprPlan<RistrettoPoint> =
         and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
