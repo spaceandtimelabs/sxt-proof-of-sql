@@ -5,7 +5,7 @@ use crate::{
         database::{ColumnRef, ColumnType},
         math::decimal::match_decimal,
     },
-    sql::ast::BoolExprPlan,
+    sql::ast::ProvableExprPlan,
 };
 use proofs_sql::{
     decimal_unknown::DecimalUnknown,
@@ -29,7 +29,7 @@ impl<'a> WhereExprBuilder<'a> {
     pub fn build<C: Commitment>(
         self,
         where_expr: Option<Box<Expression>>,
-    ) -> Result<Option<BoolExprPlan<C>>, ConversionError> {
+    ) -> Result<Option<ProvableExprPlan<C>>, ConversionError> {
         where_expr
             .map(|where_expr| self.visit_expr(*where_expr))
             .transpose()
@@ -41,7 +41,7 @@ impl WhereExprBuilder<'_> {
     fn visit_expr<C: Commitment>(
         &self,
         expr: proofs_sql::intermediate_ast::Expression,
-    ) -> Result<BoolExprPlan<C>, ConversionError> {
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
         match expr {
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
@@ -53,11 +53,11 @@ impl WhereExprBuilder<'_> {
         &self,
         op: UnaryOperator,
         expr: Expression,
-    ) -> Result<BoolExprPlan<C>, ConversionError> {
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
         let expr = self.visit_expr(expr);
 
         match op {
-            UnaryOperator::Not => Ok(BoolExprPlan::new_not(expr?)),
+            UnaryOperator::Not => Ok(ProvableExprPlan::new_not(expr?)),
         }
     }
 
@@ -66,29 +66,29 @@ impl WhereExprBuilder<'_> {
         op: BinaryOperator,
         left: Expression,
         right: Expression,
-    ) -> Result<BoolExprPlan<C>, ConversionError> {
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
         match op {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Ok(BoolExprPlan::new_and(left?, right?))
+                Ok(ProvableExprPlan::new_and(left?, right?))
             }
             BinaryOperator::Or => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Ok(BoolExprPlan::new_or(left?, right?))
+                Ok(ProvableExprPlan::new_or(left?, right?))
             }
             BinaryOperator::Equal => {
                 let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(BoolExprPlan::new_equals(left, right))
+                Ok(ProvableExprPlan::new_equals(left, right))
             }
             BinaryOperator::GreaterThanOrEqual => {
                 let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(BoolExprPlan::new_inequality(left, right, false))
+                Ok(ProvableExprPlan::new_inequality(left, right, false))
             }
             BinaryOperator::LessThanOrEqual => {
                 let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(BoolExprPlan::new_inequality(left, right, true))
+                Ok(ProvableExprPlan::new_inequality(left, right, true))
             }
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }

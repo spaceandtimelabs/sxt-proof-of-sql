@@ -1,6 +1,6 @@
 use super::{
-    aggregate_columns, bool_expr_plan::BoolExprPlan, group_by_util::AggregatedColumns, ColumnExpr,
-    ProvableExpr, TableExpr,
+    aggregate_columns, group_by_util::AggregatedColumns, provable_expr_plan::ProvableExprPlan,
+    ColumnExpr, ProvableExpr, TableExpr,
 };
 use crate::{
     base::{
@@ -38,7 +38,7 @@ pub struct GroupByExpr<C: Commitment> {
     pub(super) sum_expr: Vec<(ColumnExpr, ColumnField)>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<C>,
+    pub(super) where_clause: ProvableExprPlan<C>,
 }
 
 impl<C: Commitment> GroupByExpr<C> {
@@ -48,7 +48,7 @@ impl<C: Commitment> GroupByExpr<C> {
         sum_expr: Vec<(ColumnExpr, ColumnField)>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: BoolExprPlan<C>,
+        where_clause: ProvableExprPlan<C>,
     ) -> Self {
         Self {
             group_by_exprs,

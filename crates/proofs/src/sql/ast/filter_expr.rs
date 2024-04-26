@@ -1,4 +1,4 @@
-use super::{bool_expr_plan::BoolExprPlan, FilterResultExpr, ProvableExpr, TableExpr};
+use super::{provable_expr_plan::ProvableExprPlan, FilterResultExpr, ProvableExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -22,7 +22,7 @@ use std::{collections::HashSet, marker::PhantomData};
 pub struct OstensibleFilterExpr<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: BoolExprPlan<C>,
+    pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
@@ -31,7 +31,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExpr<C, H> {
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
-        where_clause: BoolExprPlan<C>,
+        where_clause: ProvableExprPlan<C>,
     ) -> Self {
         Self {
             results,
