@@ -1,8 +1,8 @@
-use super::{AndExpr, BoolExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr};
+use super::{AndExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
@@ -54,16 +54,21 @@ impl<C: Commitment> BoolExprPlan<C> {
     }
 }
 
-impl<C: Commitment> BoolExpr<C> for BoolExprPlan<C> {
+impl<C: Commitment> ProvableExpr<C, bool> for BoolExprPlan<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         match self {
-            BoolExprPlan::And(expr) => BoolExpr::<C>::count(expr, builder),
-            BoolExprPlan::Or(expr) => BoolExpr::<C>::count(expr, builder),
-            BoolExprPlan::Not(expr) => BoolExpr::<C>::count(expr, builder),
-            BoolExprPlan::ConstBool(expr) => BoolExpr::<C>::count(expr, builder),
-            BoolExprPlan::Equals(expr) => BoolExpr::<C>::count(expr, builder),
-            BoolExprPlan::Inequality(expr) => BoolExpr::<C>::count(expr, builder),
+            BoolExprPlan::And(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            BoolExprPlan::Or(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            BoolExprPlan::Not(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            BoolExprPlan::ConstBool(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            BoolExprPlan::Equals(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            BoolExprPlan::Inequality(expr) => ProvableExpr::<C, bool>::count(expr, builder),
         }
+    }
+
+    /// When `BoolExprPlan` becomes generic over the column type, this will need to be updated
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(
@@ -74,22 +79,22 @@ impl<C: Commitment> BoolExpr<C> for BoolExprPlan<C> {
     ) -> &'a [bool] {
         match self {
             BoolExprPlan::And(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
             BoolExprPlan::Or(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
             BoolExprPlan::Not(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
             BoolExprPlan::ConstBool(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
             BoolExprPlan::Equals(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
             BoolExprPlan::Inequality(expr) => {
-                BoolExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
             }
         }
     }
@@ -102,22 +107,22 @@ impl<C: Commitment> BoolExpr<C> for BoolExprPlan<C> {
     ) -> &'a [bool] {
         match self {
             BoolExprPlan::And(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
             BoolExprPlan::Or(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
             BoolExprPlan::Not(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
             BoolExprPlan::ConstBool(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
             BoolExprPlan::Equals(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
             BoolExprPlan::Inequality(expr) => {
-                BoolExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
             }
         }
     }
@@ -139,12 +144,22 @@ impl<C: Commitment> BoolExpr<C> for BoolExprPlan<C> {
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         match self {
-            BoolExprPlan::And(expr) => BoolExpr::<C>::get_column_references(expr, columns),
-            BoolExprPlan::Or(expr) => BoolExpr::<C>::get_column_references(expr, columns),
-            BoolExprPlan::Not(expr) => BoolExpr::<C>::get_column_references(expr, columns),
-            BoolExprPlan::ConstBool(expr) => BoolExpr::<C>::get_column_references(expr, columns),
-            BoolExprPlan::Equals(expr) => BoolExpr::<C>::get_column_references(expr, columns),
-            BoolExprPlan::Inequality(expr) => BoolExpr::<C>::get_column_references(expr, columns),
+            BoolExprPlan::And(expr) => {
+                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+            }
+            BoolExprPlan::Or(expr) => ProvableExpr::<C, bool>::get_column_references(expr, columns),
+            BoolExprPlan::Not(expr) => {
+                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+            }
+            BoolExprPlan::ConstBool(expr) => {
+                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+            }
+            BoolExprPlan::Equals(expr) => {
+                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+            }
+            BoolExprPlan::Inequality(expr) => {
+                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+            }
         }
     }
 }

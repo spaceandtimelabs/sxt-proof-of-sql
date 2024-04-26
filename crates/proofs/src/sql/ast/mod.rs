@@ -16,10 +16,10 @@ mod bitwise_verification_test;
 mod bool_expr_plan;
 pub use bool_expr_plan::BoolExprPlan;
 
-mod bool_expr;
-pub use bool_expr::BoolExpr;
+mod provable_expr;
+pub use provable_expr::ProvableExpr;
 #[cfg(all(test, feature = "blitzar"))]
-mod bool_expr_test;
+mod provable_expr_test;
 
 mod const_bool_expr;
 use const_bool_expr::ConstBoolExpr;

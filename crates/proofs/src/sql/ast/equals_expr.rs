@@ -1,8 +1,8 @@
-use super::BoolExpr;
+use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -71,11 +71,15 @@ impl<S: Scalar> EqualsExpr<S> {
     }
 }
 
-impl<C: Commitment> BoolExpr<C> for EqualsExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
         count_equals_zero(builder);
         Ok(())
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(

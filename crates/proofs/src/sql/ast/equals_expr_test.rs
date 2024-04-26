@@ -1,4 +1,3 @@
-use super::BoolExpr;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -9,7 +8,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     owned_table, record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::equal, BoolExprPlan},
+    sql::ast::{test_expr::TestExprNode, test_utility::equal, BoolExprPlan, ProvableExpr},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;

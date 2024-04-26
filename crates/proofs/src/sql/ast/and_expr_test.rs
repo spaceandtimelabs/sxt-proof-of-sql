@@ -1,4 +1,4 @@
-use super::{test_utility::*, BoolExpr, FilterExpr};
+use super::{test_utility::*, FilterExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
