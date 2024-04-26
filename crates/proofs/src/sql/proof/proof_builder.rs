@@ -30,6 +30,7 @@ pub struct ProofBuilder<'a, S: Scalar> {
 
 impl<'a, S: Scalar> ProofBuilder<'a, S> {
     #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
+    /// TODO: add docs
     pub fn new(
         table_length: usize,
         num_sumcheck_variables: usize,
@@ -46,14 +47,17 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         }
     }
 
+    /// TODO: add docs
     pub fn table_length(&self) -> usize {
         self.table_length
     }
 
+    /// TODO: add docs
     pub fn num_sumcheck_variables(&self) -> usize {
         self.num_sumcheck_variables
     }
 
+    /// TODO: add docs
     pub fn num_sumcheck_subpolynomials(&self) -> usize {
         self.sumcheck_subpolynomials.len()
     }
@@ -183,6 +187,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         res
     }
 
+    /// TODO: add docs
     pub fn bit_distributions(&self) -> &[BitDistribution] {
         &self.bit_distributions
     }

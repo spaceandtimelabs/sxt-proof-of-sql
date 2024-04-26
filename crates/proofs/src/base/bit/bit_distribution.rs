@@ -14,10 +14,12 @@ pub struct BitDistribution {
     ///              1 if x_s & (1 << i) != x_t & (1 << i) for some s != t
     ///              0 otherwise
     pub or_all: [u64; 4],
+    /// TODO: add docs
     pub vary_mask: [u64; 4],
 }
 
 impl BitDistribution {
+    /// TODO: add docs
     pub fn new<S: Scalar, T: Into<S> + Clone>(data: &[T]) -> Self {
         if data.is_empty() {
             return Self {
@@ -37,6 +39,7 @@ impl BitDistribution {
         Self { or_all, vary_mask }
     }
 
+    /// TODO: add docs
     pub fn num_varying_bits(&self) -> usize {
         let mut res = 0_usize;
         for xi in self.vary_mask.iter() {
@@ -45,10 +48,12 @@ impl BitDistribution {
         res
     }
 
+    /// TODO: add docs
     pub fn has_varying_sign_bit(&self) -> bool {
         self.vary_mask[3] & (1 << 63) != 0
     }
 
+    /// TODO: add docs
     pub fn sign_bit(&self) -> bool {
         assert!(!self.has_varying_sign_bit());
         self.or_all[3] & (1 << 63) != 0

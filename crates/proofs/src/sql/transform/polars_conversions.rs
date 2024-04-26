@@ -1,7 +1,9 @@
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use polars::prelude::{DataType, Expr, Literal, Series};
 
+/// TODO: add docs
 pub trait LiteralConversion {
+    /// TODO: add docs
     fn to_lit(&self) -> Expr;
 }
 

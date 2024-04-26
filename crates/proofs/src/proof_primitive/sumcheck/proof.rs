@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::vec::Vec;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+/// TODO: add docs
 pub struct SumcheckProof<S: Scalar> {
     pub(super) evaluations: Vec<Vec<S>>,
 }
@@ -26,6 +27,7 @@ impl<S: Scalar> SumcheckProof<S> {
         level = "info",
         skip_all
     )]
+    /// TODO: add docs
     pub fn create(
         transcript: &mut Transcript,
         evaluation_point: &mut [S],
@@ -58,6 +60,7 @@ impl<S: Scalar> SumcheckProof<S> {
         level = "debug",
         skip_all
     )]
+    /// TODO: add docs
     pub fn verify_without_evaluation(
         &self,
         transcript: &mut Transcript,

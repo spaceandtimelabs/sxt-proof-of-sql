@@ -5,24 +5,34 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ConversionError {
     #[error("Column '{0}' was not found in table '{1}'")]
+    /// TODO: add docs
     MissingColumn(Box<Identifier>, Box<ResourceId>),
     #[error("Left side has '{1}' type but right side has '{0}' type")]
+    /// TODO: add docs
     DataTypeMismatch(String, String),
     #[error("Multiple result columns with the same alias '{0}' have been found.")]
+    /// TODO: add docs
     DuplicateResultAlias(String),
     #[error("Invalid order by: alias '{0}' does not appear in the result expressions.")]
+    /// TODO: add docs
     InvalidOrderBy(String),
     #[error("Invalid group by: column '{0}' must appear in the group by expression.")]
+    /// TODO: add docs
     InvalidGroupByColumnRef(String),
     #[error("Invalid expression: {0}")]
+    /// TODO: add docs
     InvalidExpression(String),
     #[error("Error while parsing precision from query: {0}")]
+    /// TODO: add docs
     PrecisionParseError(String),
     #[error("Encountered parsing error: {0}")]
+    /// TODO: add docs
     ParseError(String),
     #[error("Unsupported operation: cannot round literal: {0}")]
+    /// TODO: add docs
     LiteralRoundDownError(String),
     #[error("Query not provable because: {0}")]
+    /// TODO: add docs
     Unprovable(String),
 }
 
@@ -33,6 +43,7 @@ impl From<String> for ConversionError {
 }
 
 impl ConversionError {
+    /// TODO: add docs
     pub fn non_numeric_expr_in_agg<S: Into<String>>(dtype: S, func: S) -> Self {
         ConversionError::InvalidExpression(format!(
             "cannot use expression of type '{}' with numeric aggregation function '{}'",
@@ -42,4 +53,5 @@ impl ConversionError {
     }
 }
 
+/// TODO: add docs
 pub type ConversionResult<T> = std::result::Result<T, ConversionError>;

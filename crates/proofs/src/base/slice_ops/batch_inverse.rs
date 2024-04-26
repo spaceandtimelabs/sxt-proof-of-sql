@@ -29,6 +29,7 @@ where
     batch_inversion_and_mul(v, F::one());
 }
 
+/// TODO: add docs
 pub fn batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,

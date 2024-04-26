@@ -64,3 +64,6 @@ name = "sumcheck"
 [features]
 default = ["blitzar"]
 test = ["dep:rand"]
+
+[lints]
+workspace = true

@@ -7,6 +7,7 @@ use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
+/// TODO: add docs
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder<S: Scalar> {
     num_sumcheck_variables: usize,
@@ -18,6 +19,7 @@ pub struct CompositePolynomialBuilder<S: Scalar> {
 }
 
 impl<S: Scalar> CompositePolynomialBuilder<S> {
+    /// TODO: add docs``
     pub fn new(num_sumcheck_variables: usize, fr: &[S]) -> Self {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {

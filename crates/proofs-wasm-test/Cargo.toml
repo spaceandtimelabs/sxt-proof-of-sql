@@ -11,3 +11,6 @@ version.workspace = true
 ark-std = { workspace = true }
 proofs = { path = "../proofs", default-features = false, features = ["test"] }
 wasm-bindgen = { workspace = true }
+
+[lints]
+workspace = true

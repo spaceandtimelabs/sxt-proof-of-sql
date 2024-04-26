@@ -1,15 +1,18 @@
 use num_traits::{PrimInt, Unsigned};
 use std::mem;
 
+/// TODO: add docs
 pub fn log2_down<T: PrimInt + Unsigned>(x: T) -> usize {
     mem::size_of::<T>() * 8 - (x.leading_zeros() as usize) - 1
 }
 
+/// TODO: add docs
 pub fn is_pow2<T: PrimInt + Unsigned>(x: T) -> bool {
     debug_assert!(x > T::zero());
     x & (x - T::one()) == T::zero()
 }
 
+/// TODO: add docs
 pub fn log2_up<T: PrimInt + Unsigned>(x: T) -> usize {
     let is_not_pow_2 = !is_pow2(x) as usize;
     log2_down(x) + is_not_pow_2

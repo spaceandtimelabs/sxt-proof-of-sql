@@ -9,6 +9,7 @@ use crate::{
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
 
+/// TODO: add docs
 pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<ProvableExprPlan<C>>,
@@ -18,6 +19,7 @@ pub struct FilterExprBuilder<C: Commitment> {
 
 // Public interface
 impl<C: Commitment> FilterExprBuilder<C> {
+    /// TODO: add docs
     pub fn new(column_mapping: HashMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
@@ -27,11 +29,13 @@ impl<C: Commitment> FilterExprBuilder<C> {
         }
     }
 
+    /// TODO: add docs
     pub fn add_table_expr(mut self, table_ref: TableRef) -> Self {
         self.table_expr = Some(TableExpr { table_ref });
         self
     }
 
+    /// TODO: add docs
     pub fn add_where_expr(
         mut self,
         where_expr: Option<Box<Expression>>,
@@ -40,6 +44,7 @@ impl<C: Commitment> FilterExprBuilder<C> {
         Ok(self)
     }
 
+    /// TODO: add docs
     pub fn add_result_column_set(mut self, columns: HashSet<Identifier>) -> Self {
         // Sorting is required to make the relative order of the columns deterministic
         let mut columns = columns.into_iter().collect::<Vec<_>>();
@@ -54,6 +59,7 @@ impl<C: Commitment> FilterExprBuilder<C> {
         self
     }
 
+    /// TODO: add docs
     pub fn build(self) -> FilterExpr<C> {
         FilterExpr::new(
             self.filter_result_expr_list,

@@ -15,6 +15,7 @@ use proofs_sql::{
 };
 use std::ops::Deref;
 
+/// TODO: add docs
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
@@ -22,6 +23,7 @@ pub struct QueryContextBuilder<'a> {
 
 // Public interface
 impl<'a> QueryContextBuilder<'a> {
+    /// TODO: add docs
     pub fn new(schema_accessor: &'a dyn SchemaAccessor) -> Self {
         Self {
             context: QueryContext::default(),
@@ -29,6 +31,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    /// TODO: add docs
     pub fn visit_table_expr(
         mut self,
         table_expr: Vec<Box<TableExpression>>,
@@ -46,6 +49,7 @@ impl<'a> QueryContextBuilder<'a> {
         self
     }
 
+    /// TODO: add docs
     pub fn visit_where_expr(
         mut self,
         mut where_expr: Option<Box<Expression>>,
@@ -57,6 +61,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    /// TODO: add docs
     pub fn visit_result_exprs(
         mut self,
         result_exprs: Vec<SelectResultExpr>,
@@ -73,16 +78,19 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    /// TODO: add docs
     pub fn visit_order_by_exprs(mut self, order_by_exprs: Vec<OrderBy>) -> Self {
         self.context.set_order_by_exprs(order_by_exprs);
         self
     }
 
+    /// TODO: add docs
     pub fn visit_slice_expr(mut self, slice: Option<Slice>) -> Self {
         self.context.set_slice_expr(slice);
         self
     }
 
+    /// TODO: add docs
     pub fn visit_group_by_exprs(
         mut self,
         group_by_exprs: Vec<Identifier>,
@@ -94,6 +102,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    /// TODO: add docs
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }

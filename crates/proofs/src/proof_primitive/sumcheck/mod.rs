@@ -1,3 +1,4 @@
+//! TODO: add docs
 mod proof;
 #[cfg(test)]
 mod proof_test;

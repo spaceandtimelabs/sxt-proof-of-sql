@@ -1,3 +1,4 @@
+//! TODO: add docs
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
 use arrayvec::ArrayString;
 use std::{cmp::Ordering, fmt, str::FromStr};

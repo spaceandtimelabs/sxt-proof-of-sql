@@ -1,3 +1,4 @@
+//! TODO: add docs
 use crate::{base::scalar::Scalar, sql::parse::ConversionError};
 use num_bigint::{
     BigInt,
@@ -10,6 +11,7 @@ use std::str::FromStr;
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
 /// limit-enforced precision
 pub struct Precision(u8);
+/// TODO: add docs
 pub const MAX_SUPPORTED_PRECISION: u8 = 75;
 
 impl Precision {

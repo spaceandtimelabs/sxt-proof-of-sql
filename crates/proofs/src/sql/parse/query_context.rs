@@ -1,3 +1,4 @@
+//! TODO: add docs
 use crate::{
     base::{
         commitment::Commitment,
@@ -15,6 +16,7 @@ use proofs_sql::{
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Debug)]
+/// TODO: add docs
 pub struct QueryContext {
     in_agg_scope: bool,
     agg_counter: usize,
@@ -34,37 +36,45 @@ pub struct QueryContext {
 }
 
 impl QueryContext {
+    /// TODO: add docs
     pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
         self.table = Some(table);
     }
 
+    /// TODO: add docs
     pub fn get_table_ref(&self) -> &TableRef {
         self.table
             .as_ref()
             .expect("Table should already have been set")
     }
 
+    /// TODO: add docs
     pub fn set_where_expr(&mut self, where_expr: Option<Box<Expression>>) {
         self.where_expr = where_expr;
     }
 
+    /// TODO: add docs
     pub fn get_where_expr(&self) -> &Option<Box<Expression>> {
         &self.where_expr
     }
 
+    /// TODO: add docs
     pub fn set_slice_expr(&mut self, slice_expr: Option<Slice>) {
         self.slice_expr = slice_expr;
     }
 
+    /// TODO: add docs
     pub fn toggle_result_scope(&mut self) {
         self.in_result_scope = !self.in_result_scope;
     }
 
+    /// TODO: add docs
     pub fn is_in_result_scope(&self) -> bool {
         self.in_result_scope
     }
 
+    /// TODO: add docs
     pub fn set_in_agg_scope(&mut self, in_agg_scope: bool) -> ConversionResult<()> {
         if !in_agg_scope {
             assert!(
@@ -95,6 +105,7 @@ impl QueryContext {
         self.in_agg_scope
     }
 
+    /// TODO: add docs
     pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
         self.push_result_column_ref(column);
@@ -121,6 +132,7 @@ impl QueryContext {
         Ok(())
     }
 
+    /// TODO: add docs
     pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
 
@@ -134,6 +146,7 @@ impl QueryContext {
         Ok(())
     }
 
+    /// TODO: add docs
     pub fn set_group_by_exprs(&mut self, exprs: Vec<Identifier>) {
         self.group_by_exprs = exprs;
 
@@ -146,10 +159,12 @@ impl QueryContext {
         self.has_visited_group_by = true;
     }
 
+    /// TODO: add docs
     pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderBy>) {
         self.order_by_exprs = order_by_exprs;
     }
 
+    /// TODO: add docs
     pub fn get_any_result_column_ref(&self) -> Option<(Identifier, ColumnType)> {
         // For tests to work we need to make it deterministic by sorting the columns
         // In the long run we simply need to let * be *
@@ -162,6 +177,7 @@ impl QueryContext {
         })
     }
 
+    /// TODO: add docs
     pub fn is_in_group_by_exprs(&self, column: &Identifier) -> ConversionResult<bool> {
         // Non-aggregated result column references must be included in the group by statement.
         if self.group_by_exprs.is_empty() || self.is_in_agg_scope() || !self.is_in_result_scope() {
@@ -176,6 +192,7 @@ impl QueryContext {
             .ok_or(ConversionError::InvalidGroupByColumnRef(column.to_string()))
     }
 
+    /// TODO: add docs
     pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
         assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs");
 
@@ -205,6 +222,7 @@ impl QueryContext {
         Ok(&self.res_aliased_exprs)
     }
 
+    /// TODO: add docs
     pub fn get_order_by_exprs(&self) -> ConversionResult<Vec<OrderBy>> {
         // Order by must reference only aliases in the result schema
         for by_expr in &self.order_by_exprs {
@@ -219,18 +237,22 @@ impl QueryContext {
         Ok(self.order_by_exprs.clone())
     }
 
+    /// TODO: add docs
     pub fn get_slice_expr(&self) -> &Option<Slice> {
         &self.slice_expr
     }
 
+    /// TODO: add docs
     pub fn get_group_by_exprs(&self) -> &[Identifier] {
         &self.group_by_exprs
     }
 
+    /// TODO: add docs
     pub fn get_result_column_set(&self) -> HashSet<Identifier> {
         self.result_column_set.clone()
     }
 
+    /// TODO: add docs
     pub fn get_column_mapping(&self) -> HashMap<Identifier, ColumnRef> {
         self.column_mapping.clone()
     }

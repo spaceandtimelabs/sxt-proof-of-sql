@@ -4,10 +4,15 @@ use std::fmt::Debug;
 /// Counters for different terms used within a proof
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ProofCounts {
+    /// TODO: add docs
     pub sumcheck_max_multiplicands: usize,
+    /// TODO: add docs
     pub result_columns: usize,
+    /// TODO: add docs
     pub anchored_mles: usize,
+    /// TODO: add docs
     pub intermediate_mles: usize,
+    /// TODO: add docs
     pub sumcheck_subpolynomials: usize,
 
     /// The number of challenges used in the proof.
@@ -23,6 +28,7 @@ impl ProofCounts {
         level = "info",
         skip_all
     )]
+    /// TODO: add docs
     pub fn annotate_trace(&self) {
         tracing::info!(
             "sumcheck_max_multiplicands = {:?}",

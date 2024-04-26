@@ -111,6 +111,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         level = "debug",
         skip_all
     )]
+    /// TODO: add docs
     pub fn annotate_trace(&self) {
         for i in 0..self.products.len() {
             tracing::info!(

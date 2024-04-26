@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
+/// TODO: add docs
 pub struct QueryExpr<C: Commitment> {
     proof_expr: ProofPlan<C>,
     result: ResultExpr,
@@ -30,10 +31,12 @@ impl<C: Commitment> fmt::Debug for QueryExpr<C> {
 }
 
 impl<C: Commitment> QueryExpr<C> {
+    /// TODO: add docs
     pub fn new(proof_expr: ProofPlan<C>, result: ResultExpr) -> Self {
         Self { proof_expr, result }
     }
 
+    /// TODO: add docs
     pub fn try_new(
         ast: SelectStatement,
         default_schema: Identifier,

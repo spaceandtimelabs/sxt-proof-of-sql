@@ -27,15 +27,21 @@ use std::cmp;
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProof<CP: CommitmentEvaluationProof> {
+    /// TODO: add docs
     pub bit_distributions: Vec<BitDistribution>,
+    /// TODO: add docs
     pub commitments: Vec<CP::Commitment>,
+    /// TODO: add docs
     pub sumcheck_proof: SumcheckProof<CP::Scalar>,
+    /// TODO: add docs
     pub pre_result_mle_evaluations: Vec<CP::Scalar>,
+    /// TODO: add docs
     pub evaluation_proof: CP,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
+    /// TODO: add docs
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,

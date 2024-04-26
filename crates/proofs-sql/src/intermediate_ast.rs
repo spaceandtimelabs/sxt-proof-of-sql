@@ -1,3 +1,4 @@
+//! TODO: add docs
 /***
 * These AST nodes are closely following vervolg:
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
@@ -11,26 +12,37 @@ use serde::{Deserialize, Serialize};
 pub enum SetExpression {
     /// Query result as `SetExpression`
     Query {
+        /// TODO: add docs
         result_exprs: Vec<SelectResultExpr>,
+        /// TODO: add docs
         from: Vec<Box<TableExpression>>,
+        /// TODO: add docs
         where_expr: Option<Box<Expression>>,
+        /// TODO: add docs
         group_by: Vec<Identifier>,
     },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+/// TODO: add docs
 pub enum SelectResultExpr {
+    /// TODO: add docs
     ALL,
+    /// TODO: add docs
     AliasedResultExpr(AliasedResultExpr),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+/// TODO: add docs
 pub struct AliasedResultExpr {
+    /// TODO: add docs
     pub expr: Box<Expression>,
+    /// TODO: add docs
     pub alias: Identifier,
 }
 
 impl AliasedResultExpr {
+    /// TODO: add docs
     pub fn new(expr: Expression, alias: Identifier) -> Self {
         Self {
             expr: Box::new(expr),
@@ -38,6 +50,7 @@ impl AliasedResultExpr {
         }
     }
 
+    /// TODO: add docs
     pub fn try_as_identifier(&self) -> Option<&Identifier> {
         match self.expr.as_ref() {
             Expression::Column(column) => Some(column),
@@ -53,6 +66,7 @@ pub enum TableExpression {
     Named {
         /// the qualified table Identifier
         table: Identifier,
+        /// TODO: add docs
         schema: Option<Identifier>,
     },
 }
@@ -97,11 +111,17 @@ pub enum UnaryOperator {
 
 // Aggregation operators
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+/// TODO: add docs
 pub enum AggregationOperator {
+    /// TODO: add docs
     Max,
+    /// TODO: add docs
     Min,
+    /// TODO: add docs
     Sum,
+    /// TODO: add docs
     Count,
+    /// TODO: add docs
     First,
 }
 
@@ -128,14 +148,19 @@ pub enum Expression {
 
     /// Unary operation
     Unary {
+        /// TODO: add docs
         op: UnaryOperator,
+        /// TODO: add docs
         expr: Box<Expression>,
     },
 
     /// Binary operation
     Binary {
+        /// TODO: add docs
         op: BinaryOperator,
+        /// TODO: add docs
         left: Box<Expression>,
+        /// TODO: add docs
         right: Box<Expression>,
     },
 
@@ -144,12 +169,15 @@ pub enum Expression {
 
     /// Aggregation operation
     Aggregation {
+        /// TODO: add docs
         op: AggregationOperator,
+        /// TODO: add docs
         expr: Box<Expression>,
     },
 }
 
 impl Expression {
+    /// TODO: add docs
     pub fn sum(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Sum,
@@ -157,6 +185,7 @@ impl Expression {
         })
     }
 
+    /// TODO: add docs
     pub fn max(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Max,
@@ -164,6 +193,7 @@ impl Expression {
         })
     }
 
+    /// TODO: add docs
     pub fn min(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Min,
@@ -171,6 +201,7 @@ impl Expression {
         })
     }
 
+    /// TODO: add docs
     pub fn count(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
@@ -178,6 +209,7 @@ impl Expression {
         })
     }
 
+    /// TODO: add docs
     pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::First,
@@ -189,14 +221,18 @@ impl Expression {
 /// OrderBy
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OrderBy {
+    /// TODO: add docs
     pub expr: Identifier,
+    /// TODO: add docs
     pub direction: OrderByDirection,
 }
 
 /// OrderByDirection values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderByDirection {
+    /// TODO: add docs
     Asc,
+    /// TODO: add docs
     Desc,
 }
 

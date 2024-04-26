@@ -1,3 +1,4 @@
+//! TODO: add docs
 pub mod decimal;
 #[cfg(test)]
 mod decimal_tests;

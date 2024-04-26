@@ -1,3 +1,5 @@
+//! TODO: add docs
+
 pub mod decimal_unknown;
 #[macro_use]
 extern crate lalrpop_util;
@@ -23,7 +25,7 @@ pub mod resource_id;
 pub use resource_id::ResourceId;
 
 // lalrpop-generated code is not clippy-compliant
-lalrpop_mod!(#[allow(clippy::all)] pub sql);
+lalrpop_mod!(#[allow(clippy::all, missing_docs)] pub sql);
 
 /// Implement Deserialize through FromStr to avoid invalid identifiers.
 #[macro_export]

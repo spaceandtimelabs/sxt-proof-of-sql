@@ -109,6 +109,7 @@ where
     }
 }
 
+/// TODO: add docs
 pub type FilterExpr<C> = OstensibleFilterExpr<C, HonestProver>;
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
     fn result_evaluate<'a>(

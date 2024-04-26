@@ -14,7 +14,6 @@
 //! This implementation only implements the computational integrity component of Dory.
 //! This can be extended in the future to achieve hiding, but that isn't needed for our initial use-case.
 
-#![warn(missing_docs)]
 // This is so that the naming in the code more closely matches the naming in the paper, since the paper used both capital and non-capital letters.
 #![allow(non_snake_case)]
 

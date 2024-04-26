@@ -1,3 +1,4 @@
+//! TODO: add docs
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
@@ -56,7 +57,10 @@ pub trait Scalar:
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
     const MAX_SIGNED: Self;
+    /// TODO: add docs
     const ZERO: Self;
+    /// TODO: add docs
     const ONE: Self;
+    /// TODO: add docs
     const TWO: Self;
 }

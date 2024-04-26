@@ -1,3 +1,4 @@
+//! TODO: add docs
 use ark_std::test_rng;
 use proofs::{
     base::database::{OwnedTableTestAccessor, TestAccessor},

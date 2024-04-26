@@ -4,6 +4,7 @@ use num_traits::Zero;
 
 /// Track components used to verify a query's proof
 pub struct VerificationBuilder<'a, C: Commitment> {
+    /// TODO: add docs
     pub mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
     generator_offset: usize,
     intermediate_commitments: &'a [C],
@@ -28,6 +29,7 @@ pub struct VerificationBuilder<'a, C: Commitment> {
 }
 
 impl<'a, C: Commitment> VerificationBuilder<'a, C> {
+    /// TODO: add docs
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
@@ -59,10 +61,12 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         }
     }
 
+    /// TODO: add docs
     pub fn table_length(&self) -> usize {
         self.mle_evaluations.table_length
     }
 
+    /// TODO: add docs
     pub fn generator_offset(&self) -> usize {
         self.generator_offset
     }

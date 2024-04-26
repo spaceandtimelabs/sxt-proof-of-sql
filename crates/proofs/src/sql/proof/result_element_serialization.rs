@@ -1,9 +1,13 @@
 use crate::base::encode::VarInt;
 
+/// TODO: add docs
 pub trait ProvableResultElement<'a> {
+    /// TODO: add docs
     fn required_bytes(&self) -> usize;
+    /// TODO: add docs
     fn encode(&self, out: &mut [u8]) -> usize;
 
+    /// TODO: add docs
     fn decode(data: &'a [u8]) -> Option<(Self, usize)>
     where
         Self: Sized;
@@ -89,6 +93,7 @@ impl ProvableResultElement<'_> for String {
     }
 }
 
+/// TODO: add docs
 pub fn decode_and_convert<'a, F, T>(data: &'a [u8]) -> Option<(T, usize)>
 where
     F: ProvableResultElement<'a>,
