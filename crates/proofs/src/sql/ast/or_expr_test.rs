@@ -1,4 +1,3 @@
-use super::BoolExpr;
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -12,7 +11,7 @@ use crate::{
     sql::ast::{
         test_expr::TestExprNode,
         test_utility::{equal, or},
-        BoolExprPlan,
+        BoolExprPlan, ProvableExpr,
     },
 };
 use arrow::record_batch::RecordBatch;

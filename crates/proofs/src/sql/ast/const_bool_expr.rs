@@ -1,13 +1,11 @@
+use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
-    sql::{
-        ast::BoolExpr,
-        proof::{CountBuilder, ProofBuilder, VerificationBuilder},
-    },
+    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use num_traits::Zero;
@@ -37,9 +35,13 @@ impl ConstBoolExpr {
     }
 }
 
-impl<C: Commitment> BoolExpr<C> for ConstBoolExpr {
+impl<C: Commitment> ProvableExpr<C, bool> for ConstBoolExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(

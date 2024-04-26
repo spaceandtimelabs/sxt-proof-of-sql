@@ -1,4 +1,4 @@
-use super::{test_utility::*, BoolExpr, BoolExprPlan};
+use super::{test_utility::*, BoolExprPlan, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,

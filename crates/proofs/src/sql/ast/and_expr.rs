@@ -1,8 +1,8 @@
-use super::BoolExpr;
+use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
@@ -15,13 +15,13 @@ use std::collections::HashSet;
 
 /// Provable logical AND expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct AndExpr<C: Commitment, B: BoolExpr<C>> {
+pub struct AndExpr<C: Commitment, B: ProvableExpr<C, bool>> {
     lhs: Box<B>,
     rhs: Box<B>,
     _phantom: PhantomData<C>,
 }
 
-impl<C: Commitment, B: BoolExpr<C>> AndExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> AndExpr<C, B> {
     /// Create logical AND expression
     pub fn new(lhs: Box<B>, rhs: Box<B>) -> Self {
         Self {
@@ -32,7 +32,7 @@ impl<C: Commitment, B: BoolExpr<C>> AndExpr<C, B> {
     }
 }
 
-impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for AndExpr<C, B> {
+impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for AndExpr<C, B> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -40,6 +40,10 @@ impl<C: Commitment, B: BoolExpr<C>> BoolExpr<C> for AndExpr<C, B> {
         builder.count_intermediate_mles(1);
         builder.count_degree(3);
         Ok(())
+    }
+
+    fn data_type(&self) -> ColumnType {
+        ColumnType::Boolean
     }
 
     fn result_evaluate<'a>(

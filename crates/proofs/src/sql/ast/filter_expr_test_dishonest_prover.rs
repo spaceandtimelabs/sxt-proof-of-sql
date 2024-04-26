@@ -1,4 +1,4 @@
-use super::{BoolExpr, OstensibleFilterExpr};
+use super::{OstensibleFilterExpr, ProvableExpr};
 use crate::{
     base::{
         database::{DataAccessor, RecordBatchTestAccessor, TestAccessor},

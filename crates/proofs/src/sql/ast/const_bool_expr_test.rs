@@ -1,4 +1,4 @@
-use super::{BoolExpr, BoolExprPlan};
+use super::{BoolExprPlan, ProvableExpr};
 use crate::{
     base::database::{
         make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
