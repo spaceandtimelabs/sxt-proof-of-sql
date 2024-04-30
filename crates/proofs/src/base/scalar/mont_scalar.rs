@@ -131,6 +131,7 @@ impl<T: MontConfig<4>> MontScalar<T> {
         Self(Fp::from_le_bytes_mod_order(bytes))
     }
     /// Create a `Vec<u8>` from a `MontScalar<T>`. The array will be in non-montgomery form.
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_bytes_le(&self) -> Vec<u8> {
         self.0.into_bigint().to_bytes_le()
     }

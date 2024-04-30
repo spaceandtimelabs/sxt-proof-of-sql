@@ -31,15 +31,6 @@ pub fn lte<C: Commitment, T: Into<C::Scalar>>(
     ProvableExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
 }
 
-pub fn gte<C: Commitment, T: Into<C::Scalar>>(
-    tab: TableRef,
-    name: &str,
-    val: T,
-    accessor: &impl SchemaAccessor,
-) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_inequality(col(tab, name, accessor), val.into(), false)
-}
-
 pub fn not<C: Commitment>(expr: ProvableExprPlan<C>) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_not(expr)
 }

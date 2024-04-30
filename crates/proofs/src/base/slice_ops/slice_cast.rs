@@ -1,8 +1,9 @@
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+#[cfg(test)]
+use rayon::iter::IntoParallelRefMutIterator;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 /// This operation takes a slice and casts it to a vector of a different type using the provided function.
+#[cfg(test)]
 pub fn slice_cast_with<F, T>(value: &[F], cast: fn(&F) -> T) -> Vec<T>
 where
     F: Sync,
@@ -16,6 +17,7 @@ where
 }
 
 /// This operation takes a slice and casts it to a mutable slice of a different type using the provided function.
+#[cfg(test)]
 pub fn slice_cast_mut_with<F, T>(value: &[F], result: &mut [T], cast: fn(&F) -> T)
 where
     F: Sync,
@@ -40,6 +42,8 @@ pub fn iter_cast<F: Sync + Into<T>, T: Send>(
 ) -> Vec<T> {
     iter_cast_to_iter(value).collect()
 }
+#[cfg(any(test, feature = "test"))]
+#[cfg(feature = "blitzar")]
 /// This operation takes a slice and casts it to an `IndexedParallelIterator` of a different type using the provided function.
 pub fn slice_cast_to_iter<'a, F: Sync, T: Send + 'a>(
     value: &'a [F],
@@ -58,6 +62,7 @@ where
 }
 
 /// This operation takes a slice and casts it to a mutable slice of a different type using the provided function.
+#[cfg(test)]
 pub fn slice_cast_mut<'a, F, T>(value: &'a [F], result: &mut [T])
 where
     F: Sync,

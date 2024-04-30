@@ -30,35 +30,39 @@ use rand_util::rand_G_vecs;
 use rand_util::{rand_F_vecs, test_rng};
 
 mod dory_messages;
-pub use dory_messages::DoryMessages;
+pub(crate) use dory_messages::DoryMessages;
 #[cfg(test)]
 mod dory_messages_test;
 
 mod setup;
-pub use setup::{ProverSetup, VerifierSetup};
+pub(crate) use setup::{ProverSetup, VerifierSetup};
 #[cfg(test)]
 mod setup_test;
 
 mod state;
-pub use state::{ProverState, VerifierState};
+pub(crate) use state::{ProverState, VerifierState};
 #[cfg(test)]
 mod state_test;
 
+#[cfg(test)]
 mod dory_reduce;
 mod dory_reduce_helper;
 mod scalar_product;
 
+#[cfg(test)]
 use dory_reduce::{dory_reduce_prove, dory_reduce_verify};
 use scalar_product::{scalar_product_prove, scalar_product_verify};
 
+#[cfg(test)]
 mod dory_inner_product;
-pub use dory_inner_product::{dory_inner_product_prove, dory_inner_product_verify};
+#[cfg(test)]
+pub(crate) use dory_inner_product::{dory_inner_product_prove, dory_inner_product_verify};
 
 #[cfg(test)]
 mod dory_inner_product_test;
 
 mod extended_state;
-pub use extended_state::{ExtendedProverState, ExtendedVerifierState};
+pub(crate) use extended_state::{ExtendedProverState, ExtendedVerifierState};
 #[cfg(test)]
 mod extended_state_test;
 
@@ -66,14 +70,14 @@ mod extended_dory_reduce;
 mod extended_dory_reduce_helper;
 mod fold_scalars;
 
-pub use extended_dory_reduce::{extended_dory_reduce_prove, extended_dory_reduce_verify};
-pub use fold_scalars::{fold_scalars_0_prove, fold_scalars_0_verify};
+pub(crate) use extended_dory_reduce::{extended_dory_reduce_prove, extended_dory_reduce_verify};
+pub(crate) use fold_scalars::{fold_scalars_0_prove, fold_scalars_0_verify};
 
 #[cfg(test)]
 mod fold_scalars_test;
 
 mod extended_dory_inner_product;
-pub use extended_dory_inner_product::{
+pub(crate) use extended_dory_inner_product::{
     extended_dory_inner_product_prove, extended_dory_inner_product_verify,
 };
 
@@ -81,10 +85,10 @@ pub use extended_dory_inner_product::{
 mod extended_dory_inner_product_test;
 
 mod public_parameters;
-pub use public_parameters::PublicParameters;
+pub(crate) use public_parameters::PublicParameters;
 
 mod eval_vmv_re;
-pub use eval_vmv_re::{eval_vmv_re_prove, eval_vmv_re_verify};
+pub(crate) use eval_vmv_re::{eval_vmv_re_prove, eval_vmv_re_verify};
 
 #[cfg(test)]
 mod eval_vmv_re_test;
@@ -92,13 +96,14 @@ mod eval_vmv_re_test;
 mod vmv_state;
 #[cfg(test)]
 use vmv_state::VMV;
-pub use vmv_state::{VMVProverState, VMVVerifierState};
+pub(crate) use vmv_state::{VMVProverState, VMVVerifierState};
 
 #[cfg(test)]
 mod vmv_state_test;
 
 mod dory_public_setup;
-pub use dory_public_setup::{DoryProverPublicSetup, DoryVerifierPublicSetup};
+pub use dory_public_setup::DoryProverPublicSetup;
+pub(crate) use dory_public_setup::DoryVerifierPublicSetup;
 
 mod dory_commitment;
 mod dory_commitment_helper;

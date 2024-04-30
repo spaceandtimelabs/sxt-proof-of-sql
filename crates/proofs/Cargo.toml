@@ -50,16 +50,11 @@ typetag = { workspace = true }
 
 [dev_dependencies]
 blitzar = { workspace = true }
-criterion = { workspace = true }
 polars = { workspace = true, features = ["lazy"] }
 rand = { workspace = true }
 rand_core = { workspace = true }
 serde_json = { workspace = true }
 flexbuffers = { workspace = true }
-
-[[bench]]
-harness = false
-name = "sumcheck"
 
 [features]
 default = ["blitzar"]

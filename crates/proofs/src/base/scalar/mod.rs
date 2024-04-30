@@ -2,7 +2,8 @@ mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
 use core::ops::Sub;
-pub use mont_scalar::{Curve25519Scalar, MontScalar};
+pub use mont_scalar::Curve25519Scalar;
+pub(crate) use mont_scalar::MontScalar;
 mod mont_scalar_from;
 #[cfg(test)]
 mod mont_scalar_from_test;

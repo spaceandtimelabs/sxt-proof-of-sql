@@ -1,2 +1,2 @@
 pub mod dory;
-pub mod sumcheck;
+pub(crate) mod sumcheck;

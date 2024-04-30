@@ -10,7 +10,7 @@ use std::str::FromStr;
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
 /// limit-enforced precision
 pub struct Precision(u8);
-pub const MAX_SUPPORTED_PRECISION: u8 = 75;
+pub(crate) const MAX_SUPPORTED_PRECISION: u8 = 75;
 
 impl Precision {
     /// Constructor for creating a Precision instance
@@ -55,7 +55,10 @@ impl<'de> Deserialize<'de> for Precision {
 /// less than the max supported value)
 /// because there is no loss of information,
 /// as opposed to scaling down which is lossy.
-pub fn match_decimal<S: Scalar>(d: &DecimalUnknown, scale: i8) -> Result<S, ConversionError> {
+pub(crate) fn match_decimal<S: Scalar>(
+    d: &DecimalUnknown,
+    scale: i8,
+) -> Result<S, ConversionError> {
     // Convert limbs into Scalar and account for sign
     let (limbs, sign) = get_limbs_and_sign(d, scale)?;
     let scalar = S::from(limbs);

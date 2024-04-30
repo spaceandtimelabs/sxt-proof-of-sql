@@ -29,6 +29,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    #[allow(clippy::vec_box)]
     pub fn visit_table_expr(
         mut self,
         table_expr: Vec<Box<TableExpression>>,
