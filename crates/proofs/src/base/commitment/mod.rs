@@ -9,17 +9,17 @@ use core::ops::{AddAssign, SubAssign};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
-pub use committable_column::CommittableColumn;
+pub(crate) use committable_column::CommittableColumn;
 
 mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};
 
 mod column_bounds;
 use super::scalar::Curve25519Scalar;
-pub use column_bounds::{Bounds, ColumnBounds, ColumnBoundsMismatch, NegativeBounds};
+pub use column_bounds::{Bounds, ColumnBounds, NegativeBounds};
 
 mod column_commitment_metadata;
-pub use column_commitment_metadata::{ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch};
+pub use column_commitment_metadata::ColumnCommitmentMetadata;
 
 mod column_commitment_metadata_map;
 pub use column_commitment_metadata_map::{
@@ -38,7 +38,7 @@ pub use table_commitment::{
 };
 
 mod query_commitments;
-pub use query_commitments::{QueryCommitments, QueryCommitmentsExt};
+pub use query_commitments::QueryCommitments;
 
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
@@ -112,6 +112,6 @@ impl Commitment for RistrettoPoint {
 }
 
 mod commitment_evaluation_proof;
-pub use commitment_evaluation_proof::CommitmentEvaluationProof;
+pub(crate) use commitment_evaluation_proof::CommitmentEvaluationProof;
 #[cfg(test)]
-pub mod commitment_evaluation_proof_test;
+pub(crate) mod commitment_evaluation_proof_test;

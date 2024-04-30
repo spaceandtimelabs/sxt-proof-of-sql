@@ -6,6 +6,7 @@ use merlin::Transcript;
 
 /// This is the prover side of the Dory-Innerproduct algorithm in section 3.3 of https://eprint.iacr.org/2020/1274.pdf.
 /// This function builds/enqueues `messages`, appends to `transcript`, and consumes `state`.
+#[cfg(test)]
 pub fn dory_inner_product_prove(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,
@@ -22,6 +23,7 @@ pub fn dory_inner_product_prove(
 
 /// This is the verifier side of the Dory-Innerproduct algorithm in section 3.3 of https://eprint.iacr.org/2020/1274.pdf.
 /// This function consumes/dequeues from `messages`, appends to `transcript`, and consumes `state`.
+#[cfg(test)]
 pub fn dory_inner_product_verify(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,

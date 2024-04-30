@@ -19,6 +19,7 @@ pub fn log2_up<T: PrimInt + Unsigned>(x: T) -> usize {
 ///
 /// The first byte in the array should represent the smallest digit.
 /// 0 is treated as a power of 2 instead of panicking.
+#[cfg(test)]
 pub fn is_pow2_bytes<const N: usize>(data: &[u8; N]) -> bool {
     let mut filter = data.iter().rev().filter(|b| **b != 0);
     if let Some(head) = filter.next() {
@@ -32,6 +33,7 @@ pub fn is_pow2_bytes<const N: usize>(data: &[u8; N]) -> bool {
 ///
 /// The first byte in the array should represent the smallest digit.
 /// If the data is 0, returns 0 instead of panicking.
+#[cfg(test)]
 pub fn log2_down_bytes<const N: usize>(data: &[u8; N]) -> usize {
     let leading_zeros = data.iter().rev().take_while(|b| **b == 0).count();
     if let Some(head_byte) = data.iter().rev().nth(leading_zeros) {
@@ -46,6 +48,7 @@ pub fn log2_down_bytes<const N: usize>(data: &[u8; N]) -> usize {
 ///
 /// The first byte in the array should represent the smallest digit.
 /// If the data is 0, returns 0 instead of panicking.
+#[cfg(test)]
 pub fn log2_up_bytes<const N: usize>(data: &[u8; N]) -> usize {
     let is_not_pow_2 = !is_pow2_bytes(data) as usize;
     log2_down_bytes(data) + is_not_pow_2

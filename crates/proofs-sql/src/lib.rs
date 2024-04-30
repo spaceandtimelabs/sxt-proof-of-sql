@@ -8,15 +8,16 @@ pub mod intermediate_ast;
 mod intermediate_ast_tests;
 
 #[cfg(test)]
-pub mod test_utility;
+pub(crate) mod test_utility;
 
-pub mod select_statement;
+pub(crate) mod select_statement;
 pub use select_statement::SelectStatement;
 
-pub mod error;
-pub use error::{ParseError, ParseResult};
+pub(crate) mod error;
+pub use error::ParseError;
+pub(crate) use error::ParseResult;
 
-pub mod identifier;
+pub(crate) mod identifier;
 pub use identifier::Identifier;
 
 pub mod resource_id;

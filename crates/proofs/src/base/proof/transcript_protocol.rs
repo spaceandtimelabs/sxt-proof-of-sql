@@ -159,13 +159,11 @@ impl TranscriptProtocol for Transcript {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageLabel {
     /// Represents an inner product computation or its result.
+    #[cfg(test)]
     InnerProduct,
     /// Represents a challenge in the computation of an inner product.
+    #[cfg(test)]
     InnerProductChallenge,
-    /// Represents the left operand in an inner product computation.
-    InnerProductLeft,
-    /// Represents the right operand in an inner product computation.
-    InnerProductRight,
     /// Denotes a sumcheck protocol message.
     Sumcheck,
     /// Represents a challenge in the sumcheck protocol.
@@ -207,10 +205,10 @@ impl MessageLabel {
     /// "the labels should be distinct and none should be a prefix of any other."
     pub fn as_bytes(&self) -> &'static [u8] {
         match self {
+            #[cfg(test)]
             MessageLabel::InnerProduct => b"ipp v1",
+            #[cfg(test)]
             MessageLabel::InnerProductChallenge => b"ippchallenge v1",
-            MessageLabel::InnerProductLeft => b"ippleft v1",
-            MessageLabel::InnerProductRight => b"ippright v1",
             MessageLabel::Sumcheck => b"sumcheckproof v1",
             MessageLabel::SumcheckChallenge => b"sumcheckchallenge v1",
             MessageLabel::SumcheckRoundEvaluation => b"sumcheckroundevaluationscalars v1",

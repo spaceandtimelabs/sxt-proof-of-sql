@@ -1,14 +1,14 @@
-pub mod bit;
+pub(crate) mod bit;
 #[warn(missing_docs)]
 pub mod commitment;
 pub mod database;
-pub mod encode;
+pub(crate) mod encode;
 pub mod math;
-pub mod polynomial;
+pub(crate) mod polynomial;
 #[warn(missing_docs)]
-pub mod proof;
-pub mod ref_into;
+pub(crate) mod proof;
+pub(crate) mod ref_into;
 pub mod scalar;
 mod serialize;
 pub(crate) use serialize::impl_serde_for_ark_serde;
-pub mod slice_ops;
+pub(crate) mod slice_ops;

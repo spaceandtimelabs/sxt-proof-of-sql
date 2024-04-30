@@ -1,6 +1,7 @@
 mod error;
 mod where_expr_builder_tests;
-pub use error::{ConversionError, ConversionResult};
+pub use error::ConversionError;
+pub(crate) use error::ConversionResult;
 
 #[cfg(all(test, feature = "blitzar"))]
 mod query_expr_tests;
@@ -9,17 +10,17 @@ mod query_expr;
 pub use query_expr::QueryExpr;
 
 mod result_expr_builder;
-pub use result_expr_builder::ResultExprBuilder;
+pub(crate) use result_expr_builder::ResultExprBuilder;
 
 mod filter_expr_builder;
-pub use filter_expr_builder::FilterExprBuilder;
+pub(crate) use filter_expr_builder::FilterExprBuilder;
 
-pub mod query_context;
-pub use query_context::QueryContext;
+pub(crate) mod query_context;
+pub(crate) use query_context::QueryContext;
 
 mod query_context_builder;
-pub use query_context_builder::QueryContextBuilder;
+pub(crate) use query_context_builder::QueryContextBuilder;
 
 #[warn(missing_docs)]
 mod where_expr_builder;
-pub use where_expr_builder::WhereExprBuilder;
+pub(crate) use where_expr_builder::WhereExprBuilder;

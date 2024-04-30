@@ -6,19 +6,22 @@ mod accessor;
 pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor};
 
 mod column;
-pub use column::{Column, ColumnField, ColumnRef, ColumnType, INT128_PRECISION, INT128_SCALE};
+pub use column::{Column, ColumnField, ColumnRef, ColumnType};
+pub(crate) use column::{INT128_PRECISION, INT128_SCALE};
 
 mod table_ref;
 pub use table_ref::TableRef;
 
 mod arrow_array_to_column_conversion;
-pub use arrow_array_to_column_conversion::*;
+pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
 mod record_batch_dataframe_conversion;
-pub use record_batch_dataframe_conversion::*;
+pub(crate) use record_batch_dataframe_conversion::{
+    dataframe_to_record_batch, record_batch_to_dataframe,
+};
 
 mod record_batch_utility;
-pub use record_batch_utility::*;
+pub use record_batch_utility::ToArrow;
 
 #[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
@@ -39,17 +42,19 @@ pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccess
 
 #[warn(missing_docs)]
 mod owned_column;
-pub use owned_column::*;
+pub use owned_column::OwnedColumn;
 #[warn(missing_docs)]
 mod owned_table;
-pub use owned_table::*;
+pub use owned_table::OwnedTable;
+pub(crate) use owned_table::OwnedTableError;
 #[cfg(test)]
 #[warn(missing_docs)]
 mod owned_table_test;
 
 #[warn(missing_docs)]
 mod owned_and_arrow_conversions;
-pub use owned_and_arrow_conversions::*;
+#[cfg(test)]
+pub(crate) use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(test)]
 #[warn(missing_docs)]
 mod owned_and_arrow_conversions_test;
@@ -58,7 +63,9 @@ mod owned_and_arrow_conversions_test;
 #[cfg(any(test, feature = "test"))]
 mod test_accessor;
 #[cfg(any(test, feature = "test"))]
-pub use test_accessor::{TestAccessor, UnimplementedTestAccessor};
+pub use test_accessor::TestAccessor;
+#[cfg(test)]
+pub(crate) use test_accessor::UnimplementedTestAccessor;
 
 #[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
