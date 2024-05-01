@@ -59,3 +59,7 @@ flexbuffers = { workspace = true }
 [features]
 default = ["blitzar"]
 test = ["dep:rand"]
+
+[[example]]
+name = "hello_world"
+required-features = [ "blitzar", "test" ]
