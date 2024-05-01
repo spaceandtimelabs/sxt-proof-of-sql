@@ -32,21 +32,21 @@ pub fn lte<C: Commitment, T: Into<C::Scalar>>(
 }
 
 pub fn not<C: Commitment>(expr: ProvableExprPlan<C>) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_not(expr)
+    ProvableExprPlan::try_new_not(expr).unwrap()
 }
 
 pub fn and<C: Commitment>(
     left: ProvableExprPlan<C>,
     right: ProvableExprPlan<C>,
 ) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_and(left, right)
+    ProvableExprPlan::try_new_and(left, right).unwrap()
 }
 
 pub fn or<C: Commitment>(
     left: ProvableExprPlan<C>,
     right: ProvableExprPlan<C>,
 ) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_or(left, right)
+    ProvableExprPlan::try_new_or(left, right).unwrap()
 }
 
 pub fn const_v<C: Commitment>(val: bool) -> ProvableExprPlan<C> {

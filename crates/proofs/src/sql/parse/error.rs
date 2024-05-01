@@ -1,3 +1,4 @@
+use crate::base::database::ColumnType;
 use proofs_sql::{Identifier, ResourceId};
 use thiserror::Error;
 
@@ -6,6 +7,11 @@ use thiserror::Error;
 pub enum ConversionError {
     #[error("Column '{0}' was not found in table '{1}'")]
     MissingColumn(Box<Identifier>, Box<ResourceId>),
+    #[error("Expected '{expected}' but found '{actual}'")]
+    InvalidDataType {
+        expected: ColumnType,
+        actual: ColumnType,
+    },
     #[error("Left side has '{1}' type but right side has '{0}' type")]
     DataTypeMismatch(String, String),
     #[error("Multiple result columns with the same alias '{0}' have been found.")]

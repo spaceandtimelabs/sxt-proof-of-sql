@@ -57,7 +57,7 @@ impl WhereExprBuilder<'_> {
         let expr = self.visit_expr(expr);
 
         match op {
-            UnaryOperator::Not => Ok(ProvableExprPlan::new_not(expr?)),
+            UnaryOperator::Not => ProvableExprPlan::try_new_not(expr?),
         }
     }
 
@@ -71,12 +71,12 @@ impl WhereExprBuilder<'_> {
             BinaryOperator::And => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Ok(ProvableExprPlan::new_and(left?, right?))
+                ProvableExprPlan::try_new_and(left?, right?)
             }
             BinaryOperator::Or => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
-                Ok(ProvableExprPlan::new_or(left?, right?))
+                ProvableExprPlan::try_new_or(left?, right?)
             }
             BinaryOperator::Equal => {
                 let (left, right) = self.process_comparison_expr::<C>(left, right)?;
