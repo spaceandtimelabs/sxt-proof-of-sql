@@ -5,7 +5,10 @@ use crate::{
         database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::{
+        parse::{ConversionError, ConversionResult},
+        proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    },
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
@@ -29,16 +32,27 @@ pub enum ProvableExprPlan<C: Commitment> {
 }
 impl<C: Commitment> ProvableExprPlan<C> {
     /// Create logical AND expression
-    pub fn new_and(lhs: ProvableExprPlan<C>, rhs: ProvableExprPlan<C>) -> Self {
-        Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs)))
+    pub fn try_new_and(
+        lhs: ProvableExprPlan<C>,
+        rhs: ProvableExprPlan<C>,
+    ) -> ConversionResult<Self> {
+        lhs.check_data_type(ColumnType::Boolean)?;
+        rhs.check_data_type(ColumnType::Boolean)?;
+        Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
-    pub fn new_or(lhs: ProvableExprPlan<C>, rhs: ProvableExprPlan<C>) -> Self {
-        Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs)))
+    pub fn try_new_or(
+        lhs: ProvableExprPlan<C>,
+        rhs: ProvableExprPlan<C>,
+    ) -> ConversionResult<Self> {
+        lhs.check_data_type(ColumnType::Boolean)?;
+        rhs.check_data_type(ColumnType::Boolean)?;
+        Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical NOT expression
-    pub fn new_not(expr: ProvableExprPlan<C>) -> Self {
-        Self::Not(NotExpr::new(Box::new(expr)))
+    pub fn try_new_not(expr: ProvableExprPlan<C>) -> ConversionResult<Self> {
+        expr.check_data_type(ColumnType::Boolean)?;
+        Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
     /// Create logical CONST expression
     pub fn new_const_bool(value: bool) -> Self {
@@ -51,6 +65,18 @@ impl<C: Commitment> ProvableExprPlan<C> {
     /// Create a new inequality expression
     pub fn new_inequality(column_ref: ColumnRef, value: C::Scalar, is_lte: bool) -> Self {
         Self::Inequality(InequalityExpr::new(column_ref, value, is_lte))
+    }
+
+    /// Check that the plan has the correct data type
+    pub fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
+        if self.data_type() == data_type {
+            Ok(())
+        } else {
+            Err(ConversionError::InvalidDataType {
+                actual: self.data_type(),
+                expected: data_type,
+            })
+        }
     }
 }
 
