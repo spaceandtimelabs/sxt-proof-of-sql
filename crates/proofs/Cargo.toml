@@ -49,7 +49,9 @@ tracing = { workspace = true, features = ["attributes"] }
 typetag = { workspace = true }
 
 [dev_dependencies]
+arrow-csv = { workspace = true }
 blitzar = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 polars = { workspace = true, features = ["lazy"] }
 rand = { workspace = true }
 rand_core = { workspace = true }
@@ -66,3 +68,7 @@ workspace = true
 [[example]]
 name = "hello_world"
 required-features = [ "blitzar", "test" ]
+
+[[example]]
+name = "csv_db"
+required-features = [ "blitzar" ]
