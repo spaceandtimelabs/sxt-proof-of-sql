@@ -1,3 +1,4 @@
+//! TODO: add docs
 mod error;
 mod where_expr_builder_tests;
 pub use error::ConversionError;
@@ -21,6 +22,5 @@ pub(crate) use query_context::QueryContext;
 mod query_context_builder;
 pub(crate) use query_context_builder::QueryContextBuilder;
 
-#[warn(missing_docs)]
 mod where_expr_builder;
 pub(crate) use where_expr_builder::WhereExprBuilder;

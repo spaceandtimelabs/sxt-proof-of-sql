@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! Module with database related functionality. In particular, this module contains the
 //! accessor traits and the `OwnedTable` type along with some utility functions to convert
 //! between Arrow and `OwnedTable`.
@@ -23,7 +22,6 @@ pub(crate) use record_batch_dataframe_conversion::{
 mod record_batch_utility;
 pub use record_batch_utility::ToArrow;
 
-#[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]
 mod record_batch_test_accessor;
@@ -31,7 +29,6 @@ mod record_batch_test_accessor;
 #[cfg(feature = "blitzar")]
 pub use record_batch_test_accessor::RecordBatchTestAccessor;
 
-#[warn(missing_docs)]
 #[cfg(all(test, feature = "blitzar"))]
 mod record_batch_test_accessor_test;
 
@@ -40,26 +37,20 @@ mod test_accessor_utility;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
 
-#[warn(missing_docs)]
 mod owned_column;
 pub use owned_column::OwnedColumn;
-#[warn(missing_docs)]
 mod owned_table;
 pub use owned_table::OwnedTable;
 pub(crate) use owned_table::OwnedTableError;
 #[cfg(test)]
-#[warn(missing_docs)]
 mod owned_table_test;
 
-#[warn(missing_docs)]
 mod owned_and_arrow_conversions;
 #[cfg(test)]
 pub(crate) use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(test)]
-#[warn(missing_docs)]
 mod owned_and_arrow_conversions_test;
 
-#[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
 mod test_accessor;
 #[cfg(any(test, feature = "test"))]
@@ -67,7 +58,6 @@ pub use test_accessor::TestAccessor;
 #[cfg(test)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
 
-#[warn(missing_docs)]
 #[cfg(any(test, feature = "test"))]
 mod owned_table_test_accessor;
 #[cfg(any(test, feature = "test"))]

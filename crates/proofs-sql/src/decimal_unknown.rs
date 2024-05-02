@@ -1,3 +1,4 @@
+//! TODO: add docs
 use serde::{Deserialize, Serialize};
 
 /// An intermediate placeholder for a decimal string
@@ -5,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct DecimalUnknown {
     value: String,
     precision: u8,
+    /// TODO: add docs
     pub scale: i8,
 }
 
@@ -80,12 +82,15 @@ impl DecimalUnknown {
         }
     }
 
+    /// TODO: add docs
     pub fn value(&self) -> String {
         self.value.to_owned()
     }
+    /// TODO: add docs
     pub fn precision(&self) -> u8 {
         self.precision
     }
+    /// TODO: add docs
     pub fn scale(&self) -> i8 {
         self.scale
     }

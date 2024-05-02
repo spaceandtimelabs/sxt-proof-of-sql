@@ -3,7 +3,6 @@
 mod error;
 pub use error::ProofError;
 
-#[warn(missing_docs)]
 /// Contains an extension trait for `merlin::Transcript`, which is used to construct a proof.
 mod transcript_protocol;
 #[cfg(test)]

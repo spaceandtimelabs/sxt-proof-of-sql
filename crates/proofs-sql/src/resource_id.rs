@@ -1,3 +1,4 @@
+//! TODO: add docs
 use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
 use std::{
     fmt::{self, Display},
