@@ -1,3 +1,4 @@
+//! TODO: add docs
 mod filter_result_expr;
 pub(crate) use filter_result_expr::FilterResultExpr;
 
@@ -67,11 +68,9 @@ mod test_expr;
 #[cfg(test)]
 pub(crate) mod test_utility;
 
-#[warn(missing_docs)]
 mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
 
-#[warn(missing_docs)]
 mod dense_filter_expr;
 #[cfg(test)]
 pub(crate) use dense_filter_expr::{DenseFilterExpr, OstensibleDenseFilterExpr};
@@ -80,7 +79,6 @@ mod dense_filter_expr_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod dense_filter_expr_test_dishonest_prover;
 
-#[warn(missing_docs)]
 mod dense_filter_util;
 #[cfg(test)]
 pub(crate) use dense_filter_util::fold_vals;
@@ -88,14 +86,12 @@ pub(crate) use dense_filter_util::{filter_column_by_index, filter_columns};
 #[cfg(test)]
 mod dense_filter_util_test;
 
-#[warn(missing_docs)]
 mod group_by_expr;
 pub(crate) use group_by_expr::GroupByExpr;
 
 #[cfg(all(test, feature = "blitzar"))]
 mod group_by_expr_test;
 
-#[warn(missing_docs)]
 mod group_by_util;
 use group_by_util::aggregate_columns;
 #[cfg(test)]

@@ -1,3 +1,4 @@
+//! TODO: add docs
 use crate::{base::scalar::Scalar, sql::parse::ConversionError};
 use num_bigint::{
     BigInt,

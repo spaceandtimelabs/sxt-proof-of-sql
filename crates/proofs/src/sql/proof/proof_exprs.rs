@@ -10,6 +10,7 @@ use bumpalo::Bump;
 use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
+/// TODO: add docs
 pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
     /// Count terms used within the Query's proof
     fn count(
@@ -18,10 +19,13 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError>;
 
+    /// TODO: add docs
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
 
+    /// TODO: add docs
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
 
+    /// TODO: add docs
     fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
         self.get_length(accessor) == 0
     }
@@ -41,6 +45,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
 }
 
 #[dyn_partial_eq]
+/// TODO: add docs
 pub trait TransformExpr: Debug + Send + Sync {
     /// Apply transformations to the resulting record batch
     fn transform_results(&self, result: RecordBatch) -> RecordBatch {

@@ -11,6 +11,7 @@ pub struct SelectExpr {
 }
 
 impl SelectExpr {
+    /// TODO: add docs
     pub fn new(result_schema: Vec<Expr>) -> Self {
         assert!(!result_schema.is_empty());
         Self { result_schema }

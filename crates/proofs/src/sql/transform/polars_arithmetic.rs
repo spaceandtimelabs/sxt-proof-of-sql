@@ -59,7 +59,9 @@ fn checked_div(series: &mut [Series]) -> PolarsResult<Option<Series>> {
     Ok(Some(num / den))
 }
 
+/// TODO: add docs
 pub trait SafeDivision {
+    /// TODO: add docs
     fn checked_div(self, rhs: Expr) -> Expr;
 }
 

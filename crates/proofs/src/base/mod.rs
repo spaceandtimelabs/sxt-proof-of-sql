@@ -1,11 +1,10 @@
+//! TODO: add docs
 pub(crate) mod bit;
-#[warn(missing_docs)]
 pub mod commitment;
 pub mod database;
 pub(crate) mod encode;
 pub mod math;
 pub(crate) mod polynomial;
-#[warn(missing_docs)]
 pub(crate) mod proof;
 pub(crate) mod ref_into;
 pub mod scalar;

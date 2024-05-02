@@ -60,6 +60,9 @@ flexbuffers = { workspace = true }
 default = ["blitzar"]
 test = ["dep:rand"]
 
+[lints]
+workspace = true
+
 [[example]]
 name = "hello_world"
 required-features = [ "blitzar", "test" ]

@@ -1,3 +1,4 @@
+//! TODO: add docs
 extern crate lalrpop;
 
 fn main() {

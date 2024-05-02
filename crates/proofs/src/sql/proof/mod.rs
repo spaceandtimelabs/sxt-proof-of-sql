@@ -1,3 +1,4 @@
+//! TODO: add docs
 mod count_builder;
 pub(crate) use count_builder::CountBuilder;
 
@@ -19,17 +20,14 @@ pub(crate) use verification_builder::VerificationBuilder;
 #[cfg(test)]
 mod verification_builder_test;
 
-#[warn(missing_docs)]
 mod provable_result_column;
 pub(crate) use provable_result_column::ProvableResultColumn;
 
-#[warn(missing_docs)]
 mod provable_query_result;
 pub(crate) use provable_query_result::ProvableQueryResult;
 #[cfg(test)]
 mod provable_query_result_test;
 
-#[warn(missing_docs)]
 mod sumcheck_mle_evaluations;
 pub(crate) use sumcheck_mle_evaluations::SumcheckMleEvaluations;
 #[cfg(test)]
@@ -52,11 +50,9 @@ pub use query_proof::QueryProof;
 #[cfg(all(test, feature = "blitzar"))]
 mod query_proof_test;
 
-#[warn(missing_docs)]
 mod query_result;
 pub use query_result::{QueryData, QueryError, QueryResult};
 
-#[warn(missing_docs)]
 mod sumcheck_subpolynomial;
 pub(crate) use sumcheck_subpolynomial::{
     SumcheckSubpolynomial, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
@@ -82,12 +78,10 @@ pub(crate) use result_element_serialization::{
     decode_and_convert, decode_multiple_elements, ProvableResultElement,
 };
 
-#[warn(missing_docs)]
 mod indexes;
 pub(crate) use indexes::Indexes;
 #[cfg(test)]
 mod indexes_test;
 
-#[warn(missing_docs)]
 mod result_builder;
 pub(crate) use result_builder::ResultBuilder;
