@@ -52,10 +52,16 @@ typetag = { workspace = true }
 arrow-csv = { workspace = true }
 blitzar = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+criterion = { workspace = true, features = ["html_reports"] }
+opentelemetry = { workspace = true }
+opentelemetry-jaeger = { workspace = true }
 polars = { workspace = true, features = ["lazy"] }
 rand = { workspace = true }
 rand_core = { workspace = true }
 serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+tracing-subscriber = { workspace = true }
 flexbuffers = { workspace = true }
 
 [features]
@@ -71,4 +77,14 @@ required-features = [ "blitzar", "test" ]
 
 [[example]]
 name = "csv_db"
+required-features = [ "blitzar" ]
+
+[[bench]]
+name = "criterion_benches"
+harness = false
+required-features = [ "blitzar" ]
+
+[[bench]]
+name = "jaeger_benches"
+harness = false
 required-features = [ "blitzar" ]
