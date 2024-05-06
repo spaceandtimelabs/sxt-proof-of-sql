@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["benches/ec_ops", "benches/provable_sql", "crates/proofs", "crates/proofs-sql", "crates/proofs-wasm-test"]
+members = ["crates/proofs", "crates/proofs-sql", "crates/proofs-wasm-test"]
 
 [workspace.package]
 edition = "2021"
@@ -26,6 +26,7 @@ bumpalo = { version = "3.11.0" }
 bytemuck = {version = "1.14.2" }
 byte-slice-cast = { version = "1.2.1" }
 clap = { version = "4.5.4" }
+criterion = { version = "0.5.1" }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 dyn_partial_eq = { version = "0.1.2" }

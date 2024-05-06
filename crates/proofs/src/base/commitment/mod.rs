@@ -112,6 +112,6 @@ impl Commitment for RistrettoPoint {
 }
 
 mod commitment_evaluation_proof;
-pub(crate) use commitment_evaluation_proof::CommitmentEvaluationProof;
+pub use commitment_evaluation_proof::CommitmentEvaluationProof;
 #[cfg(test)]
 pub(crate) mod commitment_evaluation_proof_test;
