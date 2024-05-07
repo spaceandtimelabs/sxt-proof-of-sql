@@ -1,38 +1,32 @@
-use super::ProvableExpr;
+use super::{ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
         scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
-use core::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical OR expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OrExpr<C: Commitment, B: ProvableExpr<C, bool>> {
-    lhs: Box<B>,
-    rhs: Box<B>,
-    _phantom: PhantomData<C>,
+pub struct OrExpr<C: Commitment> {
+    lhs: Box<ProvableExprPlan<C>>,
+    rhs: Box<ProvableExprPlan<C>>,
 }
 
-impl<C: Commitment, B: ProvableExpr<C, bool>> OrExpr<C, B> {
+impl<C: Commitment> OrExpr<C> {
     /// Create logical OR expression
-    pub fn new(lhs: Box<B>, rhs: Box<B>) -> Self {
-        Self {
-            lhs,
-            rhs,
-            _phantom: PhantomData,
-        }
+    pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>) -> Self {
+        Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for OrExpr<C, B> {
+impl<C: Commitment> ProvableExpr<C> for OrExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
@@ -49,10 +43,14 @@ impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for OrExpr<C
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        let lhs = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs = self.rhs.result_evaluate(table_length, alloc, accessor);
-        result_evaluate_or(table_length, alloc, lhs, rhs)
+    ) -> Column<'a, C::Scalar> {
+        let lhs_column: Column<'a, C::Scalar> =
+            self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_column: Column<'a, C::Scalar> =
+            self.rhs.result_evaluate(table_length, alloc, accessor);
+        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
+        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
+        Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
     }
 
     #[tracing::instrument(
@@ -65,10 +63,12 @@ impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for OrExpr<C
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        let lhs = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs = self.rhs.prover_evaluate(builder, alloc, accessor);
-        return prover_evaluate_or(builder, alloc, lhs, rhs);
+    ) -> Column<'a, C::Scalar> {
+        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
+        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
+        Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
     }
 
     fn verifier_evaluate(

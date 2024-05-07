@@ -2,7 +2,9 @@ use super::{provable_expr_plan::ProvableExprPlan, FilterResultExpr, ProvableExpr
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
+        database::{
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+        },
         proof::ProofError,
     },
     sql::proof::{
@@ -118,9 +120,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // evaluate where clause
-        let selection = self
-            .where_clause
-            .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
 
         // set result indexes
         let indexes = selection
@@ -149,9 +154,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // evaluate where clause
-        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
-
-        // evaluate result columns
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
         for expr in self.results.iter() {
             expr.prover_evaluate(builder, alloc, accessor, selection);
         }

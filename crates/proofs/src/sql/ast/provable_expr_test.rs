@@ -2,7 +2,7 @@ use super::{test_utility::*, ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{OwnedTableTestAccessor, TestAccessor},
+        database::{Column, OwnedTableTestAccessor, TestAccessor},
     },
     owned_table,
 };
@@ -26,9 +26,9 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     );
     let alloc = Bump::new();
     let res = bool_expr.result_evaluate(17, &alloc, &accessor);
-    let expected_res = &[
+    let expected_res = Column::Boolean(&[
         false, true, false, true, false, true, false, true, false, true, false, true, false, true,
         false, false, false,
-    ];
+    ]);
     assert_eq!(res, expected_res);
 }

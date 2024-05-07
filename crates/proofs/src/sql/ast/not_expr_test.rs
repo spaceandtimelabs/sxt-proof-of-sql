@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            make_random_test_accessor_data, Column, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         scalar::Curve25519Scalar,
@@ -119,6 +119,6 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let not_expr: ProvableExprPlan<RistrettoPoint> = not(equal(t, "b", 1, &accessor));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
-    let expected_res = &[true, false];
+    let expected_res = Column::Boolean(&[true, false]);
     assert_eq!(res, expected_res);
 }

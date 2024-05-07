@@ -1,7 +1,7 @@
 use super::{OstensibleFilterExpr, ProvableExpr};
 use crate::{
     base::{
-        database::{DataAccessor, RecordBatchTestAccessor, TestAccessor},
+        database::{Column, DataAccessor, RecordBatchTestAccessor, TestAccessor},
         proof::ProofError,
         scalar::Curve25519Scalar,
     },
@@ -31,9 +31,12 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // evaluate where clause
-        let selection = self
-            .where_clause
-            .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection_column: Column<'a, Curve25519Scalar> =
+            self.where_clause
+                .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
 
         // set result indexes
         let mut indexes: Vec<_> = selection
@@ -58,7 +61,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) {
         // evaluate where clause
-        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection_column: Column<'a, Curve25519Scalar> =
+            self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
 
         // evaluate result columns
         for expr in self.results.iter() {

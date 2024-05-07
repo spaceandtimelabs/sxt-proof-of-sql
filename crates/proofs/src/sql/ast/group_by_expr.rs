@@ -6,7 +6,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
+            MetadataAccessor,
         },
         proof::ProofError,
     },
@@ -166,9 +167,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
-        let selection = self
-            .where_clause
-            .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(builder.table_length(), alloc, accessor);
+
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
         // 2. columns
         let group_by_columns = Vec::from_iter(
             self.group_by_exprs
@@ -212,7 +218,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
-        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
         // 2. columns
         let group_by_columns = Vec::from_iter(
             self.group_by_exprs

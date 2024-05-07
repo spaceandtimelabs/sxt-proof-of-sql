@@ -43,7 +43,7 @@ impl<S: Scalar> InequalityExpr<S> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
         count_equals_zero(builder);
@@ -61,7 +61,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
+    ) -> Column<'a, C::Scalar> {
         // lhs
         let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
             let lhs = alloc.alloc_slice_fill_default(table_length);
@@ -86,7 +86,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
         let sign = result_evaluate_sign(table_length, alloc, lhs);
 
         // (lhs == 0) || (sign(lhs) == -1)
-        result_evaluate_or(table_length, alloc, equals_zero, sign)
+        Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
     }
 
     #[tracing::instrument(
@@ -99,7 +99,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
+    ) -> Column<'a, C::Scalar> {
         let table_length = builder.table_length();
 
         // lhs
@@ -127,7 +127,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for InequalityExpr<C::Scalar> {
         let sign = prover_evaluate_sign(builder, alloc, lhs);
 
         // (lhs == 0) || (sign(lhs) == -1)
-        prover_evaluate_or(builder, alloc, equals_zero, sign)
+        Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
     }
 
     fn verifier_evaluate(

@@ -1,7 +1,7 @@
 use super::{ProvableExpr, ProvableExprPlan};
 use crate::{
     base::database::{
-        make_random_test_accessor_data, ColumnType, RandomTestAccessorDescriptor,
+        make_random_test_accessor_data, Column, ColumnType, RandomTestAccessorDescriptor,
         RecordBatchTestAccessor, TestAccessor, UnimplementedTestAccessor,
     },
     record_batch,
@@ -80,6 +80,6 @@ fn we_can_compute_the_correct_output_of_a_const_bool_expr_using_result_evaluate(
     let const_bool_expr: ProvableExprPlan<RistrettoPoint> = const_v(true);
     let alloc = Bump::new();
     let res = const_bool_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = &[true, true, true, true];
+    let expected_res = Column::Boolean(&[true, true, true, true]);
     assert_eq!(res, expected_res);
 }
