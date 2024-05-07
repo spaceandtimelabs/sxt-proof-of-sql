@@ -1,4 +1,6 @@
-use super::{AndExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr, ProvableExpr};
+use super::{
+    AndExpr, ColumnExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr, ProvableExpr,
+};
 use crate::{
     base::{
         commitment::Commitment,
@@ -17,6 +19,8 @@ use std::{collections::HashSet, fmt::Debug};
 /// Enum of AST column expression types that implement `ProvableExpr`. Is itself a `ProvableExpr`.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProvableExprPlan<C: Commitment> {
+    /// Column
+    Column(ColumnExpr<C>),
     /// Provable logical AND expression
     And(AndExpr<C>),
     /// Provable logical OR expression
@@ -31,6 +35,10 @@ pub enum ProvableExprPlan<C: Commitment> {
     Inequality(InequalityExpr<C::Scalar>),
 }
 impl<C: Commitment> ProvableExprPlan<C> {
+    /// Create column expression
+    pub fn new_column(column_ref: ColumnRef) -> Self {
+        Self::Column(ColumnExpr::new(column_ref))
+    }
     /// Create logical AND expression
     pub fn try_new_and(
         lhs: ProvableExprPlan<C>,
@@ -83,6 +91,7 @@ impl<C: Commitment> ProvableExprPlan<C> {
 impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         match self {
+            ProvableExprPlan::Column(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::And(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Or(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Not(expr) => ProvableExpr::<C>::count(expr, builder),
@@ -92,9 +101,16 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         }
     }
 
-    /// When `ProvableExprPlan` becomes generic over the column type, this will need to be updated
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        match self {
+            ProvableExprPlan::Column(expr) => expr.data_type(),
+            ProvableExprPlan::ConstBool(_)
+            | ProvableExprPlan::And(_)
+            | ProvableExprPlan::Or(_)
+            | ProvableExprPlan::Not(_)
+            | ProvableExprPlan::Equals(_)
+            | ProvableExprPlan::Inequality(_) => ColumnType::Boolean,
+        }
     }
 
     fn result_evaluate<'a>(
@@ -104,6 +120,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         match self {
+            ProvableExprPlan::Column(expr) => {
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+            }
             ProvableExprPlan::And(expr) => {
                 ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
@@ -132,6 +151,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         match self {
+            ProvableExprPlan::Column(expr) => {
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+            }
             ProvableExprPlan::And(expr) => {
                 ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
@@ -159,6 +181,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         match self {
+            ProvableExprPlan::Column(expr) => {
+                ProvableExpr::<C>::verifier_evaluate(expr, builder, accessor)
+            }
             ProvableExprPlan::And(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Or(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Not(expr) => expr.verifier_evaluate(builder, accessor),
@@ -170,6 +195,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         match self {
+            ProvableExprPlan::Column(expr) => {
+                ProvableExpr::<C>::get_column_references(expr, columns)
+            }
             ProvableExprPlan::And(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             ProvableExprPlan::Or(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             ProvableExprPlan::Not(expr) => ProvableExpr::<C>::get_column_references(expr, columns),

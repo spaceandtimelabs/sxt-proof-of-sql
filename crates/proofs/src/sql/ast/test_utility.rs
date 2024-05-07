@@ -80,11 +80,19 @@ pub fn filter<C: Commitment>(
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
 
-pub fn col_expr(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnExpr {
-    ColumnExpr::new(col(tab, name, accessor))
+pub fn col_expr<C: Commitment>(
+    tab: TableRef,
+    name: &str,
+    accessor: &impl SchemaAccessor,
+) -> ColumnExpr<C> {
+    ColumnExpr::<C>::new(col(tab, name, accessor))
 }
 
-pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) -> Vec<ColumnExpr> {
+pub fn cols_expr<C: Commitment>(
+    tab: TableRef,
+    names: &[&str],
+    accessor: &impl SchemaAccessor,
+) -> Vec<ColumnExpr<C>> {
     names
         .iter()
         .map(|name| col_expr(tab, name, accessor))
@@ -92,33 +100,33 @@ pub fn cols_expr(tab: TableRef, names: &[&str], accessor: &impl SchemaAccessor) 
 }
 
 pub fn dense_filter<C: Commitment>(
-    results: Vec<ColumnExpr>,
+    results: Vec<ColumnExpr<C>>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> DenseFilterExpr<C> {
     DenseFilterExpr::new(results, table, where_clause)
 }
 
-pub fn sum_expr(
+pub fn sum_expr<C: Commitment>(
     tab: TableRef,
     name: &str,
     alias: &str,
     column_type: ColumnType,
     accessor: &impl SchemaAccessor,
-) -> (ColumnExpr, ColumnField) {
+) -> (ColumnExpr<C>, ColumnField) {
     (
         col_expr(tab, name, accessor),
         ColumnField::new(alias.parse().unwrap(), column_type),
     )
 }
 
-pub fn sums_expr(
+pub fn sums_expr<C: Commitment>(
     tab: TableRef,
     names: &[&str],
     aliases: &[&str],
     column_types: &[ColumnType],
     accessor: &impl SchemaAccessor,
-) -> Vec<(ColumnExpr, ColumnField)> {
+) -> Vec<(ColumnExpr<C>, ColumnField)> {
     names
         .iter()
         .zip(aliases.iter().zip(column_types.iter()))
@@ -127,8 +135,8 @@ pub fn sums_expr(
 }
 
 pub fn group_by<C: Commitment>(
-    group_by_exprs: Vec<ColumnExpr>,
-    sum_expr: Vec<(ColumnExpr, ColumnField)>,
+    group_by_exprs: Vec<ColumnExpr<C>>,
+    sum_expr: Vec<(ColumnExpr<C>, ColumnField)>,
     count_alias: &str,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,

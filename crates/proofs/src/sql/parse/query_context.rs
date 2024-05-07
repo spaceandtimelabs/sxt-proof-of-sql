@@ -258,7 +258,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
         let group_by_exprs = value
             .group_by_exprs
             .iter()
-            .map(|expr| -> Result<ColumnExpr, ConversionError> {
+            .map(|expr| -> Result<ColumnExpr<C>, ConversionError> {
                 value
                     .column_mapping
                     .get(expr)
@@ -266,9 +266,9 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
                         Box::new(*expr),
                         Box::new(resource_id),
                     ))
-                    .map(|column_ref| ColumnExpr::new(*column_ref))
+                    .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
             })
-            .collect::<Result<Vec<ColumnExpr>, ConversionError>>()?;
+            .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:
         // 1. Group by columns (it is mandatory to have all of them in the correct order)
         // 2. Sum(col) expressions (it is optional to have any)
@@ -330,7 +330,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
                     None
                 }
             })
-            .collect::<Option<Vec<(ColumnExpr, ColumnField)>>>();
+            .collect::<Option<Vec<(ColumnExpr<C>, ColumnField)>>>();
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];
