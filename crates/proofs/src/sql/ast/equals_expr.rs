@@ -71,7 +71,7 @@ impl<S: Scalar> EqualsExpr<S> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
         count_equals_zero(builder);
@@ -87,8 +87,8 @@ impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        match accessor.get_column(self.column_ref) {
+    ) -> Column<'a, C::Scalar> {
+        Column::Boolean(match accessor.get_column(self.column_ref) {
             Column::Boolean(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
             Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
@@ -98,7 +98,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)
             Column::Scalar(_) => todo!("Scalar column type not supported in equals_expr"),
-        }
+        })
     }
 
     #[tracing::instrument(
@@ -111,8 +111,8 @@ impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        match accessor.get_column(self.column_ref) {
+    ) -> Column<'a, C::Scalar> {
+        Column::Boolean(match accessor.get_column(self.column_ref) {
             Column::Boolean(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
             Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
@@ -122,7 +122,7 @@ impl<C: Commitment> ProvableExpr<C, bool> for EqualsExpr<C::Scalar> {
             // major refactoring is required to create tests for this
             // (in particular the tests need to use the OwnedTableTestAccessor)
             Column::Scalar(_col) => todo!(),
-        }
+        })
     }
 
     fn verifier_evaluate(

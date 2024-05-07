@@ -2,7 +2,7 @@ use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
@@ -35,7 +35,7 @@ impl ConstBoolExpr {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C, bool> for ConstBoolExpr {
+impl<C: Commitment> ProvableExpr<C> for ConstBoolExpr {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
@@ -49,8 +49,8 @@ impl<C: Commitment> ProvableExpr<C, bool> for ConstBoolExpr {
         table_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        alloc.alloc_slice_fill_copy(table_length, self.value)
+    ) -> Column<'a, C::Scalar> {
+        Column::Boolean(alloc.alloc_slice_fill_copy(table_length, self.value))
     }
 
     #[tracing::instrument(
@@ -63,8 +63,8 @@ impl<C: Commitment> ProvableExpr<C, bool> for ConstBoolExpr {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        alloc.alloc_slice_fill_copy(builder.table_length(), self.value)
+    ) -> Column<'a, C::Scalar> {
+        Column::Boolean(alloc.alloc_slice_fill_copy(builder.table_length(), self.value))
     }
 
     fn verifier_evaluate(

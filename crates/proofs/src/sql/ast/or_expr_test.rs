@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            make_random_test_accessor_data, Column, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         scalar::Curve25519Scalar,
@@ -154,6 +154,6 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
         or(equal(t, "b", 1, &accessor), equal(t, "d", "g", &accessor));
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = &[false, true, true, true];
+    let expected_res = Column::Boolean(&[false, true, true, true]);
     assert_eq!(res, expected_res);
 }

@@ -4,7 +4,7 @@ use crate::{
         bit::BitDistribution,
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTableTestAccessor,
+            make_random_test_accessor_data, Column, ColumnType, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         proof::{MessageLabel, TranscriptProtocol},
@@ -439,7 +439,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
         ProvableExprPlan::<RistrettoPoint>::new_inequality(col(t, "a", &accessor), 1.into(), true);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res = &[true, false, true];
+    let expected_res = Column::Boolean(&[true, false, true]);
     assert_eq!(res, expected_res);
 }
 
@@ -456,6 +456,6 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
         ProvableExprPlan::<RistrettoPoint>::new_inequality(col(t, "a", &accessor), 1.into(), false);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(3, &alloc, &accessor);
-    let expected_res = &[false, true, true];
+    let expected_res = Column::Boolean(&[false, true, true]);
     assert_eq!(res, expected_res);
 }

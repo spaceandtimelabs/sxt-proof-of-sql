@@ -2,7 +2,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
+            make_random_test_accessor_data, Column, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar},
@@ -327,6 +327,6 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     let equals_expr: ProvableExprPlan<RistrettoPoint> = equal(t, "e", 0, &accessor);
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = &[true, false, true, false];
+    let expected_res = Column::Boolean(&[true, false, true, false]);
     assert_eq!(res, expected_res);
 }

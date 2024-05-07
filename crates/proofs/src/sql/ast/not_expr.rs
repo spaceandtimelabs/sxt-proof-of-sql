@@ -1,34 +1,30 @@
-use super::ProvableExpr;
+use super::{ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, marker::PhantomData};
+use std::collections::HashSet;
 
 /// Provable logical NOT expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct NotExpr<C: Commitment, B: ProvableExpr<C, bool>> {
-    expr: Box<B>,
-    _phantom: PhantomData<C>,
+pub struct NotExpr<C: Commitment> {
+    expr: Box<ProvableExprPlan<C>>,
 }
 
-impl<C: Commitment, B: ProvableExpr<C, bool>> NotExpr<C, B> {
+impl<C: Commitment> NotExpr<C> {
     /// Create logical NOT expression
-    pub fn new(expr: Box<B>) -> Self {
-        Self {
-            expr,
-            _phantom: PhantomData,
-        }
+    pub fn new(expr: Box<ProvableExprPlan<C>>) -> Self {
+        Self { expr }
     }
 }
 
-impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for NotExpr<C, B> {
+impl<C: Commitment> ProvableExpr<C> for NotExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }
@@ -42,9 +38,11 @@ impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for NotExpr<
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        let selection = self.expr.result_evaluate(table_length, alloc, accessor);
-        alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
+    ) -> Column<'a, C::Scalar> {
+        let expr_column: Column<'a, C::Scalar> =
+            self.expr.result_evaluate(table_length, alloc, accessor);
+        let expr = expr_column.as_boolean().expect("expr is not boolean");
+        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
     #[tracing::instrument(
@@ -57,9 +55,11 @@ impl<C: Commitment, B: ProvableExpr<C, bool>> ProvableExpr<C, bool> for NotExpr<
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
-        let selection = self.expr.prover_evaluate(builder, alloc, accessor);
-        alloc.alloc_slice_fill_with(selection.len(), |i| !selection[i])
+    ) -> Column<'a, C::Scalar> {
+        let expr_column: Column<'a, C::Scalar> =
+            self.expr.prover_evaluate(builder, alloc, accessor);
+        let expr = expr_column.as_boolean().expect("expr is not boolean");
+        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
     fn verifier_evaluate(

@@ -158,9 +158,13 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
-        let selection = self
-            .where_clause
-            .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(builder.table_length(), alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
         // 2. columns
         let columns = Vec::from_iter(
             self.results
@@ -191,7 +195,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) {
         // 1. selection
-        let selection = self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause.prover_evaluate(builder, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
         // 2. columns
         let columns = Vec::from_iter(
             self.results

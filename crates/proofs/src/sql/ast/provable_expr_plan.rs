@@ -2,7 +2,7 @@ use super::{AndExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr,
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::{
@@ -18,11 +18,11 @@ use std::{collections::HashSet, fmt::Debug};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProvableExprPlan<C: Commitment> {
     /// Provable logical AND expression
-    And(AndExpr<C, Self>),
+    And(AndExpr<C>),
     /// Provable logical OR expression
-    Or(OrExpr<C, Self>),
+    Or(OrExpr<C>),
     /// Provable logical NOT expression
-    Not(NotExpr<C, Self>),
+    Not(NotExpr<C>),
     /// Provable logical CONST expression
     ConstBool(ConstBoolExpr),
     /// Provable AST expression for an equals expression
@@ -68,7 +68,7 @@ impl<C: Commitment> ProvableExprPlan<C> {
     }
 
     /// Check that the plan has the correct data type
-    pub fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
+    fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
         if self.data_type() == data_type {
             Ok(())
         } else {
@@ -80,15 +80,15 @@ impl<C: Commitment> ProvableExprPlan<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C, bool> for ProvableExprPlan<C> {
+impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         match self {
-            ProvableExprPlan::And(expr) => ProvableExpr::<C, bool>::count(expr, builder),
-            ProvableExprPlan::Or(expr) => ProvableExpr::<C, bool>::count(expr, builder),
-            ProvableExprPlan::Not(expr) => ProvableExpr::<C, bool>::count(expr, builder),
-            ProvableExprPlan::ConstBool(expr) => ProvableExpr::<C, bool>::count(expr, builder),
-            ProvableExprPlan::Equals(expr) => ProvableExpr::<C, bool>::count(expr, builder),
-            ProvableExprPlan::Inequality(expr) => ProvableExpr::<C, bool>::count(expr, builder),
+            ProvableExprPlan::And(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Or(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Not(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::ConstBool(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Equals(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Inequality(expr) => ProvableExpr::<C>::count(expr, builder),
         }
     }
 
@@ -102,25 +102,25 @@ impl<C: Commitment> ProvableExpr<C, bool> for ProvableExprPlan<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
+    ) -> Column<'a, C::Scalar> {
         match self {
             ProvableExprPlan::And(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::Or(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::Not(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::ConstBool(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::Equals(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::Inequality(expr) => {
-                ProvableExpr::<C, bool>::result_evaluate(expr, table_length, alloc, accessor)
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
         }
     }
@@ -130,25 +130,25 @@ impl<C: Commitment> ProvableExpr<C, bool> for ProvableExprPlan<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> &'a [bool] {
+    ) -> Column<'a, C::Scalar> {
         match self {
             ProvableExprPlan::And(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::Or(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::Not(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::ConstBool(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::Equals(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::Inequality(expr) => {
-                ProvableExpr::<C, bool>::prover_evaluate(expr, builder, alloc, accessor)
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
         }
     }
@@ -170,23 +170,17 @@ impl<C: Commitment> ProvableExpr<C, bool> for ProvableExprPlan<C> {
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
         match self {
-            ProvableExprPlan::And(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
-            }
-            ProvableExprPlan::Or(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
-            }
-            ProvableExprPlan::Not(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
-            }
+            ProvableExprPlan::And(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
+            ProvableExprPlan::Or(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
+            ProvableExprPlan::Not(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             ProvableExprPlan::ConstBool(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+                ProvableExpr::<C>::get_column_references(expr, columns)
             }
             ProvableExprPlan::Equals(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+                ProvableExpr::<C>::get_column_references(expr, columns)
             }
             ProvableExprPlan::Inequality(expr) => {
-                ProvableExpr::<C, bool>::get_column_references(expr, columns)
+                ProvableExpr::<C>::get_column_references(expr, columns)
             }
         }
     }

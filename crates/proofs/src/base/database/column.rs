@@ -30,7 +30,7 @@ pub enum Column<'a, S: Scalar> {
     Scalar(&'a [S]),
 }
 
-impl<S: Scalar> Column<'_, S> {
+impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
         match self {
@@ -59,6 +59,14 @@ impl<S: Scalar> Column<'_, S> {
     /// Returns `true` if the column has no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
+    pub(crate) fn as_boolean(&self) -> Option<&'a [bool]> {
+        match self {
+            Self::Boolean(col) => Some(col),
+            _ => None,
+        }
     }
 }
 

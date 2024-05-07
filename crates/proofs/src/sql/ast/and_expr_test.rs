@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, ColumnType, OwnedTable, OwnedTableTestAccessor,
+            make_random_test_accessor_data, Column, ColumnType, OwnedTable, OwnedTableTestAccessor,
             RandomTestAccessorDescriptor, TestAccessor,
         },
         scalar::Curve25519Scalar,
@@ -147,6 +147,6 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
-    let expected_res = &[false, true, false, false];
+    let expected_res = Column::Boolean(&[false, true, false, false]);
     assert_eq!(res, expected_res);
 }
