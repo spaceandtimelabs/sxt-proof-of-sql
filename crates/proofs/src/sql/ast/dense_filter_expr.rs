@@ -33,7 +33,7 @@ use std::{collections::HashSet, marker::PhantomData};
 /// This differs from the [`FilterExpr`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) results: Vec<ColumnExpr>,
+    pub(super) results: Vec<ColumnExpr<C>>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
@@ -43,7 +43,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
     #[cfg(test)]
     pub fn new(
-        results: Vec<ColumnExpr>,
+        results: Vec<ColumnExpr<C>>,
         table: TableExpr,
         where_clause: ProvableExprPlan<C>,
     ) -> Self {
@@ -67,7 +67,7 @@ where
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
         for expr in self.results.iter() {
-            expr.count(builder);
+            expr.count(builder)?;
             builder.count_result_columns(1);
         }
         builder.count_intermediate_mles(2);
@@ -102,7 +102,8 @@ where
         let columns_evals = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.verifier_evaluate(builder, accessor)),
+                .map(|expr| expr.verifier_evaluate(builder, accessor))
+                .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. indexes
         let indexes_eval = builder
@@ -169,7 +170,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.result_evaluate::<C::Scalar>(accessor)),
+                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -205,7 +206,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.prover_evaluate::<C::Scalar>(builder, accessor)),
+                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

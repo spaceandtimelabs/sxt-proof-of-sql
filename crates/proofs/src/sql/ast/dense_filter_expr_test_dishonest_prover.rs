@@ -46,7 +46,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr<RistrettoPoin
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.result_evaluate(accessor)),
+                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -82,7 +82,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr<RistrettoPoin
         let columns = Vec::from_iter(
             self.results
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, accessor)),
+                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
