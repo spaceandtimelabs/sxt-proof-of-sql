@@ -2,17 +2,17 @@ use super::ProvableExpr;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
         proof::ProofError,
+        scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-/// Provable logical CONST expression
+/// Provable CONST expression
 ///
 /// This node allows us to easily represent queries like
 ///    select * from T
@@ -24,24 +24,24 @@ use std::collections::HashSet;
 /// such queries, it allows us to easily support projects with minimal code
 /// changes, and the performance is sufficient for present.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ConstBoolExpr {
-    value: bool,
+pub struct LiteralExpr<S: Scalar> {
+    value: LiteralValue<S>,
 }
 
-impl ConstBoolExpr {
-    /// Create logical NOT expression
-    pub fn new(value: bool) -> Self {
+impl<S: Scalar> LiteralExpr<S> {
+    /// Create literal expression
+    pub fn new(value: LiteralValue<S>) -> Self {
         Self { value }
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for ConstBoolExpr {
+impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }
 
     fn data_type(&self) -> ColumnType {
-        ColumnType::Boolean
+        self.value.column_type()
     }
 
     fn result_evaluate<'a>(
@@ -50,11 +50,22 @@ impl<C: Commitment> ProvableExpr<C> for ConstBoolExpr {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        Column::Boolean(alloc.alloc_slice_fill_copy(table_length, self.value))
+        match self.value {
+            LiteralValue::Boolean(value) => {
+                Column::Boolean(alloc.alloc_slice_fill_copy(table_length, value))
+            }
+            LiteralValue::BigInt(value) => {
+                Column::BigInt(alloc.alloc_slice_fill_copy(table_length, value))
+            }
+            LiteralValue::Int128(value) => {
+                Column::Int128(alloc.alloc_slice_fill_copy(table_length, value))
+            }
+            _ => todo!(),
+        }
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.const_bool_expr.prover_evaluate",
+        name = "proofs.sql.ast.literal_expr.prover_evaluate",
         level = "info",
         skip_all
     )]
@@ -64,7 +75,18 @@ impl<C: Commitment> ProvableExpr<C> for ConstBoolExpr {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        Column::Boolean(alloc.alloc_slice_fill_copy(builder.table_length(), self.value))
+        match self.value.clone() {
+            LiteralValue::Boolean(value) => {
+                Column::Boolean(alloc.alloc_slice_fill_copy(builder.table_length(), value))
+            }
+            LiteralValue::BigInt(value) => {
+                Column::BigInt(alloc.alloc_slice_fill_copy(builder.table_length(), value))
+            }
+            LiteralValue::Int128(value) => {
+                Column::Int128(alloc.alloc_slice_fill_copy(builder.table_length(), value))
+            }
+            _ => todo!(),
+        }
     }
 
     fn verifier_evaluate(
@@ -72,11 +94,9 @@ impl<C: Commitment> ProvableExpr<C> for ConstBoolExpr {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        if self.value {
-            Ok(builder.mle_evaluations.one_evaluation)
-        } else {
-            Ok(C::Scalar::zero())
-        }
+        let mut commitment = builder.mle_evaluations.one_evaluation;
+        commitment *= self.value.to_scalar();
+        Ok(commitment)
     }
 
     fn get_column_references(&self, _columns: &mut HashSet<ColumnRef>) {}

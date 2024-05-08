@@ -130,7 +130,7 @@ macro_rules! expected_query {
         orderby_macro!($($order_by)?, $($order_dirs)?);
 
         macro_rules! filter_macro {
-            () => {filter(cols_result(t, &$result_columns, &accessor), tab(t), const_v(true))};
+            () => {filter(cols_result(t, &$result_columns, &accessor), tab(t), const_bool(true))};
             ($expr:expr) => { filter(cols_result(t, &$result_columns, &accessor), tab(t), $expr) };
         }
         let filter = filter_macro!($($filter)?);
@@ -629,7 +629,7 @@ fn we_can_convert_an_ast_without_any_filter() {
         0,
     );
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         result(&[("a", "a")]),
     );
     let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
@@ -835,7 +835,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
                     col_result(t, "salary", &accessor),
                 ],
                 tab(t),
-                const_v(true),
+                const_bool(true),
             ),
             composite_result(vec![
                 select(&[
@@ -867,7 +867,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(3, 0)]),
     );
     assert_eq!(ast, expected_ast);
@@ -886,7 +886,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         composite_result(vec![select(&[pc("a").alias("a")])]),
     );
     assert_eq!(ast, expected_ast);
@@ -905,7 +905,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
@@ -924,7 +924,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
@@ -943,7 +943,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
-        filter(cols_result(t, &["a"], &accessor), tab(t), const_v(true)),
+        filter(cols_result(t, &["a"], &accessor), tab(t), const_bool(true)),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
@@ -1017,7 +1017,7 @@ fn we_can_do_provable_group_by() {
             ),
             "num_employee",
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![select(&[
             pc("department").first().alias("department"),
@@ -1051,7 +1051,7 @@ fn we_can_do_provable_group_by_without_sum() {
             vec![],
             "num_employee",
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![select(&[
             pc("department").first().alias("department"),
@@ -1091,7 +1091,7 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
             ),
             "num_employee",
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![select(&[
             pc("state").first().alias("state"),
@@ -1168,7 +1168,7 @@ fn we_can_group_by_without_using_aggregate_functions() {
         filter(
             cols_result(t, &["department"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![
             groupby(
@@ -1325,7 +1325,7 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
         filter(
             cols_result(t, &["bonus", "department"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![
             groupby(
@@ -1359,7 +1359,7 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
         filter(
             cols_result(t, &["bonus", "department"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![
             groupby(
@@ -1451,7 +1451,7 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
         filter(
             cols_result(t, &["department"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![
             groupby(
@@ -1513,7 +1513,7 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
         filter(
             cols_result(t, &["a", "b", "f", "h"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![select(&[
             (pc("a") + pc("b")).alias("__expr__"),
@@ -1551,7 +1551,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
         filter(
             cols_result(t, &["c", "f", "g", "h"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![select(&[
             ((lit(2) + pc("f")) * (pc("c") + pc("g") + lit(2) * pc("h"))).alias("__expr__"),
@@ -1583,7 +1583,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
         filter(
             cols_result(t, &["c", "f"], &accessor),
             tab(t),
-            const_v(true),
+            const_bool(true),
         ),
         composite_result(vec![
             groupby(

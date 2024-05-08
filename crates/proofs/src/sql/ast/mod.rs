@@ -24,10 +24,10 @@ pub(crate) use provable_expr::ProvableExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod provable_expr_test;
 
-mod const_bool_expr;
-use const_bool_expr::ConstBoolExpr;
+mod literal_expr;
+use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]
-mod const_bool_expr_test;
+mod literal_expr_test;
 
 mod and_expr;
 use and_expr::AndExpr;
