@@ -8,6 +8,9 @@ mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 pub(crate) use column::{INT128_PRECISION, INT128_SCALE};
 
+mod literal_value;
+pub use literal_value::LiteralValue;
+
 mod table_ref;
 pub use table_ref::TableRef;
 

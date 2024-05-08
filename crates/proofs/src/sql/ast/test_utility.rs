@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::{
     commitment::Commitment,
-    database::{ColumnField, ColumnRef, ColumnType, SchemaAccessor, TableRef},
+    database::{ColumnField, ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
 };
 
 pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
@@ -49,8 +49,8 @@ pub fn or<C: Commitment>(
     ProvableExprPlan::try_new_or(left, right).unwrap()
 }
 
-pub fn const_v<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_const_bool(val)
+pub fn const_bool<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::Boolean(val))
 }
 
 pub fn tab(tab: TableRef) -> TableExpr {

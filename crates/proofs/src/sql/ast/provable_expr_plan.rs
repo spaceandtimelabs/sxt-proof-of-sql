@@ -1,10 +1,10 @@
 use super::{
-    AndExpr, ColumnExpr, ConstBoolExpr, EqualsExpr, InequalityExpr, NotExpr, OrExpr, ProvableExpr,
+    AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, NotExpr, OrExpr, ProvableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
         proof::ProofError,
     },
     sql::{
@@ -27,8 +27,8 @@ pub enum ProvableExprPlan<C: Commitment> {
     Or(OrExpr<C>),
     /// Provable logical NOT expression
     Not(NotExpr<C>),
-    /// Provable logical CONST expression
-    ConstBool(ConstBoolExpr),
+    /// Provable CONST expression
+    Literal(LiteralExpr<C::Scalar>),
     /// Provable AST expression for an equals expression
     Equals(EqualsExpr<C::Scalar>),
     /// Provable AST expression for an inequality expression
@@ -62,9 +62,9 @@ impl<C: Commitment> ProvableExprPlan<C> {
         expr.check_data_type(ColumnType::Boolean)?;
         Ok(Self::Not(NotExpr::new(Box::new(expr))))
     }
-    /// Create logical CONST expression
-    pub fn new_const_bool(value: bool) -> Self {
-        Self::ConstBool(ConstBoolExpr::new(value))
+    /// Create CONST expression
+    pub fn new_literal(value: LiteralValue<C::Scalar>) -> Self {
+        Self::Literal(LiteralExpr::new(value))
     }
     /// Create a new equals expression
     pub fn new_equals(column_ref: ColumnRef, value: C::Scalar) -> Self {
@@ -95,7 +95,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::And(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Or(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Not(expr) => ProvableExpr::<C>::count(expr, builder),
-            ProvableExprPlan::ConstBool(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Literal(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Equals(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Inequality(expr) => ProvableExpr::<C>::count(expr, builder),
         }
@@ -104,8 +104,8 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
     fn data_type(&self) -> ColumnType {
         match self {
             ProvableExprPlan::Column(expr) => expr.data_type(),
-            ProvableExprPlan::ConstBool(_)
-            | ProvableExprPlan::And(_)
+            ProvableExprPlan::Literal(expr) => ProvableExpr::<C>::data_type(expr),
+            ProvableExprPlan::And(_)
             | ProvableExprPlan::Or(_)
             | ProvableExprPlan::Not(_)
             | ProvableExprPlan::Equals(_)
@@ -132,7 +132,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Not(expr) => {
                 ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
-            ProvableExprPlan::ConstBool(expr) => {
+            ProvableExprPlan::Literal(expr) => {
                 ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             ProvableExprPlan::Equals(expr) => {
@@ -163,7 +163,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Not(expr) => {
                 ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
-            ProvableExprPlan::ConstBool(expr) => {
+            ProvableExprPlan::Literal(expr) => {
                 ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             ProvableExprPlan::Equals(expr) => {
@@ -187,7 +187,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::And(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Or(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Not(expr) => expr.verifier_evaluate(builder, accessor),
-            ProvableExprPlan::ConstBool(expr) => expr.verifier_evaluate(builder, accessor),
+            ProvableExprPlan::Literal(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Equals(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Inequality(expr) => expr.verifier_evaluate(builder, accessor),
         }
@@ -201,7 +201,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::And(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             ProvableExprPlan::Or(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             ProvableExprPlan::Not(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            ProvableExprPlan::ConstBool(expr) => {
+            ProvableExprPlan::Literal(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
             ProvableExprPlan::Equals(expr) => {

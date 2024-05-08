@@ -2,7 +2,7 @@ use super::{where_expr_builder::WhereExprBuilder, ConversionError};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, TableRef},
+        database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::ast::{FilterExpr, FilterResultExpr, ProvableExprPlan, TableExpr},
 };
@@ -59,7 +59,7 @@ impl<C: Commitment> FilterExprBuilder<C> {
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
-                .unwrap_or_else(|| ProvableExprPlan::new_const_bool(true)),
+                .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true))),
         )
     }
 }

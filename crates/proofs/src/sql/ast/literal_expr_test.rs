@@ -5,7 +5,7 @@ use crate::{
         RecordBatchTestAccessor, TestAccessor, UnimplementedTestAccessor,
     },
     record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::const_v},
+    sql::ast::{test_expr::TestExprNode, test_utility::const_bool},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -25,7 +25,7 @@ fn create_test_const_bool_expr(
     let table_ref = table_ref.parse().unwrap();
     accessor.add_table(table_ref, data, offset);
     let df_filter = lit(filter_val);
-    let const_expr = const_v(filter_val);
+    let const_expr = const_bool(filter_val);
     TestExprNode::new(table_ref, results, const_expr, df_filter, accessor)
 }
 
@@ -75,11 +75,11 @@ fn we_can_select_from_tables_with_an_always_false_where_clause() {
 }
 
 #[test]
-fn we_can_compute_the_correct_output_of_a_const_bool_expr_using_result_evaluate() {
+fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let accessor = UnimplementedTestAccessor::new_empty();
-    let const_bool_expr: ProvableExprPlan<RistrettoPoint> = const_v(true);
+    let literal_expr: ProvableExprPlan<RistrettoPoint> = const_bool(true);
     let alloc = Bump::new();
-    let res = const_bool_expr.result_evaluate(4, &alloc, &accessor);
+    let res = literal_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = Column::Boolean(&[true, true, true, true]);
     assert_eq!(res, expected_res);
 }
