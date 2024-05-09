@@ -72,8 +72,9 @@ mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
 
 mod dense_filter_expr;
+pub(crate) use dense_filter_expr::DenseFilterExpr;
 #[cfg(test)]
-pub(crate) use dense_filter_expr::{DenseFilterExpr, OstensibleDenseFilterExpr};
+pub(crate) use dense_filter_expr::OstensibleDenseFilterExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod dense_filter_expr_test;
 #[cfg(all(test, feature = "blitzar"))]
