@@ -123,14 +123,14 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(())
     }
 
-    /// Visits the expression and returns its data type, or None if it's a boolean expression.
+    /// Visits the expression and returns its data type.
     ///
     /// This function accepts the expression as a mutable reference because certain expressions
     /// require replacement, such as `count(*)` being replaced with `count(some_column)`.
-    fn visit_expr(&mut self, expr: &mut Expression) -> ConversionResult<Option<ColumnType>> {
+    fn visit_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
         match expr {
             Expression::Wildcard => self.visit_wildcard_expr(expr),
-            Expression::Literal(literal) => Ok(Some(self.visit_literal(literal.deref())?)),
+            Expression::Literal(literal) => self.visit_literal(literal.deref()),
             Expression::Column(_) => self.visit_column_expr(expr),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, expr),
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, left, right),
@@ -138,10 +138,8 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_wildcard_expr(
-        &mut self,
-        expr: &mut Expression,
-    ) -> ConversionResult<Option<ColumnType>> {
+    //TODO: Actually support multicolumn expressions
+    fn visit_wildcard_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
         let (col_name, col_type) = match self.context.get_any_result_column_ref() {
             Some((name, col_type)) => (name, col_type),
             None => self.lookup_schema().into_iter().next().unwrap(),
@@ -154,10 +152,10 @@ impl<'a> QueryContextBuilder<'a> {
         self.visit_column_expr(expr)?;
 
         // Return the column type
-        Ok(Some(col_type))
+        Ok(col_type)
     }
 
-    fn visit_column_expr(&mut self, expr: &mut Expression) -> ConversionResult<Option<ColumnType>> {
+    fn visit_column_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
         let identifier = match expr {
             Expression::Column(identifier) => *identifier,
             _ => panic!("Must be a column expression"),
@@ -170,7 +168,7 @@ impl<'a> QueryContextBuilder<'a> {
             *expr = *Expression::Column(identifier).first();
         }
 
-        Ok(Some(self.visit_column_identifier(identifier)?))
+        self.visit_column_identifier(identifier)
     }
 
     fn visit_binary_expr(
@@ -178,26 +176,26 @@ impl<'a> QueryContextBuilder<'a> {
         op: &BinaryOperator,
         left: &mut Expression,
         right: &mut Expression,
-    ) -> ConversionResult<Option<ColumnType>> {
+    ) -> ConversionResult<ColumnType> {
         match op {
             BinaryOperator::And | BinaryOperator::Or => {
                 let left_dtype = self.visit_expr(left)?;
                 let right_dtype = self.visit_expr(right)?;
-                assert!(left_dtype.is_none() && right_dtype.is_none());
-                Ok(None)
+                assert!(left_dtype == ColumnType::Boolean && right_dtype == ColumnType::Boolean);
+                Ok(ColumnType::Boolean)
             }
             BinaryOperator::Equal => {
                 self.visit_equal_expr(left, right)?;
-                Ok(None)
+                Ok(ColumnType::Boolean)
             }
             BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
                 self.visit_inequality_expr(left, right)?;
-                Ok(None)
+                Ok(ColumnType::Boolean)
             }
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
-            | BinaryOperator::Add => Ok(Some(self.visit_arithmetic_expr(left, right)?)),
+            | BinaryOperator::Add => Ok(self.visit_arithmetic_expr(left, right)?),
         }
     }
 
@@ -206,13 +204,12 @@ impl<'a> QueryContextBuilder<'a> {
         left: &mut Expression,
         right: &mut Expression,
     ) -> ConversionResult<ColumnType> {
-        let err_msg = "parser must prevent arithmetic operations with bool expresions";
-        let left_dtype = self.visit_expr(left)?.expect(err_msg);
-        let right_dtype = self.visit_expr(right)?.expect(err_msg);
+        let left_dtype = self.visit_expr(left)?;
+        let right_dtype = self.visit_expr(right)?;
 
         check_dtypes(left_dtype, right_dtype)?;
 
-        if ColumnType::VarChar == left_dtype {
+        if ColumnType::VarChar == left_dtype || ColumnType::Boolean == right_dtype {
             return Err(ConversionError::InvalidExpression(format!(
                 "arithmetic operations with data type {} is not supported",
                 left_dtype
@@ -226,15 +223,15 @@ impl<'a> QueryContextBuilder<'a> {
         &mut self,
         op: &UnaryOperator,
         expr: &mut Expression,
-    ) -> ConversionResult<Option<ColumnType>> {
+    ) -> ConversionResult<ColumnType> {
         match op {
             UnaryOperator::Not => {
                 let dtype = self.visit_expr(expr)?;
                 assert!(
-                    dtype.is_none(),
+                    dtype == ColumnType::Boolean,
                     "Unary not must be applied to a bool expression for now"
                 );
-                Ok(None)
+                Ok(ColumnType::Boolean)
             }
         }
     }
@@ -243,14 +240,13 @@ impl<'a> QueryContextBuilder<'a> {
         &mut self,
         op: &AggregationOperator,
         expr: &mut Expression,
-    ) -> ConversionResult<Option<ColumnType>> {
+    ) -> ConversionResult<ColumnType> {
         self.context.set_in_agg_scope(true)?;
 
         let expr_dtype = self.visit_expr(expr)?;
 
         // We only support sum/max/min aggregations on numeric columns.
-        if op != &AggregationOperator::Count && expr_dtype == Some(ColumnType::VarChar) {
-            let expr_dtype = expr_dtype.unwrap();
+        if op != &AggregationOperator::Count && expr_dtype == ColumnType::VarChar {
             return Err(ConversionError::non_numeric_expr_in_agg(
                 expr_dtype.to_string(),
                 op.to_string(),
@@ -261,7 +257,7 @@ impl<'a> QueryContextBuilder<'a> {
 
         // Count aggregation always results in an integer type
         if op == &AggregationOperator::Count {
-            Ok(Some(ColumnType::BigInt))
+            Ok(ColumnType::BigInt)
         } else {
             Ok(expr_dtype)
         }
@@ -349,6 +345,7 @@ fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bo
                 ColumnType::BigInt | ColumnType::Int128
             )
             | (ColumnType::VarChar, ColumnType::VarChar)
+            | (ColumnType::Boolean, ColumnType::Boolean)
     )
 }
 
