@@ -85,7 +85,7 @@ impl<C: Commitment> QueryExpr<C> {
             .build();
 
         Ok(Self {
-            proof_expr: ProofPlan::Filter(filter),
+            proof_expr: ProofPlan::DenseFilter(filter),
             result,
         })
     }

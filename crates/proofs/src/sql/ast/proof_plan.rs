@@ -1,4 +1,4 @@
-use super::{FilterExpr, GroupByExpr};
+use super::{DenseFilterExpr, FilterExpr, GroupByExpr};
 use crate::{
     base::commitment::Commitment,
     sql::proof::{ProofExpr, ProverEvaluate},
@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProofPlan<C: Commitment> {
-    /// Provable expressions for queries of the form
+    /// Provable expressions for queries of the form, where the result is sent in a sparse form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
@@ -23,6 +23,11 @@ pub enum ProofPlan<C: Commitment> {
     ///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
     /// ```
     GroupBy(GroupByExpr<C>),
+    /// Provable expressions for queries of the form, where the result is sent in a dense form
+    /// ```ignore
+    ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
+    /// ```
+    DenseFilter(DenseFilterExpr<C>),
 }
 
 impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
@@ -34,6 +39,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.count(builder, accessor),
             ProofPlan::GroupBy(expr) => expr.count(builder, accessor),
+            ProofPlan::DenseFilter(expr) => expr.count(builder, accessor),
         }
     }
 
@@ -41,6 +47,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.get_length(accessor),
             ProofPlan::GroupBy(expr) => expr.get_length(accessor),
+            ProofPlan::DenseFilter(expr) => expr.get_length(accessor),
         }
     }
 
@@ -48,6 +55,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.get_offset(accessor),
             ProofPlan::GroupBy(expr) => expr.get_offset(accessor),
+            ProofPlan::DenseFilter(expr) => expr.get_offset(accessor),
         }
     }
 
@@ -59,6 +67,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor),
             ProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor),
+            ProofPlan::DenseFilter(expr) => expr.verifier_evaluate(builder, accessor),
         }
     }
 
@@ -66,6 +75,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.get_column_result_fields(),
             ProofPlan::GroupBy(expr) => expr.get_column_result_fields(),
+            ProofPlan::DenseFilter(expr) => expr.get_column_result_fields(),
         }
     }
 
@@ -73,6 +83,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.get_column_references(),
             ProofPlan::GroupBy(expr) => expr.get_column_references(),
+            ProofPlan::DenseFilter(expr) => expr.get_column_references(),
         }
     }
 }
@@ -87,6 +98,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
             ProofPlan::GroupBy(expr) => expr.result_evaluate(builder, alloc, accessor),
+            ProofPlan::DenseFilter(expr) => expr.result_evaluate(builder, alloc, accessor),
         }
     }
 
@@ -99,6 +111,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
         match self {
             ProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),
             ProofPlan::GroupBy(expr) => expr.prover_evaluate(builder, alloc, accessor),
+            ProofPlan::DenseFilter(expr) => expr.prover_evaluate(builder, alloc, accessor),
         }
     }
 }

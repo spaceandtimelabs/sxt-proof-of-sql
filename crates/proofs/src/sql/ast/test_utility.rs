@@ -103,8 +103,8 @@ pub fn dense_filter<C: Commitment>(
     results: Vec<ColumnExpr<C>>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
-) -> DenseFilterExpr<C> {
-    DenseFilterExpr::new(results, table, where_clause)
+) -> ProofPlan<C> {
+    ProofPlan::DenseFilter(DenseFilterExpr::new(results, table, where_clause))
 }
 
 pub fn sum_expr<C: Commitment>(

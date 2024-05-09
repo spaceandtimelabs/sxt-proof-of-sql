@@ -41,7 +41,6 @@ pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
 
 impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
-    #[cfg(test)]
     pub fn new(
         results: Vec<ColumnExpr<C>>,
         table: TableExpr,

@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
     },
-    sql::ast::{FilterExpr, FilterResultExpr, ProvableExprPlan, TableExpr},
+    sql::ast::{ColumnExpr, DenseFilterExpr, ProvableExprPlan, TableExpr},
 };
 use proofs_sql::{intermediate_ast::Expression, Identifier};
 use std::collections::{HashMap, HashSet};
@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<ProvableExprPlan<C>>,
-    filter_result_expr_list: Vec<FilterResultExpr>,
+    filter_result_expr_list: Vec<ColumnExpr<C>>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
 
@@ -47,15 +47,14 @@ impl<C: Commitment> FilterExprBuilder<C> {
 
         columns.into_iter().for_each(|column| {
             let column = *self.column_mapping.get(&column).unwrap();
-            self.filter_result_expr_list
-                .push(FilterResultExpr::new(column));
+            self.filter_result_expr_list.push(ColumnExpr::new(column));
         });
 
         self
     }
 
-    pub fn build(self) -> FilterExpr<C> {
-        FilterExpr::new(
+    pub fn build(self) -> DenseFilterExpr<C> {
+        DenseFilterExpr::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
