@@ -1,6 +1,6 @@
-#[cfg(test)]
-use rayon::iter::IntoParallelRefMutIterator;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 
 /// This operation takes a slice and casts it to a vector of a different type using the provided function.
 #[cfg(test)]
@@ -62,7 +62,6 @@ where
 }
 
 /// This operation takes a slice and casts it to a mutable slice of a different type using the provided function.
-#[cfg(test)]
 pub fn slice_cast_mut<'a, F, T>(value: &'a [F], result: &mut [T])
 where
     F: Sync,
