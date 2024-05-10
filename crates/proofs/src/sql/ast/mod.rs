@@ -81,9 +81,9 @@ mod dense_filter_expr_test;
 mod dense_filter_expr_test_dishonest_prover;
 
 mod dense_filter_util;
-#[cfg(test)]
-pub(crate) use dense_filter_util::fold_vals;
-pub(crate) use dense_filter_util::{filter_column_by_index, filter_columns};
+pub(crate) use dense_filter_util::{
+    filter_column_by_index, filter_columns, fold_columns, fold_vals,
+};
 #[cfg(test)]
 mod dense_filter_util_test;
 
