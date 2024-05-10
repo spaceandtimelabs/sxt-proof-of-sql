@@ -6,8 +6,11 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ConversionError {
     #[error("Column '{0}' was not found in table '{1}'")]
-    /// TODO: add docs
+    /// The column is missing in the table
     MissingColumn(Box<Identifier>, Box<ResourceId>),
+    #[error("Column '{0}' was not found")]
+    /// The column is missing (without table information)
+    MissingColumnWithoutTable(Box<Identifier>),
     #[error("Expected '{expected}' but found '{actual}'")]
     /// TODO: add docs
     InvalidDataType {
@@ -22,6 +25,9 @@ pub enum ConversionError {
     #[error("Multiple result columns with the same alias '{0}' have been found.")]
     /// TODO: add docs
     DuplicateResultAlias(String),
+    /// A WHERE clause must has boolean type.
+    #[error("A WHERE clause must has boolean type. It is currently of type '{0}'.")]
+    NonbooleanWhereClause(ColumnType),
     #[error("Invalid order by: alias '{0}' does not appear in the result expressions.")]
     /// TODO: add docs
     InvalidOrderBy(String),

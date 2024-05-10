@@ -8,7 +8,10 @@ mod tests {
         record_batch,
         sql::{
             ast::ProvableExprPlan,
-            parse::{query_expr_tests::record_batch_to_accessor, QueryExpr, WhereExprBuilder},
+            parse::{
+                query_expr_tests::record_batch_to_accessor, ConversionError, QueryExpr,
+                WhereExprBuilder,
+            },
         },
     };
     use curve25519_dalek::RistrettoPoint;
@@ -28,6 +31,14 @@ mod tests {
     fn get_column_mappings_for_testing() -> HashMap<Identifier, ColumnRef> {
         let mut column_mapping = HashMap::new();
         // Setup column mapping
+        column_mapping.insert(
+            Identifier::try_new("boolean_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("boolean_column").unwrap(),
+                ColumnType::Boolean,
+            ),
+        );
         column_mapping.insert(
             Identifier::try_new("decimal_column").unwrap(),
             ColumnRef::new(
@@ -90,6 +101,42 @@ mod tests {
         assert!(builder
             .build::<RistrettoPoint>(Some(Box::new(expr)))
             .is_err());
+    }
+
+    #[test]
+    fn we_can_directly_check_whether_boolean_column_is_true() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_boolean = Expression::Column(Identifier::try_new("boolean_column").unwrap());
+        assert!(builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_boolean)))
+            .is_ok());
+    }
+
+    #[test]
+    fn we_can_directly_check_whether_boolean_literal_is_true() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_boolean = Expression::Literal(Literal::Boolean(false));
+        assert!(builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_boolean)))
+            .is_ok());
+    }
+
+    #[test]
+    fn we_can_directly_check_whether_boolean_columns_eq_boolean() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_boolean_to_boolean = Expression::Binary {
+            op: BinaryOperator::Equal,
+            left: Box::new(Expression::Column(
+                Identifier::try_new("boolean_column").unwrap(),
+            )),
+            right: Box::new(Expression::Literal(Literal::Boolean(false))),
+        };
+        assert!(builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_boolean_to_boolean)))
+            .is_ok());
     }
 
     #[test]
@@ -227,36 +274,45 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "The parser must ensure that the expression is a boolean expression")]
-    fn unexpected_expression_panics() {
-        let column_mapping = HashMap::new();
+    fn we_can_not_have_missing_column_as_where_clause() {
+        let column_mapping = get_column_mappings_for_testing();
 
         let builder = WhereExprBuilder::new(&column_mapping);
-        // Creating an unexpected expression type
-        let expr_unexpected = Expression::Literal(Literal::Int128(123));
-        builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_unexpected)))
-            .unwrap();
+
+        let expr_missing = Expression::Column(Identifier::try_new("not_a_column").unwrap());
+        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_missing)));
+        assert!(matches!(
+            res,
+            Result::Err(ConversionError::MissingColumnWithoutTable(_))
+        ));
     }
 
     #[test]
-    #[should_panic(expected = "The parser must ensure that the left side is a column")]
-    fn left_side_not_column_panics() {
+    fn we_can_not_have_non_boolean_column_as_where_clause() {
+        let column_mapping = get_column_mappings_for_testing();
+
+        let builder = WhereExprBuilder::new(&column_mapping);
+
+        let expr_non_boolean = Expression::Column(Identifier::try_new("varchar_column").unwrap());
+        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_non_boolean)));
+        assert!(matches!(
+            res,
+            Result::Err(ConversionError::NonbooleanWhereClause(_))
+        ));
+    }
+
+    #[test]
+    fn we_can_not_have_non_boolean_literal_as_where_clause() {
         let column_mapping = HashMap::new();
 
         let builder = WhereExprBuilder::new(&column_mapping);
-        // Intentionally setting the left expression to a non-column type to trigger a panic
-        let left_expr = Expression::Literal(Literal::Int128(123));
-        let right_expr = Expression::Literal(Literal::Int128(456));
 
-        let expr = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        };
-
-        // This should trigger a panic due to the left side not being a column
-        let _ = builder.build::<RistrettoPoint>(Some(Box::new(expr)));
+        let expr_non_boolean = Expression::Literal(Literal::Int128(123));
+        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_non_boolean)));
+        assert!(matches!(
+            res,
+            Result::Err(ConversionError::NonbooleanWhereClause(_))
+        ));
     }
 
     #[test]
