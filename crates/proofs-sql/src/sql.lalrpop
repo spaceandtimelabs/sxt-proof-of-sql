@@ -111,7 +111,7 @@ SelectResultExprList: Vec<intermediate_ast::SelectResultExpr> = {
 SelectResultExpr: intermediate_ast::SelectResultExpr = {
     "*" => intermediate_ast::SelectResultExpr::ALL,
 
-    <expr: ArithmeticExpression> <alias: ("as"? <Identifier>)?> => intermediate_ast::SelectResultExpr::AliasedResultExpr(
+    <expr: Expression> <alias: ("as"? <Identifier>)?> => intermediate_ast::SelectResultExpr::AliasedResultExpr(
         intermediate_ast::AliasedResultExpr {
                  expr: expr.clone(),
                  alias: alias.unwrap_or({
@@ -179,36 +179,60 @@ WhereClause: Box<intermediate_ast::Expression> = {
 // For instance, see this thread:
 // [here](https://gitter.im/lalrpop/Lobby?at=6368164d9ee3ec22b4fa69cb)
 ExprParen: Box<intermediate_ast::Expression> = "(" <Expression> ")";
+// Operator precedence is defined according to postgres order [here](https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-PRECEDENCE)
 Expression: Box<intermediate_ast::Expression> = {
     #[precedence(level="0")]
+    BasicExpression,
+
     ExprParen,
 
-    #[precedence(level="1")]
-    ComparativeExpression,
+    // Since these always have parentheses, they are the highest precedence
+    <agg: AggregationExpression> => Box::new(intermediate_ast::Expression::Aggregation {
+            op: agg.0,
+            expr: agg.1,
+        }),
 
-    #[precedence(level="2")] #[assoc(side="right")]
-    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Unary {
-        op: intermediate_ast::UnaryOperator::Not, expr
+    #[precedence(level="1")]
+    "-" "(" <expr: Expression> ")" => Box::new(intermediate_ast::Expression::Binary {
+        op: intermediate_ast::BinaryOperator::Multiply,
+        left: Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::Int128(-1))),
+        right: expr
     }),
 
-    #[precedence(level="3")] #[assoc(side="left")]
-    <left: Expression> "and" <right: Expression> =>
+    // To account for non-associative division (e.g., 'a * b / c' equals 
+    // '(a * b) / c' but differs from 'a * (b / c)'), it's essential to
+    // enforce left associativity for the '*' and '/' arithmetic operators.
+    #[precedence(level="2")] #[assoc(side="left")]
+    <left: Expression> "*" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::And,
+            op: intermediate_ast::BinaryOperator::Multiply,
+            left,
+            right, 
+        }),
+
+    <left: Expression> "/" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Division,
+            left,
+            right, 
+        }),
+
+    #[precedence(level="3")] #[assoc(side="left")]
+    <left: Expression> "+" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Add,
+            left,
+            right, 
+        }),
+
+    <left: Expression> "-" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Subtract,
             left,
             right, 
         }),
 
     #[precedence(level="4")] #[assoc(side="left")]
-    <left: Expression> "or" <right: Expression> =>
-        Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::Or,
-            left,
-            right, 
-        }),
-};
-
-ComparativeExpression: Box<intermediate_ast::Expression> = {
     <left: QualifiedColumnIdentifier> "=" <right: LiteralValue> =>
         Box::new(intermediate_ast::Expression::Binary {
             op: intermediate_ast::BinaryOperator::Equal,
@@ -270,103 +294,56 @@ ComparativeExpression: Box<intermediate_ast::Expression> = {
             left: Box::new(intermediate_ast::Expression::Column(right)),
             right: Box::new(intermediate_ast::Expression::Literal(*left)), 
         }),
+
+    #[precedence(level="5")] #[assoc(side="right")]
+    "not" <expr: Expression> => Box::new(intermediate_ast::Expression::Unary {
+        op: intermediate_ast::UnaryOperator::Not, expr
+    }),
+
+    #[precedence(level="6")] #[assoc(side="left")]
+    <left: Expression> "and" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::And,
+            left,
+            right, 
+        }),
+
+    #[precedence(level="7")] #[assoc(side="left")]
+    <left: Expression> "or" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Binary {
+            op: intermediate_ast::BinaryOperator::Or,
+            left,
+            right, 
+        }),
 };
 
 AggregationExpression: (intermediate_ast::AggregationOperator, Box<intermediate_ast::Expression>) = {
-    "max" "(" <expr: ArithmeticExpression> ")" => (intermediate_ast::AggregationOperator::Max, expr),
-    "min" "(" <expr: ArithmeticExpression> ")" => (intermediate_ast::AggregationOperator::Min, expr),
-    "sum" "(" <expr: ArithmeticExpression> ")" => (intermediate_ast::AggregationOperator::Sum, expr),
-    "count" "(" <expr: ArithmeticExpression> ")" => (intermediate_ast::AggregationOperator::Count, expr),
+    "max" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Max, expr),
+    "min" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Min, expr),
+    "sum" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Sum, expr),
+    "count" "(" <expr: Expression> ")" => (intermediate_ast::AggregationOperator::Count, expr),
     "count" "(" "*" ")" => (intermediate_ast::AggregationOperator::Count, Box::new(intermediate_ast::Expression::Wildcard)),
 };
 
-ArithmeticExpressionParen: Box<intermediate_ast::Expression> = "(" <ArithmeticExpression> ")";
-ArithmeticExpression: Box<intermediate_ast::Expression> = {
+BasicExpression: Box<intermediate_ast::Expression> = {
     #[precedence(level="0")]
-    ArithmeticExpressionParen,
-
-    #[precedence(level="1")]
     <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
 
     <literal: LiteralValue> => Box::new(intermediate_ast::Expression::Literal(*literal)),
-
-    #[precedence(level="2")]
-    <agg: AggregationExpression> => Box::new(intermediate_ast::Expression::Aggregation {
-            op: agg.0,
-            expr: agg.1,
-        }),
-
-    // To account for non-associative division (e.g., 'a * b / c' equals 
-    // '(a * b) / c' but differs from 'a * (b / c)'), it's essential to
-    // enforce left associativity for the '*' and '/' arithmetic operators.
-    #[precedence(level="3")] #[assoc(side="left")]
-    <left: ArithmeticExpression> "*" <right: ArithmeticExpression> =>
-        Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::Multiply,
-            left,
-            right, 
-        }),
-
-    <left: ArithmeticExpression> "/" <right: ArithmeticExpression> =>
-        Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::Division,
-            left,
-            right, 
-        }),
-
-    "-" "(" <expr: ArithmeticExpression> ")" => Box::new(intermediate_ast::Expression::Binary {
-        op: intermediate_ast::BinaryOperator::Multiply,
-        left: Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::Int128(-1))),
-        right: expr
-    }),
-
-    #[precedence(level="4")] #[assoc(side="left")]
-    <left: ArithmeticExpression> "+" <right: ArithmeticExpression> =>
-        Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::Add,
-            left,
-            right, 
-        }),
-
-    <left: ArithmeticExpression> "-" <right: ArithmeticExpression> =>
-        Box::new(intermediate_ast::Expression::Binary {
-            op: intermediate_ast::BinaryOperator::Subtract,
-            left,
-            right, 
-        }),
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Literals
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 LiteralValue: Box<intermediate_ast::Literal> = {
-    <value: BooleanLiteral> => Box::new(intermediate_ast::Literal::Boolean(<>)),
+    <value: BooleanLiteral> => Box::new(intermediate_ast::Literal::Boolean(value)),
 
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
 
     <value: Int128UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::Int128(<>)),
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Tokens
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub(crate) ResourceId: (identifier::Identifier, identifier::Identifier) = {
-    <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
-};
-
-pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
-    Ok(identifier::Identifier::new(<>))
-} else {
-    Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
-};
-
-pub BooleanLiteral: bool = {
-    "true" => true,
-    "false" => false,
-};
-
-DecimalNumericLiteral: DecimalUnknown = {
-    <lit:DECIMAL_LIT> => DecimalUnknown::new(lit),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -376,6 +353,10 @@ Int128UnaryNumericLiteral: i128 = {
     #[precedence(level="2")] #[assoc(side="right")]
     "+" <expr: Int128UnaryNumericLiteral> => expr,
     "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
+};
+
+DecimalNumericLiteral: DecimalUnknown = {
+    <lit:DECIMAL_LIT> => DecimalUnknown::new(lit),
 };
 
 Int128NumericLiteral: i128 = {
@@ -394,6 +375,24 @@ pub StringLiteral: String = {
     STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
 };
 
+pub BooleanLiteral: bool = {
+    "true" => true,
+    "false" => false,
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// Tokens
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub(crate) ResourceId: (identifier::Identifier, identifier::Identifier) = {
+    <schema: Identifier> "." <object_name: Identifier> => (schema, object_name)
+};
+
+pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
+    Ok(identifier::Identifier::new(<>))
+} else {
+    Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Lexer specification, with the primary purpose of making language keywords case insensitive //
