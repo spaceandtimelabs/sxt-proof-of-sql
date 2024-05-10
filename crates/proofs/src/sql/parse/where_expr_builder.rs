@@ -2,10 +2,10 @@ use super::ConversionError;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType},
+        database::{ColumnRef, ColumnType, LiteralValue},
         math::decimal::match_decimal,
     },
-    sql::ast::ProvableExprPlan,
+    sql::ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
 };
 use proofs_sql::{
     decimal_unknown::DecimalUnknown,
@@ -14,7 +14,7 @@ use proofs_sql::{
 };
 use std::collections::HashMap;
 
-/// Builder that enables building a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
+/// Builder that enables building a `proofs::sql::ast::ProvableExprPlan` from a `proofs_sql::intermediate_ast::Expression` that is
 /// intended to be used as the where clause in a filter expression or group by expression.
 pub struct WhereExprBuilder<'a> {
     column_mapping: &'a HashMap<Identifier, ColumnRef>,
@@ -24,14 +24,23 @@ impl<'a> WhereExprBuilder<'a> {
     pub fn new(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
         Self { column_mapping }
     }
-    /// Builds a `proofs::sql::ast::BoolExpr` from a `proofs_sql::intermediate_ast::Expression` that is
+    /// Builds a `proofs::sql::ast::ProvableExprPlan` from a `proofs_sql::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
     pub fn build<C: Commitment>(
         self,
         where_expr: Option<Box<Expression>>,
     ) -> Result<Option<ProvableExprPlan<C>>, ConversionError> {
         where_expr
-            .map(|where_expr| self.visit_expr(*where_expr))
+            .map(|where_expr| {
+                let expr_plan = self.visit_expr(*where_expr)?;
+                // Ensure that the expression is a boolean expression
+                match expr_plan.data_type() {
+                    ColumnType::Boolean => Ok(expr_plan),
+                    _ => Err(ConversionError::NonbooleanWhereClause(
+                        expr_plan.data_type(),
+                    )),
+                }
+            })
             .transpose()
     }
 }
@@ -43,9 +52,38 @@ impl WhereExprBuilder<'_> {
         expr: proofs_sql::intermediate_ast::Expression,
     ) -> Result<ProvableExprPlan<C>, ConversionError> {
         match expr {
+            Expression::Column(identifier) => self.visit_column(identifier),
+            Expression::Literal(lit) => self.visit_literal(lit),
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, *left, *right),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, *expr),
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
+        }
+    }
+
+    fn visit_column<C: Commitment>(
+        &self,
+        identifier: Identifier,
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
+        Ok(ProvableExprPlan::Column(ColumnExpr::new(
+            *self.column_mapping.get(&identifier).ok_or(
+                ConversionError::MissingColumnWithoutTable(Box::new(identifier)),
+            )?,
+        )))
+    }
+
+    fn visit_literal<C: Commitment>(
+        &self,
+        lit: Literal,
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
+        match lit {
+            Literal::Boolean(b) => Ok(ProvableExprPlan::new_literal(LiteralValue::Boolean(b))),
+            Literal::Int128(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::Int128(i))),
+            // TODO: Add support for Decimal type
+            Literal::Decimal(_d) => todo!(),
+            Literal::VarChar(s) => Ok(ProvableExprPlan::new_literal(LiteralValue::VarChar((
+                s.clone(),
+                s.into(),
+            )))),
         }
     }
 
@@ -55,7 +93,6 @@ impl WhereExprBuilder<'_> {
         expr: Expression,
     ) -> Result<ProvableExprPlan<C>, ConversionError> {
         let expr = self.visit_expr(expr);
-
         match op {
             UnaryOperator::Not => ProvableExprPlan::try_new_not(expr?),
         }
@@ -135,6 +172,7 @@ impl WhereExprBuilder<'_> {
             }
             (Expression::Literal(Literal::Int128(value)), _) => value.into(),
             (Expression::Literal(Literal::VarChar(value)), _) => value.into(),
+            (Expression::Literal(Literal::Boolean(value)), _) => (&value).into(),
             _ => panic!("Unexpected expression or column type"),
         };
         Ok((left, right))
