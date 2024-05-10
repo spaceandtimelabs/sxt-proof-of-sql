@@ -288,8 +288,7 @@ ArithmeticExpression: Box<intermediate_ast::Expression> = {
     #[precedence(level="1")]
     <column: QualifiedColumnIdentifier> => Box::new(intermediate_ast::Expression::Column(column)),
 
-    <literal: Int128UnaryNumericLiteral> => 
-        Box::new(intermediate_ast::Expression::Literal(intermediate_ast::Literal::Int128(literal))),
+    <literal: LiteralValue> => Box::new(intermediate_ast::Expression::Literal(*literal)),
 
     #[precedence(level="2")]
     <agg: AggregationExpression> => Box::new(intermediate_ast::Expression::Aggregation {
@@ -337,20 +336,9 @@ ArithmeticExpression: Box<intermediate_ast::Expression> = {
         }),
 };
 
-Int128UnaryNumericLiteral: i128 = {
-    #[precedence(level="1")]
-    Int128NumericLiteral,
-
-    #[precedence(level="2")] #[assoc(side="right")]
-    "+" <expr: Int128UnaryNumericLiteral> => expr,
-    "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
-};
-
-pub StringLiteral: String = {
-    STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
-};
-
 LiteralValue: Box<intermediate_ast::Literal> = {
+    <value: BooleanLiteral> => Box::new(intermediate_ast::Literal::Boolean(<>)),
+
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
 
     <value: Int128UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::Int128(<>)),
@@ -372,8 +360,22 @@ pub(crate) Identifier: identifier::Identifier = ID =>? if <>.len() <= 64 {
     Err(User {error: "Identifier is too long, must be 64 bytes or less (note this may be <64 characters in UTF8)"})
 };
 
+pub BooleanLiteral: bool = {
+    "true" => true,
+    "false" => false,
+};
+
 DecimalNumericLiteral: DecimalUnknown = {
     <lit:DECIMAL_LIT> => DecimalUnknown::new(lit),
+};
+
+Int128UnaryNumericLiteral: i128 = {
+    #[precedence(level="1")]
+    Int128NumericLiteral,
+
+    #[precedence(level="2")] #[assoc(side="right")]
+    "+" <expr: Int128UnaryNumericLiteral> => expr,
+    "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
 };
 
 Int128NumericLiteral: i128 = {
@@ -386,6 +388,10 @@ Int64NumericLiteral: i64 = {
 
 UInt64NumericLiteral: u64 = {
     INTEGER_LIT =>? <>.parse::<u64>().map_err(|_| User {error: "u64 out of range"}),
+};
+
+pub StringLiteral: String = {
+    STRING_LITERAL => <>[1..<>.len() - 1].replace("''", "'"),
 };
 
 
@@ -413,6 +419,8 @@ match {
     r"[mM][aA][xX]" => "max",
     r"[cC][oO][uU][nN][tT]" => "count",
     r"[sS][uU][mM]" => "sum",
+    r"[tT][rR][uU][eE]" => "true",
+    r"[fF][aA][lL][sS][eE]" => "false",
 
     "," => ",",
     "." => ".",

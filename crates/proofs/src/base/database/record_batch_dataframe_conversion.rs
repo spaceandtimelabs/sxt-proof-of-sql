@@ -1,5 +1,5 @@
 use arrow::{
-    array::{Array, Decimal128Array, Int64Array, StringArray},
+    array::{Array, BooleanArray, Decimal128Array, Int64Array, StringArray},
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
@@ -19,6 +19,17 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> DataFrame {
         .iter()
         .zip(record_batch.columns().iter())
         .map(|(f, col)| match f.data_type() {
+            arrow::datatypes::DataType::Boolean => {
+                let data = col
+                    .as_any()
+                    .downcast_ref::<arrow::array::BooleanArray>()
+                    .unwrap()
+                    .iter()
+                    .collect::<Option<Vec<bool>>>()
+                    .unwrap();
+
+                Series::new(f.name(), data)
+            }
             arrow::datatypes::DataType::Int64 => {
                 let data = col
                     .as_any()
@@ -66,6 +77,18 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
     for (field, series) in data.fields().iter().zip(data.get_columns().iter()) {
         let dt = match field.data_type() {
+            polars::datatypes::DataType::Boolean => {
+                let col = series
+                    .bool()
+                    .unwrap()
+                    .into_iter()
+                    .collect::<Option<Vec<bool>>>()
+                    .unwrap();
+
+                columns.push(Arc::new(BooleanArray::from(col)));
+
+                DataType::Boolean
+            }
             polars::datatypes::DataType::Int64 => {
                 let col = series.i64().unwrap().cont_slice().unwrap();
 
@@ -130,13 +153,22 @@ mod tests {
 
     #[test]
     fn we_can_convert_record_batches_to_dataframes() {
-        let recordbatch = record_batch!("a" => [3214_i64, 34,999,888], "bc" => ["a", "fg","zzz","yyy"], "d" => [123_i128, 1010,i128::MAX,i128::MIN + 1]); //Note: to_string() can't handle i128:MIN within a dataframe.
-        let mut dataframe =
-            polars::df!("a" => [3214_i64, 34_i64,999,888], "bc" => ["a", "fg","zzz","yyy"])
-                .unwrap();
+        let recordbatch = record_batch!(
+            "boolean" => [true, false, true, false],
+            "bigint" => [3214_i64, 34, 999, 888],
+            "varchar" => ["a", "fg", "zzz", "yyy"],
+            "int128" => [123_i128, 1010, i128::MAX, i128::MIN + 1]
+        );
+        //Note: to_string() can't handle i128:MIN within a dataframe.
+        let mut dataframe = polars::df!(
+            "boolean" => [true, false, true, false],
+            "bigint" => [3214_i64, 34_i64, 999, 888],
+            "varchar" => ["a", "fg", "zzz", "yyy"]
+        )
+        .unwrap();
         dataframe
             .with_column(
-                ChunkedArray::from_vec("d", vec![123_i128, 1010, i128::MAX, i128::MIN + 1]) //Note: to_string() can't handle i128:MIN within a dataframe.
+                ChunkedArray::from_vec("int128", vec![123_i128, 1010, i128::MAX, i128::MIN + 1])
                     .into_decimal_unchecked(Some(38), 0)
                     .into_series(),
             )
@@ -147,13 +179,21 @@ mod tests {
 
     #[test]
     fn we_can_convert_dataframes_to_record_batches() {
-        let recordbatch = record_batch!("a" => [3214_i64, 34,999,888], "bc" => ["a", "fg","zzz","yyy"], "d" => [123_i128, 1010,i128::MAX,i128::MIN]);
-        let mut dataframe =
-            polars::df!("a" => [3214_i64, 34_i64,999,888], "bc" => ["a", "fg","zzz","yyy"])
-                .unwrap();
+        let recordbatch = record_batch!(
+            "boolean" => [true, false, true, false],
+            "bigint" => [3214_i64, 34, 999, 888],
+            "varchar" => ["a", "fg", "zzz", "yyy"],
+            "int128" => [123_i128, 1010, i128::MAX, i128::MIN]
+        );
+        let mut dataframe = polars::df!(
+            "boolean" => [true, false, true, false],
+            "bigint" => [3214_i64, 34_i64, 999, 888],
+            "varchar" => ["a", "fg", "zzz", "yyy"]
+        )
+        .unwrap();
         dataframe
             .with_column(
-                ChunkedArray::from_vec("d", vec![123_i128, 1010, i128::MAX, i128::MIN])
+                ChunkedArray::from_vec("int128", vec![123_i128, 1010, i128::MAX, i128::MIN])
                     .into_decimal_unchecked(Some(38), 0)
                     .into_series(),
             )

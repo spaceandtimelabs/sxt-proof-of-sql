@@ -1,10 +1,16 @@
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
-use polars::prelude::{DataType, Expr, Literal, Series};
+use polars::prelude::{DataType, Expr, Literal, LiteralValue, Series};
 
-/// TODO: add docs
+/// Convert a Rust type to a Polars `Expr` type.
 pub trait LiteralConversion {
-    /// TODO: add docs
+    /// Convert the Rust type to a Polars `Expr` type.
     fn to_lit(&self) -> Expr;
+}
+
+impl LiteralConversion for bool {
+    fn to_lit(&self) -> Expr {
+        Expr::Literal(LiteralValue::Boolean(*self))
+    }
 }
 
 impl LiteralConversion for i128 {
