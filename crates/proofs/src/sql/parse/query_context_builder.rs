@@ -302,6 +302,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
+            Literal::Boolean(_) => Ok(ColumnType::Boolean),
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::Decimal(d) => {

@@ -1,4 +1,5 @@
 use crate::{
+    decimal_unknown::DecimalUnknown,
     intermediate_ast::OrderByDirection::{Asc, Desc},
     sql::*,
     test_utility::*,
@@ -125,6 +126,47 @@ fn we_cannot_parse_strings_having_incorrect_quotes() {
 
 // Select Query parser Tests
 #[test]
+fn we_can_parse_a_query_with_constants() {
+    let ast =
+        "SELECT 3 as bigint, true as boolean, 'proof' as varchar, -2.34 as decimal FROM SXT_TAB"
+            .parse::<SelectStatement>()
+            .unwrap();
+    let expected_ast = select(
+        query_all(
+            vec![
+                col_res(lit(3), "bigint"),
+                col_res(lit(true), "boolean"),
+                col_res(lit("proof"), "varchar"),
+                col_res(lit(DecimalUnknown::new("-2.34")), "decimal"),
+            ],
+            tab(None, "sxt_tab"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_a_column_equals_a_simple_bool() {
+    let ast = "SELECT A FROM SXT_TAB WHERE A = false"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            equal("a", false),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_parse_a_query_with_a_column_equals_a_simple_integer() {
     let ast = "SELECT A FROM SXT_TAB WHERE A = 3"
         .parse::<SelectStatement>()
@@ -152,6 +194,24 @@ fn we_can_parse_a_query_with_a_column_equals_a_string() {
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
             equal("a", "this_is_a_test"),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
+fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
+    let ast = "SELECT A FROM SXT_TAB WHERE A = -0.32"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            cols_res(&["a"]),
+            tab(None, "sxt_tab"),
+            equal("a", DecimalUnknown::new("-0.32")),
             vec![],
         ),
         vec![],
@@ -197,6 +257,24 @@ fn we_can_parse_a_query_using_select_star() {
 }
 
 #[test]
+fn we_can_parse_a_query_using_select_star_and_a_const() {
+    let ast = "SELECT *, 4 as bigint FROM sxt_Tab WHERE A = 3"
+        .parse::<SelectStatement>()
+        .unwrap();
+    let expected_ast = select(
+        query(
+            vec![col_res_all(), col_res(lit(4), "bigint")],
+            tab(None, "sxt_tab"),
+            equal("a", 3),
+            vec![],
+        ),
+        vec![],
+        None,
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_parse_a_query_using_multiple_select_star_expressions() {
     let ast = "SELECT a, *, b, c, * FROM sxt_Tab WHERE A = 3"
         .parse::<SelectStatement>()
@@ -222,12 +300,12 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
-    let ast = "select a from sxt_tab where b = +4"
+    let ast = "select a, true as boolean from sxt_tab where b = +4"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
-            cols_res(&["a"]),
+            vec![col_res(col("a"), "a"), col_res(lit(true), "boolean")],
             tab(None, "sxt_tab"),
             equal("b", 4),
             vec![],
@@ -296,14 +374,14 @@ fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_and_filter_expression() {
-    let ast = "select a from sxt_tab where (b = 3) and (c = -2)"
+    let ast = "select a from sxt_tab where (b = 3) and (c = true)"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            and(equal("b", 3), equal("c", -2)),
+            and(equal("b", 3), equal("c", true)),
             vec![],
         ),
         vec![],
@@ -331,14 +409,14 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_an
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
-    let ast = "select a from sxt_tab where (b = 3) or (c = -2)"
+    let ast = "select a from sxt_tab where (b = 3) or (c = -2.34)"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            or(equal("b", 3), equal("c", -2)),
+            or(equal("b", 3), equal("c", DecimalUnknown::new("-2.34"))),
             vec![],
         ),
         vec![],

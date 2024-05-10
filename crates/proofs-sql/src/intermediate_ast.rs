@@ -265,12 +265,20 @@ pub struct Slice {
 /// Literal values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Literal {
+    /// Boolean Literal
+    Boolean(bool),
     /// Numeric Literal
     Int128(i128),
     /// String Literal
     VarChar(String),
     /// Decimal Literal
     Decimal(DecimalUnknown),
+}
+
+impl From<bool> for Literal {
+    fn from(val: bool) -> Self {
+        Literal::Boolean(val)
+    }
 }
 
 macro_rules! impl_int_to_literal {
@@ -304,6 +312,12 @@ macro_rules! impl_string_to_literal {
 
 impl_string_to_literal!(&str);
 impl_string_to_literal!(String);
+
+impl From<DecimalUnknown> for Literal {
+    fn from(val: DecimalUnknown) -> Self {
+        Literal::Decimal(val)
+    }
+}
 
 /// Helper function to append an item to a vector
 pub(crate) fn append<T>(list: Vec<T>, item: T) -> Vec<T> {
