@@ -22,7 +22,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
     assert_eq!(
-        builder.folded_pre_result_commitment(),
+        builder.compute_folded_pre_result_commitment(),
         RistrettoPoint::identity()
     );
 }
@@ -83,14 +83,14 @@ fn we_build_up_the_folded_pre_result_commitment() {
         &inner_product_multipliers,
         Vec::new(),
     );
-    let eval = builder.consume_anchored_mle(&commit1);
+    let eval = builder.consume_anchored_mle(commit1);
     assert_eq!(eval, Curve25519Scalar::from(123u64));
     let eval = builder.consume_intermediate_mle();
     assert_eq!(eval, Curve25519Scalar::from(456u64));
     let expected_folded_pre_result_commit =
         inner_product_multipliers[0] * commit1 + inner_product_multipliers[1] * commit2;
     assert_eq!(
-        builder.folded_pre_result_commitment(),
+        builder.compute_folded_pre_result_commitment(),
         expected_folded_pre_result_commit
     );
     let expected_folded_pre_result_eval = inner_product_multipliers[0]

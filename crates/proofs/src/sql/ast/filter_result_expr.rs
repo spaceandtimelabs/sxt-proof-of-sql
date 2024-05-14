@@ -87,7 +87,7 @@ impl FilterResultExpr {
         let col_commit = accessor.get_commitment(self.column_ref);
 
         let result_eval = builder.consume_result_mle();
-        let col_eval = builder.consume_anchored_mle(&col_commit);
+        let col_eval = builder.consume_anchored_mle(col_commit);
 
         let poly_eval =
             builder.mle_evaluations.random_evaluation * (result_eval - col_eval * *selection_eval);

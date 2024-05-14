@@ -131,7 +131,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         let one_eval = builder.mle_evaluations.one_evaluation;
-        let col_eval = builder.consume_anchored_mle(&accessor.get_commitment(self.column_ref));
+        let col_eval = builder.consume_anchored_mle(accessor.get_commitment(self.column_ref));
 
         // lhs_eval
         let lhs_eval = col_eval - self.value * one_eval;

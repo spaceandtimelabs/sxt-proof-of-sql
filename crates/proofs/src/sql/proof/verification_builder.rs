@@ -11,7 +11,7 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     inner_product_multipliers: &'a [C::Scalar],
     sumcheck_evaluation: C::Scalar,
     bit_distributions: &'a [BitDistribution],
-    folded_pre_result_commitment: C,
+    pre_result_commitments: Vec<C>,
     folded_pre_result_evaluation: C::Scalar,
     consumed_result_mles: usize,
     consumed_pre_result_mles: usize,
@@ -49,7 +49,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             subpolynomial_multipliers,
             inner_product_multipliers,
             sumcheck_evaluation: C::Scalar::zero(),
-            folded_pre_result_commitment: C::default(),
+            pre_result_commitments: Vec::with_capacity(inner_product_multipliers.len()),
             folded_pre_result_evaluation: C::Scalar::zero(),
             consumed_result_mles: 0,
             consumed_pre_result_mles: 0,
@@ -70,10 +70,10 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Consume the evaluation of an anchored MLE used in sumcheck and provide the commitment of the MLE
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
-    pub fn consume_anchored_mle(&mut self, commitment: &C) -> C::Scalar {
+    pub fn consume_anchored_mle(&mut self, commitment: C) -> C::Scalar {
         let index = self.consumed_pre_result_mles;
         let multiplier = self.inner_product_multipliers[index];
-        self.folded_pre_result_commitment += multiplier * commitment;
+        self.pre_result_commitments.push(commitment);
         self.consumed_pre_result_mles += 1;
         let res = self.mle_evaluations.pre_result_evaluations[index];
         self.folded_pre_result_evaluation += multiplier * res;
@@ -92,7 +92,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     pub fn consume_intermediate_mle(&mut self) -> C::Scalar {
-        let commitment = &self.intermediate_commitments[self.consumed_intermediate_mles];
+        let commitment = self.intermediate_commitments[self.consumed_intermediate_mles];
         self.consumed_intermediate_mles += 1;
         self.consume_anchored_mle(commitment)
     }
@@ -119,9 +119,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     /// Get the commitment of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pre_result_commitment(&self) -> C {
+    pub fn compute_folded_pre_result_commitment(&self) -> C {
         assert!(self.completed());
-        self.folded_pre_result_commitment
+        C::fold_commitments(&self.pre_result_commitments, self.inner_product_multipliers)
     }
 
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's

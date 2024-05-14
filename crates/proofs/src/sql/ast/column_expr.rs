@@ -93,7 +93,7 @@ impl<C: Commitment> ProvableExpr<C> for ColumnExpr<C> {
     ) -> Result<C::Scalar, ProofError> {
         let col_commit = accessor.get_commitment(self.column_ref);
 
-        Ok(builder.consume_anchored_mle(&col_commit))
+        Ok(builder.consume_anchored_mle(col_commit))
     }
 
     /// Insert in the HashSet `columns` all the column

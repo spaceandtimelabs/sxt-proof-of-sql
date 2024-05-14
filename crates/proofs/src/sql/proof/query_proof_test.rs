@@ -348,7 +348,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
@@ -446,7 +446,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
@@ -506,7 +506,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     ) {
         let res_eval = builder.consume_result_mle();
         let x_commit = Curve25519Scalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
     }
@@ -580,7 +580,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     ) {
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
         let res_eval = builder.consume_result_mle();
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
 
         // poly1
@@ -703,7 +703,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
 
         // poly1
@@ -788,7 +788,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
 
         // poly1
@@ -872,7 +872,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     ) {
         let x_commit = compute_commitment_for_testing(&X, 0_usize);
         let res_eval = builder.consume_result_mle();
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
 
         // poly1
@@ -945,7 +945,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
         let _beta = builder.consume_post_result_challenge();
         let res_eval = builder.consume_result_mle();
         let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
-        let x_eval = builder.consume_anchored_mle(&x_commit);
+        let x_eval = builder.consume_anchored_mle(x_commit);
         let eval = builder.mle_evaluations.random_evaluation
             * (alpha * res_eval - alpha * x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
