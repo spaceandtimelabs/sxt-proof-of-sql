@@ -72,6 +72,9 @@ pub trait Commitment:
         offset: usize,
         setup: &Self::PublicSetup,
     );
+
+    /// Compute a linear combination of the given commitments: `sum commitment[i] * multiplier[i]`.
+    fn fold_commitments(commitments: &[Self], multipliers: &[Self::Scalar]) -> Self;
 }
 
 impl Commitment for RistrettoPoint {
@@ -108,6 +111,17 @@ impl Commitment for RistrettoPoint {
         _setup: &Self::PublicSetup,
     ) {
         unimplemented!()
+    }
+
+    fn fold_commitments(commitments: &[Self], multipliers: &[Self::Scalar]) -> Self {
+        commitments
+            .iter()
+            .zip(multipliers.iter())
+            .map(|(c, m)| *m * c)
+            .fold(Default::default(), |mut a, c| {
+                a += c;
+                a
+            })
     }
 }
 
