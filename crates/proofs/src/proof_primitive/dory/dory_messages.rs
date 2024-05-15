@@ -1,6 +1,6 @@
 use super::{F, G1, G2, GT};
 use crate::base::{
-    impl_serde_for_ark_serde,
+    impl_serde_for_ark_serde_checked,
     proof::{MessageLabel, TranscriptProtocol},
 };
 use ark_ff::Field;
@@ -25,7 +25,7 @@ pub struct DoryMessages {
     /// The GT elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
     pub(super) GT_messages: Vec<GT>,
 }
-impl_serde_for_ark_serde!(DoryMessages);
+impl_serde_for_ark_serde_checked!(DoryMessages);
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl DoryMessages {
