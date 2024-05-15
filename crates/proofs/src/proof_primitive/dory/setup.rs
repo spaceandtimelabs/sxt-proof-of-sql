@@ -1,5 +1,5 @@
 use super::{PublicParameters, G1, G2, GT};
-use crate::base::impl_serde_for_ark_serde;
+use crate::base::impl_serde_for_ark_serde_unchecked;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use itertools::MultiUnzip;
@@ -103,7 +103,7 @@ pub struct VerifierSetup {
     pub(super) max_nu: usize,
 }
 
-impl_serde_for_ark_serde!(VerifierSetup);
+impl_serde_for_ark_serde_unchecked!(VerifierSetup);
 
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.

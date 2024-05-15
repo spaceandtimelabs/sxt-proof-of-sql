@@ -25,7 +25,7 @@
 use super::{DoryProverPublicSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
-    impl_serde_for_ark_serde,
+    impl_serde_for_ark_serde_checked,
     scalar::{MontScalar, Scalar},
 };
 use ark_ec::{pairing::PairingOutput, VariableBaseMSM};
@@ -72,7 +72,7 @@ impl Default for DoryCommitment {
 }
 
 // Traits required for `DoryCommitment` to impl `Commitment`.
-impl_serde_for_ark_serde!(DoryCommitment);
+impl_serde_for_ark_serde_checked!(DoryCommitment);
 impl Mul<DoryCommitment> for DoryScalar {
     type Output = DoryCommitment;
     fn mul(self, rhs: DoryCommitment) -> Self::Output {
