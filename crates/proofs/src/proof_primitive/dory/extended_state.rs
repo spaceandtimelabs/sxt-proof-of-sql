@@ -1,6 +1,6 @@
+use super::{DeferredG1, DeferredG2, DeferredGT, ProverState, VerifierState, F, G1, G2};
 #[cfg(test)]
-use super::ProverSetup;
-use super::{ProverState, VerifierState, F, G1, G2, GT};
+use super::{G1Affine, G2Affine, ProverSetup};
 #[cfg(test)]
 use ark_ec::{ScalarMul, VariableBaseMSM};
 
@@ -32,20 +32,22 @@ impl ExtendedProverState {
     /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> ExtendedVerifierState {
-        let E_1 = G1::msm(
+        let E_1: G1Affine = G1::msm(
             &ScalarMul::batch_convert_to_mul_base(&self.base_state.v1),
             &self.s2,
         )
-        .unwrap();
-        let E_2 = G2::msm(
+        .unwrap()
+        .into();
+        let E_2: G2Affine = G2::msm(
             &ScalarMul::batch_convert_to_mul_base(&self.base_state.v2),
             &self.s1,
         )
-        .unwrap();
+        .unwrap()
+        .into();
         ExtendedVerifierState {
             base_state: self.base_state.calculate_verifier_state(setup),
-            E_1,
-            E_2,
+            E_1: E_1.into(),
+            E_2: E_2.into(),
             s1: self.s1.clone(),
             s2: self.s2.clone(),
         }
@@ -55,14 +57,15 @@ impl ExtendedProverState {
 /// The state of the verifier during the Dory proof verification with the extended algorithm.
 /// `base_state` is the state of the verifier during the Dory proof verification with the original algorithm.
 /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
-#[derive(PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug)]
 pub struct ExtendedVerifierState {
     /// The state of the verifier during the Dory proof verification with the original algorithm.
     pub(super) base_state: super::VerifierState,
     /// The "commitment" to s1. This should be <v1,s2>. This will be mutated during the proof verification.
-    pub(super) E_1: G1,
+    pub(super) E_1: DeferredG1,
     /// The "commitment" to s2. This should be <s1,v2>. This will be mutated during the proof verification.
-    pub(super) E_2: G2,
+    pub(super) E_2: DeferredG2,
     /// The first vector of F elements in the witness. This will be mutated during the proof verification.
     pub(super) s1: Vec<F>,
     /// The second vector of F elements in the witness. This will be mutated during the proof verification.
@@ -73,13 +76,13 @@ impl ExtendedVerifierState {
     /// Create a new `ExtendedVerifierState` from the commitment to the witness.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        E_1: G1,
-        E_2: G2,
+        E_1: DeferredG1,
+        E_2: DeferredG2,
         s1: Vec<F>,
         s2: Vec<F>,
-        C: GT,
-        D_1: GT,
-        D_2: GT,
+        C: DeferredGT,
+        D_1: DeferredGT,
+        D_2: DeferredGT,
         nu: usize,
     ) -> Self {
         ExtendedVerifierState {

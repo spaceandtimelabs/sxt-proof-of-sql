@@ -1,6 +1,6 @@
 use super::{
-    DoryMessages, ExtendedProverState, ExtendedVerifierState, ProverSetup, VMVProverState,
-    VMVVerifierState, VerifierSetup, G1,
+    DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, ProverSetup,
+    VMVProverState, VMVVerifierState, VerifierSetup, G1,
 };
 use ark_ec::{pairing::Pairing, ScalarMul, VariableBaseMSM};
 use merlin::Transcript;
@@ -65,11 +65,11 @@ pub fn eval_vmv_re_verify(
     if messages.GT_messages.len() < 2 || messages.G1_messages.is_empty() {
         return None;
     }
-    let C = messages.prover_recieve_GT_message(transcript);
-    let D_2 = messages.prover_recieve_GT_message(transcript);
-    let E_1 = messages.prover_recieve_G1_message(transcript);
-    let D_1 = state.T;
-    let E_2 = setup.Gamma_2_fin * state.y;
+    let C = messages.prover_recieve_GT_message(transcript).into();
+    let D_2 = messages.prover_recieve_GT_message(transcript).into();
+    let E_1 = messages.prover_recieve_G1_message(transcript).into();
+    let D_1 = state.T.into();
+    let E_2 = DeferredG2::from(setup.Gamma_2_fin) * state.y;
     let s1 = state.R_vec;
     let s2 = state.L_vec;
     let nu = state.nu;

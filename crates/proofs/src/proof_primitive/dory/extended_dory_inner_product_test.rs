@@ -1,6 +1,6 @@
 use super::{
     extended_dory_inner_product_prove, extended_dory_inner_product_verify, rand_F_vecs,
-    rand_G_vecs, test_rng, DoryMessages, ExtendedProverState, PublicParameters, G1, GT,
+    rand_G_vecs, test_rng, DoryMessages, ExtendedProverState, G1Affine, PublicParameters, GT,
 };
 use ark_std::UniformRand;
 use merlin::Transcript;
@@ -187,7 +187,7 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_many_G1_m
     let mut messages = DoryMessages::default();
     extended_dory_inner_product_prove(&mut messages, &mut transcript, prover_state, &prover_setup);
 
-    messages.G1_messages.push(G1::rand(&mut rng));
+    messages.G1_messages.push(G1Affine::rand(&mut rng));
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
     assert!(!extended_dory_inner_product_verify(
@@ -263,7 +263,7 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_base_commitment_is_
     let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
     let mut verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
-    verifier_state.base_state.C = GT::rand(&mut rng);
+    verifier_state.base_state.C = GT::rand(&mut rng).into();
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
     let mut messages = DoryMessages::default();
@@ -290,7 +290,7 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_a_scalar_commitment_is_
     let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
     let mut verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
-    verifier_state.E_1 = G1::rand(&mut rng);
+    verifier_state.E_1 = G1Affine::rand(&mut rng).into();
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
     let mut messages = DoryMessages::default();

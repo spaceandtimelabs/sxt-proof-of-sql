@@ -1,4 +1,4 @@
-use super::{F, G1, G2, GT};
+use super::{G1Affine, G2Affine, F, GT};
 use crate::base::{
     impl_serde_for_ark_serde_checked,
     proof::{MessageLabel, TranscriptProtocol},
@@ -19,9 +19,9 @@ pub struct DoryMessages {
     /// The field elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
     pub(super) F_messages: Vec<F>,
     /// The G1 elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
-    pub(super) G1_messages: Vec<G1>,
+    pub(super) G1_messages: Vec<G1Affine>,
     /// The G2 elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
-    pub(super) G2_messages: Vec<G2>,
+    pub(super) G2_messages: Vec<G2Affine>,
     /// The GT elements sent from the prover to the verifier. The last element of the `Vec` is the first element sent.
     pub(super) GT_messages: Vec<GT>,
 }
@@ -35,12 +35,22 @@ impl DoryMessages {
         self.F_messages.insert(0, message);
     }
     /// Pushes a G1 element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn prover_send_G1_message(&mut self, transcript: &mut Transcript, message: G1) {
+    pub(super) fn prover_send_G1_message(
+        &mut self,
+        transcript: &mut Transcript,
+        message: impl Into<G1Affine>,
+    ) {
+        let message = message.into();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.G1_messages.insert(0, message);
     }
     /// Pushes a G2 element from the prover onto the queue, and appends it to the transcript.
-    pub(super) fn prover_send_G2_message(&mut self, transcript: &mut Transcript, message: G2) {
+    pub(super) fn prover_send_G2_message(
+        &mut self,
+        transcript: &mut Transcript,
+        message: impl Into<G2Affine>,
+    ) {
+        let message = message.into();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         self.G2_messages.insert(0, message);
     }
@@ -56,13 +66,13 @@ impl DoryMessages {
         message
     }
     /// Pops a G1 element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn prover_recieve_G1_message(&mut self, transcript: &mut Transcript) -> G1 {
+    pub(super) fn prover_recieve_G1_message(&mut self, transcript: &mut Transcript) -> G1Affine {
         let message = self.G1_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G2 element from the verifier's queue, and appends it to the transcript.
-    pub(super) fn prover_recieve_G2_message(&mut self, transcript: &mut Transcript) -> G2 {
+    pub(super) fn prover_recieve_G2_message(&mut self, transcript: &mut Transcript) -> G2Affine {
         let message = self.G2_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message

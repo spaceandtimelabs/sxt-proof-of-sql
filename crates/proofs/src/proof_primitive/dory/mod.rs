@@ -17,7 +17,7 @@
 // This is so that the naming in the code more closely matches the naming in the paper, since the paper used both capital and non-capital letters.
 #![allow(non_snake_case)]
 
-use ark_bls12_381::{Fr as F, G1Projective as G1, G2Projective as G2};
+use ark_bls12_381::{Fr as F, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2};
 /// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 
@@ -112,3 +112,8 @@ mod dory_commitment_evaluation_proof;
 pub use dory_commitment_evaluation_proof::DoryEvaluationProof;
 #[cfg(test)]
 mod dory_commitment_evaluation_proof_test;
+
+mod deferred_msm;
+type DeferredGT = deferred_msm::DeferredMSM<GT, F>;
+type DeferredG1 = deferred_msm::DeferredMSM<G1Affine, F>;
+type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;

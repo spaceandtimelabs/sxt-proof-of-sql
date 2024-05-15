@@ -1,6 +1,6 @@
 #[cfg(test)]
 use super::ProverSetup;
-use super::{G1, G2, GT};
+use super::{DeferredGT, G1, G2};
 #[cfg(test)]
 use ark_ec::pairing::Pairing;
 
@@ -29,9 +29,9 @@ impl ProverState {
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> VerifierState {
         assert!(setup.max_nu >= self.nu);
-        let C = Pairing::multi_pairing(&self.v1, &self.v2);
-        let D_1 = Pairing::multi_pairing(&self.v1, setup.Gamma_2[self.nu]);
-        let D_2 = Pairing::multi_pairing(setup.Gamma_1[self.nu], &self.v2);
+        let C = Pairing::multi_pairing(&self.v1, &self.v2).into();
+        let D_1 = Pairing::multi_pairing(&self.v1, setup.Gamma_2[self.nu]).into();
+        let D_2 = Pairing::multi_pairing(setup.Gamma_1[self.nu], &self.v2).into();
         VerifierState {
             C,
             D_1,
@@ -45,21 +45,22 @@ impl ProverState {
 /// This is initially created from a type of commitment to the witness, which the prover typically sends to the verifier.
 /// This is essentially what the verifier is trying to verify.
 /// See the beginning of section 3 of https://eprint.iacr.org/2020/1274.pdf for details.
-#[derive(PartialEq, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug)]
 pub struct VerifierState {
     /// The inner pairing product of the witness. This should be <v1,v2>. This will be mutated during the proof verification.
-    pub(super) C: GT,
+    pub(super) C: DeferredGT,
     /// The "commitment" to v1. This should be <v1,Γ_2>. This will be mutated during the proof verification.
-    pub(super) D_1: GT,
+    pub(super) D_1: DeferredGT,
     /// The "commitment" to v2. This should be <Γ_1,v2>. This will be mutated during the proof verification.
-    pub(super) D_2: GT,
+    pub(super) D_2: DeferredGT,
     /// The round number of the proof. The length of `v1` and `v2` should always be 2^nu. This will be mutated during the proof verification.
     pub(super) nu: usize,
 }
 
 impl VerifierState {
     /// Create a new `VerifierState` from the commitment to the witness.
-    pub fn new(C: GT, D_1: GT, D_2: GT, nu: usize) -> Self {
+    pub fn new(C: DeferredGT, D_1: DeferredGT, D_2: DeferredGT, nu: usize) -> Self {
         VerifierState { C, D_1, D_2, nu }
     }
 }

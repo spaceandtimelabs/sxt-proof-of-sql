@@ -1,4 +1,4 @@
-use super::{test_rng, DoryMessages, F, G1, G2, GT};
+use super::{test_rng, DoryMessages, G1Affine, G2Affine, F, GT};
 use ark_std::UniformRand;
 use merlin::Transcript;
 
@@ -10,13 +10,13 @@ fn we_can_send_and_receive_the_correct_messages_in_the_same_order() {
     // Prover side
     let mut transcript = Transcript::new(b"test");
     let Pmessage1 = F::rand(&mut rng);
-    let Pmessage2 = G1::rand(&mut rng);
-    let Pmessage3 = G2::rand(&mut rng);
+    let Pmessage2 = G1Affine::rand(&mut rng);
+    let Pmessage3 = G2Affine::rand(&mut rng);
     let Pmessage4 = GT::rand(&mut rng);
     let Pmessage5 = F::rand(&mut rng);
-    let Pmessage6 = G1::rand(&mut rng);
-    let Pmessage7 = G2::rand(&mut rng);
-    let Pmessage8 = G1::rand(&mut rng);
+    let Pmessage6 = G1Affine::rand(&mut rng);
+    let Pmessage7 = G2Affine::rand(&mut rng);
+    let Pmessage8 = G1Affine::rand(&mut rng);
     let Pmessage9 = F::rand(&mut rng);
     messages.prover_send_F_message(&mut transcript, Pmessage1);
     let Vmessage1 = messages.verifier_F_message(&mut transcript);
@@ -82,13 +82,13 @@ fn verifier_messages_fail_when_the_transcript_is_wrong() {
     // Prover side
     let mut transcript = Transcript::new(b"test");
     let Pmessage1 = F::rand(&mut rng);
-    let Pmessage2 = G1::rand(&mut rng);
-    let Pmessage3 = G2::rand(&mut rng);
+    let Pmessage2 = G1Affine::rand(&mut rng);
+    let Pmessage3 = G2Affine::rand(&mut rng);
     let Pmessage4 = GT::rand(&mut rng);
     let Pmessage5 = F::rand(&mut rng);
-    let Pmessage6 = G1::rand(&mut rng);
-    let Pmessage7 = G2::rand(&mut rng);
-    let Pmessage8 = G1::rand(&mut rng);
+    let Pmessage6 = G1Affine::rand(&mut rng);
+    let Pmessage7 = G2Affine::rand(&mut rng);
+    let Pmessage8 = G1Affine::rand(&mut rng);
     let Pmessage9 = F::rand(&mut rng);
     messages.prover_send_F_message(&mut transcript, Pmessage1);
     let Vmessage1 = messages.verifier_F_message(&mut transcript);
@@ -154,13 +154,13 @@ fn verifier_messages_fail_when_a_verifier_message_is_in_the_wrong_order() {
     // Prover side
     let mut transcript = Transcript::new(b"test");
     let Pmessage1 = F::rand(&mut rng);
-    let Pmessage2 = G1::rand(&mut rng);
-    let Pmessage3 = G2::rand(&mut rng);
+    let Pmessage2 = G1Affine::rand(&mut rng);
+    let Pmessage3 = G2Affine::rand(&mut rng);
     let Pmessage4 = GT::rand(&mut rng);
     let Pmessage5 = F::rand(&mut rng);
-    let Pmessage6 = G1::rand(&mut rng);
-    let Pmessage7 = G2::rand(&mut rng);
-    let Pmessage8 = G1::rand(&mut rng);
+    let Pmessage6 = G1Affine::rand(&mut rng);
+    let Pmessage7 = G2Affine::rand(&mut rng);
+    let Pmessage8 = G1Affine::rand(&mut rng);
     let Pmessage9 = F::rand(&mut rng);
     messages.prover_send_F_message(&mut transcript, Pmessage1);
     let Vmessage1 = messages.verifier_F_message(&mut transcript);
@@ -226,13 +226,13 @@ fn verifier_messages_fail_when_prover_messages_are_out_of_order() {
     // Prover side
     let mut transcript = Transcript::new(b"test");
     let Pmessage1 = F::rand(&mut rng);
-    let Pmessage2 = G1::rand(&mut rng);
-    let Pmessage3 = G2::rand(&mut rng);
+    let Pmessage2 = G1Affine::rand(&mut rng);
+    let Pmessage3 = G2Affine::rand(&mut rng);
     let Pmessage4 = GT::rand(&mut rng);
     let Pmessage5 = F::rand(&mut rng);
-    let Pmessage6 = G1::rand(&mut rng);
-    let Pmessage7 = G2::rand(&mut rng);
-    let Pmessage8 = G1::rand(&mut rng);
+    let Pmessage6 = G1Affine::rand(&mut rng);
+    let Pmessage7 = G2Affine::rand(&mut rng);
+    let Pmessage8 = G1Affine::rand(&mut rng);
     let Pmessage9 = F::rand(&mut rng);
     messages.prover_send_F_message(&mut transcript, Pmessage1);
     let Vmessage1 = messages.verifier_F_message(&mut transcript);
