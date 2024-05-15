@@ -1,4 +1,4 @@
-use super::{ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT};
+use super::{DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT};
 use ark_ec::pairing::Pairing;
 
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -91,11 +91,11 @@ pub fn dory_reduce_verify_update_C(
     (alpha, alpha_inv): (F, F),
     (beta, beta_inv): (F, F),
 ) {
-    state.C += setup.chi[state.nu]
-        + state.D_2 * beta
-        + state.D_1 * beta_inv
-        + C_plus * alpha
-        + C_minus * alpha_inv;
+    state.C += state.D_2.clone() * beta
+        + state.D_1.clone() * beta_inv
+        + DeferredGT::from(C_plus) * alpha
+        + DeferredGT::from(C_minus) * alpha_inv
+        + setup.chi[state.nu];
 }
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
@@ -109,12 +109,12 @@ pub fn dory_reduce_verify_update_Ds(
     (alpha, alpha_inv): (F, F),
     (beta, beta_inv): (F, F),
 ) {
-    state.D_1 = D_1L * alpha
+    state.D_1 = DeferredGT::from(D_1L) * alpha
         + D_1R
-        + setup.Delta_1L[state.nu] * beta * alpha
-        + setup.Delta_1R[state.nu] * beta;
-    state.D_2 = D_2L * alpha_inv
+        + DeferredGT::from(setup.Delta_1L[state.nu]) * beta * alpha
+        + DeferredGT::from(setup.Delta_1R[state.nu]) * beta;
+    state.D_2 = DeferredGT::from(D_2L) * alpha_inv
         + D_2R
-        + setup.Delta_2L[state.nu] * beta_inv * alpha_inv
-        + setup.Delta_2R[state.nu] * beta_inv;
+        + DeferredGT::from(setup.Delta_2L[state.nu]) * beta_inv * alpha_inv
+        + DeferredGT::from(setup.Delta_2R[state.nu]) * beta_inv;
 }

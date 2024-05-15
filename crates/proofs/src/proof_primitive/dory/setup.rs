@@ -1,4 +1,4 @@
-use super::{PublicParameters, G1, G2, GT};
+use super::{G1Affine, G2Affine, PublicParameters, G1, G2, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -88,9 +88,9 @@ pub struct VerifierSetup {
     /// `chi[k]` = χ,(m-k) in the Dory paper.
     pub(super) chi: Vec<GT>,
     /// `Gamma_1_0` is the Γ_1 used in Scalar-Product algorithm in the Dory paper.
-    pub(super) Gamma_1_0: G1,
+    pub(super) Gamma_1_0: G1Affine,
     /// `Gamma_2_0` is the Γ_2 used in Scalar-Product algorithm in the Dory paper.
-    pub(super) Gamma_2_0: G2,
+    pub(super) Gamma_2_0: G2Affine,
     /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_1: G1,
     /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
@@ -98,7 +98,7 @@ pub struct VerifierSetup {
     /// `H_T` = H_T in the Dory paper.
     pub(super) H_T: GT,
     /// `Gamma_2_fin` = Gamma_2,fin in the Dory paper.
-    pub(super) Gamma_2_fin: G2,
+    pub(super) Gamma_2_fin: G2Affine,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
 }
@@ -112,7 +112,7 @@ impl VerifierSetup {
         Gamma_2_nu: &[G2],
         H_1: G1,
         H_2: G2,
-        Gamma_2_fin: G2,
+        Gamma_2_fin: G2Affine,
         max_nu: usize,
     ) -> Self {
         assert_eq!(Gamma_1_nu.len(), 1 << max_nu);
@@ -152,8 +152,8 @@ impl VerifierSetup {
             Delta_2L: Delta_1L_2L,
             Delta_2R,
             chi,
-            Gamma_1_0: Gamma_1_nu[0],
-            Gamma_2_0: Gamma_2_nu[0],
+            Gamma_1_0: Gamma_1_nu[0].into(),
+            Gamma_2_0: Gamma_2_nu[0].into(),
             H_1,
             H_2,
             H_T: Pairing::pairing(H_1, H_2),
@@ -170,7 +170,7 @@ impl From<&PublicParameters> for VerifierSetup {
             &value.Gamma_2,
             value.H_1,
             value.H_2,
-            value.Gamma_2_fin,
+            value.Gamma_2_fin.into(),
             value.max_nu,
         )
     }

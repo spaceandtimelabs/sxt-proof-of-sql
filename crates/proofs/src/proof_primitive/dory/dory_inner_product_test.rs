@@ -1,6 +1,6 @@
 use super::{
     dory_inner_product_prove, dory_inner_product_verify, rand_G_vecs, test_rng, DoryMessages,
-    ProverState, PublicParameters, G1, GT,
+    G1Affine, ProverState, PublicParameters, GT,
 };
 use ark_std::UniformRand;
 use merlin::Transcript;
@@ -175,7 +175,7 @@ fn we_fail_to_verify_a_dory_inner_product_when_there_are_too_many_G1_messages() 
     let mut messages = DoryMessages::default();
     dory_inner_product_prove(&mut messages, &mut transcript, prover_state, &prover_setup);
 
-    messages.G1_messages.push(G1::rand(&mut rng));
+    messages.G1_messages.push(G1Affine::rand(&mut rng));
 
     let mut transcript = Transcript::new(b"dory_inner_product_test");
     assert!(!dory_inner_product_verify(
@@ -248,7 +248,7 @@ fn we_fail_to_verify_a_dory_inner_product_when_the_commitment_is_wrong() {
     let prover_state = ProverState::new(v1, v2, nu);
     let mut verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
-    verifier_state.C = GT::rand(&mut rng);
+    verifier_state.C = GT::rand(&mut rng).into();
 
     let mut transcript = Transcript::new(b"dory_inner_product_test");
     let mut messages = DoryMessages::default();

@@ -71,5 +71,5 @@ pub fn scalar_product_verify(
     let E_2 = messages.prover_recieve_G2_message(transcript);
     let (d, d_inv) = messages.verifier_F_message(transcript);
     Pairing::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
-        == setup.chi[0] + state.C + state.D_2 * d + state.D_1 * d_inv
+        == (state.C + setup.chi[0] + state.D_2 * d + state.D_1 * d_inv).compute()
 }

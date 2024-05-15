@@ -1,6 +1,6 @@
 use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
-    DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState,
+    DeferredGT, DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState, G1, G2,
 };
 use ark_ec::pairing::Pairing;
 use merlin::Transcript;
@@ -32,9 +32,9 @@ pub fn fold_scalars_0_verify(
 ) -> VerifierState {
     assert_eq!(state.base_state.nu, 0);
     let (gamma, gamma_inv) = messages.verifier_F_message(transcript);
-    state.base_state.C += setup.H_T * state.s1[0] * state.s2[0]
-        + Pairing::pairing(setup.H_1, state.E_2) * gamma
-        + Pairing::pairing(state.E_1, setup.H_2) * gamma_inv;
+    state.base_state.C += DeferredGT::from(setup.H_T) * state.s1[0] * state.s2[0]
+        + DeferredGT::from(Pairing::pairing(setup.H_1, state.E_2.compute::<G2>())) * gamma
+        + DeferredGT::from(Pairing::pairing(state.E_1.compute::<G1>(), setup.H_2)) * gamma_inv;
     state.base_state.D_1 += Pairing::pairing(setup.H_1, setup.Gamma_2_0 * state.s1[0] * gamma);
     state.base_state.D_2 += Pairing::pairing(setup.Gamma_1_0 * state.s2[0] * gamma_inv, setup.H_2);
     state.base_state

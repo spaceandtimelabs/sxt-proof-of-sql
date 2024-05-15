@@ -1,6 +1,6 @@
 use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
-    ProverSetup, F, G1, G2,
+    DeferredG1, DeferredG2, G1Affine, G2Affine, ProverSetup, F, G1, G2,
 };
 use ark_ec::{ScalarMul, VariableBaseMSM};
 
@@ -74,13 +74,17 @@ pub fn extended_dory_reduce_prove_fold_s_vecs(
 /// * E_2' <- E_2 + beta_inv * E_2beta + alpha * E_2plus + alpha_inv * E_2minus
 pub fn extended_dory_reduce_verify_update_Es(
     state: &mut ExtendedVerifierState,
-    (E_1beta, E_2beta): (G1, G2),
-    (E_1plus, E_1minus, E_2plus, E_2minus): (G1, G1, G2, G2),
+    (E_1beta, E_2beta): (G1Affine, G2Affine),
+    (E_1plus, E_1minus, E_2plus, E_2minus): (G1Affine, G1Affine, G2Affine, G2Affine),
     (alpha, alpha_inv): (F, F),
     (beta, beta_inv): (F, F),
 ) {
-    state.E_1 += E_1beta * beta + E_1plus * alpha + E_1minus * alpha_inv;
-    state.E_2 += E_2beta * beta_inv + E_2plus * alpha + E_2minus * alpha_inv;
+    state.E_1 += DeferredG1::from(E_1beta) * beta
+        + DeferredG1::from(E_1plus) * alpha
+        + DeferredG1::from(E_1minus) * alpha_inv;
+    state.E_2 += DeferredG2::from(E_2beta) * beta_inv
+        + DeferredG2::from(E_2plus) * alpha
+        + DeferredG2::from(E_2minus) * alpha_inv;
 }
 
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
