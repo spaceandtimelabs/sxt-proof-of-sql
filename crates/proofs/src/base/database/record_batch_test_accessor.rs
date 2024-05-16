@@ -115,7 +115,8 @@ impl RecordBatchTestAccessor {
     ) -> RecordBatch {
         let table = self.tables.get(&table_ref).unwrap();
 
-        dataframe_to_record_batch(f(&record_batch_to_dataframe(table.data.clone())))
+        dataframe_to_record_batch(f(&record_batch_to_dataframe(table.data.clone()).unwrap()))
+            .unwrap()
     }
 }
 

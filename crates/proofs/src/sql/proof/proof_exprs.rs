@@ -48,8 +48,8 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
 /// TODO: add docs
 pub trait TransformExpr: Debug + Send + Sync {
     /// Apply transformations to the resulting record batch
-    fn transform_results(&self, result: RecordBatch) -> RecordBatch {
-        result
+    fn transform_results(&self, result: RecordBatch) -> Option<RecordBatch> {
+        Some(result)
     }
 }
 

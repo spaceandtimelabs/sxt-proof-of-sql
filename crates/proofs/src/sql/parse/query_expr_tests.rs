@@ -156,7 +156,7 @@ fn we_can_convert_an_ast_with_one_column() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -178,7 +178,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
             tab(t),
             equal(t, "a", 3_i128, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -200,7 +200,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
             tab(t),
             equal(t, "a", "abc", &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -275,7 +275,7 @@ fn we_can_convert_an_ast_with_two_columns() {
             tab(t),
             equal(t, "c", 123, &accessor),
         ),
-        result(&[("a", "a"), ("b", "b")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -298,7 +298,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(&[("b", "b"), ("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -321,7 +321,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
             tab(t),
             equal(t, "b", 4, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -344,7 +344,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
             tab(t),
             not(equal(t, "b", 4, &accessor)),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -367,7 +367,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             tab(t),
             equal(t, "b", -4, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -395,7 +395,7 @@ fn we_can_convert_an_ast_with_cond_and() {
             tab(t),
             and(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -423,7 +423,7 @@ fn we_can_convert_an_ast_with_cond_or() {
             tab(t),
             or(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -454,7 +454,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 not(equal(t, "c", -2, &accessor)),
             ),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -486,7 +486,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 equal(t, "b", 3, &accessor),
             )),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -512,7 +512,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value() {
             tab(t),
             equal(t, "a", i128::MIN, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -538,7 +538,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value() {
             tab(t),
             equal(t, "a", i128::MAX, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -613,7 +613,7 @@ fn we_can_convert_an_ast_with_a_schema() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -630,7 +630,7 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        result(&[("a", "a")]),
+        composite_result(vec![]),
     );
     let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
     for query in queries {
@@ -660,10 +660,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(vec![
-            select(&[pc("b").alias("b"), pc("a").alias("a")]),
-            orders(&["b"], &[Asc]),
-        ]),
+        composite_result(vec![orders(&["b"], &[Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -690,10 +687,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
             tab(t),
             equal(t, "a", 3, &accessor),
         ),
-        composite_result(vec![
-            select(&[pc("a").alias("a"), pc("b").alias("b")]),
-            orders(&["b", "a"], &[Desc, Asc]),
-        ]),
+        composite_result(vec![orders(&["b", "a"], &[Desc, Asc])]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -868,7 +862,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(3, 0)]),
+        composite_result(vec![slice(3, 0)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -887,7 +881,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        composite_result(vec![select(&[pc("a").alias("a")])]),
+        composite_result(vec![]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -906,7 +900,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, 7)]),
+        composite_result(vec![slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -925,7 +919,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, -7)]),
+        composite_result(vec![slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -944,7 +938,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(55, 3)]),
+        composite_result(vec![slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -975,11 +969,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             tab(t),
             equal(t, "a", -3, &accessor),
         ),
-        composite_result(vec![
-            select(&[pc("a").alias("a")]),
-            orders(&["a"], &[Desc]),
-            slice(55, 3),
-        ]),
+        composite_result(vec![orders(&["a"], &[Desc]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
 }

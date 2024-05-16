@@ -14,7 +14,10 @@ fn run_query(
 ) {
     use proofs::{
         base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
-        sql::{parse::QueryExpr, proof::QueryProof},
+        sql::{
+            parse::QueryExpr,
+            proof::{TransformExpr, VerifiableQueryResult},
+        },
     };
 
     // Setup common data and accessor for each run
@@ -35,12 +38,17 @@ fn run_query(
         &accessor,
     )
     .unwrap();
-    let (proof, serialized_result) =
-        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(query.proof_expr(), &accessor, &())
         .unwrap()
         .table;
+    let owned_table_result: OwnedTable<_> = query
+        .result()
+        .transform_results(owned_table_result.try_into().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap();
 
     // Adjust expected result based on the precision and scale provided
     let mut expected_result = owned_table!("a" => [1_i64, 3], "b" => ["t", "v"]);
@@ -106,7 +114,7 @@ mod decimal_query_tests {
     fn we_can_query_negative_decimals_with_different_scale_than_db_data() {
         run_query(
             "SELECT * FROM table WHERE c = -1.0",
-            2,
+            4,
             3,
             vec![S::from(-100), S::ZERO, S::from(-100)],
             vec![S::from(-100), S::from(-100)],
@@ -148,7 +156,7 @@ mod decimal_query_tests {
     fn we_can_query_decimals_with_lower_scale_than_db_data() {
         run_query(
             "SELECT * FROM table WHERE c = 0.1",
-            1,
+            7,
             6,
             vec![S::from(100000), S::ZERO, S::from(100000)],
             vec![S::from(100000), S::from(100000)],

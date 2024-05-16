@@ -14,7 +14,11 @@
 //! However, the actual arrow backing `i128` is the correct value.
 use super::scalar_and_i256_conversions::convert_scalar_to_i256;
 use crate::base::{
-    database::{OwnedColumn, OwnedTable, OwnedTableError},
+    database::{
+        scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
+        OwnedTableError,
+    },
+    math::decimal::Precision,
     scalar::Scalar,
 };
 use arrow::{
@@ -126,6 +130,19 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .unwrap()
                     .values()
                     .to_vec(),
+            )),
+            DataType::Decimal256(precision, scale) if *precision <= 75 => Ok(Self::Decimal75(
+                Precision::new(*precision).expect("precision is less than 76"),
+                *scale,
+                value
+                    .as_any()
+                    .downcast_ref::<Decimal256Array>()
+                    .unwrap()
+                    .values()
+                    .iter()
+                    .map(convert_i256_to_scalar)
+                    .map(Option::unwrap)
+                    .collect(),
             )),
             DataType::Utf8 => Ok(Self::VarChar(
                 value

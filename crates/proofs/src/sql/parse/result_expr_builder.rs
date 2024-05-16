@@ -40,6 +40,12 @@ impl ResultExprBuilder {
     /// Chain a new `SelectExpr` to the current `ResultExpr`.
     pub fn add_select_exprs(mut self, aliased_exprs: &[AliasedResultExpr]) -> Self {
         assert!(!aliased_exprs.is_empty());
+        if aliased_exprs
+            .iter()
+            .all(|expr| *expr.expr == Expression::Column(expr.alias))
+        {
+            return self;
+        }
 
         let polars_exprs = aliased_exprs
             .iter()

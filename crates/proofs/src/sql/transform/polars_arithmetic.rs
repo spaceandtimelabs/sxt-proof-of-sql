@@ -92,11 +92,11 @@ mod tests {
     macro_rules! test_expr {
         ($expr:expr, $expected:expr) => {
             let data = batch!("" => [0_i64]);
-            let result = ResultExpr::new(select(&[$expr.alias("res")])).transform_results(data);
+            let result = ResultExpr::new(select(&[$expr.alias("res")])).transform_results(data).unwrap();
             assert_eq!(result, $expected);
         };
         ($expr:expr, $expected:expr, $data:expr) => {
-            assert_eq!(ResultExpr::new(select(&[$expr.alias("res")])).transform_results($data), $expected);
+            assert_eq!(ResultExpr::new(select(&[$expr.alias("res")])).transform_results($data).unwrap(), $expected);
         };
     }
 

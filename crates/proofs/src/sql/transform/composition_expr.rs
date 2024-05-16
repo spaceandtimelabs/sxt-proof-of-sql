@@ -30,6 +30,9 @@ impl CompositionExpr {
 
 #[typetag::serde]
 impl DataFrameExpr for CompositionExpr {
+    fn is_identity(&self) -> bool {
+        self.transformations.iter().all(|t| t.is_identity())
+    }
     /// Apply the transformations to the `LazyFrame`.
     fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
         let mut lazy_frame = lazy_frame;
