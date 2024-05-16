@@ -12,7 +12,11 @@ pub use composition_expr::CompositionExpr;
 pub mod composition_expr_test;
 
 mod data_frame_expr;
-pub use data_frame_expr::DataFrameExpr;
+#[allow(deprecated)]
+pub(crate) use data_frame_expr::DataFrameExpr;
+mod record_batch_expr;
+pub(crate) use record_batch_expr::impl_record_batch_expr_for_data_frame_expr;
+pub use record_batch_expr::RecordBatchExpr;
 
 mod order_by_exprs;
 pub use order_by_exprs::OrderByExprs;

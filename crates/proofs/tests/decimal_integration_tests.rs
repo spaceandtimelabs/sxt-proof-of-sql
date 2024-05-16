@@ -22,7 +22,7 @@ fn run_query(
 
     // Setup common data and accessor for each run
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let mut data: OwnedTable<S> = owned_table!("a" => [1i64, 2, 3], "b" => ["t", "u", "v"]);
+    let mut data: OwnedTable<S> = owned_table!("b" => ["t", "u", "v"], "a" => [1i64, 2, 3]);
     data.append_decimal_columns_for_testing(
         "c",
         expected_precision,

@@ -1,17 +1,17 @@
-use crate::sql::transform::DataFrameExpr;
+use crate::sql::transform::RecordBatchExpr;
+use arrow::record_batch::RecordBatch;
 use dyn_partial_eq::DynPartialEq;
-use polars::prelude::LazyFrame;
 use serde::{Deserialize, Serialize};
 
 /// A node representing a list of transformations to be applied to a `LazyFrame`.
 #[derive(Debug, Default, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct CompositionExpr {
-    transformations: Vec<Box<dyn DataFrameExpr>>,
+    transformations: Vec<Box<dyn RecordBatchExpr>>,
 }
 
 impl CompositionExpr {
     /// Create a new `CompositionExpr` node.
-    pub fn new(transformation: Box<dyn DataFrameExpr>) -> Self {
+    pub fn new(transformation: Box<dyn RecordBatchExpr>) -> Self {
         Self {
             transformations: vec![transformation],
         }
@@ -23,24 +23,21 @@ impl CompositionExpr {
     }
 
     /// Append a new transformation to the end of the current `CompositionExpr` node.
-    pub fn add(&mut self, transformation: Box<dyn DataFrameExpr>) {
+    pub fn add(&mut self, transformation: Box<dyn RecordBatchExpr>) {
         self.transformations.push(transformation);
     }
 }
 
 #[typetag::serde]
-impl DataFrameExpr for CompositionExpr {
-    fn is_identity(&self) -> bool {
-        self.transformations.iter().all(|t| t.is_identity())
-    }
-    /// Apply the transformations to the `LazyFrame`.
-    fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
-        let mut lazy_frame = lazy_frame;
+impl RecordBatchExpr for CompositionExpr {
+    /// Apply the transformations to the `RecordBatch`.
+    fn apply_transformation(&self, record_batch: RecordBatch) -> Option<RecordBatch> {
+        let mut record_batch = record_batch;
 
         for transformation in self.transformations.iter() {
-            lazy_frame = transformation.apply_transformation(lazy_frame, num_input_rows);
+            record_batch = transformation.apply_transformation(record_batch)?;
         }
 
-        lazy_frame
+        Some(record_batch)
     }
 }
