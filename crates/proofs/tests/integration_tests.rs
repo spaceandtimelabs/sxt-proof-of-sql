@@ -102,6 +102,39 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "public.test_table".parse().unwrap(),
+        owned_table!("amount" => [115_i128, -79], "primes" => ["-f34", "abcd"]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select primes, amount from public.test_table where primes = 'abcd'"
+            .parse()
+            .unwrap(),
+        "public".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let owned_table_result: OwnedTable<Curve25519Scalar> = query
+        .result()
+        .transform_results(owned_table_result.try_into().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let expected_result = owned_table!("primes" => ["abcd"], "amount" => [-79_i128]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
 fn we_can_prove_a_basic_inequality_query_with_dory() {
     let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
     let dory_verifier_setup = (&dory_prover_setup).into();
