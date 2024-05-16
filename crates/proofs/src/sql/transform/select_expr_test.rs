@@ -12,7 +12,7 @@ use polars::prelude::{col, lit};
 fn we_can_filter_out_record_batch_columns() {
     let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
     let result_expr = ResultExpr::new(select(&[col("a").alias("a2")]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a2" => ["d", "a", "f", "b"]);
     assert_eq!(data, expected_data);
 }
@@ -21,7 +21,7 @@ fn we_can_filter_out_record_batch_columns() {
 fn we_can_filter_out_record_batch_columns_with_i128_data() {
     let data = record_batch!("c" => [-5_i128, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
     let result_expr = ResultExpr::new(select(&[col("a").alias("a2")]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a2" => ["d", "a", "f", "b"]);
     assert_eq!(data, expected_data);
 }
@@ -31,14 +31,14 @@ fn we_can_filter_out_record_batch_columns_with_i128_data() {
 fn result_expr_panics_with_batches_containing_duplicate_columns() {
     let data = record_batch!("a" => [-5_i64, 1, -56, 2], "a" => [-5_i64, 1, -56, 2]);
     let result_expr = ResultExpr::new(select(&[col("a").alias("a2"), col("a").alias("a3")]));
-    result_expr.transform_results(data);
+    result_expr.transform_results(data).unwrap();
 }
 
 #[test]
 fn we_can_reorder_the_record_batch_columns_without_changing_their_names() {
     let data = record_batch!("c" => [-5_i64, 1, -56, 2], "a" => ["d", "a", "f", "b"]);
     let result_expr = ResultExpr::new(select(&[col("a").alias("a"), col("c").alias("c")]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a" => ["d", "a", "f", "b"], "c" => [-5_i64, 1, -56, 2]);
     assert_eq!(data, expected_data);
 }
@@ -50,7 +50,7 @@ fn we_can_remap_the_record_batch_columns_to_different_names() {
         col("a").alias("b_test"),
         col("c").alias("col_c_test"),
     ]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("b_test" => ["d", "a", "f", "b"], "col_c_test" => [-5_i64, 1, -56, 2]);
     assert_eq!(data, expected_data);
@@ -65,7 +65,7 @@ fn we_can_remap_the_record_batch_columns_to_new_columns() {
         col("a").alias("d2"),
         col("c").alias("c"),
     ]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("abc" => [-5_i64, 1, -56, 2], "b_test" => ["d", "a", "f", "b"], "d2" => ["d", "a", "f", "b"], "c" => [-5_i64, 1, -56, 2]);
     assert_eq!(data, expected_data);
 }
@@ -87,7 +87,7 @@ fn we_can_use_agg_with_select_expression() {
         (col("c").sum() * col("a").max() - col("d").min() + col("h").count() * lit(2) - lit(733))
             .alias("expr"),
     ]));
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!(
         "c_sum" => [-3_i64],
         "a_max" => [3_i64],
@@ -107,7 +107,7 @@ fn using_count_with_an_empty_batch_will_return_zero() {
         col("d").count(),
         col("s").count(),
     ]));
-    let data = result_expr.transform_results(empty_data);
+    let data = result_expr.transform_results(empty_data).unwrap();
     let expected_data = record_batch!("i" => [0_i64], "d" => [0_i64], "s" => [0_i64]);
     assert_eq!(data, expected_data);
 }
@@ -117,7 +117,7 @@ fn using_sum_with_an_empty_batch_will_return_zero() {
     let data = record_batch!("i" => [-5_i64], "d" => [3_i128]);
     let empty_data = RecordBatch::new_empty(data.schema());
     let result_expr = ResultExpr::new(select(&[col("i").sum(), col("d").sum()]));
-    let data = result_expr.transform_results(empty_data);
+    let data = result_expr.transform_results(empty_data).unwrap();
     let expected_data = record_batch!("i" => [0_i64], "d" => [0_i128]);
     assert_eq!(data, expected_data);
 }
@@ -127,7 +127,7 @@ fn using_min_with_an_empty_batch_will_return_empty_even_with_count_or_sum_in_the
     let data = record_batch!("i" => [-5_i64], "d" => [3_i128], "i1" => [3_i64]);
     let empty_data = RecordBatch::new_empty(data.schema());
     let result_expr = ResultExpr::new(select(&[col("i").count(), col("d").sum(), col("i1").min()]));
-    let data = result_expr.transform_results(empty_data.clone());
+    let data = result_expr.transform_results(empty_data.clone()).unwrap();
     let expected_data = empty_data;
     assert_eq!(data, expected_data);
 }
@@ -137,7 +137,7 @@ fn using_max_with_an_empty_batch_will_return_empty_even_with_count_or_sum_in_the
     let data = record_batch!("i" => [-5_i64], "d" => [3_i128], "i1" => [3_i64]);
     let empty_data = RecordBatch::new_empty(data.schema());
     let result_expr = ResultExpr::new(select(&[col("i").count(), col("d").sum(), col("i1").max()]));
-    let data = result_expr.transform_results(empty_data.clone());
+    let data = result_expr.transform_results(empty_data.clone()).unwrap();
     let expected_data = empty_data;
     assert_eq!(data, expected_data);
 }

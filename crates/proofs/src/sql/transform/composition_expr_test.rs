@@ -19,7 +19,7 @@ fn we_can_chain_expressions() {
     composition.add(slice(limit, offset));
 
     let result_expr = composite_result(vec![Box::new(composition)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("c" => [1_i64, -5], "a" => ["a", "d"]);
     assert_eq!(data, expected_data);
 }
@@ -33,12 +33,12 @@ fn the_order_that_we_chain_expressions_is_relevant() {
     let mut composition1 = CompositionExpr::new(orders(&["c"], &[Desc]));
     composition1.add(slice(limit, offset));
     let result_expr1 = composite_result(vec![Box::new(composition1)]);
-    let data1 = result_expr1.transform_results(data.clone());
+    let data1 = result_expr1.transform_results(data.clone()).unwrap();
 
     let mut composition2 = CompositionExpr::new(slice(limit, offset));
     composition2.add(orders(&["c"], &[Desc]));
     let result_expr2 = composite_result(vec![Box::new(composition2)]);
-    let data2 = result_expr2.transform_results(data);
+    let data2 = result_expr2.transform_results(data).unwrap();
 
     assert_ne!(data1, data2);
 

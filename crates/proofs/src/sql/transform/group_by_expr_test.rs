@@ -16,7 +16,7 @@ fn we_can_transform_batch_using_group_by_with_a_varchar_column() {
     let by_exprs = vec![col("a")];
     let agg_exprs = vec![col("a").first(), col("b").first(), col("c").first()];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("a" => ["a", "d", "b"], "b" => [1_i64, -5, 2],"c" => [-1_i128, 0, 3]);
     assert_eq!(data, expected_data);
@@ -28,7 +28,7 @@ fn we_can_transform_batch_using_group_by_with_a_i64_column() {
     let by_exprs = vec![col("b")];
     let agg_exprs = vec![col("a").first(), col("b").first(), col("c").first()];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("a" => ["a", "d", "b"], "b" => [1_i64, -5, 2],"c" => [-1_i128, 0, 3]);
     assert_eq!(data, expected_data);
@@ -40,7 +40,7 @@ fn we_can_transform_batch_using_group_by_with_a_i128_column() {
     let by_exprs = vec![col("c")];
     let agg_exprs = vec![col("a").first(), col("b").first(), col("c").first()];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("a" => ["a", "d", "b"], "b" => [1_i64, -5, 2],"c" => [-1_i128, 0, 3]);
     assert_eq!(data, expected_data);
@@ -51,7 +51,7 @@ fn we_can_transform_batch_using_the_same_group_bys_with_the_same_alias() {
     let data = record_batch!("c" => [1_i64, -5, 7, 7, 2], "a" => ["a", "d", "a", "a", "b"]);
     let by_exprs = vec![col("a"), col("a")];
     let result_expr = composite_result(vec![groupby(by_exprs, vec![col("c").sum()])]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("c" => [15_i64, -5, 2]);
     assert_eq!(data, expected_data);
 }
@@ -64,7 +64,7 @@ fn we_can_transform_batch_using_different_group_bys_with_different_aliases() {
         by_exprs,
         vec![col("a").first(), col("c").first()],
     )]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a" => ["a", "d", "a", "b"], "c" => [1_i64, -5, 7, 2]);
     assert_eq!(data, expected_data);
 }
@@ -75,7 +75,7 @@ fn we_can_transform_batch_using_simple_group_by_with_max_aggregation() {
     let by_exprs = vec![col("a"), col("c")];
     let agg_exprs = vec![(col("b") + col("c")).max().alias("bc")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("bc" => [8_i128, -10, -1]);
     assert_eq!(data, expected_data);
 }
@@ -86,7 +86,7 @@ fn we_can_transform_batch_using_simple_group_by_with_min_aggregation() {
     let by_exprs = vec![col("a"), col("c")];
     let agg_exprs = vec![(col("b") * col("c")).min().alias("bc")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("bc" => [1_i128, 25, -6]);
     assert_eq!(data, expected_data);
 }
@@ -97,7 +97,7 @@ fn we_can_transform_batch_using_simple_group_by_with_sum_aggregation() {
     let by_exprs = vec![col("a"), col("c")];
     let agg_exprs = vec![(col("b") - col("c")).sum().alias("bc")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("bc" => [6_i128, 0, 5]);
     assert_eq!(data, expected_data);
 }
@@ -109,7 +109,7 @@ fn sum_aggregation_can_overflow() {
     let by_exprs = vec![col("a")];
     let agg_exprs = vec![col("c").sum()];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    result_expr.transform_results(data);
+    result_expr.transform_results(data).unwrap();
 }
 
 #[test]
@@ -123,7 +123,7 @@ fn we_can_transform_batch_using_simple_group_by_with_count_aggregation() {
             .alias("bc"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a" => ["a", "d", "b"], "bc" => [2_i64, 1, 2]);
     assert_eq!(data, expected_data);
 }
@@ -137,7 +137,7 @@ fn we_can_transform_batch_using_simple_group_by_with_first_aggregation() {
         col("a").first().alias("a2_col"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a_col" => ["a", "d", "b"], "a2_col" => ["a", "d", "b"]);
     assert_eq!(data, expected_data);
 }
@@ -149,7 +149,7 @@ fn we_can_transform_batch_using_group_by_with_the_same_name_as_the_aggregation_e
     let by_exprs = vec![col("c").alias("c")];
     let agg_exprs = vec![col("c").min().alias("c")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("c" => [1_i64, -5, -3, 7, 2]);
     assert_eq!(data, expected_data);
 }
@@ -161,7 +161,7 @@ fn we_can_transform_batch_using_min_aggregation_with_non_numeric_columns() {
     let by_exprs = vec![col("c")];
     let agg_exprs = vec![col("c").first(), col("a").min().alias("a_min")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("c" => [1_i64, -5, -3, 7, 2], "a_min" => ["abc", "d", "b", "a", "b"]);
     assert_eq!(data, expected_data);
@@ -174,7 +174,7 @@ fn we_can_transform_batch_using_max_aggregation_with_non_numeric_columns() {
     let by_exprs = vec![col("c")];
     let agg_exprs = vec![col("c").first(), col("a").max().alias("a_max")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data =
         record_batch!("c" => [1_i64, -5, -3, 7], "a_max" => ["abd", "aa", "b", "a"]);
     assert_eq!(data, expected_data);
@@ -187,7 +187,7 @@ fn we_can_transform_batch_using_count_aggregation_with_non_numeric_columns() {
     let by_exprs = vec![col("c")];
     let agg_exprs = vec![col("a").count().alias("a_count")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a_count" => [2_i64, 1, 1, 1, 1]);
     assert_eq!(data, expected_data);
 }
@@ -202,7 +202,7 @@ fn we_can_transform_batch_using_simple_group_by_with_multiple_aggregations() {
         col("c").min().alias("c_min"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("c_max" => [7_i128, -5, 2], "a" => ["a", "d", "b"], "c_min" => [1_i128, -5, -3]);
     assert_eq!(data, expected_data);
 }
@@ -217,7 +217,7 @@ fn we_can_transform_batch_using_multiple_group_bys_with_multiple_aggregations() 
         col("c").count().alias("c_count"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a_group" => ["a", "d", "b", "a"], "d_max" => [523_i64, -25, 435, -7], "c_count" => [1_i64, 1, 2, 1]);
     assert_eq!(data, expected_data);
 }
@@ -230,7 +230,7 @@ fn we_can_transform_batch_using_different_aliases_associated_with_the_same_group
         by_exprs,
         vec![col("a").alias("a1").first(), col("a").alias("a2").first()],
     )]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("a1" => ["a", "b"], "a2" => ["a", "b"]);
     assert_eq!(data, expected_data);
 }
@@ -256,7 +256,7 @@ fn we_can_use_decimal_column_and_agg_inside_the_group_by_exprs() {
         vec![col("d").max()],
         vec![col("d").sum().alias("d_sum")],
     )]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("d_sum" => [2 * 523_i128]);
     assert_eq!(data, expected_data);
 }
@@ -271,7 +271,7 @@ fn we_can_transform_batch_using_arithmetic_expressions_in_the_aggregation() {
     let by_exprs = vec![col("a").alias("a_group")];
     let agg_exprs = vec![(col("d") * col("c")).sum().alias("cd_sum")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("cd_sum" => [474_i64, 125, -2334]);
     assert_eq!(data, expected_data);
 }
@@ -288,7 +288,7 @@ fn we_can_transform_batch_using_arithmetic_outside_the_aggregation_exprs() {
         (col("c") + col("d")).sum().alias("sum_cd2"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!(
         "sum_cd1" => [0_i128, -10, -3, 14, 4],
         "sum_cd2" => [0_i128, -20, -3, 14, 4],
@@ -309,7 +309,7 @@ fn we_can_transform_batch_using_arithmetic_expressions_inside_the_group_by_exprs
         col("b").count(),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!("sum_ca" => [10_i128, 11], "b" => [3_i64, 2_i64]);
     assert_eq!(data, expected_data);
 }
@@ -324,7 +324,7 @@ fn we_can_use_decimal_columns_inside_group_by() {
     let by_exprs = vec![col("h")];
     let agg_exprs = vec![(col("j") + col("h")).sum().alias("h_sum")];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(data);
+    let data = result_expr.transform_results(data).unwrap();
     let expected_data = record_batch!(
         "h_sum" => [2_i128, 14, -nines + 5, 3, -2 - 2, nines - 1, -6 + 100 + 4, 11 + 31],
     );
@@ -343,7 +343,7 @@ fn transforming_a_batch_of_size_zero_with_min_max_agg_and_decimal_column_is_fine
         col("k").count().alias("k"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(empty_batch.clone());
+    let data = result_expr.transform_results(empty_batch.clone()).unwrap();
     let expected_data = empty_batch;
     assert_eq!(data, expected_data);
 }
@@ -360,7 +360,7 @@ fn transforming_a_batch_of_size_one_with_min_max_agg_and_decimal_column_is_fine(
         col("k").count().alias("k"),
     ];
     let result_expr = composite_result(vec![groupby(by_exprs, agg_exprs)]);
-    let data = result_expr.transform_results(input_data.clone());
+    let data = result_expr.transform_results(input_data.clone()).unwrap();
     let expected_data =
         record_batch!("h" => [-1_i128], "i" => [2_i128], "j" => [2_i128], "k" => [1_i64]);
     assert_eq!(data, expected_data);

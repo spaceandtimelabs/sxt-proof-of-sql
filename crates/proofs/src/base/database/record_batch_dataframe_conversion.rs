@@ -12,64 +12,66 @@ use std::sync::Arc;
 
 /// Convert a RecordBatch to a polars DataFrame
 /// Note: this explicitly does not check that Decimal128(38,0) values are 38 digits.
-pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> DataFrame {
-    let series: Vec<Series> = record_batch
+pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> Option<DataFrame> {
+    let series: Option<Vec<Series>> = record_batch
         .schema()
         .fields()
         .iter()
         .zip(record_batch.columns().iter())
-        .map(|(f, col)| match f.data_type() {
-            arrow::datatypes::DataType::Boolean => {
-                let data = col
-                    .as_any()
-                    .downcast_ref::<arrow::array::BooleanArray>()
-                    .unwrap()
-                    .iter()
-                    .collect::<Option<Vec<bool>>>()
-                    .unwrap();
+        .map(|(f, col)| {
+            Some(match f.data_type() {
+                arrow::datatypes::DataType::Boolean => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::BooleanArray>()
+                        .unwrap()
+                        .iter()
+                        .collect::<Option<Vec<bool>>>()
+                        .unwrap();
 
-                Series::new(f.name(), data)
-            }
-            arrow::datatypes::DataType::Int64 => {
-                let data = col
-                    .as_any()
-                    .downcast_ref::<arrow::array::Int64Array>()
-                    .map(|array| array.values())
-                    .unwrap();
+                    Series::new(f.name(), data)
+                }
+                arrow::datatypes::DataType::Int64 => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::Int64Array>()
+                        .map(|array| array.values())
+                        .unwrap();
 
-                Series::new(f.name(), data)
-            }
-            arrow::datatypes::DataType::Utf8 => {
-                let data = col
-                    .as_any()
-                    .downcast_ref::<arrow::array::StringArray>()
-                    .map(|array| (0..array.len()).map(|i| array.value(i)).collect::<Vec<_>>())
-                    .unwrap();
+                    Series::new(f.name(), data)
+                }
+                arrow::datatypes::DataType::Utf8 => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::StringArray>()
+                        .map(|array| (0..array.len()).map(|i| array.value(i)).collect::<Vec<_>>())
+                        .unwrap();
 
-                Series::new(f.name(), data)
-            }
-            arrow::datatypes::DataType::Decimal128(38, 0) => {
-                let data = col
-                    .as_any()
-                    .downcast_ref::<arrow::array::Decimal128Array>()
-                    .map(|array| array.values())
-                    .unwrap();
+                    Series::new(f.name(), data)
+                }
+                arrow::datatypes::DataType::Decimal128(38, 0) => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::Decimal128Array>()
+                        .map(|array| array.values())
+                        .unwrap();
 
-                ChunkedArray::from_vec(f.name(), data.to_vec())
-                    .into_decimal_unchecked(Some(38), 0)
-                    // Note: we make this unchecked because if record batch has values that overflow 38 digits, so should the data frame.
-                    .into_series()
-            }
-            _ => unimplemented!(),
+                    ChunkedArray::from_vec(f.name(), data.to_vec())
+                        .into_decimal_unchecked(Some(38), 0)
+                        // Note: we make this unchecked because if record batch has values that overflow 38 digits, so should the data frame.
+                        .into_series()
+                }
+                _ => None?,
+            })
         })
         .collect();
 
-    DataFrame::new(series).unwrap()
+    Some(DataFrame::new(series?).unwrap())
 }
 
 /// Convert a polars DataFrame to a RecordBatch
 /// Note: this does not check that Decimal128(38,0) values are 38 digits.
-pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
+pub fn dataframe_to_record_batch(data: DataFrame) -> Option<RecordBatch> {
     assert!(!data.is_empty());
 
     let mut column_fields: Vec<_> = Vec::with_capacity(data.width());
@@ -134,7 +136,7 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
                 DataType::Decimal128(38, 0)
             }
-            _ => unimplemented!("Datatype not supported: {:?}", field.data_type()),
+            _ => return None,
         };
 
         column_fields.push(Field::new(field.name().as_str(), dt, false));
@@ -142,7 +144,7 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> RecordBatch {
 
     let schema = Arc::new(Schema::new(column_fields));
 
-    RecordBatch::try_new(schema, columns).unwrap()
+    RecordBatch::try_new(schema, columns).ok()
 }
 
 #[cfg(test)]
@@ -173,7 +175,7 @@ mod tests {
                     .into_series(),
             )
             .unwrap();
-        let df = record_batch_to_dataframe(recordbatch);
+        let df = record_batch_to_dataframe(recordbatch).unwrap();
         assert_eq!(dataframe.to_string(), df.to_string());
     }
 
@@ -198,6 +200,6 @@ mod tests {
                     .into_series(),
             )
             .unwrap();
-        assert_eq!(dataframe_to_record_batch(dataframe), recordbatch);
+        assert_eq!(dataframe_to_record_batch(dataframe).unwrap(), recordbatch);
     }
 }

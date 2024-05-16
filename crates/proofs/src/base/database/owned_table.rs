@@ -75,21 +75,27 @@ impl<S: Scalar> OwnedTable<S> {
         results: &[&str],
         predicate: polars::prelude::Expr,
     ) -> OwnedTable<S> {
-        OwnedTable::try_from(super::dataframe_to_record_batch(
-            polars::prelude::IntoLazy::lazy(super::record_batch_to_dataframe(
-                arrow::record_batch::RecordBatch::try_from(self.clone()).unwrap(),
-            ))
-            .filter(predicate)
-            .select(
-                results
-                    .iter()
-                    .map(|v| polars::prelude::col(v))
-                    .collect::<Vec<_>>()
-                    .as_slice(),
+        OwnedTable::try_from(
+            super::dataframe_to_record_batch(
+                polars::prelude::IntoLazy::lazy(
+                    super::record_batch_to_dataframe(
+                        arrow::record_batch::RecordBatch::try_from(self.clone()).unwrap(),
+                    )
+                    .unwrap(),
+                )
+                .filter(predicate)
+                .select(
+                    results
+                        .iter()
+                        .map(|v| polars::prelude::col(v))
+                        .collect::<Vec<_>>()
+                        .as_slice(),
+                )
+                .collect()
+                .unwrap(),
             )
-            .collect()
             .unwrap(),
-        ))
+        )
         .unwrap()
     }
 

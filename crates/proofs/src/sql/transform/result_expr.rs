@@ -25,9 +25,12 @@ impl ResultExpr {
 
 impl TransformExpr for ResultExpr {
     /// Transform the `RecordBatch` result of a query using the `transformation` expression
-    fn transform_results(&self, result_batch: RecordBatch) -> RecordBatch {
+    fn transform_results(&self, result_batch: RecordBatch) -> Option<RecordBatch> {
+        if self.transformation.is_identity() {
+            return Some(result_batch);
+        }
         let num_input_rows = result_batch.num_rows();
-        let df = record_batch_to_dataframe(result_batch);
+        let df = record_batch_to_dataframe(result_batch)?;
         let lazy_frame = self
             .transformation
             .apply_transformation(df.lazy(), num_input_rows);

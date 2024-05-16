@@ -161,7 +161,8 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
         .table;
     let transformed_result: RecordBatch = query
         .result()
-        .transform_results(owned_table_result.clone().try_into().unwrap());
+        .transform_results(owned_table_result.clone().try_into().unwrap())
+        .unwrap();
     let expected_result: RecordBatch = record_batch!("a" => [1i64, 2, 3], "c" => [2i64, 2, 1]);
     assert_eq!(transformed_result, expected_result);
 }
