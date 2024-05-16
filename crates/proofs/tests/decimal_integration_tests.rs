@@ -51,7 +51,7 @@ fn run_query(
         .unwrap();
 
     // Adjust expected result based on the precision and scale provided
-    let mut expected_result = owned_table!("a" => [1_i64, 3], "b" => ["t", "v"]);
+    let mut expected_result = owned_table!("b" => ["t", "v"], "a" => [1_i64, 3]);
     expected_result.append_decimal_columns_for_testing(
         "c",
         expected_precision,
