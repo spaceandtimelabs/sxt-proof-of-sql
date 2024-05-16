@@ -1,3 +1,4 @@
+#[allow(deprecated)]
 use super::DataFrameExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use dyn_partial_eq::DynPartialEq;
@@ -30,9 +31,10 @@ impl GroupByExpr {
     }
 }
 
-#[typetag::serde]
+super::impl_record_batch_expr_for_data_frame_expr!(GroupByExpr);
+#[allow(deprecated)]
 impl DataFrameExpr for GroupByExpr {
-    fn apply_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
+    fn lazy_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
         // TODO: polars currently lacks support for min/max aggregation in data frames
         // with either zero or one element when a group by operation is applied.
         // We remove the group by clause to temporarily work around this limitation.

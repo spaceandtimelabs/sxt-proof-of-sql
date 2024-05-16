@@ -1,7 +1,10 @@
-use super::{GroupByExpr, OrderByExprs, ResultExpr, SelectExpr, SliceExpr};
+use super::{
+    record_batch_expr::RecordBatchExpr, GroupByExpr, OrderByExprs, ResultExpr, SelectExpr,
+    SliceExpr,
+};
 use crate::{
     base::database::{INT128_PRECISION, INT128_SCALE},
-    sql::transform::{CompositionExpr, DataFrameExpr},
+    sql::transform::CompositionExpr,
 };
 use polars::prelude::{col, DataType, Expr, Literal, Series};
 use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
@@ -14,7 +17,7 @@ pub fn lit(value: i128) -> Expr {
     ))
 }
 
-pub fn select(result_schema: &[Expr]) -> Box<dyn DataFrameExpr> {
+pub fn select(result_schema: &[Expr]) -> Box<dyn RecordBatchExpr> {
     Box::new(SelectExpr::new(result_schema.to_vec()))
 }
 
@@ -31,11 +34,11 @@ pub fn result(columns: &[(&str, &str)]) -> ResultExpr {
     ResultExpr::new(Box::new(composition))
 }
 
-pub fn slice(limit: u64, offset: i64) -> Box<dyn DataFrameExpr> {
+pub fn slice(limit: u64, offset: i64) -> Box<dyn RecordBatchExpr> {
     Box::new(SliceExpr::new(limit, offset))
 }
 
-pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> ResultExpr {
+pub fn composite_result(transformations: Vec<Box<dyn RecordBatchExpr>>) -> ResultExpr {
     let mut composition = CompositionExpr::default();
 
     for transformation in transformations {
@@ -45,7 +48,7 @@ pub fn composite_result(transformations: Vec<Box<dyn DataFrameExpr>>) -> ResultE
     ResultExpr::new(Box::new(composition))
 }
 
-pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFrameExpr> {
+pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn RecordBatchExpr> {
     let by_exprs = cols
         .iter()
         .zip(directions.iter())
@@ -61,7 +64,7 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn DataFra
 pub fn groupby<T: IntoIterator<Item = Expr>, A: IntoIterator<Item = Expr>>(
     by_exprs: T,
     agg_exprs: A,
-) -> Box<dyn DataFrameExpr> {
+) -> Box<dyn RecordBatchExpr> {
     Box::new(GroupByExpr::new(
         by_exprs.into_iter().collect(),
         agg_exprs.into_iter().collect(),

@@ -1,3 +1,4 @@
+#[allow(deprecated)]
 use super::DataFrameExpr;
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::LazyFrame;
@@ -29,10 +30,11 @@ impl SliceExpr {
     }
 }
 
-#[typetag::serde]
+super::record_batch_expr::impl_record_batch_expr_for_data_frame_expr!(SliceExpr);
+#[allow(deprecated)]
 impl DataFrameExpr for SliceExpr {
     /// Apply the slice transformation to the given `LazyFrame`.
-    fn apply_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
+    fn lazy_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
         lazy_frame.slice(self.offset_value, self.number_rows)
     }
 }

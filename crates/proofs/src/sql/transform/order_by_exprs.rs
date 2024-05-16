@@ -1,3 +1,4 @@
+#[allow(deprecated)]
 use super::DataFrameExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use arrow::datatypes::ArrowNativeTypeOp;
@@ -19,10 +20,11 @@ impl OrderByExprs {
     }
 }
 
-#[typetag::serde]
+super::impl_record_batch_expr_for_data_frame_expr!(OrderByExprs);
+#[allow(deprecated)]
 impl DataFrameExpr for OrderByExprs {
     /// Sort the `LazyFrame` by the `OrderBy` expressions.
-    fn apply_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
+    fn lazy_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
         assert!(!self.by_exprs.is_empty());
 
         let maintain_order = true;
