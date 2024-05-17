@@ -96,11 +96,7 @@ impl Commitment for DoryCommitment {
         setup: &Self::PublicSetup,
     ) {
         assert_eq!(commitments.len(), committable_columns.len());
-        let c = super::dory_commitment_helper::compute_dory_commitments(
-            committable_columns,
-            offset,
-            setup,
-        );
+        let c = super::compute_dory_commitments(committable_columns, offset, setup);
         commitments.copy_from_slice(&c);
     }
 
