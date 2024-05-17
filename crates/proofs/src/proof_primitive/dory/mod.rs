@@ -105,8 +105,17 @@ pub use dory_public_setup::DoryProverPublicSetup;
 pub(crate) use dory_public_setup::DoryVerifierPublicSetup;
 
 mod dory_commitment;
-mod dory_commitment_helper;
+#[cfg(not(feature = "blitzar"))]
+mod dory_commitment_helper_cpu;
+#[cfg(not(feature = "blitzar"))]
+use dory_commitment_helper_cpu::compute_dory_commitments;
+#[cfg(feature = "blitzar")]
+mod dory_commitment_helper_gpu;
 pub use dory_commitment::{DoryCommitment, DoryScalar};
+#[cfg(feature = "blitzar")]
+use dory_commitment_helper_gpu::compute_dory_commitments;
+#[cfg(test)]
+mod dory_compute_commitments_test;
 
 mod dory_commitment_evaluation_proof;
 pub use dory_commitment_evaluation_proof::DoryEvaluationProof;
