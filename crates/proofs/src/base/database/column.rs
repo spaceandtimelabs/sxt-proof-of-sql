@@ -1,6 +1,7 @@
-use super::TableRef;
+use super::{LiteralValue, TableRef};
 use crate::base::{math::decimal::Precision, scalar::Scalar};
 use arrow::datatypes::{DataType, Field};
+use bumpalo::Bump;
 use proofs_sql::Identifier;
 use serde::{Deserialize, Serialize};
 
@@ -59,6 +60,37 @@ impl<'a, S: Scalar> Column<'a, S> {
     /// Returns `true` if the column has no elements.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Generate a constant column from a literal value with a given length
+    pub fn from_literal_with_length(
+        literal: &LiteralValue<S>,
+        length: usize,
+        alloc: &'a Bump,
+    ) -> Self {
+        match literal {
+            LiteralValue::Boolean(value) => {
+                Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::BigInt(value) => {
+                Column::BigInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Int128(value) => {
+                Column::Int128(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Scalar(value) => {
+                Column::Scalar(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Decimal75(precision, scale, value) => Column::Decimal75(
+                *precision,
+                *scale,
+                alloc.alloc_slice_fill_copy(length, *value),
+            ),
+            LiteralValue::VarChar((string, scalar)) => Column::VarChar((
+                alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
+                alloc.alloc_slice_fill_copy(length, *scalar),
+            )),
+        }
     }
 
     /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
