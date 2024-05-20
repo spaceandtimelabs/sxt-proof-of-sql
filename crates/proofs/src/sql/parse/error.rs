@@ -40,6 +40,9 @@ pub enum ConversionError {
     #[error("Error while parsing precision from query: {0}")]
     /// TODO: add docs
     PrecisionParseError(String),
+    /// Decimal precision is not valid
+    #[error("Decimal precision is not valid: {0}")]
+    InvalidPrecision(u8),
     #[error("Encountered parsing error: {0}")]
     /// TODO: add docs
     ParseError(String),

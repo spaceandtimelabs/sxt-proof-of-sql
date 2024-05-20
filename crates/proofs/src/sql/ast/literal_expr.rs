@@ -50,18 +50,7 @@ impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        match self.value {
-            LiteralValue::Boolean(value) => {
-                Column::Boolean(alloc.alloc_slice_fill_copy(table_length, value))
-            }
-            LiteralValue::BigInt(value) => {
-                Column::BigInt(alloc.alloc_slice_fill_copy(table_length, value))
-            }
-            LiteralValue::Int128(value) => {
-                Column::Int128(alloc.alloc_slice_fill_copy(table_length, value))
-            }
-            _ => todo!(),
-        }
+        Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
     #[tracing::instrument(
@@ -75,18 +64,8 @@ impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        match self.value.clone() {
-            LiteralValue::Boolean(value) => {
-                Column::Boolean(alloc.alloc_slice_fill_copy(builder.table_length(), value))
-            }
-            LiteralValue::BigInt(value) => {
-                Column::BigInt(alloc.alloc_slice_fill_copy(builder.table_length(), value))
-            }
-            LiteralValue::Int128(value) => {
-                Column::Int128(alloc.alloc_slice_fill_copy(builder.table_length(), value))
-            }
-            _ => todo!(),
-        }
+        let table_length = builder.table_length();
+        Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
     fn verifier_evaluate(

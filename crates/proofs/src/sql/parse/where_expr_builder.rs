@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType, LiteralValue},
-        math::decimal::match_decimal,
+        math::decimal::{match_decimal, Precision},
     },
     sql::ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
 };
@@ -78,8 +78,16 @@ impl WhereExprBuilder<'_> {
         match lit {
             Literal::Boolean(b) => Ok(ProvableExprPlan::new_literal(LiteralValue::Boolean(b))),
             Literal::Int128(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::Int128(i))),
-            // TODO: Add support for Decimal type
-            Literal::Decimal(_d) => todo!(),
+            Literal::Decimal(d) => {
+                let scale = d.scale();
+                let precision = Precision::new(d.precision())
+                    .map_err(|_| ConversionError::InvalidPrecision(d.precision()))?;
+                Ok(ProvableExprPlan::new_literal(LiteralValue::Decimal75(
+                    precision,
+                    scale,
+                    match_decimal(&d, scale)?,
+                )))
+            }
             Literal::VarChar(s) => Ok(ProvableExprPlan::new_literal(LiteralValue::VarChar((
                 s.clone(),
                 s.into(),
