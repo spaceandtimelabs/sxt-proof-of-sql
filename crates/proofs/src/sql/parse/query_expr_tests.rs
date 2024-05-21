@@ -1517,8 +1517,8 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
         ),
         composite_result(vec![select(&[
             (pc("a") + pc("b")).alias("__expr__"),
-            (lit(2) * pc("f")).alias("f2"),
-            ((-77_i128).to_lit() - pc("h")).alias("col"),
+            (lit_i64(2) * pc("f")).alias("f2"),
+            ((-77_i64).to_lit() - pc("h")).alias("col"),
             (pc("a") + pc("f")).alias("af"),
             // TODO: add `a / b as a_div_b` result expr once polars properly
             // supports decimal division without panicking in production
@@ -1554,8 +1554,9 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            ((lit(2) + pc("f")) * (pc("c") + pc("g") + lit(2) * pc("h"))).alias("__expr__"),
-            (((pc("h") - pc("g")) * lit(2) + pc("c") + pc("g")) * (pc("f") + lit(2))).alias("d"),
+            ((lit_i64(2) + pc("f")) * (pc("c") + pc("g") + lit_i64(2) * pc("h"))).alias("__expr__"),
+            (((pc("h") - pc("g")) * lit_i64(2) + pc("c") + pc("g")) * (pc("f") + lit_i64(2)))
+                .alias("d"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
@@ -1590,7 +1591,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
                 vec![pc("c")],
                 vec![
                     pc("c").first().alias("c"),
-                    ((2_i128.to_lit() * pc("f") + pc("c") - (-7_i128).to_lit()).sum()).alias("d"),
+                    ((2_i64.to_lit() * pc("f") + pc("c") - (-7_i64).to_lit()).sum()).alias("d"),
                 ],
             ),
             select(&[pc("c"), pc("d")]),
@@ -1664,7 +1665,7 @@ fn varchar_column_is_not_compatible_with_integer_column() {
     assert_eq!(
         query!(select: ["-123 * s"], should_err: true),
         ConversionError::DataTypeMismatch(
-            ColumnType::Int128.to_string(),
+            ColumnType::BigInt.to_string(),
             ColumnType::VarChar.to_string()
         )
     );
@@ -1754,7 +1755,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
     let expected_query = expected_query!(
         select: [
             cols = ["i", "i1"],
-            exprs = [(lit(2) * (pc("i").first()) + pc("i").sum() - pc("i1").first()).alias("__expr__")]
+            exprs = [(lit_i64(2) * (pc("i").first()) + pc("i").sum() - pc("i1").first()).alias("__expr__")]
         ],
         group: [pc("i"), pc("i1")]
     );
@@ -1770,8 +1771,8 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
         select: [
             cols = ["d", "i"],
             exprs = [
-                (lit(7) + pc("i").max()).alias("max_i"),
-                ((pc("i") + 777_i128.to_lit() * pc("d")).min() * (-5).to_lit()).alias("min_d"),
+                (lit_i64(7) + pc("i").max()).alias("max_i"),
+                ((pc("i") + 777_i64.to_lit() * pc("d")).min() * (-5_i64).to_lit()).alias("min_d"),
             ]
         ]
     );
@@ -1787,8 +1788,8 @@ fn count_aggregation_always_have_integer_type() {
         select: [
             cols = ["d", "i", "s"],
             exprs = [
-                (7_i128.to_lit() + pc("s").count()).alias("cs"),
-                (pc("i").count() * (-5).to_lit()).alias("ci"),
+                (7_i64.to_lit() + pc("s").count()).alias("cs"),
+                (pc("i").count() * (-5_i64).to_lit()).alias("ci"),
                 pc("d").count().alias("__count__"),
             ]
         ]

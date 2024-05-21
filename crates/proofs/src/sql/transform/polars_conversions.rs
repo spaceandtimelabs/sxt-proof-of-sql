@@ -13,6 +13,12 @@ impl LiteralConversion for bool {
     }
 }
 
+impl LiteralConversion for i64 {
+    fn to_lit(&self) -> Expr {
+        Expr::Literal(LiteralValue::Int64(*self))
+    }
+}
+
 impl LiteralConversion for i128 {
     fn to_lit(&self) -> Expr {
         let s = [self.abs().to_string()].into_iter().collect::<Series>();
@@ -57,6 +63,24 @@ mod tests {
     }
 
     #[test]
+    fn boolean_can_be_properly_converted_to_lit() {
+        test_expr! {true.to_lit(), batch!("literal" => [true])};
+        test_expr! {false.to_lit(), batch!("literal" => [false])};
+    }
+
+    #[test]
+    fn i64_can_be_properly_converted_to_lit() {
+        test_expr! {1_i64.to_lit(), batch!("literal" => [1_i64])};
+        test_expr! {0_i64.to_lit(), batch!("literal" => [0_i64])};
+        test_expr! {(-1_i64).to_lit(), batch!("literal" => [-1_i64])};
+        test_expr!(i64::MAX.to_lit(), batch!("literal" => [i64::MAX]));
+        test_expr!(i64::MIN.to_lit(), batch!("literal" => [i64::MIN]));
+        (-3000_i64..3000_i64).for_each(|i| {
+            test_expr! {i.to_lit(), batch!("literal" => [i])};
+        });
+    }
+
+    #[test]
     fn i128_can_be_properly_converted_to_lit() {
         test_expr! {1_i128.to_lit(), batch!("" => [1_i128])};
         test_expr! {0_i128.to_lit(), batch!("" => [0_i128])};
@@ -67,7 +91,7 @@ mod tests {
         test_expr! {(MAX_DECIMAL - 1).to_lit(), batch!("" => [MAX_DECIMAL - 1])};
         test_expr!(MAX_I64.to_lit(), batch!("" => [i64::MAX as i128]));
         test_expr!(MIN_I64.to_lit(), batch!("" => [i64::MIN as i128]));
-        (-3000..3000).for_each(|i| {
+        (-3000_i128..3000_i128).for_each(|i| {
             test_expr! {i.to_lit(), batch!("" => [i])};
         });
     }

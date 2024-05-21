@@ -6,10 +6,14 @@ use crate::{
     base::database::{INT128_PRECISION, INT128_SCALE},
     sql::transform::CompositionExpr,
 };
-use polars::prelude::{col, DataType, Expr, Literal, Series};
+use polars::prelude::{col, DataType, Expr, Literal, LiteralValue, Series};
 use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
 
-pub fn lit(value: i128) -> Expr {
+pub fn lit_i64(value: i64) -> Expr {
+    Expr::Literal(LiteralValue::Int64(value))
+}
+
+pub fn lit_decimal(value: i128) -> Expr {
     let literal = [value.to_string()].into_iter().collect::<Series>().lit();
     literal.cast(DataType::Decimal(
         Some(INT128_PRECISION),

@@ -341,7 +341,11 @@ LiteralValue: Box<intermediate_ast::Literal> = {
 
     <value: StringLiteral> => Box::new(intermediate_ast::Literal::VarChar(<>)),
 
-    <value: Int128UnaryNumericLiteral> => Box::new(intermediate_ast::Literal::Int128(<>)),
+    <value: Int128UnaryNumericLiteral> => if <> <= i64::MAX.into() && <> >= i64::MIN.into() {
+        Box::new(intermediate_ast::Literal::BigInt(<> as i64))
+    } else {
+        Box::new(intermediate_ast::Literal::Int128(<>))
+    },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
 };

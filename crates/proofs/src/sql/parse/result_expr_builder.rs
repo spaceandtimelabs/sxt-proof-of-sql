@@ -101,6 +101,7 @@ fn visit_expr(expr: &Expression) -> Expr {
     match expr {
         Expression::Literal(literal) => match literal {
             Literal::Boolean(value) => value.to_lit(),
+            Literal::BigInt(value) => value.to_lit(),
             Literal::Int128(value) => value.to_lit(),
             Literal::VarChar(_) => panic!("Expression not supported"),
             Literal::Decimal(_) => todo!(),

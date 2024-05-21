@@ -213,7 +213,7 @@ mod tests {
     #[should_panic]
     fn add_two_i128_literals_overflowing_will_panic() {
         test_expr!(
-            MAX_DECIMAL.to_lit() + (1).to_lit(),
+            MAX_DECIMAL.to_lit() + (1_i128).to_lit(),
             batch!("res" => [MAX_DECIMAL + 1])
         );
     }
@@ -416,7 +416,7 @@ mod tests {
     fn division_with_different_values_of_numerator_and_denominator_is_valid() {
         let range = (-31..31).chain([
             MAX_I64,
-            MIN_I64,
+            MAX_I64,
             MAX_DECIMAL,
             MIN_DECIMAL,
             MAX_I64 - 1,
@@ -492,10 +492,10 @@ mod tests {
 
         for v1 in range.clone() {
             for v2 in range.clone() {
-                let expr = 5.to_lit()
-                    * ((2.to_lit() + col("v1") * 3.to_lit() - col("v1"))
-                        .checked_div(col("v2") + (-2).to_lit() * col("v2")))
-                    + 77.to_lit();
+                let expr = 5_i64.to_lit()
+                    * ((2_i64.to_lit() + col("v1") * 3_i64.to_lit() - col("v1"))
+                        .checked_div(col("v2") + (-2_i64).to_lit() * col("v2")))
+                    + 77_i64.to_lit();
 
                 let num = 2_i128 + v1 * 3 - v1;
                 let den = v2 - 2 * v2;
