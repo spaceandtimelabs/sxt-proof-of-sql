@@ -267,7 +267,9 @@ pub struct Slice {
 pub enum Literal {
     /// Boolean Literal
     Boolean(bool),
-    /// Numeric Literal
+    /// i64 Literal
+    BigInt(i64),
+    /// i128 Literal
     Int128(i128),
     /// String Literal
     VarChar(String),
@@ -285,7 +287,7 @@ macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
             fn from(val: $tt) -> Self {
-                Literal::Int128(val as i128)
+                Literal::BigInt(val as i64)
             }
         }
     };
@@ -298,7 +300,12 @@ impl_int_to_literal!(u16);
 impl_int_to_literal!(i32);
 impl_int_to_literal!(u32);
 impl_int_to_literal!(i64);
-impl_int_to_literal!(i128);
+
+impl From<i128> for Literal {
+    fn from(val: i128) -> Self {
+        Literal::Int128(val)
+    }
+}
 
 macro_rules! impl_string_to_literal {
     ($tt:ty) => {

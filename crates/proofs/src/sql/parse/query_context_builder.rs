@@ -291,8 +291,8 @@ impl<'a> QueryContextBuilder<'a> {
         };
         check_dtypes(left_dtype, right_dtype)?;
 
-        // Currently, we only support comparisons between bigint/int64 cols and int128 literals
-        if ColumnType::BigInt != left_dtype || ColumnType::Int128 != right_dtype {
+        // Currently, we only support comparisons between bigint cols and bigint literals
+        if ColumnType::BigInt != left_dtype || ColumnType::BigInt != right_dtype {
             return Err(ConversionError::InvalidExpression(format!(
                 "Currently >= and <= operators only support BigInt. Unsupported comparison between '{}' and '{}'", left_dtype, right_dtype
             )));
@@ -303,6 +303,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
+            Literal::BigInt(_) => Ok(ColumnType::BigInt),
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::Decimal(d) => {

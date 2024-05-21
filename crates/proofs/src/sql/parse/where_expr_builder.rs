@@ -77,6 +77,7 @@ impl WhereExprBuilder<'_> {
     ) -> Result<ProvableExprPlan<C>, ConversionError> {
         match lit {
             Literal::Boolean(b) => Ok(ProvableExprPlan::new_literal(LiteralValue::Boolean(b))),
+            Literal::BigInt(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::BigInt(i))),
             Literal::Int128(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::Int128(i))),
             Literal::Decimal(d) => {
                 let scale = d.scale();
@@ -178,7 +179,11 @@ impl WhereExprBuilder<'_> {
             (Expression::Literal(Literal::Int128(int)), ColumnType::Decimal75(_, scale)) => {
                 match_decimal(&DecimalUnknown::new(&int.to_string()), *scale)?
             }
+            (Expression::Literal(Literal::BigInt(int)), ColumnType::Decimal75(_, scale)) => {
+                match_decimal(&DecimalUnknown::new(&int.to_string()), *scale)?
+            }
             (Expression::Literal(Literal::Int128(value)), _) => value.into(),
+            (Expression::Literal(Literal::BigInt(value)), _) => (&value).into(),
             (Expression::Literal(Literal::VarChar(value)), _) => value.into(),
             (Expression::Literal(Literal::Boolean(value)), _) => (&value).into(),
             _ => panic!("Unexpected expression or column type"),
