@@ -1,5 +1,8 @@
 //! TODO: add docs
-use crate::{base::scalar::Scalar, sql::parse::ConversionError};
+use crate::{
+    base::scalar::Scalar,
+    sql::parse::{ConversionError, ConversionResult},
+};
 use num_bigint::{
     BigInt,
     Sign::{self, Minus},
@@ -43,6 +46,80 @@ impl<'de> Deserialize<'de> for Precision {
     }
 }
 
+/// A decimal type that is parameterized by the scalar type
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize)]
+pub struct Decimal<S: Scalar> {
+    /// The raw value of the decimal as scalar
+    pub value: S,
+    /// The precision of the decimal
+    pub precision: Precision,
+    /// The scale of the decimal
+    pub scale: i8,
+}
+
+impl<S: Scalar> Decimal<S> {
+    /// Constructor for creating a Decimal instance
+    pub fn new(value: S, precision: Precision, scale: i8) -> Self {
+        Decimal {
+            value,
+            precision,
+            scale,
+        }
+    }
+
+    /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
+    pub fn with_precision_and_scale(
+        &self,
+        new_precision: Precision,
+        new_scale: i8,
+    ) -> ConversionResult<Decimal<S>> {
+        let scale_factor = new_scale - self.scale;
+        if scale_factor < 0 || new_precision.value() < self.precision.value() + scale_factor as u8 {
+            return Err(ConversionError::DecimalRoundingError(
+                "Scale factor must be non-negative".to_string(),
+            ));
+        }
+        let scaled_value = scale_scalar(self.value, scale_factor)?;
+        Ok(Decimal::new(scaled_value, new_precision, new_scale))
+    }
+
+    /// Get a decimal with given precision and scale from an i64
+    pub fn from_i64(value: i64, precision: Precision, scale: i8) -> ConversionResult<Self> {
+        const MINIMAL_PRECISION: u8 = 19;
+        let raw_precision = precision.value();
+        if raw_precision < MINIMAL_PRECISION {
+            return Err(ConversionError::DecimalRoundingError(
+                "Precision must be at least 19".to_string(),
+            ));
+        }
+        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
+            return Err(ConversionError::DecimalRoundingError(
+                "Can not scale down a decimal".to_string(),
+            ));
+        }
+        let scaled_value = scale_scalar(S::from(&value), scale)?;
+        Ok(Decimal::new(scaled_value, precision, scale))
+    }
+
+    /// Get a decimal with given precision and scale from an i128
+    pub fn from_i128(value: i128, precision: Precision, scale: i8) -> ConversionResult<Self> {
+        const MINIMAL_PRECISION: u8 = 39;
+        let raw_precision = precision.value();
+        if raw_precision < MINIMAL_PRECISION {
+            return Err(ConversionError::DecimalRoundingError(
+                "Precision must be at least 19".to_string(),
+            ));
+        }
+        if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
+            return Err(ConversionError::DecimalRoundingError(
+                "Can not scale down a decimal".to_string(),
+            ));
+        }
+        let scaled_value = scale_scalar(S::from(&value), scale)?;
+        Ok(Decimal::new(scaled_value, precision, scale))
+    }
+}
+
 /// Tries to pair decimals that are equal in semantic value but
 /// are represented with differing scales and precisions. For example:
 ///
@@ -79,7 +156,7 @@ fn get_limbs_and_sign(d: &DecimalUnknown, scale: i8) -> Result<([u64; 4], Sign),
     }
     // scaling down is lossy behavior akin to rounding which postgresql does not support
     if d.scale() > scale {
-        return Err(ConversionError::LiteralRoundDownError(format!(
+        return Err(ConversionError::DecimalRoundingError(format!(
             "matching decimal would cause precision overflow: incoming scale() = {} is greater than db scale = {}",
             d.scale(),
             scale
@@ -137,6 +214,22 @@ fn decimal_string_to_scaled_limbs(decimal: &DecimalUnknown, scale: Option<i8>) -
             .expect("Error while parsing decimal string into limbs"),
         sign,
     )
+}
+
+/// Scale scalar by the given scale factor. Negative scaling is not allowed.
+/// Note that we do not check for overflow.
+pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> ConversionResult<S> {
+    if scale < 0 {
+        return Err(ConversionError::DecimalRoundingError(
+            "Scale factor must be non-negative".to_string(),
+        ));
+    }
+    let ten = S::from(10);
+    let mut res = s;
+    for _ in 0..scale {
+        res *= ten;
+    }
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -383,5 +476,117 @@ pub mod limb_tests {
             (Curve25519Scalar::ZERO),
             Curve25519Scalar::from(integer_result.0) + Curve25519Scalar::ONE
         );
+    }
+}
+
+#[cfg(test)]
+mod conversion_tests {
+    use super::*;
+    use crate::base::scalar::Curve25519Scalar;
+    macro_rules! precision {
+        ($value:expr) => {
+            Precision::new($value).unwrap()
+        };
+    }
+
+    #[test]
+    fn we_can_scale_scalars_up() {
+        let s = Curve25519Scalar::from(1);
+        assert_eq!(scale_scalar(s, 0).unwrap(), s);
+        assert_eq!(scale_scalar(s, 1).unwrap(), Curve25519Scalar::from(10));
+        assert_eq!(scale_scalar(s, 2).unwrap(), Curve25519Scalar::from(100));
+        assert_eq!(scale_scalar(s, 3).unwrap(), Curve25519Scalar::from(1000));
+        let s = Curve25519Scalar::from(-1);
+        assert_eq!(scale_scalar(s, 0).unwrap(), s);
+        assert_eq!(scale_scalar(s, 1).unwrap(), Curve25519Scalar::from(-10));
+        assert_eq!(scale_scalar(s, 2).unwrap(), Curve25519Scalar::from(-100));
+        assert_eq!(scale_scalar(s, 3).unwrap(), Curve25519Scalar::from(-1000));
+    }
+
+    #[test]
+    fn we_can_not_scale_scalars_down() {
+        let s = Curve25519Scalar::from(1);
+        matches!(
+            scale_scalar(s, -1),
+            Err(ConversionError::DecimalRoundingError(_))
+        );
+    }
+
+    #[test]
+    fn we_can_not_reduce_decimal_scale() {
+        let s = Curve25519Scalar::from(100);
+        let d = Decimal::new(s, precision!(19), 4);
+        matches!(
+            d.with_precision_and_scale(precision!(18), 3),
+            Err(ConversionError::DecimalRoundingError(_))
+        );
+    }
+
+    #[test]
+    fn we_can_not_inadequately_increase_decimal_precision_by_scaling() {
+        let s = Curve25519Scalar::from(100);
+        let d = Decimal::new(s, precision!(19), 4);
+        matches!(
+            d.with_precision_and_scale(precision!(21), 7),
+            Err(ConversionError::DecimalRoundingError(_))
+        );
+    }
+
+    #[test]
+    fn we_can_increase_decimal_precision_by_scaling() {
+        let s = Curve25519Scalar::from(-134);
+        let d = Decimal::new(s, precision!(19), 4);
+        let expected = Decimal::new(Curve25519Scalar::from(-13400000), precision!(25), 9);
+        let actual = d.with_precision_and_scale(precision!(25), 9).unwrap();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_scale_decimals_to_almost_limit() {
+        let s = Curve25519Scalar::from(-134);
+        let d = Decimal::new(s, precision!(3), 0);
+        let expected = Decimal::new(
+            Curve25519Scalar::from(-13400)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64)
+                * Curve25519Scalar::from(10_000_000_000_i64),
+            precision!(75),
+            72,
+        );
+        println!("{:?}", expected);
+        let actual = d.with_precision_and_scale(precision!(75), 72).unwrap();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_convert_i64_to_decimal() {
+        let decimal: Decimal<Curve25519Scalar> =
+            Decimal::from_i64(-91_i64, precision!(21), 2_i8).unwrap();
+        assert_eq!(decimal.value, Curve25519Scalar::from(-9100));
+    }
+
+    #[test]
+    fn we_can_not_scale_i64_if_rounding_required() {
+        let res_decimal: ConversionResult<Decimal<Curve25519Scalar>> =
+            Decimal::from_i64(1_i64, precision!(65), 57_i8);
+        matches!(res_decimal, Err(ConversionError::DecimalRoundingError(_)));
+    }
+
+    #[test]
+    fn we_can_convert_i128_to_decimal() {
+        let decimal: Decimal<Curve25519Scalar> =
+            Decimal::from_i128(12_i128, precision!(43), 4_i8).unwrap();
+        assert_eq!(decimal.value, Curve25519Scalar::from(120000));
+    }
+
+    #[test]
+    fn we_can_not_scale_i128_if_rounding_required() {
+        let res_decimal: ConversionResult<Decimal<Curve25519Scalar>> =
+            Decimal::from_i128(1_i128, precision!(43), 27_i8);
+        matches!(res_decimal, Err(ConversionError::DecimalRoundingError(_)));
     }
 }

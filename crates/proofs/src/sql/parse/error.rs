@@ -46,9 +46,9 @@ pub enum ConversionError {
     #[error("Encountered parsing error: {0}")]
     /// TODO: add docs
     ParseError(String),
-    #[error("Unsupported operation: cannot round literal: {0}")]
-    /// TODO: add docs
-    LiteralRoundDownError(String),
+    #[error("Unsupported operation: cannot round decimal: {0}")]
+    /// Decimal rounding is not supported
+    DecimalRoundingError(String),
     #[error("Query not provable because: {0}")]
     /// TODO: add docs
     Unprovable(String),
