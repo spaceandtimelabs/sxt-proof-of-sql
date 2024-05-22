@@ -39,8 +39,8 @@ fn create_and_verify_test_and_expr(
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let and_expr = and(
-        equal(t, lhs.0, lhs.1, &accessor),
-        equal(t, rhs.0, rhs.1, &accessor),
+        equal(column(t, lhs.0, &accessor), const_scalar(lhs.1.into())),
+        equal(column(t, rhs.0, &accessor), const_scalar(rhs.1.into())),
     );
     let ast = FilterExpr::new(cols_result(t, results, &accessor), tab(t), and_expr);
     let res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -143,8 +143,10 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr: ProvableExprPlan<RistrettoPoint> =
-        and(equal(t, "b", 1, &accessor), equal(t, "d", "t", &accessor));
+    let and_expr: ProvableExprPlan<RistrettoPoint> = and(
+        equal(column(t, "b", &accessor), const_int128(1)),
+        equal(column(t, "d", &accessor), const_varchar("t")),
+    );
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = Column::Boolean(&[false, true, false, false]);

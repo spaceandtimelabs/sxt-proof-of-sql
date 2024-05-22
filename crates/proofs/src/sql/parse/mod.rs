@@ -20,7 +20,7 @@ pub(crate) mod query_context;
 pub(crate) use query_context::QueryContext;
 
 mod query_context_builder;
-pub(crate) use query_context_builder::QueryContextBuilder;
+pub(crate) use query_context_builder::{are_types_compatible, QueryContextBuilder};
 
 mod where_expr_builder;
 pub(crate) use where_expr_builder::WhereExprBuilder;

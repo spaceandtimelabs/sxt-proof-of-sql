@@ -21,8 +21,11 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     accessor.add_table(t, data, 0);
     // (a <= 5 || b == "g") && c != 3
     let bool_expr: ProvableExprPlan<RistrettoPoint> = and(
-        or(lte(t, "a", 5, &accessor), equal(t, "b", "g", &accessor)),
-        not(equal(t, "c", 3, &accessor)),
+        or(
+            lte(t, "a", 5, &accessor),
+            equal(column(t, "b", &accessor), const_varchar("g")),
+        ),
+        not(equal(column(t, "c", &accessor), const_int128(3))),
     );
     let alloc = Bump::new();
     let res = bool_expr.result_evaluate(17, &alloc, &accessor);

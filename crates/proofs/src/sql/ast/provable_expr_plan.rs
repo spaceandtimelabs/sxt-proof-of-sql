@@ -8,7 +8,7 @@ use crate::{
         proof::ProofError,
     },
     sql::{
-        parse::{ConversionError, ConversionResult},
+        parse::{are_types_compatible, ConversionError, ConversionResult},
         proof::{CountBuilder, ProofBuilder, VerificationBuilder},
     },
 };
@@ -30,7 +30,7 @@ pub enum ProvableExprPlan<C: Commitment> {
     /// Provable CONST expression
     Literal(LiteralExpr<C::Scalar>),
     /// Provable AST expression for an equals expression
-    Equals(EqualsExpr<C::Scalar>),
+    Equals(EqualsExpr<C>),
     /// Provable AST expression for an inequality expression
     Inequality(InequalityExpr<C::Scalar>),
 }
@@ -67,8 +67,20 @@ impl<C: Commitment> ProvableExprPlan<C> {
         Self::Literal(LiteralExpr::new(value))
     }
     /// Create a new equals expression
-    pub fn new_equals(column_ref: ColumnRef, value: C::Scalar) -> Self {
-        Self::Equals(EqualsExpr::new(column_ref, value))
+    pub fn try_new_equals(
+        lhs: ProvableExprPlan<C>,
+        rhs: ProvableExprPlan<C>,
+    ) -> ConversionResult<Self> {
+        let lhs_datatype = lhs.data_type();
+        let rhs_datatype = rhs.data_type();
+        if !are_types_compatible(&lhs_datatype, &rhs_datatype) {
+            Err(ConversionError::DataTypeMismatch(
+                lhs_datatype.to_string(),
+                rhs_datatype.to_string(),
+            ))
+        } else {
+            Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
+        }
     }
     /// Create a new inequality expression
     pub fn new_inequality(column_ref: ColumnRef, value: C::Scalar, is_lte: bool) -> Self {

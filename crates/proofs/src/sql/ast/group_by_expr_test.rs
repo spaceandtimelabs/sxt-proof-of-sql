@@ -1,4 +1,6 @@
-use super::test_utility::{and, cols_expr, equal, group_by, sums_expr, tab};
+use super::test_utility::{
+    and, cols_expr, column, const_int128, const_varchar, equal, group_by, sums_expr, tab,
+};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -24,7 +26,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
         sums_expr(t, &["c"], &["sum_c"], &[ColumnType::BigInt], &accessor),
         "__count__",
         tab(t),
-        equal(t, "b", 99, &accessor),
+        equal(column(t, "b", &accessor), const_int128(99)),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
@@ -95,8 +97,8 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         "__count__",
         tab(t),
         and(
-            equal(t, "int128_filter", 1020, &accessor),
-            equal(t, "varchar_filter", "f2", &accessor),
+            equal(column(t, "int128_filter", &accessor), const_int128(1020)),
+            equal(column(t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
@@ -127,8 +129,8 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         "__count__",
         tab(t),
         and(
-            equal(t, "int128_filter", 1020, &accessor),
-            equal(t, "varchar_filter", "f2", &accessor),
+            equal(column(t, "int128_filter", &accessor), const_int128(1020)),
+            equal(column(t, "varchar_filter", &accessor), const_varchar("f2")),
         ),
     );
     let res = VerifiableQueryResult::new(&expr, &accessor, &());

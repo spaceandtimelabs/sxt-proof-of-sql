@@ -73,14 +73,7 @@ impl<C: Commitment> ProvableExpr<C> for ColumnExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         let column = accessor.get_column(self.column_ref);
-        match column {
-            Column::Boolean(col) => builder.produce_anchored_mle(col),
-            Column::BigInt(col) => builder.produce_anchored_mle(col),
-            Column::Int128(col) => builder.produce_anchored_mle(col),
-            Column::VarChar((_, scals)) => builder.produce_anchored_mle(scals),
-            Column::Scalar(col) => builder.produce_anchored_mle(col),
-            Column::Decimal75(_, _, col) => builder.produce_anchored_mle(col),
-        };
+        builder.produce_anchored_mle(column.clone());
         column
     }
 
@@ -92,7 +85,6 @@ impl<C: Commitment> ProvableExpr<C> for ColumnExpr<C> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         let col_commit = accessor.get_commitment(self.column_ref);
-
         Ok(builder.consume_anchored_mle(col_commit))
     }
 

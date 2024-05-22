@@ -76,34 +76,6 @@ mod tests {
     }
 
     #[test]
-    fn we_cannot_round_decimals_down_to_match() {
-        let mut column_mapping = HashMap::new();
-        column_mapping.insert(
-            Identifier::try_new("test_column").unwrap(),
-            ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("c").unwrap(),
-                ColumnType::Decimal75(Precision::new(6).unwrap(), 1),
-            ),
-        );
-
-        let builder = WhereExprBuilder::new(&column_mapping);
-        let left_expr = Expression::Column(Identifier::try_new("test_column").unwrap());
-        let right_expr = Expression::Literal(Literal::Decimal(DecimalUnknown::new("123.456")));
-
-        let expr = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(left_expr),
-            right: Box::new(right_expr),
-        };
-
-        // Error because we cannot round a decimal down
-        assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr)))
-            .is_err());
-    }
-
-    #[test]
     fn we_can_directly_check_whether_boolean_column_is_true() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
@@ -120,6 +92,30 @@ mod tests {
         let expr_boolean = Expression::Literal(Literal::Boolean(false));
         assert!(builder
             .build::<RistrettoPoint>(Some(Box::new(expr_boolean)))
+            .is_ok());
+    }
+
+    #[test]
+    fn we_can_directly_check_nested_eq() {
+        let column_mapping = get_column_mappings_for_testing();
+        let builder = WhereExprBuilder::new(&column_mapping);
+        let expr_nested = Expression::Binary {
+            op: BinaryOperator::Equal,
+            left: Box::new(Expression::Column(
+                Identifier::try_new("boolean_column").unwrap(),
+            )),
+            right: Box::new(Expression::Binary {
+                op: BinaryOperator::Equal,
+                left: Box::new(Expression::Column(
+                    Identifier::try_new("bigint_column").unwrap(),
+                )),
+                right: Box::new(Expression::Column(
+                    Identifier::try_new("int128_column").unwrap(),
+                )),
+            }),
+        };
+        assert!(builder
+            .build::<RistrettoPoint>(Some(Box::new(expr_nested)))
             .is_ok());
     }
 
@@ -354,25 +350,6 @@ mod tests {
     }
 
     #[test]
-    fn we_expect_an_error_while_trying_to_check_int128_column_eq_decimal() {
-        let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => [123_i128],
-            ),
-            0,
-        );
-
-        assert!(QueryExpr::<RistrettoPoint>::try_new(
-            SelectStatement::from_str("select * from sxt_tab where b = 123.456").unwrap(),
-            t.schema_id(),
-            &accessor,
-        )
-        .is_err());
-    }
-
-    #[test]
     fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with_zero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
         let accessor = record_batch_to_accessor(
@@ -408,24 +385,5 @@ mod tests {
             &accessor,
         )
         .is_ok());
-    }
-
-    #[test]
-    fn we_do_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with_nonzero_scale() {
-        let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => [123_i64],
-            ),
-            0,
-        );
-
-        assert!(QueryExpr::<RistrettoPoint>::try_new(
-            SelectStatement::from_str("select * from sxt_tab where b = 123.456").unwrap(),
-            t.schema_id(),
-            &accessor,
-        )
-        .is_err());
     }
 }

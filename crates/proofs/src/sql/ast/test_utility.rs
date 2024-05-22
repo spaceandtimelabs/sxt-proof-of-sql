@@ -7,19 +7,27 @@ use crate::base::{
     database::{ColumnField, ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
 };
 
-pub fn col(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
+pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     ColumnRef::new(tab, name, type_col)
 }
 
-pub fn equal<C: Commitment, T: Into<C::Scalar>>(
+pub fn column<C: Commitment>(
     tab: TableRef,
     name: &str,
-    val: T,
     accessor: &impl SchemaAccessor,
 ) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_equals(col(tab, name, accessor), val.into())
+    let name = name.parse().unwrap();
+    let type_col = accessor.lookup_column(tab, name).unwrap();
+    ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
+}
+
+pub fn equal<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::try_new_equals(left, right).unwrap()
 }
 
 pub fn lte<C: Commitment, T: Into<C::Scalar>>(
@@ -28,7 +36,7 @@ pub fn lte<C: Commitment, T: Into<C::Scalar>>(
     val: T,
     accessor: &impl SchemaAccessor,
 ) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_inequality(col(tab, name, accessor), val.into(), true)
+    ProvableExprPlan::new_inequality(col_ref(tab, name, accessor), val.into(), true)
 }
 
 pub fn not<C: Commitment>(expr: ProvableExprPlan<C>) -> ProvableExprPlan<C> {
@@ -53,12 +61,31 @@ pub fn const_bool<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_literal(LiteralValue::Boolean(val))
 }
 
+pub fn const_bigint<C: Commitment>(val: i64) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::BigInt(val))
+}
+
+pub fn const_int128<C: Commitment>(val: i128) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::Int128(val))
+}
+
+pub fn const_varchar<C: Commitment>(val: &str) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::VarChar((
+        val.to_string(),
+        C::Scalar::from(val),
+    )))
+}
+
+pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::Scalar(val.into()))
+}
+
 pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
 pub fn col_result(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> FilterResultExpr {
-    FilterResultExpr::new(col(tab, name, accessor))
+    FilterResultExpr::new(col_ref(tab, name, accessor))
 }
 
 pub fn cols_result(
@@ -85,7 +112,7 @@ pub fn col_expr<C: Commitment>(
     name: &str,
     accessor: &impl SchemaAccessor,
 ) -> ColumnExpr<C> {
-    ColumnExpr::<C>::new(col(tab, name, accessor))
+    ColumnExpr::<C>::new(col_ref(tab, name, accessor))
 }
 
 pub fn cols_expr<C: Commitment>(

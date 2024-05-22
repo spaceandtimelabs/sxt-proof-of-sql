@@ -8,11 +8,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     owned_table, record_batch,
-    sql::ast::{
-        test_expr::TestExprNode,
-        test_utility::{equal, or},
-        ProvableExpr, ProvableExprPlan,
-    },
+    sql::ast::{test_expr::TestExprNode, test_utility::*, ProvableExpr, ProvableExprPlan},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -39,8 +35,8 @@ fn create_test_or_expr<
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let or_expr = or(
-        equal(t, lhs.0, lhs.1, &accessor),
-        equal(t, rhs.0, rhs.1, &accessor),
+        equal(column(t, lhs.0, &accessor), const_scalar(lhs.1.into())),
+        equal(column(t, rhs.0, &accessor), const_scalar(rhs.1.into())),
     );
     let df_filter = polars::prelude::col(lhs.0)
         .eq(lit(lhs.1))
@@ -150,8 +146,10 @@ fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let and_expr: ProvableExprPlan<RistrettoPoint> =
-        or(equal(t, "b", 1, &accessor), equal(t, "d", "g", &accessor));
+    let and_expr: ProvableExprPlan<RistrettoPoint> = or(
+        equal(column(t, "b", &accessor), const_int128(1)),
+        equal(column(t, "d", &accessor), const_varchar("g")),
+    );
     let alloc = Bump::new();
     let res = and_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = Column::Boolean(&[false, true, true, true]);

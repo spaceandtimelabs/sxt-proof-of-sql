@@ -8,7 +8,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     owned_table, record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::equal, ProvableExpr, ProvableExprPlan},
+    sql::ast::{test_expr::TestExprNode, test_utility::*, ProvableExpr, ProvableExprPlan},
 };
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
@@ -20,7 +20,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
-fn create_test_equals_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
+fn create_test_col_lit_equals_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     table_ref: &str,
     results: &[&str],
     filter_col: &str,
@@ -31,8 +31,55 @@ fn create_test_equals_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
-    let equals_expr = equal(t, filter_col, filter_val, &accessor);
+    let equals_expr = equal(
+        column(t, filter_col, &accessor),
+        const_scalar(filter_val.into()),
+    );
     let df_filter = polars::prelude::col(filter_col).eq(lit(filter_val));
+    TestExprNode::new(t, results, equals_expr, df_filter, accessor)
+}
+
+fn create_test_col_equals_expr(
+    table_ref: &str,
+    results: &[&str],
+    filter_col_lhs: &str,
+    filter_col_rhs: &str,
+    data: RecordBatch,
+    offset: usize,
+) -> TestExprNode {
+    let mut accessor = RecordBatchTestAccessor::new_empty();
+    let t = table_ref.parse().unwrap();
+    accessor.add_table(t, data, offset);
+    let equals_expr = equal(
+        column(t, filter_col_lhs, &accessor),
+        column(t, filter_col_rhs, &accessor),
+    );
+    let df_filter = polars::prelude::col(filter_col_lhs).eq(col(filter_col_rhs));
+    TestExprNode::new(t, results, equals_expr, df_filter, accessor)
+}
+
+// col_bool = (col_lhs = col_rhs)
+fn create_test_complex_col_equals_expr(
+    table_ref: &str,
+    results: &[&str],
+    filter_col_bool: &str,
+    filter_col_lhs: &str,
+    filter_col_rhs: &str,
+    data: RecordBatch,
+    offset: usize,
+) -> TestExprNode {
+    let mut accessor = RecordBatchTestAccessor::new_empty();
+    let t = table_ref.parse().unwrap();
+    accessor.add_table(t, data, offset);
+    let equals_expr = equal(
+        column(t, filter_col_bool, &accessor),
+        equal(
+            column(t, filter_col_lhs, &accessor),
+            column(t, filter_col_rhs, &accessor),
+        ),
+    );
+    let df_filter =
+        polars::prelude::col(filter_col_bool).eq(col(filter_col_lhs).eq(col(filter_col_rhs)));
     TestExprNode::new(t, results, equals_expr, df_filter, accessor)
 }
 
@@ -42,7 +89,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
     data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["a", "d"],
         "b",
@@ -59,12 +106,51 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 }
 
 #[test]
+fn we_can_prove_another_equality_query_with_no_rows() {
+    let mut data: OwnedTable<Curve25519Scalar> =
+        owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
+    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+
+    let test_expr =
+        create_test_col_equals_expr("sxt.t", &["a", "d"], "a", "b", data.try_into().unwrap(), 0);
+    let res = test_expr.verify_expr();
+    let expected_res = record_batch!(
+        "a" => Vec::<i64>::new(),
+        "d" => Vec::<String>::new(),
+    );
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_prove_a_nested_equality_query_with_no_rows() {
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "bool" => [true; 0], "a" => [1_i64; 0], "b" => [1_i64; 0], "c" =>  ["t"; 0], );
+    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+
+    let test_expr = create_test_complex_col_equals_expr(
+        "sxt.t",
+        &["b", "c", "e"],
+        "bool",
+        "a",
+        "b",
+        data.try_into().unwrap(),
+        0,
+    );
+    let res = test_expr.verify_expr();
+
+    let mut expected_res: OwnedTable<Curve25519Scalar> =
+        owned_table!( "b" => [1_i64; 0], "c" => ["t"; 0], );
+    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+
+    assert_eq!(res, expected_res.try_into().unwrap());
+}
+
+#[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     let mut data: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [123_i64], "b" => [0_i64], "d" => ["abc"], );
     data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::from(0)].to_vec());
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["d", "a"],
         "b",
@@ -83,12 +169,30 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 }
 
 #[test]
+fn we_can_prove_another_equality_query_with_a_single_selected_row() {
+    let mut data: OwnedTable<Curve25519Scalar> =
+        owned_table!( "a" => [123_i64], "b" => [123_i64], "d" => ["abc"], );
+    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::from(0)].to_vec());
+
+    let test_expr =
+        create_test_col_equals_expr("sxt.t", &["d", "a"], "a", "b", data.try_into().unwrap(), 0);
+    let res = test_expr.verify_expr();
+
+    let expected_res = record_batch!(
+        "d" => ["abc"],
+        "a" => [123_i64],
+    );
+
+    assert_eq!(res, expected_res);
+}
+
+#[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     let mut data: OwnedTable<Curve25519Scalar> =
         owned_table!( "a" => [123_i64], "b" => [55_i64], "d" => ["abc"], );
     data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::MAX_SIGNED].to_vec());
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["a", "d", "e"],
         "b",
@@ -120,7 +224,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
         ],
     );
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["a", "c", "e"],
         "b",
@@ -143,6 +247,44 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
 }
 
 #[test]
+fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
+    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "bool" => [true, false, true, false], "a" => [1_i64, 2, 3, 4], "b" => [1_i64, 5, 0, 4], "c" =>  ["t", "ghi", "jj", "f"], );
+    data.append_decimal_columns_for_testing(
+        "e",
+        75,
+        0,
+        vec![
+            Curve25519Scalar::ZERO,
+            Curve25519Scalar::ONE,
+            Curve25519Scalar::TWO,
+            Curve25519Scalar::MAX_SIGNED,
+        ],
+    );
+
+    let test_expr = create_test_complex_col_equals_expr(
+        "sxt.t",
+        &["a", "c", "e"],
+        "bool",
+        "a",
+        "b",
+        data.try_into().unwrap(),
+        0,
+    );
+    let res = test_expr.verify_expr();
+
+    let mut expected_res: OwnedTable<Curve25519Scalar> =
+        owned_table!( "a" => [1_i64, 2], "c" => ["t".to_string(), "ghi".to_string()], );
+    expected_res.append_decimal_columns_for_testing(
+        "e",
+        75,
+        0,
+        vec![Curve25519Scalar::ZERO, Curve25519Scalar::ONE],
+    );
+
+    assert_eq!(res, expected_res.try_into().unwrap());
+}
+
+#[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "a" => [1_i64, 2, 3, 4, 5], "b" => [123_i64, 5, 123, 5, 0], "c" =>  ["t", "ghi", "jj", "f", "abc"], );
     data.append_decimal_columns_for_testing(
@@ -158,7 +300,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
         ],
     );
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["a", "c", "e"],
         "b",
@@ -205,7 +347,7 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
         ],
     );
 
-    let test_expr = create_test_equals_expr(
+    let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
         &["a", "b", "e"],
         "c",
@@ -237,14 +379,15 @@ fn verify_fails_if_data_between_prover_and_verifier_differ() {
         "c" => ["t", "ghi", "jj", "f"],
         "b" => [0_i64, 5, 0, 5],
     );
-    let test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
+    let test_expr = create_test_col_lit_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 
     let data = record_batch!(
         "a" => [1_i64, 2, 3, 4],
         "c" => ["t", "ghi", "jj", "f"],
         "b" => [0_i64, 2, 0, 5],
     );
-    let tampered_test_expr = create_test_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
+    let tampered_test_expr =
+        create_test_col_lit_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
 
     let res = test_expr.create_verifiable_result();
     assert!(res
@@ -269,7 +412,7 @@ fn we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(offse
         // filtering by string value
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_equals_expr(
+        let test_expr = create_test_col_lit_equals_expr(
             "sxt.t",
             &["aa", "ab", "b"],
             "ab",
@@ -284,8 +427,14 @@ fn we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(offse
         // filtering by integer value
         let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
         let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr =
-            create_test_equals_expr("sxt.t", &["aa", "ab", "b"], "b", filter_val, data, offset);
+        let test_expr = create_test_col_lit_equals_expr(
+            "sxt.t",
+            &["aa", "ab", "b"],
+            "b",
+            filter_val,
+            data,
+            offset,
+        );
         let res = test_expr.verify_expr();
         let expected_res = test_expr.query_table();
         assert_eq!(res, expected_res);
@@ -324,7 +473,10 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let equals_expr: ProvableExprPlan<RistrettoPoint> = equal(t, "e", 0, &accessor);
+    let equals_expr: ProvableExprPlan<RistrettoPoint> = equal(
+        column(t, "e", &accessor),
+        const_scalar(Curve25519Scalar::ZERO),
+    );
     let alloc = Bump::new();
     let res = equals_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = Column::Boolean(&[true, false, true, false]);

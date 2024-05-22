@@ -11,7 +11,7 @@ use crate::{
     sql::{
         // Making this explicit to ensure that we don't accidentally use the
         // sparse filter for these tests
-        ast::test_utility::{cols_expr, equal, tab},
+        ast::test_utility::{cols_expr, column, const_int128, equal, tab},
         proof::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
@@ -138,7 +138,7 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
     let expr = DishonestDenseFilterExpr::new(
         cols_expr(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
-        equal(t, "a", 105, &accessor),
+        equal(column(t, "a", &accessor), const_int128(105_i128)),
     );
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(

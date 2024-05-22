@@ -1,5 +1,8 @@
 use super::{LiteralValue, TableRef};
-use crate::base::{math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    math::decimal::{scale_scalar, Precision},
+    scalar::Scalar,
+};
 use arrow::datatypes::{DataType, Field};
 use bumpalo::Bump;
 use proofs_sql::Identifier;
@@ -100,6 +103,30 @@ impl<'a, S: Scalar> Column<'a, S> {
             _ => None,
         }
     }
+
+    /// Convert a column to a vector of Scalar values with scaling
+    pub(crate) fn to_scalar_with_scaling(&self, scale: i8) -> Vec<S> {
+        let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
+        match self {
+            Self::Boolean(col) => col
+                .iter()
+                .map(|b| S::from(b) * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::Decimal75(_, _, col) => col.iter().map(|s| *s * scale_factor).collect::<Vec<_>>(),
+            Self::VarChar((_, scals)) => {
+                scals.iter().map(|s| *s * scale_factor).collect::<Vec<_>>()
+            }
+            Self::Int128(col) => col
+                .iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::BigInt(col) => col
+                .iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::Scalar(col) => col.iter().map(|s| *s * scale_factor).collect::<Vec<_>>(),
+        }
+    }
 }
 
 /// The precision for [ColumnType::INT128] values
@@ -133,6 +160,25 @@ pub enum ColumnType {
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
     Decimal75(Precision, i8),
+}
+
+impl ColumnType {
+    /// Returns the precision of a ColumnType if it is converted to a decimal. If it can not be converted to a decimal, return 0.
+    pub fn precision_value(&self) -> u8 {
+        match self {
+            Self::BigInt => 19_u8,
+            Self::Int128 => 39_u8,
+            Self::Decimal75(precision, _) => precision.value(),
+            _ => 0,
+        }
+    }
+    /// Returns scale of a ColumnType if it is decimal. Otherwise return 0.
+    pub fn scale(&self) -> i8 {
+        match self {
+            Self::Decimal75(_, scale) => *scale,
+            _ => 0,
+        }
+    }
 }
 
 /// Convert ColumnType values to some arrow DataType
