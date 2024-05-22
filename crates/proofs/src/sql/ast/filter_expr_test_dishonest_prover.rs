@@ -83,7 +83,7 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = RecordBatchTestAccessor::new_empty();
     accessor.add_table(t, data, 0);
-    let where_clause = equal(t, "a", 5, &accessor);
+    let where_clause = equal(column(t, "a", &accessor), const_int128(5_i128));
     let expr = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(

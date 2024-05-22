@@ -25,7 +25,7 @@ pub(crate) use provable_expr::ProvableExpr;
 mod provable_expr_test;
 
 mod literal_expr;
-use literal_expr::LiteralExpr;
+pub(crate) use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod literal_expr_test;
 
@@ -48,6 +48,9 @@ mod not_expr;
 use not_expr::NotExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod not_expr_test;
+
+mod comparison_util;
+pub(crate) use comparison_util::{scale_and_subtract, scale_and_subtract_eval};
 
 mod equals_expr;
 use equals_expr::*;

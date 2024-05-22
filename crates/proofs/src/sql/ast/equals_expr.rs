@@ -1,4 +1,4 @@
-use super::ProvableExpr;
+use super::{scale_and_subtract, scale_and_subtract_eval, ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
@@ -10,70 +10,27 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
-///
-/// Note: we are currently limited only to expressions of the form
-/// ```ignore
-///     <col> = <constant>
-/// ```
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EqualsExpr<S: Scalar> {
-    value: S,
-    column_ref: ColumnRef,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct EqualsExpr<C: Commitment> {
+    lhs: Box<ProvableExprPlan<C>>,
+    rhs: Box<ProvableExprPlan<C>>,
 }
 
-impl<S: Scalar> EqualsExpr<S> {
+impl<C: Commitment> EqualsExpr<C> {
     /// Create a new equals expression
-    pub fn new(column_ref: ColumnRef, value: S) -> Self {
-        Self { value, column_ref }
-    }
-
-    fn result_evaluate_impl<'a, T: Sync>(
-        &self,
-        table_length: usize,
-        alloc: &'a Bump,
-        col: &'a [T],
-    ) -> &'a [bool]
-    where
-        &'a T: Into<S>,
-        S: 'a,
-    {
-        let lhs = alloc.alloc_slice_fill_default(table_length);
-        lhs.par_iter_mut()
-            .zip(col)
-            .for_each(|(a, b)| *a = Into::<S>::into(b) - self.value);
-        result_evaluate_equals_zero(table_length, alloc, lhs)
-    }
-
-    fn prover_evaluate_impl<'a, T: Sync>(
-        &self,
-        builder: &mut ProofBuilder<'a, S>,
-        alloc: &'a Bump,
-        col: &'a [T],
-    ) -> &'a [bool]
-    where
-        &'a T: Into<S>,
-        S: 'a,
-    {
-        let table_length = builder.table_length();
-
-        // lhs
-        let lhs = alloc.alloc_slice_fill_default(table_length);
-        lhs.par_iter_mut()
-            .zip(col)
-            .for_each(|(a, b)| *a = Into::<S>::into(b) - self.value);
-        builder.produce_anchored_mle(col);
-        prover_evaluate_equals_zero(builder, alloc, lhs)
+    pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>) -> Self {
+        Self { lhs, rhs }
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_anchored_mles(1);
+        self.lhs.count(builder)?;
+        self.rhs.count(builder)?;
         count_equals_zero(builder);
         Ok(())
     }
@@ -88,17 +45,11 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        Column::Boolean(match accessor.get_column(self.column_ref) {
-            Column::Boolean(col) => self.result_evaluate_impl(table_length, alloc, col),
-            Column::BigInt(col) => self.result_evaluate_impl(table_length, alloc, col),
-            Column::Int128(col) => self.result_evaluate_impl(table_length, alloc, col),
-            Column::Decimal75(_, _, col) => self.result_evaluate_impl(table_length, alloc, col),
-            Column::VarChar((_, scals)) => self.result_evaluate_impl(table_length, alloc, scals),
-            // While implementing this for a Scalar columns is very simple
-            // major refactoring is required to create tests for this
-            // (in particular the tests need to used the OwnedTableTestAccessor)
-            Column::Scalar(_) => todo!("Scalar column type not supported in equals_expr"),
-        })
+        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column)
+            .expect("Failed to scale and subtract");
+        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
     }
 
     #[tracing::instrument(
@@ -112,17 +63,11 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        Column::Boolean(match accessor.get_column(self.column_ref) {
-            Column::Boolean(col) => self.prover_evaluate_impl(builder, alloc, col),
-            Column::BigInt(col) => self.prover_evaluate_impl(builder, alloc, col),
-            Column::Int128(col) => self.prover_evaluate_impl(builder, alloc, col),
-            Column::Decimal75(_, _, col) => self.prover_evaluate_impl(builder, alloc, col),
-            Column::VarChar((_, scals)) => self.prover_evaluate_impl(builder, alloc, scals),
-            // While implementing this for a Scalar columns is very simple
-            // major refactoring is required to create tests for this
-            // (in particular the tests need to use the OwnedTableTestAccessor)
-            Column::Scalar(_col) => todo!(),
-        })
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column)
+            .expect("Failed to scale and subtract");
+        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
 
     fn verifier_evaluate(
@@ -130,17 +75,18 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C::Scalar> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let one_eval = builder.mle_evaluations.one_evaluation;
-        let col_eval = builder.consume_anchored_mle(accessor.get_commitment(self.column_ref));
-
-        // lhs_eval
-        let lhs_eval = col_eval - self.value * one_eval;
-
-        Ok(verifier_evaluate_equals_zero(builder, lhs_eval))
+        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
+        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
+        let lhs_scale = self.lhs.data_type().scale();
+        let rhs_scale = self.rhs.data_type().scale();
+        let res = scale_and_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale)
+            .expect("Failed to scale and subtract");
+        Ok(verifier_evaluate_equals_zero(builder, res))
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+        self.lhs.get_column_references(columns);
+        self.rhs.get_column_references(columns);
     }
 }
 

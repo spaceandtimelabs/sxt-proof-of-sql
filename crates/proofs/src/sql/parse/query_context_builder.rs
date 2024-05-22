@@ -181,11 +181,24 @@ impl<'a> QueryContextBuilder<'a> {
             BinaryOperator::And | BinaryOperator::Or => {
                 let left_dtype = self.visit_expr(left)?;
                 let right_dtype = self.visit_expr(right)?;
-                assert!(left_dtype == ColumnType::Boolean && right_dtype == ColumnType::Boolean);
+                if left_dtype != ColumnType::Boolean {
+                    return Err(ConversionError::InvalidDataType {
+                        expected: ColumnType::Boolean,
+                        actual: left_dtype,
+                    });
+                }
+                if right_dtype != ColumnType::Boolean {
+                    return Err(ConversionError::InvalidDataType {
+                        expected: ColumnType::Boolean,
+                        actual: right_dtype,
+                    });
+                }
                 Ok(ColumnType::Boolean)
             }
             BinaryOperator::Equal => {
-                self.visit_equal_expr(left, right)?;
+                let left_dtype = self.visit_expr(left)?;
+                let right_dtype = self.visit_expr(right)?;
+                check_dtypes(left_dtype, right_dtype)?;
                 Ok(ColumnType::Boolean)
             }
             BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
@@ -227,10 +240,12 @@ impl<'a> QueryContextBuilder<'a> {
         match op {
             UnaryOperator::Not => {
                 let dtype = self.visit_expr(expr)?;
-                assert!(
-                    dtype == ColumnType::Boolean,
-                    "Unary not must be applied to a bool expression for now"
-                );
+                if dtype != ColumnType::Boolean {
+                    return Err(ConversionError::InvalidDataType {
+                        expected: ColumnType::Boolean,
+                        actual: dtype,
+                    });
+                }
                 Ok(ColumnType::Boolean)
             }
         }
@@ -261,19 +276,6 @@ impl<'a> QueryContextBuilder<'a> {
         } else {
             Ok(expr_dtype)
         }
-    }
-
-    fn visit_equal_expr(&mut self, left: &Expression, right: &Expression) -> ConversionResult<()> {
-        let left_dtype = match left {
-            Expression::Column(identifier) => self.visit_column_identifier(*identifier)?,
-            _ => panic!("Left side of comparison expression must be a column"),
-        };
-        let right_dtype = match right {
-            Expression::Literal(literal) => self.visit_literal(literal)?,
-            _ => panic!("Right side of comparison expression must be a literal"),
-        };
-        check_dtypes(left_dtype, right_dtype)?;
-        Ok(())
     }
 
     fn visit_inequality_expr(
@@ -330,7 +332,7 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
-fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bool {
+pub(crate) fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bool {
     matches!(
         (left_dtype, right_dtype),
         (ColumnType::BigInt, ColumnType::BigInt)
@@ -348,6 +350,8 @@ fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bo
             )
             | (ColumnType::VarChar, ColumnType::VarChar)
             | (ColumnType::Boolean, ColumnType::Boolean)
+            | (_, ColumnType::Scalar)
+            | (ColumnType::Scalar, _)
     )
 }
 

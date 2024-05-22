@@ -22,6 +22,9 @@ pub enum ConversionError {
     #[error("Left side has '{1}' type but right side has '{0}' type")]
     /// TODO: add docs
     DataTypeMismatch(String, String),
+    #[error("Columns have different lengths: {0} != {1}")]
+    /// Two columns do not have the same length
+    DifferentColumnLength(usize, usize),
     #[error("Multiple result columns with the same alias '{0}' have been found.")]
     /// TODO: add docs
     DuplicateResultAlias(String),

@@ -10,7 +10,7 @@ use crate::{
     owned_table, record_batch,
     sql::ast::{
         test_expr::TestExprNode,
-        test_utility::{equal, not},
+        test_utility::{column, const_int128, const_scalar, equal, not as unot},
         ProvableExpr, ProvableExprPlan,
     },
 };
@@ -36,7 +36,10 @@ fn create_test_not_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
     let t = table_ref.parse().unwrap();
     accessor.add_table(t, data, offset);
     let df_filter = polars::prelude::col(filter_col).neq(lit(filter_val));
-    let not_expr = not(equal(t, filter_col, filter_val, &accessor));
+    let not_expr = unot(equal(
+        column(t, filter_col, &accessor),
+        const_scalar(filter_val.into()),
+    ));
     TestExprNode::new(t, results, not_expr, df_filter, accessor)
 }
 
@@ -116,7 +119,8 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let not_expr: ProvableExprPlan<RistrettoPoint> = not(equal(t, "b", 1, &accessor));
+    let not_expr: ProvableExprPlan<RistrettoPoint> =
+        unot(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
     let expected_res = Column::Boolean(&[true, false]);

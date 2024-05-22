@@ -125,8 +125,9 @@ impl WhereExprBuilder<'_> {
                 ProvableExprPlan::try_new_or(left?, right?)
             }
             BinaryOperator::Equal => {
-                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(ProvableExprPlan::new_equals(left, right))
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_equals(left?, right?)
             }
             BinaryOperator::GreaterThanOrEqual => {
                 let (left, right) = self.process_comparison_expr::<C>(left, right)?;

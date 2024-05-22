@@ -154,7 +154,7 @@ fn we_can_convert_an_ast_with_one_column() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         result(&[("a", "a")]),
     );
@@ -176,7 +176,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", 3_i128, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3_i64)),
         ),
         result(&[("a", "a")]),
     );
@@ -198,7 +198,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", "abc", &accessor),
+            equal(column(t, "a", &accessor), const_varchar("abc")),
         ),
         result(&[("a", "a")]),
     );
@@ -249,7 +249,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         result(&[("a", "b"), ("a", "c")]),
     );
@@ -273,7 +273,7 @@ fn we_can_convert_an_ast_with_two_columns() {
         dense_filter(
             cols_expr(t, &["a", "b"], &accessor),
             tab(t),
-            equal(t, "c", 123, &accessor),
+            equal(column(t, "c", &accessor), const_bigint(123)),
         ),
         result(&[("a", "a"), ("b", "b")]),
     );
@@ -296,7 +296,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
         dense_filter(
             cols_expr(t, &["a", "b"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         result(&[("b", "b"), ("a", "a")]),
     );
@@ -319,7 +319,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "b", 4, &accessor),
+            equal(column(t, "b", &accessor), const_bigint(4)),
         ),
         result(&[("a", "a")]),
     );
@@ -342,7 +342,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            not(equal(t, "b", 4, &accessor)),
+            not(equal(column(t, "b", &accessor), const_bigint(4))),
         ),
         result(&[("a", "a")]),
     );
@@ -365,7 +365,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "b", -4, &accessor),
+            equal(column(t, "b", &accessor), const_bigint(-4)),
         ),
         result(&[("a", "a")]),
     );
@@ -393,7 +393,10 @@ fn we_can_convert_an_ast_with_cond_and() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            and(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+            and(
+                equal(column(t, "b", &accessor), const_bigint(3)),
+                equal(column(t, "c", &accessor), const_bigint(-2)),
+            ),
         ),
         result(&[("a", "a")]),
     );
@@ -421,7 +424,10 @@ fn we_can_convert_an_ast_with_cond_or() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            or(equal(t, "b", 3, &accessor), equal(t, "c", -2, &accessor)),
+            or(
+                equal(column(t, "b", &accessor), const_bigint(3)),
+                equal(column(t, "c", &accessor), const_bigint(-2)),
+            ),
         ),
         result(&[("a", "a")]),
     );
@@ -450,8 +456,8 @@ fn we_can_convert_an_ast_with_conds_or_not() {
             cols_expr(t, &["a"], &accessor),
             tab(t),
             or(
-                equal(t, "b", 3, &accessor),
-                not(equal(t, "c", -2, &accessor)),
+                equal(column(t, "b", &accessor), const_bigint(3)),
+                not(equal(column(t, "c", &accessor), const_bigint(-2))),
             ),
         ),
         result(&[("a", "a")]),
@@ -482,8 +488,11 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
             cols_expr(t, &["a"], &accessor),
             tab(t),
             not(and(
-                or(equal(t, "f", 45, &accessor), equal(t, "c", -2, &accessor)),
-                equal(t, "b", 3, &accessor),
+                or(
+                    equal(column(t, "f", &accessor), const_bigint(45)),
+                    equal(column(t, "c", &accessor), const_bigint(-2)),
+                ),
+                equal(column(t, "b", &accessor), const_bigint(3)),
             )),
         ),
         result(&[("a", "a")]),
@@ -510,7 +519,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", i128::MIN, &accessor),
+            equal(column(t, "a", &accessor), const_int128(i128::MIN)),
         ),
         result(&[("a", "a")]),
     );
@@ -536,7 +545,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", i128::MAX, &accessor),
+            equal(column(t, "a", &accessor), const_int128(i128::MAX)),
         ),
         result(&[("a", "a")]),
     );
@@ -563,7 +572,7 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
         dense_filter(
             vec![col_expr(t, "a", &accessor)],
             tab(t),
-            equal(t, "b", 4, &accessor),
+            equal(column(t, "b", &accessor), const_bigint(4)),
         ),
         result(&[("a", "b_rename")]),
     );
@@ -611,7 +620,7 @@ fn we_can_convert_an_ast_with_a_schema() {
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         result(&[("a", "a")]),
     );
@@ -658,7 +667,7 @@ fn we_can_parse_order_by_with_a_single_column() {
         dense_filter(
             cols_expr(t, &["a", "b"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         composite_result(vec![
             select(&[pc("b").alias("b"), pc("a").alias("a")]),
@@ -688,7 +697,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
         dense_filter(
             cols_expr(t, &["a", "b"], &accessor),
             tab(t),
-            equal(t, "a", 3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(3)),
         ),
         composite_result(vec![
             select(&[pc("a").alias("a"), pc("b").alias("b")]),
@@ -722,7 +731,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
                 col_expr(t, "salary", &accessor),
             ],
             tab(t),
-            equal(t, "salary", 5, &accessor),
+            equal(column(t, "salary", &accessor), const_bigint(5)),
         ),
         composite_result(vec![
             select(&[pc("salary").alias("s"), pc("name").alias("salary")]),
@@ -973,7 +982,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(t, "a", -3, &accessor),
+            equal(column(t, "a", &accessor), const_bigint(-3)),
         ),
         composite_result(vec![
             select(&[pc("a").alias("a")]),
@@ -1397,7 +1406,7 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
         dense_filter(
             cols_expr(t, &["department"], &accessor),
             tab(t),
-            equal(t, "salary", 4, &accessor),
+            equal(column(t, "salary", &accessor), const_bigint(4)),
         ),
         composite_result(vec![
             groupby(
