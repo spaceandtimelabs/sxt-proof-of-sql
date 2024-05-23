@@ -11,11 +11,11 @@ version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
 [workspace.dependencies]
 ark-bls12-381 = { version = "0.4.0" }
 ark-curve25519 = { version = "0.4.0" }
-ark-ec = { version = "0.4.0" }
-ark-ff = { version = "0.4.0" }
-ark-poly = { version = "0.4.0" }
+ark-ec = { version = "0.4.0", features = [ "parallel" ] }
+ark-ff = { version = "0.4.0", features = [ "parallel" ] }
+ark-poly = { version = "0.4.0", features = [ "parallel" ] }
 ark-serialize = { version = "0.4.0" }
-ark-std = { version = "0.4.0" }
+ark-std = { version = "0.4.0", features = [ "parallel" ] }
 arrayvec = { version = "0.7" }
 arrow = { version = "45.0" }
 arrow-csv = { version = "45.0" }

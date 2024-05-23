@@ -1,5 +1,11 @@
-use super::{DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT};
-use ark_ec::pairing::Pairing;
+use super::{
+    pairings::{multi_pairing_2, multi_pairing_4},
+    DeferredGT, ProverSetup, ProverState, VerifierSetup, VerifierState, F, GT,
+};
+use rayon::{
+    iter::IndexedParallelIterator,
+    prelude::{IntoParallelRefMutIterator, ParallelIterator},
+};
 
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
@@ -10,6 +16,11 @@ use ark_ec::pairing::Pairing;
 /// * D_2R = <Gamma_1', v_2R>
 ///
 /// Returns (D_1L, D_1R, D_2L, D_2R).
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.dory_reduce_prove_compute_Ds",
+    level = "info",
+    skip_all
+)]
 pub fn dory_reduce_prove_compute_Ds(
     state: &ProverState,
     setup: &ProverSetup,
@@ -17,10 +28,12 @@ pub fn dory_reduce_prove_compute_Ds(
 ) -> (GT, GT, GT, GT) {
     let (v_1L, v_1R) = state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.v2.split_at(half_n);
-    let D_1L: GT = Pairing::multi_pairing(v_1L, setup.Gamma_2[state.nu - 1]);
-    let D_1R: GT = Pairing::multi_pairing(v_1R, setup.Gamma_2[state.nu - 1]);
-    let D_2L: GT = Pairing::multi_pairing(setup.Gamma_1[state.nu - 1], v_2L);
-    let D_2R: GT = Pairing::multi_pairing(setup.Gamma_1[state.nu - 1], v_2R);
+    let (D_1L, D_1R, D_2L, D_2R) = multi_pairing_4(
+        (v_1L, setup.Gamma_2[state.nu - 1]),
+        (v_1R, setup.Gamma_2[state.nu - 1]),
+        (setup.Gamma_1[state.nu - 1], v_2L),
+        (setup.Gamma_1[state.nu - 1], v_2R),
+    );
     (D_1L, D_1R, D_2L, D_2R)
 }
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -28,6 +41,11 @@ pub fn dory_reduce_prove_compute_Ds(
 /// Mutates v_1 and v_2.
 /// * v_1 <- v_1 + beta * Gamma_1
 /// * v_2 <- v_2 + beta_inv * Gamma_2
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.dory_reduce_prove_mutate_v_vecs",
+    level = "info",
+    skip_all
+)]
 pub fn dory_reduce_prove_mutate_v_vecs(
     state: &mut ProverState,
     setup: &ProverSetup,
@@ -35,25 +53,29 @@ pub fn dory_reduce_prove_mutate_v_vecs(
 ) {
     state
         .v1
-        .iter_mut()
+        .par_iter_mut()
         .zip(setup.Gamma_1[state.nu])
-        .for_each(|(v, &g)| *v += g * beta);
+        .for_each(|(v, &g)| *v = (*v + g * beta).into());
     state
         .v2
-        .iter_mut()
+        .par_iter_mut()
         .zip(setup.Gamma_2[state.nu])
-        .for_each(|(v, &g)| *v += g * beta_inv);
+        .for_each(|(v, &g)| *v = (*v + g * beta_inv).into());
 }
 /// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
 /// Computes
 /// * C_plus = <v_1L, v_2R>
 /// * C_minus = <v_1R, v_2L>
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.dory_reduce_prove_compute_Cs",
+    level = "info",
+    skip_all
+)]
 pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, GT) {
     let (v_1L, v_1R) = state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.v2.split_at(half_n);
-    let C_plus = Pairing::multi_pairing(v_1L, v_2R);
-    let C_minus = Pairing::multi_pairing(v_1R, v_2L);
+    let (C_plus, C_minus) = multi_pairing_2((v_1L, v_2R), (v_1R, v_2L));
     (C_plus, C_minus)
 }
 
@@ -62,6 +84,11 @@ pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, 
 /// Folds v_1 and v_2.
 /// * v_1' <- alpha * v_1L + v_1R
 /// * v_2' <- alpha_inv * v_2L + v_2R
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.dory_reduce_prove_fold_v_vecs",
+    level = "info",
+    skip_all
+)]
 pub fn dory_reduce_prove_fold_v_vecs(
     state: &mut ProverState,
     (alpha, alpha_inv): (F, F),
@@ -69,12 +96,12 @@ pub fn dory_reduce_prove_fold_v_vecs(
 ) {
     let (v_1L, v_1R) = state.v1.split_at_mut(half_n);
     let (v_2L, v_2R) = state.v2.split_at_mut(half_n);
-    v_1L.iter_mut()
+    v_1L.par_iter_mut()
         .zip(v_1R)
-        .for_each(|(v_L, v_R)| *v_L = *v_L * alpha + v_R);
-    v_2L.iter_mut()
+        .for_each(|(v_L, v_R)| *v_L = (*v_L * alpha + v_R).into());
+    v_2L.par_iter_mut()
         .zip(v_2R)
-        .for_each(|(v_L, v_R)| *v_L = *v_L * alpha_inv + v_R);
+        .for_each(|(v_L, v_R)| *v_L = (*v_L * alpha_inv + v_R).into());
     state.v1.truncate(half_n);
     state.v2.truncate(half_n);
 }

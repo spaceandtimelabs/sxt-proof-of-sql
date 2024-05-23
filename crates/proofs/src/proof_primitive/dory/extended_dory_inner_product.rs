@@ -10,6 +10,11 @@ use merlin::Transcript;
 
 /// This is the prover side of the extended Dory-Innerproduct algorithm in section 4.3 of https://eprint.iacr.org/2020/1274.pdf.
 /// This function builds/enqueues `messages`, appends to `transcript`, and consumes `state`.
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.extended_dory_inner_product_prove",
+    level = "info",
+    skip_all
+)]
 pub fn extended_dory_inner_product_prove(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,
