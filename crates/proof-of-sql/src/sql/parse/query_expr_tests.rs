@@ -277,6 +277,40 @@ fn we_can_convert_an_ast_with_two_columns() {
 }
 
 #[test]
+fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = record_batch_to_accessor(
+        t,
+        record_batch!(
+            "a" => Vec::<i64>::new(),
+            "b" => Vec::<i64>::new(),
+            "c" => Vec::<i64>::new(),
+        ),
+        0_usize,
+    );
+    let ast = query_to_provable_ast(
+        t,
+        "select a,  b from sxt_tab where c = a + b - 1",
+        &accessor,
+    );
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["a", "b"], &accessor),
+            tab(t),
+            equal(
+                column(t, "c", &accessor),
+                subtract(
+                    add(column(t, "a", &accessor), column(t, "b", &accessor)),
+                    const_bigint(1),
+                ),
+            ),
+        ),
+        result(&[("a", "a"), ("b", "b")]),
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_parse_all_result_columns_with_select_star() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
@@ -717,14 +751,17 @@ fn we_can_parse_order_by_with_multiple_columns() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a, b from sxt_tab where a = 3 order by b desc, a asc",
+        "select a, b from sxt_tab where a = b + 3 order by b desc, a asc",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
             cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
-            equal(column(t, "a", &accessor), const_bigint(3)),
+            equal(
+                column(t, "a", &accessor),
+                add(column(t, "b", &accessor), const_bigint(3)),
+            ),
         ),
         composite_result(vec![
             select(&[pc("a").alias("a"), pc("b").alias("b")]),
@@ -1584,15 +1621,32 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr_plan(t, &["a", "b", "f", "h"], &accessor),
+            vec![
+                (
+                    add(column(t, "a", &accessor), column(t, "b", &accessor)),
+                    "__expr__".parse().unwrap(),
+                ),
+                (
+                    subtract(const_bigint(-77), column(t, "h", &accessor)),
+                    "col".parse().unwrap(),
+                ),
+                (
+                    add(column(t, "a", &accessor), column(t, "f", &accessor)),
+                    "af".parse().unwrap(),
+                ),
+                col_expr_plan(t, "a", &accessor),
+                col_expr_plan(t, "b", &accessor),
+                col_expr_plan(t, "f", &accessor),
+                col_expr_plan(t, "h", &accessor),
+            ],
             tab(t),
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            (pc("a") + pc("b")).alias("__expr__"),
+            pc("__expr__").alias("__expr__"),
             (lit_i64(2) * pc("f")).alias("f2"),
-            ((-77_i64).to_lit() - pc("h")).alias("col"),
-            (pc("a") + pc("f")).alias("af"),
+            pc("col").alias("col"),
+            pc("af").alias("af"),
             // TODO: add `a / b as a_div_b` result expr once polars properly
             // supports decimal division without panicking in production
             // (pc("a") / pc("b")).alias("a_div_b"),

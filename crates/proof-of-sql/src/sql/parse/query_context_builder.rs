@@ -1,10 +1,10 @@
-use super::QueryContext;
+use super::{ConversionError, ConversionResult, QueryContext};
 use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
     },
-    sql::parse::{ConversionError, ConversionResult},
+    sql::ast::try_add_subtract_column_types,
 };
 use proof_of_sql_parser::{
     intermediate_ast::{
@@ -310,10 +310,12 @@ pub(crate) fn type_check_binary_operation(
                     (ColumnType::Boolean, ColumnType::Boolean)
                 )
         }
-        BinaryOperator::Multiply
-        | BinaryOperator::Division
-        | BinaryOperator::Subtract
-        | BinaryOperator::Add => left_dtype.is_numeric() && right_dtype.is_numeric(),
+        BinaryOperator::Add | BinaryOperator::Subtract => {
+            try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok()
+        }
+        BinaryOperator::Multiply | BinaryOperator::Division => {
+            left_dtype.is_numeric() && right_dtype.is_numeric()
+        }
     }
 }
 

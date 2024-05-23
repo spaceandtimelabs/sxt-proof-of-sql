@@ -59,8 +59,8 @@ pub enum ConversionError {
     PrecisionParseError(String),
 
     #[error("Decimal precision is not valid: {0}")]
-    /// Decimal precision exceeds the allowed limit
-    InvalidPrecision(u8),
+    /// Decimal precision is an integer but exceeds the allowed limit. We use i16 here to include all kinds of invalid precision values.
+    InvalidPrecision(i16),
 
     #[error("Encountered parsing error: {0}")]
     /// General parsing error

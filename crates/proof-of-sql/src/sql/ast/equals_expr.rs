@@ -1,4 +1,4 @@
-use super::{scale_and_subtract, scale_and_subtract_eval, ProvableExpr, ProvableExprPlan};
+use super::{scale_and_add_subtract_eval, scale_and_subtract, ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
@@ -48,7 +48,9 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
     }
@@ -62,7 +64,9 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
@@ -76,8 +80,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale)
-            .expect("Failed to scale and subtract");
+        let res = scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true);
         Ok(verifier_evaluate_equals_zero(builder, res))
     }
 
