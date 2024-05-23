@@ -1,28 +1,27 @@
 use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
-    DeferredG1, DeferredG2, G1Affine, G2Affine, ProverSetup, F, G1, G2,
+    DeferredG1, DeferredG2, G1Affine, G1Projective, G2Affine, G2Projective, ProverSetup, F,
 };
-use ark_ec::{ScalarMul, VariableBaseMSM};
+use ark_ec::VariableBaseMSM;
 
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
 /// Computes
 /// * E_1beta = <Gamma_1, s_2>
 /// * E_2beta = <s_1, Gamma_2>
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.extended_dory_reduce_prove_compute_E_betas",
+    level = "info",
+    skip_all
+)]
 pub fn extended_dory_reduce_prove_compute_E_betas(
     state: &ExtendedProverState,
     setup: &ProverSetup,
-) -> (G1, G2) {
-    let E_1beta: G1 = G1::msm(
-        &ScalarMul::batch_convert_to_mul_base(setup.Gamma_1[state.base_state.nu]),
-        &state.s2,
-    )
-    .unwrap();
-    let E_2beta: G2 = G2::msm(
-        &ScalarMul::batch_convert_to_mul_base(setup.Gamma_2[state.base_state.nu]),
-        &state.s1,
-    )
-    .unwrap();
+) -> (G1Affine, G2Affine) {
+    let E_1beta: G1Affine =
+        G1Projective::msm_unchecked(setup.Gamma_1[state.base_state.nu], &state.s2).into();
+    let E_2beta: G2Affine =
+        G2Projective::msm_unchecked(setup.Gamma_2[state.base_state.nu], &state.s1).into();
     (E_1beta, E_2beta)
 }
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -32,18 +31,23 @@ pub fn extended_dory_reduce_prove_compute_E_betas(
 /// * E_1minus = <v_1R, s_2L>
 /// * E_2plus = <s_1L, v_2R>
 /// * E_2minus = <s_1R, v_2L>
+#[tracing::instrument(
+    name = "proofs.proof_primitive_dory.extended_dory_reduce_prove_compute_signed_Es",
+    level = "info",
+    skip_all
+)]
 pub fn extended_dory_reduce_prove_compute_signed_Es(
     state: &ExtendedProverState,
     half_n: usize,
-) -> (G1, G1, G2, G2) {
+) -> (G1Affine, G1Affine, G2Affine, G2Affine) {
     let (v_1L, v_1R) = state.base_state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.base_state.v2.split_at(half_n);
     let (s_1L, s_1R) = state.s1.split_at(half_n);
     let (s_2L, s_2R) = state.s2.split_at(half_n);
-    let E_1plus = G1::msm(&ScalarMul::batch_convert_to_mul_base(v_1L), s_2R).unwrap();
-    let E_1minus = G1::msm(&ScalarMul::batch_convert_to_mul_base(v_1R), s_2L).unwrap();
-    let E_2plus = G2::msm(&ScalarMul::batch_convert_to_mul_base(v_2R), s_1L).unwrap();
-    let E_2minus = G2::msm(&ScalarMul::batch_convert_to_mul_base(v_2L), s_1R).unwrap();
+    let E_1plus = G1Projective::msm_unchecked(v_1L, s_2R).into();
+    let E_1minus = G1Projective::msm_unchecked(v_1R, s_2L).into();
+    let E_2plus = G2Projective::msm_unchecked(v_2R, s_1L).into();
+    let E_2minus = G2Projective::msm_unchecked(v_2L, s_1R).into();
     (E_1plus, E_1minus, E_2plus, E_2minus)
 }
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
@@ -51,6 +55,11 @@ pub fn extended_dory_reduce_prove_compute_signed_Es(
 /// Folds s1 and s2.
 /// * s_1' <- alpha * s_1L + s_1R
 /// * s_2' <- alpha_inv * s_2L + s_2R
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.extended_dory_reduce_prove_fold_s_vecs",
+    level = "info",
+    skip_all
+)]
 pub fn extended_dory_reduce_prove_fold_s_vecs(
     state: &mut ExtendedProverState,
     (alpha, alpha_inv): (F, F),

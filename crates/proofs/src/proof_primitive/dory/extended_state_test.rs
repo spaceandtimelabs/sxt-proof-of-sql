@@ -1,5 +1,8 @@
-use super::{rand_F_vecs, rand_G_vecs, test_rng, ExtendedProverState, PublicParameters, G1, G2};
-use ark_ec::{pairing::Pairing, ScalarMul, VariableBaseMSM};
+use super::{
+    rand_F_vecs, rand_G_vecs, test_rng, ExtendedProverState, G1Projective, G2Projective,
+    PublicParameters,
+};
+use ark_ec::{pairing::Pairing, VariableBaseMSM};
 
 #[test]
 pub fn we_can_create_an_extended_verifier_state_from_an_extended_prover_state() {
@@ -17,8 +20,8 @@ pub fn we_can_create_an_extended_verifier_state_from_an_extended_prover_state() 
         let C = Pairing::multi_pairing(&v1, &v2);
         let D_1 = Pairing::multi_pairing(&v1, prover_setup.Gamma_2[nu]);
         let D_2 = Pairing::multi_pairing(prover_setup.Gamma_1[nu], &v2);
-        let E_1 = G1::msm(&ScalarMul::batch_convert_to_mul_base(&v1), &s2).unwrap();
-        let E_2 = G2::msm(&ScalarMul::batch_convert_to_mul_base(&v2), &s1).unwrap();
+        let E_1 = G1Projective::msm_unchecked(&v1, &s2);
+        let E_2 = G2Projective::msm_unchecked(&v2, &s1);
 
         assert_eq!(extended_verifier_state.base_state.C, C);
         assert_eq!(extended_verifier_state.base_state.D_1, D_1);

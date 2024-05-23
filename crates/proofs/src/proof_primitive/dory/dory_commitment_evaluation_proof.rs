@@ -1,10 +1,11 @@
 use super::{
     eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
     extended_dory_inner_product_verify, DoryCommitment, DoryMessages, DoryProverPublicSetup,
-    DoryScalar, DoryVerifierPublicSetup, ProverSetup, VMVProverState, VMVVerifierState, F, G1,
+    DoryScalar, DoryVerifierPublicSetup, G1Affine, G1Projective, ProverSetup, VMVProverState,
+    VMVVerifierState, F,
 };
 use crate::base::{commitment::CommitmentEvaluationProof, polynomial::compute_evaluation_vector};
-use ark_ec::{ScalarMul, VariableBaseMSM};
+use ark_ec::{AffineRepr, VariableBaseMSM};
 use merlin::Transcript;
 use num_traits::{One, Zero};
 use thiserror::Error;
@@ -33,6 +34,11 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
     type ProverPublicSetup = DoryProverPublicSetup;
     type VerifierPublicSetup = DoryVerifierPublicSetup;
 
+    #[tracing::instrument(
+        name = "proofs.proof_primitive_dory.dory_commitment_evaluation_proof.new",
+        level = "info",
+        skip_all
+    )]
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
@@ -124,15 +130,20 @@ fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
 }
 
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
-fn compute_T_vec_prime(a: &[F], sigma: usize, nu: usize, prover_setup: &ProverSetup) -> Vec<G1> {
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.compute_T_vec_prime",
+    level = "info",
+    skip_all
+)]
+fn compute_T_vec_prime(
+    a: &[F],
+    sigma: usize,
+    nu: usize,
+    prover_setup: &ProverSetup,
+) -> Vec<G1Affine> {
     a.chunks(1 << sigma)
-        .map(|row| {
-            G1::msm_unchecked(
-                &ScalarMul::batch_convert_to_mul_base(prover_setup.Gamma_1[nu]),
-                row,
-            )
-        })
-        .chain(core::iter::repeat(G1::zero()))
+        .map(|row| G1Projective::msm_unchecked(prover_setup.Gamma_1[nu], row).into())
+        .chain(core::iter::repeat(G1Affine::zero()))
         .take(1 << nu)
         .collect()
 }

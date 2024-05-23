@@ -1,8 +1,10 @@
-use super::{DeferredG1, DeferredG2, DeferredGT, ProverState, VerifierState, F, G1, G2};
+use super::{
+    DeferredG1, DeferredG2, DeferredGT, G1Affine, G2Affine, ProverState, VerifierState, F,
+};
 #[cfg(test)]
-use super::{G1Affine, G2Affine, ProverSetup};
+use super::{G1Projective, G2Projective, ProverSetup};
 #[cfg(test)]
-use ark_ec::{ScalarMul, VariableBaseMSM};
+use ark_ec::VariableBaseMSM;
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
 /// `base_state` is the state of the prover during the Dory proof generation with the original algorithm.
@@ -18,7 +20,7 @@ pub struct ExtendedProverState {
 
 impl ExtendedProverState {
     /// Create a new `ExtendedProverState` from the witness.
-    pub fn new(s1: Vec<F>, s2: Vec<F>, v1: Vec<G1>, v2: Vec<G2>, nu: usize) -> Self {
+    pub fn new(s1: Vec<F>, s2: Vec<F>, v1: Vec<G1Affine>, v2: Vec<G2Affine>, nu: usize) -> Self {
         assert_eq!(s1.len(), 1 << nu);
         assert_eq!(s2.len(), 1 << nu);
         ExtendedProverState {
@@ -32,18 +34,8 @@ impl ExtendedProverState {
     /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> ExtendedVerifierState {
-        let E_1: G1Affine = G1::msm(
-            &ScalarMul::batch_convert_to_mul_base(&self.base_state.v1),
-            &self.s2,
-        )
-        .unwrap()
-        .into();
-        let E_2: G2Affine = G2::msm(
-            &ScalarMul::batch_convert_to_mul_base(&self.base_state.v2),
-            &self.s1,
-        )
-        .unwrap()
-        .into();
+        let E_1: G1Affine = G1Projective::msm_unchecked(&self.base_state.v1, &self.s2).into();
+        let E_2: G2Affine = G2Projective::msm_unchecked(&self.base_state.v2, &self.s1).into();
         ExtendedVerifierState {
             base_state: self.base_state.calculate_verifier_state(setup),
             E_1: E_1.into(),

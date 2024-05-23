@@ -1,4 +1,4 @@
-use super::{F, G1, GT};
+use super::{G1Affine, F, GT};
 
 /// The state of the verifier during the VMV evaluation proof verification.
 /// See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
@@ -21,7 +21,7 @@ pub struct VMVProverState {
     /// Evaluations of the columns of the matrix. That is, v = transpose(L) * M. In other words, v[j] = <L, M[_, j]> = sum_{i=0}^{2^nu} M[i,j] L[i].
     pub(super) v_vec: Vec<F>,
     /// Commitments to the rows of the matrix. That is T_vec_prime[i] = <M[i, _], Gamma_1[nu]> = sum_{j=0}^{2^nu} M[i,j] Gamma_1[nu][j].
-    pub(super) T_vec_prime: Vec<G1>,
+    pub(super) T_vec_prime: Vec<G1Affine>,
     /// The left vector, L.
     pub(super) L_vec: Vec<F>,
     /// The right vector, R.
@@ -70,7 +70,8 @@ impl VMV {
     }
     /// Calculate the VMV prover state from a vector-matrix-vector product and setup information.
     pub(super) fn calculate_prover_state(&self, setup: &super::ProverSetup) -> VMVProverState {
-        use ark_ec::{ScalarMul, VariableBaseMSM};
+        use super::G1Projective;
+        use ark_ec::VariableBaseMSM;
         let v_vec = Vec::from_iter((0..self.R.len()).map(|i| {
             self.L
                 .iter()
@@ -78,12 +79,11 @@ impl VMV {
                 .map(|(l, row)| row[i] * l)
                 .sum()
         }));
-        let T_vec_prime = Vec::from_iter(self.M.iter().map(|row| {
-            G1::msm_unchecked(
-                &ScalarMul::batch_convert_to_mul_base(setup.Gamma_1[self.nu]),
-                row,
-            )
-        }));
+        let T_vec_prime = Vec::from_iter(
+            self.M
+                .iter()
+                .map(|row| G1Projective::msm_unchecked(setup.Gamma_1[self.nu], row).into()),
+        );
         VMVProverState {
             v_vec,
             T_vec_prime,

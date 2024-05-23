@@ -1,8 +1,13 @@
-use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1};
+use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::{pairing::Pairing, ScalarMul, VariableBaseMSM};
+use ark_ec::{pairing::Pairing, VariableBaseMSM};
 use core::iter::once;
 
+#[tracing::instrument(
+    name = "proofs.proof_primitive_dory.dory_commitment_helper_cpu.compute_dory_commitment_impl",
+    level = "info",
+    skip_all
+)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -24,17 +29,13 @@ where
     let remaining_rows = remaining_elements.chunks(num_columns);
 
     // Compute commitments for the rows.
-    let first_row_commit = G1::msm_unchecked(
-        &ScalarMul::batch_convert_to_mul_base(
-            &setup.public_parameters().Gamma_1[first_row_offset..num_columns],
-        ),
+    let first_row_commit = G1Projective::msm_unchecked(
+        &setup.public_parameters().Gamma_1[first_row_offset..num_columns],
         &Vec::from_iter(first_row.iter().map(|s| s.into().0)),
     );
     let remaining_row_commits = remaining_rows.map(|row| {
-        G1::msm_unchecked(
-            &ScalarMul::batch_convert_to_mul_base(
-                &setup.public_parameters().Gamma_1[..num_columns],
-            ),
+        G1Projective::msm_unchecked(
+            &setup.public_parameters().Gamma_1[..num_columns],
             &Vec::from_iter(row.iter().map(|s| s.into().0)),
         )
     });

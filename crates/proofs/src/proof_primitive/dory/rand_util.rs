@@ -1,12 +1,11 @@
 #[cfg(test)]
 use super::F;
-use super::{G1, G2};
+use super::{G1Affine, G2Affine};
 #[cfg(test)]
-use ark_std::rand::{rngs::StdRng, Rng, SeedableRng};
-use ark_std::UniformRand;
+use ark_std::rand::{rngs::StdRng, SeedableRng};
+use ark_std::{rand::Rng, UniformRand};
 
 /// Create a random number generator for testing.
-#[cfg(test)]
 pub fn test_rng() -> impl Rng {
     ark_std::test_rng()
 }
@@ -18,11 +17,11 @@ pub fn test_seed_rng(seed: [u8; 32]) -> impl Rng {
 }
 
 /// Creates two vectors of random G1 and G2 elements with length 2^nu.
-pub fn rand_G_vecs<R>(nu: usize, rng: &mut R) -> (Vec<G1>, Vec<G2>)
+pub fn rand_G_vecs<R>(nu: usize, rng: &mut R) -> (Vec<G1Affine>, Vec<G2Affine>)
 where
     R: ark_std::rand::Rng + ?Sized,
 {
-    core::iter::repeat_with(|| (G1::rand(rng), G2::rand(rng)))
+    core::iter::repeat_with(|| (G1Affine::rand(rng), G2Affine::rand(rng)))
         .take(1 << nu)
         .unzip()
 }

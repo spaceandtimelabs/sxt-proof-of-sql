@@ -1,6 +1,6 @@
 #[cfg(test)]
 use super::ProverSetup;
-use super::{DeferredGT, G1, G2};
+use super::{DeferredGT, G1Affine, G2Affine};
 #[cfg(test)]
 use ark_ec::pairing::Pairing;
 
@@ -9,16 +9,16 @@ use ark_ec::pairing::Pairing;
 /// See the beginning of section 3 of https://eprint.iacr.org/2020/1274.pdf for details.
 pub struct ProverState {
     /// The vector of G1 elements in the witness. This will be mutated during the proof generation.
-    pub(super) v1: Vec<G1>,
+    pub(super) v1: Vec<G1Affine>,
     /// The vector of G2 elements in the witness. This will be mutated during the proof generation.
-    pub(super) v2: Vec<G2>,
+    pub(super) v2: Vec<G2Affine>,
     /// The round number of the proof. The length of `v1` and `v2` should always be 2^nu. This will be mutated during the proof generation.
     pub(super) nu: usize,
 }
 
 impl ProverState {
     /// Create a new `ProverState` from the witness.
-    pub fn new(v1: Vec<G1>, v2: Vec<G2>, nu: usize) -> Self {
+    pub fn new(v1: Vec<G1Affine>, v2: Vec<G2Affine>, nu: usize) -> Self {
         assert_eq!(v1.len(), 1 << nu);
         assert_eq!(v2.len(), 1 << nu);
         ProverState { v1, v2, nu }

@@ -1,10 +1,15 @@
-use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1};
+use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::{pairing::Pairing, ScalarMul};
+use ark_ec::pairing::Pairing;
 use ark_serialize::CanonicalDeserialize;
 use blitzar::{compute::compute_bls12_381_g1_commitments_with_generators, sequence::Sequence};
 use core::iter::once;
 
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.dory_commitment_helper_gpu.compute_dory_commitment_impl",
+    level = "info",
+    skip_all
+)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -31,13 +36,11 @@ where
     compute_bls12_381_g1_commitments_with_generators(
         &mut commit,
         &[first_row.into()],
-        &ScalarMul::batch_convert_to_mul_base(
-            &setup.public_parameters().Gamma_1[first_row_offset..num_columns],
-        ),
+        &setup.public_parameters().Gamma_1[first_row_offset..num_columns],
     );
 
     // The bls12-381 G1 commitment from blitzar is compressed. we need to deserialize it to a projective point.
-    let first_row_commit = G1::deserialize_compressed(&commit[0][..]).unwrap();
+    let first_row_commit = G1Affine::deserialize_compressed(&commit[0][..]).unwrap();
 
     // Create a sequence from the remaining chunks.
     let sequences: Vec<Sequence> = remaining_rows.clone().map(|chunk| chunk.into()).collect();
@@ -47,7 +50,7 @@ where
     compute_bls12_381_g1_commitments_with_generators(
         &mut commits,
         &sequences,
-        &ScalarMul::batch_convert_to_mul_base(&setup.public_parameters().Gamma_1[..num_columns]),
+        &setup.public_parameters().Gamma_1[..num_columns],
     );
 
     // The bls12-381 G1 commitment from blitzar is compressed. we need to deserialize it to a projective point.
@@ -55,7 +58,7 @@ where
         commits
             .iter()
             .take(sequences.len())
-            .map(|c| G1::deserialize_compressed(&c[..]).unwrap())
+            .map(|c| G1Affine::deserialize_compressed(&c[..]).unwrap())
             .collect()
     };
 

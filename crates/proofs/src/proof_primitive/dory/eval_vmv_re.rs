@@ -1,8 +1,8 @@
 use super::{
-    DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, ProverSetup,
-    VMVProverState, VMVVerifierState, VerifierSetup, G1,
+    DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
+    ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
-use ark_ec::{pairing::Pairing, ScalarMul, VariableBaseMSM};
+use ark_ec::{pairing::Pairing, VariableBaseMSM};
 use merlin::Transcript;
 
 /// This is the prover side of the Eval-VMV-RE algorithm in section 5 of https://eprint.iacr.org/2020/1274.pdf.
@@ -13,6 +13,11 @@ use merlin::Transcript;
 ///     We should have E_1 = s2 * v1 and E_2 = s1 * v2, which is the case if we use s1 = R and s2 = L.
 ///
 /// Note: the paper has the prover send E_2 to the verifier. We opt to simply have the verifier compute E_2 from y, which is known.
+#[tracing::instrument(
+    name = "proofs.proof_primitive.dory.eval_vmv_re_prove",
+    level = "info",
+    skip_all
+)]
 pub fn eval_vmv_re_prove(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,
@@ -20,30 +25,21 @@ pub fn eval_vmv_re_prove(
     setup: &ProverSetup,
 ) -> ExtendedProverState {
     let C = Pairing::pairing(
-        G1::msm_unchecked(
-            &ScalarMul::batch_convert_to_mul_base(&state.T_vec_prime),
-            &state.v_vec,
-        ),
+        G1Projective::msm_unchecked(&state.T_vec_prime, &state.v_vec),
         setup.Gamma_2_fin,
     );
     let D_2 = Pairing::pairing(
-        G1::msm_unchecked(
-            &ScalarMul::batch_convert_to_mul_base(setup.Gamma_1[state.nu]),
-            &state.v_vec,
-        ),
+        G1Projective::msm_unchecked(setup.Gamma_1[state.nu], &state.v_vec),
         setup.Gamma_2_fin,
     );
-    let E_1 = G1::msm_unchecked(
-        &ScalarMul::batch_convert_to_mul_base(&state.T_vec_prime),
-        &state.L_vec,
-    );
+    let E_1 = G1Projective::msm_unchecked(&state.T_vec_prime, &state.L_vec);
     messages.prover_send_GT_message(transcript, C);
     messages.prover_send_GT_message(transcript, D_2);
     messages.prover_send_G1_message(transcript, E_1);
     let s1 = state.R_vec;
     let s2 = state.L_vec;
     let v1 = state.T_vec_prime;
-    let v2 = Vec::from_iter(state.v_vec.iter().map(|c| setup.Gamma_2_fin * c));
+    let v2 = Vec::from_iter(state.v_vec.iter().map(|c| (setup.Gamma_2_fin * c).into()));
     let nu = state.nu;
     ExtendedProverState::new(s1, s2, v1, v2, nu)
 }

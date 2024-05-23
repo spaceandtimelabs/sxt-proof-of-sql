@@ -17,16 +17,18 @@
 // This is so that the naming in the code more closely matches the naming in the paper, since the paper used both capital and non-capital letters.
 #![allow(non_snake_case)]
 
-use ark_bls12_381::{Fr as F, G1Affine, G1Projective as G1, G2Affine, G2Projective as G2};
+use ark_bls12_381::{Fr as F, G1Affine, G1Projective, G2Affine, G2Projective};
 /// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 
 #[cfg(any(test, feature = "test"))]
 mod rand_util;
+#[cfg(test)]
+use rand_util::rand_F_vecs;
 #[cfg(any(test, feature = "test"))]
 use rand_util::rand_G_vecs;
-#[cfg(test)]
-use rand_util::{rand_F_vecs, test_rng};
+#[cfg(any(test, feature = "test"))]
+pub use rand_util::test_rng;
 
 mod dory_messages;
 pub(crate) use dory_messages::DoryMessages;
@@ -84,7 +86,7 @@ pub(crate) use extended_dory_inner_product::{
 mod extended_dory_inner_product_test;
 
 mod public_parameters;
-pub(crate) use public_parameters::PublicParameters;
+pub use public_parameters::PublicParameters;
 
 mod eval_vmv_re;
 pub(crate) use eval_vmv_re::{eval_vmv_re_prove, eval_vmv_re_verify};
@@ -126,3 +128,5 @@ mod deferred_msm;
 type DeferredGT = deferred_msm::DeferredMSM<GT, F>;
 type DeferredG1 = deferred_msm::DeferredMSM<G1Affine, F>;
 type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;
+
+mod pairings;
