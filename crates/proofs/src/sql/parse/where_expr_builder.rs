@@ -8,7 +8,6 @@ use crate::{
     sql::ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
 };
 use proofs_sql::{
-    decimal_unknown::DecimalUnknown,
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,
 };
@@ -130,65 +129,16 @@ impl WhereExprBuilder<'_> {
                 ProvableExprPlan::try_new_equals(left?, right?)
             }
             BinaryOperator::GreaterThanOrEqual => {
-                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(ProvableExprPlan::new_inequality(left, right, false))
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_inequality(left?, right?, false)
             }
             BinaryOperator::LessThanOrEqual => {
-                let (left, right) = self.process_comparison_expr::<C>(left, right)?;
-                Ok(ProvableExprPlan::new_inequality(left, right, true))
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_inequality(left?, right?, true)
             }
             _ => panic!("The parser must ensure that the expression is a boolean expression"),
         }
-    }
-
-    /// Ensure that left is a Column and right is a Literal, then get the column reference and the literal value
-    fn process_comparison_expr<C: Commitment>(
-        &self,
-        left: Expression,
-        right: Expression,
-    ) -> Result<(ColumnRef, C::Scalar), ConversionError> {
-        let left = match left {
-            Expression::Column(identifier) => *self.column_mapping.get(&identifier).unwrap(),
-            _ => panic!("The parser must ensure that the left side is a column"),
-        };
-
-        let right = match (right, left.column_type()) {
-            (Expression::Literal(Literal::Decimal(d)), column_type) => match column_type {
-                ColumnType::Decimal75(_, scale) => match_decimal(&d, *scale)?,
-                ColumnType::Int128 if d.scale > 0 => {
-                    return Err(ConversionError::DataTypeMismatch(
-                        d.value().to_owned(),
-                        "Int128".to_owned(),
-                    ));
-                }
-                ColumnType::BigInt if d.scale > 0 => {
-                    return Err(ConversionError::DataTypeMismatch(
-                        d.value().to_owned(),
-                        "Int64".to_owned(),
-                    ));
-                }
-                // 123.000 should match to 123, guarded by the match above
-                ColumnType::Int128 => match_decimal(&d, 0)?,
-                ColumnType::BigInt => match_decimal(&d, 0)?,
-                ColumnType::VarChar | ColumnType::Scalar | ColumnType::Boolean => {
-                    return Err(ConversionError::DataTypeMismatch(
-                        format!("Decimal75: {}", d.value()),
-                        left.column_type().to_string(),
-                    ));
-                }
-            },
-            (Expression::Literal(Literal::Int128(int)), ColumnType::Decimal75(_, scale)) => {
-                match_decimal(&DecimalUnknown::new(&int.to_string()), *scale)?
-            }
-            (Expression::Literal(Literal::BigInt(int)), ColumnType::Decimal75(_, scale)) => {
-                match_decimal(&DecimalUnknown::new(&int.to_string()), *scale)?
-            }
-            (Expression::Literal(Literal::Int128(value)), _) => value.into(),
-            (Expression::Literal(Literal::BigInt(value)), _) => (&value).into(),
-            (Expression::Literal(Literal::VarChar(value)), _) => value.into(),
-            (Expression::Literal(Literal::Boolean(value)), _) => (&value).into(),
-            _ => panic!("Unexpected expression or column type"),
-        };
-        Ok((left, right))
     }
 }

@@ -22,7 +22,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     // (a <= 5 || b == "g") && c != 3
     let bool_expr: ProvableExprPlan<RistrettoPoint> = and(
         or(
-            lte(t, "a", 5, &accessor),
+            lte(column(t, "a", &accessor), const_bigint(5)),
             equal(column(t, "b", &accessor), const_varchar("g")),
         ),
         not(equal(column(t, "c", &accessor), const_int128(3))),

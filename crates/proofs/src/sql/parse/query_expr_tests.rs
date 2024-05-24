@@ -360,12 +360,12 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
         ),
         0_usize,
     );
-    let ast = query_to_provable_ast(t, "select a from sxt_tab where b = -4", &accessor);
+    let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
             cols_expr(t, &["a"], &accessor),
             tab(t),
-            equal(column(t, "b", &accessor), const_bigint(-4)),
+            lte(column(t, "b", &accessor), const_bigint(-4)),
         ),
         result(&[("a", "a")]),
     );
@@ -386,7 +386,7 @@ fn we_can_convert_an_ast_with_cond_and() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where (b = 3) and (c = -2)",
+        "select a from sxt_tab where (b = 3) and (c <= -2)",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
@@ -395,7 +395,7 @@ fn we_can_convert_an_ast_with_cond_and() {
             tab(t),
             and(
                 equal(column(t, "b", &accessor), const_bigint(3)),
-                equal(column(t, "c", &accessor), const_bigint(-2)),
+                lte(column(t, "c", &accessor), const_bigint(-2)),
             ),
         ),
         result(&[("a", "a")]),
@@ -448,7 +448,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where (b = 3) or (not (c = -2))",
+        "select a from sxt_tab where (b <= 3) or (not (c >= -2))",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
@@ -456,8 +456,8 @@ fn we_can_convert_an_ast_with_conds_or_not() {
             cols_expr(t, &["a"], &accessor),
             tab(t),
             or(
-                equal(column(t, "b", &accessor), const_bigint(3)),
-                not(equal(column(t, "c", &accessor), const_bigint(-2))),
+                lte(column(t, "b", &accessor), const_bigint(3)),
+                not(gte(column(t, "c", &accessor), const_bigint(-2))),
             ),
         ),
         result(&[("a", "a")]),
@@ -480,7 +480,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where not (((f = 45) or (c = -2)) and (b = 3))",
+        "select a from sxt_tab where not (((f >= 45) or (c <= -2)) and (b = 3))",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
@@ -489,8 +489,8 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
             tab(t),
             not(and(
                 or(
-                    equal(column(t, "f", &accessor), const_bigint(45)),
-                    equal(column(t, "c", &accessor), const_bigint(-2)),
+                    gte(column(t, "f", &accessor), const_bigint(45)),
+                    lte(column(t, "c", &accessor), const_bigint(-2)),
                 ),
                 equal(column(t, "b", &accessor), const_bigint(3)),
             )),
@@ -565,14 +565,14 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a as b_rename from sxt_tab where b = +4",
+        "select a as b_rename from sxt_tab where b >= +4",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
             vec![col_expr(t, "a", &accessor)],
             tab(t),
-            equal(column(t, "b", &accessor), const_bigint(4)),
+            gte(column(t, "b", &accessor), const_bigint(4)),
         ),
         result(&[("a", "b_rename")]),
     );
@@ -1142,7 +1142,7 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
             ),
             "num_employee",
             tab(t),
-            lte(t, "tax", 1, &accessor),
+            lte(column(t, "tax", &accessor), const_bigint(1)),
         ),
         composite_result(vec![select(&[
             pc("department").first().alias("department"),
@@ -1705,10 +1705,10 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     assert_eq!(
         query!(select: ["s - s1"], should_err: true),
-        ConversionError::InvalidExpression(format!(
-            "arithmetic operations with data type {} is not supported",
-            ColumnType::VarChar
-        ))
+        ConversionError::DataTypeMismatch(
+            ColumnType::VarChar.to_string(),
+            ColumnType::VarChar.to_string()
+        )
     );
 }
 

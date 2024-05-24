@@ -2,12 +2,12 @@
 mod tests {
     use crate::{
         base::{
-            database::{ColumnRef, ColumnType},
+            database::{ColumnRef, ColumnType, LiteralValue},
             math::decimal::Precision,
         },
         record_batch,
         sql::{
-            ast::ProvableExprPlan,
+            ast::{ColumnExpr, LiteralExpr, ProvableExprPlan},
             parse::{
                 query_expr_tests::record_batch_to_accessor, ConversionError, QueryExpr,
                 WhereExprBuilder,
@@ -166,15 +166,17 @@ mod tests {
             .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
             .unwrap()
             .unwrap();
-        let expected = ProvableExprPlan::new_inequality(
-            ColumnRef::new(
+        println!("{:?}", actual);
+        let expected = ProvableExprPlan::try_new_inequality(
+            ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("bigint_column").unwrap(),
                 ColumnType::BigInt,
-            ),
-            (-12345).into(),
+            ))),
+            ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
             false,
-        );
+        )
+        .unwrap();
         assert_eq!(actual, expected);
     }
 
@@ -193,15 +195,16 @@ mod tests {
             .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
             .unwrap()
             .unwrap();
-        let expected = ProvableExprPlan::new_inequality(
-            ColumnRef::new(
+        let expected = ProvableExprPlan::try_new_inequality(
+            ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("bigint_column").unwrap(),
                 ColumnType::BigInt,
-            ),
-            (-12345).into(),
+            ))),
+            ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
             true,
-        );
+        )
+        .unwrap();
         assert_eq!(actual, expected);
     }
 

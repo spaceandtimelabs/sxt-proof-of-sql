@@ -8,11 +8,12 @@ use crate::{
         proof::ProofError,
     },
     sql::{
-        parse::{are_types_compatible, ConversionError, ConversionResult},
+        parse::{type_check_binary_operation, ConversionError, ConversionResult},
         proof::{CountBuilder, ProofBuilder, VerificationBuilder},
     },
 };
 use bumpalo::Bump;
+use proofs_sql::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt::Debug};
 
@@ -32,7 +33,7 @@ pub enum ProvableExprPlan<C: Commitment> {
     /// Provable AST expression for an equals expression
     Equals(EqualsExpr<C>),
     /// Provable AST expression for an inequality expression
-    Inequality(InequalityExpr<C::Scalar>),
+    Inequality(InequalityExpr<C>),
 }
 impl<C: Commitment> ProvableExprPlan<C> {
     /// Create column expression
@@ -73,7 +74,7 @@ impl<C: Commitment> ProvableExprPlan<C> {
     ) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !are_types_compatible(&lhs_datatype, &rhs_datatype) {
+        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Equal) {
             Err(ConversionError::DataTypeMismatch(
                 lhs_datatype.to_string(),
                 rhs_datatype.to_string(),
@@ -83,8 +84,29 @@ impl<C: Commitment> ProvableExprPlan<C> {
         }
     }
     /// Create a new inequality expression
-    pub fn new_inequality(column_ref: ColumnRef, value: C::Scalar, is_lte: bool) -> Self {
-        Self::Inequality(InequalityExpr::new(column_ref, value, is_lte))
+    pub fn try_new_inequality(
+        lhs: ProvableExprPlan<C>,
+        rhs: ProvableExprPlan<C>,
+        is_lte: bool,
+    ) -> ConversionResult<Self> {
+        let lhs_datatype = lhs.data_type();
+        let rhs_datatype = rhs.data_type();
+        if !type_check_binary_operation(
+            &lhs_datatype,
+            &rhs_datatype,
+            BinaryOperator::LessThanOrEqual,
+        ) {
+            Err(ConversionError::DataTypeMismatch(
+                lhs_datatype.to_string(),
+                rhs_datatype.to_string(),
+            ))
+        } else {
+            Ok(Self::Inequality(InequalityExpr::new(
+                Box::new(lhs),
+                Box::new(rhs),
+                is_lte,
+            )))
+        }
     }
 
     /// Check that the plan has the correct data type
