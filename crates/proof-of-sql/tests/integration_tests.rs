@@ -284,7 +284,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
+        "SELECT *, 45 as g, (a = b) or f as h FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -304,6 +304,8 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         bigint("d", [3]),
         varchar("e", ["f"]),
         boolean("f", [false]),
+        bigint("g", [45]),
+        boolean("h", [false]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -329,7 +331,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f"
+        "SELECT *, 32 as g, (c >= d) and f as h FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -354,6 +356,8 @@ fn we_can_prove_a_complex_query_with_dory() {
         bigint("d", [1]),
         varchar("e", ["d"]),
         boolean("f", [true]),
+        bigint("g", [32]),
+        boolean("h", [true]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

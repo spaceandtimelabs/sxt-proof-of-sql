@@ -6,6 +6,7 @@ use crate::base::{
     commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
 };
+use proof_of_sql_parser::Identifier;
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -112,6 +113,51 @@ pub fn filter<C: Commitment>(
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
 
+pub fn aliased_col_expr_plan<C: Commitment>(
+    tab: TableRef,
+    old_name: &str,
+    new_name: &str,
+    accessor: &impl SchemaAccessor,
+) -> (ProvableExprPlan<C>, Identifier) {
+    (
+        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, old_name, accessor))),
+        new_name.parse().unwrap(),
+    )
+}
+
+pub fn col_expr_plan<C: Commitment>(
+    tab: TableRef,
+    name: &str,
+    accessor: &impl SchemaAccessor,
+) -> (ProvableExprPlan<C>, Identifier) {
+    (
+        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, name, accessor))),
+        name.parse().unwrap(),
+    )
+}
+
+pub fn aliased_cols_expr_plan<C: Commitment>(
+    tab: TableRef,
+    names: &[(&str, &str)],
+    accessor: &impl SchemaAccessor,
+) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+    names
+        .iter()
+        .map(|(old_name, new_name)| aliased_col_expr_plan(tab, old_name, new_name, accessor))
+        .collect()
+}
+
+pub fn cols_expr_plan<C: Commitment>(
+    tab: TableRef,
+    names: &[&str],
+    accessor: &impl SchemaAccessor,
+) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+    names
+        .iter()
+        .map(|name| col_expr_plan(tab, name, accessor))
+        .collect()
+}
+
 pub fn col_expr<C: Commitment>(
     tab: TableRef,
     name: &str,
@@ -132,7 +178,7 @@ pub fn cols_expr<C: Commitment>(
 }
 
 pub fn dense_filter<C: Commitment>(
-    results: Vec<ColumnExpr<C>>,
+    results: Vec<(ProvableExprPlan<C>, Identifier)>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {

@@ -11,7 +11,7 @@ use crate::{
     sql::{
         // Making this explicit to ensure that we don't accidentally use the
         // sparse filter for these tests
-        ast::test_utility::{cols_expr, column, const_int128, equal, tab},
+        ast::test_utility::{cols_expr_plan, column, const_int128, equal, tab},
         proof::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
@@ -49,9 +49,9 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr<RistrettoPoin
             .expect("selection is not boolean");
         // 2. columns
         let columns = Vec::from_iter(
-            self.results
+            self.aliased_results
                 .iter()
-                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
+                .map(|(expr, _)| expr.result_evaluate(builder.table_length(), alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -85,9 +85,9 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExpr<RistrettoPoin
             .expect("selection is not boolean");
         // 2. columns
         let columns = Vec::from_iter(
-            self.results
+            self.aliased_results
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
+                .map(|(expr, _)| expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -141,7 +141,7 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
     let expr = DishonestDenseFilterExpr::new(
-        cols_expr(t, &["b", "c", "d", "e"], &accessor),
+        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), const_int128(105_i128)),
     );

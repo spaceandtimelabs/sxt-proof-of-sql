@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical AND expression
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AndExpr<C: Commitment> {
     lhs: Box<ProvableExprPlan<C>>,
     rhs: Box<ProvableExprPlan<C>>,
