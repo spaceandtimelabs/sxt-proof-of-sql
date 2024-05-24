@@ -46,7 +46,7 @@ impl<S: Scalar> SumcheckProof<S> {
                 &round_evaluations,
             );
             evaluations.push(round_evaluations);
-            *scalar = transcript.challenge_curve25519_single(MessageLabel::SumcheckChallenge);
+            *scalar = transcript.challenge_scalar_single(MessageLabel::SumcheckChallenge);
             r = Some(*scalar);
         }
 
@@ -83,7 +83,7 @@ impl<S: Scalar> SumcheckProof<S> {
                 &self.evaluations[round_index],
             );
             evaluation_point
-                .push(transcript.challenge_curve25519_single(MessageLabel::SumcheckChallenge));
+                .push(transcript.challenge_scalar_single(MessageLabel::SumcheckChallenge));
         }
         Subclaim::create(
             evaluation_point,

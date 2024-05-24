@@ -90,7 +90,8 @@ impl DoryMessages {
     pub(super) fn verifier_F_message(&mut self, transcript: &mut Transcript) -> (F, F) {
         let mut message = F::zero();
         while message.is_zero() {
-            transcript.challenge_ark(core::iter::once(&mut message), MessageLabel::DoryChallenge)
+            transcript
+                .challenge_scalars(core::iter::once(&mut message), MessageLabel::DoryChallenge)
         }
         let message_inv = message.inverse().unwrap();
         (message, message_inv)

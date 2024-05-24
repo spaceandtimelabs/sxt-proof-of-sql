@@ -68,7 +68,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Note: the last challenge in the vec is the first one that is consumed.
         let mut post_result_challenges =
             vec![Zero::zero(); result_builder.num_post_result_challenges()];
-        transcript.challenge_ark(
+        transcript.challenge_scalars(
             &mut post_result_challenges,
             MessageLabel::PostResultChallenges,
         );
@@ -99,7 +99,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
         let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_ark(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
             &random_scalars,
             table_length,
@@ -124,7 +124,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
         let mut random_scalars = vec![Zero::zero(); pre_result_mle_evaluations.len()];
-        transcript.challenge_ark(
+        transcript.challenge_scalars(
             &mut random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
@@ -203,7 +203,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // send commitments to the intermediate witness columns.
         // Note: the last challenge in the vec is the first one that is consumed.
         let mut post_result_challenges = vec![Zero::zero(); counts.post_result_challenges];
-        transcript.challenge_ark(
+        transcript.challenge_scalars(
             &mut post_result_challenges,
             MessageLabel::PostResultChallenges,
         );
@@ -214,7 +214,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
         let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_ark(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
         let sumcheck_random_scalars =
             SumcheckRandomScalars::new(&random_scalars, table_length, num_sumcheck_variables);
 
@@ -242,7 +242,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // (i.e. the folding/random linear combination of the pre_result_mles)
         let mut evaluation_random_scalars =
             vec![Zero::zero(); self.pre_result_mle_evaluations.len()];
-        transcript.challenge_ark(
+        transcript.challenge_scalars(
             &mut evaluation_random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
