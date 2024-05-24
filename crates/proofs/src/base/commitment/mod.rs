@@ -38,7 +38,7 @@ pub use table_commitment::{
 };
 
 mod query_commitments;
-pub use query_commitments::QueryCommitments;
+pub use query_commitments::{QueryCommitments, QueryCommitmentsExt};
 
 /// A trait for using commitment schemes generically.
 pub trait Commitment:

@@ -1,6 +1,4 @@
-use crate::base::scalar::Curve25519Scalar;
 use ark_serialize::CanonicalSerialize;
-use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 /// Merlin Transcripts, for non-interactive proofs.
@@ -47,58 +45,20 @@ pub trait TranscriptProtocol {
         message: &(impl CanonicalSerialize + ?Sized),
     );
 
-    /// Append some scalars to the transcript under a specific label.
-    ///
-    /// For most types, prefer to include it as part of the message with append_auto.
-    /// But Curve25519Scalars are not Serialize, so you must use this method instead, creating a separate message.
-    fn append_curve25519_scalars(&mut self, label: MessageLabel, scalars: &[Curve25519Scalar]) {
-        self.append_canonical_serialize(label, scalars)
-    }
-
-    /// Append a Compressed RistrettoPoint with a specific label.
-    ///
-    /// For most types, prefer to include it as part of the message with append_auto instead,
-    /// because using this method creates a need for more labels
-    fn append_point(&mut self, label: MessageLabel, point: &CompressedRistretto) {
-        self.append_points(label, core::slice::from_ref(point));
-    }
-
-    /// Append Compressed RistrettoPoint's with a specific label.
-    ///
-    /// For most types, prefer to include it as part of the message with append_auto instead,
-    /// because using this method creates a need for more labels
-    fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]);
-
     /// Compute multiple challenge values of a type that extends `ark_std::UniformRand` (which requires a label). This generalizes `challenge_curve25519_scalars`.
-    fn challenge_ark<'a, U: ark_std::UniformRand + 'a>(
+    fn challenge_scalars<'a, U: ark_std::UniformRand + 'a>(
         &mut self,
         buf: impl IntoIterator<Item = &'a mut U>,
         label: MessageLabel,
     );
 
-    /// Compute multiple challenge variables (which requires a label).
-    fn challenge_curve25519_scalars(
-        &mut self,
-        scalars: &mut [Curve25519Scalar],
-        label: MessageLabel,
-    ) {
-        self.challenge_ark(scalars.iter_mut().map(|a| &mut a.0), label)
-    }
-
     /// Compute a challenge variable (which requires a label).
-    fn challenge_curve25519_single<U: ark_std::UniformRand + Default>(
+    fn challenge_scalar_single<U: ark_std::UniformRand + Default>(
         &mut self,
         label: MessageLabel,
     ) -> U {
         let mut res = Default::default();
-        self.challenge_ark(core::iter::once(&mut res), label);
-        res
-    }
-
-    /// Compute a challenge variable (which requires a label).
-    fn challenge_curve25519_scalar(&mut self, label: MessageLabel) -> Curve25519Scalar {
-        let mut res: Curve25519Scalar = Default::default();
-        self.challenge_ark(core::iter::once(&mut res.0), label);
+        self.challenge_scalars(core::iter::once(&mut res), label);
         res
     }
 }
@@ -118,11 +78,7 @@ impl TranscriptProtocol for Transcript {
         self.append_message(label.as_bytes(), &buf);
     }
 
-    fn append_points(&mut self, label: MessageLabel, points: &[CompressedRistretto]) {
-        self.append_message(label.as_bytes(), points_as_byte_slice(points));
-    }
-
-    fn challenge_ark<'a, U: ark_std::UniformRand + 'a>(
+    fn challenge_scalars<'a, U: ark_std::UniformRand + 'a>(
         &mut self,
         buf: impl IntoIterator<Item = &'a mut U>,
         label: MessageLabel,
@@ -228,9 +184,4 @@ impl MessageLabel {
             MessageLabel::GeneratorOffset => b"generatoroffset v1",
         }
     }
-}
-
-fn points_as_byte_slice(slice: &[CompressedRistretto]) -> &[u8] {
-    let len = std::mem::size_of_val(slice);
-    unsafe { core::slice::from_raw_parts(slice.as_ptr() as *const u8, len) }
 }

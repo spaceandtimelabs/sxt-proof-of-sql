@@ -474,7 +474,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let generator_offset = expr.get_offset(&accessor);
 
     let mut transcript = make_transcript(&expr, &provable_result, table_length, generator_offset);
-    transcript.challenge_curve25519_scalars(&mut [], MessageLabel::PostResultChallenges);
+    transcript.challenge_scalars::<Curve25519Scalar>(&mut [], MessageLabel::PostResultChallenges);
 
     let mut builder = ProofBuilder::new(3, 2, Vec::new());
 

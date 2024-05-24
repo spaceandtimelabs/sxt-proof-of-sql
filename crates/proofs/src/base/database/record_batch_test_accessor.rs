@@ -52,7 +52,7 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
         }
     }
     fn add_table(&mut self, table_ref: TableRef, data: RecordBatch, table_offset: usize) {
-        assert!(self.tables.get(&table_ref).is_none());
+        assert!(!self.tables.contains_key(&table_ref));
 
         let columns: IndexMap<_, _> = data
             .schema()
