@@ -1,51 +1,40 @@
 use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
-    verifier_evaluate_equals_zero, verifier_evaluate_or, verifier_evaluate_sign, ProvableExpr,
+    scale_and_subtract, scale_and_subtract_eval, verifier_evaluate_equals_zero,
+    verifier_evaluate_or, verifier_evaluate_sign, ProvableExpr, ProvableExprPlan,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
-        scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-/// Provable AST expression for
-/// ```ignore
-///    <col> <= <constant>
-/// ```
-/// or
-/// ```ignore
-///    <col> >= <constant>
-/// ```
+/// Provable AST expression for an inequality expression
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct InequalityExpr<S: Scalar> {
-    value: S,
-    column_ref: ColumnRef,
+pub struct InequalityExpr<C: Commitment> {
+    lhs: Box<ProvableExprPlan<C>>,
+    rhs: Box<ProvableExprPlan<C>>,
     is_lte: bool,
 }
 
-impl<S: Scalar> InequalityExpr<S> {
+impl<C: Commitment> InequalityExpr<C> {
     /// Create a new less than or equal expression
-    pub fn new(column_ref: ColumnRef, value: S, is_lte: bool) -> Self {
-        Self {
-            value,
-            column_ref,
-            is_lte,
-        }
+    pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>, is_lte: bool) -> Self {
+        Self { lhs, rhs, is_lte }
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C::Scalar> {
+impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        builder.count_anchored_mles(1);
+        self.lhs.count(builder)?;
+        self.rhs.count(builder)?;
         count_equals_zero(builder);
         count_sign(builder)?;
         count_or(builder);
@@ -62,30 +51,23 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C::Scalar> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        // lhs
-        let lhs = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
-            let lhs = alloc.alloc_slice_fill_default(table_length);
-            if self.is_lte {
-                lhs.par_iter_mut()
-                    .zip(col)
-                    .for_each(|(a, b)| *a = Into::<C::Scalar>::into(b) - self.value);
-            } else {
-                lhs.par_iter_mut()
-                    .zip(col)
-                    .for_each(|(a, b)| *a = self.value - Into::<C::Scalar>::into(b));
-            }
-            lhs
+        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let diff = if self.is_lte {
+            scale_and_subtract(alloc, lhs_column, rhs_column, false)
+                .expect("Failed to scale and subtract")
         } else {
-            panic!("invalid column type")
+            scale_and_subtract(alloc, rhs_column, lhs_column, false)
+                .expect("Failed to scale and subtract")
         };
 
-        // lhs == 0
-        let equals_zero = result_evaluate_equals_zero(table_length, alloc, lhs);
+        // diff == 0
+        let equals_zero = result_evaluate_equals_zero(table_length, alloc, diff);
 
-        // sign(lhs) == -1
-        let sign = result_evaluate_sign(table_length, alloc, lhs);
+        // sign(diff) == -1
+        let sign = result_evaluate_sign(table_length, alloc, diff);
 
-        // (lhs == 0) || (sign(lhs) == -1)
+        // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
     }
 
@@ -100,33 +82,23 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C::Scalar> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let table_length = builder.table_length();
-
-        // lhs
-        let (lhs, col) = if let Column::BigInt(col) = accessor.get_column(self.column_ref) {
-            let lhs = alloc.alloc_slice_fill_default(table_length);
-            if self.is_lte {
-                lhs.par_iter_mut()
-                    .zip(col)
-                    .for_each(|(a, b)| *a = Into::<C::Scalar>::into(b) - self.value);
-            } else {
-                lhs.par_iter_mut()
-                    .zip(col)
-                    .for_each(|(a, b)| *a = self.value - Into::<C::Scalar>::into(b));
-            }
-            (lhs, col)
+        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
+        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let diff = if self.is_lte {
+            scale_and_subtract(alloc, lhs_column, rhs_column, false)
+                .expect("Failed to scale and subtract")
         } else {
-            panic!("invalid column type")
+            scale_and_subtract(alloc, rhs_column, lhs_column, false)
+                .expect("Failed to scale and subtract")
         };
 
-        // lhs == 0
-        builder.produce_anchored_mle(col);
-        let equals_zero = prover_evaluate_equals_zero(builder, alloc, lhs);
+        // diff == 0
+        let equals_zero = prover_evaluate_equals_zero(builder, alloc, diff);
 
-        // sign(lhs) == -1
-        let sign = prover_evaluate_sign(builder, alloc, lhs);
+        // sign(diff) == -1
+        let sign = prover_evaluate_sign(builder, alloc, diff);
 
-        // (lhs == 0) || (sign(lhs) == -1)
+        // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
     }
 
@@ -136,27 +108,29 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C::Scalar> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         let one_eval = builder.mle_evaluations.one_evaluation;
-
-        let col_eval = builder.consume_anchored_mle(accessor.get_commitment(self.column_ref));
-
-        // eval
-        let lhs_eval = if self.is_lte {
-            col_eval - self.value * one_eval
+        let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
+        let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
+        let diff_eval = if self.is_lte {
+            scale_and_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale)
         } else {
-            self.value * one_eval - col_eval
-        };
+            scale_and_subtract_eval(rhs_eval, lhs_eval, rhs_scale, lhs_scale)
+        }
+        .expect("Failed to scale and subtract");
 
-        // lhs == 0
-        let equals_zero = verifier_evaluate_equals_zero(builder, lhs_eval);
+        // diff == 0
+        let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval);
 
-        // sign(lhs) == -1
-        let sign = verifier_evaluate_sign(builder, lhs_eval, one_eval)?;
+        // sign(diff) == -1
+        let sign = verifier_evaluate_sign(builder, diff_eval, one_eval)?;
 
-        // (lhs == 0) || (sign(lhs) == -1)
+        // (diff == 0) || (sign(diff) == -1)
         Ok(verifier_evaluate_or(builder, &equals_zero, &sign))
     }
 
     fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+        self.lhs.get_column_references(columns);
+        self.rhs.get_column_references(columns);
     }
 }

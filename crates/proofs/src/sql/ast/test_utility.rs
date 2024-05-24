@@ -30,13 +30,18 @@ pub fn equal<C: Commitment>(
     ProvableExprPlan::try_new_equals(left, right).unwrap()
 }
 
-pub fn lte<C: Commitment, T: Into<C::Scalar>>(
-    tab: TableRef,
-    name: &str,
-    val: T,
-    accessor: &impl SchemaAccessor,
+pub fn lte<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
 ) -> ProvableExprPlan<C> {
-    ProvableExprPlan::new_inequality(col_ref(tab, name, accessor), val.into(), true)
+    ProvableExprPlan::try_new_inequality(left, right, true).unwrap()
+}
+
+pub fn gte<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::try_new_inequality(left, right, false).unwrap()
 }
 
 pub fn not<C: Commitment>(expr: ProvableExprPlan<C>) -> ProvableExprPlan<C> {

@@ -177,59 +177,20 @@ impl<'a> QueryContextBuilder<'a> {
         left: &mut Expression,
         right: &mut Expression,
     ) -> ConversionResult<ColumnType> {
+        let left_dtype = self.visit_expr(left)?;
+        let right_dtype = self.visit_expr(right)?;
+        check_dtypes(left_dtype, right_dtype, *op)?;
         match op {
-            BinaryOperator::And | BinaryOperator::Or => {
-                let left_dtype = self.visit_expr(left)?;
-                let right_dtype = self.visit_expr(right)?;
-                if left_dtype != ColumnType::Boolean {
-                    return Err(ConversionError::InvalidDataType {
-                        expected: ColumnType::Boolean,
-                        actual: left_dtype,
-                    });
-                }
-                if right_dtype != ColumnType::Boolean {
-                    return Err(ConversionError::InvalidDataType {
-                        expected: ColumnType::Boolean,
-                        actual: right_dtype,
-                    });
-                }
-                Ok(ColumnType::Boolean)
-            }
-            BinaryOperator::Equal => {
-                let left_dtype = self.visit_expr(left)?;
-                let right_dtype = self.visit_expr(right)?;
-                check_dtypes(left_dtype, right_dtype)?;
-                Ok(ColumnType::Boolean)
-            }
-            BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
-                self.visit_inequality_expr(left, right)?;
-                Ok(ColumnType::Boolean)
-            }
+            BinaryOperator::And
+            | BinaryOperator::Or
+            | BinaryOperator::Equal
+            | BinaryOperator::GreaterThanOrEqual
+            | BinaryOperator::LessThanOrEqual => Ok(ColumnType::Boolean),
             BinaryOperator::Multiply
             | BinaryOperator::Division
             | BinaryOperator::Subtract
-            | BinaryOperator::Add => Ok(self.visit_arithmetic_expr(left, right)?),
+            | BinaryOperator::Add => Ok(left_dtype),
         }
-    }
-
-    fn visit_arithmetic_expr(
-        &mut self,
-        left: &mut Expression,
-        right: &mut Expression,
-    ) -> ConversionResult<ColumnType> {
-        let left_dtype = self.visit_expr(left)?;
-        let right_dtype = self.visit_expr(right)?;
-
-        check_dtypes(left_dtype, right_dtype)?;
-
-        if ColumnType::VarChar == left_dtype || ColumnType::Boolean == right_dtype {
-            return Err(ConversionError::InvalidExpression(format!(
-                "arithmetic operations with data type {} is not supported",
-                left_dtype
-            )));
-        }
-
-        Ok(left_dtype)
     }
 
     fn visit_unary_expr(
@@ -278,30 +239,6 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_inequality_expr(
-        &mut self,
-        left: &Expression,
-        right: &Expression,
-    ) -> ConversionResult<()> {
-        let left_dtype = match left {
-            Expression::Column(identifier) => self.visit_column_identifier(*identifier)?,
-            _ => panic!("Left side of comparison expression must be a column"),
-        };
-        let right_dtype = match right {
-            Expression::Literal(literal) => self.visit_literal(literal)?,
-            _ => panic!("Right side of comparison expression must be a literal"),
-        };
-        check_dtypes(left_dtype, right_dtype)?;
-
-        // Currently, we only support comparisons between bigint cols and bigint literals
-        if ColumnType::BigInt != left_dtype || ColumnType::BigInt != right_dtype {
-            return Err(ConversionError::InvalidExpression(format!(
-                "Currently >= and <= operators only support BigInt. Unsupported comparison between '{}' and '{}'", left_dtype, right_dtype
-            )));
-        }
-        Ok(())
-    }
-
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
@@ -332,31 +269,82 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
-pub(crate) fn are_types_compatible(left_dtype: &ColumnType, right_dtype: &ColumnType) -> bool {
-    matches!(
-        (left_dtype, right_dtype),
-        (ColumnType::BigInt, ColumnType::BigInt)
-            | (ColumnType::BigInt, ColumnType::Int128)
-            | (
-                ColumnType::BigInt | ColumnType::Int128,
-                ColumnType::Decimal75(_, _)
+pub(crate) fn type_check_binary_operation(
+    left_dtype: &ColumnType,
+    right_dtype: &ColumnType,
+    binary_operator: BinaryOperator,
+) -> bool {
+    match binary_operator {
+        BinaryOperator::And | BinaryOperator::Or => {
+            matches!(
+                (left_dtype, right_dtype),
+                (ColumnType::Boolean, ColumnType::Boolean)
             )
-            | (ColumnType::Int128, ColumnType::Int128)
-            | (ColumnType::Int128, ColumnType::BigInt)
-            | (ColumnType::Decimal75(_, _), ColumnType::Decimal75(_, _))
-            | (
-                ColumnType::Decimal75(_, _),
-                ColumnType::BigInt | ColumnType::Int128
+        }
+        BinaryOperator::Equal => {
+            matches!(
+                (left_dtype, right_dtype),
+                (
+                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _),
+                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _)
+                ) | (ColumnType::VarChar, ColumnType::VarChar)
+                    | (ColumnType::Boolean, ColumnType::Boolean)
+                    | (_, ColumnType::Scalar)
+                    | (ColumnType::Scalar, _)
             )
-            | (ColumnType::VarChar, ColumnType::VarChar)
-            | (ColumnType::Boolean, ColumnType::Boolean)
-            | (_, ColumnType::Scalar)
-            | (ColumnType::Scalar, _)
-    )
+        }
+        BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
+            if left_dtype == &ColumnType::VarChar || right_dtype == &ColumnType::VarChar {
+                return false;
+            }
+            // Due to constraints in bitwise_verification we limit the precision of decimal types to 38
+            if let ColumnType::Decimal75(precision, _) = left_dtype {
+                if precision.value() > 38 {
+                    return false;
+                }
+            }
+            if let ColumnType::Decimal75(precision, _) = right_dtype {
+                if precision.value() > 38 {
+                    return false;
+                }
+            }
+            matches!(
+                (left_dtype, right_dtype),
+                (
+                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _),
+                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _)
+                ) | (ColumnType::Boolean, ColumnType::Boolean)
+                    | (_, ColumnType::Scalar)
+                    | (ColumnType::Scalar, _)
+            )
+        }
+        BinaryOperator::Multiply
+        | BinaryOperator::Division
+        | BinaryOperator::Subtract
+        | BinaryOperator::Add => {
+            matches!(
+                (left_dtype, right_dtype),
+                (
+                    ColumnType::BigInt
+                        | ColumnType::Int128
+                        | ColumnType::Decimal75(_, _)
+                        | ColumnType::Scalar,
+                    ColumnType::BigInt
+                        | ColumnType::Int128
+                        | ColumnType::Decimal75(_, _)
+                        | ColumnType::Scalar
+                )
+            )
+        }
+    }
 }
 
-fn check_dtypes(left_dtype: ColumnType, right_dtype: ColumnType) -> ConversionResult<()> {
-    if are_types_compatible(&left_dtype, &right_dtype) {
+fn check_dtypes(
+    left_dtype: ColumnType,
+    right_dtype: ColumnType,
+    binary_operator: BinaryOperator,
+) -> ConversionResult<()> {
+    if type_check_binary_operation(&left_dtype, &right_dtype, binary_operator) {
         Ok(())
     } else {
         Err(ConversionError::DataTypeMismatch(

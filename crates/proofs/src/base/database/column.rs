@@ -163,20 +163,24 @@ pub enum ColumnType {
 }
 
 impl ColumnType {
-    /// Returns the precision of a ColumnType if it is converted to a decimal. If it can not be converted to a decimal, return 0.
-    pub fn precision_value(&self) -> u8 {
+    /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
+    pub fn precision_value(&self) -> Option<u8> {
         match self {
-            Self::BigInt => 19_u8,
-            Self::Int128 => 39_u8,
-            Self::Decimal75(precision, _) => precision.value(),
-            _ => 0,
+            Self::BigInt => Some(19_u8),
+            Self::Int128 => Some(39_u8),
+            Self::Decimal75(precision, _) => Some(precision.value()),
+            // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
+            // so that they do not cause errors when used in comparisons.
+            Self::Scalar => Some(0_u8),
+            _ => None,
         }
     }
-    /// Returns scale of a ColumnType if it is decimal. Otherwise return 0.
-    pub fn scale(&self) -> i8 {
+    /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
+    pub fn scale(&self) -> Option<i8> {
         match self {
-            Self::Decimal75(_, scale) => *scale,
-            _ => 0,
+            Self::Decimal75(_, scale) => Some(*scale),
+            Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
+            _ => None,
         }
     }
 }

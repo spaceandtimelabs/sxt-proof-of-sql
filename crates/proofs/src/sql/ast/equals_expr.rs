@@ -47,7 +47,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column)
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
     }
@@ -65,7 +65,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column)
+        let res = scale_and_subtract(alloc, lhs_column, rhs_column, true)
             .expect("Failed to scale and subtract");
         Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
     }
@@ -77,8 +77,8 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
     ) -> Result<C::Scalar, ProofError> {
         let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
-        let lhs_scale = self.lhs.data_type().scale();
-        let rhs_scale = self.rhs.data_type().scale();
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale)
             .expect("Failed to scale and subtract");
         Ok(verifier_evaluate_equals_zero(builder, res))
