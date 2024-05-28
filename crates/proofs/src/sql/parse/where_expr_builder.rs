@@ -138,7 +138,13 @@ impl WhereExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 ProvableExprPlan::try_new_inequality(left?, right?, true)
             }
-            _ => panic!("The parser must ensure that the expression is a boolean expression"),
+            BinaryOperator::Add
+            | BinaryOperator::Subtract
+            | BinaryOperator::Multiply
+            | BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
+                "Binary operator {:?} is not supported in the where clause",
+                op
+            ))),
         }
     }
 }

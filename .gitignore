@@ -58,3 +58,5 @@ temp-bench-results
 *.synctex.gz
 *.out
 *.pdf
+# ignore proofs stuff
+metastore_db

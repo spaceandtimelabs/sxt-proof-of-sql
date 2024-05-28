@@ -1,27 +1,27 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
 use std::ops;
 
-pub fn equal<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
+pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::Equal,
-        left: Box::new(Expression::Column(name.parse().unwrap())),
-        right: Box::new(Expression::Literal(literal.into())),
+        left,
+        right,
     })
 }
 
-pub fn ge<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
+pub fn ge(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::GreaterThanOrEqual,
-        left: Box::new(Expression::Column(name.parse().unwrap())),
-        right: Box::new(Expression::Literal(literal.into())),
+        left,
+        right,
     })
 }
 
-pub fn le<T: Into<Literal>>(name: &str, literal: T) -> Box<Expression> {
+pub fn le(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::LessThanOrEqual,
-        left: Box::new(Expression::Column(name.parse().unwrap())),
-        right: Box::new(Expression::Literal(literal.into())),
+        left,
+        right,
     })
 }
 

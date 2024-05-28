@@ -53,7 +53,7 @@ pub enum ConversionError {
     /// Decimal rounding is not supported
     DecimalRoundingError(String),
     #[error("Query not provable because: {0}")]
-    /// TODO: add docs
+    /// Query requires unprovable feature
     Unprovable(String),
 }
 
