@@ -1,5 +1,5 @@
-//! TODO: add docs
-pub mod decimal_unknown;
+//! Module for handling an intermediate decimal type received from the lexer.
+pub mod intermediate_decimal;
 #[macro_use]
 extern crate lalrpop_util;
 

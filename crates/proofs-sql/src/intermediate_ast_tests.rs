@@ -1,6 +1,6 @@
 use crate::{
-    decimal_unknown::DecimalUnknown,
     intermediate_ast::OrderByDirection::{Asc, Desc},
+    intermediate_decimal::IntermediateDecimal,
     sql::*,
     test_utility::*,
     SelectStatement,
@@ -137,7 +137,10 @@ fn we_can_parse_a_query_with_constants() {
                 col_res(lit(3), "bigint"),
                 col_res(lit(true), "boolean"),
                 col_res(lit("proof"), "varchar"),
-                col_res(lit(DecimalUnknown::new("-2.34")), "decimal"),
+                col_res(
+                    lit(IntermediateDecimal::try_from("-2.34").unwrap()),
+                    "decimal",
+                ),
             ],
             tab(None, "sxt_tab"),
             vec![],
@@ -211,7 +214,10 @@ fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal(col("a"), lit(DecimalUnknown::new("-0.32"))),
+            equal(
+                col("a"),
+                lit(IntermediateDecimal::try_from("-0.32").unwrap()),
+            ),
             vec![],
         ),
         vec![],
@@ -429,7 +435,10 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
             tab(None, "sxt_tab"),
             or(
                 equal(col("b"), lit(3)),
-                equal(col("c"), lit(DecimalUnknown::new("-2.34"))),
+                equal(
+                    col("c"),
+                    lit(IntermediateDecimal::try_from("-2.34").unwrap()),
+                ),
             ),
             vec![],
         ),

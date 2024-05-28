@@ -2,6 +2,7 @@
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
+use crate::sql::parse::ConversionError;
 use core::ops::Sub;
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
@@ -15,6 +16,7 @@ mod commitment_utility;
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]
 pub use commitment_utility::compute_commitment_for_testing;
+use num_bigint::BigInt;
 
 /// A trait for the scalar field used in proofs.
 pub trait Scalar:
@@ -54,6 +56,7 @@ pub trait Scalar:
     + super::encode::VarInt
     + std::convert::From<String>
     + std::convert::From<i128>
+    + TryFrom<BigInt, Error = ConversionError>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.

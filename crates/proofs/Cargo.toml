@@ -22,6 +22,7 @@ ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 arrow = { workspace = true }
 bit-iter = { workspace = true }
+bigdecimal = { workspace = true }
 blake3 = { workspace = true }
 blitzar = { workspace = true, optional = true }
 bumpalo = { workspace = true, features = ["collections"] }
