@@ -54,11 +54,6 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
-    #[tracing::instrument(
-        name = "proofs.sql.proof.provable_query_result.new",
-        level = "debug",
-        skip_all
-    )]
     pub fn new<'a>(
         indexes: &'a Indexes,
         columns: &'a [Box<dyn ProvableResultColumn + 'a>],
@@ -81,11 +76,6 @@ impl ProvableQueryResult {
 
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
-    #[tracing::instrument(
-        name = "proofs.sql.proof.provable_query_result.evaluate",
-        level = "debug",
-        skip_all
-    )]
     pub fn evaluate<S: Scalar>(
         &self,
         evaluation_vec: &[S],
@@ -128,12 +118,7 @@ impl ProvableQueryResult {
     /// Convert the intermediate query result into a final query result
     ///
     /// The result is essentially an `OwnedTable` type.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.provable_query_result.into_owned_table",
-        level = "debug",
-        skip_all
-    )]
-    pub fn into_owned_table<S: Scalar>(
+    pub fn to_owned_table<S: Scalar>(
         &self,
         column_result_fields: &[ColumnField],
     ) -> Result<OwnedTable<S>, QueryError> {

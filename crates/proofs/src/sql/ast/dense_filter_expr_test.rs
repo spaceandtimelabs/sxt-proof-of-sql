@@ -215,7 +215,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
     ];
     let res = builder
         .make_provable_query_result()
-        .into_owned_table(fields)
+        .to_owned_table(fields)
         .unwrap();
     let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [0_i64; 0],
@@ -261,7 +261,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
     ];
     let res = builder
         .make_provable_query_result()
-        .into_owned_table(fields)
+        .to_owned_table(fields)
         .unwrap();
     let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [0_i64; 0],
@@ -295,7 +295,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
     let fields = &[];
     let res = builder
         .make_provable_query_result()
-        .into_owned_table::<Curve25519Scalar>(fields)
+        .to_owned_table::<Curve25519Scalar>(fields)
         .unwrap();
     let expected = OwnedTable::try_new(IndexMap::new()).unwrap();
     assert_eq!(res, expected);
@@ -334,7 +334,7 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
     ];
     let res = builder
         .make_provable_query_result()
-        .into_owned_table(fields)
+        .to_owned_table(fields)
         .unwrap();
     let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
         "b" => [3_i64, 5_i64],

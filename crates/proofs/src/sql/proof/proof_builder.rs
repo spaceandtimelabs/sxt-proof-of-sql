@@ -29,7 +29,6 @@ pub struct ProofBuilder<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> ProofBuilder<'a, S> {
-    #[tracing::instrument(name = "proofs.sql.proof.proof_builder.new", level = "debug", skip_all)]
     pub fn new(
         table_length: usize,
         num_sumcheck_variables: usize,
@@ -67,11 +66,6 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Produce an anchored MLE that we can reference in sumcheck.
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.produce_anchored_mle",
-        level = "debug",
-        skip_all
-    )]
     pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension<S> + 'a) {
         self.pre_result_mles.push(Box::new(data));
     }
@@ -80,11 +74,6 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     ///
     /// Because the verifier doesn't have access to the MLE's commitment, we will need to
     /// commit to the MLE before we form the sumcheck polynomial.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.produce_intermediate_mle",
-        level = "debug",
-        skip_all
-    )]
     pub fn produce_intermediate_mle(
         &mut self,
         data: impl MultilinearExtension<S> + Into<CommittableColumn<'a>> + Copy + 'a,
@@ -95,11 +84,6 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Produce a subpolynomial to be aggegated into sumcheck where the sum across binary
     /// values of the variables is zero.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.produce_sumcheck_subpolynomial",
-        level = "debug",
-        skip_all
-    )]
     pub fn produce_sumcheck_subpolynomial(
         &mut self,
         subpolynomial_type: SumcheckSubpolynomialType,
@@ -111,8 +95,8 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
     #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.commit_intermediate_mles",
-        level = "info",
+        name = "ProofBuilder::commit_intermediate_mles",
+        level = "debug",
         skip_all
     )]
     pub fn commit_intermediate_mles<V: VecCommitmentExt>(
@@ -130,8 +114,8 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
     /// the individual subpolynomials.
     #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.make_sumcheck_polynomial",
-        level = "info",
+        name = "ProofBuilder::make_sumcheck_polynomial",
+        level = "debug",
         skip_all
     )]
     pub fn make_sumcheck_polynomial(
@@ -155,8 +139,8 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
     #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.evaluate_pre_result_mles",
-        level = "info",
+        name = "ProofBuilder::evaluate_pre_result_mles",
+        level = "debug",
         skip_all
     )]
     pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
@@ -169,11 +153,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_builder.fold_pre_result_mles",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "ProofBuilder::fold_pre_result_mles", level = "debug", skip_all)]
     pub fn fold_pre_result_mles(&self, multipliers: &[S]) -> Vec<S> {
         assert_eq!(multipliers.len(), self.pre_result_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];

@@ -24,6 +24,11 @@ impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExpr = OstensibleFilterExpr<RistrettoPoint, Dishonest>;
 
 impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
+    #[tracing::instrument(
+        name = "DishonestFilterExpr::result_evaluate",
+        level = "debug",
+        skip_all
+    )]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -50,8 +55,8 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.filter_expr.prover_evaluate",
-        level = "info",
+        name = "DishonestFilterExpr::prover_evaluate",
+        level = "debug",
         skip_all
     )]
     fn prover_evaluate<'a>(

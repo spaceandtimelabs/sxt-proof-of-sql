@@ -95,11 +95,6 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
         accessor.get_offset(self.table.table_ref)
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.group_by_expr.verifier_evaluate",
-        level = "debug",
-        skip_all
-    )]
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
@@ -182,6 +177,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
+    #[tracing::instrument(name = "GroupByExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -227,11 +223,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
         builder.request_post_result_challenges(2);
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.group_by_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "GroupByExpr::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

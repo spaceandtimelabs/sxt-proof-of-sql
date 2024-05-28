@@ -84,11 +84,6 @@ where
         accessor.get_offset(self.table.table_ref)
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.dense_filter_expr.verifier_evaluate",
-        level = "debug",
-        skip_all
-    )]
     #[allow(unused_variables)]
     fn verifier_evaluate(
         &self,
@@ -151,6 +146,7 @@ where
 pub type DenseFilterExpr<C> = OstensibleDenseFilterExpr<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
+    #[tracing::instrument(name = "DenseFilterExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -182,11 +178,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         builder.request_post_result_challenges(2);
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.dense_filter_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "DenseFilterExpr::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

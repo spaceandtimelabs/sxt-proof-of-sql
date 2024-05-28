@@ -107,7 +107,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         result
     }
     #[tracing::instrument(
-        name = "proofs.sql.proof.composite_polynomial.annotate_trace",
+        name = "CompositePolynomial::annotate_trace",
         level = "debug",
         skip_all
     )]

@@ -1,13 +1,9 @@
-use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
+use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::{pairing::Pairing, VariableBaseMSM};
+use ark_ec::VariableBaseMSM;
 use core::iter::once;
 
-#[tracing::instrument(
-    name = "proofs.proof_primitive_dory.dory_commitment_helper_cpu.compute_dory_commitment_impl",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -15,6 +11,7 @@ fn compute_dory_commitment_impl<'a, T>(
 ) -> DoryCommitment
 where
     &'a T: Into<DoryScalar>,
+    T: Sync,
 {
     // Compute offsets for the matrix.
     let num_columns = 1 << setup.sigma();
@@ -41,7 +38,7 @@ where
     });
 
     // Compute the commitment for the entire matrix.
-    DoryCommitment(Pairing::multi_pairing(
+    DoryCommitment(pairings::multi_pairing(
         once(first_row_commit).chain(remaining_row_commits),
         &setup.public_parameters().Gamma_2[rows_offset..(rows_offset + remaining_row_count + 1)],
     ))

@@ -39,6 +39,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "EqualsExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -52,11 +53,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
         Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.equals_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

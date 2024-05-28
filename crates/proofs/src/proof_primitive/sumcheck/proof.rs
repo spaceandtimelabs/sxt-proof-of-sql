@@ -21,11 +21,7 @@ pub struct SumcheckProof<S: Scalar> {
 }
 
 impl<S: Scalar> SumcheckProof<S> {
-    #[tracing::instrument(
-        name = "proofs.proof_primitive.sumcheck.proof.create",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "SumcheckProof::create", level = "debug", skip_all)]
     pub fn create(
         transcript: &mut Transcript,
         evaluation_point: &mut [S],
@@ -54,7 +50,7 @@ impl<S: Scalar> SumcheckProof<S> {
     }
 
     #[tracing::instrument(
-        name = "proofs.proof_primitive.sumcheck.proof.verify_without_evaluation",
+        name = "SumcheckProof::verify_without_evaluation",
         level = "debug",
         skip_all
     )]

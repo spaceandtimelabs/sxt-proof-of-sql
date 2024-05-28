@@ -1,8 +1,8 @@
 use super::{
-    DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
+    pairings, DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
     ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
-use ark_ec::{pairing::Pairing, VariableBaseMSM};
+use ark_ec::VariableBaseMSM;
 use merlin::Transcript;
 
 /// This is the prover side of the Eval-VMV-RE algorithm in section 5 of https://eprint.iacr.org/2020/1274.pdf.
@@ -13,22 +13,18 @@ use merlin::Transcript;
 ///     We should have E_1 = s2 * v1 and E_2 = s1 * v2, which is the case if we use s1 = R and s2 = L.
 ///
 /// Note: the paper has the prover send E_2 to the verifier. We opt to simply have the verifier compute E_2 from y, which is known.
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.eval_vmv_re_prove",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn eval_vmv_re_prove(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,
     state: VMVProverState,
     setup: &ProverSetup,
 ) -> ExtendedProverState {
-    let C = Pairing::pairing(
+    let C = pairings::pairing(
         G1Projective::msm_unchecked(&state.T_vec_prime, &state.v_vec),
         setup.Gamma_2_fin,
     );
-    let D_2 = Pairing::pairing(
+    let D_2 = pairings::pairing(
         G1Projective::msm_unchecked(setup.Gamma_1[state.nu], &state.v_vec),
         setup.Gamma_2_fin,
     );

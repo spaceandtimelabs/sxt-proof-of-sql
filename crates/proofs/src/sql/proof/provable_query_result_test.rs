@@ -21,7 +21,7 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let res = ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -276,7 +276,7 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -295,7 +295,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -329,7 +329,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -377,7 +377,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
         ),
     ];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -412,15 +412,15 @@ fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::VarChar)];
     let indexes = Indexes::Sparse(vec![0]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table::<Curve25519Scalar>(&column_fields)
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
         .is_ok());
     let indexes = Indexes::Sparse(vec![2]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table::<Curve25519Scalar>(&column_fields)
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
         .is_ok());
     let indexes = Indexes::Sparse(vec![1]);
     assert!(ProvableQueryResult::new(&indexes, &cols)
-        .into_owned_table::<Curve25519Scalar>(&column_fields)
+        .to_owned_table::<Curve25519Scalar>(&column_fields)
         .is_err());
 }
 

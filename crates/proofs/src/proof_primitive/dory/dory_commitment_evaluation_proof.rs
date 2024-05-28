@@ -34,11 +34,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
     type ProverPublicSetup = DoryProverPublicSetup;
     type VerifierPublicSetup = DoryVerifierPublicSetup;
 
-    #[tracing::instrument(
-        name = "proofs.proof_primitive_dory.dory_commitment_evaluation_proof.new",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "DoryEvaluationProof::new", level = "debug", skip_all)]
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
@@ -76,6 +72,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         messages
     }
 
+    #[tracing::instrument(name = "DoryEvaluationProof::verify_proof", level = "debug", skip_all)]
     fn verify_proof(
         &self,
         transcript: &mut Transcript,
@@ -130,11 +127,7 @@ fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
 }
 
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.compute_T_vec_prime",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 fn compute_T_vec_prime(
     a: &[F],
     sigma: usize,

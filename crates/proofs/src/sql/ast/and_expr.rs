@@ -40,6 +40,7 @@ impl<C: Commitment> ProvableExpr<C> for AndExpr<C> {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "AndExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -55,11 +56,7 @@ impl<C: Commitment> ProvableExpr<C> for AndExpr<C> {
         Column::Boolean(alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]))
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.and_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

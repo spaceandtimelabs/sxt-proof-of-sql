@@ -44,6 +44,7 @@ impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
         self.value.column_type()
     }
 
+    #[tracing::instrument(name = "LiteralExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -53,11 +54,7 @@ impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
         Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.literal_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
