@@ -1688,15 +1688,15 @@ fn varchar_column_is_not_compatible_with_integer_column() {
     assert_eq!(
         query!(select: ["s"], filter: "'abc' = i", should_err: true),
         ConversionError::DataTypeMismatch(
+            ColumnType::VarChar.to_string(),
             ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
         )
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' != i", should_err: true),
         ConversionError::DataTypeMismatch(
+            ColumnType::VarChar.to_string(),
             ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
         )
     );
 }
