@@ -4,7 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{decimal_unknown::DecimalUnknown, Identifier};
+use crate::{intermediate_decimal::IntermediateDecimal, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -274,7 +274,7 @@ pub enum Literal {
     /// String Literal
     VarChar(String),
     /// Decimal Literal
-    Decimal(DecimalUnknown),
+    Decimal(IntermediateDecimal),
 }
 
 impl From<bool> for Literal {
@@ -320,8 +320,8 @@ macro_rules! impl_string_to_literal {
 impl_string_to_literal!(&str);
 impl_string_to_literal!(String);
 
-impl From<DecimalUnknown> for Literal {
-    fn from(val: DecimalUnknown) -> Self {
+impl From<IntermediateDecimal> for Literal {
+    fn from(val: IntermediateDecimal) -> Self {
         Literal::Decimal(val)
     }
 }

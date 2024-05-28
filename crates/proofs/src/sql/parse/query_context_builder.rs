@@ -246,8 +246,7 @@ impl<'a> QueryContextBuilder<'a> {
             Literal::Int128(_) => Ok(ColumnType::Int128),
             Literal::VarChar(_) => Ok(ColumnType::VarChar),
             Literal::Decimal(d) => {
-                let precision =
-                    Precision::new(d.precision()).map_err(ConversionError::PrecisionParseError)?;
+                let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
         }

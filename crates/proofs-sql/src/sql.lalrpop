@@ -2,7 +2,7 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
-use crate::decimal_unknown::DecimalUnknown;
+use crate::intermediate_decimal::IntermediateDecimal;
 
 grammar;
 
@@ -328,8 +328,8 @@ Int128UnaryNumericLiteral: i128 = {
     "-" <expr: Int128UnaryNumericLiteral> =>? expr.checked_neg().ok_or(User {error: "Integer overflow"}),
 };
 
-DecimalNumericLiteral: DecimalUnknown = {
-    <lit:DECIMAL_LIT> => DecimalUnknown::new(lit),
+DecimalNumericLiteral: IntermediateDecimal = {
+    <lit:DECIMAL_LIT> =>? IntermediateDecimal::try_from(lit).map_err(|e| User {error: "decimal out of range"}),
 };
 
 Int128NumericLiteral: i128 = {

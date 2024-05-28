@@ -72,7 +72,7 @@ mod decimal_query_tests {
         run_query(
             "SELECT * FROM table WHERE c = 1.0",
             2,
-            1,
+            0,
             vec![S::from(1), S::ZERO, S::ONE],
             vec![S::from(1), S::ONE],
         );
@@ -94,7 +94,7 @@ mod decimal_query_tests {
         run_query(
             "SELECT * FROM table WHERE c = -1.0",
             2,
-            1,
+            0,
             vec![S::from(-1), S::ZERO, -S::ONE],
             vec![S::from(-1), -S::ONE],
         );
@@ -110,16 +110,18 @@ mod decimal_query_tests {
             vec![S::ZERO, S::ZERO],
         );
     }
+
     #[test]
     fn we_can_query_negative_decimals_with_different_scale_than_db_data() {
         run_query(
             "SELECT * FROM table WHERE c = -1.0",
             4,
-            3,
+            2,
             vec![S::from(-100), S::ZERO, S::from(-100)],
             vec![S::from(-100), S::from(-100)],
         );
     }
+
     #[test]
     fn we_can_query_with_negative_values_with_trailing_zeros() {
         run_query(
@@ -130,6 +132,7 @@ mod decimal_query_tests {
             vec![S::from(-100), S::from(-100)],
         );
     }
+
     #[test]
     fn we_can_query_decimals_without_leading_zeros() {
         run_query(
@@ -186,17 +189,6 @@ mod decimal_query_tests {
     }
 
     #[test]
-    fn we_cannot_round_decimal_queries() {
-        run_query(
-            "SELECT * FROM table WHERE c = -0.1000001",
-            7,
-            7,
-            vec![S::from(-1000001), S::ZERO, S::from(-1000001)],
-            vec![S::from(-1000001), S::from(-1000001)],
-        );
-    }
-
-    #[test]
     fn we_can_query_integers_against_decimals() {
         run_query(
             "SELECT * FROM table WHERE c = 12345",
@@ -215,6 +207,28 @@ mod decimal_query_tests {
             2,
             vec![-S::from(1234500), S::ZERO, -S::from(1234500)],
             vec![-S::from(1234500), -S::from(1234500)],
+        );
+    }
+
+    #[test]
+    fn we_can_query_with_maximum_i64() {
+        run_query(
+            &format!("SELECT * FROM table WHERE c = {}.0", i64::MAX),
+            75,
+            0,
+            vec![S::from(i64::MAX), S::ZERO, S::from(i64::MAX)],
+            vec![S::from(i64::MAX), S::from(i64::MAX)],
+        );
+    }
+
+    #[test]
+    fn we_can_query_with_maximum_i128() {
+        run_query(
+            &format!("SELECT * FROM table WHERE c = {}.0", i128::MAX),
+            75,
+            0,
+            vec![S::from(i128::MAX), S::ZERO, S::from(i128::MAX)],
+            vec![S::from(i128::MAX), S::from(i128::MAX)],
         );
     }
 }

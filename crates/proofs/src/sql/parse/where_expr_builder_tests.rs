@@ -16,8 +16,8 @@ mod tests {
     };
     use curve25519_dalek::RistrettoPoint;
     use proofs_sql::{
-        decimal_unknown::DecimalUnknown,
         intermediate_ast::{BinaryOperator, Expression, Literal},
+        intermediate_decimal::IntermediateDecimal,
         Identifier, SelectStatement,
     };
     use std::{collections::HashMap, str::FromStr};
@@ -44,7 +44,7 @@ mod tests {
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("decimal_column").unwrap(),
-                ColumnType::Decimal75(Precision::new(6).unwrap(), 2),
+                ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
             ),
         );
         column_mapping.insert(
@@ -265,9 +265,9 @@ mod tests {
             left: Box::new(Expression::Column(
                 Identifier::try_new("decimal_column").unwrap(),
             )),
-            right: Box::new(Expression::Literal(Literal::Decimal(DecimalUnknown::new(
-                "123.45",
-            )))),
+            right: Box::new(Expression::Literal(Literal::Decimal(
+                IntermediateDecimal::try_from("123.45").unwrap(),
+            ))),
         };
         run_test_case(&column_mapping, expr_decimal);
     }

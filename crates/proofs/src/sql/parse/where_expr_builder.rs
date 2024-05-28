@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType, LiteralValue},
-        math::decimal::{match_decimal, Precision},
+        math::decimal::{try_into_to_scalar, Precision},
     },
     sql::ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
 };
@@ -85,7 +85,7 @@ impl WhereExprBuilder<'_> {
                 Ok(ProvableExprPlan::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
-                    match_decimal(&d, scale)?,
+                    try_into_to_scalar(&d, precision, scale)?,
                 )))
             }
             Literal::VarChar(s) => Ok(ProvableExprPlan::new_literal(LiteralValue::VarChar((

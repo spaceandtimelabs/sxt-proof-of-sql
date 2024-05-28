@@ -1,3 +1,4 @@
+use crate::{base::math::decimal::MAX_SUPPORTED_PRECISION, sql::parse::ConversionError};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
@@ -8,6 +9,8 @@ use core::{
     iter::{Product, Sum},
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
+use num_bigint::BigInt;
+use num_traits::Signed;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(CanonicalSerialize, CanonicalDeserialize, TransparentWrapper)]
@@ -147,6 +150,37 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
 }
 
+impl<T: MontConfig<4>> TryFrom<num_bigint::BigInt> for MontScalar<T> {
+    type Error = ConversionError;
+
+    fn try_from(value: BigInt) -> Result<Self, Self::Error> {
+        // Obtain the absolute value to ignore the sign when counting digits
+        let value_abs = value.abs();
+
+        // Extract digits and check the number of digits directly
+        let (_, digits) = value_abs.to_u64_digits();
+
+        // Check if the number of digits exceeds the maximum precision allowed
+        if digits.len() > MAX_SUPPORTED_PRECISION.into() {
+            return Err(ConversionError::InvalidDecimal(format!(
+                "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
+                digits.len(),
+                MAX_SUPPORTED_PRECISION
+            )));
+        }
+
+        // Continue with the previous logic
+        assert!(digits.len() <= 4); // This should not happen if the precision check is correct
+        let mut data = [0u64; 4];
+        data[..digits.len()].copy_from_slice(&digits);
+        let result = Self::from_bigint(data);
+        match value.sign() {
+            // Updated to use value.sign() for clarity
+            num_bigint::Sign::Minus => Ok(-result),
+            _ => Ok(result),
+        }
+    }
+}
 impl<T: MontConfig<4>> From<[u64; 4]> for MontScalar<T> {
     fn from(value: [u64; 4]) -> Self {
         Self(Fp::new(ark_ff::BigInt(value)))
