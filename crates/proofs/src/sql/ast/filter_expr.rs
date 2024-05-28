@@ -73,11 +73,6 @@ where
         accessor.get_offset(self.table.table_ref)
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.filter_expr.verifier_evaluate",
-        level = "debug",
-        skip_all
-    )]
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder<C>,
@@ -113,6 +108,7 @@ where
 
 pub type FilterExpr<C> = OstensibleFilterExpr<C, HonestProver>;
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
+    #[tracing::instrument(name = "FilterExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -142,11 +138,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
         }
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.filter_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "FilterExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

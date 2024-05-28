@@ -38,6 +38,7 @@ impl<C: Commitment> ProvableExpr<C> for OrExpr<C> {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "OrExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -53,11 +54,7 @@ impl<C: Commitment> ProvableExpr<C> for OrExpr<C> {
         Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.or_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

@@ -7,11 +7,7 @@ use crate::base::scalar::Scalar;
 use crate::proof_primitive::sumcheck::ProverState;
 use rayon::prelude::*;
 
-#[tracing::instrument(
-    name = "proofs.proof_primitive.sumcheck.prover_round.prove_round",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
     if let Some(r) = r_maybe {
         if prover_state.round == 0 {

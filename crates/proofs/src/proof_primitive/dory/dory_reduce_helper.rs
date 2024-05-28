@@ -16,11 +16,7 @@ use rayon::{
 /// * D_2R = <Gamma_1', v_2R>
 ///
 /// Returns (D_1L, D_1R, D_2L, D_2R).
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.dory_reduce_prove_compute_Ds",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn dory_reduce_prove_compute_Ds(
     state: &ProverState,
     setup: &ProverSetup,
@@ -41,11 +37,7 @@ pub fn dory_reduce_prove_compute_Ds(
 /// Mutates v_1 and v_2.
 /// * v_1 <- v_1 + beta * Gamma_1
 /// * v_2 <- v_2 + beta_inv * Gamma_2
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.dory_reduce_prove_mutate_v_vecs",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn dory_reduce_prove_mutate_v_vecs(
     state: &mut ProverState,
     setup: &ProverSetup,
@@ -67,11 +59,7 @@ pub fn dory_reduce_prove_mutate_v_vecs(
 /// Computes
 /// * C_plus = <v_1L, v_2R>
 /// * C_minus = <v_1R, v_2L>
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.dory_reduce_prove_compute_Cs",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, GT) {
     let (v_1L, v_1R) = state.v1.split_at(half_n);
     let (v_2L, v_2R) = state.v2.split_at(half_n);
@@ -84,11 +72,7 @@ pub fn dory_reduce_prove_compute_Cs(state: &ProverState, half_n: usize) -> (GT, 
 /// Folds v_1 and v_2.
 /// * v_1' <- alpha * v_1L + v_1R
 /// * v_2' <- alpha_inv * v_2L + v_2R
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.dory_reduce_prove_fold_v_vecs",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn dory_reduce_prove_fold_v_vecs(
     state: &mut ProverState,
     (alpha, alpha_inv): (F, F),

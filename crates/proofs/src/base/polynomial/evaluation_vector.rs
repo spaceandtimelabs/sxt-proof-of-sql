@@ -27,11 +27,7 @@ where
 
 /// Given a point of evaluation, computes the vector that allows us
 /// to evaluate a multilinear extension as an inner product.
-#[tracing::instrument(
-    name = "proofs.sql.proof.evaluation_vector.compute_evaluation_vector",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn compute_evaluation_vector<F>(v: &mut [F], point: &[F])
 where
     F: One + Sub<Output = F> + MulAssign + Mul<Output = F> + Send + Sync + Copy,

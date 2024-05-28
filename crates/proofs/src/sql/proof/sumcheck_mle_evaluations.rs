@@ -34,11 +34,6 @@ pub struct SumcheckMleEvaluations<'a, S: Scalar> {
 }
 
 impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
-    #[tracing::instrument(
-        name = "proofs.sql.proof.sumcheck_mle_evaluations.new",
-        level = "info",
-        skip_all
-    )]
     /// Constructs the evaluations for the sumcheck MLEs.
     ///
     /// # Inputs

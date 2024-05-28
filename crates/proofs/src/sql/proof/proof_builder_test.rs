@@ -140,7 +140,7 @@ fn we_can_form_the_provable_query_result() {
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
     ];
     let res = RecordBatch::try_from(
-        res.into_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<Curve25519Scalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();

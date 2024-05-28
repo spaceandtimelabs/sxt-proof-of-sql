@@ -9,11 +9,7 @@ use ark_ec::VariableBaseMSM;
 /// Computes
 /// * E_1beta = <Gamma_1, s_2>
 /// * E_2beta = <s_1, Gamma_2>
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.extended_dory_reduce_prove_compute_E_betas",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_prove_compute_E_betas(
     state: &ExtendedProverState,
     setup: &ProverSetup,
@@ -31,11 +27,7 @@ pub fn extended_dory_reduce_prove_compute_E_betas(
 /// * E_1minus = <v_1R, s_2L>
 /// * E_2plus = <s_1L, v_2R>
 /// * E_2minus = <s_1R, v_2L>
-#[tracing::instrument(
-    name = "proofs.proof_primitive_dory.extended_dory_reduce_prove_compute_signed_Es",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_prove_compute_signed_Es(
     state: &ExtendedProverState,
     half_n: usize,
@@ -55,11 +47,7 @@ pub fn extended_dory_reduce_prove_compute_signed_Es(
 /// Folds s1 and s2.
 /// * s_1' <- alpha * s_1L + s_1R
 /// * s_2' <- alpha_inv * s_2L + s_2R
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.extended_dory_reduce_prove_fold_s_vecs",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_prove_fold_s_vecs(
     state: &mut ExtendedProverState,
     (alpha, alpha_inv): (F, F),

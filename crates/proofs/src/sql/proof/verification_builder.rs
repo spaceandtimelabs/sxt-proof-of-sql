@@ -119,6 +119,11 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     /// Get the commitment of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
+    #[tracing::instrument(
+        name = "VerificationBuilder::compute_folded_pre_result_commitment",
+        level = "debug",
+        skip_all
+    )]
     pub fn compute_folded_pre_result_commitment(&self) -> C {
         assert!(self.completed());
         C::fold_commitments(&self.pre_result_commitments, self.inner_product_multipliers)

@@ -12,6 +12,7 @@ pub struct DeferredMSM<G, F> {
 
 impl<G, F: One> DeferredMSM<G, F> {
     /// Collapse/compute the MSM into a single group element
+    #[tracing::instrument(name = "DeferredMSM::compute", level = "debug", skip_all)]
     pub fn compute<V: VariableBaseMSM<MulBase = G, ScalarField = F>>(self) -> V {
         let (bases, scalars): (Vec<_>, Vec<_>) = self
             .pairs

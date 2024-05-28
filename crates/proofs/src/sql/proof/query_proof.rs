@@ -41,7 +41,7 @@ pub struct QueryProof<CP: CommitmentEvaluationProof> {
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     /// TODO: add docs
-    #[tracing::instrument(name = "proofs.sql.proof.query_proof.new", level = "info", skip_all)]
+    #[tracing::instrument(name = "QueryProof::new", level = "debug", skip_all)]
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
@@ -149,12 +149,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         proof
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.proof.query_proof.verify",
-        level = "info",
-        skip_all,
-        err
-    )]
+    #[tracing::instrument(name = "QueryProof::verify", level = "debug", skip_all, err)]
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
@@ -307,7 +302,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &mut verification_hash,
         );
         result
-            .into_owned_table(&column_result_fields[..])
+            .to_owned_table(&column_result_fields[..])
             .map(|table| QueryData {
                 table,
                 verification_hash,
@@ -321,12 +316,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 == counts.intermediate_mles + counts.anchored_mles
     }
 }
-
-#[tracing::instrument(
-    name = "proofs.sql.proof.query_proof.make_transcript",
-    level = "debug",
-    skip_all
-)]
 
 /// Creates a transcript using the Merlin library.
 ///

@@ -33,6 +33,7 @@ impl<C: Commitment> ProvableExpr<C> for NotExpr<C> {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "NotExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -45,11 +46,7 @@ impl<C: Commitment> ProvableExpr<C> for NotExpr<C> {
         Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.not_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

@@ -1,15 +1,10 @@
-use super::{DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine};
+use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::pairing::Pairing;
 use ark_serialize::CanonicalDeserialize;
 use blitzar::{compute::compute_bls12_381_g1_commitments_with_generators, sequence::Sequence};
 use core::iter::once;
 
-#[tracing::instrument(
-    name = "proofs.proof_primitive.dory.dory_commitment_helper_gpu.compute_dory_commitment_impl",
-    level = "info",
-    skip_all
-)]
+#[tracing::instrument(name = "compute_dory_commitment_impl (gpu)", level = "debug", skip_all)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -63,7 +58,7 @@ where
     };
 
     // Compute the commitment for the entire matrix.
-    DoryCommitment(Pairing::multi_pairing(
+    DoryCommitment(pairings::multi_pairing(
         once(first_row_commit).chain(remaining_row_commits),
         &setup.public_parameters().Gamma_2[rows_offset..(rows_offset + remaining_row_count + 1)],
     ))

@@ -1,6 +1,5 @@
 #![allow(unused_variables)]
-use super::{DoryMessages, ProverState, VerifierSetup, VerifierState};
-use ark_ec::pairing::Pairing;
+use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
 use merlin::Transcript;
 
 /// This is the prover side of the Scalar-Product algorithm in section 3.1 of https://eprint.iacr.org/2020/1274.pdf.
@@ -37,6 +36,7 @@ pub fn scalar_product_prove(
 }
 
 /// This is the verifier side of the Scalar-Product algorithm in section 3.1 of https://eprint.iacr.org/2020/1274.pdf.
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn scalar_product_verify(
     messages: &mut DoryMessages,
     transcript: &mut Transcript,
@@ -70,6 +70,6 @@ pub fn scalar_product_verify(
     let E_1 = messages.prover_recieve_G1_message(transcript);
     let E_2 = messages.prover_recieve_G2_message(transcript);
     let (d, d_inv) = messages.verifier_F_message(transcript);
-    Pairing::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
+    pairings::pairing(E_1 + setup.Gamma_1_0 * d, E_2 + setup.Gamma_2_0 * d_inv)
         == (state.C + setup.chi[0] + state.D_2 * d + state.D_1 * d_inv).compute()
 }

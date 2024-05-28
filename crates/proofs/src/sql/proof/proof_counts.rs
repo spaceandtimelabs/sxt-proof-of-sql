@@ -18,11 +18,7 @@ pub struct ProofCounts {
 }
 
 impl ProofCounts {
-    #[tracing::instrument(
-        name = "proofs.sql.proof.proof_acounts.annotate_trace",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "ProofCounts::annotate_trace", level = "debug", skip_all)]
     pub fn annotate_trace(&self) {
         tracing::info!(
             "sumcheck_max_multiplicands = {:?}",

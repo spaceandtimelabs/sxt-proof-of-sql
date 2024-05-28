@@ -20,11 +20,7 @@ pub struct ProverState<S: Scalar> {
 }
 
 impl<S: Scalar> ProverState<S> {
-    #[tracing::instrument(
-        name = "proofs.proof_primitive.sumcheck.prover_state.create",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "ProverState::create", level = "debug", skip_all)]
     pub fn create(polynomial: &CompositePolynomial<S>) -> Self {
         if polynomial.num_variables == 0 {
             panic!("Attempt to prove a constant.")

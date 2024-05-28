@@ -59,6 +59,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         }
     }
 
+    #[tracing::instrument(name = "ProofPlan::verifier_evaluate", level = "debug", skip_all)]
     fn verifier_evaluate(
         &self,
         builder: &mut crate::sql::proof::VerificationBuilder<C>,
@@ -89,6 +90,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
+    #[tracing::instrument(name = "ProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut crate::sql::proof::ResultBuilder<'a>,
@@ -102,6 +104,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
         }
     }
 
+    #[tracing::instrument(name = "ProofPlan::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut crate::sql::proof::ProofBuilder<'a, C::Scalar>,

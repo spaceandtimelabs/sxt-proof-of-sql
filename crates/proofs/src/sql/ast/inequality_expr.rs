@@ -45,6 +45,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         ColumnType::Boolean
     }
 
+    #[tracing::instrument(name = "InequalityExpr::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -71,11 +72,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
     }
 
-    #[tracing::instrument(
-        name = "proofs.sql.ast.lte_expr.prover_evaluate",
-        level = "info",
-        skip_all
-    )]
+    #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
