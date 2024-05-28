@@ -247,6 +247,26 @@ Expression: Box<intermediate_ast::Expression> = {
             right, 
         }),
 
+    <left: Expression> ">" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::LessThanOrEqual,
+                left,
+                right, 
+            }), 
+        }),
+    
+    <left: Expression> "<" <right: Expression> =>
+        Box::new(intermediate_ast::Expression::Unary {
+            op: intermediate_ast::UnaryOperator::Not,
+            expr: Box::new(intermediate_ast::Expression::Binary {
+                op: intermediate_ast::BinaryOperator::GreaterThanOrEqual,
+                left,
+                right, 
+            }), 
+        }),
+
     <left: Expression> "=" <right: Expression> =>
         Box::new(intermediate_ast::Expression::Binary {
             op: intermediate_ast::BinaryOperator::Equal,
@@ -406,6 +426,8 @@ match {
     r"(!=|<>)" => "!=",
     ">=" => ">=",
     "<=" => "<=",
+    ">" => ">",
+    "<" => "<",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     // Decimal numbers with mandatory fractional part

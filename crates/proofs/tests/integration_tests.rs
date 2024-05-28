@@ -222,7 +222,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a >= b) = (c <= d) and e = 'f'"
+        "SELECT * FROM table WHERE (a >= b) = (c < d) and e = 'f'"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -265,7 +265,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a >= b) = (c <= d) and e = 'f'"
+        "SELECT * FROM table WHERE (a < b) = (c <= d) and e <> 'f'"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -283,8 +283,13 @@ fn we_can_prove_a_complex_query_with_dory() {
         )
         .unwrap()
         .table;
-    let expected_result =
-        owned_table!("a" => [3_i64], "b" => [1_i64], "c" => [-3_i64], "d" => [3_i64], "e" => ["f"]);
+    let expected_result = owned_table!(
+        "a" => [1_i64, 2],
+        "b" => [1_i64, 0],
+        "c" => [3_i64, 3],
+        "d" => [1_i64, 2],
+        "e" => ["d", "e"]
+    );
     assert_eq!(owned_table_result, expected_result);
 }
 
