@@ -53,6 +53,29 @@ pub trait CommitmentEvaluationProof {
         table_length: usize,
         setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error>;
+    /// Verify a batch proof. This can be more efficient than verifying individual proofs for some schemes.
+    #[allow(clippy::too_many_arguments)]
+    fn verify_batched_proof(
+        &self,
+        transcript: &mut Transcript,
+        commit_batch: &[Self::Commitment],
+        batching_factors: &[Self::Scalar],
+        product: &Self::Scalar,
+        b_point: &[Self::Scalar],
+        generators_offset: u64,
+        table_length: usize,
+        setup: &Self::VerifierPublicSetup,
+    ) -> Result<(), Self::Error> {
+        self.verify_proof(
+            transcript,
+            &Self::Commitment::fold_commitments(commit_batch, batching_factors),
+            product,
+            b_point,
+            generators_offset,
+            table_length,
+            setup,
+        )
+    }
 }
 
 #[cfg(feature = "blitzar")]

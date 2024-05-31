@@ -282,11 +282,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // finally, check the MLE evaluations with the inner product proof
         let product = builder.folded_pre_result_evaluation();
-        let expected_commit = builder.compute_folded_pre_result_commitment();
         self.evaluation_proof
-            .verify_proof(
+            .verify_batched_proof(
                 &mut transcript,
-                &expected_commit,
+                builder.pre_result_commitments(),
+                builder.inner_product_multipliers(),
                 &product,
                 &subclaim.evaluation_point,
                 generator_offset as u64,

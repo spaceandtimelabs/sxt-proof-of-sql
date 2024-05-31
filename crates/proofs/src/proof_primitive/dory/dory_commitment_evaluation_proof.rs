@@ -1,8 +1,8 @@
 use super::{
     eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
-    extended_dory_inner_product_verify, DoryCommitment, DoryMessages, DoryProverPublicSetup,
-    DoryScalar, DoryVerifierPublicSetup, G1Affine, G1Projective, ProverSetup, VMVProverState,
-    VMVVerifierState, F,
+    extended_dory_inner_product_verify, DeferredGT, DoryCommitment, DoryMessages,
+    DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, G1Affine, G1Projective,
+    ProverSetup, VMVProverState, VMVVerifierState, F,
 };
 use crate::base::{commitment::CommitmentEvaluationProof, polynomial::compute_evaluation_vector};
 use ark_ec::{AffineRepr, VariableBaseMSM};
@@ -83,6 +83,32 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         _table_length: usize,
         setup: &Self::VerifierPublicSetup,
     ) -> Result<(), Self::Error> {
+        self.verify_batched_proof(
+            transcript,
+            &[*a_commit],
+            &[DoryScalar::one()],
+            product,
+            b_point,
+            generators_offset,
+            _table_length,
+            setup,
+        )
+    }
+    fn verify_batched_proof(
+        &self,
+        transcript: &mut Transcript,
+        commit_batch: &[Self::Commitment],
+        batching_factors: &[Self::Scalar],
+        product: &Self::Scalar,
+        b_point: &[Self::Scalar],
+        generators_offset: u64,
+        _table_length: usize,
+        setup: &Self::VerifierPublicSetup,
+    ) -> Result<(), Self::Error> {
+        let a_commit = DeferredGT::new(
+            commit_batch.iter().map(|c| c.0),
+            batching_factors.iter().map(|f| f.0),
+        );
         // Dory PCS Logic
         if generators_offset != 0 {
             return Err(DoryError::InvalidGeneratorsOffset(generators_offset));
@@ -97,7 +123,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         let (L_vec, R_vec) = compute_l_r(b_point, setup.sigma(), nu);
         let state = VMVVerifierState {
             y: product.0,
-            T: a_commit.0,
+            T: a_commit,
             L_vec,
             R_vec,
             nu,

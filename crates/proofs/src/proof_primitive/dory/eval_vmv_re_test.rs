@@ -196,7 +196,7 @@ fn we_fail_to_verify_an_eval_vmv_re_when_the_commitment_is_wrong() {
     let prover_state = vmv.calculate_prover_state(&prover_setup);
     let mut verifier_state = vmv.calculate_verifier_state(&prover_setup);
 
-    verifier_state.T = GT::rand(&mut rng);
+    verifier_state.T = GT::rand(&mut rng).into();
 
     let mut transcript = Transcript::new(b"eval_vmv_re_test");
     let mut messages = DoryMessages::default();
