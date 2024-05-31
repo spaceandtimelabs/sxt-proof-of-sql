@@ -3,6 +3,7 @@ use crate::{
     base::{
         database::{ColumnField, ColumnType},
         math::decimal::Precision,
+        polynomial::compute_evaluation_vector,
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::proof::Indexes,
@@ -38,16 +39,18 @@ fn we_can_evaluate_result_columns_as_mles() {
     let values: [i64; 3] = [10, 11, -12];
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
 
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     #[allow(clippy::possible_missing_comma)]
     let expected_evals = [Curve25519Scalar::from(10u64) * evaluation_vec[0]
         - Curve25519Scalar::from(12u64) * evaluation_vec[2]];
@@ -60,15 +63,17 @@ fn we_can_evaluate_result_columns_with_no_rows() {
     let values: [i64; 3] = [10, 11, 12];
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     let expected_evals = [Curve25519Scalar::zero()];
     assert_eq!(evals, expected_evals);
 }
@@ -80,15 +85,17 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
     let values2: [i64; 3] = [5, 7, 9];
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     let expected_evals = [
         Curve25519Scalar::from(10u64) * evaluation_vec[0]
             + Curve25519Scalar::from(12u64) * evaluation_vec[2],
@@ -105,15 +112,17 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     let values2: [i128; 3] = [5, 7, 9];
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::Int128); cols.len()];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     let expected_evals = [
         Curve25519Scalar::from(10u64) * evaluation_vec[0]
             + Curve25519Scalar::from(12u64) * evaluation_vec[2],
@@ -130,15 +139,17 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let values2: [Curve25519Scalar; 3] = [5.into(), 7.into(), 9.into()];
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::Scalar); cols.len()];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     let expected_evals = [
         Curve25519Scalar::from(10u64) * evaluation_vec[0]
             + Curve25519Scalar::from(12u64) * evaluation_vec[2],
@@ -155,17 +166,19 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let values2: [i128; 3] = [5, 7, 9];
     let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields = [
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("a".parse().unwrap(), ColumnType::Int128),
     ];
-    let evals = res.evaluate(&evaluation_vec, &column_fields[..]).unwrap();
+    let evals = res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .unwrap();
     let expected_evals = [
         Curve25519Scalar::from(10u64) * evaluation_vec[0]
             + Curve25519Scalar::from(12u64) * evaluation_vec[2],
@@ -185,15 +198,17 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
         Indexes::Sparse(indexes) => indexes[1] = 20,
         _ => panic!("unexpected indexes type"),
     }
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
+    assert!(res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .is_none());
 }
 
 #[test]
@@ -202,15 +217,17 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
     let values: [i64; 3] = [10, 11, 12];
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
+    assert!(res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .is_none());
 }
 
 #[test]
@@ -220,15 +237,17 @@ fn evaluation_fails_if_extra_data_is_included() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data_mut().push(3u8);
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
+    assert!(res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .is_none());
 }
 
 #[test]
@@ -239,15 +258,17 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
         vec![0b11111111_u8; 38],
     );
     res.data_mut()[37] = 0b00000001_u8;
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
-    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
+    assert!(res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .is_none());
 }
 
 #[test]
@@ -257,15 +278,17 @@ fn evaluation_fails_if_data_is_missing() {
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     *res.num_columns_mut() = 3;
-    let evaluation_vec = [
+    let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
-        Curve25519Scalar::from(1000u64),
-        Curve25519Scalar::from(10000u64),
     ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
-    assert!(res.evaluate(&evaluation_vec, &column_fields[..]).is_none());
+    assert!(res
+        .evaluate(&evaluation_point, 4, &column_fields[..])
+        .is_none());
 }
 
 #[test]

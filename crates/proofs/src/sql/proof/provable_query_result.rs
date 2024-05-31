@@ -3,8 +3,10 @@ use super::{
 };
 use crate::base::{
     database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
+    polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
@@ -78,14 +80,24 @@ impl ProvableQueryResult {
     /// columns as spare multilinear extensions
     pub fn evaluate<S: Scalar>(
         &self,
-        evaluation_vec: &[S],
+        evaluation_point: &[S],
+        table_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Option<Vec<S>> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
-        if !self.indexes.valid(evaluation_vec.len()) {
+        if !self.indexes.valid(table_length) {
             return None;
         }
+
+        let evaluation_vec_len = self
+            .indexes
+            .iter()
+            .max()
+            .map(|max| max as usize + 1)
+            .unwrap_or(0);
+        let mut evaluation_vec = vec![Zero::zero(); evaluation_vec_len];
+        compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
 
         let mut offset: usize = 0;
         let mut res = Vec::with_capacity(self.num_columns as usize);
