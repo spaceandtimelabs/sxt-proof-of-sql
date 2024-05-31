@@ -1,12 +1,8 @@
 use crate::{
     record_batch,
-    sql::{
-        proof::TransformExpr,
-        transform::{test_utility::select, ResultExpr},
-    },
+    sql::transform::{test_utility::*, ResultExpr},
 };
 use arrow::record_batch::RecordBatch;
-use polars::prelude::{col, lit};
 
 #[test]
 fn we_can_filter_out_record_batch_columns() {

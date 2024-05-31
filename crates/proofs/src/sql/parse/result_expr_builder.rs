@@ -1,12 +1,6 @@
-use crate::sql::transform::{
-    CompositionExpr, GroupByExpr, LiteralConversion, OrderByExprs, SafeDivision, SelectExpr,
-    SliceExpr,
-};
-use polars::prelude::{col, Expr};
+use crate::sql::transform::{CompositionExpr, GroupByExpr, OrderByExprs, SelectExpr, SliceExpr};
 use proofs_sql::{
-    intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy, Slice,
-    },
+    intermediate_ast::{AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,
 };
 
@@ -26,37 +20,30 @@ impl ResultExprBuilder {
         if by_exprs.is_empty() {
             return self;
         }
-
-        let polars_by_exprs: Vec<_> = by_exprs.iter().map(|id| col(id.as_str())).collect();
-        let polars_agg_exprs = aliased_exprs.iter().map(visit_aliased_expr).collect();
-        self.composition.add(Box::new(GroupByExpr::new(
-            polars_by_exprs,
-            polars_agg_exprs,
-        )));
-
+        self.composition
+            .add(Box::new(GroupByExpr::new(by_exprs, aliased_exprs)));
         self
     }
 
     /// Chain a new `SelectExpr` to the current `ResultExpr`.
     pub fn add_select_exprs(mut self, aliased_exprs: &[AliasedResultExpr]) -> Self {
         assert!(!aliased_exprs.is_empty());
-
-        let polars_exprs = aliased_exprs
-            .iter()
-            .map(|aliased_expr| {
-                if !self.composition.is_empty() {
-                    // The only transformation before a select is a group by.
-                    // GROUP BY modifies the schema, so we need to
-                    // update the code to reflect the changes.
-                    col(aliased_expr.alias.as_str())
-                } else {
-                    visit_aliased_expr(aliased_expr)
-                }
-            })
-            .collect();
-
-        self.composition
-            .add(Box::new(SelectExpr::new(polars_exprs)));
+        if !self.composition.is_empty() {
+            // The only transformation before a select is a group by.
+            // GROUP BY modifies the schema, so we need to
+            // update the code to reflect the changes.
+            let exprs: Vec<_> = aliased_exprs
+                .iter()
+                .map(|aliased_expr| Expression::Column(aliased_expr.alias))
+                .collect();
+            self.composition
+                .add(Box::new(SelectExpr::new_from_expressions(&exprs)));
+        } else {
+            self.composition
+                .add(Box::new(SelectExpr::new_from_aliased_result_exprs(
+                    aliased_exprs,
+                )));
+        }
         self
     }
 
@@ -90,46 +77,5 @@ impl ResultExprBuilder {
     /// Build a `ResultExpr` from the current state of the builder.
     pub fn build(self) -> crate::sql::transform::ResultExpr {
         crate::sql::transform::ResultExpr::new(Box::new(self.composition))
-    }
-}
-
-fn visit_aliased_expr(aliased_expr: &AliasedResultExpr) -> Expr {
-    visit_expr(aliased_expr.expr.as_ref()).alias(aliased_expr.alias.as_str())
-}
-
-fn visit_expr(expr: &Expression) -> Expr {
-    match expr {
-        Expression::Literal(literal) => match literal {
-            Literal::Boolean(value) => value.to_lit(),
-            Literal::BigInt(value) => value.to_lit(),
-            Literal::Int128(value) => value.to_lit(),
-            Literal::VarChar(_) => panic!("Expression not supported"),
-            Literal::Decimal(_) => todo!(),
-        },
-        Expression::Column(identifier) => col(identifier.as_str()),
-        Expression::Binary { op, left, right } => {
-            let left = visit_expr(left);
-            let right = visit_expr(right);
-
-            match op {
-                BinaryOperator::Add => left + right,
-                BinaryOperator::Subtract => left - right,
-                BinaryOperator::Multiply => left * right,
-                BinaryOperator::Division => left.checked_div(right),
-                _ => panic!("Operation not supported yet"),
-            }
-        }
-        Expression::Aggregation { op, expr } => {
-            let expr = visit_expr(expr);
-
-            match op {
-                AggregationOperator::Count => expr.count(),
-                AggregationOperator::Sum => expr.sum(),
-                AggregationOperator::Min => expr.min(),
-                AggregationOperator::Max => expr.max(),
-                AggregationOperator::First => expr.first(),
-            }
-        }
-        _ => panic!("Operation not supported"),
     }
 }

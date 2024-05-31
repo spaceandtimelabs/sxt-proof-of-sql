@@ -1,5 +1,4 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
-use std::ops;
 
 pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
@@ -197,52 +196,4 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
 
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()
-}
-
-impl ops::Add<Box<Expression>> for Box<Expression> {
-    type Output = Box<Expression>;
-
-    fn add(self, rhs: Box<Expression>) -> Box<Expression> {
-        Box::new(Expression::Binary {
-            op: BinaryOperator::Add,
-            left: self,
-            right: rhs,
-        })
-    }
-}
-
-impl ops::Mul<Box<Expression>> for Box<Expression> {
-    type Output = Box<Expression>;
-
-    fn mul(self, rhs: Box<Expression>) -> Box<Expression> {
-        Box::new(Expression::Binary {
-            op: BinaryOperator::Multiply,
-            left: self,
-            right: rhs,
-        })
-    }
-}
-
-impl ops::Div<Box<Expression>> for Box<Expression> {
-    type Output = Box<Expression>;
-
-    fn div(self, rhs: Box<Expression>) -> Box<Expression> {
-        Box::new(Expression::Binary {
-            op: BinaryOperator::Division,
-            left: self,
-            right: rhs,
-        })
-    }
-}
-
-impl ops::Sub<Box<Expression>> for Box<Expression> {
-    type Output = Box<Expression>;
-
-    fn sub(self, rhs: Box<Expression>) -> Box<Expression> {
-        Box::new(Expression::Binary {
-            op: BinaryOperator::Subtract,
-            left: self,
-            right: rhs,
-        })
-    }
 }

@@ -1,9 +1,6 @@
 use crate::{
     record_batch,
-    sql::{
-        proof::TransformExpr,
-        transform::test_utility::{composite_result, slice},
-    },
+    sql::transform::test_utility::{composite_result, slice},
 };
 
 #[test]

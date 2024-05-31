@@ -216,6 +216,57 @@ impl Expression {
             expr: Box::new(self),
         })
     }
+    /// Create an AliasedResultExpr from an Expression using the provided alias.
+    pub fn alias(self, alias: &str) -> AliasedResultExpr {
+        AliasedResultExpr {
+            expr: Box::new(self),
+            alias: alias.parse().unwrap(),
+        }
+    }
+}
+impl core::ops::Add<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn add(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Add,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+impl core::ops::Mul<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn mul(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Multiply,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+impl core::ops::Div<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn div(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Division,
+            left: self,
+            right: rhs,
+        })
+    }
+}
+impl core::ops::Sub<Box<Expression>> for Box<Expression> {
+    type Output = Box<Expression>;
+
+    fn sub(self, rhs: Box<Expression>) -> Box<Expression> {
+        Box::new(Expression::Binary {
+            op: BinaryOperator::Subtract,
+            left: self,
+            right: rhs,
+        })
+    }
 }
 
 /// OrderBy

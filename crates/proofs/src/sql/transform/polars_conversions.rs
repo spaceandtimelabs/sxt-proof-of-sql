@@ -40,10 +40,7 @@ mod tests {
     use super::*;
     use crate::{
         record_batch as batch,
-        sql::{
-            proof::TransformExpr,
-            transform::{test_utility::select, ResultExpr},
-        },
+        sql::transform::{test_utility::select, ResultExpr},
     };
 
     const MAX_I64: i128 = i64::MAX as i128;

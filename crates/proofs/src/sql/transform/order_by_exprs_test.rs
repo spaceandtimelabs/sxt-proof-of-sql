@@ -2,10 +2,7 @@ use super::order_by_map_i128_to_utf8;
 use crate::{
     base::database::ToArrow,
     record_batch,
-    sql::{
-        proof::TransformExpr,
-        transform::test_utility::{composite_result, orders},
-    },
+    sql::transform::test_utility::{composite_result, orders},
 };
 use proofs_sql::intermediate_ast::OrderByDirection::{Asc, Desc};
 use rand::{distributions::uniform::SampleUniform, seq::SliceRandom, Rng};

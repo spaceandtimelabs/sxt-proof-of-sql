@@ -1,6 +1,6 @@
 use crate::{
     base::database::{dataframe_to_record_batch, record_batch_to_dataframe},
-    sql::{proof::TransformExpr, transform::RecordBatchExpr},
+    sql::transform::RecordBatchExpr,
 };
 use arrow::record_batch::RecordBatch;
 use dyn_partial_eq::DynPartialEq;
@@ -43,9 +43,9 @@ pub(super) fn lazy_frame_to_record_batch(lazy_frame: LazyFrame) -> Option<Record
     dataframe_to_record_batch(lazy_frame.collect().ok()?)
 }
 
-impl TransformExpr for ResultExpr {
+impl ResultExpr {
     /// Transform the `RecordBatch` result of a query using the `transformation` expression
-    fn transform_results(&self, result_batch: RecordBatch) -> Option<RecordBatch> {
+    pub fn transform_results(&self, result_batch: RecordBatch) -> Option<RecordBatch> {
         self.transformation.apply_transformation(result_batch)
     }
 }
