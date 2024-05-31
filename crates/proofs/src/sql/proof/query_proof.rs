@@ -223,9 +223,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             poly_info,
             &Zero::zero(),
         )?;
-        // evaluate the MLEs used in sumcheck except for the result columns
-        let mut evaluation_vec = vec![Zero::zero(); table_length];
-        compute_evaluation_vector(&mut evaluation_vec, &subclaim.evaluation_point);
 
         // commit to mle evaluations
         transcript.append_canonical_serialize(
@@ -245,7 +242,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let column_result_fields = expr.get_column_result_fields();
 
         // compute the evaluation of the result MLEs
-        let result_evaluations = match result.evaluate(&evaluation_vec, &column_result_fields[..]) {
+        let result_evaluations = match result.evaluate(
+            &subclaim.evaluation_point,
+            table_length,
+            &column_result_fields[..],
+        ) {
             Some(evaluations) => evaluations,
             _ => Err(ProofError::VerificationError(
                 "failed to evaluate intermediate result MLEs",

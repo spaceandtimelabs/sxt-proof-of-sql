@@ -48,6 +48,22 @@ fn we_compute_the_evaluation_vectors_not_a_power_of_2() {
     ];
     assert_eq!(v, expected_v);
 }
+#[test]
+fn we_compute_the_evaluation_vectors_of_any_length() {
+    let mut full_vec = [Curve25519Scalar::zero(); 16];
+    let evaluation_point = [
+        Curve25519Scalar::from(2u64),
+        Curve25519Scalar::from(3u64),
+        Curve25519Scalar::from(5u64),
+        Curve25519Scalar::from(7u64),
+    ];
+    compute_evaluation_vector(&mut full_vec, &evaluation_point);
+    for i in 0..16 {
+        let mut v = vec![Curve25519Scalar::zero(); i];
+        compute_evaluation_vector(&mut v, &evaluation_point);
+        assert_eq!(v, &full_vec[..i]);
+    }
+}
 
 #[test]
 fn we_compute_the_evaluation_vector_for_an_empty_point() {
