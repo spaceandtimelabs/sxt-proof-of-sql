@@ -6,10 +6,9 @@ use curve25519_dalek::RistrettoPoint;
 use proofs::base::commitment::InnerProductProof;
 use proofs::{
     base::{
-        database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
+        database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
-    owned_table,
     proof_primitive::dory::{DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup},
     record_batch,
     sql::{
@@ -24,7 +23,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 1]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -39,7 +38,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let expected_result = owned_table!("a" => [1i64, 3], "b" => [1i64, 1]);
+    let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -53,7 +52,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 1]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -73,7 +72,7 @@ fn we_can_prove_a_basic_equality_query_with_dory() {
         )
         .unwrap()
         .table;
-    let expected_result = owned_table!("a" => [1i64, 3], "b" => [1i64, 1]);
+    let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 1])]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -83,7 +82,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 2]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -98,7 +97,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let expected_result = owned_table!("a" => [1i64, 3], "b" => [1i64, 2]);
+    let expected_result = owned_table([bigint("a", [1, 3]), bigint("b", [1, 2])]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -109,7 +108,7 @@ fn we_cannot_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 2]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
         0,
     );
     let res_query = QueryExpr::<RistrettoPoint>::try_new(
@@ -128,7 +127,7 @@ fn we_cannot_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 2]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
         0,
     );
     let res_query = QueryExpr::<DoryCommitment>::try_new(
@@ -145,7 +144,10 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "public.test_table".parse().unwrap(),
-        owned_table!("amount" => [115_i128, -79], "primes" => ["-f34", "abcd"]),
+        owned_table([
+            int128("amount", [115, -79]),
+            varchar("primes", ["-f34", "abcd"]),
+        ]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -168,7 +170,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
         .unwrap()
         .try_into()
         .unwrap();
-    let expected_result = owned_table!("primes" => ["abcd"], "amount" => [-79_i128]);
+    let expected_result = owned_table([varchar("primes", ["abcd"]), int128("amount", [-79])]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -182,7 +184,7 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3], "b" => [1i64, 0, 4]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 4])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -202,7 +204,7 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
         )
         .unwrap()
         .table;
-    let expected_result = owned_table!("a" => [2i64], "b" => [0i64]);
+    let expected_result = owned_table([bigint("a", [2]), bigint("b", [0])]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -212,13 +214,13 @@ fn we_can_prove_a_complex_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!(
-            "a" => [1i64, 2, 3],
-            "b" => [1i64, 0, 1],
-            "c" => [3i64, 3, -3],
-            "d" => [1i64, 2, 3],
-            "e" => ["d", "e", "f"],
-        ),
+        owned_table([
+            bigint("a", [1, 2, 3]),
+            bigint("b", [1, 0, 1]),
+            bigint("c", [3, 3, -3]),
+            bigint("d", [1, 2, 3]),
+            varchar("e", ["d", "e", "f"]),
+        ]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -235,13 +237,13 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let expected_result = owned_table!(
-        "a" => [3_i64],
-        "b" => [1_i64],
-        "c" => [-3_i64],
-        "d" => [3_i64],
-        "e" => ["f"],
-    );
+    let expected_result = owned_table([
+        bigint("a", [3]),
+        bigint("b", [1]),
+        bigint("c", [-3]),
+        bigint("d", [3]),
+        varchar("e", ["f"]),
+    ]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -255,13 +257,13 @@ fn we_can_prove_a_complex_query_with_dory() {
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!(
-            "a" => [1i64, 2, 3],
-            "b" => [1i64, 0, 1],
-            "c" => [3i64, 3, -3],
-            "d" => [1i64, 2, 3],
-            "e" => ["d", "e", "f"],
-        ),
+        owned_table([
+            bigint("a", [1, 2, 3]),
+            bigint("b", [1, 0, 1]),
+            bigint("c", [3, 3, -3]),
+            bigint("d", [1, 2, 3]),
+            varchar("e", ["d", "e", "f"]),
+        ]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -283,13 +285,13 @@ fn we_can_prove_a_complex_query_with_dory() {
         )
         .unwrap()
         .table;
-    let expected_result = owned_table!(
-        "a" => [1_i64, 2],
-        "b" => [1_i64, 0],
-        "c" => [3_i64, 3],
-        "d" => [1_i64, 2],
-        "e" => ["d", "e"]
-    );
+    let expected_result = owned_table([
+        bigint("a", [1, 2]),
+        bigint("b", [1, 0]),
+        bigint("c", [3, 3]),
+        bigint("d", [1, 2]),
+        varchar("e", ["d", "e"]),
+    ]);
     assert_eq!(owned_table_result, expected_result);
 }
 
@@ -300,7 +302,7 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 1, 2, 2, 3], "b" => [1i64, 0, 2, 3, 4]),
+        owned_table([bigint("a", [1, 1, 2, 2, 3]), bigint("b", [1, 0, 2, 3, 4])]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -335,7 +337,11 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 1, 2, 3, 2], "b" => [1i64, 0, 4, 2, 3], "c" => [-2i64, 2, 1, 0, 1]),
+        owned_table([
+            bigint("a", [1, 1, 2, 3, 2]),
+            bigint("b", [1, 0, 4, 2, 3]),
+            bigint("c", [-2, 2, 1, 0, 1]),
+        ]),
         0,
     );
     let query = QueryExpr::try_new(
@@ -357,7 +363,10 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         )
         .unwrap()
         .table;
-    let expected_result =
-        owned_table!("a" => [1i64, 2, 3], "d" => [0i64, 7, 2], "e" => [1i64, 2, 1]);
+    let expected_result = owned_table([
+        bigint("a", [1, 2, 3]),
+        bigint("d", [0, 7, 2]),
+        bigint("e", [1, 2, 1]),
+    ]);
     assert_eq!(owned_table_result, expected_result);
 }

@@ -1,13 +1,12 @@
 use crate::{
     base::{
         database::{
-            ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable, OwnedTableTestAccessor,
-            RecordBatchTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable,
+            OwnedTableTestAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
         },
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
-    owned_table,
     proof_primitive::dory::DoryCommitment,
     record_batch,
     sql::{
@@ -173,13 +172,13 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [0_i64;0],
-        "b" => [0_i64;0],
-        "c" => [0_i128;0],
-        "d" => ["";0],
-        "e" => [Curve25519Scalar::from(0);0],
-    );
+    let data = owned_table([
+        bigint("a", [0; 0]),
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        scalar("e", [0; 0]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -206,26 +205,25 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [0_i64; 0],
-        "c" => [0_i128; 0],
-        "d" => [""; 0],
-    );
-
-    expected.append_decimal_columns_for_testing("e", 75, 0, vec![Curve25519Scalar::from(0); 0]);
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -252,25 +250,25 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [0_i64; 0],
-        "c" => [0_i128; 0],
-        "d" => ["".to_string(); 0],
-    );
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 1, 0, [0; 0]),
+    ]);
 
-    expected.append_decimal_columns_for_testing("e", 1, 0, vec![Curve25519Scalar::from(0); 0]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -291,13 +289,13 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
 
 #[test]
 fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -324,17 +322,12 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [3_i64, 5_i64],
-        "c" => [3_i128, 5_i128],
-        "d" => ["3".to_string(), "5".to_string()],
-    );
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [3, 5]),
+        int128("c", [3, 5]),
+        varchar("d", ["3", "5"]),
+        decimal75("e", 1, 0, [3, 5]),
+    ]);
 
-    expected.append_decimal_columns_for_testing(
-        "e",
-        1,
-        0,
-        vec![Curve25519Scalar::from(3), Curve25519Scalar::from(5)],
-    );
     assert_eq!(res, expected);
 }

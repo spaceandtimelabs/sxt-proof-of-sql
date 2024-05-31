@@ -2,12 +2,13 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, Column, ColumnType, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType,
+            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
+            TestAccessor,
         },
         scalar::Curve25519Scalar,
     },
-    owned_table, record_batch,
+    record_batch,
     sql::ast::{
         test_expr::TestExprNode,
         test_utility::{column, const_int128, const_scalar, equal, not as unot},
@@ -111,11 +112,11 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [123_i64, 456],
-        "b" => [0_i64, 1],
-        "d" => ["alfa", "gama"]
-    );
+    let data = owned_table([
+        bigint("a", [123, 456]),
+        bigint("b", [0, 1]),
+        varchar("d", ["alfa", "gama"]),
+    ]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

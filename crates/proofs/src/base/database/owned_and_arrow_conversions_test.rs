@@ -1,7 +1,10 @@
 use super::{OwnedColumn, OwnedTable};
 use crate::{
-    base::{database::OwnedArrowConversionError, scalar::Curve25519Scalar},
-    owned_table, record_batch,
+    base::{
+        database::{owned_table_utility::*, OwnedArrowConversionError},
+        scalar::Curve25519Scalar,
+    },
+    record_batch,
 };
 use arrow::{
     array::{ArrayRef, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray},
@@ -94,12 +97,12 @@ fn we_can_convert_between_owned_table_and_record_batch() {
         RecordBatch::new_empty(Arc::new(Schema::empty())),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
-        owned_table!(
-            "int64" => [0_i64; 0],
-            "int128" => [0_i128; 0],
-            "string" => ["0"; 0],
-            "boolean" => [true; 0],
-        ),
+        owned_table([
+            bigint("int64", [0; 0]),
+            int128("int128", [0; 0]),
+            varchar("string", ["0"; 0]),
+            boolean("boolean", [true; 0]),
+        ]),
         record_batch!(
             "int64" => [0_i64; 0],
             "int128" => [0_i128; 0],
@@ -108,12 +111,15 @@ fn we_can_convert_between_owned_table_and_record_batch() {
         ),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
-        owned_table!(
-            "int64" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
-            "int128" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
-            "string" => ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
-            "boolean" => [true, false, true, false, true, false, true, false, true],
-        ),
+        owned_table([
+            bigint("int64", [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
+            int128("int128", [0, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX]),
+            varchar("string", ["0", "1", "2", "3", "4", "5", "6", "7", "8"]),
+            boolean(
+                "boolean",
+                [true, false, true, false, true, false, true, false, true],
+            ),
+        ]),
         record_batch!(
             "int64" => [0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
             "int128" => [0_i128, 1, 2, 3, 4, 5, 6, i128::MIN, i128::MAX],
@@ -138,8 +144,6 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
 #[test]
 #[should_panic]
 fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
-    let owned_table = owned_table!(
-        "a" => [Curve25519Scalar::from(0_i64); 0],
-    );
+    let owned_table = owned_table::<Curve25519Scalar>([scalar("a", [0; 0])]);
     let _ = RecordBatch::try_from(owned_table);
 }

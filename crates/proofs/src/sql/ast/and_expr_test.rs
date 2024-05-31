@@ -3,12 +3,11 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, Column, ColumnType, OwnedTable, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, TestAccessor,
+            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType, OwnedTable,
+            OwnedTableTestAccessor, RandomTestAccessorDescriptor, TestAccessor,
         },
         scalar::Curve25519Scalar,
     },
-    owned_table,
     sql::{
         ast::{
             test_utility::{and, equal},
@@ -62,33 +61,27 @@ fn filter_test_and_expr(
 
 #[test]
 fn we_can_prove_a_simple_and_query() {
-    let data = owned_table!(
-        "a" => [1_i64, 2, 3, 4],
-        "b" => [0_i64, 1, 0, 1],
-        "d" => ["ab", "t", "efg", "g"],
-        "c" => [0_i64, 2, 2, 0],
-    );
+    let data = owned_table([
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [0, 1, 0, 1]),
+        varchar("d", ["ab", "t", "efg", "g"]),
+        bigint("c", [0, 2, 2, 0]),
+    ]);
     let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
-    let expected_res = owned_table!(
-        "a" => [2_i64],
-        "d" => ["t"]
-    );
+    let expected_res = owned_table([bigint("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
 
 #[test]
 fn we_can_prove_a_simple_and_query_with_128_bits() {
-    let data = owned_table!(
-        "a" => [1_i128, 2, 3, 4],
-        "b" => [0_i128, 1, 0, 1],
-        "d" => ["ab", "t", "efg", "g"],
-        "c" => [0_i128, 2, 2, 0],
-    );
+    let data = owned_table([
+        int128("a", [1, 2, 3, 4]),
+        int128("b", [0, 1, 0, 1]),
+        varchar("d", ["ab", "t", "efg", "g"]),
+        int128("c", [0, 2, 2, 0]),
+    ]);
     let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
-    let expected_res = owned_table!(
-        "a" => [2_i128],
-        "d" => ["t"]
-    );
+    let expected_res = owned_table([int128("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
 
@@ -134,12 +127,12 @@ fn we_can_query_random_tables_using_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 2, 3, 4],
-        "b" => [0_i64, 1, 0, 1],
-        "d" => ["ab", "t", "efg", "g"],
-        "c" => [0_i64, 2, 2, 0],
-    );
+    let data = owned_table([
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [0, 1, 0, 1]),
+        varchar("d", ["ab", "t", "efg", "g"]),
+        bigint("c", [0, 2, 2, 0]),
+    ]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

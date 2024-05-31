@@ -128,27 +128,25 @@ mod tests {
     use crate::{
         base::{
             commitment::{Bounds, ColumnBounds},
-            database::{OwnedColumn, OwnedTable, OwnedTableTestAccessor, TestAccessor},
+            database::{
+                owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
+                TestAccessor,
+            },
             scalar::Curve25519Scalar,
         },
-        owned_table,
-        proof_primitive::dory::{
-            DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryScalar,
-        },
+        proof_primitive::dory::{DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup},
     };
     use ark_std::test_rng;
     use curve25519_dalek::RistrettoPoint;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
-            "column_a" => [1i64, 2, 3, 4],
-            "column_b" => ["Lorem", "ipsum", "dolor", "sit"]
-        );
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+            bigint("column_a", [1, 2, 3, 4]),
+            varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
+        ]);
 
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
-            "column_c" => [1, 2].map(Curve25519Scalar::from)
-        );
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar("column_c", [1, 2])]);
 
         let offset_commitment =
             TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
@@ -201,13 +199,11 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
-            column_a_id => [1i64, 2, 3, 4],
-            column_b_id => ["Lorem", "ipsum", "dolor", "sit"]
-        );
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
-            column_a_id => [1, 2].map(Curve25519Scalar::from)
-        );
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+            bigint(column_a_id, [1, 2, 3, 4]),
+            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+        ]);
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
             TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
@@ -252,13 +248,11 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a: OwnedTable<Curve25519Scalar> = owned_table!(
-            column_a_id => [1i64, 2, 3, 4],
-            column_b_id => ["Lorem", "ipsum", "dolor", "sit"]
-        );
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table!(
-            column_a_id => [1, 2].map(Curve25519Scalar::from)
-        );
+        let table_a: OwnedTable<Curve25519Scalar> = owned_table([
+            bigint(column_a_id, [1, 2, 3, 4]),
+            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+        ]);
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
 
         let table_a_commitment =
             TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
@@ -330,14 +324,11 @@ mod tests {
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
 
-        let table_a = owned_table!(
-            column_a_id => [1i64, 2, 3, 4],
-            column_b_id => ["Lorem", "ipsum", "dolor", "sit"]
-        );
-        let table_b = owned_table!(
-            column_a_id => [1, 2].map(DoryScalar::from),
-            column_b_id => [1i128, 2],
-        );
+        let table_a = owned_table([
+            bigint(column_a_id, [1, 2, 3, 4]),
+            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+        ]);
+        let table_b = owned_table([scalar(column_a_id, [1, 2]), int128(column_b_id, [1, 2])]);
 
         let mut table_a_commitment =
             TableCommitment::from_owned_table_with_offset(&table_a, 0, &setup);
