@@ -117,16 +117,16 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.sumcheck_evaluation
     }
 
-    /// Get the commitment of the folded pre-result MLE vectors used in a verifiable query's
+    /// Get the commitments of pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    #[tracing::instrument(
-        name = "VerificationBuilder::compute_folded_pre_result_commitment",
-        level = "debug",
-        skip_all
-    )]
-    pub fn compute_folded_pre_result_commitment(&self) -> C {
+    pub fn pre_result_commitments(&self) -> &[C] {
         assert!(self.completed());
-        C::fold_commitments(&self.pre_result_commitments, self.inner_product_multipliers)
+        &self.pre_result_commitments
+    }
+    /// Get folding factors for the pre-result commitments
+    pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
+        assert!(self.completed());
+        self.inner_product_multipliers
     }
 
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's

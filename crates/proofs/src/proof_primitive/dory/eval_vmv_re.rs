@@ -60,7 +60,7 @@ pub fn eval_vmv_re_verify(
     let C = messages.prover_recieve_GT_message(transcript).into();
     let D_2 = messages.prover_recieve_GT_message(transcript).into();
     let E_1 = messages.prover_recieve_G1_message(transcript).into();
-    let D_1 = state.T.into();
+    let D_1 = state.T;
     let E_2 = DeferredG2::from(setup.Gamma_2_fin) * state.y;
     let s1 = state.R_vec;
     let s2 = state.L_vec;

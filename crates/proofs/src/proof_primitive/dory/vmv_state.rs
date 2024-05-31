@@ -1,4 +1,4 @@
-use super::{G1Affine, F, GT};
+use super::{DeferredGT, G1Affine, F};
 
 /// The state of the verifier during the VMV evaluation proof verification.
 /// See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
@@ -6,7 +6,7 @@ pub struct VMVVerifierState {
     /// The evaluation of the matrix. That is, y = LMR.
     pub(super) y: F,
     /// The commitment to the entire matrix. That is, T = <T_vec_prime, Gamma_2[nu]>.
-    pub(super) T: GT,
+    pub(super) T: DeferredGT,
     /// The left vector, L.
     pub(super) L_vec: Vec<F>,
     /// The right vector, R.
@@ -35,7 +35,7 @@ impl VMVProverState {
     #[cfg(test)]
     pub(super) fn calculate_verifier_state(self, setup: &super::ProverSetup) -> VMVVerifierState {
         use ark_ec::pairing::Pairing;
-        let T = Pairing::multi_pairing(self.T_vec_prime, setup.Gamma_2[self.nu]);
+        let T = Pairing::multi_pairing(self.T_vec_prime, setup.Gamma_2[self.nu]).into();
         let y = self
             .v_vec
             .iter()

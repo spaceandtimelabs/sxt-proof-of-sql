@@ -1,5 +1,6 @@
 use ark_ec::VariableBaseMSM;
 use core::ops::{Add, AddAssign, Mul, MulAssign};
+use itertools::Itertools;
 use num_traits::One;
 
 #[derive(Debug, Clone)]
@@ -10,6 +11,14 @@ pub struct DeferredMSM<G, F> {
     pairs: Vec<(G, Option<F>)>,
 }
 
+impl<G, F> DeferredMSM<G, F> {
+    /// Construct a new [`DeferredMSM`]
+    pub fn new(gs: impl IntoIterator<Item = G>, fs: impl IntoIterator<Item = F>) -> Self {
+        Self {
+            pairs: gs.into_iter().zip_eq(fs.into_iter().map(Some)).collect(),
+        }
+    }
+}
 impl<G, F: One> DeferredMSM<G, F> {
     /// Collapse/compute the MSM into a single group element
     #[tracing::instrument(name = "DeferredMSM::compute", level = "debug", skip_all)]
