@@ -14,10 +14,7 @@ fn run_query(
 ) {
     use proofs::{
         base::database::{OwnedTable, OwnedTableTestAccessor, TestAccessor},
-        sql::{
-            parse::QueryExpr,
-            proof::{TransformExpr, VerifiableQueryResult},
-        },
+        sql::{parse::QueryExpr, proof::VerifiableQueryResult},
     };
 
     // Setup common data and accessor for each run

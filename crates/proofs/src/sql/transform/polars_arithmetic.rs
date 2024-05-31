@@ -76,10 +76,7 @@ mod tests {
     use super::*;
     use crate::{
         record_batch as batch,
-        sql::{
-            proof::TransformExpr,
-            transform::{polars_conversions::LiteralConversion, test_utility::select, ResultExpr},
-        },
+        sql::transform::{polars_conversions::LiteralConversion, test_utility::select, ResultExpr},
     };
     use polars::prelude::col;
     use rand::{distributions::Uniform, Rng};

@@ -1,11 +1,8 @@
 use crate::{
     record_batch,
-    sql::{
-        proof::TransformExpr,
-        transform::{
-            test_utility::{composite_result, orders, slice},
-            CompositionExpr,
-        },
+    sql::transform::{
+        test_utility::{composite_result, orders, slice},
+        CompositionExpr,
     },
 };
 use proofs_sql::intermediate_ast::OrderByDirection::Desc;

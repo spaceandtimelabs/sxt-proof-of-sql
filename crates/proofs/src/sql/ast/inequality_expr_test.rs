@@ -19,7 +19,6 @@ use crate::{
             make_transcript, Indexes, ProofBuilder, ProofExpr, QueryProof, ResultBuilder,
             VerifiableQueryResult,
         },
-        transform::test_utility::*,
     },
 };
 use arrow::record_batch::RecordBatch;
@@ -134,7 +133,7 @@ fn we_can_compare_columns_with_small_decimal_values_without_scale() {
         column(t, "e", &accessor),
         const_scalar::<RistrettoPoint, i64>(0_i64),
     );
-    let df_filter = polars::prelude::col("e").lt_eq(lit_decimal(0_i128));
+    let df_filter = polars::prelude::col("e").lt_eq(lit(0));
     let test_expr = TestExprNode::new(t, &["a", "d", "e"], lte_expr, df_filter, accessor);
     let res = test_expr.verify_expr();
 
@@ -162,7 +161,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
         column(t, "f", &accessor),
         const_scalar::<RistrettoPoint, i64>(0_i64),
     );
-    let df_filter = polars::prelude::col("e").lt_eq(lit_decimal(0_i128));
+    let df_filter = polars::prelude::col("e").lt_eq(lit(0));
     let test_expr = TestExprNode::new(t, &["a", "d", "e", "f"], lte_expr, df_filter, accessor);
     let res = test_expr.verify_expr();
 

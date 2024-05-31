@@ -14,7 +14,7 @@ use proofs::{
     record_batch,
     sql::{
         parse::{ConversionError, QueryExpr},
-        proof::{QueryProof, TransformExpr},
+        proof::QueryProof,
     },
 };
 

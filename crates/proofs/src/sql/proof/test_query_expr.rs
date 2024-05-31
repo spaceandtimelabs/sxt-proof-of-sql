@@ -1,6 +1,6 @@
 use super::{
     CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, ResultBuilder,
-    TransformExpr, VerificationBuilder,
+    VerificationBuilder,
 };
 use crate::base::{
     database::{
@@ -126,8 +126,6 @@ impl ProverEvaluate<Curve25519Scalar> for TestQueryExpr {
         }
     }
 }
-
-impl TransformExpr for TestQueryExpr {}
 
 /// Non-implemented equality. This only exists because of the Ast trait bounds.
 impl PartialEq for TestQueryExpr {

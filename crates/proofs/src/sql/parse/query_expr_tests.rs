@@ -5,13 +5,12 @@ use crate::{
     sql::{
         ast::{test_utility::*, ProofPlan},
         parse::QueryExpr,
-        transform::{test_utility::*, LiteralConversion},
+        transform::test_utility::{col as pc, *},
     },
 };
 use arrow::record_batch::RecordBatch;
 use curve25519_dalek::RistrettoPoint;
 use itertools::Itertools;
-use polars::prelude::col as pc;
 use proofs_sql::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
 
 fn query_to_provable_ast(
@@ -111,10 +110,7 @@ macro_rules! expected_query {
             ($by:expr, $agg:expr) => {
                 result_vec.push(groupby($by, $agg));
                 result_vec.push(select(&$result_exprs.into_iter().map(|expr| {
-                    match expr {
-                        polars::prelude::Expr::Alias(_, alias) => pc(&alias),
-                        _ => panic!("Invalid polars agg expression")
-                    }
+                    pc(&expr.alias)
                 }).collect::<Vec<_>>()));
             };
         }

@@ -1,8 +1,10 @@
 #[allow(deprecated)]
 use super::DataFrameExpr;
+use super::ToPolarsExpr;
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
+use proofs_sql::{intermediate_ast::AliasedResultExpr, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// A group by expression
@@ -17,7 +19,9 @@ pub struct GroupByExpr {
 
 impl GroupByExpr {
     /// Create a new group by expression containing the group by and aggregation expressions
-    pub fn new(by_exprs: Vec<Expr>, agg_exprs: Vec<Expr>) -> Self {
+    pub fn new(by_ids: &[Identifier], aliased_exprs: &[AliasedResultExpr]) -> Self {
+        let by_exprs = Vec::from_iter(by_ids.iter().map(|id| col(id.as_str())));
+        let agg_exprs = Vec::from_iter(aliased_exprs.iter().map(ToPolarsExpr::to_polars_expr));
         assert!(!agg_exprs.is_empty(), "Agg expressions must not be empty");
         assert!(
             !by_exprs.is_empty(),

@@ -37,8 +37,8 @@ mod sumcheck_random_scalars;
 pub(crate) use sumcheck_random_scalars::SumcheckRandomScalars;
 
 mod proof_exprs;
+pub use proof_exprs::ProofExpr;
 pub(crate) use proof_exprs::{HonestProver, ProverEvaluate, ProverHonestyMarker};
-pub use proof_exprs::{ProofExpr, TransformExpr};
 
 mod query_proof;
 #[cfg(test)]

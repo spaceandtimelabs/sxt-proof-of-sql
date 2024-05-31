@@ -1,31 +1,31 @@
-use super::{
-    record_batch_expr::RecordBatchExpr, GroupByExpr, OrderByExprs, ResultExpr, SelectExpr,
-    SliceExpr,
-};
-use crate::{
-    base::database::{INT128_PRECISION, INT128_SCALE},
-    sql::transform::CompositionExpr,
-};
-use polars::prelude::{col, DataType, Expr, Literal, LiteralValue, Series};
-use proofs_sql::intermediate_ast::{OrderBy, OrderByDirection};
+use super::*;
+use proofs_sql::intermediate_ast::*;
 
-pub fn lit_i64(value: i64) -> Expr {
-    Expr::Literal(LiteralValue::Int64(value))
+pub fn lit_i64(literal: i64) -> Box<Expression> {
+    Box::new(Expression::Literal(Literal::BigInt(literal)))
 }
 
-pub fn lit_decimal(value: i128) -> Expr {
-    let literal = [value.to_string()].into_iter().collect::<Series>().lit();
-    literal.cast(DataType::Decimal(
-        Some(INT128_PRECISION),
-        Some(INT128_SCALE),
-    ))
+pub fn lit<L: Into<Literal>>(literal: L) -> Box<Expression> {
+    Box::new(Expression::Literal(literal.into()))
+}
+pub trait ToLit {
+    fn to_lit(self) -> Box<Expression>;
+}
+impl ToLit for i64 {
+    fn to_lit(self) -> Box<Expression> {
+        lit_i64(self)
+    }
+}
+pub fn col(name: &str) -> Box<Expression> {
+    Box::new(Expression::Column(name.parse().unwrap()))
 }
 
-pub fn select(result_schema: &[Expr]) -> Box<dyn RecordBatchExpr> {
-    Box::new(SelectExpr::new(result_schema.to_vec()))
+pub(crate) fn select(result_schema: &[impl ToPolarsExpr]) -> Box<dyn RecordBatchExpr> {
+    #[allow(deprecated)]
+    Box::new(SelectExpr::new(result_schema))
 }
 
-pub fn schema(columns: &[(&str, &str)]) -> Vec<Expr> {
+pub fn schema(columns: &[(&str, &str)]) -> Vec<AliasedResultExpr> {
     columns
         .iter()
         .map(|(name, alias)| col(name).alias(alias))
@@ -34,7 +34,9 @@ pub fn schema(columns: &[(&str, &str)]) -> Vec<Expr> {
 
 pub fn result(columns: &[(&str, &str)]) -> ResultExpr {
     let mut composition = CompositionExpr::default();
-    composition.add(Box::new(SelectExpr::new(schema(columns))));
+    composition.add(Box::new(SelectExpr::new_from_aliased_result_exprs(
+        &schema(columns),
+    )));
     ResultExpr::new(Box::new(composition))
 }
 
@@ -65,12 +67,18 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> Box<dyn RecordB
     Box::new(OrderByExprs::new(by_exprs))
 }
 
-pub fn groupby<T: IntoIterator<Item = Expr>, A: IntoIterator<Item = Expr>>(
+pub fn groupby<
+    T: IntoIterator<Item = Box<Expression>>,
+    A: IntoIterator<Item = AliasedResultExpr>,
+>(
     by_exprs: T,
     agg_exprs: A,
 ) -> Box<dyn RecordBatchExpr> {
     Box::new(GroupByExpr::new(
-        by_exprs.into_iter().collect(),
-        agg_exprs.into_iter().collect(),
+        &Vec::from_iter(by_exprs.into_iter().map(|expr| match *expr {
+            Expression::Column(c) => c,
+            _ => panic!("Expected column expression"),
+        })),
+        &Vec::from_iter(agg_exprs),
     ))
 }

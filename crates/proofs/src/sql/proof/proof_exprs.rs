@@ -5,9 +5,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
-use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
-use dyn_partial_eq::dyn_partial_eq;
 use std::{collections::HashSet, fmt::Debug};
 
 /// TODO: add docs
@@ -42,15 +40,6 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
 
     /// Return all the columns referenced in the Query
     fn get_column_references(&self) -> HashSet<ColumnRef>;
-}
-
-#[dyn_partial_eq]
-/// TODO: add docs
-pub trait TransformExpr: Debug + Send + Sync {
-    /// Apply transformations to the resulting record batch
-    fn transform_results(&self, result: RecordBatch) -> Option<RecordBatch> {
-        Some(result)
-    }
 }
 
 pub trait ProverEvaluate<S: Scalar> {

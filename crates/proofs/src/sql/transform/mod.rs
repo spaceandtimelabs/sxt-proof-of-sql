@@ -52,3 +52,5 @@ pub use polars_conversions::LiteralConversion;
 
 mod polars_arithmetic;
 pub use polars_arithmetic::SafeDivision;
+mod to_polars_expr;
+pub(crate) use to_polars_expr::ToPolarsExpr;
