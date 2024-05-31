@@ -2,12 +2,13 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, Column, ColumnType, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType,
+            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
+            TestAccessor,
         },
         scalar::Curve25519Scalar,
     },
-    owned_table, record_batch,
+    record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::*, ProvableExpr, ProvableExprPlan},
 };
 use arrow::record_batch::RecordBatch;
@@ -137,12 +138,12 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_or_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 2, 3, 4],
-        "b" => [0_i64, 1, 0, 1],
-        "c" => [0_i64, 2, 2, 0],
-        "d" => ["ab", "t", "g", "efg"],
-    );
+    let data = owned_table([
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [0, 1, 0, 1]),
+        bigint("c", [0, 2, 2, 0]),
+        varchar("d", ["ab", "t", "g", "efg"]),
+    ]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

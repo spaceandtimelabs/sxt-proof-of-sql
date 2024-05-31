@@ -2,12 +2,13 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, Column, ColumnType, OwnedTable, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType, OwnedTable,
+            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
+            TestAccessor,
         },
         scalar::{Curve25519Scalar, Scalar},
     },
-    owned_table, record_batch,
+    record_batch,
     sql::ast::{test_expr::TestExprNode, test_utility::*, ProvableExpr, ProvableExprPlan},
 };
 use arrow::record_batch::RecordBatch;
@@ -85,9 +86,12 @@ fn create_test_complex_col_equals_expr(
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
-    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [0; 0]),
+        bigint("b", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -107,9 +111,12 @@ fn we_can_prove_an_equality_query_with_no_rows() {
 
 #[test]
 fn we_can_prove_another_equality_query_with_no_rows() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [0_i64;0], "b" => [0_i64;0], "d" => ["";0], );
-    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [0; 0]),
+        bigint("b", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     let test_expr =
         create_test_col_equals_expr("sxt.t", &["a", "d"], "a", "b", data.try_into().unwrap(), 0);
@@ -123,8 +130,13 @@ fn we_can_prove_another_equality_query_with_no_rows() {
 
 #[test]
 fn we_can_prove_a_nested_equality_query_with_no_rows() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "bool" => [true; 0], "a" => [1_i64; 0], "b" => [1_i64; 0], "c" =>  ["t"; 0], );
-    data.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        boolean("bool", [true; 0]),
+        bigint("a", [1; 0]),
+        bigint("b", [1; 0]),
+        varchar("c", ["t"; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     let test_expr = create_test_complex_col_equals_expr(
         "sxt.t",
@@ -137,18 +149,23 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "b" => [1_i64; 0], "c" => ["t"; 0], );
-    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![]);
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [1; 0]),
+        varchar("c", ["t"; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_selected_row() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64], "b" => [0_i64], "d" => ["abc"], );
-    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::from(0)].to_vec());
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123]),
+        bigint("b", [0]),
+        varchar("d", ["abc"]),
+        decimal75("e", 75, 0, [0]),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -170,9 +187,12 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
 
 #[test]
 fn we_can_prove_another_equality_query_with_a_single_selected_row() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64], "b" => [123_i64], "d" => ["abc"], );
-    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::from(0)].to_vec());
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123]),
+        bigint("b", [123]),
+        varchar("d", ["abc"]),
+        decimal75("e", 75, 0, [0]),
+    ]);
 
     let test_expr =
         create_test_col_equals_expr("sxt.t", &["d", "a"], "a", "b", data.try_into().unwrap(), 0);
@@ -188,9 +208,12 @@ fn we_can_prove_another_equality_query_with_a_single_selected_row() {
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64], "b" => [55_i64], "d" => ["abc"], );
-    data.append_decimal_columns_for_testing("e", 75, 0, [Curve25519Scalar::MAX_SIGNED].to_vec());
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123]),
+        bigint("b", [55]),
+        varchar("d", ["abc"]),
+        decimal75("e", 75, 0, [Curve25519Scalar::MAX_SIGNED]),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -202,27 +225,33 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [0_i64; 0], "d" => [""; 0], );
-    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![Curve25519Scalar::ZERO; 0]);
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_multiple_rows() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "a" => [1_i64, 2, 3, 4], "b" => [0_i64, 5, 0, 5], "c" =>  ["t", "ghi", "jj", "f"], );
-    data.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        vec![
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::ONE,
-            Curve25519Scalar::TWO,
-            Curve25519Scalar::MAX_SIGNED,
-        ],
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [0, 5, 0, 5]),
+        varchar("c", ["t", "ghi", "jj", "f"]),
+        decimal75(
+            "e",
+            75,
+            0,
+            [
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::ONE,
+                Curve25519Scalar::TWO,
+                Curve25519Scalar::MAX_SIGNED,
+            ],
+        ),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -234,32 +263,34 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [1_i64, 3], "c" => ["t".to_string(), "jj".to_string()], );
-    expected_res.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        vec![Curve25519Scalar::ZERO, Curve25519Scalar::TWO],
-    );
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 3]),
+        varchar("c", ["t", "jj"]),
+        decimal75("e", 75, 0, [0, 2]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "bool" => [true, false, true, false], "a" => [1_i64, 2, 3, 4], "b" => [1_i64, 5, 0, 4], "c" =>  ["t", "ghi", "jj", "f"], );
-    data.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        vec![
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::ONE,
-            Curve25519Scalar::TWO,
-            Curve25519Scalar::MAX_SIGNED,
-        ],
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        boolean("bool", [true, false, true, false]),
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [1, 5, 0, 4]),
+        varchar("c", ["t", "ghi", "jj", "f"]),
+        decimal75(
+            "e",
+            75,
+            0,
+            [
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::ONE,
+                Curve25519Scalar::TWO,
+                Curve25519Scalar::MAX_SIGNED,
+            ],
+        ),
+    ]);
 
     let test_expr = create_test_complex_col_equals_expr(
         "sxt.t",
@@ -272,33 +303,34 @@ fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [1_i64, 2], "c" => ["t".to_string(), "ghi".to_string()], );
-    expected_res.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        vec![Curve25519Scalar::ZERO, Curve25519Scalar::ONE],
-    );
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 2]),
+        varchar("c", ["t", "ghi"]),
+        decimal75("e", 75, 0, [0, 1]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!( "a" => [1_i64, 2, 3, 4, 5], "b" => [123_i64, 5, 123, 5, 0], "c" =>  ["t", "ghi", "jj", "f", "abc"], );
-    data.append_decimal_columns_for_testing(
-        "e",
-        42,
-        10,
-        vec![
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::ONE,
-            Curve25519Scalar::TWO,
-            Curve25519Scalar::from(3),
-            Curve25519Scalar::MAX_SIGNED,
-        ],
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 2, 3, 4, 5]),
+        bigint("b", [123, 5, 123, 5, 0]),
+        varchar("c", ["t", "ghi", "jj", "f", "abc"]),
+        decimal75(
+            "e",
+            42,
+            10,
+            [
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::ONE,
+                Curve25519Scalar::TWO,
+                Curve25519Scalar::from(3),
+                Curve25519Scalar::MAX_SIGNED,
+            ],
+        ),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -310,42 +342,35 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> = owned_table!(
-        "a" => [1_i64, 3],
-        "c" => ["t".to_string(), "jj".to_string()],
-    );
-
-    expected_res.append_decimal_columns_for_testing(
-        "e",
-        42,
-        10,
-        vec![Curve25519Scalar::ZERO, Curve25519Scalar::TWO],
-    );
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 3]),
+        varchar("c", ["t", "jj"]),
+        decimal75("e", 42, 10, vec![0, 2]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_prove_an_equality_query_with_a_string_comparison() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!(
-        "a" => [1_i64, 2, 3, 4, 5, 5],
-        "b" => [123_i64, 5, 123, 123, 5, 0],
-        "c" => ["t", "ghi", "jj", "f", "abc", "ghi"],
-    );
-
-    data.append_decimal_columns_for_testing(
-        "e",
-        42, // precision
-        10, // scale
-        vec![
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::ONE,
-            Curve25519Scalar::TWO,
-            Curve25519Scalar::from(3),
-            Curve25519Scalar::MAX_SIGNED,
-            Curve25519Scalar::from(-1),
-        ],
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 2, 3, 4, 5, 5]),
+        bigint("b", [123, 5, 123, 123, 5, 0]),
+        varchar("c", ["t", "ghi", "jj", "f", "abc", "ghi"]),
+        decimal75(
+            "e",
+            42, // precision
+            10, // scale
+            [
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::ONE,
+                Curve25519Scalar::TWO,
+                Curve25519Scalar::from(3),
+                Curve25519Scalar::MAX_SIGNED,
+                Curve25519Scalar::from(-1),
+            ],
+        ),
+    ]);
 
     let test_expr = create_test_col_lit_equals_expr(
         "sxt.t",
@@ -357,17 +382,11 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
     );
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> = owned_table!(
-        "a" => [2_i64, 5],
-        "b" => [5_i64, 0],
-    );
-
-    expected_res.append_decimal_columns_for_testing(
-        "e",
-        42,
-        10,
-        vec![Curve25519Scalar::ONE, Curve25519Scalar::from(-1)],
-    );
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [2, 5]),
+        bigint("b", [5, 0]),
+        decimal75("e", 42, 10, [1, -1]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
@@ -453,23 +472,23 @@ fn we_can_query_random_tables_with_a_non_zero_offset() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
-    let mut data: OwnedTable<Curve25519Scalar> = owned_table!(
-        "a" => [1_i64, 2, 3, 4],
-        "b" => [0_i64, 5, 0, 5],
-        "c" => ["t", "ghi", "jj", "f"]
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [1, 2, 3, 4]),
+        bigint("b", [0, 5, 0, 5]),
+        varchar("c", ["t", "ghi", "jj", "f"]),
+        decimal75(
+            "e",
+            42,
+            10,
+            [
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::MAX_SIGNED,
+                Curve25519Scalar::ZERO,
+                Curve25519Scalar::from(-1),
+            ],
+        ),
+    ]);
 
-    data.append_decimal_columns_for_testing(
-        "e",
-        42,
-        10,
-        vec![
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::MAX_SIGNED,
-            Curve25519Scalar::ZERO,
-            Curve25519Scalar::from(-1),
-        ],
-    );
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

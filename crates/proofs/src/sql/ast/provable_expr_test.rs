@@ -1,21 +1,29 @@
 use super::{test_utility::*, ProvableExpr, ProvableExprPlan};
-use crate::{
-    base::{
-        commitment::InnerProductProof,
-        database::{Column, OwnedTableTestAccessor, TestAccessor},
-    },
-    owned_table,
+use crate::base::{
+    commitment::InnerProductProof,
+    database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
 };
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 
 #[test]
 fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 8, 9, 999],
-        "b" => ["g", "g", "t", "ghi", "g", "g", "jj", "f", "g", "g", "gar", "qwe", "g", "g", "poi", "zxc", "999"],
-        "c" => [3_i128, 123, 3, 234, 3, 345, 3, 456, 3, 567, 3, 678, 3, 789, 3, 890, 999],
-    );
+    let data = owned_table([
+        bigint("a", [1, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5, 5, 6, 7, 8, 9, 999]),
+        varchar(
+            "b",
+            [
+                "g", "g", "t", "ghi", "g", "g", "jj", "f", "g", "g", "gar", "qwe", "g", "g", "poi",
+                "zxc", "999",
+            ],
+        ),
+        int128(
+            "c",
+            [
+                3, 123, 3, 234, 3, 345, 3, 456, 3, 567, 3, 678, 3, 789, 3, 890, 999,
+            ],
+        ),
+    ]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

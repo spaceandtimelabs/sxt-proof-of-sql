@@ -98,22 +98,6 @@ impl<S: Scalar> OwnedTable<S> {
         )
         .unwrap()
     }
-
-    #[cfg(any(test, feature = "test"))]
-    /// Simple convenience function for appending more complex types like decimal75
-    /// to an owned table.
-    pub fn append_decimal_columns_for_testing(
-        &mut self,
-        name: &str,
-        precision: u8,
-        scale: i8,
-        values: Vec<S>,
-    ) {
-        use crate::base::math::decimal::Precision;
-
-        let column = OwnedColumn::Decimal75(Precision::new(precision).unwrap(), scale, values);
-        self.table.insert(name.parse().unwrap(), column);
-    }
 }
 
 // Note: we modify the default PartialEq for IndexMap to also check for column ordering.
@@ -126,21 +110,5 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
                 .keys()
                 .zip(other.table.keys())
                 .all(|(a, b)| a == b)
-    }
-}
-
-/// Utility macro to simplify the creation of OwnedTables.
-/// Convinience macro wrapping `OwnedTable::try_from_iter` that is only available in tests.
-///
-/// Note: this panics if the columns have different lengths or if the table has no columns.
-/// Note: this panics if the columns have different lengths or if the table has no columns.
-#[macro_export]
-macro_rules! owned_table {
-    ($($col_name:expr => $slice:expr), + $(,)?) => {
-        {
-            $crate::base::database::OwnedTable::try_from_iter([$(
-                ($col_name.parse().unwrap(), FromIterator::from_iter($slice))
-            ,)+]).unwrap()
-        }
     }
 }

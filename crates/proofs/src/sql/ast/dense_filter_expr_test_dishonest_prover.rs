@@ -1,13 +1,13 @@
 use super::{
     dense_filter_expr::prove_filter, filter_columns, OstensibleDenseFilterExpr, ProvableExpr,
 };
+use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
         database::{Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
         proof::ProofError,
         scalar::Curve25519Scalar,
     },
-    owned_table,
     sql::{
         // Making this explicit to ensure that we don't accidentally use the
         // sparse filter for these tests
@@ -130,13 +130,13 @@ fn tamper_column<'a>(
 
 #[test]
 fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
-    let data = owned_table!(
-        "a" => [101_i64, 104, 105, 102, 105],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
-    );
+    let data = owned_table([
+        bigint("a", [101, 104, 105, 102, 105]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);

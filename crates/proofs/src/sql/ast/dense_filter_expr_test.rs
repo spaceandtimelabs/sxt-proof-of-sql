@@ -1,5 +1,5 @@
 use crate::{
-    base::math::decimal::Precision,
+    base::{database::owned_table_utility::*, math::decimal::Precision},
     sql::ast::{
         test_utility::{and, not, or},
         ProvableExprPlan,
@@ -13,7 +13,7 @@ use crate::{
         },
         scalar::Curve25519Scalar,
     },
-    owned_table, record_batch,
+    record_batch,
     sql::{
         ast::{
             // Making this explicit to ensure that we don't accidentally use the
@@ -184,13 +184,13 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [0_i64;0],
-        "b" => [0_i64;0],
-        "c" => [0_i128;0],
-        "d" => ["";0],
-        "e" => [Curve25519Scalar::from(0);0],
-    );
+    let data = owned_table([
+        bigint("a", [0; 0]),
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        scalar("e", [0; 0]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -217,26 +217,25 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [0_i64; 0],
-        "c" => [0_i128; 0],
-        "d" => ["".to_string(); 0],
-    );
-
-    expected.append_decimal_columns_for_testing("e", 75, 0, vec![Curve25519Scalar::from(0); 0]);
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 75, 0, [0; 0]),
+    ]);
 
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -263,26 +262,26 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [0_i64; 0],
-        "c" => [0_i128; 0],
-        "d" => ["".to_string(); 0],
-    );
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [0; 0]),
+        int128("c", [0; 0]),
+        varchar("d", [""; 0]),
+        decimal75("e", 1, 0, [0; 0]),
+    ]);
 
-    expected.append_decimal_columns_for_testing("e", 1, 0, vec![Curve25519Scalar::from(0); 0]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_using_result_evaluate()
 {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -303,13 +302,13 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
 
 #[test]
 fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), Curve25519Scalar::from(2), Curve25519Scalar::from(3), Curve25519Scalar::from(4), Curve25519Scalar::from(5),],
-    );
+    let data = owned_table([
+        bigint("a", [1, 4, 5, 2, 5]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -336,30 +335,24 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         .make_provable_query_result()
         .to_owned_table(fields)
         .unwrap();
-    let mut expected: OwnedTable<Curve25519Scalar> = owned_table!(
-        "b" => [3_i64, 5_i64],
-        "c" => [3_i128, 5_i128],
-        "d" => ["3".to_string(), "5".to_string()],
-    );
-
-    expected.append_decimal_columns_for_testing(
-        "e",
-        1,
-        0,
-        vec![Curve25519Scalar::from(3), Curve25519Scalar::from(5)],
-    );
+    let expected: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("b", [3, 5]),
+        int128("c", [3, 5]),
+        varchar("d", ["3", "5"]),
+        decimal75("e", 1, 0, [3, 5]),
+    ]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_prove_a_dense_filter_on_an_empty_table() {
-    let data = owned_table!(
-        "a" => [101_i64; 0],
-        "b" => [3_i64; 0],
-        "c" => [3_i128; 0],
-        "d" => ["3"; 0],
-        "e" => [Curve25519Scalar::from(3); 0],
-    );
+    let data = owned_table([
+        bigint("a", [101; 0]),
+        bigint("b", [3; 0]),
+        int128("c", [3; 0]),
+        varchar("d", ["3"; 0]),
+        scalar("e", [3; 0]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -371,24 +364,24 @@ fn we_can_prove_a_dense_filter_on_an_empty_table() {
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table!(
-        "b" => [3_i64; 0],
-        "c" => [3_i128; 0],
-        "d" => ["3"; 0],
-        "e" => [Curve25519Scalar::from(3); 0],
-    );
+    let expected = owned_table([
+        bigint("b", [3; 0]),
+        int128("c", [3; 0]),
+        varchar("d", ["3"; 0]),
+        scalar("e", [3; 0]),
+    ]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_prove_a_dense_filter_with_empty_results() {
-    let data = owned_table!(
-        "a" => [101_i64, 104, 105, 102, 105],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
-    );
+    let data = owned_table([
+        bigint("a", [101, 104, 105, 102, 105]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -400,24 +393,24 @@ fn we_can_prove_a_dense_filter_with_empty_results() {
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table!(
-        "b" => [3_i64; 0],
-        "c" => [3_i128; 0],
-        "d" => ["3"; 0],
-        "e" => [Curve25519Scalar::from(3); 0],
-    );
+    let expected = owned_table([
+        bigint("b", [3; 0]),
+        int128("c", [3; 0]),
+        varchar("d", ["3"; 0]),
+        scalar("e", [3; 0]),
+    ]);
     assert_eq!(res, expected);
 }
 
 #[test]
 fn we_can_prove_a_dense_filter() {
-    let data = owned_table!(
-        "a" => [101_i64, 104, 105, 102, 105],
-        "b" => [1_i64, 2, 3, 4, 5],
-        "c" => [1_i128, 2, 3, 4, 5],
-        "d" => ["1", "2", "3", "4", "5"],
-        "e" => [Curve25519Scalar::from(1), 2.into(), 3.into(), 4.into(), 5.into()],
-    );
+    let data = owned_table([
+        bigint("a", [101, 104, 105, 102, 105]),
+        bigint("b", [1, 2, 3, 4, 5]),
+        int128("c", [1, 2, 3, 4, 5]),
+        varchar("d", ["1", "2", "3", "4", "5"]),
+        scalar("e", [1, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
@@ -429,11 +422,11 @@ fn we_can_prove_a_dense_filter() {
     let res = VerifiableQueryResult::new(&expr, &accessor, &());
     exercise_verification(&res, &expr, &accessor, t);
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table!(
-        "b" => [3_i64, 5],
-        "c" => [3_i128, 5],
-        "d" => ["3", "5"],
-        "e" => [Curve25519Scalar::from(3), 5.into()],
-    );
+    let expected = owned_table([
+        bigint("b", [3, 5]),
+        int128("c", [3, 5]),
+        varchar("d", ["3", "5"]),
+        scalar("e", [3, 5]),
+    ]);
     assert_eq!(res, expected);
 }

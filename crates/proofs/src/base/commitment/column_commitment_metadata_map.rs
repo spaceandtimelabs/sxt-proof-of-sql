@@ -127,13 +127,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        base::{
-            commitment::{column_bounds::Bounds, ColumnBounds},
-            database::{ColumnType, OwnedTable},
-            scalar::Curve25519Scalar,
-        },
-        owned_table,
+    use crate::base::{
+        commitment::{column_bounds::Bounds, ColumnBounds},
+        database::{owned_table_utility::*, ColumnType, OwnedTable},
+        scalar::Curve25519Scalar,
     };
     use itertools::Itertools;
 
@@ -156,12 +153,12 @@ mod tests {
         assert_eq!(empty_metadata_map.len(), 0);
 
         // With columns
-        let table: OwnedTable<Curve25519Scalar> = owned_table!(
-        "bigint_column" => [1i64, 5, -5, 0],
-        "int128_column" => [100i128, 200, 300, 400],
-        "varchar_column" => ["Lorem", "ipsum", "dolor", "sit"],
-        "scalar_column" => [1000, 2000, -1000, 0].map(Curve25519Scalar::from),
-        );
+        let table: OwnedTable<Curve25519Scalar> = owned_table([
+            bigint("bigint_column", [1, 5, -5, 0]),
+            int128("int128_column", [100, 200, 300, 400]),
+            varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit"]),
+            scalar("scalar_column", [1000, 2000, -1000, 0]),
+        ]);
 
         let metadata_map = metadata_map_from_owned_table(table);
 
@@ -200,49 +197,48 @@ mod tests {
 
     #[test]
     fn we_can_union_matching_metadata_maps() {
-        let table_a = owned_table!(
-            "bigint_column" => [1i64, 5],
-            "int128_column" => [100i128, 200],
-            "varchar_column" => ["Lorem", "ipsum"],
-            "scalar_column" => [1000, 2000].map(Curve25519Scalar::from),
-        );
+        let table_a = owned_table([
+            bigint("bigint_column", [1, 5]),
+            int128("int128_column", [100, 200]),
+            varchar("varchar_column", ["Lorem", "ipsum"]),
+            scalar("scalar_column", [1000, 2000]),
+        ]);
         let metadata_a = metadata_map_from_owned_table(table_a);
 
-        let table_b = owned_table!(
-            "bigint_column" => [-5i64, 0, 10],
-            "int128_column" => [300i128, 400, 500],
-            "varchar_column" => ["dolor", "sit", "amet"],
-            "scalar_column" => [-1000, 0, -2000].map(Curve25519Scalar::from),
-        );
+        let table_b = owned_table([
+            bigint("bigint_column", [-5, 0, 10]),
+            int128("int128_column", [300, 400, 500]),
+            varchar("varchar_column", ["dolor", "sit", "amet"]),
+            scalar("scalar_column", [-1000, 0, -2000]),
+        ]);
         let metadata_b = metadata_map_from_owned_table(table_b);
 
-        let table_c = owned_table!(
-            "bigint_column" => [1i64, 5, -5, 0, 10],
-            "int128_column" => [100i128, 200, 300, 400, 500],
-            "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
-        );
+        let table_c = owned_table([
+            bigint("bigint_column", [1, 5, -5, 0, 10]),
+            int128("int128_column", [100, 200, 300, 400, 500]),
+            varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
+            scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
+        ]);
         let metadata_c = metadata_map_from_owned_table(table_c);
 
         assert_eq!(metadata_a.try_union(metadata_b).unwrap(), metadata_c);
     }
-
     #[test]
     fn we_can_difference_matching_metadata_maps() {
-        let table_a = owned_table!(
-            "bigint_column" => [1i64, 5],
-            "int128_column" => [100i128, 200],
-            "varchar_column" => ["Lorem", "ipsum"],
-            "scalar_column" => [1000, 2000].map(Curve25519Scalar::from),
-        );
+        let table_a = owned_table([
+            bigint("bigint_column", [1, 5]),
+            int128("int128_column", [100, 200]),
+            varchar("varchar_column", ["Lorem", "ipsum"]),
+            scalar("scalar_column", [1000, 2000]),
+        ]);
         let metadata_a = metadata_map_from_owned_table(table_a);
 
-        let table_b = owned_table!(
-            "bigint_column" => [1i64, 5, -5, 0, 10],
-            "int128_column" => [100i128, 200, 300, 400, 500],
-            "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
-        );
+        let table_b = owned_table([
+            bigint("bigint_column", [1, 5, -5, 0, 10]),
+            int128("int128_column", [100, 200, 300, 400, 500]),
+            varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
+            scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
+        ]);
         let metadata_b = metadata_map_from_owned_table(table_b);
 
         let b_difference_a = metadata_b.try_difference(metadata_a.clone()).unwrap();
@@ -284,18 +280,18 @@ mod tests {
 
     #[test]
     fn we_cannot_perform_arithmetic_on_metadata_maps_with_different_column_counts() {
-        let table_a = owned_table!(
-            "bigint_column" => [1i64, 5, -5, 0, 10],
-            "int128_column" => [100i128, 200, 300, 400, 500],
-            "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-            "scalar_column" => [1000, 2000, -1000, 0, -2000].map(Curve25519Scalar::from),
-        );
+        let table_a = owned_table([
+            bigint("bigint_column", [1, 5, -5, 0, 10]),
+            int128("int128_column", [100, 200, 300, 400, 500]),
+            varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
+            scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
+        ]);
         let metadata_a = metadata_map_from_owned_table(table_a);
 
-        let table_b = owned_table!(
-            "bigint_column" => [1i64, 5, -5, 0, 10],
-            "varchar_column" => ["Lorem", "ipsum", "dolor", "sit", "amet"],
-        );
+        let table_b = owned_table([
+            bigint("bigint_column", [1, 5, -5, 0, 10]),
+            varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
+        ]);
         let metadata_b = metadata_map_from_owned_table(table_b);
 
         assert!(matches!(
@@ -328,35 +324,29 @@ mod tests {
         let ints = [1i64, 2, 3, 4];
         let strings = ["Lorem", "ipsum", "dolor", "sit"];
 
-        let ab_ii_metadata = metadata_map_from_owned_table(owned_table!(
-            id_a => ints,
-            id_b => ints,
-        ));
+        let ab_ii_metadata =
+            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_b, ints)]));
 
-        let ab_iv_metadata = metadata_map_from_owned_table(owned_table!(
-            id_a => ints,
-            id_b => strings,
-        ));
+        let ab_iv_metadata = metadata_map_from_owned_table(owned_table([
+            bigint(id_a, ints),
+            varchar(id_b, strings),
+        ]));
 
-        let ab_vi_metadata = metadata_map_from_owned_table(owned_table!(
-            id_a => strings,
-            id_b => ints,
-        ));
+        let ab_vi_metadata = metadata_map_from_owned_table(owned_table([
+            varchar(id_a, strings),
+            bigint(id_b, ints),
+        ]));
 
-        let ad_ii_metadata = metadata_map_from_owned_table(owned_table!(
-            id_a => ints,
-            id_d => ints,
-        ));
+        let ad_ii_metadata =
+            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_d, ints)]));
 
-        let cb_ii_metadata = metadata_map_from_owned_table(owned_table!(
-            id_c => ints,
-            id_b => ints,
-        ));
+        let cb_ii_metadata =
+            metadata_map_from_owned_table(owned_table([bigint(id_c, ints), bigint(id_b, ints)]));
 
-        let cd_vv_metadata = metadata_map_from_owned_table(owned_table!(
-            id_c => strings,
-            id_d => strings,
-        ));
+        let cd_vv_metadata = metadata_map_from_owned_table(owned_table([
+            varchar(id_c, strings),
+            varchar(id_d, strings),
+        ]));
 
         // each pairwise combination of these maps is a different kind of mismatch
         // these combinations cover every possible way 2 tables with 2 columns could mismatch

@@ -6,8 +6,7 @@
 
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 use proofs::{
-    base::database::{OwnedTableTestAccessor, TestAccessor},
-    owned_table,
+    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
     sql::{parse::QueryExpr, proof::QueryProof},
 };
 use std::{
@@ -32,7 +31,10 @@ fn main() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table!("a" => [1i64, 2, 3, 2], "b" => ["hi", "hello", "there", "world"]),
+        owned_table([
+            bigint("a", [1, 2, 3, 2]),
+            varchar("b", ["hi", "hello", "there", "world"]),
+        ]),
         0,
     );
     end_timer(timer);

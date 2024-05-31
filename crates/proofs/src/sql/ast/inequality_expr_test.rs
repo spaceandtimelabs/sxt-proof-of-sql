@@ -4,14 +4,15 @@ use crate::{
         bit::BitDistribution,
         commitment::InnerProductProof,
         database::{
-            make_random_test_accessor_data, Column, ColumnType, OwnedTable, OwnedTableTestAccessor,
-            RandomTestAccessorDescriptor, RecordBatchTestAccessor, TestAccessor,
+            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType, OwnedTable,
+            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
+            TestAccessor,
         },
         math::decimal::scale_scalar,
         proof::{MessageLabel, TranscriptProtocol},
         scalar::{Curve25519Scalar, Scalar},
     },
-    owned_table, record_batch,
+    record_batch,
     sql::{
         ast::{test_expr::TestExprNode, test_utility::*, ProvableExprPlan},
         parse::ConversionError,
@@ -119,11 +120,14 @@ fn we_can_compare_columns_with_extreme_values() {
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_without_scale() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64, 25_i64], "b" => [55_i64, -53_i64], "d" => ["abc", "de"], );
     let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
-    data.append_decimal_columns_for_testing("e", 38, 0, [scalar_pos, scalar_neg].to_vec());
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123, 25]),
+        bigint("b", [55, -53]),
+        varchar("d", ["abc", "de"]),
+        decimal75("e", 38, 0, [scalar_pos, scalar_neg]),
+    ]);
 
     let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
@@ -137,21 +141,26 @@ fn we_can_compare_columns_with_small_decimal_values_without_scale() {
     let test_expr = TestExprNode::new(t, &["a", "d", "e"], lte_expr, df_filter, accessor);
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [25_i64], "d" => ["de"], );
-    expected_res.append_decimal_columns_for_testing("e", 38, 0, vec![scalar_neg]);
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [25]),
+        varchar("d", ["de"]),
+        decimal75("e", 38, 0, [scalar_neg]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
 
 #[test]
 fn we_can_compare_columns_with_small_decimal_values_with_scale() {
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64, 25_i64], "b" => [55_i64, -53_i64], "d" => ["abc", "de"], );
     let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
     let scalar_neg = -scalar_pos;
-    data.append_decimal_columns_for_testing("e", 38, 0, [scalar_pos, scalar_neg].to_vec());
-    data.append_decimal_columns_for_testing("f", 38, 38, [scalar_neg, scalar_pos].to_vec());
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123, 25]),
+        bigint("b", [55, -53]),
+        varchar("d", ["abc", "de"]),
+        decimal75("e", 38, 0, [scalar_pos, scalar_neg]),
+        decimal75("f", 38, 38, [scalar_neg, scalar_pos]),
+    ]);
 
     let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
@@ -165,10 +174,12 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
     let test_expr = TestExprNode::new(t, &["a", "d", "e", "f"], lte_expr, df_filter, accessor);
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64], "d" => ["abc"], );
-    expected_res.append_decimal_columns_for_testing("e", 38, 0, vec![scalar_pos]);
-    expected_res.append_decimal_columns_for_testing("f", 38, 38, vec![scalar_neg]);
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123]),
+        varchar("d", ["abc"]),
+        decimal75("e", 38, 0, [scalar_pos]),
+        decimal75("f", 38, 38, [scalar_neg]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
@@ -176,14 +187,17 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
 #[test]
 fn we_can_compare_columns_returning_extreme_decimal_values() {
     let scalar_min_signed = -Curve25519Scalar::MAX_SIGNED - Curve25519Scalar::ONE;
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64, 25_i64], "b" => [55_i64, -53_i64], "d" => ["abc", "de"], );
-    data.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        [Curve25519Scalar::MAX_SIGNED, scalar_min_signed].to_vec(),
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123, 25]),
+        bigint("b", [55, -53]),
+        varchar("d", ["abc", "de"]),
+        decimal75(
+            "e",
+            75,
+            0,
+            [Curve25519Scalar::MAX_SIGNED, scalar_min_signed],
+        ),
+    ]);
 
     let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
@@ -197,9 +211,11 @@ fn we_can_compare_columns_returning_extreme_decimal_values() {
     let test_expr = TestExprNode::new(t, &["a", "d", "e"], lte_expr, df_filter, accessor);
     let res = test_expr.verify_expr();
 
-    let mut expected_res: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [25_i64], "d" => ["de"], );
-    expected_res.append_decimal_columns_for_testing("e", 75, 0, vec![scalar_min_signed]);
+    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [25]),
+        varchar("d", ["de"]),
+        decimal75("e", 75, 0, [scalar_min_signed]),
+    ]);
 
     assert_eq!(res, expected_res.try_into().unwrap());
 }
@@ -207,14 +223,17 @@ fn we_can_compare_columns_returning_extreme_decimal_values() {
 #[test]
 fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
     let scalar_min_signed = -Curve25519Scalar::MAX_SIGNED - Curve25519Scalar::ONE;
-    let mut data: OwnedTable<Curve25519Scalar> =
-        owned_table!( "a" => [123_i64, 25_i64], "b" => [55_i64, -53_i64], "d" => ["abc", "de"], );
-    data.append_decimal_columns_for_testing(
-        "e",
-        75,
-        0,
-        [Curve25519Scalar::MAX_SIGNED, scalar_min_signed].to_vec(),
-    );
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123, 25]),
+        bigint("b", [55, -53]),
+        varchar("d", ["abc", "de"]),
+        decimal75(
+            "e",
+            75,
+            0,
+            [Curve25519Scalar::MAX_SIGNED, scalar_min_signed],
+        ),
+    ]);
 
     let mut accessor = RecordBatchTestAccessor::new_empty();
     let t = "sxt.t".parse().unwrap();
@@ -662,10 +681,7 @@ fn we_can_query_random_data_of_varying_size() {
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [-1_i64, 9, 1],
-        "b" => [1_i64, 2, 3],
-    );
+    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
@@ -680,10 +696,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
 
 #[test]
 fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evaluate() {
-    let data = owned_table!(
-        "a" => [-1_i64, 9, 1],
-        "b" => [1_i64, 2, 3],
-    );
+    let data = owned_table([bigint("a", [-1, 9, 1]), bigint("b", [1, 2, 3])]);
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);

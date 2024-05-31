@@ -2,7 +2,7 @@
 #[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]
-use proofs::{base::scalar::Curve25519Scalar as S, owned_table};
+use proofs::base::{database::owned_table_utility::*, scalar::Curve25519Scalar as S};
 
 #[cfg(feature = "blitzar")]
 fn run_query(
@@ -19,13 +19,11 @@ fn run_query(
 
     // Setup common data and accessor for each run
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let mut data: OwnedTable<S> = owned_table!("b" => ["t", "u", "v"], "a" => [1i64, 2, 3]);
-    data.append_decimal_columns_for_testing(
-        "c",
-        expected_precision,
-        expected_scale,
-        test_decimal_values,
-    );
+    let data: OwnedTable<S> = owned_table([
+        varchar("b", ["t", "u", "v"]),
+        bigint("a", [1, 2, 3]),
+        decimal75("c", expected_precision, expected_scale, test_decimal_values),
+    ]);
 
     accessor.add_table("sxt.table".parse().unwrap(), data, 0);
 
@@ -48,13 +46,16 @@ fn run_query(
         .unwrap();
 
     // Adjust expected result based on the precision and scale provided
-    let mut expected_result = owned_table!("b" => ["t", "v"], "a" => [1_i64, 3]);
-    expected_result.append_decimal_columns_for_testing(
-        "c",
-        expected_precision,
-        expected_scale,
-        expected_decimal_values,
-    );
+    let expected_result = owned_table::<S>([
+        varchar("b", ["t", "v"]),
+        bigint("a", [1, 3]),
+        decimal75(
+            "c",
+            expected_precision,
+            expected_scale,
+            expected_decimal_values,
+        ),
+    ]);
     // Verify the result matches the expectation
     assert_eq!(owned_table_result, expected_result);
 }
