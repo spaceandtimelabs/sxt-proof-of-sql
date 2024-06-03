@@ -1,4 +1,6 @@
-//! TODO: add docs
+//! This module contains the definition of the `Scalar` trait, which is used to represent the scalar field used in proofs.
+mod error;
+pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
@@ -41,6 +43,11 @@ pub trait Scalar:
     + for<'a> std::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> std::convert::From<&'a bool>
     + for<'a> std::convert::From<&'a i32>
+    + std::convert::TryInto <i8>
+    + std::convert::TryInto <i16>
+    + std::convert::TryInto <i32>
+    + std::convert::TryInto <i64>
+    + std::convert::TryInto <i128>
     + std::convert::Into<[u64; 4]>
     + std::convert::From<[u64; 4]>
     + core::cmp::Ord
@@ -68,3 +75,131 @@ pub trait Scalar:
     /// TODO: add docs
     const TWO: Self;
 }
+
+macro_rules! scalar_conversion_to_int {
+    ($scalar:ty) => {
+        impl TryInto<i8> for $scalar {
+            type Error = ScalarConversionError;
+            fn try_into(self) -> Result<i8, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if self > Self::MAX_SIGNED {
+                    (-1, (-self).into())
+                } else {
+                    (1, self.into())
+                };
+                if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i8",
+                        self
+                    )));
+                }
+                let val: i128 = sign * abs[0] as i128;
+                val.try_into().map_err(|_| {
+                    ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i8",
+                        self
+                    ))
+                })
+            }
+        }
+
+        impl TryInto<i16> for $scalar {
+            type Error = ScalarConversionError;
+            fn try_into(self) -> Result<i16, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if self > Self::MAX_SIGNED {
+                    (-1, (-self).into())
+                } else {
+                    (1, self.into())
+                };
+                if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i16",
+                        self
+                    )));
+                }
+                let val: i128 = sign * abs[0] as i128;
+                val.try_into().map_err(|_| {
+                    ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i16",
+                        self
+                    ))
+                })
+            }
+        }
+
+        impl TryInto<i32> for $scalar {
+            type Error = ScalarConversionError;
+            fn try_into(self) -> Result<i32, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if self > Self::MAX_SIGNED {
+                    (-1, (-self).into())
+                } else {
+                    (1, self.into())
+                };
+                if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i32",
+                        self
+                    )));
+                }
+                let val: i128 = sign * abs[0] as i128;
+                val.try_into().map_err(|_| {
+                    ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i32",
+                        self
+                    ))
+                })
+            }
+        }
+
+        impl TryInto<i64> for $scalar {
+            type Error = ScalarConversionError;
+            fn try_into(self) -> Result<i64, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if self > Self::MAX_SIGNED {
+                    (-1, (-self).into())
+                } else {
+                    (1, self.into())
+                };
+                if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i64",
+                        self
+                    )));
+                }
+                let val: i128 = sign * abs[0] as i128;
+                val.try_into().map_err(|_| {
+                    ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i64",
+                        self
+                    ))
+                })
+            }
+        }
+
+        impl TryInto<i128> for $scalar {
+            type Error = ScalarConversionError;
+            fn try_into(self) -> Result<i128, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if self > Self::MAX_SIGNED {
+                    (-1, (-self).into())
+                } else {
+                    (1, self.into())
+                };
+                if abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i128",
+                        self
+                    )));
+                }
+                let val: u128 = (abs[1] as u128) << 64 | (abs[0] as u128);
+                match (sign, val) {
+                    (1, v) if v <= i128::MAX as u128 => Ok(v as i128),
+                    (-1, v) if v <= i128::MAX as u128 => Ok(-(v as i128)),
+                    (-1, v) if v == i128::MAX as u128 + 1 => Ok(i128::MIN),
+                    _ => Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i128",
+                        self
+                    ))),
+                }
+            }
+        }
+    };
+}
+pub(crate) use scalar_conversion_to_int;
