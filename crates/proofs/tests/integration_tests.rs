@@ -19,6 +19,65 @@ use proofs::{
 
 #[test]
 #[cfg(feature = "blitzar")]
+fn we_can_prove_a_minimal_filter_query_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([boolean("a", [true, false])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE a".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([boolean("a", [true])]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_minimal_filter_query_with_dory() {
+    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
+    let dory_verifier_setup = (&dory_prover_setup).into();
+
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
+        dory_prover_setup.clone(),
+    );
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([boolean("a", [true, false])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table WHERE not a".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
+        .unwrap()
+        .table;
+    let expected_result = owned_table([boolean("a", [false])]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_equality_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
@@ -220,11 +279,12 @@ fn we_can_prove_a_complex_query_with_curve25519() {
             bigint("c", [3, 3, -3]),
             bigint("d", [1, 2, 3]),
             varchar("e", ["d", "e", "f"]),
+            boolean("f", [true, false, false]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a >= b) = (c < d) and e = 'f'"
+        "SELECT * FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -243,6 +303,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         bigint("c", [-3]),
         bigint("d", [3]),
         varchar("e", ["f"]),
+        boolean("f", [false]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -263,11 +324,12 @@ fn we_can_prove_a_complex_query_with_dory() {
             bigint("c", [3, 3, -3]),
             bigint("d", [1, 2, 3]),
             varchar("e", ["d", "e", "f"]),
+            boolean("f", [true, false, true]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE (a < b) = (c <= d) and e <> 'f'"
+        "SELECT * FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -286,11 +348,12 @@ fn we_can_prove_a_complex_query_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        bigint("a", [1, 2]),
-        bigint("b", [1, 0]),
-        bigint("c", [3, 3]),
-        bigint("d", [1, 2]),
-        varchar("e", ["d", "e"]),
+        bigint("a", [1]),
+        bigint("b", [1]),
+        bigint("c", [3]),
+        bigint("d", [1]),
+        varchar("e", ["d"]),
+        boolean("f", [true]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

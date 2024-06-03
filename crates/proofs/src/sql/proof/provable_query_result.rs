@@ -106,12 +106,12 @@ impl ProvableQueryResult {
             let mut val = S::zero();
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
-                    ColumnType::Boolean => S::decode_var(&self.data[offset..]),
-                    ColumnType::BigInt => S::decode_var(&self.data[offset..]),
+                    ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
+                    ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
-                    ColumnType::Int128 => S::decode_var(&self.data[offset..]),
-                    ColumnType::Scalar => S::decode_var(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) => S::decode_var(&self.data[offset..]),
+                    ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
+                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
+                    ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[index as usize] * x;
