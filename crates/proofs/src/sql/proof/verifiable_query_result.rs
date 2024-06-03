@@ -154,13 +154,15 @@ fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryR
                     field.name(),
                     match field.data_type() {
                         ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
+                        ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
+                        ColumnType::Int => OwnedColumn::SmallInt(vec![]),
                         ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
                         ColumnType::Int128 => OwnedColumn::Int128(vec![]),
-                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
-                        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
                         ColumnType::Decimal75(precision, scale) => {
                             OwnedColumn::Decimal75(precision, scale, vec![])
                         }
+                        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
+                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
                     },
                 )
             })

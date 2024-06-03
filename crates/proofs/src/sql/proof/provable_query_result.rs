@@ -107,11 +107,14 @@ impl ProvableQueryResult {
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
+                    ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
+                    ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
                     ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
-                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                     ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
-                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
                     ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
+
+                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
+                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                 }?;
 
                 val += evaluation_vec[index as usize] * x;
@@ -148,6 +151,18 @@ impl ProvableQueryResult {
                             .ok_or(QueryError::Overflow)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Boolean(col)))
+                    }
+                    ColumnType::SmallInt => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::SmallInt(col)))
+                    }
+                    ColumnType::Int => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
+                            .ok_or(QueryError::Overflow)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::Int(col)))
                     }
                     ColumnType::BigInt => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)

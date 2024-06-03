@@ -65,14 +65,16 @@ impl FilterResultExpr {
     ) {
         match accessor.get_column(self.column_ref) {
             Column::Boolean(col) => prover_evaluate_impl(builder, alloc, selection, col),
+            Column::SmallInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
+            Column::Int(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::BigInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::Int128(col) => prover_evaluate_impl(builder, alloc, selection, col),
-            Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
             // While implementing this for a Scalar columns is very simple
             // major refactoring is required to create tests for this
             // (in particular the tests need to used the OwnedTableTestAccessor)
             Column::Scalar(_col) => todo!(),
             Column::Decimal75(_, _, col) => prover_evaluate_impl(builder, alloc, selection, col),
+            Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
         };
     }
 

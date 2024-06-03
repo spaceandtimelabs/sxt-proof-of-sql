@@ -26,6 +26,32 @@ impl OffsetToBytes for u8 {
     }
 }
 
+impl OffsetToBytes for i16 {
+    const IS_SIGNED: bool = true;
+
+    fn min_as_fr() -> Fr {
+        Fr::from(i16::MIN)
+    }
+
+    fn offset_to_bytes(&self) -> Vec<u8> {
+        let shifted = self.wrapping_sub(i16::MIN);
+        shifted.to_le_bytes().to_vec()
+    }
+}
+
+impl OffsetToBytes for i32 {
+    const IS_SIGNED: bool = true;
+
+    fn min_as_fr() -> Fr {
+        Fr::from(i32::MIN)
+    }
+
+    fn offset_to_bytes(&self) -> Vec<u8> {
+        let shifted = self.wrapping_sub(i32::MIN);
+        shifted.to_le_bytes().to_vec()
+    }
+}
+
 impl OffsetToBytes for i64 {
     const IS_SIGNED: bool = true;
 
@@ -244,12 +270,14 @@ fn compute_dory_commitment(
     setup: &DoryProverPublicSetup,
 ) -> DoryCommitment {
     match committable_column {
-        CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Decimal75(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
+        CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::VarChar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
     }

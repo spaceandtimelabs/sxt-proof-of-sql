@@ -35,22 +35,26 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         match self {
             Column::Boolean(col) => col.num_bytes(selection),
+            Column::SmallInt(col) => col.num_bytes(selection),
+            Column::Int(col) => col.num_bytes(selection),
             Column::BigInt(col) => col.num_bytes(selection),
             Column::Int128(col) => col.num_bytes(selection),
-            Column::VarChar((col, _)) => col.num_bytes(selection),
-            Column::Scalar(col) => col.num_bytes(selection),
             Column::Decimal75(_, _, col) => col.num_bytes(selection),
+            Column::Scalar(col) => col.num_bytes(selection),
+            Column::VarChar((col, _)) => col.num_bytes(selection),
         }
     }
 
     fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
         match self {
             Column::Boolean(col) => col.write(out, selection),
+            Column::SmallInt(col) => col.write(out, selection),
+            Column::Int(col) => col.write(out, selection),
             Column::BigInt(col) => col.write(out, selection),
             Column::Int128(col) => col.write(out, selection),
-            Column::VarChar((col, _)) => col.write(out, selection),
-            Column::Scalar(col) => col.write(out, selection),
             Column::Decimal75(_, _, col) => col.write(out, selection),
+            Column::Scalar(col) => col.write(out, selection),
+            Column::VarChar((col, _)) => col.write(out, selection),
         }
     }
 }

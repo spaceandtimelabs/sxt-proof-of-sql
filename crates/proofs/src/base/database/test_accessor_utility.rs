@@ -1,6 +1,9 @@
 use crate::base::database::ColumnType;
 use arrow::{
-    array::{Array, BooleanArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{
+        Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
+        StringArray,
+    },
     datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
@@ -54,10 +57,27 @@ pub fn make_random_test_accessor_data(
                 let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
                 columns.push(Arc::new(BooleanArray::from(boolean_values)));
             }
+
+            ColumnType::SmallInt => {
+                column_fields.push(Field::new(*col_name, DataType::Int16, false));
+                let values: Vec<i16> = values
+                    .iter()
+                    .map(|x| ((*x >> 48) as i16)) // Shift right to align the lower 16 bits
+                    .collect();
+                columns.push(Arc::new(Int16Array::from(values)));
+            }
+            ColumnType::Int => {
+                column_fields.push(Field::new(*col_name, DataType::Int32, false));
+                let values: Vec<i32> = values
+                    .iter()
+                    .map(|x| ((*x >> 32) as i32)) // Shift right to align the lower 32 bits
+                    .collect();
+                columns.push(Arc::new(Int32Array::from(values)));
+            }
             ColumnType::BigInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int64, false));
-
-                columns.push(Arc::new(Int64Array::from(values.to_vec())));
+                let values: Vec<i64> = values.to_vec();
+                columns.push(Arc::new(Int64Array::from(values)));
             }
             ColumnType::Int128 => {
                 column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
@@ -116,6 +136,8 @@ mod tests {
             ("a", ColumnType::BigInt),
             ("b", ColumnType::VarChar),
             ("c", ColumnType::Int128),
+            ("d", ColumnType::SmallInt),
+            ("e", ColumnType::Int),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);

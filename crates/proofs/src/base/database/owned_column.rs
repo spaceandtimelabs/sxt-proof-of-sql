@@ -10,6 +10,10 @@ use crate::base::{math::decimal::Precision, scalar::Scalar};
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
+    /// i16 columns
+    SmallInt(Vec<i16>),
+    /// i32 columns
+    Int(Vec<i32>),
     /// i64 columns
     BigInt(Vec<i64>),
     /// String columns
@@ -27,6 +31,8 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
+            OwnedColumn::SmallInt(col) => col.len(),
+            OwnedColumn::Int(col) => col.len(),
             OwnedColumn::BigInt(col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
@@ -38,6 +44,8 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
+            OwnedColumn::SmallInt(col) => col.is_empty(),
+            OwnedColumn::Int(col) => col.is_empty(),
             OwnedColumn::BigInt(col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
@@ -49,6 +57,8 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
+            OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
+            OwnedColumn::Int(_) => ColumnType::Int,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
             OwnedColumn::VarChar(_) => ColumnType::VarChar,
             OwnedColumn::Int128(_) => ColumnType::Int128,
@@ -63,6 +73,16 @@ impl<S: Scalar> OwnedColumn<S> {
 impl<S: Scalar> FromIterator<bool> for OwnedColumn<S> {
     fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
         Self::Boolean(Vec::from_iter(iter))
+    }
+}
+impl<S: Scalar> FromIterator<i16> for OwnedColumn<S> {
+    fn from_iter<T: IntoIterator<Item = i16>>(iter: T) -> Self {
+        Self::SmallInt(Vec::from_iter(iter))
+    }
+}
+impl<S: Scalar> FromIterator<i32> for OwnedColumn<S> {
+    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
+        Self::Int(Vec::from_iter(iter))
     }
 }
 impl<S: Scalar> FromIterator<i64> for OwnedColumn<S> {

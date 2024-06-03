@@ -22,7 +22,10 @@ use crate::base::{
     scalar::Scalar,
 };
 use arrow::{
-    array::{ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int64Array, StringArray},
+    array::{
+        ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
+        Int64Array, StringArray,
+    },
     datatypes::{i256, DataType, Schema, SchemaRef},
     error::ArrowError,
     record_batch::RecordBatch,
@@ -57,8 +60,9 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::from(col)),
+            OwnedColumn::SmallInt(col) => Arc::new(Int16Array::from(col)),
+            OwnedColumn::Int(col) => Arc::new(Int32Array::from(col)),
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
-            OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
             OwnedColumn::Int128(col) => Arc::new(
                 Decimal128Array::from(col)
                     .with_precision_and_scale(38, 0)
@@ -74,6 +78,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                 )
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
+            OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
         }
     }
 }
@@ -114,6 +119,22 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .iter()
                     .collect::<Option<Vec<bool>>>()
                     .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
+            )),
+            DataType::Int16 => Ok(Self::SmallInt(
+                value
+                    .as_any()
+                    .downcast_ref::<Int16Array>()
+                    .unwrap()
+                    .values()
+                    .to_vec(),
+            )),
+            DataType::Int32 => Ok(Self::Int(
+                value
+                    .as_any()
+                    .downcast_ref::<Int32Array>()
+                    .unwrap()
+                    .values()
+                    .to_vec(),
             )),
             DataType::Int64 => Ok(Self::BigInt(
                 value

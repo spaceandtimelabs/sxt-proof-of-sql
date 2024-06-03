@@ -31,6 +31,24 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> Option<DataFrame>
 
                     Series::new(f.name(), data)
                 }
+                arrow::datatypes::DataType::Int16 => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::Int16Array>()
+                        .map(|array| array.values())
+                        .unwrap();
+
+                    Series::new(f.name(), data)
+                }
+                arrow::datatypes::DataType::Int32 => {
+                    let data = col
+                        .as_any()
+                        .downcast_ref::<arrow::array::Int32Array>()
+                        .map(|array| array.values())
+                        .unwrap();
+
+                    Series::new(f.name(), data)
+                }
                 arrow::datatypes::DataType::Int64 => {
                     let data = col
                         .as_any()
