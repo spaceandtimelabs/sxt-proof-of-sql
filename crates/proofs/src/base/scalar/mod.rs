@@ -63,6 +63,10 @@ pub trait Scalar:
     + super::encode::VarInt
     + std::convert::From<String>
     + std::convert::From<i128>
+    + std::convert::From<i64>
+    + std::convert::From<i32>
+    + std::convert::From<i16>
+    + std::convert::From<bool>
     + TryFrom<BigInt, Error = ConversionError>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
