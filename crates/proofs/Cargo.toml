@@ -48,6 +48,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 typetag = { workspace = true }
+zerocopy = { workspace = true }
 
 [dev_dependencies]
 arrow-csv = { workspace = true }
