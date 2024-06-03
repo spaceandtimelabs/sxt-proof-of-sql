@@ -107,6 +107,9 @@ pub use dory_public_setup::DoryProverPublicSetup;
 pub(crate) use dory_public_setup::DoryVerifierPublicSetup;
 
 mod dory_commitment;
+#[cfg(test)]
+mod dory_commitment_test;
+
 #[cfg(not(feature = "blitzar"))]
 mod dory_commitment_helper_cpu;
 #[cfg(not(feature = "blitzar"))]
