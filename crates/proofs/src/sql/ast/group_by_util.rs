@@ -105,14 +105,15 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
 ) -> &'a [S] {
     match column {
         Column::Boolean(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-        Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::SmallInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::Int(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int128(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
-
-        Column::VarChar(_) => panic!("Cannot sum varchar columns"),
         Column::Decimal75(_, _, _col) => {
-            todo!()
+            todo!("aggregation over decimals not yet supported")
         }
+        Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::VarChar(_) => unimplemented!("Cannot sum varchar columns"),
     }
 }
 
@@ -167,11 +168,13 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
         .iter()
         .map(|col| match col {
             Column::Boolean(col) => col[i].cmp(&col[j]),
-            Column::Scalar(col) => col[i].cmp(&col[j]),
+            Column::SmallInt(col) => col[i].cmp(&col[j]),
+            Column::Int(col) => col[i].cmp(&col[j]),
             Column::BigInt(col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),
-            Column::VarChar((col, _)) => col[i].cmp(col[j]),
             Column::Decimal75(_, _, _) => todo!("TODO: unimplemented"),
+            Column::Scalar(col) => col[i].cmp(&col[j]),
+            Column::VarChar((col, _)) => col[i].cmp(col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

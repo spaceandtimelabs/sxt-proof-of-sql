@@ -41,6 +41,42 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
+/// Creates a (Identifier, OwnedColumn) pair for a smallint column.
+/// This is primarily intended for use in conjunction with [owned_table].
+/// # Example
+/// ```
+/// use proofs::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let result = owned_table::<Curve25519Scalar>([
+///     smallint("a", [1_i16, 2, 3]),
+/// ]);
+pub fn smallint<S: Scalar>(
+    name: impl Deref<Target = str>,
+    data: impl IntoIterator<Item = impl Into<i16>>,
+) -> (Identifier, OwnedColumn<S>) {
+    (
+        name.parse().unwrap(),
+        OwnedColumn::SmallInt(data.into_iter().map(Into::into).collect()),
+    )
+}
+
+/// Creates a (Identifier, OwnedColumn) pair for an int column.
+/// This is primarily intended for use in conjunction with [owned_table].
+/// # Example
+/// ```
+/// use proofs::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let result = owned_table::<Curve25519Scalar>([
+///     int("a", [1, 2, 3]),
+/// ]);
+pub fn int<S: Scalar>(
+    name: impl Deref<Target = str>,
+    data: impl IntoIterator<Item = impl Into<i32>>,
+) -> (Identifier, OwnedColumn<S>) {
+    (
+        name.parse().unwrap(),
+        OwnedColumn::Int(data.into_iter().map(Into::into).collect()),
+    )
+}
+
 /// Creates a (Identifier, OwnedColumn) pair for a bigint column.
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example

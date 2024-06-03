@@ -283,14 +283,11 @@ pub(crate) fn type_check_binary_operation(
         BinaryOperator::Equal => {
             matches!(
                 (left_dtype, right_dtype),
-                (
-                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _),
-                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _)
-                ) | (ColumnType::VarChar, ColumnType::VarChar)
+                (ColumnType::VarChar, ColumnType::VarChar)
                     | (ColumnType::Boolean, ColumnType::Boolean)
                     | (_, ColumnType::Scalar)
                     | (ColumnType::Scalar, _)
-            )
+            ) || (left_dtype.is_numeric() && right_dtype.is_numeric())
         }
         BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
             if left_dtype == &ColumnType::VarChar || right_dtype == &ColumnType::VarChar {
@@ -307,34 +304,16 @@ pub(crate) fn type_check_binary_operation(
                     return false;
                 }
             }
-            matches!(
-                (left_dtype, right_dtype),
-                (
-                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _),
-                    ColumnType::BigInt | ColumnType::Int128 | ColumnType::Decimal75(_, _)
-                ) | (ColumnType::Boolean, ColumnType::Boolean)
-                    | (_, ColumnType::Scalar)
-                    | (ColumnType::Scalar, _)
-            )
+            left_dtype.is_numeric() && right_dtype.is_numeric()
+                || matches!(
+                    (left_dtype, right_dtype),
+                    (ColumnType::Boolean, ColumnType::Boolean)
+                )
         }
         BinaryOperator::Multiply
         | BinaryOperator::Division
         | BinaryOperator::Subtract
-        | BinaryOperator::Add => {
-            matches!(
-                (left_dtype, right_dtype),
-                (
-                    ColumnType::BigInt
-                        | ColumnType::Int128
-                        | ColumnType::Decimal75(_, _)
-                        | ColumnType::Scalar,
-                    ColumnType::BigInt
-                        | ColumnType::Int128
-                        | ColumnType::Decimal75(_, _)
-                        | ColumnType::Scalar
-                )
-            )
-        }
+        | BinaryOperator::Add => left_dtype.is_numeric() && right_dtype.is_numeric(),
     }
 }
 

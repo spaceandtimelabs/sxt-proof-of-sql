@@ -78,7 +78,14 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             .unwrap()
         {
             OwnedColumn::Boolean(col) => Column::Boolean(col),
+            OwnedColumn::SmallInt(col) => Column::SmallInt(col),
+            OwnedColumn::Int(col) => Column::Int(col),
             OwnedColumn::BigInt(col) => Column::BigInt(col),
+            OwnedColumn::Int128(col) => Column::Int128(col),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                Column::Decimal75(*precision, *scale, col)
+            }
+            OwnedColumn::Scalar(col) => Column::Scalar(col),
             OwnedColumn::VarChar(col) => {
                 let col: &mut [&str] = self
                     .alloc
@@ -88,11 +95,6 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
                 Column::VarChar((col, scals))
             }
-            OwnedColumn::Int128(col) => Column::Int128(col),
-            OwnedColumn::Decimal75(precision, scale, col) => {
-                Column::Decimal75(*precision, *scale, col)
-            }
-            OwnedColumn::Scalar(col) => Column::Scalar(col),
         }
     }
 }

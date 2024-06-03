@@ -21,29 +21,35 @@ use blitzar::sequence::Sequence;
 #[non_exhaustive]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CommittableColumn<'a> {
+    /// Borrowed Bool column, mapped to `bool`.
+    Boolean(&'a [bool]),
+    /// Borrowed SmallInt column, mapped to `i16`.
+    SmallInt(&'a [i16]),
+    /// Borrowed SmallInt column, mapped to `i32`.
+    Int(&'a [i32]),
     /// Borrowed BigInt column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
     /// Borrowed Decimal75(precion, scale, column), mapped to 'i256'
     Decimal75(Precision, i8, Vec<[u64; 4]>),
-    /// Column of big ints for committing to, hashed from a VarChar column.
-    VarChar(Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
-    /// Borrowed Bool column, mapped to `bool`.
-    Boolean(&'a [bool]),
+    /// Column of limbs for committing to scalars, hashed from a VarChar column.
+    VarChar(Vec<[u64; 4]>),
 }
 
 impl<'a> CommittableColumn<'a> {
     /// Returns the length of the column.
     pub fn len(&self) -> usize {
         match self {
+            CommittableColumn::SmallInt(col) => col.len(),
+            CommittableColumn::Int(col) => col.len(),
             CommittableColumn::BigInt(col) => col.len(),
-            CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
-            CommittableColumn::Scalar(col) => col.len(),
             CommittableColumn::Decimal75(_, _, col) => col.len(),
+            CommittableColumn::Scalar(col) => col.len(),
+            CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
         }
     }
@@ -62,13 +68,15 @@ impl<'a> CommittableColumn<'a> {
 impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
+            CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
+            CommittableColumn::Int(_) => ColumnType::Int,
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
             CommittableColumn::Int128(_) => ColumnType::Int128,
             CommittableColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
-            CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
+            CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
         }
     }
@@ -78,17 +86,18 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
+            Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
+            Column::Int(ints) => CommittableColumn::Int(ints),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),
             Column::Int128(ints) => CommittableColumn::Int128(ints),
-
-            Column::VarChar((_, scalars)) => {
-                let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
-                CommittableColumn::VarChar(as_limbs)
-            }
-            Column::Scalar(scalars) => (scalars as &[_]).into(),
             Column::Decimal75(precision, scale, decimals) => {
                 let as_limbs: Vec<_> = decimals.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::Decimal75(*precision, *scale, as_limbs)
+            }
+            Column::Scalar(scalars) => (scalars as &[_]).into(),
+            Column::VarChar((_, scalars)) => {
+                let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
+                CommittableColumn::VarChar(as_limbs)
             }
         }
     }
@@ -98,6 +107,8 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
+            OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
+            OwnedColumn::Int(ints) => (ints as &[_]).into(),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int128(ints) => (ints as &[_]).into(),
             OwnedColumn::Decimal75(precision, scale, decimals) => CommittableColumn::Decimal75(
@@ -109,6 +120,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
+            OwnedColumn::Scalar(scalars) => (scalars as &[_]).into(),
             OwnedColumn::VarChar(strings) => CommittableColumn::VarChar(
                 strings
                     .iter()
@@ -116,11 +128,20 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
-            OwnedColumn::Scalar(scalars) => (scalars as &[_]).into(),
         }
     }
 }
 
+impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
+    fn from(value: &'a [i16]) -> Self {
+        CommittableColumn::SmallInt(value)
+    }
+}
+impl<'a> From<&'a [i32]> for CommittableColumn<'a> {
+    fn from(value: &'a [i32]) -> Self {
+        CommittableColumn::Int(value)
+    }
+}
 impl<'a> From<&'a [i64]> for CommittableColumn<'a> {
     fn from(value: &'a [i64]) -> Self {
         CommittableColumn::BigInt(value)
@@ -146,11 +167,13 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
+            CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
+            CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
             CommittableColumn::Decimal75(_, _, limbs) => Sequence::from(limbs),
-            CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
+            CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
         }
     }
@@ -186,6 +209,40 @@ mod tests {
     }
 
     #[test]
+    fn we_can_get_type_and_length_of_smallint_column() {
+        // empty case
+        let smallint_committable_column = CommittableColumn::SmallInt(&[]);
+        assert_eq!(smallint_committable_column.len(), 0);
+        assert!(smallint_committable_column.is_empty());
+        assert_eq!(
+            smallint_committable_column.column_type(),
+            ColumnType::SmallInt
+        );
+
+        let smallint_committable_column = CommittableColumn::SmallInt(&[12, 34, 56]);
+        assert_eq!(smallint_committable_column.len(), 3);
+        assert!(!smallint_committable_column.is_empty());
+        assert_eq!(
+            smallint_committable_column.column_type(),
+            ColumnType::SmallInt
+        );
+    }
+
+    #[test]
+    fn we_can_get_type_and_length_of_int_column() {
+        // empty case
+        let int_committable_column = CommittableColumn::Int(&[]);
+        assert_eq!(int_committable_column.len(), 0);
+        assert!(int_committable_column.is_empty());
+        assert_eq!(int_committable_column.column_type(), ColumnType::Int);
+
+        let int_committable_column = CommittableColumn::Int(&[12, 34, 56]);
+        assert_eq!(int_committable_column.len(), 3);
+        assert!(!int_committable_column.is_empty());
+        assert_eq!(int_committable_column.column_type(), ColumnType::Int);
+    }
+
+    #[test]
     fn we_can_get_type_and_length_of_bigint_column() {
         // empty case
         let bigint_committable_column = CommittableColumn::BigInt(&[]);
@@ -210,10 +267,17 @@ mod tests {
             decimal_committable_column.column_type(),
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0)
         );
-        let bigint_committable_column = CommittableColumn::BigInt(&[12, 34, 56]);
-        assert_eq!(bigint_committable_column.len(), 3);
-        assert!(!bigint_committable_column.is_empty());
-        assert_eq!(bigint_committable_column.column_type(), ColumnType::BigInt);
+        let decimal_committable_column = CommittableColumn::Decimal75(
+            Precision::new(10).unwrap(),
+            10,
+            vec![[12, 0, 0, 0], [34, 0, 0, 0], [56, 0, 0, 0]],
+        );
+        assert_eq!(decimal_committable_column.len(), 3);
+        assert!(!decimal_committable_column.is_empty());
+        assert_eq!(
+            decimal_committable_column.column_type(),
+            ColumnType::Decimal75(Precision::new(10).unwrap(), 10)
+        );
     }
 
     #[test]
@@ -296,6 +360,32 @@ mod tests {
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
         );
+    }
+
+    #[test]
+    fn we_can_convert_from_borrowing_smallint_column() {
+        // empty case
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::SmallInt(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::SmallInt(&[12, 34, 56]));
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::SmallInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_borrowing_int_column() {
+        // empty case
+        let from_borrowed_column = CommittableColumn::from(&Column::<Curve25519Scalar>::Int(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::Int(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::Int(&[12, 34, 56]));
+        assert_eq!(from_borrowed_column, CommittableColumn::Int(&[12, 34, 56]));
     }
 
     #[test]
@@ -397,6 +487,33 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_owned_smallint_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::SmallInt(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::SmallInt(&[]));
+
+        let owned_column = OwnedColumn::<DoryScalar>::SmallInt(vec![12, 34, 56]);
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(
+            from_owned_column,
+            CommittableColumn::SmallInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_owned_int_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::Int(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::Int(&[]));
+
+        let owned_column = OwnedColumn::<DoryScalar>::Int(vec![12, 34, 56]);
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::Int(&[12, 34, 56]));
+    }
+
+    #[test]
     fn we_can_convert_from_owned_int128_column() {
         // empty case
         let owned_column = OwnedColumn::<Curve25519Scalar>::Int128(Vec::new());
@@ -470,6 +587,54 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::BigInt(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_smallint_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::SmallInt(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::SmallInt(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_int_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::Int(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::Int(&values);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

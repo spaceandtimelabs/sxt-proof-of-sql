@@ -11,8 +11,13 @@ use serde::{Deserialize, Serialize};
 pub enum LiteralValue<S: Scalar> {
     /// Boolean literals
     Boolean(bool),
+    /// i16 literals
+    SmallInt(i16),
+    /// i32 literals
+    Int(i32),
     /// i64 literals
     BigInt(i64),
+
     /// String literals
     ///  - the first element maps to the str value.
     ///  - the second element maps to the str hash (see [crate::base::scalar::Scalar]).
@@ -31,6 +36,8 @@ impl<S: Scalar> LiteralValue<S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::SmallInt(_) => ColumnType::SmallInt,
+            Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
@@ -43,6 +50,8 @@ impl<S: Scalar> LiteralValue<S> {
     pub(crate) fn to_scalar(&self) -> S {
         match self {
             Self::Boolean(b) => b.into(),
+            Self::SmallInt(i) => i.into(),
+            Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),
             Self::VarChar((_, s)) => *s,
             Self::Int128(i) => i.into(),

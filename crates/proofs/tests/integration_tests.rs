@@ -319,8 +319,8 @@ fn we_can_prove_a_complex_query_with_dory() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
-            bigint("a", [1, 2, 3]),
-            bigint("b", [1, 0, 1]),
+            smallint("a", [1_i16, 2, 3]),
+            int("b", [1, 0, 1]),
             bigint("c", [3, 3, -3]),
             bigint("d", [1, 2, 3]),
             varchar("e", ["d", "e", "f"]),
@@ -348,8 +348,8 @@ fn we_can_prove_a_complex_query_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        bigint("a", [1]),
-        bigint("b", [1]),
+        smallint("a", [1_i16]),
+        int("b", [1]),
         bigint("c", [3]),
         bigint("d", [1]),
         varchar("e", ["d"]),

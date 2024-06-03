@@ -39,10 +39,11 @@ pub trait Scalar:
     + std::ops::AddAssign
     + num_traits::Zero
     + for<'a> std::convert::From<&'a Self> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a bool> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a i16> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> std::convert::From<&'a i32> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> std::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> std::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
-    + for<'a> std::convert::From<&'a bool>
-    + for<'a> std::convert::From<&'a i32>
     + std::convert::TryInto <i8>
     + std::convert::TryInto <i16>
     + std::convert::TryInto <i32>

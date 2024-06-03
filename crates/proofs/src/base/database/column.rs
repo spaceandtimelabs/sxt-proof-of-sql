@@ -19,12 +19,12 @@ use serde::{Deserialize, Serialize};
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
     Boolean(&'a [bool]),
+    /// i16 columns
+    SmallInt(&'a [i16]),
+    /// i32 columns
+    Int(&'a [i32]),
     /// i64 columns
     BigInt(&'a [i64]),
-    /// String columns
-    ///  - the first element maps to the str values.
-    ///  - the second element maps to the str hashes (see [crate::base::scalar::Curve25519Scalar]).
-    VarChar((&'a [&'a str], &'a [S])),
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
@@ -32,13 +32,18 @@ pub enum Column<'a, S: Scalar> {
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
+    /// String columns
+    ///  - the first element maps to the str values.
+    ///  - the second element maps to the str hashes (see [crate::base::scalar::Scalar]).
+    VarChar((&'a [&'a str], &'a [S])),
 }
-
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::SmallInt(_) => ColumnType::SmallInt,
+            Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
             Self::VarChar(_) => ColumnType::VarChar,
             Self::Int128(_) => ColumnType::Int128,
@@ -50,6 +55,8 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
+            Self::SmallInt(col) => col.len(),
+            Self::Int(col) => col.len(),
             Self::BigInt(col) => col.len(),
             Self::VarChar((col, scals)) => {
                 assert_eq!(col.len(), scals.len());
@@ -75,6 +82,10 @@ impl<'a, S: Scalar> Column<'a, S> {
             LiteralValue::Boolean(value) => {
                 Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
             }
+            LiteralValue::SmallInt(value) => {
+                Column::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::Int(value) => Column::Int(alloc.alloc_slice_fill_copy(length, *value)),
             LiteralValue::BigInt(value) => {
                 Column::BigInt(alloc.alloc_slice_fill_copy(length, *value))
             }
@@ -116,11 +127,20 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::VarChar((_, scals)) => {
                 scals.iter().map(|s| *s * scale_factor).collect::<Vec<_>>()
             }
-            Self::Int128(col) => col
+
+            Self::SmallInt(col) => col
+                .iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::Int(col) => col
                 .iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
             Self::BigInt(col) => col
+                .iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::Int128(col) => col
                 .iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
@@ -145,6 +165,12 @@ pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
     Boolean,
+    /// Mapped to i16
+    #[serde(alias = "SMALLINT", alias = "smallint")]
+    SmallInt,
+    /// Mapped to i32
+    #[serde(alias = "INT", alias = "int")]
+    Int,
     /// Mapped to i64
     #[serde(alias = "BIGINT", alias = "bigint")]
     BigInt,
@@ -163,9 +189,32 @@ pub enum ColumnType {
 }
 
 impl ColumnType {
+    /// Returns true if this column is numeric and false otherwise
+    pub fn is_numeric(&self) -> bool {
+        matches!(
+            self,
+            ColumnType::SmallInt
+                | ColumnType::Int
+                | ColumnType::BigInt
+                | ColumnType::Int128
+                | ColumnType::Scalar
+                | ColumnType::Decimal75(_, _)
+        )
+    }
+
+    /// Returns true if this column is an integer and false otherwise
+    pub fn is_integer(&self) -> bool {
+        matches!(
+            self,
+            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
+        )
+    }
+
     /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
     pub fn precision_value(&self) -> Option<u8> {
         match self {
+            Self::SmallInt => Some(5_u8),
+            Self::Int => Some(10_u8),
             Self::BigInt => Some(19_u8),
             Self::Int128 => Some(39_u8),
             Self::Decimal75(precision, _) => Some(precision.value()),
@@ -190,6 +239,8 @@ impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
             ColumnType::Boolean => DataType::Boolean,
+            ColumnType::SmallInt => DataType::Int16,
+            ColumnType::Int => DataType::Int32,
             ColumnType::BigInt => DataType::Int64,
             ColumnType::Int128 => DataType::Decimal128(38, 0),
             ColumnType::Decimal75(precision, scale) => {
@@ -208,6 +259,8 @@ impl TryFrom<DataType> for ColumnType {
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
             DataType::Boolean => Ok(ColumnType::Boolean),
+            DataType::Int16 => Ok(ColumnType::SmallInt),
+            DataType::Int32 => Ok(ColumnType::Int),
             DataType::Int64 => Ok(ColumnType::BigInt),
             DataType::Decimal128(38, 0) => Ok(ColumnType::Int128),
             DataType::Decimal256(precision, scale) if precision <= 75 => {
@@ -224,6 +277,8 @@ impl std::fmt::Display for ColumnType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
+            ColumnType::SmallInt => write!(f, "SMALLINT"),
+            ColumnType::Int => write!(f, "INT"),
             ColumnType::BigInt => write!(f, "BIGINT"),
             ColumnType::Int128 => write!(f, "DECIMAL"),
             ColumnType::Decimal75(precision, scale) => {
@@ -322,6 +377,14 @@ mod tests {
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
 
+        let column_type = ColumnType::SmallInt;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""SmallInt""#);
+
+        let column_type = ColumnType::Int;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""Int""#);
+
         let column_type = ColumnType::BigInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""BigInt""#);
@@ -349,8 +412,20 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""Boolean""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
+        let expected_column_type = ColumnType::SmallInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""SmallInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::Int;
+        let deserialized: ColumnType = serde_json::from_str(r#""Int""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
         let expected_column_type = ColumnType::BigInt;
         let deserialized: ColumnType = serde_json::from_str(r#""BigInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::SmallInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""SMALLINT""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::Int128;
@@ -402,7 +477,22 @@ mod tests {
             serde_json::from_str::<ColumnType>(r#""BIGINT""#).unwrap(),
             ColumnType::BigInt
         );
-
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""SMALLINT""#).unwrap(),
+            ColumnType::SmallInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""smallint""#).unwrap(),
+            ColumnType::SmallInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""int""#).unwrap(),
+            ColumnType::Int
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""INT""#).unwrap(),
+            ColumnType::Int
+        );
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""decimal""#).unwrap(),
             ColumnType::Int128
@@ -454,6 +544,12 @@ mod tests {
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""BooLean""#);
         assert!(deserialized.is_err());
 
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Smallint""#);
+        assert!(deserialized.is_err());
+
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""iNt""#);
+        assert!(deserialized.is_err());
+
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Bigint""#);
         assert!(deserialized.is_err());
 
@@ -479,6 +575,19 @@ mod tests {
             serde_json::from_str::<ColumnType>(&boolean_json).unwrap(),
             boolean
         );
+
+        let smallint = ColumnType::SmallInt;
+        let smallint_json = serde_json::to_string(&smallint).unwrap();
+        assert_eq!(smallint_json, "\"SmallInt\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&smallint_json).unwrap(),
+            smallint
+        );
+
+        let int = ColumnType::Int;
+        let int_json = serde_json::to_string(&int).unwrap();
+        assert_eq!(int_json, "\"Int\"");
+        assert_eq!(serde_json::from_str::<ColumnType>(&int_json).unwrap(), int);
 
         let bigint = ColumnType::BigInt;
         let bigint_json = serde_json::to_string(&bigint).unwrap();
@@ -537,6 +646,14 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
+        let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::<Curve25519Scalar>::Int(&[1, 2, 3]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
         let column = Column::<Curve25519Scalar>::BigInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
@@ -566,6 +683,14 @@ mod tests {
 
         // Test empty columns
         let column = Column::<DoryScalar>::Boolean(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::<Curve25519Scalar>::SmallInt(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::<Curve25519Scalar>::Int(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
