@@ -40,7 +40,7 @@ lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
 num-bigint = { version = "0.4.4", default-features = false }
-opentelemetry = { version = "0.22.0" }
+opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
 polars = { version = "0.33.1", default-features = false, features = ["dtype-i16"] }
 postcard = { version = "1.0" }
