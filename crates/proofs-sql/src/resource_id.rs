@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This file defines the resource identifier type.
 use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
 use std::{
     fmt::{self, Display},

@@ -4,13 +4,13 @@ use thiserror::Error;
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum ParseError {
     #[error("Unable to parse query")]
-    /// TODO: add docs
+    /// Cannot parse the query
     QueryParseError(String),
     #[error("Unable to parse identifier")]
-    /// TODO: add docs
+    /// Cannot parse the identifier
     IdentifierParseError(String),
     #[error("Unable to parse resource_id")]
-    /// TODO: add docs
+    /// Can not parse the resource_id
     ResourceIdParseError(String),
 }
 

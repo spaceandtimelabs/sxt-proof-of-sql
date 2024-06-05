@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This module contains the AST nodes for the intermediate representation of a PoSQL query.
 /***
 * These AST nodes are closely following vervolg:
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
@@ -12,37 +12,38 @@ use serde::{Deserialize, Serialize};
 pub enum SetExpression {
     /// Query result as `SetExpression`
     Query {
-        /// TODO: add docs
+        /// Result expressions e.g. `a` and `b` in `SELECT a, b FROM table`
         result_exprs: Vec<SelectResultExpr>,
-        /// TODO: add docs
+        /// Table expression e.g. `table` in `SELECT a, b FROM table`
         from: Vec<Box<TableExpression>>,
-        /// TODO: add docs
+        /// Filter expression e.g. `a > 5` in `SELECT a, b FROM table WHERE a > 5`
+        /// If None, no filter is applied
         where_expr: Option<Box<Expression>>,
-        /// TODO: add docs
+        /// Group by expressions e.g. `a` in `SELECT a, COUNT(*) FROM table GROUP BY a`
         group_by: Vec<Identifier>,
     },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-/// TODO: add docs
+/// What to select in a query
 pub enum SelectResultExpr {
-    /// TODO: add docs
+    /// All columns in a table e.g. `SELECT * FROM table`
     ALL,
-    /// TODO: add docs
+    /// A single expression e.g. `SELECT a FROM table`
     AliasedResultExpr(AliasedResultExpr),
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-/// TODO: add docs
+/// An expression with an alias e.g. `a + 1 AS b`
 pub struct AliasedResultExpr {
-    /// TODO: add docs
+    /// The expression e.g. `a + 1`, `COUNT(*)`, etc.
     pub expr: Box<Expression>,
-    /// TODO: add docs
+    /// The alias e.g. `count` in `COUNT(*) AS count`
     pub alias: Identifier,
 }
 
 impl AliasedResultExpr {
-    /// TODO: add docs
+    /// Create a new `AliasedResultExpr`
     pub fn new(expr: Expression, alias: Identifier) -> Self {
         Self {
             expr: Box::new(expr),
@@ -50,7 +51,8 @@ impl AliasedResultExpr {
         }
     }
 
-    /// TODO: add docs
+    /// Try to get the identifier of the expression if it is a column
+    /// Otherwise return None
     pub fn try_as_identifier(&self) -> Option<&Identifier> {
         match self.expr.as_ref() {
             Expression::Column(column) => Some(column),
@@ -64,9 +66,9 @@ impl AliasedResultExpr {
 pub enum TableExpression {
     /// The row set of a given table; possibly providing an alias
     Named {
-        /// the qualified table Identifier
+        /// The qualified table Identifier
         table: Identifier,
-        /// TODO: add docs
+        /// Namespace / schema for the table
         schema: Option<Identifier>,
     },
 }
@@ -111,17 +113,17 @@ pub enum UnaryOperator {
 
 // Aggregation operators
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-/// TODO: add docs
+/// Aggregation operators
 pub enum AggregationOperator {
-    /// TODO: add docs
+    /// Maximum
     Max,
-    /// TODO: add docs
+    /// Minimum
     Min,
-    /// TODO: add docs
+    /// Sum
     Sum,
-    /// TODO: add docs
+    /// Count
     Count,
-    /// TODO: add docs
+    /// Return the first value
     First,
 }
 
@@ -148,19 +150,19 @@ pub enum Expression {
 
     /// Unary operation
     Unary {
-        /// TODO: add docs
+        /// The unary operator
         op: UnaryOperator,
-        /// TODO: add docs
+        /// The expression to apply the operator to
         expr: Box<Expression>,
     },
 
     /// Binary operation
     Binary {
-        /// TODO: add docs
+        /// The binary operator
         op: BinaryOperator,
-        /// TODO: add docs
+        /// The left hand side of the operation
         left: Box<Expression>,
-        /// TODO: add docs
+        /// The right hand side of the operation
         right: Box<Expression>,
     },
 
@@ -169,15 +171,15 @@ pub enum Expression {
 
     /// Aggregation operation
     Aggregation {
-        /// TODO: add docs
+        /// The aggregation operator
         op: AggregationOperator,
-        /// TODO: add docs
+        /// The expression to aggregate
         expr: Box<Expression>,
     },
 }
 
 impl Expression {
-    /// TODO: add docs
+    /// Create a new SUM()
     pub fn sum(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Sum,
@@ -185,7 +187,7 @@ impl Expression {
         })
     }
 
-    /// TODO: add docs
+    /// Create a new MAX()
     pub fn max(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Max,
@@ -193,7 +195,7 @@ impl Expression {
         })
     }
 
-    /// TODO: add docs
+    /// Create a new MIN()
     pub fn min(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Min,
@@ -201,7 +203,7 @@ impl Expression {
         })
     }
 
-    /// TODO: add docs
+    /// Create a new COUNT()
     pub fn count(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
@@ -209,14 +211,14 @@ impl Expression {
         })
     }
 
-    /// TODO: add docs
+    /// Create a new FIRST()
     pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::First,
             expr: Box::new(self),
         })
     }
-    /// Create an AliasedResultExpr from an Expression using the provided alias.
+    /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
     pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {
             expr: Box::new(self),
@@ -272,18 +274,18 @@ impl core::ops::Sub<Box<Expression>> for Box<Expression> {
 /// OrderBy
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OrderBy {
-    /// TODO: add docs
+    /// which column to order by
     pub expr: Identifier,
-    /// TODO: add docs
+    /// in which direction to order
     pub direction: OrderByDirection,
 }
 
 /// OrderByDirection values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderByDirection {
-    /// TODO: add docs
+    /// Ascending
     Asc,
-    /// TODO: add docs
+    /// Descending
     Desc,
 }
 
