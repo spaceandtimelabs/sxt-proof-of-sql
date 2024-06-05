@@ -37,6 +37,17 @@ where
         .unzip()
 }
 
+/// Creates two vectors of random F elements with length 2^nu.
+#[cfg(test)]
+pub fn rand_F_tensors<R>(nu: usize, rng: &mut R) -> (Vec<F>, Vec<F>)
+where
+    R: ark_std::rand::Rng + ?Sized,
+{
+    core::iter::repeat_with(|| (F::rand(rng), F::rand(rng)))
+        .take(nu)
+        .unzip()
+}
+
 #[test]
 fn we_can_create_rand_G_vecs() {
     let mut rng = test_rng();

@@ -32,12 +32,8 @@ pub fn eval_vmv_re_prove(
     messages.prover_send_GT_message(transcript, C);
     messages.prover_send_GT_message(transcript, D_2);
     messages.prover_send_G1_message(transcript, E_1);
-    let s1 = state.R_vec;
-    let s2 = state.L_vec;
-    let v1 = state.T_vec_prime;
     let v2 = Vec::from_iter(state.v_vec.iter().map(|c| (setup.Gamma_2_fin * c).into()));
-    let nu = state.nu;
-    ExtendedProverState::new(s1, s2, v1, v2, nu)
+    ExtendedProverState::from_vmv_prover_state(state, v2)
 }
 
 /// This is the verifier side of the Eval-VMV-RE algorithm in section 5 of https://eprint.iacr.org/2020/1274.pdf.
@@ -62,10 +58,10 @@ pub fn eval_vmv_re_verify(
     let E_1 = messages.prover_recieve_G1_message(transcript).into();
     let D_1 = state.T;
     let E_2 = DeferredG2::from(setup.Gamma_2_fin) * state.y;
-    let s1 = state.R_vec;
-    let s2 = state.L_vec;
+    let s1_tensor = state.r_tensor;
+    let s2_tensor = state.l_tensor;
     let nu = state.nu;
-    Some(ExtendedVerifierState::new(
-        E_1, E_2, s1, s2, C, D_1, D_2, nu,
+    Some(ExtendedVerifierState::new_tensor(
+        E_1, E_2, s1_tensor, s2_tensor, C, D_1, D_2, nu,
     ))
 }
