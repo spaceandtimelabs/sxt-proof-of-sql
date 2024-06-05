@@ -54,8 +54,7 @@ fn we_can_create_correct_vmv_states_from_a_small_fixed_vmv() {
             (303 * 100 + 313 * 101 + 323 * 102 + 333 * 103).into()
         ]
     );
-    assert_eq!(verifier_state.L_vec, L);
-    assert_eq!(verifier_state.R_vec, R);
+    // Because the VMV is not built from tensors, we can not check the `verifier_state.l_tensor` and `verifier_state.r_tensor`
     assert_eq!(
         verifier_state.T,
         Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(300)
@@ -119,10 +118,12 @@ fn we_can_create_vmv_states_from_random_vmv_and_get_correct_sizes() {
         assert_eq!(prover_state.nu, nu);
         assert_eq!(prover_state.L_vec, vmv.L);
         assert_eq!(prover_state.R_vec, vmv.R);
+        assert_eq!(prover_state.l_tensor, vmv.l_tensor);
+        assert_eq!(prover_state.r_tensor, vmv.r_tensor);
         assert_eq!(prover_state.T_vec_prime.len(), 1 << nu);
         assert_eq!(prover_state.v_vec.len(), 1 << nu);
 
-        assert_eq!(verifier_state.L_vec, vmv.L);
-        assert_eq!(verifier_state.R_vec, vmv.R);
+        assert_eq!(verifier_state.l_tensor, vmv.l_tensor);
+        assert_eq!(verifier_state.r_tensor, vmv.r_tensor);
     }
 }

@@ -3,6 +3,7 @@ use super::{
     DeferredG1, DeferredG2, G1Affine, G1Projective, G2Affine, G2Projective, ProverSetup, F,
 };
 use ark_ec::VariableBaseMSM;
+use ark_ff::Field;
 
 /// From the extended Dory-Reduce algorithm in section 4.2 of https://eprint.iacr.org/2020/1274.pdf.
 ///
@@ -89,19 +90,26 @@ pub fn extended_dory_reduce_verify_update_Es(
 /// Folds s1 and s2.
 /// * s_1' <- alpha * s_1L + s_1R
 /// * s_2' <- alpha_inv * s_2L + s_2R
+///
+/// NOTE: this logically is identical to `extended_dory_reduce_prove_fold_s_vecs`. However, the actual values
+/// of the s vectors not needed.
+///
+/// Instead, only the final, completely folded value is used, in [fold_scalars_0_verify](super::fold_scalars_0_verify).
+/// This implementation works because the final value of the s vectors is:
+///
+/// `product (1-s1_tensor[i]) * alpha[i] + s1_tensor[i] over all i`
+///
+/// So, instead of folding the s vectors, we can directly compute the final value by mutating
+///
+/// `s1_tensor[nu-1] <- s1_tensor[nu-1] * (1- alpha) + alpha`
+///
+/// and taking the product in [fold_scalars_0_verify](super::fold_scalars_0_verify).
 pub fn extended_dory_reduce_verify_fold_s_vecs(
     state: &mut ExtendedVerifierState,
     (alpha, alpha_inv): (F, F),
 ) {
-    let half_n = 1usize << (state.base_state.nu - 1);
-    let (s_1L, s_1R) = state.s1.split_at_mut(half_n);
-    let (s_2L, s_2R) = state.s2.split_at_mut(half_n);
-    s_1L.iter_mut()
-        .zip(s_1R)
-        .for_each(|(s_L, s_R)| *s_L = *s_L * alpha + s_R);
-    s_2L.iter_mut()
-        .zip(s_2R)
-        .for_each(|(s_L, s_R)| *s_L = *s_L * alpha_inv + s_R);
-    state.s1.truncate(half_n);
-    state.s2.truncate(half_n);
+    state.s1_tensor[state.base_state.nu - 1] *= F::ONE - alpha;
+    state.s1_tensor[state.base_state.nu - 1] += alpha;
+    state.s2_tensor[state.base_state.nu - 1] *= F::ONE - alpha_inv;
+    state.s2_tensor[state.base_state.nu - 1] += alpha_inv;
 }

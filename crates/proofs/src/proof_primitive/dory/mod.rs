@@ -24,7 +24,7 @@ type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 #[cfg(any(test, feature = "test"))]
 mod rand_util;
 #[cfg(test)]
-use rand_util::rand_F_vecs;
+use rand_util::rand_F_tensors;
 #[cfg(any(test, feature = "test"))]
 use rand_util::rand_G_vecs;
 #[cfg(any(test, feature = "test"))]
@@ -121,6 +121,13 @@ pub use dory_commitment::{DoryCommitment, DoryScalar};
 use dory_commitment_helper_gpu::compute_dory_commitments;
 #[cfg(test)]
 mod dory_compute_commitments_test;
+
+mod dory_vmv_helper;
+use dory_vmv_helper::{
+    compute_L_R_vec, compute_T_vec_prime, compute_l_r_tensors, compute_nu, compute_v_vec,
+};
+mod build_vmv_state;
+use build_vmv_state::{build_vmv_prover_state, build_vmv_verifier_state};
 
 mod dory_commitment_evaluation_proof;
 pub use dory_commitment_evaluation_proof::DoryEvaluationProof;

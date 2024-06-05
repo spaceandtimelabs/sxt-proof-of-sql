@@ -1,6 +1,6 @@
 use super::{
-    fold_scalars_0_prove, fold_scalars_0_verify, rand_F_vecs, rand_G_vecs, test_rng, DoryMessages,
-    ExtendedProverState, PublicParameters,
+    fold_scalars_0_prove, fold_scalars_0_verify, rand_F_tensors, rand_G_vecs, test_rng,
+    DoryMessages, ExtendedProverState, PublicParameters,
 };
 use merlin::Transcript;
 
@@ -11,9 +11,9 @@ fn we_can_fold_scalars() {
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"fold_scalars_test");

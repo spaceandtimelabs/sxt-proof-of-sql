@@ -1,5 +1,5 @@
 use super::{
-    extended_dory_inner_product_prove, extended_dory_inner_product_verify, rand_F_vecs,
+    extended_dory_inner_product_prove, extended_dory_inner_product_verify, rand_F_tensors,
     rand_G_vecs, test_rng, DoryMessages, ExtendedProverState, G1Affine, PublicParameters, GT,
 };
 use ark_std::UniformRand;
@@ -12,9 +12,9 @@ fn we_can_prove_and_verify_an_extended_dory_inner_product() {
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -39,9 +39,9 @@ fn we_can_prove_and_verify_an_extended_dory_inner_product_for_multiple_nu_values
     let verifier_setup = (&pp).into();
 
     for nu in 0..max_nu {
-        let (s1, s2) = rand_F_vecs(nu, &mut rng);
+        let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
         let (v1, v2) = rand_G_vecs(nu, &mut rng);
-        let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+        let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
         let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
         let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -70,9 +70,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_a_message_is_modified()
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -97,9 +97,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_few_GT_me
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -124,9 +124,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_many_GT_m
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -151,9 +151,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_few_G1_me
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -178,9 +178,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_many_G1_m
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -205,9 +205,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_transcripts_differ(
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test_wrong");
@@ -231,9 +231,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_setups_differ() {
     let prover_setup = (&pp).into();
     let pp_wrong = PublicParameters::rand(nu, &mut rng);
     let verifier_setup = (&pp_wrong).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     let mut transcript = Transcript::new(b"extended_dory_inner_product_test");
@@ -258,9 +258,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_base_commitment_is_
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let mut verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     verifier_state.base_state.C = GT::rand(&mut rng).into();
@@ -285,9 +285,9 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_a_scalar_commitment_is_
     let pp = PublicParameters::rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
-    let (s1, s2) = rand_F_vecs(nu, &mut rng);
+    let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);
     let (v1, v2) = rand_G_vecs(nu, &mut rng);
-    let prover_state = ExtendedProverState::new(s1, s2, v1, v2, nu);
+    let prover_state = ExtendedProverState::new_from_tensors(s1_tensor, s2_tensor, v1, v2, nu);
     let mut verifier_state = prover_state.calculate_verifier_state(&prover_setup);
 
     verifier_state.E_1 = G1Affine::rand(&mut rng).into();
