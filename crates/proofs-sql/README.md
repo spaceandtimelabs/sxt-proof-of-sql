@@ -1,4 +1,4 @@
-# PoSQL SQL Syntax
+# Proof of SQL Syntax
 ```
 SELECT [* | expression [ [ AS ] output_name ] [, …]]
 FROM table

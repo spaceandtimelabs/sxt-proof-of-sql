@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This module contains basic shared functionalities of the library.
 pub(crate) mod bit;
 pub mod commitment;
 pub mod database;

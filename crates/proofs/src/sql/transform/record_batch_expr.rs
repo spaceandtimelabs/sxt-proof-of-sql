@@ -6,7 +6,7 @@ use std::fmt::Debug;
 #[typetag::serde(tag = "type")]
 #[dyn_partial_eq]
 pub trait RecordBatchExpr: Debug + Send + Sync {
-    /// TODO: add docs
+    /// Apply the transformation to the `RecordBatch` and return the result.
     fn apply_transformation(&self, record_batch: RecordBatch) -> Option<RecordBatch>;
 }
 

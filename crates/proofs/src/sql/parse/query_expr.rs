@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
-/// TODO: add docs
+/// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
+/// It consists of a `ProofPlan` for provable components and a `ResultExpr` for the rest.
 pub struct QueryExpr<C: Commitment> {
     proof_expr: ProofPlan<C>,
     result: ResultExpr,
@@ -31,12 +32,12 @@ impl<C: Commitment> fmt::Debug for QueryExpr<C> {
 }
 
 impl<C: Commitment> QueryExpr<C> {
-    /// TODO: add docs
+    /// Creates a new `QueryExpr` with the given `ProofPlan` and `ResultExpr`.
     pub fn new(proof_expr: ProofPlan<C>, result: ResultExpr) -> Self {
         Self { proof_expr, result }
     }
 
-    /// TODO: add docs
+    /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
     pub fn try_new(
         ast: SelectStatement,
         default_schema: Identifier,

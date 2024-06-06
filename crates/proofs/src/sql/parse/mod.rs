@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This module contains conversion of intermediate AST to provable AST and a non-provable component if necessary.
 mod error;
 mod where_expr_builder_tests;
 pub use error::ConversionError;

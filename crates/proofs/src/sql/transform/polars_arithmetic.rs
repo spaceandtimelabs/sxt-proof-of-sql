@@ -59,9 +59,9 @@ fn checked_div(series: &mut [Series]) -> PolarsResult<Option<Series>> {
     Ok(Some(num / den))
 }
 
-/// TODO: add docs
+/// Trait that provides a safe division operation for polars expressions.
 pub trait SafeDivision {
-    /// TODO: add docs
+    /// Division operation that returns an error if the denominator is zero or if the division will overflow.
     fn checked_div(self, rhs: Expr) -> Expr;
 }
 

@@ -8,7 +8,7 @@ use crate::base::{
 use bumpalo::Bump;
 use std::{collections::HashSet, fmt::Debug};
 
-/// TODO: add docs
+/// Provable nodes in the provable AST.
 pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
     /// Count terms used within the Query's proof
     fn count(
@@ -17,13 +17,13 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError>;
 
-    /// TODO: add docs
+    /// The length of the input table
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
 
-    /// TODO: add docs
+    /// The offset of the query, that is, how many rows to skip before starting to read the input table
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
 
-    /// TODO: add docs
+    /// Check if the input table is empty
     fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
         self.get_length(accessor) == 0
     }

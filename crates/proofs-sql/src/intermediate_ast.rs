@@ -1,4 +1,4 @@
-//! This module contains the AST nodes for the intermediate representation of a PoSQL query.
+//! This module contains the AST nodes for the intermediate representation of a Proof of SQL query.
 /***
 * These AST nodes are closely following vervolg:
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
