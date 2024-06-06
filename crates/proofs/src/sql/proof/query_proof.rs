@@ -27,20 +27,20 @@ use std::cmp;
 /// all public so as to allow for easy manipulation for testing.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QueryProof<CP: CommitmentEvaluationProof> {
-    /// TODO: add docs
+    /// Bit distributions
     pub bit_distributions: Vec<BitDistribution>,
-    /// TODO: add docs
+    /// Commitments
     pub commitments: Vec<CP::Commitment>,
-    /// TODO: add docs
+    /// Sumcheck Proof
     pub sumcheck_proof: SumcheckProof<CP::Scalar>,
-    /// TODO: add docs
+    /// MLEs used in sumcheck except for the result columns
     pub pre_result_mle_evaluations: Vec<CP::Scalar>,
-    /// TODO: add docs
+    /// Inner product proof of the MLEs' evaluations
     pub evaluation_proof: CP,
 }
 
 impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
-    /// TODO: add docs
+    /// Create a new `QueryProof`.
     #[tracing::instrument(name = "QueryProof::new", level = "debug", skip_all)]
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),

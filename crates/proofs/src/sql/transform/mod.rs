@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This module contains postprocessing for non-provable components.
 mod result_expr;
 pub use result_expr::ResultExpr;
 

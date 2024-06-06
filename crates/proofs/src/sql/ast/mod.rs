@@ -1,4 +1,4 @@
-//! TODO: add docs
+//! This module proves provable ASTs.
 mod filter_result_expr;
 pub(crate) use filter_result_expr::FilterResultExpr;
 
