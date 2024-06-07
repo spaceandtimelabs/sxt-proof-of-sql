@@ -50,8 +50,7 @@ mod owned_table_test;
 pub mod owned_table_utility;
 
 mod owned_and_arrow_conversions;
-#[cfg(test)]
-pub(crate) use owned_and_arrow_conversions::OwnedArrowConversionError;
+pub use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(test)]
 mod owned_and_arrow_conversions_test;
 
