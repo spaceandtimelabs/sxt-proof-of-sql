@@ -1,8 +1,4 @@
-//! "Hello World" Example demonstrating Proof of SQL
-//!
-//! This example produces and verifies a proof of the query `SELECT b FROM table WHERE a = 2`.
-//!
-//! Run with: `cargo run --example hello_world`
+#![doc = include_str!("README.md")]
 
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 use proofs::{

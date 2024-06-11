@@ -78,7 +78,7 @@ name = "hello_world"
 required-features = [ "blitzar", "test" ]
 
 [[example]]
-name = "csv_db"
+name = "posql_db"
 required-features = [ "blitzar" ]
 
 [[bench]]

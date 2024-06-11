@@ -1,15 +1,4 @@
-//! Example demonstrating an implementation of a simple csv-backed database with Proof of SQL capabilities.
-//!
-//! # Install
-//! Run `cargo install --example csv_db --path crates/proofs` to install the example.
-//! # Quick Start Exmaple
-//! Run the following
-//! ```bash
-//! csv_db create -t sxt.table -c a,b -d BIGINT,VARCHAR
-//! csv_db append -t sxt.table -f hello_world.csv
-//! csv_db prove -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof
-//! csv_db verify -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof
-//! ```
+#![doc = include_str!("README.md")]
 mod commit_accessor;
 mod csv_accessor;
 mod record_batch_accessor;
@@ -71,7 +60,7 @@ impl From<&CsvDataType> for DataType {
 enum Commands {
     /// Creates a new csv for an empty table and initializes the commitment of that table.
     ///
-    /// Example: `csv_db create -t sxt.table -c a,b -d BIGINT,VARCHAR`
+    /// Example: `posql_db create -t sxt.table -c a,b -d BIGINT,VARCHAR`
     Create {
         /// The table to create. The table name should be in the format `schema.table`.
         #[arg(short, long)]
@@ -85,7 +74,7 @@ enum Commands {
     },
     /// Appends a csv file to an existing table and updates the commitment of that table.
     ///
-    /// Example: `csv_db append -t sxt.table -f hello_world.csv`
+    /// Example: `posql_db append -t sxt.table -f hello_world.csv`
     Append {
         /// The table to append to. The table name should be in the format `schema.table`.
         #[arg(short, long)]
@@ -96,7 +85,7 @@ enum Commands {
     },
     /// Proves a query and writes the proof to a file.
     ///
-    /// Example: `csv_db prove -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof`
+    /// Example: `posql_db prove -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof`
     Prove {
         /// The query to prove. Note: the default schema is `example`.
         #[arg(short, long)]
@@ -107,7 +96,7 @@ enum Commands {
     },
     /// Verifies a proof of a query and prints the result.
     ///
-    /// Example: `csv_db verify -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof`
+    /// Example: `posql_db verify -q "SELECT b FROM sxt.table WHERE a = 2" -f hello.proof`
     Verify {
         /// The query to verify. Note: the default schema is `example`.
         #[arg(short, long)]
