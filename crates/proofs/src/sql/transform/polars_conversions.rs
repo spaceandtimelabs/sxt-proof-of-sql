@@ -13,6 +13,18 @@ impl LiteralConversion for bool {
     }
 }
 
+impl LiteralConversion for i16 {
+    fn to_lit(&self) -> Expr {
+        Expr::Literal(LiteralValue::Int16(*self))
+    }
+}
+
+impl LiteralConversion for i32 {
+    fn to_lit(&self) -> Expr {
+        Expr::Literal(LiteralValue::Int32(*self))
+    }
+}
+
 impl LiteralConversion for i64 {
     fn to_lit(&self) -> Expr {
         Expr::Literal(LiteralValue::Int64(*self))

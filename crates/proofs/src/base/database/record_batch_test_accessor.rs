@@ -67,7 +67,10 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
             .map(|(k, v)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&v.to_curve25519_scalars()[..], table_offset),
+                    compute_commitment_for_testing(
+                        &v.to_curve25519_scalars().unwrap()[..],
+                        table_offset,
+                    ),
                 )
             })
             .collect();
@@ -99,7 +102,10 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
             .map(|(k, col)| {
                 (
                     *k,
-                    compute_commitment_for_testing(&col.to_curve25519_scalars()[..], new_offset),
+                    compute_commitment_for_testing(
+                        &col.to_curve25519_scalars().unwrap()[..],
+                        new_offset,
+                    ),
                 )
             })
             .collect();
