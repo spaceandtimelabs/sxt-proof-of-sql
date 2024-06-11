@@ -1,4 +1,6 @@
-//! Module for handling an intermediate decimal type received from the lexer.
+//! Library for SQL parsing for the Proof of SQL execution engine.
+
+/// Module for handling an intermediate decimal type received from the lexer.
 pub mod intermediate_decimal;
 #[macro_use]
 extern crate lalrpop_util;
