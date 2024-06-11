@@ -35,6 +35,18 @@ macro_rules! int_to_arrow_array {
 }
 
 int_to_arrow_array!(
+    i16,
+    arrow::datatypes::DataType::Int16,
+    arrow::array::Int16Array
+);
+
+int_to_arrow_array!(
+    i32,
+    arrow::datatypes::DataType::Int32,
+    arrow::array::Int32Array
+);
+
+int_to_arrow_array!(
     i64,
     arrow::datatypes::DataType::Int64,
     arrow::array::Int64Array

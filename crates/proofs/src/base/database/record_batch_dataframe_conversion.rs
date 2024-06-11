@@ -1,5 +1,7 @@
 use arrow::{
-    array::{Array, BooleanArray, Decimal128Array, Int64Array, StringArray},
+    array::{
+        Array, BooleanArray, Decimal128Array, Int16Array, Int32Array, Int64Array, StringArray,
+    },
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
@@ -108,6 +110,20 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> Option<RecordBatch> {
                 columns.push(Arc::new(BooleanArray::from(col)));
 
                 DataType::Boolean
+            }
+            polars::datatypes::DataType::Int16 => {
+                let col = series.i16().unwrap().cont_slice().unwrap();
+
+                columns.push(Arc::new(Int16Array::from(col.to_vec())));
+
+                DataType::Int16
+            }
+            polars::datatypes::DataType::Int32 => {
+                let col = series.i32().unwrap().cont_slice().unwrap();
+
+                columns.push(Arc::new(Int32Array::from(col.to_vec())));
+
+                DataType::Int32
             }
             polars::datatypes::DataType::Int64 => {
                 let col = series.i64().unwrap().cont_slice().unwrap();
