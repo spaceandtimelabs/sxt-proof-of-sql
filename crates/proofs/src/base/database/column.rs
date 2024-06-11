@@ -6,6 +6,7 @@ use crate::base::{
 use arrow::datatypes::{DataType, Field};
 use bumpalo::Bump;
 use proofs_sql::Identifier;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 
 /// Represents a read-only view of a column in an in-memory,
@@ -120,31 +121,38 @@ impl<'a, S: Scalar> Column<'a, S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
             Self::Boolean(col) => col
-                .iter()
+                .par_iter()
                 .map(|b| S::from(b) * scale_factor)
                 .collect::<Vec<_>>(),
-            Self::Decimal75(_, _, col) => col.iter().map(|s| *s * scale_factor).collect::<Vec<_>>(),
-            Self::VarChar((_, scals)) => {
-                scals.iter().map(|s| *s * scale_factor).collect::<Vec<_>>()
-            }
+            Self::Decimal75(_, _, col) => col
+                .par_iter()
+                .map(|s| *s * scale_factor)
+                .collect::<Vec<_>>(),
+            Self::VarChar((_, scals)) => scals
+                .par_iter()
+                .map(|s| *s * scale_factor)
+                .collect::<Vec<_>>(),
 
             Self::SmallInt(col) => col
-                .iter()
+                .par_iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
             Self::Int(col) => col
-                .iter()
+                .par_iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
             Self::BigInt(col) => col
-                .iter()
+                .par_iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
             Self::Int128(col) => col
-                .iter()
+                .par_iter()
                 .map(|i| S::from(i) * scale_factor)
                 .collect::<Vec<_>>(),
-            Self::Scalar(col) => col.iter().map(|s| *s * scale_factor).collect::<Vec<_>>(),
+            Self::Scalar(col) => col
+                .par_iter()
+                .map(|s| *s * scale_factor)
+                .collect::<Vec<_>>(),
         }
     }
 }
