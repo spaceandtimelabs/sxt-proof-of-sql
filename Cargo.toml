@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/proofs", "crates/proofs-sql", "crates/proofs-wasm-test"]
+members = ["crates/proofs", "crates/proofs-sql"]
 
 [workspace.package]
 edition = "2021"
