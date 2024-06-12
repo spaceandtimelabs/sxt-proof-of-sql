@@ -1,4 +1,4 @@
-<h1 align="center" style="border-bottom: none;">Contributing to our Proofs Repository</h1>
+<h1 align="center" style="border-bottom: none;">Contributing to our Proof of SQL Repository</h1>
 <p align="center">
   <a href="https://www.conventionalcommits.org/en/v1.0.0/">
     <img alt="semantic-release: conventional-commits" src="https://img.shields.io/badge/semantic--release-conventional--commits-blueviolet">
@@ -103,9 +103,9 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     git push origin my-feature-branch
     ```
 
-7.  In GitHub, send a pull request to `proofs:main`.
+7.  In GitHub, send a pull request to `sxt-proof-of-sql:main`.
 
-Our proofs repository triggers automatically a workflow to test the code whenever a Pull Request is submitted or a commit is pushed to an existing PR. Before closing the PR, always verify that those tests are indeed passing.
+Our proof of SQL repository triggers automatically a workflow to test the code whenever a Pull Request is submitted or a commit is pushed to an existing PR. Before closing the PR, always verify that those tests are indeed passing.
 
 Also, to ease this process of using git, you can try to use [vscode](https://code.visualstudio.com/). Vscode has some nice extensions to manage your git workflow.
 

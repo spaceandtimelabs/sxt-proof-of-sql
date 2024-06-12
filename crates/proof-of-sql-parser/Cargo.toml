@@ -1,0 +1,30 @@
+[package]
+publish = true
+name = "proof-of-sql-parser"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+build = "build.rs"
+description = "Parse provable SQL queries into Intermediate ASTs"
+exclude = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+doctest = true
+test = true
+
+[dependencies]
+arrayvec = { workspace = true, features = ["serde"] }
+bigdecimal = { workspace = true }
+lalrpop-util = { workspace = true, features = ["lexer", "unicode"] }
+serde = { workspace = true, features = ["serde_derive"] }
+thiserror = { workspace = true }
+
+[build-dependencies]
+lalrpop = { version = "0.20.0" }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
