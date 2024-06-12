@@ -61,7 +61,7 @@ fn main() {
 
 ## Examples
 
-Proof of SQL comes with example code demonstrating its usage. You can find the examples in the `crates/proofs/examples` folder. Below are explainations of how to run some of these examples:
+Proof of SQL comes with example code demonstrating its usage. You can find the examples in the `crates/proof-of-sql/examples` folder. Below are explainations of how to run some of these examples:
 
 ### "Hello World" Example
 
@@ -92,7 +92,7 @@ Valid proof!
 Query result: OwnedTable { table: {Identifier { name: "b" }: VarChar(["hello", "world"])} }
 ```
 
-For a detailed explanation of the example and its implementation, refer to the [README](crates/proofs/examples/hello_world/README.md) and source code in [hello_world/main.rs](crates/proofs/examples/hello_world/main.rs).
+For a detailed explanation of the example and its implementation, refer to the [README](crates/proof-of-sql/examples/hello_world/README.md) and source code in [hello_world/main.rs](crates/proof-of-sql/examples/hello_world/main.rs).
 
 ### CSV Database Example
 
@@ -101,10 +101,10 @@ The CSV Database example demonstrates an implementation of a simple CSV-backed d
 To install the example:
 
 ```bash
-cargo install --example posql_db --path crates/proofs #TODO: update once this is published to crates.io
+cargo install --example posql_db --path crates/proof-of-sql #TODO: update once this is published to crates.io
 ```
 
-For detailed usage instructions and examples of how to create, append to, prove, and verify queries in the CSV-backed database, refer to the [README](crates/proofs/examples/posql_db/README.md) and source code in [posql_db/main.rs](crates/proofs/examples/posql_db/main.rs).
+For detailed usage instructions and examples of how to create, append to, prove, and verify queries in the CSV-backed database, refer to the [README](crates/proof-of-sql/examples/posql_db/README.md) and source code in [posql_db/main.rs](crates/proof-of-sql/examples/posql_db/main.rs).
 
 ## Benchmarks
 
