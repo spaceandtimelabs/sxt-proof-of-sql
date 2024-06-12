@@ -1,6 +1,13 @@
-use super::{G1Affine, G1Projective, ProverSetup, F};
+#[cfg(not(feature = "blitzar"))]
+use super::G1Projective;
+use super::{transpose, G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
-use ark_ec::{AffineRepr, VariableBaseMSM};
+use ark_ec::AffineRepr;
+#[cfg(not(feature = "blitzar"))]
+use ark_ec::VariableBaseMSM;
+use ark_ff::{BigInt, MontBackend};
+#[cfg(feature = "blitzar")]
+use blitzar::compute::ElementP2;
 use num_traits::{One, Zero};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
@@ -13,8 +20,56 @@ pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Ve
         })
 }
 
+/// Converts a bls12-381 scalar to a u64 array.
+fn convert_scalar_to_array(
+    scalars: &[ark_ff::Fp<MontBackend<ark_bls12_381::FrConfig, 4>, 4>],
+) -> Vec<[u64; 4]> {
+    scalars
+        .iter()
+        .map(|&element| BigInt::<4>::from(element).0)
+        .collect()
+}
+
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
 #[tracing::instrument(level = "debug", skip_all)]
+#[cfg(feature = "blitzar")]
+pub(super) fn compute_T_vec_prime(
+    a: &[F],
+    sigma: usize,
+    nu: usize,
+    prover_setup: &ProverSetup,
+) -> Vec<G1Affine> {
+    let num_columns = 1 << sigma;
+    let data_size = std::mem::size_of::<F>();
+    let mut blitzar_commit = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 1];
+    let gs: Vec<_> = prover_setup.Gamma_1[nu]
+        .iter()
+        .copied()
+        .map(Into::into)
+        .collect();
+    let blitzar_handle = blitzar::compute::MsmHandle::new(&gs);
+
+    a.chunks(1 << sigma)
+        .map(|row| {
+            let row_array = convert_scalar_to_array(row);
+            let column_transpose =
+                transpose::transpose_for_fixed_msm(&row_array, 0, num_columns, data_size);
+
+            blitzar_handle.msm(
+                &mut blitzar_commit,
+                data_size as u32,
+                column_transpose.as_slice(),
+            );
+
+            blitzar_commit[0].clone().into()
+        })
+        .chain(core::iter::repeat(G1Affine::zero()))
+        .take(1 << nu)
+        .collect()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+#[cfg(not(feature = "blitzar"))]
 pub(super) fn compute_T_vec_prime(
     a: &[F],
     sigma: usize,
