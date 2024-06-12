@@ -1,0 +1,70 @@
+Copyright (C) 2024 Space and Time Labs, Inc.
+
+Cryptographic Open Software License 1.0
+
+This license contains the terms and conditions under which Space
+and Time Labs, Inc. ("Space and Time") makes available this
+Software. Your use of the Software is subject to these terms and
+conditions. 
+
+Space and Time grants you ("Licensee") a license to use, modify,
+and redistribute the Software, but only (a) for Non-Commercial
+Use, or (b) for Commercial Use with the Space and Time Platform
+only. You must use the Software only as allowed by applicable
+law.
+
+If Licensee makes available a copy of the Software to any third
+party, the Software must be subject to the terms of this license
+only, and Licensee must provide a copy of this license to that
+third party. 
+
+If Licensee makes changes or additions to the Software, Licensee
+may license those changes or additions under terms of Licensee's
+choice, but Licensee cannot change this license for the
+Software.
+
+These terms do not allow Licensee to sublicense or transfer any
+of Licensee’s rights to anyone else. These terms do not imply
+any other licenses not expressly granted in this license.
+
+If Licensee violates any of these terms, or uses the Software in
+a way not authorized under this license, the license granted to
+Licensee ends immediately. 
+
+If Licensee makes, or authorizes any other person to make, any
+written claim that the Software, or any other product or service
+of Space and Time, infringes or contributes to infringement of
+any patent, all rights granted to Licensee under this license
+end immediately. 
+
+As far as the law allows, the Software is provided AS IS,
+without any warranty or condition, and Space and Time will not
+be liable to Licensee for any damages arising out of these terms
+or the use or nature of the Software, under any kind of legal
+claim. If the disclaimer in this paragraph is unenforceable
+under applicable law, this license is void.
+
+Terms in this license are used as follows:
+
+The "Software" is any software made available by Space and Time
+under this license.
+
+A "Space and Time Product" is any product or service offered by
+Space and Time or its affiliates. 
+
+"Non-Commercial Use" means personal, academic, scientific, or
+research and development use, or evaluating the Software, but
+does not include uses where the Software facilitates any
+transaction of economic value or supports any system that
+provides any economic or commercial value other than on the
+Space and Time Platform. 
+
+Any use that is not a Non-Commercial Use is a "Commercial Use."
+
+"Space and Time Platform" means the enterprise data platform, or
+node operations within a Space and Time decentralized network,
+in each case for processing database queries with cryptographic
+proofs, that is made available by Space and Time.
+
+To "use" means any use, modification, distribution or other
+exploitation of the Software or any part of it.
