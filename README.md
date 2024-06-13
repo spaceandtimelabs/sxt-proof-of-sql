@@ -82,7 +82,7 @@ cargo run --example hello_world
 
 #### Output
 
-```
+```bash
 Warming up GPU... 520.959485ms
 Loading data... 3.229767ms
 Parsing Query... 1.870256ms
