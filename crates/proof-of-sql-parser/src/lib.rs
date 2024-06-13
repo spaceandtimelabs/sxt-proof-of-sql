@@ -1,6 +1,4 @@
-//! Library for SQL parsing for the Proof of SQL execution engine.
-//!
-//! See the [proof-of-sql](https://docs.rs/proof-of-sql) crate.
+#![doc = include_str!("../README.md")]
 
 /// Module for handling an intermediate decimal type received from the lexer.
 pub mod intermediate_decimal;
