@@ -1,7 +1,7 @@
 # Proof of SQL
 
 <p align="center">
-<img src="docs/ProofOfSQLBanner.png" alt="Proof of SQL" width="100%"/>
+<img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBanner.png" alt="Proof of SQL" width="100%"/>
 <a href="https://twitter.com/intent/follow?screen_name=spaceandtimedb"><img alt="Twitter" src="https://img.shields.io/twitter/follow/spaceandtimedb.svg?style=social&label=Follow"></a><a href="http://discord.gg/SpaceandTimeDB"><img alt="Discord Server" src="https://img.shields.io/discord/953025874154893342?logo=discord"></a>
 </p>
 
@@ -16,7 +16,7 @@ Using Proof of SQL, developers can compute over both onchain and offchain datase
 
 Proof of SQL is in active development, and not all SQL functions are supported yet. Proof of SQL is most powerful as a community-driven project. We hope to foster a large group of contributers that can help maintain, improve, and
 use this project to create a trustless and data-driven future. Please create an Issue, file a PR, or reach out via Discord if you want to add a SQL feature,
-integrate into another ZK solution, use this in your project, or anything else! Check out our guidelines: [CONTRIBUTING.md](CONTRIBUTING.md).
+integrate into another ZK solution, use this in your project, or anything else! Check out our guidelines: [CONTRIBUTING.md](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md).
 
 ## For Developers
 
@@ -82,7 +82,7 @@ cargo run --example hello_world
 
 #### Output
 
-```
+```bash
 Warming up GPU... 520.959485ms
 Loading data... 3.229767ms
 Parsing Query... 1.870256ms
@@ -92,7 +92,7 @@ Valid proof!
 Query result: OwnedTable { table: {Identifier { name: "b" }: VarChar(["hello", "world"])} }
 ```
 
-For a detailed explanation of the example and its implementation, refer to the [README](crates/proof-of-sql/examples/hello_world/README.md) and source code in [hello_world/main.rs](crates/proof-of-sql/examples/hello_world/main.rs).
+For a detailed explanation of the example and its implementation, refer to the [README](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/hello_world/README.md) and source code in [hello_world/main.rs](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/hello_world/main.rs).
 
 ### CSV Database Example
 
@@ -104,7 +104,7 @@ To install the example:
 cargo install --example posql_db --path crates/proof-of-sql #TODO: update once this is published to crates.io
 ```
 
-For detailed usage instructions and examples of how to create, append to, prove, and verify queries in the CSV-backed database, refer to the [README](crates/proof-of-sql/examples/posql_db/README.md) and source code in [posql_db/main.rs](crates/proof-of-sql/examples/posql_db/main.rs).
+For detailed usage instructions and examples of how to create, append to, prove, and verify queries in the CSV-backed database, refer to the [README](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/posql_db/README.md) and source code in [posql_db/main.rs](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/crates/proof-of-sql/examples/posql_db/main.rs).
 
 ## Benchmarks
 
@@ -161,11 +161,11 @@ The results are shown in the graphs below for the T4 machine and the A100 machin
 * A query against 100 million rows of data can be proven in roughly a minute.
 * Verification time is roughly 20ms across the board.
 
-<p align="center"><img src="docs/ProofOfSQLBenchmarks200kT4.svg" alt="Proof Of SQL Benchmarks (200k - T4)" width="50%"/><img src="docs/ProofOfSQLBenchmarks200kA100.svg" alt="Proof Of SQL Benchmarks (200k - A100)" width="50%"/><img src="docs/ProofOfSQLBenchmarks10mT4.svg" alt="Proof Of SQL Benchmarks (10m - T4)" width="50%"/><img src="docs/ProofOfSQLBenchmarks100mA100.svg" alt="Proof Of SQL Benchmarks (100m - A100)" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kT4.svg" alt="Proof Of SQL Benchmarks (200k - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kA100.svg" alt="Proof Of SQL Benchmarks (200k - A100)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks10mT4.svg" alt="Proof Of SQL Benchmarks (10m - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks100mA100.svg" alt="Proof Of SQL Benchmarks (100m - A100)" width="50%"/></p>
 
 ## Supported SQL Syntax
 
-See the [SQL specification](docs/SQLSyntaxSpecification.md) for more details. Broadly, we support the following with more SQL features being added quickly:
+See the [SQL specification](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/docs/SQLSyntaxSpecification.md) for more details. Broadly, we support the following with more SQL features being added quickly:
 
 * `SELECT ... WHERE`
 * `GROUP BY`
@@ -200,16 +200,16 @@ A key architectural feature is the concept of a commitment, or digest. To ensure
 
 The initial interaction between the Verifier and the Prover involves data ingestion. In this process, when a service or client submits data for database inclusion, it first passes through the Verifier. Here, the Verifier generates (or updates) a commitment containing sufficient information to safeguard against tampering throughout the protocol. Once this commitment is established, the Verifier forwards the data to the database for storage, while retaining the commitment for future reference.
 
-<p align="center"><img src="docs/DataIngestionDiagram.png" alt="Data Ingestion Diagram" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/DataIngestionDiagram.png" alt="Data Ingestion Diagram" width="50%"/></p>
 
 ### Query Request
 
 The second interaction involves query requests, where the Verifier seeks data analytics on Prover-held data. When a service, client, or Verifier initiates a query request, it sends the request to the Prover. Here, the Prover parses the query, computes the result, and generates a proof, sent alongside the result to the Verifier, which is maintaining the commitment. The Verifier, armed with the proof and commitment, can verify the Prover's result against the query request.
 
-<p align="center"><img src="docs/QueryRequestDiagram.png" alt="Query Request Diagram" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/QueryRequestDiagram.png" alt="Query Request Diagram" width="50%"/></p>
 
 
 
 ## License
 
-Proof of SQL is licensed under the Decentralized Open Software License 1.0. Please see the [LICENSE](LICENSE) file for details.
+Proof of SQL is licensed under the Decentralized Open Software License 1.0. Please see the [LICENSE](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/LICENSE) file for details.
