@@ -4,8 +4,9 @@ name = "proof-of-sql"
 version = { workspace = true }
 edition = { workspace = true }
 repository = { workspace = true }
-description = "Generates and verifies cryptographic proofs for SxT OLTP queries."
+description = "High performance zero knowledge (ZK) prover for SQL."
 exclude = { workspace = true }
+license-file = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
