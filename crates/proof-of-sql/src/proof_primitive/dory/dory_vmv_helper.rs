@@ -42,12 +42,6 @@ pub(super) fn compute_T_vec_prime(
     let num_columns = 1 << sigma;
     let data_size = std::mem::size_of::<F>();
     let mut blitzar_commit = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 1];
-    let gs: Vec<_> = prover_setup.Gamma_1[nu]
-        .iter()
-        .copied()
-        .map(Into::into)
-        .collect();
-    let blitzar_handle = blitzar::compute::MsmHandle::new(&gs);
 
     a.chunks(1 << sigma)
         .map(|row| {
@@ -55,7 +49,7 @@ pub(super) fn compute_T_vec_prime(
             let column_transpose =
                 transpose::transpose_for_fixed_msm(&row_array, 0, num_columns, data_size);
 
-            blitzar_handle.msm(
+            prover_setup.blitzar_handle.msm(
                 &mut blitzar_commit,
                 data_size as u32,
                 column_transpose.as_slice(),

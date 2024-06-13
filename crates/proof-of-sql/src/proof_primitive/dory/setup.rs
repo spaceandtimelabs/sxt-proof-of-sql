@@ -2,6 +2,8 @@ use super::{G1Affine, G2Affine, PublicParameters, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+#[cfg(feature = "blitzar")]
+use blitzar::compute::{ElementP2, MsmHandle};
 use itertools::MultiUnzip;
 use num_traits::One;
 
@@ -26,6 +28,9 @@ pub struct ProverSetup<'a> {
     pub(super) Gamma_2_fin: G2Affine,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
+    /// The handle to the `blitzar` Gamma_1 instances.
+    #[cfg(feature = "blitzar")]
+    pub(super) blitzar_handle: &'a MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
 }
 
 impl<'a> ProverSetup<'a> {
@@ -37,10 +42,13 @@ impl<'a> ProverSetup<'a> {
         H_2: G2Affine,
         Gamma_2_fin: G2Affine,
         max_nu: usize,
+        #[cfg(feature = "blitzar")] blitzar_handle: &'a MsmHandle<
+            ElementP2<ark_bls12_381::g1::Config>,
+        >,
     ) -> Self {
         assert_eq!(Gamma_1.len(), 1 << max_nu);
         assert_eq!(Gamma_2.len(), 1 << max_nu);
-        let (Gamma_1, Gamma_2) = (0..max_nu + 1)
+        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..max_nu + 1)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
         ProverSetup {
@@ -50,6 +58,8 @@ impl<'a> ProverSetup<'a> {
             H_2,
             Gamma_2_fin,
             max_nu,
+            #[cfg(feature = "blitzar")]
+            blitzar_handle,
         }
     }
 }
@@ -63,6 +73,8 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
             value.H_2,
             value.Gamma_2_fin,
             value.max_nu,
+            #[cfg(feature = "blitzar")]
+            &value.blitzar_handle,
         )
     }
 }
