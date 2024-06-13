@@ -60,6 +60,7 @@ fn compute_dory_commitment(
         }
         CommittableColumn::VarChar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::Timestamp(column) => compute_dory_commitment_impl(column, offset, setup),
     }
 }
 
