@@ -24,6 +24,8 @@ pub enum OwnedColumn<S: Scalar> {
     Decimal75(Precision, i8, Vec<S>),
     /// Scalar columns
     Scalar(Vec<S>),
+    /// i32 columns
+    Timestamp(Vec<u64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -38,6 +40,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
+            OwnedColumn::Timestamp(col) => col.len(),
         }
     }
     /// Returns true if the column is empty.
@@ -51,6 +54,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
             OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
+            OwnedColumn::Timestamp(col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -66,6 +70,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
+            OwnedColumn::Timestamp(_) => ColumnType::Timestamp,
         }
     }
 }

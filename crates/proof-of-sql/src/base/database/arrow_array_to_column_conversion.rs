@@ -1,10 +1,6 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::{
-    base::{
-        database::Column,
-        math::decimal::Precision,
-        scalar::{Curve25519Scalar, Scalar},
-    },
+    base::{database::Column, math::decimal::Precision, scalar::Scalar},
     sql::parse::ConversionError,
 };
 use arrow::{
@@ -48,7 +44,7 @@ pub trait ArrayRefExt {
     #[cfg(feature = "blitzar")]
     fn to_curve25519_scalars(
         &self,
-    ) -> Result<Vec<Curve25519Scalar>, ArrowArrayToColumnConversionError>;
+    ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError>;
 
     /// Convert an ArrayRef into a Proof of SQL Column type
     ///
@@ -76,7 +72,7 @@ impl ArrayRefExt for ArrayRef {
     #[cfg(feature = "blitzar")]
     fn to_curve25519_scalars(
         &self,
-    ) -> Result<Vec<Curve25519Scalar>, ArrowArrayToColumnConversionError> {
+    ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError> {
         if self.null_count() != 0 {
             return Err(ArrowArrayToColumnConversionError::ArrayContainsNulls);
         }
@@ -283,7 +279,7 @@ impl ArrayRefExt for ArrayRef {
 mod tests {
 
     use super::*;
-    use crate::proof_primitive::dory::DoryScalar;
+    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use arrow::array::Decimal256Builder;
     use std::{str::FromStr, sync::Arc};
 

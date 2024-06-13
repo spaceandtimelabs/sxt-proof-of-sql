@@ -3,7 +3,7 @@ use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
-use arrow::datatypes::{DataType, Field};
+use arrow::datatypes::{DataType, Field, TimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -37,6 +37,8 @@ pub enum Column<'a, S: Scalar> {
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [crate::base::scalar::Scalar]).
     VarChar((&'a [&'a str], &'a [S])),
+    /// Timestamp columns
+    Timestamp(&'a [u64]),
 }
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
@@ -50,6 +52,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(_) => ColumnType::Int128,
             Self::Scalar(_) => ColumnType::Scalar,
             Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
+            Self::Timestamp(_) => ColumnType::Timestamp,
         }
     }
     /// Returns the length of the column.
@@ -66,6 +69,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => col.len(),
             Self::Scalar(col) => col.len(),
             Self::Decimal75(_, _, col) => col.len(),
+            Self::Timestamp(col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -153,6 +157,10 @@ impl<'a, S: Scalar> Column<'a, S> {
                 .par_iter()
                 .map(|s| *s * scale_factor)
                 .collect::<Vec<_>>(),
+            Self::Timestamp(col) => col
+                .par_iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
         }
     }
 }
@@ -194,6 +202,9 @@ pub enum ColumnType {
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
     Decimal75(Precision, i8),
+    /// Mapped to u64
+    #[serde(alias = "TIMESTAMP", alias = "timestamp")]
+    Timestamp,
 }
 
 impl ColumnType {
@@ -256,6 +267,7 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
+            ColumnType::Timestamp => DataType::Time64(TimeUnit::Second),
         }
     }
 }
@@ -298,6 +310,7 @@ impl std::fmt::Display for ColumnType {
             }
             ColumnType::VarChar => write!(f, "VARCHAR"),
             ColumnType::Scalar => write!(f, "SCALAR"),
+            ColumnType::Timestamp => write!(f, "TIMESTAMP"),
         }
     }
 }

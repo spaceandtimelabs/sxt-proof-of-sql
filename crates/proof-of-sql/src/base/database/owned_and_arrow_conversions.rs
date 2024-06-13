@@ -24,7 +24,7 @@ use crate::base::{
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray,
+        Int64Array, StringArray, UInt64Array,
     },
     datatypes::{i256, DataType, Schema, SchemaRef},
     error::ArrowError,
@@ -79,6 +79,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
+            OwnedColumn::Timestamp(col) => Arc::new(UInt64Array::from(col)),
         }
     }
 }

@@ -75,6 +75,7 @@ impl FilterResultExpr {
             Column::Scalar(_col) => todo!(),
             Column::Decimal75(_, _, col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
+            Column::Timestamp(col) => prover_evaluate_impl(builder, alloc, selection, col),
         };
     }
 

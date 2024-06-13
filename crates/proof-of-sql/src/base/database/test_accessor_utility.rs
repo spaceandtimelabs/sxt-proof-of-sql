@@ -2,9 +2,9 @@ use crate::base::database::ColumnType;
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        StringArray,
+        StringArray, UInt64Array,
     },
-    datatypes::{i256, DataType, Field, Schema},
+    datatypes::{i256, DataType, Field, Schema, TimeUnit},
     record_batch::RecordBatch,
 };
 use rand::{
@@ -115,6 +115,16 @@ pub fn make_random_test_accessor_data(
                 columns.push(Arc::new(StringArray::from(col)));
             }
             ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
+            ColumnType::Timestamp => {
+                column_fields.push(Field::new(
+                    *col_name,
+                    DataType::Time64(TimeUnit::Second),
+                    false,
+                ));
+
+                let values: Vec<u64> = values.iter().map(|x| *x as u64).collect();
+                columns.push(Arc::new(UInt64Array::from(values.to_vec())));
+            }
         }
     }
 

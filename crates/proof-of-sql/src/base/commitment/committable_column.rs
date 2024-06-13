@@ -37,6 +37,8 @@ pub enum CommittableColumn<'a> {
     Scalar(Vec<[u64; 4]>),
     /// Column of limbs for committing to scalars, hashed from a VarChar column.
     VarChar(Vec<[u64; 4]>),
+    /// Borrowed Timestamp column, mapped to `u64`.
+    Timestamp(&'a [u64]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -51,6 +53,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::Scalar(col) => col.len(),
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
+            CommittableColumn::Timestamp(col) => col.len(),
         }
     }
 
@@ -78,6 +81,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
+            CommittableColumn::Timestamp(_) => ColumnType::Timestamp,
         }
     }
 }
@@ -99,6 +103,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
+            Column::Timestamp(times) => CommittableColumn::Timestamp(times),
         }
     }
 }
@@ -128,6 +133,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
+            OwnedColumn::Timestamp(times) => (times as &[_]).into(),
         }
     }
 }
@@ -162,6 +168,11 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
         CommittableColumn::Boolean(value)
     }
 }
+impl<'a> From<&'a [u64]> for CommittableColumn<'a> {
+    fn from(value: &'a [u64]) -> Self {
+        CommittableColumn::Timestamp(value)
+    }
+}
 
 #[cfg(feature = "blitzar")]
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
@@ -175,6 +186,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
+            CommittableColumn::Timestamp(times) => Sequence::from(*times),
         }
     }
 }
