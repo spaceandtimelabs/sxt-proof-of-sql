@@ -5,8 +5,9 @@ version = { workspace = true }
 edition = { workspace = true }
 repository = { workspace = true }
 build = "build.rs"
-description = "Parse provable SQL queries into Intermediate ASTs"
+description = "Library for SQL parsing for the Proof of SQL execution engine."
 exclude = { workspace = true }
+license-file = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

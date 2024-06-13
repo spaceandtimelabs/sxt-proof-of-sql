@@ -7,6 +7,7 @@ edition = "2021"
 exclude = ["**/.gitignore", ".gitignore"]
 repository = "https://github.com/spaceandtimelabs/sxt-proof-of-sql"
 version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
+license-file = "LICENSE"
 
 [workspace.dependencies]
 ark-bls12-381 = { version = "0.4.0" }
