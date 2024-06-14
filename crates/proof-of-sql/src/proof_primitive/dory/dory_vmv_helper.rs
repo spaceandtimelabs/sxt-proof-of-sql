@@ -2,13 +2,14 @@
 use super::G1Projective;
 use super::{transpose, G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
-use ark_ec::AffineRepr;
 #[cfg(not(feature = "blitzar"))]
-use ark_ec::VariableBaseMSM;
+use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::{BigInt, MontBackend};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
 use num_traits::{One, Zero};
+#[cfg(feature = "blitzar")]
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
@@ -21,12 +22,17 @@ pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Ve
 }
 
 /// Converts a bls12-381 scalar to a u64 array.
-fn convert_scalar_to_array(
+#[cfg(feature = "blitzar")]
+fn convert_scalar_to_padded_array(
     scalars: &[ark_ff::Fp<MontBackend<ark_bls12_381::FrConfig, 4>, 4>],
+    num_columns: usize,
+    num_outputs: usize,
 ) -> Vec<[u64; 4]> {
     scalars
         .iter()
         .map(|&element| BigInt::<4>::from(element).0)
+        .chain(core::iter::repeat([0, 0, 0, 0]))
+        .take(num_columns * num_outputs)
         .collect()
 }
 
@@ -40,26 +46,21 @@ pub(super) fn compute_T_vec_prime(
     prover_setup: &ProverSetup,
 ) -> Vec<G1Affine> {
     let num_columns = 1 << sigma;
+    let num_outputs = 1 << nu;
     let data_size = std::mem::size_of::<F>();
-    let mut blitzar_commit = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 1];
 
-    a.chunks(1 << sigma)
-        .map(|row| {
-            let row_array = convert_scalar_to_array(row);
-            let column_transpose =
-                transpose::transpose_for_fixed_msm(&row_array, 0, num_columns, data_size);
+    let a_array = convert_scalar_to_padded_array(a, num_columns, num_outputs);
+    let a_transpose = transpose::transpose_for_fixed_msm(&a_array, 0, num_columns, data_size);
 
-            prover_setup.blitzar_handle.msm(
-                &mut blitzar_commit,
-                data_size as u32,
-                column_transpose.as_slice(),
-            );
+    let mut blitzar_commits = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_outputs];
 
-            blitzar_commit[0].clone().into()
-        })
-        .chain(core::iter::repeat(G1Affine::zero()))
-        .take(1 << nu)
-        .collect()
+    prover_setup.blitzar_msm(
+        &mut blitzar_commits,
+        data_size as u32,
+        a_transpose.as_slice(),
+    );
+
+    blitzar_commits.par_iter().map(Into::into).collect()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
