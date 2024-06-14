@@ -30,7 +30,7 @@ pub struct ProverSetup<'a> {
     pub(super) max_nu: usize,
     /// The handle to the `blitzar` Gamma_1 instances.
     #[cfg(feature = "blitzar")]
-    pub(super) blitzar_handle: &'a MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
+    blitzar_handle: &'a MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
 }
 
 impl<'a> ProverSetup<'a> {
@@ -85,7 +85,7 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
             value.Gamma_2_fin,
             value.max_nu,
             #[cfg(feature = "blitzar")]
-            &value.blitzar_handle,
+            value.get_blitzar_handle(),
         )
     }
 }

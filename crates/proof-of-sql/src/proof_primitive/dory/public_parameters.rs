@@ -21,7 +21,7 @@ pub struct PublicParameters {
     pub(super) max_nu: usize,
     /// The handle to the `blitzar` Gamma_1 instances.
     #[cfg(feature = "blitzar")]
-    pub(super) blitzar_handle: MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
+    blitzar_handle: MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
 }
 
 impl Clone for PublicParameters {
@@ -71,6 +71,12 @@ impl PublicParameters {
             #[cfg(feature = "blitzar")]
             blitzar_handle,
         }
+    }
+
+    /// Get a reference to the blitzar handle.
+    #[cfg(feature = "blitzar")]
+    pub fn get_blitzar_handle(&self) -> &MsmHandle<ElementP2<ark_bls12_381::g1::Config>> {
+        &self.blitzar_handle
     }
 
     #[cfg(feature = "blitzar")]
