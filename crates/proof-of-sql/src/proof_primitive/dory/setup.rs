@@ -62,6 +62,17 @@ impl<'a> ProverSetup<'a> {
             blitzar_handle,
         }
     }
+
+    #[cfg(feature = "blitzar")]
+    #[tracing::instrument(name = "ProverSetup::blitzar_msm", level = "debug", skip_all)]
+    pub(super) fn blitzar_msm(
+        &self,
+        res: &mut [ElementP2<ark_bls12_381::g1::Config>],
+        element_num_bytes: u32,
+        scalars: &[u8],
+    ) {
+        self.blitzar_handle.msm(res, element_num_bytes, scalars)
+    }
 }
 
 impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
