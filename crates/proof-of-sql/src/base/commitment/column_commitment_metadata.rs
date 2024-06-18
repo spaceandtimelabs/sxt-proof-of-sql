@@ -165,8 +165,11 @@ impl ColumnCommitmentMetadata {
 mod tests {
     use super::*;
     use crate::base::{
-        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
+        commitment::column_bounds::Bounds,
+        database::OwnedColumn,
+        math::decimal::Precision,
         scalar::Curve25519Scalar,
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     };
 
     #[test]
@@ -221,6 +224,18 @@ mod tests {
             ColumnCommitmentMetadata {
                 column_type: ColumnType::Decimal75(Precision::new(10).unwrap(), 0),
                 bounds: ColumnBounds::NoOrder,
+            }
+        );
+
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC),
+                ColumnBounds::TimestampTZ(Bounds::Empty),
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC),
+                bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
             }
         );
 
@@ -353,6 +368,26 @@ mod tests {
             &ColumnType::Decimal75(Precision::new(10).unwrap(), 0)
         );
         assert_eq!(decimal_metadata.bounds(), &ColumnBounds::NoOrder);
+
+        let timestamp_column: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::UTC,
+                [1i64, 2, 3, 4, 5].to_vec(),
+            );
+        let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
+        let timestamp_metadata =
+            ColumnCommitmentMetadata::from_column(&committable_timestamp_column);
+        assert_eq!(
+            timestamp_metadata.column_type(),
+            &ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC)
+        );
+        if let ColumnBounds::TimestampTZ(Bounds::Sharp(bounds)) = timestamp_metadata.bounds() {
+            assert_eq!(bounds.min(), &1);
+            assert_eq!(bounds.max(), &5);
+        } else {
+            panic!("Bounds constructed from nonempty TimestampTZ column should be ColumnBounds::BigInt(Bounds::Sharp(_))");
+        }
 
         let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
@@ -488,6 +523,80 @@ mod tests {
         assert_eq!(
             bigint_metadata_a.try_union(bigint_metadata_b).unwrap(),
             bigint_metadata_c
+        );
+
+        // Ordered case for TimestampTZ
+        // Example Unix epoch times
+        let times = [
+            1_625_072_400,
+            1_625_076_000,
+            1_625_079_600,
+            1_625_072_400,
+            1_625_065_000,
+        ];
+        let timezone = PoSQLTimeZone::UTC;
+        let timeunit = PoSQLTimeUnit::Second;
+        let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
+        let timestamp_metadata_a = ColumnCommitmentMetadata::from_column(&timestamp_column_a);
+        let timestamp_column_b = CommittableColumn::TimestampTZ(timeunit, timezone, &times[2..]);
+        let timestamp_metadata_b = ColumnCommitmentMetadata::from_column(&timestamp_column_b);
+        let timestamp_column_c = CommittableColumn::TimestampTZ(timeunit, timezone, &times);
+        let timestamp_metadata_c = ColumnCommitmentMetadata::from_column(&timestamp_column_c);
+        assert_eq!(
+            timestamp_metadata_a
+                .try_union(timestamp_metadata_b)
+                .unwrap(),
+            timestamp_metadata_c
+        );
+    }
+
+    #[test]
+    fn we_can_difference_timestamp_tz_matching_metadata() {
+        // Ordered case
+        let times = [
+            1_625_072_400,
+            1_625_076_000,
+            1_625_079_600,
+            1_625_072_400,
+            1_625_065_000,
+        ];
+        let timezone = PoSQLTimeZone::UTC;
+        let timeunit = PoSQLTimeUnit::Second;
+
+        let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
+        let timestamp_metadata_a = ColumnCommitmentMetadata::from_column(&timestamp_column_a);
+        let timestamp_column_b = CommittableColumn::TimestampTZ(timeunit, timezone, &times);
+        let timestamp_metadata_b = ColumnCommitmentMetadata::from_column(&timestamp_column_b);
+
+        let b_difference_a = timestamp_metadata_b
+            .try_difference(timestamp_metadata_a)
+            .unwrap();
+        assert_eq!(
+            b_difference_a.column_type,
+            ColumnType::TimestampTZ(timeunit, timezone)
+        );
+        if let ColumnBounds::TimestampTZ(Bounds::Bounded(bounds)) = b_difference_a.bounds {
+            assert_eq!(bounds.min(), &1_625_065_000);
+            assert_eq!(bounds.max(), &1_625_079_600);
+        } else {
+            panic!("difference of overlapping bounds should be Bounded");
+        }
+
+        let timestamp_column_empty = CommittableColumn::TimestampTZ(timeunit, timezone, &[]);
+        let timestamp_metadata_empty =
+            ColumnCommitmentMetadata::from_column(&timestamp_column_empty);
+
+        assert_eq!(
+            timestamp_metadata_b
+                .try_difference(timestamp_metadata_empty)
+                .unwrap(),
+            timestamp_metadata_b
+        );
+        assert_eq!(
+            timestamp_metadata_empty
+                .try_difference(timestamp_metadata_b)
+                .unwrap(),
+            timestamp_metadata_empty
         );
     }
 
@@ -745,6 +854,44 @@ mod tests {
             .is_err());
         assert!(different_decimal75_metadata
             .try_union(decimal75_metadata)
+            .is_err());
+
+        let timestamp_tz_metadata_a = ColumnCommitmentMetadata {
+            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC),
+            bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
+        };
+
+        let timestamp_tz_metadata_b = ColumnCommitmentMetadata {
+            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::UTC),
+            bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
+        };
+
+        // Tests for union operations
+        assert!(timestamp_tz_metadata_a.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata.try_union(timestamp_tz_metadata_a).is_err());
+
+        // Tests for difference operations
+        assert!(timestamp_tz_metadata_a
+            .try_difference(scalar_metadata)
+            .is_err());
+        assert!(scalar_metadata
+            .try_difference(timestamp_tz_metadata_a)
+            .is_err());
+
+        // Tests for different time units within the same type
+        assert!(timestamp_tz_metadata_a
+            .try_union(timestamp_tz_metadata_b)
+            .is_err());
+        assert!(timestamp_tz_metadata_b
+            .try_union(timestamp_tz_metadata_a)
+            .is_err());
+
+        // Difference with different time units
+        assert!(timestamp_tz_metadata_a
+            .try_difference(timestamp_tz_metadata_b)
+            .is_err());
+        assert!(timestamp_tz_metadata_b
+            .try_difference(timestamp_tz_metadata_a)
             .is_err());
     }
 }

@@ -2,7 +2,7 @@ use crate::base::{
     database::ColumnType,
     math::decimal::Precision,
     scalar::Scalar,
-    time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ pub enum LiteralValue<S: Scalar> {
     Scalar(S),
     /// TimeStamp defined over a unit (s, ms, ns, etc) and timezone with backing store
     /// mapped to i64, which is time units since unix epoch
-    TimeStampTZ(ProofsTimeUnit, ProofsTimeZone, i64),
+    TimeStampTZ(PoSQLTimeUnit, PoSQLTimeZone, i64),
 }
 
 impl<S: Scalar> LiteralValue<S> {

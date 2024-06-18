@@ -277,7 +277,9 @@ impl ColumnBounds {
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.difference(bounds_b)))
             }
-
+            (ColumnBounds::TimestampTZ(bounds_a), ColumnBounds::TimestampTZ(bounds_b)) => {
+                Ok(ColumnBounds::TimestampTZ(bounds_a.difference(bounds_b)))
+            }
             (_, _) => Err(ColumnBoundsMismatch(Box::new(self), Box::new(other))),
         }
     }
@@ -286,7 +288,12 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{
+        database::OwnedColumn,
+        math::decimal::Precision,
+        scalar::Curve25519Scalar,
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+    };
     use itertools::Itertools;
 
     #[test]
@@ -526,8 +533,19 @@ mod tests {
         );
         let committable_decimal75_column = CommittableColumn::from(&decimal75_column);
         let decimal75_column_bounds = ColumnBounds::from_column(&committable_decimal75_column);
-
         assert_eq!(decimal75_column_bounds, ColumnBounds::NoOrder);
+
+        let timestamp_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            vec![1_i64, 2, 3, 4],
+        );
+        let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
+        let timestamp_column_bounds = ColumnBounds::from_column(&committable_timestamp_column);
+        assert_eq!(
+            timestamp_column_bounds,
+            ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 1, max: 4 }))
+        );
     }
 
     #[test]
@@ -569,6 +587,14 @@ mod tests {
             int128_a.try_union(int128_b).unwrap(),
             ColumnBounds::Int128(Bounds::Bounded(BoundsInner { min: 1, max: 6 }))
         );
+
+        let timestamp_a = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let timestamp_b =
+            ColumnBounds::TimestampTZ(Bounds::Bounded(BoundsInner { min: 4, max: 6 }));
+        assert_eq!(
+            timestamp_a.try_union(timestamp_b).unwrap(),
+            ColumnBounds::TimestampTZ(Bounds::Bounded(BoundsInner { min: 1, max: 6 }))
+        );
     }
 
     #[test]
@@ -578,6 +604,7 @@ mod tests {
         let int = ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: -10, max: 10 }));
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let timestamp = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
 
         let bounds = [
             (no_order, "NoOrder"),
@@ -585,6 +612,7 @@ mod tests {
             (int, "Int"),
             (bigint, "BigInt"),
             (int128, "Int128"),
+            (timestamp, "Timestamp"),
         ];
 
         for ((bound_a, name_a), (bound_b, name_b)) in bounds.iter().tuple_combinations() {
@@ -626,6 +654,13 @@ mod tests {
             int128_a.try_difference(int128_b).unwrap(),
             ColumnBounds::Int128(Bounds::Bounded(BoundsInner { min: 1, max: 4 }))
         );
+
+        let timestamp_a = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 1, max: 4 }));
+        let timestamp_b = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 3, max: 6 }));
+        assert_eq!(
+            timestamp_a.try_difference(timestamp_b).unwrap(),
+            ColumnBounds::TimestampTZ(Bounds::Bounded(BoundsInner { min: 1, max: 4 }))
+        );
     }
 
     #[test]
@@ -633,6 +668,8 @@ mod tests {
         let no_order = ColumnBounds::NoOrder;
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let timestamp = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let smallint = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
 
         assert!(no_order.try_difference(bigint).is_err());
         assert!(bigint.try_difference(no_order).is_err());
@@ -642,5 +679,8 @@ mod tests {
 
         assert!(bigint.try_difference(int128).is_err());
         assert!(int128.try_difference(bigint).is_err());
+
+        assert!(smallint.try_difference(timestamp).is_err());
+        assert!(timestamp.try_difference(smallint).is_err());
     }
 }

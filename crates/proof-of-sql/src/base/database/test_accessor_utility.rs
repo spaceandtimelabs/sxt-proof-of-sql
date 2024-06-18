@@ -1,11 +1,11 @@
-use crate::base::{database::ColumnType, time::timestamp::ProofsTimeUnit};
+use crate::base::{database::ColumnType, time::timestamp::PoSQLTimeUnit};
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
         StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
-    datatypes::{i256, DataType, Field, Schema, TimeUnit},
+    datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 use rand::{
@@ -119,19 +119,22 @@ pub fn make_random_test_accessor_data(
             ColumnType::TimestampTZ(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.to_string()))),
+                    DataType::Timestamp(
+                        (*tu).into(),
+                        Some(Arc::from(tz.to_string())),
+                    ),
                     false,
                 ));
                 // Create the correct timestamp array based on the time unit
                 let timestamp_array: Arc<dyn Array> = match tu {
-                    ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
-                    ProofsTimeUnit::Millisecond => {
+                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
+                    PoSQLTimeUnit::Millisecond => {
                         Arc::new(TimestampMillisecondArray::from(values.to_vec()))
                     }
-                    ProofsTimeUnit::Microsecond => {
+                    PoSQLTimeUnit::Microsecond => {
                         Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
                     }
-                    ProofsTimeUnit::Nanosecond => {
+                    PoSQLTimeUnit::Nanosecond => {
                         Arc::new(TimestampNanosecondArray::from(values.to_vec()))
                     }
                 };

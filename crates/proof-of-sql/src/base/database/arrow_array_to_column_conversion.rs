@@ -4,7 +4,7 @@ use crate::{
         database::Column,
         math::decimal::Precision,
         scalar::Scalar,
-        time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::parse::ConversionError,
 };
@@ -279,9 +279,9 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Second => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
                         Ok(Column::TimestampTZ(
-                            ProofsTimeUnit::Second,
-                            ProofsTimeZone::try_from(tz.clone())?,
-                            array.values(),
+                            PoSQLTimeUnit::Second,
+                            PoSQLTimeZone::try_from(tz.clone())?,
+                            &array.values()[range.start..range.end],
                         ))
                     } else {
                         Err(ArrowArrayToColumnConversionError::UnsupportedType(
@@ -292,9 +292,9 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Millisecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
                         Ok(Column::TimestampTZ(
-                            ProofsTimeUnit::Millisecond,
-                            ProofsTimeZone::try_from(tz.clone())?,
-                            array.values(),
+                            PoSQLTimeUnit::Millisecond,
+                            PoSQLTimeZone::try_from(tz.clone())?,
+                            &array.values()[range.start..range.end],
                         ))
                     } else {
                         Err(ArrowArrayToColumnConversionError::UnsupportedType(
@@ -305,9 +305,9 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Microsecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
                         Ok(Column::TimestampTZ(
-                            ProofsTimeUnit::Microsecond,
-                            ProofsTimeZone::try_from(tz.clone())?,
-                            array.values(),
+                            PoSQLTimeUnit::Microsecond,
+                            PoSQLTimeZone::try_from(tz.clone())?,
+                            &array.values()[range.start..range.end],
                         ))
                     } else {
                         Err(ArrowArrayToColumnConversionError::UnsupportedType(
@@ -318,9 +318,9 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Nanosecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
                         Ok(Column::TimestampTZ(
-                            ProofsTimeUnit::Nanosecond,
-                            ProofsTimeZone::try_from(tz.clone())?,
-                            array.values(),
+                            PoSQLTimeUnit::Nanosecond,
+                            PoSQLTimeZone::try_from(tz.clone())?,
+                            &array.values()[range.start..range.end],
                         ))
                     } else {
                         Err(ArrowArrayToColumnConversionError::UnsupportedType(
@@ -364,6 +364,88 @@ mod tests {
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use arrow::array::Decimal256Builder;
     use std::{str::FromStr, sync::Arc};
+
+    #[test]
+    fn we_can_convert_timestamp_array_normal_range() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.clone().into(),
+            Some("UTC"),
+        ));
+
+        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
+        assert_eq!(
+            result.unwrap(),
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[1..3])
+        );
+    }
+
+    #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_timestamp() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.into(),
+            Some("UTC"),
+        ));
+
+        let result = array
+            .to_column::<DoryScalar>(&alloc, &(2..2), None)
+            .unwrap();
+        assert_eq!(
+            result,
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_timestamp_array_empty_range() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.into(),
+            Some("UTC"),
+        ));
+
+        let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
+        assert_eq!(
+            result.unwrap(),
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+        );
+    }
+
+    #[test]
+    fn we_cannot_convert_timestamp_array_oob_range() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000, 1625083200];
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.into(),
+            Some("UTC"),
+        ));
+
+        let result = array.to_column::<Curve25519Scalar>(&alloc, &(3..5), None);
+        assert_eq!(
+            result,
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 5))
+        );
+    }
+
+    #[test]
+    fn we_can_convert_timestamp_array_with_nulls() {
+        let alloc = Bump::new();
+        let data = vec![Some(1625072400), None, Some(1625083200)];
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.into(),
+            Some("UTC"),
+        ));
+
+        let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
+        assert!(matches!(
+            result,
+            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+        ));
+    }
 
     #[test]
     fn we_cannot_convert_utf8_array_oob_range() {
@@ -909,6 +991,24 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_timestamp_array_refs_into_valid_columns() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.clone().into(),
+            Some("UTC"),
+        ));
+
+        let result = array
+            .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+            .unwrap();
+        assert_eq!(
+            result,
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[..])
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_boolean_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
     {
         let alloc = Bump::new();
@@ -948,6 +1048,25 @@ mod tests {
                 .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::BigInt(&[1, 545])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_smaller_than_arrays(
+    ) {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.clone().into(),
+            Some("UTC"),
+        ));
+
+        // Test using a range smaller than the array size
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .unwrap(),
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[1..3])
         );
     }
 
@@ -993,6 +1112,23 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_with_zero_size() {
+        let alloc = Bump::new();
+        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.clone().into(),
+            Some("UTC"),
+        ));
+        let result = array
+            .to_column::<DoryScalar>(&alloc, &(0..0), None)
+            .unwrap();
+        assert_eq!(
+            result,
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+        );
+    }
+
+    #[test]
     fn we_can_convert_valid_boolean_array_refs_into_valid_vec_scalars() {
         let data = vec![false, true];
         let array: ArrayRef = Arc::new(arrow::array::BooleanArray::from(data.clone()));
@@ -1001,6 +1137,23 @@ mod tests {
             Ok(data
                 .iter()
                 .map(|v| v.into())
+                .collect::<Vec<Curve25519Scalar>>())
+        );
+    }
+
+    #[test]
+    fn we_can_convert_valid_timestamp_array_refs_into_valid_vec_scalars() {
+        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
+            data.clone().into(),
+            Some("UTC"),
+        ));
+
+        assert_eq!(
+            array.to_curve25519_scalars(),
+            Ok(data
+                .iter()
+                .map(|&v| Curve25519Scalar::from(v))
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }

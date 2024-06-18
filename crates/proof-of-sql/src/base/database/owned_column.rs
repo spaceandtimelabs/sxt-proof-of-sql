@@ -6,7 +6,7 @@ use super::ColumnType;
 use crate::base::{
     math::decimal::Precision,
     scalar::Scalar,
-    time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
@@ -29,7 +29,7 @@ pub enum OwnedColumn<S: Scalar> {
     /// Scalar columns
     Scalar(Vec<S>),
     /// Timestamp columns
-    TimestampTZ(ProofsTimeUnit, ProofsTimeZone, Vec<i64>),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -76,47 +76,5 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
-    }
-}
-
-impl<S: Scalar> FromIterator<bool> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
-        Self::Boolean(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i16> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i16>>(iter: T) -> Self {
-        Self::SmallInt(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i32> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
-        Self::Int(Vec::from_iter(iter))
-    }
-}
-// TODO: does this conflict with TimeStamp?
-impl<S: Scalar> FromIterator<i64> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i64>>(iter: T) -> Self {
-        Self::BigInt(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i128> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i128>>(iter: T) -> Self {
-        Self::Int128(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<String> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
-        Self::VarChar(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<S> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
-        Self::Scalar(Vec::from_iter(iter))
-    }
-}
-impl<'a, S: Scalar> FromIterator<&'a str> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
-        Self::from_iter(iter.into_iter().map(|s| s.to_string()))
     }
 }

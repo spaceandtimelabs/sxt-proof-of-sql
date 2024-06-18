@@ -2,7 +2,7 @@ use super::{LiteralValue, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
-    time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
@@ -43,7 +43,7 @@ pub enum Column<'a, S: Scalar> {
     /// - the first element maps to the stored [`TimeUnit`]
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
-    TimestampTZ(ProofsTimeUnit, ProofsTimeZone, &'a [i64]),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -215,7 +215,7 @@ pub enum ColumnType {
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
-    TimestampTZ(ProofsTimeUnit, ProofsTimeZone),
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
 }
 
 impl ColumnType {
@@ -301,8 +301,8 @@ impl TryFrom<DataType> for ColumnType {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
             DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
-                ProofsTimeUnit::from(time_unit),
-                ProofsTimeZone::try_from(timezone_option)?,
+                PoSQLTimeUnit::from(time_unit),
+                PoSQLTimeZone::try_from(timezone_option)?,
             )),
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
@@ -416,6 +416,10 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
+        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC);
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#"{"TimestampTZ":["Second","UTC"]}"#);
+
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
