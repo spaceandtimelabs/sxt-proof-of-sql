@@ -23,7 +23,7 @@ use std::collections::HashSet;
 /// While this wouldn't be as efficient as using a new custom expression for
 /// such queries, it allows us to easily support projects with minimal code
 /// changes, and the performance is sufficient for present.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LiteralExpr<S: Scalar> {
     value: LiteralValue<S>,
 }

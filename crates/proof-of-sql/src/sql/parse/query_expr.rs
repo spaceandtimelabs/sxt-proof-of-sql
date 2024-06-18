@@ -1,4 +1,4 @@
-use super::{FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
+use super::{EnrichedExpr, FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
@@ -72,15 +72,23 @@ impl<C: Commitment> QueryExpr<C> {
                 });
             }
         }
-
+        let column_mapping = context.get_column_mapping();
+        let enriched_exprs = result_aliased_exprs
+            .iter()
+            .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone()))
+            .collect::<Vec<_>>();
+        let select_exprs = enriched_exprs
+            .iter()
+            .map(|enriched_expr| enriched_expr.residue_expression.clone())
+            .collect::<Vec<_>>();
         let filter = FilterExprBuilder::new(context.get_column_mapping())
             .add_table_expr(*context.get_table_ref())
             .add_where_expr(context.get_where_expr().clone())?
-            .add_result_column_set(context.get_result_column_set())
+            .add_result_columns(&enriched_exprs)
             .build();
         let result = ResultExprBuilder::default()
-            .add_group_by_exprs(context.get_group_by_exprs(), result_aliased_exprs)
-            .add_select_exprs(result_aliased_exprs)
+            .add_group_by_exprs(context.get_group_by_exprs(), &select_exprs)
+            .add_select_exprs(&select_exprs)
             .add_order_by_exprs(context.get_order_by_exprs()?)
             .add_slice_expr(context.get_slice_expr())
             .build();
