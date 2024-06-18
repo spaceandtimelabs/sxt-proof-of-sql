@@ -2,7 +2,7 @@ use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use chrono_tz::Tz;
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::{str::FromStr, sync::Arc}; // Tz implements the TimeZone trait and provides access to IANA time zones
+use std::{str::FromStr, sync::Arc};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct Timestamp {
@@ -62,7 +62,7 @@ impl From<ArrowTimeUnit> for ProofsTimeUnit {
 }
 
 impl TryFrom<Option<&str>> for ProofsTimeZone {
-    type Error = &'static str; // Or use a more descriptive error type
+    type Error = &'static str;
 
     fn try_from(value: Option<&str>) -> Result<Self, Self::Error> {
         match value {
@@ -77,5 +77,89 @@ impl TryFrom<Option<&str>> for ProofsTimeZone {
 impl From<&ProofsTimeZone> for Arc<str> {
     fn from(timezone: &ProofsTimeZone) -> Self {
         Arc::from(timezone.0.name())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono_tz::Tz;
+
+    #[test]
+    fn we_can_convert_valid_timezones() {
+        let examples = ["Europe/London", "America/New_York", "Asia/Tokyo", "UTC"];
+
+        for &tz_str in &examples {
+            let timezone = ProofsTimeZone::try_from(Some(tz_str));
+            assert!(timezone.is_ok(), "Timezone should be valid: {}", tz_str);
+            assert_eq!(
+                timezone.unwrap().0,
+                Tz::from_str(tz_str).unwrap(),
+                "Timezone mismatch for {}",
+                tz_str
+            );
+        }
+    }
+
+    #[test]
+    fn we_cannot_convert_invalid_timezones() {
+        let invalid_tz_str = "Not/A_TimeZone";
+        let result = ProofsTimeZone::try_from(Some(invalid_tz_str));
+        assert!(
+            result.is_err(),
+            "Should return an error for invalid timezones"
+        );
+        assert_eq!(
+            result.unwrap_err(),
+            "Invalid timezone string",
+            "Error message should indicate invalid timezone string"
+        );
+    }
+
+    #[test]
+    fn we_can_get_utc_with_none_timezone() {
+        let result = ProofsTimeZone::try_from(None);
+        assert!(result.is_ok(), "None should convert without error");
+        assert_eq!(result.unwrap().0, Tz::UTC, "None should default to UTC");
+    }
+
+    #[test]
+    fn we_can_convert_from_arrow_time_units() {
+        assert_eq!(
+            ProofsTimeUnit::from(ArrowTimeUnit::Second),
+            ProofsTimeUnit::Second
+        );
+        assert_eq!(
+            ProofsTimeUnit::from(ArrowTimeUnit::Millisecond),
+            ProofsTimeUnit::Millisecond
+        );
+        assert_eq!(
+            ProofsTimeUnit::from(ArrowTimeUnit::Microsecond),
+            ProofsTimeUnit::Microsecond
+        );
+        assert_eq!(
+            ProofsTimeUnit::from(ArrowTimeUnit::Nanosecond),
+            ProofsTimeUnit::Nanosecond
+        );
+    }
+
+    #[test]
+    fn we_can_convert_to_arrow_time_units() {
+        assert_eq!(
+            ArrowTimeUnit::from(ProofsTimeUnit::Second),
+            ArrowTimeUnit::Second
+        );
+        assert_eq!(
+            ArrowTimeUnit::from(ProofsTimeUnit::Millisecond),
+            ArrowTimeUnit::Millisecond
+        );
+        assert_eq!(
+            ArrowTimeUnit::from(ProofsTimeUnit::Microsecond),
+            ArrowTimeUnit::Microsecond
+        );
+        assert_eq!(
+            ArrowTimeUnit::from(ProofsTimeUnit::Nanosecond),
+            ArrowTimeUnit::Nanosecond
+        );
     }
 }

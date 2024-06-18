@@ -274,10 +274,9 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::Timestamp(timeunit, timezone) => DataType::Timestamp(
-                ArrowTimeUnit::from(*timeunit),
-                Some(Arc::from(timezone)),
-            ),
+            ColumnType::Timestamp(timeunit, timezone) => {
+                DataType::Timestamp(ArrowTimeUnit::from(*timeunit), Some(Arc::from(timezone)))
+            }
         }
     }
 }

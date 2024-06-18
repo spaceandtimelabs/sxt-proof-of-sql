@@ -125,18 +125,16 @@ pub fn make_random_test_accessor_data(
 
                 // Create the correct timestamp array based on the time unit
                 let timestamp_array: Arc<dyn Array> = match tu {
-                    ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(
-                        values.to_vec(),
-                    )),
-                    ProofsTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(
-                        values.to_vec(),
-                    )),
-                    ProofsTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(
-                        values.to_vec(),
-                    )),
-                    ProofsTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(
-                        values.to_vec(),
-                    )),
+                    ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
+                    ProofsTimeUnit::Millisecond => {
+                        Arc::new(TimestampMillisecondArray::from(values.to_vec()))
+                    }
+                    ProofsTimeUnit::Microsecond => {
+                        Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
+                    }
+                    ProofsTimeUnit::Nanosecond => {
+                        Arc::new(TimestampNanosecondArray::from(values.to_vec()))
+                    }
                 };
                 columns.push(timestamp_array);
             }
