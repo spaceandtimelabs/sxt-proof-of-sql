@@ -29,6 +29,7 @@ bytemuck = {version = "1.14.2" }
 byte-slice-cast = { version = "1.2.1" }
 clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
+chrono-tz = {version = "0.9.0", features = ["serde"]}
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 dyn_partial_eq = { version = "0.1.2" }

@@ -115,7 +115,9 @@ impl ProvableQueryResult {
 
                     ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
-                    ColumnType::Timestamp => decode_and_convert::<i32, S>(&self.data[offset..]),
+                    ColumnType::Timestamp(_, _) => {
+                        decode_and_convert::<i64, S>(&self.data[offset..])
+                    }
                 }?;
 
                 val += evaluation_vec[index as usize] * x;
@@ -195,11 +197,11 @@ impl ProvableQueryResult {
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
                     }
-                    ColumnType::Timestamp => {
+                    ColumnType::Timestamp(tu, tz) => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
                             .ok_or(QueryError::Overflow)?;
                         offset += num_read;
-                        Ok((field.name(), OwnedColumn::Int(col)))
+                        Ok((field.name(), OwnedColumn::Timestamp(tu, tz, col)))
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,

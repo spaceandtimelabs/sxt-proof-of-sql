@@ -11,3 +11,4 @@ pub mod scalar;
 mod serialize;
 pub(crate) use serialize::{impl_serde_for_ark_serde_checked, impl_serde_for_ark_serde_unchecked};
 pub(crate) mod slice_ops;
+pub(crate) mod time;

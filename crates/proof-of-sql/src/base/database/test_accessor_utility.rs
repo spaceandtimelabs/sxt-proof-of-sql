@@ -1,8 +1,9 @@
-use crate::base::database::ColumnType;
+use crate::base::{database::ColumnType, time::timestamp::ProofsTimeUnit};
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        StringArray, UInt64Array,
+        StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Field, Schema, TimeUnit},
     record_batch::RecordBatch,
@@ -115,15 +116,29 @@ pub fn make_random_test_accessor_data(
                 columns.push(Arc::new(StringArray::from(col)));
             }
             ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
-            ColumnType::Timestamp => {
+            ColumnType::Timestamp(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Time64(TimeUnit::Second),
+                    DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.0.name()))),
                     false,
                 ));
 
-                let values: Vec<u64> = values.iter().map(|x| *x as u64).collect();
-                columns.push(Arc::new(UInt64Array::from(values.to_vec())));
+                // Create the correct timestamp array based on the time unit
+                let timestamp_array: Arc<dyn Array> = match tu {
+                    ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(
+                        values.to_vec(),
+                    )),
+                    ProofsTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(
+                        values.to_vec(),
+                    )),
+                    ProofsTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(
+                        values.to_vec(),
+                    )),
+                    ProofsTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(
+                        values.to_vec(),
+                    )),
+                };
+                columns.push(timestamp_array);
             }
         }
     }

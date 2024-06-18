@@ -3,7 +3,11 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::ColumnType;
-use crate::base::{math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    math::decimal::Precision,
+    scalar::Scalar,
+    time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+};
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 /// Supported types for OwnedColumn
@@ -24,8 +28,8 @@ pub enum OwnedColumn<S: Scalar> {
     Decimal75(Precision, i8, Vec<S>),
     /// Scalar columns
     Scalar(Vec<S>),
-    /// i32 columns
-    Timestamp(Vec<u64>),
+    /// Timestamp columns
+    Timestamp(ProofsTimeUnit, ProofsTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -40,7 +44,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
-            OwnedColumn::Timestamp(col) => col.len(),
+            OwnedColumn::Timestamp(_, _, col) => col.len(),
         }
     }
     /// Returns true if the column is empty.
@@ -54,7 +58,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
             OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
-            OwnedColumn::Timestamp(col) => col.is_empty(),
+            OwnedColumn::Timestamp(_, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -70,7 +74,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
-            OwnedColumn::Timestamp(_) => ColumnType::Timestamp,
+            OwnedColumn::Timestamp(tu, tz, _) => ColumnType::Timestamp(*tu, *tz),
         }
     }
 }

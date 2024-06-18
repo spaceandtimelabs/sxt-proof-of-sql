@@ -208,7 +208,7 @@ pub enum ColumnBounds {
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
     /// The bounds of a Timestamp column.
-    Timestamp(Bounds<u64>),
+    Timestamp(Bounds<i64>),
 }
 
 impl ColumnBounds {
@@ -221,7 +221,7 @@ impl ColumnBounds {
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
-            CommittableColumn::Timestamp(times) => {
+            CommittableColumn::Timestamp(_, _, times) => {
                 ColumnBounds::Timestamp(Bounds::from_iter(*times))
             }
             CommittableColumn::Boolean(_)

@@ -20,11 +20,13 @@ use crate::base::{
     },
     math::decimal::Precision,
     scalar::Scalar,
+    time::timestamp::ProofsTimeUnit,
 };
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray, UInt64Array,
+        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Schema, SchemaRef},
     error::ArrowError,
@@ -79,7 +81,12 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
-            OwnedColumn::Timestamp(col) => Arc::new(UInt64Array::from(col)),
+            OwnedColumn::Timestamp(time_unit, _, col) => match time_unit {
+                ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
+                ProofsTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
+                ProofsTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
+                ProofsTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
+            },
         }
     }
 }
