@@ -228,7 +228,7 @@ impl ColumnType {
                 | ColumnType::BigInt
                 | ColumnType::Int128
                 | ColumnType::Scalar
-                | ColumnType::Decimal75(_, _) // TODO: is a timestamp numeric?
+                | ColumnType::Decimal75(_, _)
         )
     }
 
@@ -236,7 +236,7 @@ impl ColumnType {
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128 // TODO: is a timestamp an integer?
+            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
         )
     }
 
