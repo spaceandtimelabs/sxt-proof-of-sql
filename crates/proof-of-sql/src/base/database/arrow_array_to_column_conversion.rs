@@ -1,14 +1,20 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::{
-    base::{database::Column, math::decimal::Precision, scalar::Scalar},
+    base::{
+        database::Column,
+        math::decimal::Precision,
+        scalar::Scalar,
+        time::timestamp::{ProofsTimeUnit, ProofsTimeZone},
+    },
     sql::parse::ConversionError,
 };
 use arrow::{
     array::{
         Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray,
+        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        TimestampNanosecondArray, TimestampSecondArray,
     },
-    datatypes::{i256, DataType},
+    datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
 use std::ops::Range;
@@ -32,6 +38,9 @@ pub enum ArrowArrayToColumnConversionError {
     /// Variant for conversion errors
     #[error("conversion error: {0}")]
     ConversionError(#[from] ConversionError),
+    /// Variant for timezone conversion errors, i.e. invalid timezone
+    #[error("Timezone conversion failed: {0}")]
+    TimezoneConversionError(String),
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
@@ -247,6 +256,61 @@ impl ArrayRefExt for ArrayRef {
                     ))
                 }
             }
+            // Handle all possible TimeStamp TimeUnit instances
+            DataType::Timestamp(time_unit, tz) => match time_unit {
+                ArrowTimeUnit::Second => {
+                    if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
+                        Ok(Column::Timestamp(
+                            ProofsTimeUnit::Second,
+                            ProofsTimeZone::try_from(tz.clone())?,
+                            array.values(),
+                        ))
+                    } else {
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                            self.data_type().clone(),
+                        ))
+                    }
+                }
+                ArrowTimeUnit::Millisecond => {
+                    if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
+                        Ok(Column::Timestamp(
+                            ProofsTimeUnit::Millisecond,
+                            ProofsTimeZone::try_from(tz.clone())?,
+                            array.values(),
+                        ))
+                    } else {
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                            self.data_type().clone(),
+                        ))
+                    }
+                }
+                ArrowTimeUnit::Microsecond => {
+                    if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
+                        Ok(Column::Timestamp(
+                            ProofsTimeUnit::Microsecond,
+                            ProofsTimeZone::try_from(tz.clone())?,
+                            array.values(),
+                        ))
+                    } else {
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                            self.data_type().clone(),
+                        ))
+                    }
+                }
+                ArrowTimeUnit::Nanosecond => {
+                    if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
+                        Ok(Column::Timestamp(
+                            ProofsTimeUnit::Nanosecond,
+                            ProofsTimeZone::try_from(tz.clone())?,
+                            array.values(),
+                        ))
+                    } else {
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                            self.data_type().clone(),
+                        ))
+                    }
+                }
+            },
             DataType::Utf8 => {
                 if let Some(array) = self.as_any().downcast_ref::<StringArray>() {
                     let vals = alloc

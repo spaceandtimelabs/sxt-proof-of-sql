@@ -119,7 +119,7 @@ pub fn make_random_test_accessor_data(
             ColumnType::Timestamp(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.0.name()))),
+                    DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.to_string()))),
                     false,
                 ));
 

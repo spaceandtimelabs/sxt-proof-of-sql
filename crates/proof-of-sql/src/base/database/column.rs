@@ -41,7 +41,7 @@ pub enum Column<'a, S: Scalar> {
     VarChar((&'a [&'a str], &'a [S])),
     /// Timestamp columns
     /// - the first element maps to the stored [`TimeUnit`]
-    /// - the second element maps to an optional timezone as a string
+    /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     Timestamp(ProofsTimeUnit, ProofsTimeZone, &'a [i64]),
 }
@@ -300,7 +300,7 @@ impl TryFrom<DataType> for ColumnType {
 
                 let timezone = match timezone_option {
                     Some(tz_arc) => {
-                        let tz_str = &*tz_arc; // Deref Arc<str> to &str
+                        let tz_str = &*tz_arc; // Dereference Arc<str> to &str
                         chrono_tz::Tz::from_str(tz_str)
                             .map_err(|_| format!("Invalid timezone string: {}", tz_str))?
                     }
@@ -309,7 +309,7 @@ impl TryFrom<DataType> for ColumnType {
 
                 Ok(ColumnType::Timestamp(
                     custom_time_unit,
-                    ProofsTimeZone(timezone),
+                    ProofsTimeZone::from(timezone),
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
