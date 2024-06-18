@@ -38,7 +38,7 @@ pub enum CommittableColumn<'a> {
     Scalar(Vec<[u64; 4]>),
     /// Column of limbs for committing to scalars, hashed from a VarChar column.
     VarChar(Vec<[u64; 4]>),
-    /// Borrowed Timestamp column, mapped to `u64`.
+    /// Borrowed Timestamp column, mapped to `i64`.
     Timestamp(ProofsTimeUnit, ProofsTimeZone, &'a [i64]),
 }
 
@@ -149,11 +149,14 @@ impl<'a> From<&'a [i32]> for CommittableColumn<'a> {
         CommittableColumn::Int(value)
     }
 }
+
+// TODO: make sure this does not conflict with TimeStamp
 impl<'a> From<&'a [i64]> for CommittableColumn<'a> {
     fn from(value: &'a [i64]) -> Self {
         CommittableColumn::BigInt(value)
     }
 }
+
 impl<'a> From<&'a [i128]> for CommittableColumn<'a> {
     fn from(value: &'a [i128]) -> Self {
         CommittableColumn::Int128(value)

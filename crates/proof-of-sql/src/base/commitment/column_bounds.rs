@@ -246,6 +246,9 @@ impl ColumnBounds {
             (ColumnBounds::BigInt(bounds_a), ColumnBounds::BigInt(bounds_b)) => {
                 Ok(ColumnBounds::BigInt(bounds_a.union(bounds_b)))
             }
+            (ColumnBounds::Timestamp(bounds_a), ColumnBounds::Timestamp(bounds_b)) => {
+                Ok(ColumnBounds::Timestamp(bounds_a.union(bounds_b)))
+            }
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.union(bounds_b)))
             }

@@ -1,1 +1,2 @@
-pub(crate) mod timestamp;
+/// Stores all functionality relelvant to timestamps
+pub mod timestamp;

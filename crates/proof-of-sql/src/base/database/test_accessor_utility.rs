@@ -122,7 +122,6 @@ pub fn make_random_test_accessor_data(
                     DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.to_string()))),
                     false,
                 ));
-
                 // Create the correct timestamp array based on the time unit
                 let timestamp_array: Arc<dyn Array> = match tu {
                     ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),

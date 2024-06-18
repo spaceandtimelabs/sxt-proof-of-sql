@@ -136,6 +136,24 @@ impl ArrayRefExt for ArrayRef {
                     })
                     .collect()
             }),
+            DataType::Timestamp(time_unit, _) => match time_unit {
+                ArrowTimeUnit::Second => self
+                    .as_any()
+                    .downcast_ref::<TimestampSecondArray>()
+                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
+                ArrowTimeUnit::Millisecond => self
+                    .as_any()
+                    .downcast_ref::<TimestampMillisecondArray>()
+                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
+                ArrowTimeUnit::Microsecond => self
+                    .as_any()
+                    .downcast_ref::<TimestampMicrosecondArray>()
+                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
+                ArrowTimeUnit::Nanosecond => self
+                    .as_any()
+                    .downcast_ref::<TimestampNanosecondArray>()
+                    .map(|array| array.values().iter().map(|v| Ok((*v).into())).collect()),
+            },
             _ => None,
         };
 

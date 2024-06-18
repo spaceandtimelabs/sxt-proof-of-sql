@@ -111,6 +111,9 @@ impl<'a, S: Scalar> Column<'a, S> {
                 *scale,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
+            LiteralValue::TimeStamp(tu, tz, value) => {
+                Column::Timestamp(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
+            }
             LiteralValue::VarChar((string, scalar)) => Column::VarChar((
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, *scalar),
@@ -306,7 +309,6 @@ impl TryFrom<DataType> for ColumnType {
                     }
                     None => chrono_tz::Tz::UTC, // Default to UTC if None
                 };
-
                 Ok(ColumnType::Timestamp(
                     custom_time_unit,
                     ProofsTimeZone::from(timezone),

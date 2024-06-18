@@ -1,10 +1,13 @@
-use crate::base::database::ArrowArrayToColumnConversionError;
+use crate::base::database::{ArrowArrayToColumnConversionError, OwnedArrowConversionError};
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use chrono_tz::Tz;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
 
+/// A postgresql-like `TimeStamp` type. It is defined over
+/// a [`TimeUnit`], which is a signed count of units either
+/// after or before the [Unix epoch](https://en.wikipedia.org/wiki/Unix_time).
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct Timestamp {
     time: i64,
@@ -12,13 +15,62 @@ pub struct Timestamp {
     timezone: Tz,
 }
 
+/// A typed TimeZone for a [`TimeStamp`]. It is optionally
+/// used to define a timezone other than UTC for a new TimeStamp.
+/// It exists as a wrapper around chrono-tz because chrono-tz does
+/// not implement uniform bit distribution
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ProofsTimeZone(Tz);
+
+impl ProofsTimeZone {
+    /// Create a new ProofsTimeZone from a chrono TimeZone
+    pub fn new(tz: Tz) -> Self {
+        ProofsTimeZone(tz)
+    }
+}
+
+impl From<&ProofsTimeZone> for Arc<str> {
+    fn from(timezone: &ProofsTimeZone) -> Self {
+        Arc::from(timezone.0.name())
+    }
+}
+
+impl From<Tz> for ProofsTimeZone {
+    fn from(tz: Tz) -> Self {
+        ProofsTimeZone(tz)
+    }
+}
 
 impl fmt::Display for ProofsTimeZone {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
+}
+
+impl TryFrom<Option<Arc<str>>> for ProofsTimeZone {
+    type Error = &'static str; // Explicitly state the error type
+
+    fn try_from(value: Option<Arc<str>>) -> Result<Self, Self::Error> {
+        match value {
+            Some(arc_str) => Tz::from_str(&arc_str)
+                .map(ProofsTimeZone)
+                .map_err(|_| "Invalid timezone string"),
+            None => Ok(ProofsTimeZone(Tz::UTC)), // Default to UTC
+        }
+    }
+}
+
+/// Specifies different units of time measurement relative to the Unix epoch.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Deserialize, Serialize, Hash)]
+pub enum ProofsTimeUnit {
+    /// Represents a time unit of one second.
+    Second,
+    /// Represents a time unit of one millisecond (1/1,000 of a second).
+    Millisecond,
+    /// Represents a time unit of one microsecond (1/1,000,000 of a second).
+    Microsecond,
+    /// Represents a time unit of one nanosecond (1/1,000,000,000 of a second).
+    Nanosecond,
 }
 
 impl From<ProofsTimeUnit> for ArrowTimeUnit {
@@ -30,14 +82,6 @@ impl From<ProofsTimeUnit> for ArrowTimeUnit {
             ProofsTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Deserialize, Serialize, Hash)]
-pub enum ProofsTimeUnit {
-    Second,
-    Millisecond,
-    Microsecond,
-    Nanosecond,
 }
 
 impl fmt::Display for ProofsTimeUnit {
@@ -62,34 +106,15 @@ impl From<ArrowTimeUnit> for ProofsTimeUnit {
     }
 }
 
-impl TryFrom<Option<Arc<str>>> for ProofsTimeZone {
-    type Error = &'static str; // Explicitly state the error type
-
-    fn try_from(value: Option<Arc<str>>) -> Result<Self, Self::Error> {
-        match value {
-            Some(arc_str) => Tz::from_str(&arc_str)
-                .map(ProofsTimeZone)
-                .map_err(|_| "Invalid timezone string"),
-            None => Ok(ProofsTimeZone(Tz::UTC)), // Default to UTC
-        }
-    }
-}
-
-impl From<&ProofsTimeZone> for Arc<str> {
-    fn from(timezone: &ProofsTimeZone) -> Self {
-        Arc::from(timezone.0.name())
+impl From<&'static str> for OwnedArrowConversionError {
+    fn from(error: &'static str) -> Self {
+        OwnedArrowConversionError::InvalidTimezone(error.to_string())
     }
 }
 
 impl From<&'static str> for ArrowArrayToColumnConversionError {
     fn from(error: &'static str) -> Self {
         ArrowArrayToColumnConversionError::TimezoneConversionError(error.to_string())
-    }
-}
-
-impl From<Tz> for ProofsTimeZone {
-    fn from(tz: Tz) -> Self {
-        ProofsTimeZone(tz)
     }
 }
 

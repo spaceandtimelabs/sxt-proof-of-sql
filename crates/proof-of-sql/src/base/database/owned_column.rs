@@ -94,6 +94,7 @@ impl<S: Scalar> FromIterator<i32> for OwnedColumn<S> {
         Self::Int(Vec::from_iter(iter))
     }
 }
+// TODO: does this conflict with TimeStamp?
 impl<S: Scalar> FromIterator<i64> for OwnedColumn<S> {
     fn from_iter<T: IntoIterator<Item = i64>>(iter: T) -> Self {
         Self::BigInt(Vec::from_iter(iter))
