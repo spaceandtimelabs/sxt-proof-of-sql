@@ -216,7 +216,7 @@ pub fn decimal75<S: Scalar>(
 /// use chrono_tz::Europe::London;
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///     timestamp("event_time", ProofsTimeUnit::Second, ProofsTimeZone::new(London), vec![1625072400, 1625076000, 1625079600]),
+///     timestamptz("event_time", ProofsTimeUnit::Second, ProofsTimeZone::new(London), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
 pub fn timestamptz<S: Scalar>(
