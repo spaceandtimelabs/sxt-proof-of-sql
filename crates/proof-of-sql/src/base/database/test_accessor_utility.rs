@@ -119,10 +119,7 @@ pub fn make_random_test_accessor_data(
             ColumnType::TimestampTZ(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Timestamp(
-                        (*tu).into(),
-                        Some(Arc::from(tz.to_string())),
-                    ),
+                    DataType::Timestamp((*tu).into(), Some(Arc::from(tz.to_string()))),
                     false,
                 ));
                 // Create the correct timestamp array based on the time unit
