@@ -9,7 +9,7 @@ use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -300,22 +300,10 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Decimal256(precision, scale) if precision <= 75 => {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
-            DataType::Timestamp(time_unit, timezone_option) => {
-                let custom_time_unit = ProofsTimeUnit::from(time_unit);
-
-                let timezone = match timezone_option {
-                    Some(tz_arc) => {
-                        let tz_str = &*tz_arc; // Dereference Arc<str> to &str
-                        chrono_tz::Tz::from_str(tz_str)
-                            .map_err(|_| format!("Invalid timezone string: {}", tz_str))?
-                    }
-                    None => chrono_tz::Tz::UTC, // Default to UTC if None
-                };
-                Ok(ColumnType::TimestampTZ(
-                    custom_time_unit,
-                    ProofsTimeZone::from(timezone),
-                ))
-            }
+            DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
+                ProofsTimeUnit::from(time_unit),
+                ProofsTimeZone::try_from(timezone_option)?,
+            )),
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
