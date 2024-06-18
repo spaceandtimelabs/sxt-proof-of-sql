@@ -23,16 +23,12 @@ pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Ve
 
 /// Converts a bls12-381 scalar to a u64 array.
 #[cfg(feature = "blitzar")]
-fn convert_scalar_to_padded_array(
+fn convert_scalar_to_array(
     scalars: &[ark_ff::Fp<MontBackend<ark_bls12_381::FrConfig, 4>, 4>],
-    num_columns: usize,
-    num_outputs: usize,
 ) -> Vec<[u64; 4]> {
     scalars
         .iter()
         .map(|&element| BigInt::<4>::from(element).0)
-        .chain(core::iter::repeat([0, 0, 0, 0]))
-        .take(num_columns * num_outputs)
         .collect()
 }
 
@@ -49,8 +45,9 @@ pub(super) fn compute_T_vec_prime(
     let num_outputs = 1 << nu;
     let data_size = std::mem::size_of::<F>();
 
-    let a_array = convert_scalar_to_padded_array(a, num_columns, num_outputs);
-    let a_transpose = transpose::transpose_for_fixed_msm(&a_array, 0, num_columns, data_size);
+    let a_array = convert_scalar_to_array(a);
+    let a_transpose =
+        transpose::transpose_for_fixed_msm(&a_array, 0, num_outputs, num_columns, data_size);
 
     let mut blitzar_commits = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_outputs];
 

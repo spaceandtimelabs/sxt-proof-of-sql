@@ -113,15 +113,11 @@ impl OffsetToBytes for [u64; 4] {
 pub fn transpose_for_fixed_msm<T: AsBytes + Copy + OffsetToBytes>(
     column: &[T],
     offset: usize,
-    num_columns: usize,
+    rows: usize,
+    cols: usize,
     data_size: usize,
 ) -> Vec<u8> {
-    let column_len_with_offset = column.len() + offset;
-    let total_length_bytes =
-        data_size * (((column_len_with_offset + num_columns - 1) / num_columns) * num_columns);
-    let cols = num_columns;
-    let rows = total_length_bytes / (data_size * cols);
-
+    let total_length_bytes = data_size * rows * cols;
     let mut transpose = vec![0_u8; total_length_bytes];
     for n in offset..(column.len() + offset) {
         let i = n / cols;
@@ -132,7 +128,6 @@ pub fn transpose_for_fixed_msm<T: AsBytes + Copy + OffsetToBytes>(
         transpose[t_idx..t_idx + data_size]
             .copy_from_slice(column[p_idx].offset_to_bytes().as_slice());
     }
-
     transpose
 }
 
@@ -145,12 +140,13 @@ mod tests {
         type T = u64;
         let column: Vec<T> = vec![];
         let offset = 0;
-        let num_columns = 2;
+        let rows = 0;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
         assert!(transpose.is_empty());
@@ -161,12 +157,13 @@ mod tests {
         type T = u64;
         let column: Vec<T> = vec![0, 1, 2, 3];
         let offset = 0;
-        let num_columns = 2;
+        let rows = 2;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 
@@ -187,12 +184,13 @@ mod tests {
         type T = u64;
         let column: Vec<T> = vec![1, 2, 3];
         let offset = 2;
-        let num_columns = 3;
+        let rows = 2;
+        let cols = 3;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset + 1);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 
@@ -215,12 +213,13 @@ mod tests {
         type T = bool;
         let column: Vec<T> = vec![true, false, true];
         let offset = 1;
-        let num_columns = 2;
+        let rows = 2;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 
@@ -241,12 +240,13 @@ mod tests {
         type T = i64;
         let column: Vec<T> = vec![0, 1, 2, 3];
         let offset = 0;
-        let num_columns = 2;
+        let rows = 2;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 
@@ -273,12 +273,13 @@ mod tests {
         type T = i128;
         let column: Vec<T> = vec![0, 1, 2, 3];
         let offset = 0;
-        let num_columns = 2;
+        let rows = 2;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 
@@ -305,12 +306,40 @@ mod tests {
         type T = [u64; 4];
         let column: Vec<T> = vec![[0, 0, 0, 0], [1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]];
         let offset = 0;
-        let num_columns = 2;
+        let rows = 2;
+        let cols = 2;
         let data_size = std::mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
-        let transpose = transpose_for_fixed_msm(&column, offset, num_columns, data_size);
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
+
+        assert_eq!(transpose.len(), expected_len);
+
+        assert_eq!(&transpose[0..data_size], column[0].as_bytes());
+        assert_eq!(&transpose[data_size..2 * data_size], column[2].as_bytes());
+        assert_eq!(
+            &transpose[2 * data_size..3 * data_size],
+            column[1].as_bytes()
+        );
+        assert_eq!(
+            &transpose[3 * data_size..4 * data_size],
+            column[3].as_bytes()
+        );
+    }
+
+    #[test]
+    fn we_can_transpose_u64_array_column_update() {
+        type T = [u64; 4];
+        let column: Vec<T> = vec![[0, 0, 0, 0], [1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]];
+        let offset = 0;
+        let rows = 2;
+        let cols = 2;
+        let data_size = std::mem::size_of::<T>();
+
+        let expected_len = data_size * (column.len() + offset);
+
+        let transpose = transpose_for_fixed_msm(&column, offset, rows, cols, data_size);
 
         assert_eq!(transpose.len(), expected_len);
 

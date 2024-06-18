@@ -30,8 +30,13 @@ fn get_offset_commits(
     if num_zero_commits < num_of_commits {
         // Get the commit of the first non-zero row
         let first_row_offset = offset - (num_zero_commits * num_columns);
-        let first_row_transpose =
-            transpose::transpose_for_fixed_msm(first_row, first_row_offset, num_columns, data_size);
+        let first_row_transpose = transpose::transpose_for_fixed_msm(
+            first_row,
+            first_row_offset,
+            1,
+            num_columns,
+            data_size,
+        );
 
         setup.public_parameters().blitzar_msm(
             &mut ones_blitzar_commits[num_zero_commits..num_zero_commits + 1],
@@ -44,7 +49,7 @@ fn get_offset_commits(
         if chunks.len() > 1 {
             if let Some(middle_row) = chunks.next() {
                 let middle_row_transpose =
-                    transpose::transpose_for_fixed_msm(middle_row, 0, num_columns, data_size);
+                    transpose::transpose_for_fixed_msm(middle_row, 0, 1, num_columns, data_size);
                 let mut middle_row_blitzar_commit =
                     vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 1];
 
@@ -63,7 +68,7 @@ fn get_offset_commits(
         // Get the commit of the last row to handle an zero padding at the end of the column
         if let Some(last_row) = remaining_elements.chunks(num_columns).last() {
             let last_row_transpose =
-                transpose::transpose_for_fixed_msm(last_row, 0, num_columns, data_size);
+                transpose::transpose_for_fixed_msm(last_row, 0, 1, num_columns, data_size);
 
             setup.public_parameters().blitzar_msm(
                 &mut ones_blitzar_commits[num_of_commits - 1..num_of_commits],
@@ -95,9 +100,9 @@ where
     let data_size = std::mem::size_of::<T>();
 
     // Format column to match column major data layout required by blitzar's msm
+    let num_of_commits = ((column.len() + offset) + num_columns - 1) / num_columns;
     let column_transpose =
-        transpose::transpose_for_fixed_msm(column, offset, num_columns, data_size);
-    let num_of_commits = column_transpose.len() / (data_size * num_columns);
+        transpose::transpose_for_fixed_msm(column, offset, num_of_commits, num_columns, data_size);
     let gamma_2_slice = &setup.public_parameters().Gamma_2[0..num_of_commits];
 
     // Compute the commitment for the entire data set
