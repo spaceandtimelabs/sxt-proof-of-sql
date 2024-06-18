@@ -85,7 +85,7 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
             value.Gamma_2_fin,
             value.max_nu,
             #[cfg(feature = "blitzar")]
-            value.get_blitzar_handle(),
+            &value.blitzar_handle,
         )
     }
 }
