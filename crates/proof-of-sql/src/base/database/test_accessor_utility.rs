@@ -116,7 +116,7 @@ pub fn make_random_test_accessor_data(
                 columns.push(Arc::new(StringArray::from(col)));
             }
             ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
-            ColumnType::Timestamp(tu, tz) => {
+            ColumnType::TimestampTZ(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
                     DataType::Timestamp(TimeUnit::from(*tu), Some(Arc::from(tz.to_string()))),

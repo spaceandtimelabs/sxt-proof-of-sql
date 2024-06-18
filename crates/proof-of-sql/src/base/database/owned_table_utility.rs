@@ -219,7 +219,7 @@ pub fn decimal75<S: Scalar>(
 ///     timestamp("event_time", ProofsTimeUnit::Second, ProofsTimeZone::new(London), vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
-pub fn timestamp<S: Scalar>(
+pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: ProofsTimeUnit,
     timezone: ProofsTimeZone,
@@ -227,6 +227,6 @@ pub fn timestamp<S: Scalar>(
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::Timestamp(time_unit, timezone, data.into_iter().collect()),
+        OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
 }

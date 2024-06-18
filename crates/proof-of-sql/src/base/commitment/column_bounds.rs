@@ -208,7 +208,7 @@ pub enum ColumnBounds {
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
     /// The bounds of a Timestamp column.
-    Timestamp(Bounds<i64>),
+    TimestampTZ(Bounds<i64>),
 }
 
 impl ColumnBounds {
@@ -221,8 +221,8 @@ impl ColumnBounds {
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
-            CommittableColumn::Timestamp(_, _, times) => {
-                ColumnBounds::Timestamp(Bounds::from_iter(*times))
+            CommittableColumn::TimestampTZ(_, _, times) => {
+                ColumnBounds::TimestampTZ(Bounds::from_iter(*times))
             }
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
@@ -246,8 +246,8 @@ impl ColumnBounds {
             (ColumnBounds::BigInt(bounds_a), ColumnBounds::BigInt(bounds_b)) => {
                 Ok(ColumnBounds::BigInt(bounds_a.union(bounds_b)))
             }
-            (ColumnBounds::Timestamp(bounds_a), ColumnBounds::Timestamp(bounds_b)) => {
-                Ok(ColumnBounds::Timestamp(bounds_a.union(bounds_b)))
+            (ColumnBounds::TimestampTZ(bounds_a), ColumnBounds::TimestampTZ(bounds_b)) => {
+                Ok(ColumnBounds::TimestampTZ(bounds_a.union(bounds_b)))
             }
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.union(bounds_b)))

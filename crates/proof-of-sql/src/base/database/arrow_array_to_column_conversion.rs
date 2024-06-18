@@ -278,7 +278,7 @@ impl ArrayRefExt for ArrayRef {
             DataType::Timestamp(time_unit, tz) => match time_unit {
                 ArrowTimeUnit::Second => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
-                        Ok(Column::Timestamp(
+                        Ok(Column::TimestampTZ(
                             ProofsTimeUnit::Second,
                             ProofsTimeZone::try_from(tz.clone())?,
                             array.values(),
@@ -291,7 +291,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 ArrowTimeUnit::Millisecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
-                        Ok(Column::Timestamp(
+                        Ok(Column::TimestampTZ(
                             ProofsTimeUnit::Millisecond,
                             ProofsTimeZone::try_from(tz.clone())?,
                             array.values(),
@@ -304,7 +304,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 ArrowTimeUnit::Microsecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
-                        Ok(Column::Timestamp(
+                        Ok(Column::TimestampTZ(
                             ProofsTimeUnit::Microsecond,
                             ProofsTimeZone::try_from(tz.clone())?,
                             array.values(),
@@ -317,7 +317,7 @@ impl ArrayRefExt for ArrayRef {
                 }
                 ArrowTimeUnit::Nanosecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
-                        Ok(Column::Timestamp(
+                        Ok(Column::TimestampTZ(
                             ProofsTimeUnit::Nanosecond,
                             ProofsTimeZone::try_from(tz.clone())?,
                             array.values(),

@@ -29,7 +29,7 @@ pub enum OwnedColumn<S: Scalar> {
     /// Scalar columns
     Scalar(Vec<S>),
     /// Timestamp columns
-    Timestamp(ProofsTimeUnit, ProofsTimeZone, Vec<i64>),
+    TimestampTZ(ProofsTimeUnit, ProofsTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -44,7 +44,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
-            OwnedColumn::Timestamp(_, _, col) => col.len(),
+            OwnedColumn::TimestampTZ(_, _, col) => col.len(),
         }
     }
     /// Returns true if the column is empty.
@@ -58,7 +58,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
             OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
-            OwnedColumn::Timestamp(_, _, col) => col.is_empty(),
+            OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -74,7 +74,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
-            OwnedColumn::Timestamp(tu, tz, _) => ColumnType::Timestamp(*tu, *tz),
+            OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
     }
 }

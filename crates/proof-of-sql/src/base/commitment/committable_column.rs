@@ -38,8 +38,8 @@ pub enum CommittableColumn<'a> {
     Scalar(Vec<[u64; 4]>),
     /// Column of limbs for committing to scalars, hashed from a VarChar column.
     VarChar(Vec<[u64; 4]>),
-    /// Borrowed Timestamp column, mapped to `i64`.
-    Timestamp(ProofsTimeUnit, ProofsTimeZone, &'a [i64]),
+    /// Borrowed Timestamp column with Timezone, mapped to `i64`.
+    TimestampTZ(ProofsTimeUnit, ProofsTimeZone, &'a [i64]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -54,7 +54,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::Scalar(col) => col.len(),
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
-            CommittableColumn::Timestamp(_, _, col) => col.len(),
+            CommittableColumn::TimestampTZ(_, _, col) => col.len(),
         }
     }
 
@@ -82,7 +82,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::Scalar(_) => ColumnType::Scalar,
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
-            CommittableColumn::Timestamp(tu, tz, _) => ColumnType::Timestamp(*tu, *tz),
+            CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
     }
 }
@@ -104,7 +104,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 let as_limbs: Vec<_> = scalars.iter().map(RefInto::<[u64; 4]>::ref_into).collect();
                 CommittableColumn::VarChar(as_limbs)
             }
-            Column::Timestamp(tu, tz, times) => CommittableColumn::Timestamp(*tu, *tz, times),
+            Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
         }
     }
 }
@@ -134,7 +134,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
                     .map(Into::<[u64; 4]>::into)
                     .collect(),
             ),
-            OwnedColumn::Timestamp(_, _, times) => (times as &[_]).into(),
+            OwnedColumn::TimestampTZ(_, _, times) => (times as &[_]).into(),
         }
     }
 }
@@ -185,7 +185,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
-            CommittableColumn::Timestamp(_, _, times) => Sequence::from(*times),
+            CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
         }
     }
 }

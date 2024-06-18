@@ -95,7 +95,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
                 Column::VarChar((col, scals))
             }
-            OwnedColumn::Timestamp(tu, tz, col) => Column::Timestamp(*tu, *tz, col),
+            OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col),
         }
     }
 }

@@ -9,7 +9,7 @@ use std::{str::FromStr, sync::Arc};
 /// a [`TimeUnit`], which is a signed count of units either
 /// after or before the [Unix epoch](https://en.wikipedia.org/wiki/Unix_time).
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
-pub struct Timestamp {
+pub struct TimestampTZ {
     time: i64,
     timeunit: ProofsTimeUnit,
     timezone: Tz,

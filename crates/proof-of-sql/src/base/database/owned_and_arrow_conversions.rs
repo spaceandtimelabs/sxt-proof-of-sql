@@ -87,7 +87,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
-            OwnedColumn::Timestamp(time_unit, _, col) => match time_unit {
+            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
                 ProofsTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
                 ProofsTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
                 ProofsTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
@@ -199,7 +199,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                             )
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
-                    Ok(OwnedColumn::Timestamp(
+                    Ok(OwnedColumn::TimestampTZ(
                         ProofsTimeUnit::Second,
                         ProofsTimeZone::try_from(timezone.clone())?,
                         timestamps,
@@ -215,7 +215,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                             )
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
-                    Ok(OwnedColumn::Timestamp(
+                    Ok(OwnedColumn::TimestampTZ(
                         ProofsTimeUnit::Millisecond,
                         ProofsTimeZone::try_from(timezone.clone())?,
                         timestamps,
@@ -231,7 +231,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                             )
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
-                    Ok(OwnedColumn::Timestamp(
+                    Ok(OwnedColumn::TimestampTZ(
                         ProofsTimeUnit::Microsecond,
                         ProofsTimeZone::try_from(timezone.clone())?,
                         timestamps,
@@ -247,7 +247,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                             )
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
-                    Ok(OwnedColumn::Timestamp(
+                    Ok(OwnedColumn::TimestampTZ(
                         ProofsTimeUnit::Nanosecond,
                         ProofsTimeZone::try_from(timezone.clone())?,
                         timestamps,

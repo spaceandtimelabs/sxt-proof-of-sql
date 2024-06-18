@@ -114,7 +114,7 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
         }
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::VarChar(_) => unimplemented!("Cannot sum varchar columns"),
-        Column::Timestamp(_, _, col) => {
+        Column::TimestampTZ(_, _, col) => {
             sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes)
         }
     }
@@ -178,7 +178,7 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
             Column::Decimal75(_, _, _) => todo!("TODO: unimplemented"),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
-            Column::Timestamp(_, _, col) => col[i].cmp(&col[j]),
+            Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

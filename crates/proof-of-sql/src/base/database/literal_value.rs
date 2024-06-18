@@ -36,7 +36,7 @@ pub enum LiteralValue<S: Scalar> {
     Scalar(S),
     /// TimeStamp defined over a unit (s, ms, ns, etc) and timezone with backing store
     /// mapped to i64, which is time units since unix epoch
-    TimeStamp(ProofsTimeUnit, ProofsTimeZone, i64),
+    TimeStampTZ(ProofsTimeUnit, ProofsTimeZone, i64),
 }
 
 impl<S: Scalar> LiteralValue<S> {
@@ -51,7 +51,7 @@ impl<S: Scalar> LiteralValue<S> {
             Self::Int128(_) => ColumnType::Int128,
             Self::Scalar(_) => ColumnType::Scalar,
             Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
-            Self::TimeStamp(tu, tz, _) => ColumnType::Timestamp(*tu, *tz),
+            Self::TimeStampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
     }
 
@@ -66,7 +66,7 @@ impl<S: Scalar> LiteralValue<S> {
             Self::Int128(i) => i.into(),
             Self::Decimal75(_, _, s) => *s,
             Self::Scalar(scalar) => *scalar,
-            Self::TimeStamp(_, _, time) => time.into(),
+            Self::TimeStampTZ(_, _, time) => time.into(),
         }
     }
 }

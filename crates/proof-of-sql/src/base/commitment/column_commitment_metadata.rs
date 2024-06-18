@@ -40,7 +40,7 @@ impl ColumnCommitmentMetadata {
             | (ColumnType::Int, ColumnBounds::Int(_))
             | (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
-            | (ColumnType::Timestamp(_, _), ColumnBounds::Timestamp(_))
+            | (ColumnType::TimestampTZ(_, _), ColumnBounds::TimestampTZ(_))
             | (
                 ColumnType::Boolean
                 | ColumnType::VarChar
@@ -73,7 +73,7 @@ impl ColumnCommitmentMetadata {
                 BoundsInner::try_new(i64::MIN, i64::MAX)
                     .expect("i64::MIN and i64::MAX are valid bounds for BigInt"),
             )),
-            ColumnType::Timestamp(_, _) => ColumnBounds::Timestamp(super::Bounds::Bounded(
+            ColumnType::TimestampTZ(_, _) => ColumnBounds::TimestampTZ(super::Bounds::Bounded(
                 BoundsInner::try_new(i64::MIN, i64::MAX)
                     .expect("i64::MIN and i64::MAX are valid bounds for TimeStamp"),
             )),
