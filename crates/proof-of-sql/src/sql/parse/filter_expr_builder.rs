@@ -1,18 +1,19 @@
-use super::{where_expr_builder::WhereExprBuilder, ConversionError};
+use super::{where_expr_builder::WhereExprBuilder, ConversionError, EnrichedExpr};
 use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
     },
-    sql::ast::{ColumnExpr, DenseFilterExpr, ProvableExprPlan, TableExpr},
+    sql::ast::{DenseFilterExpr, ProvableExprPlan, TableExpr},
 };
+use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<ProvableExprPlan<C>>,
-    filter_result_expr_list: Vec<ColumnExpr<C>>,
+    filter_result_expr_list: Vec<(ProvableExprPlan<C>, Identifier)>,
     column_mapping: HashMap<Identifier, ColumnRef>,
 }
 
@@ -40,16 +41,26 @@ impl<C: Commitment> FilterExprBuilder<C> {
         Ok(self)
     }
 
-    pub fn add_result_column_set(mut self, columns: HashSet<Identifier>) -> Self {
-        // Sorting is required to make the relative order of the columns deterministic
-        let mut columns = columns.into_iter().collect::<Vec<_>>();
-        columns.sort();
-
-        columns.into_iter().for_each(|column| {
-            let column = *self.column_mapping.get(&column).unwrap();
-            self.filter_result_expr_list.push(ColumnExpr::new(column));
-        });
-
+    pub fn add_result_columns(mut self, columns: &[EnrichedExpr<C>]) -> Self {
+        // If a column is provable, add it to the filter result expression list
+        // If at least one column is non-provable, add all columns from the column mapping to the filter result expression list
+        let mut has_nonprovable_column = false;
+        for enriched_expr in columns {
+            if let Some(plan) = &enriched_expr.provable_expr_plan {
+                self.filter_result_expr_list
+                    .push((plan.clone(), enriched_expr.residue_expression.alias));
+            } else {
+                has_nonprovable_column = true;
+            }
+        }
+        if has_nonprovable_column {
+            // Has to keep them sorted to have deterministic order for tests
+            for alias in self.column_mapping.keys().sorted() {
+                let column_ref = self.column_mapping.get(alias).unwrap();
+                self.filter_result_expr_list
+                    .push((ProvableExprPlan::new_column(*column_ref), *alias));
+            }
+        }
         self
     }
 

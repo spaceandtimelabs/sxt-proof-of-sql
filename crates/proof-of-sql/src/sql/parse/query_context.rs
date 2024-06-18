@@ -24,7 +24,6 @@ pub struct QueryContext {
     in_result_scope: bool,
     has_visited_group_by: bool,
     order_by_exprs: Vec<OrderBy>,
-    fixed_col_ref_counter: usize,
     group_by_exprs: Vec<Identifier>,
     where_expr: Option<Box<Expression>>,
     result_column_set: HashSet<Identifier>,
@@ -72,10 +71,11 @@ impl QueryContext {
                 "aggregation context needs to be set before exiting"
             );
             self.in_agg_scope = false;
-            return self.check_col_ref_counter();
+            return Ok(());
         }
 
         if self.in_agg_scope {
+            // TODO: Disable this once we support nested aggregations
             return Err(ConversionError::InvalidExpression(
                 "nested aggregations are not supported".to_string(),
             ));
@@ -83,10 +83,6 @@ impl QueryContext {
 
         self.agg_counter += 1;
         self.in_agg_scope = true;
-
-        // Resetting the counter to ensure that the
-        // aggregation expression references at least one column.
-        self.fixed_col_ref_counter = self.col_ref_counter;
 
         Ok(())
     }
@@ -111,25 +107,9 @@ impl QueryContext {
         }
     }
 
-    fn check_col_ref_counter(&mut self) -> ConversionResult<()> {
-        if self.col_ref_counter == self.fixed_col_ref_counter {
-            return Err(ConversionError::InvalidExpression(
-                "at least one column must be referenced in the result expression".to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
     pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
-
-        self.check_col_ref_counter()?;
         self.res_aliased_exprs.push(expr);
-
-        // Resetting the counter to ensure consecutive aliased
-        // expression references include at least one column.
-        self.fixed_col_ref_counter = self.col_ref_counter;
 
         Ok(())
     }
