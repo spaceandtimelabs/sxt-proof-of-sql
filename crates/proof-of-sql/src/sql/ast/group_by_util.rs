@@ -114,7 +114,7 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
         }
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::VarChar(_) => unimplemented!("Cannot sum varchar columns"),
-        Column::TimestampTZ(_, _, col) => {
+        Column::TimestampTZ(_, _, _) => {
             unimplemented!("Cannot sum varchar columns")
         }
     }
