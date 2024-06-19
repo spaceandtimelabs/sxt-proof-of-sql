@@ -5,6 +5,7 @@ use super::{
 use crate::base::{
     database::owned_table_utility::*,
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use blitzar::proof::InnerProductProof;
 
@@ -48,6 +49,12 @@ fn we_can_access_the_columns_of_a_table() {
         varchar("varchar", ["a", "bc", "d", "e"]),
         scalar("scalar", [1, 2, 3, 4]),
         boolean("boolean", [true, false, true, false]),
+        timestamptz(
+            "time",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [4, 5, 6, 5],
+        ),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -97,6 +104,16 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(table_ref_2, "boolean".parse().unwrap(), ColumnType::Boolean);
     match accessor.get_column(column) {
         Column::Boolean(col) => assert_eq!(col.to_vec(), vec![true, false, true, false]),
+        _ => panic!("Invalid column type"),
+    };
+
+    let column = ColumnRef::new(
+        table_ref_2,
+        "time".parse().unwrap(),
+        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC),
+    );
+    match accessor.get_column(column) {
+        Column::TimestampTZ(_, _, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
         _ => panic!("Invalid column type"),
     };
 }

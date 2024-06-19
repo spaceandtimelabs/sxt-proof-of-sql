@@ -20,13 +20,15 @@ use crate::base::{
     },
     math::decimal::Precision,
     scalar::Scalar,
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray,
+        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        TimestampNanosecondArray, TimestampSecondArray,
     },
-    datatypes::{i256, DataType, Schema, SchemaRef},
+    datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
     record_batch::RecordBatch,
 };
@@ -54,6 +56,12 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an Arrow array with nulls.
     #[error("null values are not supported in OwnedColumn yet")]
     NullNotSupportedYet,
+    /// This error occurs when trying to convert from an unsupported timestamp unit.
+    #[error("unsupported timestamp unit: {0}")]
+    UnsupportedTimestampUnit(String),
+    /// This error occurs when trying to convert from an invalid timezone string.
+    #[error("invalid timezone string: {0}")]
+    InvalidTimezone(String), // New error variant for timezone strings
 }
 
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
@@ -79,6 +87,12 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
+            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
+                PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
+                PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
+                PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
+                PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
+            },
         }
     }
 }
@@ -174,6 +188,72 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .map(|s| s.unwrap().to_string())
                     .collect(),
             )),
+            DataType::Timestamp(time_unit, timezone) => match time_unit {
+                ArrowTimeUnit::Second => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampSecondArray>()
+                        .ok_or_else(|| {
+                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                                "Second".to_string(),
+                            )
+                        })?;
+                    let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
+                    Ok(OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Second,
+                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        timestamps,
+                    ))
+                }
+                ArrowTimeUnit::Millisecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampMillisecondArray>()
+                        .ok_or_else(|| {
+                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                                "Millisecond".to_string(),
+                            )
+                        })?;
+                    let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
+                    Ok(OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Millisecond,
+                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        timestamps,
+                    ))
+                }
+                ArrowTimeUnit::Microsecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampMicrosecondArray>()
+                        .ok_or_else(|| {
+                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                                "Microsecond".to_string(),
+                            )
+                        })?;
+                    let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
+                    Ok(OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Microsecond,
+                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        timestamps,
+                    ))
+                }
+                ArrowTimeUnit::Nanosecond => {
+                    let array = value
+                        .as_any()
+                        .downcast_ref::<TimestampNanosecondArray>()
+                        .ok_or_else(|| {
+                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                                "Nanosecond".to_string(),
+                            )
+                        })?;
+                    let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
+                    Ok(OwnedColumn::TimestampTZ(
+                        PoSQLTimeUnit::Nanosecond,
+                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        timestamps,
+                    ))
+                }
+            },
             &data_type => Err(OwnedArrowConversionError::UnsupportedType(
                 data_type.clone(),
             )),

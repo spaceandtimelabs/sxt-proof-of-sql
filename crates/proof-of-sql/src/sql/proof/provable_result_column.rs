@@ -42,6 +42,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) => col.num_bytes(selection),
             Column::Scalar(col) => col.num_bytes(selection),
             Column::VarChar((col, _)) => col.num_bytes(selection),
+            Column::TimestampTZ(_, _, col) => col.num_bytes(selection),
         }
     }
 
@@ -55,6 +56,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
             Column::Decimal75(_, _, col) => col.write(out, selection),
             Column::Scalar(col) => col.write(out, selection),
             Column::VarChar((col, _)) => col.write(out, selection),
+            Column::TimestampTZ(_, _, col) => col.write(out, selection),
         }
     }
 }

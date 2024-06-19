@@ -3,7 +3,11 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::ColumnType;
-use crate::base::{math::decimal::Precision, scalar::Scalar};
+use crate::base::{
+    math::decimal::Precision,
+    scalar::Scalar,
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+};
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 /// Supported types for OwnedColumn
@@ -24,6 +28,8 @@ pub enum OwnedColumn<S: Scalar> {
     Decimal75(Precision, i8, Vec<S>),
     /// Scalar columns
     Scalar(Vec<S>),
+    /// Timestamp columns
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -38,6 +44,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
+            OwnedColumn::TimestampTZ(_, _, col) => col.len(),
         }
     }
     /// Returns true if the column is empty.
@@ -51,6 +58,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
             OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
+            OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -66,47 +74,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
+            OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
-    }
-}
-
-impl<S: Scalar> FromIterator<bool> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
-        Self::Boolean(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i16> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i16>>(iter: T) -> Self {
-        Self::SmallInt(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i32> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
-        Self::Int(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i64> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i64>>(iter: T) -> Self {
-        Self::BigInt(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<i128> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = i128>>(iter: T) -> Self {
-        Self::Int128(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<String> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
-        Self::VarChar(Vec::from_iter(iter))
-    }
-}
-impl<S: Scalar> FromIterator<S> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
-        Self::Scalar(Vec::from_iter(iter))
-    }
-}
-impl<'a, S: Scalar> FromIterator<&'a str> for OwnedColumn<S> {
-    fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
-        Self::from_iter(iter.into_iter().map(|s| s.to_string()))
     }
 }

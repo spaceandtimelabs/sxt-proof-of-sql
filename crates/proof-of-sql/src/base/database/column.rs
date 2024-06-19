@@ -2,12 +2,14 @@ use super::{LiteralValue, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
 };
-use arrow::datatypes::{DataType, Field};
+use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -37,7 +39,13 @@ pub enum Column<'a, S: Scalar> {
     ///  - the first element maps to the str values.
     ///  - the second element maps to the str hashes (see [crate::base::scalar::Scalar]).
     VarChar((&'a [&'a str], &'a [S])),
+    /// Timestamp columns with timezone
+    /// - the first element maps to the stored [`TimeUnit`]
+    /// - the second element maps to a timezone
+    /// - the third element maps to columns of timeunits since unix epoch
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
 }
+
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
     pub fn column_type(&self) -> ColumnType {
@@ -50,6 +58,9 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(_) => ColumnType::Int128,
             Self::Scalar(_) => ColumnType::Scalar,
             Self::Decimal75(precision, scale, _) => ColumnType::Decimal75(*precision, *scale),
+            Self::TimestampTZ(time_unit, timezone, _) => {
+                ColumnType::TimestampTZ(*time_unit, *timezone)
+            }
         }
     }
     /// Returns the length of the column.
@@ -66,6 +77,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => col.len(),
             Self::Scalar(col) => col.len(),
             Self::Decimal75(_, _, col) => col.len(),
+            Self::TimestampTZ(_, _, col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -101,6 +113,9 @@ impl<'a, S: Scalar> Column<'a, S> {
                 *scale,
                 alloc.alloc_slice_fill_copy(length, *value),
             ),
+            LiteralValue::TimeStampTZ(tu, tz, value) => {
+                Column::TimestampTZ(*tu, *tz, alloc.alloc_slice_fill_copy(length, *value))
+            }
             LiteralValue::VarChar((string, scalar)) => Column::VarChar((
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, *scalar),
@@ -153,6 +168,10 @@ impl<'a, S: Scalar> Column<'a, S> {
                 .par_iter()
                 .map(|s| *s * scale_factor)
                 .collect::<Vec<_>>(),
+            Self::TimestampTZ(_, _, col) => col
+                .par_iter()
+                .map(|i| S::from(i) * scale_factor)
+                .collect::<Vec<_>>(),
         }
     }
 }
@@ -194,6 +213,9 @@ pub enum ColumnType {
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
     Decimal75(Precision, i8),
+    /// Mapped to i64
+    #[serde(alias = "TIMESTAMP", alias = "timestamp")]
+    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
 }
 
 impl ColumnType {
@@ -224,6 +246,7 @@ impl ColumnType {
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
             Self::BigInt => Some(19_u8),
+            Self::TimestampTZ(_, _) => Some(19_u8),
             Self::Int128 => Some(39_u8),
             Self::Decimal75(precision, _) => Some(precision.value()),
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
@@ -256,6 +279,9 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
+            ColumnType::TimestampTZ(timeunit, timezone) => {
+                DataType::Timestamp(ArrowTimeUnit::from(*timeunit), Some(Arc::from(timezone)))
+            }
         }
     }
 }
@@ -274,6 +300,10 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Decimal256(precision, scale) if precision <= 75 => {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
+            DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
+                PoSQLTimeUnit::from(time_unit),
+                PoSQLTimeZone::try_from(timezone_option)?,
+            )),
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
@@ -298,6 +328,11 @@ impl std::fmt::Display for ColumnType {
             }
             ColumnType::VarChar => write!(f, "VARCHAR"),
             ColumnType::Scalar => write!(f, "SCALAR"),
+            ColumnType::TimestampTZ(timeunit, timezone) => write!(
+                f,
+                "TIMESTAMP(TIMEUNIT: {:?}, TIMEZONE: {timeunit})",
+                timezone
+            ),
         }
     }
 }
@@ -381,6 +416,10 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
+        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC);
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#"{"TimestampTZ":["Second","UTC"]}"#);
+
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);

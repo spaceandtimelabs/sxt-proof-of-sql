@@ -14,7 +14,10 @@
 //! ]);
 //! ```
 use super::{OwnedColumn, OwnedTable};
-use crate::base::scalar::Scalar;
+use crate::base::{
+    scalar::Scalar,
+    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+};
 use core::ops::Deref;
 use proof_of_sql_parser::Identifier;
 
@@ -193,5 +196,37 @@ pub fn decimal75<S: Scalar>(
             scale,
             data.into_iter().map(Into::into).collect(),
         ),
+    )
+}
+
+/// Creates a (Identifier, OwnedColumn) pair for a timestamp column.
+/// This is primarily intended for use in conjunction with [owned_table].
+///
+/// # Parameters
+/// - `name`: The name of the column.
+/// - `time_unit`: The time unit of the timestamps.
+/// - `timezone`: The timezone for the timestamps.
+/// - `data`: The data for the column, provided as an iterator over `i64` values representing time since the unix epoch.
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*,
+///     scalar::Curve25519Scalar,
+///     time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone}};
+/// use chrono_tz::Europe::London;
+///
+/// let result = owned_table::<Curve25519Scalar>([
+///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::new(London), vec![1625072400, 1625076000, 1625079600]),
+/// ]);
+/// ```
+pub fn timestamptz<S: Scalar>(
+    name: impl Deref<Target = str>,
+    time_unit: PoSQLTimeUnit,
+    timezone: PoSQLTimeZone,
+    data: impl IntoIterator<Item = i64>,
+) -> (Identifier, OwnedColumn<S>) {
+    (
+        name.parse().unwrap(),
+        OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
 }

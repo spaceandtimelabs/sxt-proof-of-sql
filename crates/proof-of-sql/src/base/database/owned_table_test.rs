@@ -2,6 +2,7 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         scalar::Curve25519Scalar,
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     proof_primitive::dory::DoryScalar,
 };
@@ -56,8 +57,22 @@ fn we_can_create_an_owned_table_with_data() {
             "boolean",
             [true, false, true, false, true, false, true, false, true],
         ),
+        timestamptz(
+            "timestamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+        ),
     ]);
     let mut table = IndexMap::new();
+    table.insert(
+        Identifier::try_new("timestamp").unwrap(),
+        OwnedColumn::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
+        ),
+    );
     table.insert(
         Identifier::try_new("bigint").unwrap(),
         OwnedColumn::BigInt(vec![0_i64, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX]),
@@ -109,12 +124,24 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
         boolean("d", [false; 0]),
+        timestamptz(
+            "timestamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [0; 0],
+        ),
     ]);
     let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table([
         boolean("d", [false; 0]),
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
         varchar("c", ["0"; 0]),
+        timestamptz(
+            "timestamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [0; 0],
+        ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
 }
@@ -125,12 +152,24 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
+        timestamptz(
+            "timestamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [1625072400],
+        ),
     ]);
     let owned_table_b: OwnedTable<DoryScalar> = owned_table([
         bigint("a", [1]),
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
+        timestamptz(
+            "timestamp",
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::UTC,
+            [1625076000],
+        ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
 }

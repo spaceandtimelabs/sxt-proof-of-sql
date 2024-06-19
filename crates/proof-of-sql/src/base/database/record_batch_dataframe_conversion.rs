@@ -1,8 +1,9 @@
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Int16Array, Int32Array, Int64Array, StringArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     },
-    datatypes::{DataType, Field, Schema},
+    datatypes::{DataType, Field, Schema, TimeUnit as ArrowTimeUnit},
     record_batch::RecordBatch,
 };
 use polars::{
@@ -60,6 +61,7 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> Option<DataFrame>
 
                     Series::new(f.name(), data)
                 }
+
                 arrow::datatypes::DataType::Utf8 => {
                     let data = col
                         .as_any()
@@ -80,6 +82,42 @@ pub fn record_batch_to_dataframe(record_batch: RecordBatch) -> Option<DataFrame>
                         .into_decimal_unchecked(Some(38), 0)
                         // Note: we make this unchecked because if record batch has values that overflow 38 digits, so should the data frame.
                         .into_series()
+                }
+                arrow::datatypes::DataType::Timestamp(time_unit, _timezone_option) => {
+                    match time_unit {
+                        arrow::datatypes::TimeUnit::Second => {
+                            let data = col
+                                .as_any()
+                                .downcast_ref::<arrow::array::TimestampSecondArray>()
+                                .map(|array| array.values())
+                                .unwrap();
+                            Series::new(f.name(), data)
+                        }
+                        arrow::datatypes::TimeUnit::Millisecond => {
+                            let data = col
+                                .as_any()
+                                .downcast_ref::<arrow::array::TimestampMillisecondArray>()
+                                .map(|array| array.values())
+                                .unwrap();
+                            Series::new(f.name(), data)
+                        }
+                        arrow::datatypes::TimeUnit::Microsecond => {
+                            let data = col
+                                .as_any()
+                                .downcast_ref::<arrow::array::TimestampMicrosecondArray>()
+                                .map(|array| array.values())
+                                .unwrap();
+                            Series::new(f.name(), data)
+                        }
+                        arrow::datatypes::TimeUnit::Nanosecond => {
+                            let data = col
+                                .as_any()
+                                .downcast_ref::<arrow::array::TimestampNanosecondArray>()
+                                .map(|array| array.values())
+                                .unwrap();
+                            Series::new(f.name(), data)
+                        }
+                    }
                 }
                 _ => None?,
             })
@@ -169,6 +207,40 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> Option<RecordBatch> {
                 ));
 
                 DataType::Decimal128(38, 0)
+            }
+            // NOTE: Polars does not support seconds
+            polars::datatypes::DataType::Datetime(timeunit, timezone) => {
+                let col = series.i64().unwrap().cont_slice().unwrap();
+                let timezone_arc = timezone.as_ref().map(|tz| Arc::from(tz.as_str()));
+                let arrow_array: Arc<dyn Array> = match timeunit {
+                    polars::datatypes::TimeUnit::Nanoseconds => {
+                        Arc::new(TimestampNanosecondArray::with_timezone_opt(
+                            col.to_vec().into(),
+                            timezone_arc,
+                        ))
+                    }
+                    polars::datatypes::TimeUnit::Microseconds => {
+                        Arc::new(TimestampMicrosecondArray::with_timezone_opt(
+                            col.to_vec().into(),
+                            timezone_arc,
+                        ))
+                    }
+                    polars::datatypes::TimeUnit::Milliseconds => {
+                        Arc::new(TimestampMillisecondArray::with_timezone_opt(
+                            col.to_vec().into(),
+                            timezone_arc,
+                        ))
+                    }
+                };
+                columns.push(arrow_array);
+                DataType::Timestamp(
+                    match timeunit {
+                        polars::datatypes::TimeUnit::Nanoseconds => ArrowTimeUnit::Nanosecond,
+                        polars::datatypes::TimeUnit::Microseconds => ArrowTimeUnit::Microsecond,
+                        polars::datatypes::TimeUnit::Milliseconds => ArrowTimeUnit::Millisecond,
+                    },
+                    None,
+                )
             }
             _ => return None,
         };
