@@ -126,8 +126,8 @@ macro_rules! expected_query {
         orderby_macro!($($order_by)?, $($order_dirs)?);
 
         macro_rules! filter_macro {
-            () => {dense_filter(cols_expr(t, &$result_columns, &accessor), tab(t), const_bool(true))};
-            ($expr:expr) => { dense_filter(cols_expr(t, &$result_columns, &accessor), tab(t), $expr) };
+            () => {dense_filter(cols_expr_plan(t, &$result_columns, &accessor), tab(t), const_bool(true))};
+            ($expr:expr) => { dense_filter(cols_expr_plan(t, &$result_columns, &accessor), tab(t), $expr) };
         }
         let filter = filter_macro!($($filter)?);
 
@@ -148,7 +148,7 @@ fn we_can_convert_an_ast_with_one_column() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
@@ -170,7 +170,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3_i64)),
         ),
@@ -192,7 +192,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_varchar("abc")),
         ),
@@ -243,11 +243,11 @@ fn we_dont_have_duplicate_filter_result_expressions() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            aliased_cols_expr_plan(t, &[("a", "b"), ("a", "c")], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        result(&[("a", "b"), ("a", "c")]),
+        result(&[("b", "b"), ("c", "c")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -267,7 +267,7 @@ fn we_can_convert_an_ast_with_two_columns() {
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a", "b"], &accessor),
+            cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             equal(column(t, "c", &accessor), const_bigint(123)),
         ),
@@ -290,7 +290,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a", "b"], &accessor),
+            cols_expr_plan(t, &["b", "a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
@@ -313,7 +313,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "b", &accessor), const_bigint(4)),
         ),
@@ -336,7 +336,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             not(equal(column(t, "b", &accessor), const_bigint(4))),
         ),
@@ -359,7 +359,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             lte(column(t, "b", &accessor), const_bigint(-4)),
         ),
@@ -387,7 +387,7 @@ fn we_can_convert_an_ast_with_cond_and() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             and(
                 equal(column(t, "b", &accessor), const_bigint(3)),
@@ -418,7 +418,7 @@ fn we_can_convert_an_ast_with_cond_or() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             or(
                 equal(column(t, "b", &accessor), const_bigint(3)),
@@ -449,7 +449,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             or(
                 lte(column(t, "b", &accessor), const_bigint(3)),
@@ -476,12 +476,21 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where not (((f >= 45) or (c <= -2)) and (b = 3))",
+        "select a, not (a = b or c = f) as boolean from sxt_tab where not (((f >= 45) or (c <= -2)) and (b = 3))",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            vec![
+                col_expr_plan(t, "a", &accessor),
+                (
+                    not(or(
+                        equal(column(t, "a", &accessor), column(t, "b", &accessor)),
+                        equal(column(t, "c", &accessor), column(t, "f", &accessor)),
+                    )),
+                    "boolean".parse().unwrap(),
+                ),
+            ],
             tab(t),
             not(and(
                 or(
@@ -491,13 +500,13 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 equal(column(t, "b", &accessor), const_bigint(3)),
             )),
         ),
-        result(&[("a", "a")]),
+        result(&[("a", "a"), ("boolean", "boolean")]),
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
-fn we_can_convert_an_ast_with_the_min_i128_filter_value() {
+fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -508,22 +517,25 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where a = -170141183460469231731687303715884105728",
+        "select a, -170141183460469231731687303715884105728 as b from sxt_tab where a = -170141183460469231731687303715884105728",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            vec![
+                col_expr_plan(t, "a", &accessor),
+                (const_int128(i128::MIN), "b".parse().unwrap()),
+            ],
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MIN)),
         ),
-        result(&[("a", "a")]),
+        result(&[("a", "a"), ("b", "b")]),
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
-fn we_can_convert_an_ast_with_the_max_i128_filter_value() {
+fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = record_batch_to_accessor(
         t,
@@ -534,16 +546,19 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where a = 170141183460469231731687303715884105727",
+        "select a, 170141183460469231731687303715884105727 as ma from sxt_tab where a = 170141183460469231731687303715884105727",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            vec![
+                col_expr_plan(t, "a", &accessor),
+                (const_int128(i128::MAX), "ma".parse().unwrap()),
+            ],
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MAX)),
         ),
-        result(&[("a", "a")]),
+        result(&[("a", "a"), ("ma", "ma")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -561,16 +576,22 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a as b_rename from sxt_tab where b >= +4",
+        "select a as b_rename, a = b as boolean from sxt_tab where b >= +4",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            vec![col_expr(t, "a", &accessor)],
+            vec![
+                aliased_col_expr_plan(t, "a", "b_rename", &accessor),
+                (
+                    equal(column(t, "a", &accessor), column(t, "b", &accessor)),
+                    "boolean".parse().unwrap(),
+                ),
+            ],
             tab(t),
             gte(column(t, "b", &accessor), const_bigint(4)),
         ),
-        result(&[("a", "b_rename")]),
+        result(&[("b_rename", "b_rename"), ("boolean", "boolean")]),
     );
     assert_eq!(ast, expected_ast);
 }
@@ -614,7 +635,7 @@ fn we_can_convert_an_ast_with_a_schema() {
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
@@ -634,10 +655,20 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
         0,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
-        result(&[("a", "a")]),
+        dense_filter(
+            vec![
+                col_expr_plan(t, "a", &accessor),
+                (const_bigint(3), "b".parse().unwrap()),
+            ],
+            tab(t),
+            const_bool(true),
+        ),
+        result(&[("a", "a"), ("b", "b")]),
     );
-    let queries = ["select * from eth.sxt_tab", "select a from eth.sxt_tab"];
+    let queries = [
+        "select *, 3 as b from eth.sxt_tab",
+        "select a, 3 as b from eth.sxt_tab",
+    ];
     for query in queries {
         let ast = query_to_provable_ast(t, query, &accessor);
         assert_eq!(ast, expected_ast);
@@ -661,7 +692,7 @@ fn we_can_parse_order_by_with_a_single_column() {
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a", "b"], &accessor),
+            cols_expr_plan(t, &["b", "a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
@@ -691,7 +722,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a", "b"], &accessor),
+            cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
@@ -723,14 +754,14 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
     let expected_ast = QueryExpr::new(
         dense_filter(
             vec![
-                col_expr(t, "name", &accessor),
-                col_expr(t, "salary", &accessor),
+                aliased_col_expr_plan(t, "salary", "s", &accessor),
+                aliased_col_expr_plan(t, "name", "salary", &accessor),
             ],
             tab(t),
             equal(column(t, "salary", &accessor), const_bigint(5)),
         ),
         composite_result(vec![
-            select(&[pc("salary").alias("s"), pc("name").alias("salary")]),
+            select(&[pc("s").alias("s"), pc("salary").alias("salary")]),
             orders(&["salary"], &[Desc]),
         ]),
     );
@@ -836,17 +867,18 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
         let expected_ast = QueryExpr::new(
             dense_filter(
                 vec![
-                    col_expr(t, "name", &accessor),
-                    col_expr(t, "salary", &accessor),
+                    aliased_col_expr_plan(t, "salary", "s", &accessor),
+                    col_expr_plan(t, "name", &accessor),
+                    aliased_col_expr_plan(t, "salary", "d", &accessor),
                 ],
                 tab(t),
                 const_bool(true),
             ),
             composite_result(vec![
                 select(&[
-                    pc("salary").alias("s"),
+                    pc("s").alias("s"),
                     pc("name").alias("name"),
-                    pc("salary").alias("d"),
+                    pc("d").alias("d"),
                 ]),
                 orders(&[order_by], &[Asc]),
             ]),
@@ -872,7 +904,11 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(3, 0)]),
     );
     assert_eq!(ast, expected_ast);
@@ -891,7 +927,11 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
         composite_result(vec![select(&[pc("a").alias("a")])]),
     );
     assert_eq!(ast, expected_ast);
@@ -910,7 +950,11 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, 7)]),
     );
     assert_eq!(ast, expected_ast);
@@ -929,7 +973,11 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, -7)]),
     );
     assert_eq!(ast, expected_ast);
@@ -948,7 +996,11 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(cols_expr(t, &["a"], &accessor), tab(t), const_bool(true)),
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
         composite_result(vec![select(&[pc("a").alias("a")]), slice(55, 3)]),
     );
     assert_eq!(ast, expected_ast);
@@ -965,23 +1017,33 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
         t,
         record_batch!(
             "a" => [5_i64],
+            "boolean" => [true],
         ),
         0,
     );
 
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where a = -3 order by a desc limit 55 offset 3",
+        "select a, boolean and a >= 4 as res from sxt_tab where a = -3 order by a desc limit 55 offset 3",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a"], &accessor),
+            vec![
+                col_expr_plan(t, "a", &accessor),
+                (
+                    and(
+                        column(t, "boolean", &accessor),
+                        gte(column(t, "a", &accessor), const_bigint(4)),
+                    ),
+                    "res".parse().unwrap(),
+                ),
+            ],
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(-3)),
         ),
         composite_result(vec![
-            select(&[pc("a").alias("a")]),
+            select(&[pc("a").alias("a"), pc("res").alias("res")]),
             orders(&["a"], &[Desc]),
             slice(55, 3),
         ]),
@@ -1166,21 +1228,27 @@ fn we_can_group_by_without_using_aggregate_functions() {
 
     let ast = query_to_provable_ast(
         t,
-        "select department from employees group by department",
+        "select department, true as is_remote from employees group by department",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["department"], &accessor),
+            vec![
+                (const_bool(true), "is_remote".parse().unwrap()),
+                col_expr_plan(t, "department", &accessor),
+            ],
             tab(t),
             const_bool(true),
         ),
         composite_result(vec![
             groupby(
                 vec![pc("department")],
-                vec![pc("department").first().alias("department")],
+                vec![
+                    pc("department").first().alias("department"),
+                    pc("is_remote").alias("is_remote"),
+                ],
             ),
-            select(&[pc("department")]),
+            select(&[pc("department"), pc("is_remote")]),
         ]),
     );
     assert_eq!(ast, expected_ast);
@@ -1328,7 +1396,7 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["bonus", "department"], &accessor),
+            cols_expr_plan(t, &["bonus", "department"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1362,7 +1430,7 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["bonus", "department"], &accessor),
+            cols_expr_plan(t, &["bonus", "department"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1400,7 +1468,7 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["department"], &accessor),
+            cols_expr_plan(t, &["department", "salary"], &accessor),
             tab(t),
             equal(column(t, "salary", &accessor), const_bigint(4)),
         ),
@@ -1454,7 +1522,7 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["department"], &accessor),
+            cols_expr_plan(t, &["department"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1516,7 +1584,7 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["a", "b", "f", "h"], &accessor),
+            cols_expr_plan(t, &["a", "b", "f", "h"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1554,7 +1622,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["c", "f", "g", "h"], &accessor),
+            cols_expr_plan(t, &["c", "f", "g", "h"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1587,7 +1655,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr(t, &["c", "f"], &accessor),
+            cols_expr_plan(t, &["c", "f"], &accessor),
             tab(t),
             const_bool(true),
         ),
@@ -1603,34 +1671,6 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
         ]),
     );
     assert_eq!(ast, expected_ast);
-}
-
-#[test]
-fn we_need_to_reference_at_least_one_column_in_the_result_expr() {
-    assert_eq!(
-        query!(select: ["i", "-123 "], should_err: true),
-        ConversionError::InvalidExpression(
-            "at least one column must be referenced in the result expression".to_string()
-        )
-    );
-    assert_eq!(
-        query!(select: ["sum(-123)"], should_err: true),
-        ConversionError::InvalidExpression(
-            "at least one column must be referenced in the result expression".to_string()
-        )
-    );
-    assert_eq!(
-        query!(select: ["i + sum(-123)"], group: ["i"], should_err: true),
-        ConversionError::InvalidExpression(
-            "at least one column must be referenced in the result expression".to_string()
-        )
-    );
-    assert_eq!(
-        query!(select: ["sum(-123) + i"], group: ["i"], should_err: true),
-        ConversionError::InvalidExpression(
-            "at least one column must be referenced in the result expression".to_string()
-        )
-    );
 }
 
 #[test]

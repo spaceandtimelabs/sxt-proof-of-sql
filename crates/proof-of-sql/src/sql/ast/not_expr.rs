@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable logical NOT expression
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NotExpr<C: Commitment> {
     expr: Box<ProvableExprPlan<C>>,
 }

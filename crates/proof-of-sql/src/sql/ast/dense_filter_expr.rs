@@ -2,7 +2,7 @@ use super::{
     dense_filter_util::{fold_columns, fold_vals},
     filter_columns,
     provable_expr_plan::ProvableExprPlan,
-    ColumnExpr, ProvableExpr, TableExpr,
+    ProvableExpr, TableExpr,
 };
 use crate::{
     base::{
@@ -22,6 +22,7 @@ use crate::{
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use num_traits::{One, Zero};
+use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 
@@ -33,7 +34,7 @@ use std::{collections::HashSet, marker::PhantomData};
 /// This differs from the [`FilterExpr`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) results: Vec<ColumnExpr<C>>,
+    pub(super) aliased_results: Vec<(ProvableExprPlan<C>, Identifier)>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
@@ -42,12 +43,12 @@ pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
 impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
     pub fn new(
-        results: Vec<ColumnExpr<C>>,
+        aliased_results: Vec<(ProvableExprPlan<C>, Identifier)>,
         table: TableExpr,
         where_clause: ProvableExprPlan<C>,
     ) -> Self {
         Self {
-            results,
+            aliased_results,
             table,
             where_clause,
             phantom: PhantomData,
@@ -65,8 +66,8 @@ where
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for expr in self.results.iter() {
-            expr.count(builder)?;
+        for aliased_expr in self.aliased_results.iter() {
+            aliased_expr.0.count(builder)?;
             builder.count_result_columns(1);
         }
         builder.count_intermediate_mles(2);
@@ -94,9 +95,9 @@ where
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
         let columns_evals = Vec::from_iter(
-            self.results
+            self.aliased_results
                 .iter()
-                .map(|expr| expr.verifier_evaluate(builder, accessor))
+                .map(|(expr, _)| expr.verifier_evaluate(builder, accessor))
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. indexes
@@ -105,8 +106,9 @@ where
             .result_indexes_evaluation
             .ok_or(ProofError::VerificationError("invalid indexes"))?;
         // 4. filtered_columns
-        let filtered_columns_evals =
-            Vec::from_iter(repeat_with(|| builder.consume_result_mle()).take(self.results.len()));
+        let filtered_columns_evals = Vec::from_iter(
+            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
+        );
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -122,18 +124,17 @@ where
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        let mut columns = Vec::with_capacity(self.results.len());
-        for col in self.results.iter() {
-            columns.push(col.get_column_field());
-        }
-        columns
+        self.aliased_results
+            .iter()
+            .map(|(expr, alias)| ColumnField::new(*alias, expr.data_type()))
+            .collect()
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         let mut columns = HashSet::new();
 
-        for col in self.results.iter() {
-            columns.insert(col.get_column_reference());
+        for (col, _) in self.aliased_results.iter() {
+            col.get_column_references(&mut columns);
         }
 
         self.where_clause.get_column_references(&mut columns);
@@ -163,9 +164,9 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
 
         // 2. columns
         let columns = Vec::from_iter(
-            self.results
+            self.aliased_results
                 .iter()
-                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
+                .map(|(expr, _)| expr.result_evaluate(builder.table_length(), alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -195,9 +196,9 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
 
         // 2. columns
         let columns = Vec::from_iter(
-            self.results
+            self.aliased_results
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
+                .map(|(expr, _)| expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

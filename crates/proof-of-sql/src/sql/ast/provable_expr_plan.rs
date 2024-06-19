@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, fmt::Debug};
 
 /// Enum of AST column expression types that implement `ProvableExpr`. Is itself a `ProvableExpr`.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProvableExprPlan<C: Commitment> {
     /// Column
     Column(ColumnExpr<C>),
