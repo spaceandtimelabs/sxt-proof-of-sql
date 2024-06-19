@@ -5,6 +5,16 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
 
+/// A wrapper around i64 to mitigate conflicting From<i64>
+/// implementations
+#[derive(Clone, Copy)]
+pub struct Time {
+    /// i64 count of timeunits since unix epoch
+    pub timestamp: i64,
+    /// Timeunit of this time
+    pub unit: PoSQLTimeUnit,
+}
+
 /// A typed TimeZone for a [`TimeStamp`]. It is optionally
 /// used to define a timezone other than UTC for a new TimeStamp.
 /// It exists as a wrapper around chrono-tz because chrono-tz does

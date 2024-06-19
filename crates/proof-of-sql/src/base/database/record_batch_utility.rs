@@ -1,3 +1,8 @@
+use crate::base::time::timestamp::{PoSQLTimeUnit, Time};
+use arrow::array::{
+    TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+    TimestampSecondArray,
+};
 use std::sync::Arc;
 
 /// Extension trait for Vec<T> to convert it to an Arrow array
@@ -15,6 +20,48 @@ impl ToArrow for Vec<bool> {
 
     fn to_array(self) -> Arc<dyn arrow::array::Array> {
         Arc::new(<arrow::array::BooleanArray>::from(self))
+    }
+}
+
+impl ToArrow for Vec<Time> {
+    fn to_type(&self) -> arrow::datatypes::DataType {
+        match self.first().map(|time| time.unit) {
+            Some(PoSQLTimeUnit::Second) => {
+                arrow::datatypes::DataType::Timestamp(arrow::datatypes::TimeUnit::Second, None)
+            }
+            Some(PoSQLTimeUnit::Millisecond) => {
+                arrow::datatypes::DataType::Timestamp(arrow::datatypes::TimeUnit::Millisecond, None)
+            }
+            Some(PoSQLTimeUnit::Microsecond) => {
+                arrow::datatypes::DataType::Timestamp(arrow::datatypes::TimeUnit::Microsecond, None)
+            }
+            Some(PoSQLTimeUnit::Nanosecond) => {
+                arrow::datatypes::DataType::Timestamp(arrow::datatypes::TimeUnit::Nanosecond, None)
+            }
+            None => panic!("Empty Vec<Time> cannot determine TimeUnit"),
+        }
+    }
+
+    fn to_array(self) -> Arc<dyn arrow::array::Array> {
+        match self.first().map(|time| time.unit) {
+            Some(PoSQLTimeUnit::Second) => {
+                let raw_data: Vec<i64> = self.into_iter().map(|time| time.timestamp).collect();
+                Arc::new(TimestampSecondArray::from(raw_data))
+            }
+            Some(PoSQLTimeUnit::Millisecond) => {
+                let raw_data: Vec<i64> = self.into_iter().map(|time| time.timestamp).collect();
+                Arc::new(TimestampMillisecondArray::from(raw_data))
+            }
+            Some(PoSQLTimeUnit::Microsecond) => {
+                let raw_data: Vec<i64> = self.into_iter().map(|time| time.timestamp).collect();
+                Arc::new(TimestampMicrosecondArray::from(raw_data))
+            }
+            Some(PoSQLTimeUnit::Nanosecond) => {
+                let raw_data: Vec<i64> = self.into_iter().map(|time| time.timestamp).collect();
+                Arc::new(TimestampNanosecondArray::from(raw_data))
+            }
+            None => panic!("Empty Vec<Time> cannot determine TimeUnit"),
+        }
     }
 }
 
