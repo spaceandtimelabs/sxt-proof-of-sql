@@ -1,7 +1,15 @@
-use super::{G1Affine, G1Projective, ProverSetup, F};
+#[cfg(not(feature = "blitzar"))]
+use super::G1Projective;
+use super::{transpose, G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
+#[cfg(not(feature = "blitzar"))]
 use ark_ec::{AffineRepr, VariableBaseMSM};
+use ark_ff::{BigInt, MontBackend};
+#[cfg(feature = "blitzar")]
+use blitzar::compute::ElementP2;
 use num_traits::{One, Zero};
+#[cfg(feature = "blitzar")]
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
@@ -13,8 +21,47 @@ pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Ve
         })
 }
 
+/// Converts a bls12-381 scalar to a u64 array.
+#[cfg(feature = "blitzar")]
+fn convert_scalar_to_array(
+    scalars: &[ark_ff::Fp<MontBackend<ark_bls12_381::FrConfig, 4>, 4>],
+) -> Vec<[u64; 4]> {
+    scalars
+        .iter()
+        .map(|&element| BigInt::<4>::from(element).0)
+        .collect()
+}
+
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
 #[tracing::instrument(level = "debug", skip_all)]
+#[cfg(feature = "blitzar")]
+pub(super) fn compute_T_vec_prime(
+    a: &[F],
+    sigma: usize,
+    nu: usize,
+    prover_setup: &ProverSetup,
+) -> Vec<G1Affine> {
+    let num_columns = 1 << sigma;
+    let num_outputs = 1 << nu;
+    let data_size = std::mem::size_of::<F>();
+
+    let a_array = convert_scalar_to_array(a);
+    let a_transpose =
+        transpose::transpose_for_fixed_msm(&a_array, 0, num_outputs, num_columns, data_size);
+
+    let mut blitzar_commits = vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_outputs];
+
+    prover_setup.blitzar_msm(
+        &mut blitzar_commits,
+        data_size as u32,
+        a_transpose.as_slice(),
+    );
+
+    blitzar_commits.par_iter().map(Into::into).collect()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+#[cfg(not(feature = "blitzar"))]
 pub(super) fn compute_T_vec_prime(
     a: &[F],
     sigma: usize,

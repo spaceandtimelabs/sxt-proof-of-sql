@@ -140,3 +140,4 @@ type DeferredG1 = deferred_msm::DeferredMSM<G1Affine, F>;
 type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;
 
 mod pairings;
+mod transpose;
