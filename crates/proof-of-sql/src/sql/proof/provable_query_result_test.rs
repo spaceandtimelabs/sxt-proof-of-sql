@@ -1,4 +1,4 @@
-use super::{ProvableQueryResult, ProvableResultColumn};
+use super::{ProvableQueryResult, ProvableResultColumn, QueryError};
 use crate::{
     base::{
         database::{ColumnField, ColumnType},
@@ -206,9 +206,10 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res
-        .evaluate(&evaluation_point, 4, &column_fields[..])
-        .is_none());
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::InvalidIndexes)
+    ));
 }
 
 #[test]
@@ -225,9 +226,10 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res
-        .evaluate(&evaluation_point, 4, &column_fields[..])
-        .is_none());
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::InvalidIndexes)
+    ));
 }
 
 #[test]
@@ -245,9 +247,10 @@ fn evaluation_fails_if_extra_data_is_included() {
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); cols.len()];
-    assert!(res
-        .evaluate(&evaluation_point, 4, &column_fields[..])
-        .is_none());
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::MiscellaneousEvaluationError)
+    ));
 }
 
 #[test]
@@ -266,9 +269,30 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
-    assert!(res
-        .evaluate(&evaluation_point, 4, &column_fields[..])
-        .is_none());
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::Overflow)
+    ));
+}
+
+#[test]
+fn evaluation_fails_if_integer_overflow_happens() {
+    let indexes = Indexes::Sparse(vec![0, 2]);
+    let values: [i64; 3] = [i32::MAX as i64 + 1_i64, 11, 12];
+    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let res = ProvableQueryResult::new(&indexes, &cols);
+    let evaluation_point = [
+        Curve25519Scalar::from(10u64),
+        Curve25519Scalar::from(100u64),
+    ];
+    let mut evaluation_vec = [Curve25519Scalar::ZERO; 4];
+    compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
+    let column_fields =
+        vec![ColumnField::new("a".parse().unwrap(), ColumnType::Int); res.num_columns()];
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::Overflow)
+    ));
 }
 
 #[test]
@@ -286,9 +310,10 @@ fn evaluation_fails_if_data_is_missing() {
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
         vec![ColumnField::new("a".parse().unwrap(), ColumnType::BigInt); res.num_columns()];
-    assert!(res
-        .evaluate(&evaluation_point, 4, &column_fields[..])
-        .is_none());
+    assert!(matches!(
+        res.evaluate(&evaluation_point, 4, &column_fields[..]),
+        Err(QueryError::Overflow)
+    ));
 }
 
 #[test]
@@ -406,7 +431,6 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     .unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
-    println!("{:?}", res);
     let expected_res = RecordBatch::try_new(
         schema,
         vec![
@@ -446,20 +470,3 @@ fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
         .to_owned_table::<Curve25519Scalar>(&column_fields)
         .is_err());
 }
-
-// TODO: we don't correctly detect overflow yet
-// #[test]
-// #[should_panic]
-// fn we_can_detect_overflow() {
-//     let indexes = [0];
-//     let values = [i64::MAX];
-//     let cols : [Box<dyn ProvableResultColumn>; 1] = [
-//             Box::new(values),
-//     ];
-//     let res = ProvableQueryResult::new(&
-//         &indexes,
-//         &cols,
-//     );
-//     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
-//     let res = res.into_query_result(&column_fields).unwrap();
-// }
