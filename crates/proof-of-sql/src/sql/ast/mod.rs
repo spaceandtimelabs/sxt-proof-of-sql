@@ -28,6 +28,11 @@ mod bitwise_verification_test;
 
 mod provable_expr_plan;
 pub(crate) use provable_expr_plan::ProvableExprPlan;
+mod aggregate_function_expr;
+pub(crate) use aggregate_function_expr::AggregateFunctionExpr;
+
+mod aliased_provable_expr_plan;
+pub(crate) use aliased_provable_expr_plan::AliasedProvableExprPlan;
 
 mod provable_expr;
 pub(crate) use provable_expr::ProvableExpr;

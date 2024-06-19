@@ -35,6 +35,7 @@ impl<'a> QueryContextBuilder<'a> {
         table_expr: Vec<Box<TableExpression>>,
         default_schema: Identifier,
     ) -> Self {
+        /// TODO: Remove this constraint!
         assert_eq!(table_expr.len(), 1);
         match *table_expr[0] {
             TableExpression::Named { table, schema } => {

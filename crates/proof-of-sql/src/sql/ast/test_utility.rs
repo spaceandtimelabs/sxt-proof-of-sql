@@ -160,29 +160,29 @@ pub fn aliased_col_expr_plan<C: Commitment>(
     old_name: &str,
     new_name: &str,
     accessor: &impl SchemaAccessor,
-) -> (ProvableExprPlan<C>, Identifier) {
-    (
-        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, old_name, accessor))),
-        new_name.parse().unwrap(),
-    )
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr: ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, old_name, accessor))),
+        alias: new_name.parse().unwrap(),
+    }
 }
 
 pub fn col_expr_plan<C: Commitment>(
     tab: TableRef,
     name: &str,
     accessor: &impl SchemaAccessor,
-) -> (ProvableExprPlan<C>, Identifier) {
-    (
-        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, name, accessor))),
-        name.parse().unwrap(),
-    )
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr: ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, name, accessor))),
+        alias: name.parse().unwrap(),
+    }
 }
 
 pub fn aliased_cols_expr_plan<C: Commitment>(
     tab: TableRef,
     names: &[(&str, &str)],
     accessor: &impl SchemaAccessor,
-) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+) -> Vec<AliasedProvableExprPlan<C>> {
     names
         .iter()
         .map(|(old_name, new_name)| aliased_col_expr_plan(tab, old_name, new_name, accessor))
@@ -193,7 +193,7 @@ pub fn cols_expr_plan<C: Commitment>(
     tab: TableRef,
     names: &[&str],
     accessor: &impl SchemaAccessor,
-) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+) -> Vec<AliasedProvableExprPlan<C>> {
     names
         .iter()
         .map(|name| col_expr_plan(tab, name, accessor))
@@ -220,43 +220,16 @@ pub fn cols_expr<C: Commitment>(
 }
 
 pub fn dense_filter<C: Commitment>(
-    results: Vec<(ProvableExprPlan<C>, Identifier)>,
+    results: Vec<AliasedProvableExprPlan<C>>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
     ProofPlan::DenseFilter(DenseFilterExpr::new(results, table, where_clause))
 }
 
-pub fn sum_expr<C: Commitment>(
-    tab: TableRef,
-    name: &str,
-    alias: &str,
-    column_type: ColumnType,
-    accessor: &impl SchemaAccessor,
-) -> (ColumnExpr<C>, ColumnField) {
-    (
-        col_expr(tab, name, accessor),
-        ColumnField::new(alias.parse().unwrap(), column_type),
-    )
-}
-
-pub fn sums_expr<C: Commitment>(
-    tab: TableRef,
-    names: &[&str],
-    aliases: &[&str],
-    column_types: &[ColumnType],
-    accessor: &impl SchemaAccessor,
-) -> Vec<(ColumnExpr<C>, ColumnField)> {
-    names
-        .iter()
-        .zip(aliases.iter().zip(column_types.iter()))
-        .map(|(name, (alias, column_type))| sum_expr(tab, name, alias, *column_type, accessor))
-        .collect()
-}
-
 pub fn group_by<C: Commitment>(
-    group_by_exprs: Vec<ColumnExpr<C>>,
-    sum_expr: Vec<(ColumnExpr<C>, ColumnField)>,
+    group_by_exprs: Vec<AliasedProvableExprPlan<C>>,
+    sum_expr: Vec<AliasedProvableExprPlan<C>>,
     count_alias: &str,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
