@@ -4,7 +4,6 @@ use super::{
 };
 use ark_ec::VariableBaseMSM;
 use merlin::Transcript;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// This is the prover side of the Eval-VMV-RE algorithm in section 5 of https://eprint.iacr.org/2020/1274.pdf.
 ///
@@ -35,7 +34,7 @@ pub fn eval_vmv_re_prove(
     messages.prover_send_G1_message(transcript, E_1);
     let v2 = state
         .v_vec
-        .par_iter()
+        .iter()
         .map(|c| (setup.Gamma_2_fin * c).into())
         .collect::<Vec<_>>();
     ExtendedProverState::from_vmv_prover_state(state, v2)
