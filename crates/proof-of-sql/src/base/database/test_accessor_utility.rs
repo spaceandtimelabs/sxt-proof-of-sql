@@ -1,4 +1,5 @@
-use crate::base::{database::ColumnType, time::timestamp::PoSQLTimeUnit};
+use super::{OwnedColumn, OwnedTable};
+use crate::base::{database::ColumnType, scalar::Scalar, time::timestamp::PoSQLTimeUnit};
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
@@ -142,6 +143,57 @@ pub fn make_random_test_accessor_data(
 
     let schema = Arc::new(Schema::new(column_fields));
     RecordBatch::try_new(schema, columns).unwrap()
+}
+
+/// Generate a OwnedTable with random data
+///
+/// Currently, this mirrors [make_random_test_accessor_data] and is intended to replace it.
+pub fn make_random_test_accessor_owned_table<S: Scalar>(
+    rng: &mut StdRng,
+    cols: &[(&str, ColumnType)],
+    descriptor: &RandomTestAccessorDescriptor,
+) -> OwnedTable<S> {
+    let n = Uniform::new(descriptor.min_rows, descriptor.max_rows + 1).sample(rng);
+    let dist = Uniform::new(descriptor.min_value, descriptor.max_value + 1);
+
+    OwnedTable::try_from_iter(cols.iter().map(|(col_name, col_type)| {
+        let values = dist.sample_iter(&mut *rng).take(n);
+        (
+            col_name.parse().unwrap(),
+            match col_type {
+                ColumnType::Boolean => OwnedColumn::Boolean(values.map(|x| x % 2 != 0).collect()),
+                ColumnType::SmallInt => {
+                    OwnedColumn::SmallInt(
+                        values
+                            .map(|x| ((x >> 48) as i16)) // Shift right to align the lower 16 bits
+                            .collect(),
+                    )
+                }
+                ColumnType::Int => {
+                    OwnedColumn::Int(
+                        values
+                            .map(|x| ((x >> 32) as i32)) // Shift right to align the lower 32 bits
+                            .collect(),
+                    )
+                }
+                ColumnType::BigInt => OwnedColumn::BigInt(values.collect()),
+                ColumnType::Int128 => OwnedColumn::Int128(values.map(|x| x as i128).collect()),
+                ColumnType::Decimal75(precision, scale) => {
+                    OwnedColumn::Decimal75(*precision, *scale, values.map(Into::into).collect())
+                }
+                ColumnType::VarChar => OwnedColumn::VarChar(
+                    values
+                        .map(|v| "s".to_owned() + &v.to_string()[..])
+                        .collect(),
+                ),
+                ColumnType::Scalar => OwnedColumn::Scalar(values.map(Into::into).collect()),
+                ColumnType::TimestampTZ(tu, tz) => {
+                    OwnedColumn::TimestampTZ(*tu, *tz, values.collect())
+                }
+            },
+        )
+    }))
+    .unwrap()
 }
 
 #[cfg(test)]

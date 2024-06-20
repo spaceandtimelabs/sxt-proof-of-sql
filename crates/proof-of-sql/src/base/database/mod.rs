@@ -38,7 +38,10 @@ mod record_batch_test_accessor_test;
 #[cfg(any(test, feature = "test"))]
 mod test_accessor_utility;
 #[cfg(any(test, feature = "test"))]
-pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
+pub use test_accessor_utility::{
+    make_random_test_accessor_data, make_random_test_accessor_owned_table,
+    RandomTestAccessorDescriptor,
+};
 
 mod owned_column;
 pub use owned_column::OwnedColumn;

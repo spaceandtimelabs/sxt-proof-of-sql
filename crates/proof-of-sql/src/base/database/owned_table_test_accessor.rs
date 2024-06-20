@@ -153,4 +153,16 @@ where
         res.setup = Some(setup);
         res
     }
+
+    /// Create a new test accessor containing the provided table.
+    pub fn new_from_table(
+        table_ref: TableRef,
+        owned_table: OwnedTable<CP::Scalar>,
+        offset: usize,
+        setup: CP::ProverPublicSetup,
+    ) -> Self {
+        let mut res = Self::new_empty_with_setup(setup);
+        res.add_table(table_ref, owned_table, offset);
+        res
+    }
 }
