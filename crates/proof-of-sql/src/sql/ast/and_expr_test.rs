@@ -75,6 +75,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
     let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
     for _ in 0..20 {
+        // Generate random table
         let n = Uniform::new(1, 21).sample(&mut rng);
         let data = owned_table([
             bigint("a", dist.sample_iter(&mut rng).take(n)),
@@ -88,9 +89,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
             ),
         ]);
+
+        // Generate random values to filter by
         let filter_val1 = format!("s{}", dist.sample(&mut rng));
         let filter_val2 = dist.sample(&mut rng);
 
+        // Create and verify proof
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
             t,
@@ -113,6 +117,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         exercise_verification(&verifiable_res, &ast, &accessor, t);
         let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
 
+        // Calculate/compare expected result
         let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
             data["a"].i64_iter(),
             data["b"].string_iter(),
