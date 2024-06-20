@@ -1,13 +1,15 @@
 use super::{
-    aggregate_columns, fold_columns, fold_vals, group_by_util::AggregatedColumns,
-    provable_expr_plan::ProvableExprPlan, ColumnExpr, ProvableExpr, TableExpr,
+    aggregate_columns, fold_columns, fold_vals,
+    group_by_util::{compare_indexes_by_owned_columns, AggregatedColumns},
+    provable_expr_plan::ProvableExprPlan,
+    ColumnExpr, ProvableExpr, TableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor,
+            MetadataAccessor, OwnedTable,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -100,6 +102,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
+        result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<(), ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -141,11 +144,28 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
                 sum_result_columns_evals,
                 count_column_eval,
             ),
-        )
-
-        // todo!: check that the group_by results are unique.
-        //        When the GroupByExpr is the root node of the Proof plan,
-        //        this can be done by simply looking at the results returned by the prover.
+        )?;
+        match result {
+            Some(table) => {
+                let cols = self
+                    .group_by_exprs
+                    .iter()
+                    .map(|col| table.inner_table().get(&col.column_id()))
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or(ProofError::VerificationError(
+                        "Result does not all correct group by columns.",
+                    ))?;
+                if (0..table.num_rows() - 1)
+                    .any(|i| compare_indexes_by_owned_columns(&cols, i, i + 1).is_ge())
+                {
+                    Err(ProofError::VerificationError(
+                        "Result of group by not ordered as expected.",
+                    ))?;
+                }
+            }
+            None => todo!("GroupByExpr currently only supported at top level of query plan."),
+        }
+        Ok(())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

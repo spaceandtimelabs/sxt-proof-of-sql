@@ -1,7 +1,9 @@
 use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
 use crate::base::{
     commitment::Commitment,
-    database::{ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor},
+    database::{
+        ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable,
+    },
     proof::ProofError,
     scalar::Scalar,
 };
@@ -33,6 +35,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
+        result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<(), ProofError>;
 
     /// Return all the result column fields

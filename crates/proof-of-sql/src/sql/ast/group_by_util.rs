@@ -1,7 +1,10 @@
 //! Contains the utility functions for the `GroupByExpr` node.
 
 use super::filter_column_by_index;
-use crate::base::{database::Column, scalar::Scalar};
+use crate::base::{
+    database::{Column, OwnedColumn},
+    scalar::Scalar,
+};
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
@@ -179,6 +182,32 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
             Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
+        })
+        .find(|&ord| ord != Ordering::Equal)
+        .unwrap_or(Ordering::Equal)
+}
+
+/// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
+/// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
+///
+/// Identical in functionality to [compare_indexes_by_columns]
+pub(super) fn compare_indexes_by_owned_columns<S: Scalar>(
+    group_by: &[&OwnedColumn<S>],
+    i: usize,
+    j: usize,
+) -> Ordering {
+    group_by
+        .iter()
+        .map(|col| match col {
+            OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
+            OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
+            OwnedColumn::Int(col) => col[i].cmp(&col[j]),
+            OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
+            OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
+            OwnedColumn::Decimal75(_, _, _) => todo!("TODO: unimplemented"),
+            OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
+            OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+            OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
