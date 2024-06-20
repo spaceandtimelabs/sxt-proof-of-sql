@@ -3,6 +3,7 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::parse::{ConversionError, ConversionResult},
 };
@@ -248,22 +249,19 @@ impl<'a> QueryContextBuilder<'a> {
             Literal::Decimal(d) => {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
-            },
-            Literal::Timestamp(ts) => {
-                let nanoseconds = ts.time().nanosecond(); // Directly access the nanoseconds
-    
-                // Determine the time unit based on the fractional part
-                let time_unit = if nanoseconds % 1_000_000_000 == 0 {
-                    PoSQLTimeUnit::Second
-                } else if nanoseconds % 1_000_000 == 0 {
-                    PoSQLTimeUnit::Millisecond
-                } else if nanoseconds % 1_000 == 0 {
-                    PoSQLTimeUnit::Microsecond
-                } else {
-                    PoSQLTimeUnit::Nanosecond
-                };
-                Ok(ColumnType::TimestampTZ(time_unit, PoSQLTimeZone::UTC))
-            },
+            }
+            Literal::TimeStampTZ(itu, itz, _) => {
+                let posql_tu = itu
+                    .to_string()
+                    .parse::<PoSQLTimeUnit>()
+                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+
+                let posql_tz = itz
+                    .to_string()
+                    .parse::<PoSQLTimeZone>()
+                    .map_err(|_| ConversionError::InvalidTimeZone)?;
+                Ok(ColumnType::TimestampTZ(posql_tu, posql_tz))
+            }
         }
     }
 

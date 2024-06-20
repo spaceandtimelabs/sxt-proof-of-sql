@@ -3,7 +3,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
-        math::decimal::{try_into_to_scalar, Precision}, time::timestamp::PoSQLTimeUnit,
+        math::decimal::{try_into_to_scalar, Precision},
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::ast::{ColumnExpr, ProvableExprPlan},
 };
@@ -84,25 +85,21 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(ts) => {
-                let nanoseconds = ts.time().nanosecond(); // Directly access the nanoseconds
-    
-                // Determine the time unit based on the fractional part
-                let time_unit = if nanoseconds % 1_000_000_000 == 0 {
-                    PoSQLTimeUnit::Second
-                } else if nanoseconds % 1_000_000 == 0 {
-                    PoSQLTimeUnit::Millisecond
-                } else if nanoseconds % 1_000 == 0 {
-                    PoSQLTimeUnit::Microsecond
-                } else {
-                    PoSQLTimeUnit::Nanosecond
-                };
-    
-                let time_zone = PoSQLTimeZone::UTC; // Defaulting to UTC
-                Ok(ColumnType::TimestampTZ(time_unit, time_zone))
-            },
-    
-        
+            Literal::TimeStampTZ(itu, itz, its) => {
+                let posql_tu = itu
+                    .to_string()
+                    .parse::<PoSQLTimeUnit>()
+                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+
+                let posql_tz = itz
+                    .to_string()
+                    .parse::<PoSQLTimeZone>()
+                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+
+                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                    posql_tu, posql_tz, *its,
+                )))
+            }
         }
     }
 

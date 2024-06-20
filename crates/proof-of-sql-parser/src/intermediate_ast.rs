@@ -4,10 +4,12 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{intermediate_decimal::IntermediateDecimal, Identifier};
+use crate::{
+    intermediate_decimal::IntermediateDecimal,
+    intermediate_time::{IntermediateTimeStamp, IntermediateTimeUnit, IntermediateTimeZone},
+    Identifier,
+};
 use serde::{Deserialize, Serialize};
-use chrono::{NaiveDateTime, DateTime, Utc};
-use time::{Time, OffsetDateTime};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -331,8 +333,7 @@ pub enum Literal {
     /// Decimal Literal
     Decimal(IntermediateDecimal),
     /// Timestamp Literal
-    Timestamp(Time),
-
+    TimeStampTZ(IntermediateTimeUnit, IntermediateTimeZone, i64),
 }
 
 impl From<bool> for Literal {
@@ -381,6 +382,12 @@ impl_string_to_literal!(String);
 impl From<IntermediateDecimal> for Literal {
     fn from(val: IntermediateDecimal) -> Self {
         Literal::Decimal(val)
+    }
+}
+
+impl From<IntermediateTimeStamp> for Literal {
+    fn from(val: IntermediateTimeStamp) -> Self {
+        Literal::TimeStampTZ(val.unit, val.timezone, val.timestamp)
     }
 }
 

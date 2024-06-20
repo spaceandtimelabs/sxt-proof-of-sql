@@ -77,6 +77,14 @@ pub enum ConversionError {
     #[error("Invalid decimal format or value: {0}")]
     /// Error when a decimal format or value is incorrect
     InvalidDecimal(String),
+
+    #[error("Invalid timeunit")]
+    /// Error converting intermediate time units to PoSQL time units
+    InvalidTimeUnit,
+
+    #[error("Invalid timezone")]
+    /// Error converting intermediate time zones to PoSQL timezones
+    InvalidTimeZone,
 }
 
 impl From<DecimalError> for ConversionError {

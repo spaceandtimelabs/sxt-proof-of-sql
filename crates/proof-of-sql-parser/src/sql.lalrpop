@@ -3,6 +3,7 @@ use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
 use crate::intermediate_decimal::IntermediateDecimal;
+use crate::intermediate_time::{IntermediateTimeStamp, parse_intermediate_timestamp};
 
 grammar;
 
@@ -337,6 +338,14 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
+    <value: Timestamp> => Box::new(intermediate_ast::Literal::from(value)),
+};
+
+Timestamp: IntermediateTimeStamp = {
+    <ts:TIMESTAMP_LIT> =>? {
+        parse_intermediate_timestamp(ts)
+            .map_err(|e| lalrpop_util::ParseError::User { error: e })
+    },
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -435,4 +444,6 @@ match {
     // Integer numbers (without a fractional part)
     r"[+-]?[0-9]+" => INTEGER_LIT,
     r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
+    // Timestamp literals with optional fractional seconds and time zone offset
+    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})?" => TIMESTAMP_LIT,
 }

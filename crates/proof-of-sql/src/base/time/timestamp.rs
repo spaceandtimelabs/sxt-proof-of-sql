@@ -65,10 +65,10 @@ impl TryFrom<Option<Arc<str>>> for PoSQLTimeZone {
     }
 }
 
-impl TryFrom<&str> for PoSQLTimeZone {
-    type Error = &'static str;
+impl FromStr for PoSQLTimeZone {
+    type Err = &'static str;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         Tz::from_str(value)
             .map(PoSQLTimeZone)
             .map_err(|_| "Invalid timezone string")
@@ -108,6 +108,20 @@ impl fmt::Display for PoSQLTimeUnit {
             PoSQLTimeUnit::Millisecond => write!(f, "Millisecond"),
             PoSQLTimeUnit::Microsecond => write!(f, "Microsecond"),
             PoSQLTimeUnit::Nanosecond => write!(f, "Nanosecond"),
+        }
+    }
+}
+
+impl FromStr for PoSQLTimeUnit {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Second" => Ok(PoSQLTimeUnit::Second),
+            "Millisecond" => Ok(PoSQLTimeUnit::Millisecond),
+            "Microsecond" => Ok(PoSQLTimeUnit::Microsecond),
+            "Nanosecond" => Ok(PoSQLTimeUnit::Nanosecond),
+            _ => Err(()),
         }
     }
 }
