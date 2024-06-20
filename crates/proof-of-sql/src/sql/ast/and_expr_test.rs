@@ -1,14 +1,10 @@
-use super::{test_utility::*, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
-        ast::{
-            test_utility::{and, equal},
-            ProvableExprPlan,
-        },
+        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
