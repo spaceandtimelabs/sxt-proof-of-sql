@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        database::{CommitmentAccessor, RecordBatchTestAccessor, TableRef, TestAccessor},
+        database::{CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
         scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::Indexes,
@@ -90,7 +90,7 @@ fn tamper_no_result(
         counts,
         ..Default::default()
     };
-    let accessor_p = RecordBatchTestAccessor::new_empty();
+    let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let (proof, _result) = QueryProof::new(&expr_p, &accessor_p, &());
     res_p.proof = Some(proof);
     assert!(res_p.verify(expr, accessor, &()).is_err());

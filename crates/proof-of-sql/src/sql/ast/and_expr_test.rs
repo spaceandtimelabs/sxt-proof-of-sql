@@ -1,63 +1,21 @@
-use super::{test_utility::*, FilterExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, RandomTestAccessorDescriptor, TestAccessor,
-        },
-        scalar::Curve25519Scalar,
+        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
-        ast::{
-            test_utility::{and, equal},
-            ProvableExprPlan,
-        },
+        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use polars::prelude::*;
+use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-/// This function creates a TestAccessor, adds a table, and then creates a FilterExpr with the given parameters.
-/// It then executes the query, verifies the result, and returns the table.
-fn create_and_verify_test_and_expr(
-    table_ref: &str,
-    results: &[&str],
-    lhs: (&str, impl Into<Curve25519Scalar>),
-    rhs: (&str, impl Into<Curve25519Scalar>),
-    data: OwnedTable<Curve25519Scalar>,
-    offset: usize,
-) -> OwnedTable<Curve25519Scalar> {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let t = table_ref.parse().unwrap();
-    accessor.add_table(t, data, offset);
-    let and_expr = and(
-        equal(column(t, lhs.0, &accessor), const_scalar(lhs.1.into())),
-        equal(column(t, rhs.0, &accessor), const_scalar(rhs.1.into())),
-    );
-    let ast = FilterExpr::new(cols_result(t, results, &accessor), tab(t), and_expr);
-    let res = VerifiableQueryResult::new(&ast, &accessor, &());
-    exercise_verification(&res, &ast, &accessor, t);
-    res.verify(&ast, &accessor, &()).unwrap().table
-}
-/// This function filters the given data using polars with the given parameters.
-fn filter_test_and_expr(
-    results: &[&str],
-    lhs: (&str, impl polars::prelude::Literal),
-    rhs: (&str, impl polars::prelude::Literal),
-    data: OwnedTable<Curve25519Scalar>,
-) -> OwnedTable<Curve25519Scalar> {
-    let df_filter = polars::prelude::col(lhs.0)
-        .eq(lit(lhs.1))
-        .and(polars::prelude::col(rhs.0).eq(lit(rhs.1)));
-    data.apply_polars_filter(results, df_filter)
-}
 
 #[test]
 fn we_can_prove_a_simple_and_query() {
@@ -67,7 +25,19 @@ fn we_can_prove_a_simple_and_query() {
         varchar("d", ["ab", "t", "efg", "g"]),
         bigint("c", [0, 2, 2, 0]),
     ]);
-    let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d"], &accessor),
+        tab(t),
+        and(
+            equal(column(t, "b", &accessor), const_scalar(1)),
+            equal(column(t, "d", &accessor), const_scalar("t")),
+        ),
+    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([bigint("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
@@ -80,38 +50,87 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
         varchar("d", ["ab", "t", "efg", "g"]),
         int128("c", [0, 2, 2, 0]),
     ]);
-    let res = create_and_verify_test_and_expr("sxt.t", &["a", "d"], ("b", 1), ("d", "t"), data, 0);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d"], &accessor),
+        tab(t),
+        and(
+            equal(column(t, "b", &accessor), const_scalar(1)),
+            equal(column(t, "d", &accessor), const_scalar("t")),
+        ),
+    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([int128("a", [2]), varchar("d", ["t"])]);
     assert_eq!(res, expected_res);
 }
 
 fn test_random_tables_with_given_offset(offset: usize) {
-    let descr = RandomTestAccessorDescriptor {
-        min_rows: 1,
-        max_rows: 20,
-        min_value: -3,
-        max_value: 3,
-    };
+    let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = [
-        ("a", ColumnType::BigInt),
-        ("b", ColumnType::VarChar),
-        ("c", ColumnType::BigInt),
-        ("d", ColumnType::VarChar),
-    ];
     for _ in 0..20 {
-        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let data = OwnedTable::try_from(data).unwrap();
-        let filter_val1 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let filter_val1 = format!("s{filter_val1}");
-        let filter_val2 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let results = &["a", "d"];
-        let lhs = ("b", filter_val1.as_str());
-        let rhs = ("c", filter_val2);
-        assert_eq!(
-            filter_test_and_expr(results, lhs, rhs, data.clone()),
-            create_and_verify_test_and_expr("sxt.t", results, lhs, rhs, data, offset)
-        )
+        // Generate random table
+        let n = Uniform::new(1, 21).sample(&mut rng);
+        let data = owned_table([
+            bigint("a", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "b",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+            bigint("c", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "d",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+        ]);
+
+        // Generate random values to filter by
+        let filter_val1 = format!("s{}", dist.sample(&mut rng));
+        let filter_val2 = dist.sample(&mut rng);
+
+        // Create and verify proof
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+            t,
+            data.clone(),
+            offset,
+            (),
+        );
+        let ast = dense_filter(
+            cols_expr_plan(t, &["a", "d"], &accessor),
+            tab(t),
+            and(
+                equal(
+                    column(t, "b", &accessor),
+                    const_scalar(filter_val1.as_str()),
+                ),
+                equal(column(t, "c", &accessor), const_scalar(filter_val2)),
+            ),
+        );
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        exercise_verification(&verifiable_res, &ast, &accessor, t);
+        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+
+        // Calculate/compare expected result
+        let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
+            data["a"].i64_iter(),
+            data["b"].string_iter(),
+            data["c"].i64_iter(),
+            data["d"].string_iter(),
+        ))
+        .filter_map(|(a, b, c, d)| {
+            if b == &filter_val1 && c == &filter_val2 {
+                Some((*a, d.clone()))
+            } else {
+                None
+            }
+        })
+        .multiunzip();
+        let expected_result = owned_table([bigint("a", expected_a), varchar("d", expected_d)]);
+
+        assert_eq!(expected_result, res)
     }
 }
 
@@ -133,9 +152,8 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         varchar("d", ["ab", "t", "efg", "g"]),
         bigint("c", [0, 2, 2, 0]),
     ]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let and_expr: ProvableExprPlan<RistrettoPoint> = and(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("t")),

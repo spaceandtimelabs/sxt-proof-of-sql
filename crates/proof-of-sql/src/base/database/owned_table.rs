@@ -112,3 +112,13 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
                 .all(|(a, b)| a == b)
     }
 }
+
+#[cfg(test)]
+impl<S: Scalar> core::ops::Index<&str> for OwnedTable<S> {
+    type Output = OwnedColumn<S>;
+    fn index(&self, index: &str) -> &Self::Output {
+        self.table
+            .get(&index.parse::<Identifier>().unwrap())
+            .unwrap()
+    }
+}
