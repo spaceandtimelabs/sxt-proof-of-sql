@@ -1,10 +1,11 @@
+use super::QueryError;
 use crate::base::encode::VarInt;
 
 pub trait ProvableResultElement<'a> {
     fn required_bytes(&self) -> usize;
     fn encode(&self, out: &mut [u8]) -> usize;
 
-    fn decode(data: &'a [u8]) -> Option<(Self, usize)>
+    fn decode(data: &'a [u8]) -> Result<(Self, usize), QueryError>
     where
         Self: Sized;
 }
@@ -20,8 +21,8 @@ impl<T: VarInt> ProvableResultElement<'_> for T {
         self.encode_var(out)
     }
 
-    fn decode(data: &[u8]) -> Option<(Self, usize)> {
-        VarInt::decode_var(data)
+    fn decode(data: &[u8]) -> Result<(Self, usize), QueryError> {
+        VarInt::decode_var(data).ok_or(QueryError::Overflow)
     }
 }
 
@@ -39,16 +40,17 @@ impl<'a> ProvableResultElement<'a> for &'a [u8] {
 
         bytes_written
     }
-    fn decode(data: &'a [u8]) -> Option<(Self, usize)> {
-        let (len_buf, sizeof_usize) = <usize>::decode_var(data)?;
+    fn decode(data: &'a [u8]) -> Result<(Self, usize), QueryError> {
+        let (len_buf, sizeof_usize) =
+            <usize>::decode_var(data).ok_or(QueryError::MiscellaneousDecodingError)?;
 
         let bytes_read = len_buf + sizeof_usize;
 
         if data.len() < bytes_read {
-            return None;
+            return Err(QueryError::MiscellaneousDecodingError);
         }
 
-        Some((&data[sizeof_usize..bytes_read], bytes_read))
+        Ok((&data[sizeof_usize..bytes_read], bytes_read))
     }
 }
 
@@ -60,7 +62,7 @@ impl<'a> ProvableResultElement<'a> for &'a str {
     fn encode(&self, out: &mut [u8]) -> usize {
         self.as_bytes().encode(out)
     }
-    fn decode(data: &'a [u8]) -> Option<(Self, usize)> {
+    fn decode(data: &'a [u8]) -> Result<(Self, usize), QueryError> {
         let (data, bytes_read) = <&[u8]>::decode(data)?;
 
         // arrow::array::StringArray only supports strings
@@ -69,10 +71,13 @@ impl<'a> ProvableResultElement<'a> for &'a str {
         // StringArray will panic. So we add this restriction here to
         // prevent this scenario.
         if data.len() > i32::MAX as usize {
-            return None;
+            return Err(QueryError::MiscellaneousDecodingError);
         }
 
-        Some((std::str::from_utf8(data).ok()?, bytes_read))
+        Ok((
+            std::str::from_utf8(data).map_err(|_e| QueryError::InvalidString)?,
+            bytes_read,
+        ))
     }
 }
 
@@ -84,25 +89,25 @@ impl ProvableResultElement<'_> for String {
     fn encode(&self, out: &mut [u8]) -> usize {
         self.as_str().encode(out)
     }
-    fn decode(data: &[u8]) -> Option<(Self, usize)> {
+    fn decode(data: &[u8]) -> Result<(Self, usize), QueryError> {
         decode_and_convert::<&str, String>(data)
     }
 }
 
-pub fn decode_and_convert<'a, F, T>(data: &'a [u8]) -> Option<(T, usize)>
+pub fn decode_and_convert<'a, F, T>(data: &'a [u8]) -> Result<(T, usize), QueryError>
 where
     F: ProvableResultElement<'a>,
     T: From<F>,
 {
     let (val, num_read) = F::decode(data)?;
-    Some((val.into(), num_read))
+    Ok((val.into(), num_read))
 }
 
 /// Implement the decode operation for multiple rows
 pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
     data: &'a [u8],
     n: usize,
-) -> Option<(Vec<T>, usize)> {
+) -> Result<(Vec<T>, usize), QueryError> {
     let mut res = Vec::with_capacity(n);
     let mut cnt = 0;
     for _ in 0..n {
@@ -112,7 +117,7 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
         cnt += num_read;
     }
 
-    Some((res, cnt))
+    Ok((res, cnt))
 }
 
 #[cfg(test)]
@@ -175,12 +180,18 @@ mod tests {
         let value = Curve25519Scalar::from(i128::MAX) + Curve25519Scalar::from(1);
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        assert_eq!(<i128>::decode(&out[..]), None);
+        assert!(matches!(
+            <i128>::decode(&out[..]),
+            Err(QueryError::Overflow)
+        ));
 
         let value = Curve25519Scalar::from(i128::MIN) - Curve25519Scalar::from(1);
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
-        assert_eq!(<i128>::decode(&out[..]), None);
+        assert!(matches!(
+            <i128>::decode(&out[..]),
+            Err(QueryError::Overflow)
+        ));
     }
 
     #[test]
@@ -392,8 +403,8 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
 
-        assert!(<i64>::decode(&out[..]).is_some());
-        assert!(<i64>::decode(&[]).is_none());
+        assert!(<i64>::decode(&out[..]).is_ok());
+        assert!(<i64>::decode(&[]).is_err());
     }
 
     #[test]
@@ -402,11 +413,11 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
 
-        assert!(<i64>::decode(&out[..]).is_some());
+        assert!(<i64>::decode(&out[..]).is_ok());
 
         out[..].clone_from_slice(&vec![0b11111111; value.required_bytes()]);
 
-        assert!(<i64>::decode(&out[..]).is_none());
+        assert!(<i64>::decode(&out[..]).is_err());
     }
 
     #[test]
@@ -415,11 +426,11 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
 
-        assert!(<&str>::decode(&out[..]).is_some());
+        assert!(<&str>::decode(&out[..]).is_ok());
 
         let last_element = out.len();
         out[last_element - 3..last_element].clone_from_slice(&[0xed, 0xa0, 0x80]);
-        assert!(<&str>::decode(&out[..]).is_none());
+        assert!(<&str>::decode(&out[..]).is_err());
     }
 
     #[test]
@@ -428,7 +439,7 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(out.len(), value.len().required_space());
-        assert!(<&[u8]>::decode(&out[..0]).is_none());
+        assert!(<&[u8]>::decode(&out[..0]).is_err());
     }
 
     #[test]
@@ -438,14 +449,14 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(out.len(), value.len().required_space() + value.len());
-        assert!(<&[u8]>::decode(&out[..]).is_some());
+        assert!(<&[u8]>::decode(&out[..]).is_ok());
 
         assert_eq!(
             (value.len() + 1).required_space(),
             value.len().required_space()
         );
         (value.len() + 1).encode_var(&mut out[..]);
-        assert!(<&[u8]>::decode(&out[..]).is_none());
+        assert!(<&[u8]>::decode(&out[..]).is_err());
     }
 
     #[test]
@@ -455,7 +466,7 @@ mod tests {
         let mut out = vec![0_u8; value.required_bytes()];
         value.encode(&mut out[..]);
         assert_eq!(out.len(), value.len().required_space() + value.len());
-        assert!(<&[u8]>::decode(&out[..]).is_some());
+        assert!(<&[u8]>::decode(&out[..]).is_ok());
 
         assert_eq!(
             value.len().required_space(),
@@ -480,7 +491,7 @@ mod tests {
         assert_eq!(read_column.0, vec!["ABC"]);
         assert_eq!(read_column.1, "ABC".required_bytes());
 
-        assert!(decode_multiple_elements::<&str>(&out[..], 2).is_none());
+        assert!(decode_multiple_elements::<&str>(&out[..], 2).is_err());
     }
 
     #[test]
@@ -493,7 +504,7 @@ mod tests {
         assert_eq!(read_column.0, data.to_vec());
         assert_eq!(read_column.1, out.len());
 
-        assert!(decode_multiple_elements::<&str>(&out[..], data.len() + 1).is_none());
+        assert!(decode_multiple_elements::<&str>(&out[..], data.len() + 1).is_err());
     }
 
     #[test]
@@ -507,7 +518,7 @@ mod tests {
         assert_eq!(read_column.1, out.len());
 
         // we remove last element
-        assert!(decode_multiple_elements::<&str>(&out[..out.len() - 1], data.len()).is_none());
+        assert!(decode_multiple_elements::<&str>(&out[..out.len() - 1], data.len()).is_err());
 
         // we change the amount of elements specified in the buffer to be `data[1].len() + 1`
         assert_eq!(
@@ -515,7 +526,7 @@ mod tests {
             data[1].len().required_space()
         );
         (data[1].len() + 1).encode_var(&mut out[data[0].required_bytes()..]);
-        assert!(decode_multiple_elements::<&str>(&out[..], data.len()).is_none());
+        assert!(decode_multiple_elements::<&str>(&out[..], data.len()).is_err());
     }
 
     #[test]
@@ -526,10 +537,10 @@ mod tests {
         assert_eq!((s_len - 1_usize).required_space(), s_len.required_space());
         (s_len - 1_usize).encode_var(&mut s[..]);
         assert!(
-            <&str>::decode(&s[..(s_len - 1_usize + (s_len - 1_usize).required_space())]).is_some()
+            <&str>::decode(&s[..(s_len - 1_usize + (s_len - 1_usize).required_space())]).is_ok()
         );
 
         s_len.encode_var(&mut s[..]);
-        assert!(<&str>::decode(&s[..]).is_none());
+        assert!(<&str>::decode(&s[..]).is_err());
     }
 }
