@@ -242,16 +242,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let column_result_fields = expr.get_column_result_fields();
 
         // compute the evaluation of the result MLEs
-        let result_evaluations = match result.evaluate(
+        let result_evaluations = result.evaluate(
             &subclaim.evaluation_point,
             table_length,
             &column_result_fields[..],
-        ) {
-            Some(evaluations) => evaluations,
-            _ => Err(ProofError::VerificationError(
-                "failed to evaluate intermediate result MLEs",
-            ))?,
-        };
+        )?;
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(

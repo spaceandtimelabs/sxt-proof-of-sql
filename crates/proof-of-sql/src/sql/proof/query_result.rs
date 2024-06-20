@@ -17,6 +17,15 @@ pub enum QueryError {
     /// This just means that the database was supposed to respond with a string that was not valid UTF-8.
     #[error("String decode error")]
     InvalidString,
+    /// Decoding errors other than overflow and invalid string.
+    #[error("Miscellaneous decoding error")]
+    MiscellaneousDecodingError,
+    /// Indexes are invalid.
+    #[error("Invalid indexes")]
+    InvalidIndexes,
+    /// Miscellaneous evaluation error.
+    #[error("Miscellaneous evaluation error")]
+    MiscellaneousEvaluationError,
     /// The proof failed to verify.
     #[error(transparent)]
     ProofError(#[from] ProofError),
