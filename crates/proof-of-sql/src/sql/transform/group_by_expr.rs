@@ -11,27 +11,32 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr {
     /// A list of aggregation column expressions
-    agg_exprs: Vec<Expr>,
+    aliased_exprs: Vec<AliasedResultExpr>,
 
     /// A list of group by column expressions
-    by_exprs: Vec<Expr>,
+    by_ids: Vec<Identifier>,
 }
 
 impl GroupByExpr {
     /// Create a new group by expression containing the group by and aggregation expressions
     pub fn new(by_ids: &[Identifier], aliased_exprs: &[AliasedResultExpr]) -> Self {
-        let by_exprs = Vec::from_iter(by_ids.iter().map(|id| col(id.as_str())));
-        let agg_exprs = Vec::from_iter(aliased_exprs.iter().map(ToPolarsExpr::to_polars_expr));
-        assert!(!agg_exprs.is_empty(), "Agg expressions must not be empty");
         assert!(
-            !by_exprs.is_empty(),
-            "Group by expressions must not be empty"
+            !aliased_exprs.is_empty(),
+            "Agg expressions must not be empty"
         );
+        assert!(!by_ids.is_empty(), "Group by expressions must not be empty");
 
         Self {
-            by_exprs,
-            agg_exprs,
+            by_ids: by_ids.to_vec(),
+            aliased_exprs: aliased_exprs.to_vec(),
         }
+    }
+
+    fn agg_exprs(&self) -> Vec<Expr> {
+        self.aliased_exprs
+            .iter()
+            .map(ToPolarsExpr::to_polars_expr)
+            .collect()
     }
 }
 
@@ -44,23 +49,23 @@ impl DataFrameExpr for GroupByExpr {
         // We remove the group by clause to temporarily work around this limitation.
         // Issue created to track progress: https://github.com/pola-rs/polars/issues/11232
         if num_input_rows == 0 {
-            return lazy_frame.select(&self.agg_exprs).limit(0);
+            return lazy_frame.select(&self.agg_exprs()).limit(0);
         }
 
         if num_input_rows == 1 {
-            return lazy_frame.select(&self.agg_exprs);
+            return lazy_frame.select(&self.agg_exprs());
         }
 
         // Add invalid column aliases to group by expressions so that we can
         // exclude them from the final result.
-        let by_expr_aliases = (0..self.by_exprs.len())
+        let by_expr_aliases = (0..self.by_ids.len())
             .map(|pos| "#$".to_owned() + pos.to_string().as_str())
             .collect::<Vec<_>>();
 
         let by_exprs: Vec<_> = self
-            .by_exprs
-            .clone()
-            .into_iter()
+            .by_ids
+            .iter()
+            .map(|id| col(id.as_str()))
             .zip(by_expr_aliases.iter())
             .map(|(expr, alias)| expr.alias(alias.as_str()))
             // TODO: remove this mapping once Polars supports decimal columns inside group by
@@ -72,7 +77,7 @@ impl DataFrameExpr for GroupByExpr {
         // to avoid non-deterministic results with our tests.
         lazy_frame
             .group_by_stable(&by_exprs)
-            .agg(&self.agg_exprs)
+            .agg(&self.agg_exprs())
             .select(&[col("*").exclude(by_expr_aliases)])
     }
 }
