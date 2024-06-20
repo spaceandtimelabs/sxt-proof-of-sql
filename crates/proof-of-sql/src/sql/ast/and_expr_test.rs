@@ -2,7 +2,7 @@ use super::{test_utility::*, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
+        database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
         ast::{
@@ -156,9 +156,8 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
         varchar("d", ["ab", "t", "efg", "g"]),
         bigint("c", [0, 2, 2, 0]),
     ]);
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let and_expr: ProvableExprPlan<RistrettoPoint> = and(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("t")),
