@@ -6,8 +6,12 @@ use super::{
     },
 };
 use crate::{
-    base::{database::Column, scalar::Curve25519Scalar},
+    base::{
+        database::{Column, OwnedColumn},
+        scalar::Curve25519Scalar,
+    },
     proof_primitive::dory::DoryScalar,
+    sql::ast::group_by_util::compare_indexes_by_owned_columns,
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
@@ -156,6 +160,86 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 2, 7), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 6, 9), Ordering::Equal);
+}
+#[test]
+fn we_can_compare_indexes_by_owned_columns_for_mixed_columns() {
+    let slice_a = ["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"]
+        .into_iter()
+        .map(Into::into)
+        .collect();
+    let slice_b = vec![22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
+    let slice_c = vec![11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
+    let column_a = OwnedColumn::<DoryScalar>::VarChar(slice_a);
+    let column_b = OwnedColumn::Int128(slice_b);
+    let column_c = OwnedColumn::BigInt(slice_c);
+
+    let columns = &[&column_a];
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 0, 1),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 2),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 3),
+        Ordering::Equal
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 1),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 0),
+        Ordering::Less
+    );
+    let columns = &[&column_a, &column_b];
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 0, 1),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 2),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 3),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 3, 4),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 7),
+        Ordering::Equal
+    );
+    let columns = &[&column_a, &column_b, &column_c];
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 0, 1),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 1, 2),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 3),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 3, 4),
+        Ordering::Greater
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 2, 7),
+        Ordering::Less
+    );
+    assert_eq!(
+        compare_indexes_by_owned_columns(columns, 6, 9),
+        Ordering::Equal
+    );
 }
 #[test]
 fn we_can_compare_indexes_by_columns_for_scalar_columns() {

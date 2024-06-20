@@ -266,7 +266,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &evaluation_random_scalars,
             post_result_challenges,
         );
-        expr.verifier_evaluate(&mut builder, accessor)?;
+        let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
+        expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result))?;
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
@@ -297,12 +298,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             MessageLabel::VerificationHash.as_bytes(),
             &mut verification_hash,
         );
-        result
-            .to_owned_table(&column_result_fields[..])
-            .map(|table| QueryData {
-                table,
-                verification_hash,
-            })
+        Ok(QueryData {
+            table: owned_table_result,
+            verification_hash,
+        })
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {

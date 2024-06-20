@@ -4,6 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            OwnedTable,
         },
         proof::ProofError,
     },
@@ -77,6 +78,7 @@ where
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
+        _result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<(), ProofError> {
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         for expr in self.results.iter() {
