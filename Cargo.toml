@@ -30,6 +30,7 @@ byte-slice-cast = { version = "1.2.1" }
 clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
 chrono-tz = {version = "0.9.0", features = ["serde"]}
+chrono = { version = "0.4.38" }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 dyn_partial_eq = { version = "0.1.2" }
@@ -54,6 +55,7 @@ rayon = { version = "1.5" }
 serde = { version = "1" }
 serde_json = { version = "1" }
 thiserror = { version = "1" }
+time = {version = "0.3.36", features = ["serde"]}
 tracing = { version = "0.1.36" }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }

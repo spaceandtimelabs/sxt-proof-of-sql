@@ -3,7 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
-        math::decimal::{try_into_to_scalar, Precision},
+        math::decimal::{try_into_to_scalar, Precision}, time::timestamp::PoSQLTimeUnit,
     },
     sql::ast::{ColumnExpr, ProvableExprPlan},
 };
@@ -84,6 +84,25 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
+            Literal::Timestamp(ts) => {
+                let nanoseconds = ts.time().nanosecond(); // Directly access the nanoseconds
+    
+                // Determine the time unit based on the fractional part
+                let time_unit = if nanoseconds % 1_000_000_000 == 0 {
+                    PoSQLTimeUnit::Second
+                } else if nanoseconds % 1_000_000 == 0 {
+                    PoSQLTimeUnit::Millisecond
+                } else if nanoseconds % 1_000 == 0 {
+                    PoSQLTimeUnit::Microsecond
+                } else {
+                    PoSQLTimeUnit::Nanosecond
+                };
+    
+                let time_zone = PoSQLTimeZone::UTC; // Defaulting to UTC
+                Ok(ColumnType::TimestampTZ(time_unit, time_zone))
+            },
+    
+        
         }
     }
 

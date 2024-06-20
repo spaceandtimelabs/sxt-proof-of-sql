@@ -248,7 +248,22 @@ impl<'a> QueryContextBuilder<'a> {
             Literal::Decimal(d) => {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
-            }
+            },
+            Literal::Timestamp(ts) => {
+                let nanoseconds = ts.time().nanosecond(); // Directly access the nanoseconds
+    
+                // Determine the time unit based on the fractional part
+                let time_unit = if nanoseconds % 1_000_000_000 == 0 {
+                    PoSQLTimeUnit::Second
+                } else if nanoseconds % 1_000_000 == 0 {
+                    PoSQLTimeUnit::Millisecond
+                } else if nanoseconds % 1_000 == 0 {
+                    PoSQLTimeUnit::Microsecond
+                } else {
+                    PoSQLTimeUnit::Nanosecond
+                };
+                Ok(ColumnType::TimestampTZ(time_unit, PoSQLTimeZone::UTC))
+            },
         }
     }
 

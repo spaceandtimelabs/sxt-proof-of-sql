@@ -6,6 +6,8 @@
 
 use crate::{intermediate_decimal::IntermediateDecimal, Identifier};
 use serde::{Deserialize, Serialize};
+use chrono::{NaiveDateTime, DateTime, Utc};
+use time::{Time, OffsetDateTime};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -328,6 +330,9 @@ pub enum Literal {
     VarChar(String),
     /// Decimal Literal
     Decimal(IntermediateDecimal),
+    /// Timestamp Literal
+    Timestamp(Time),
+
 }
 
 impl From<bool> for Literal {
