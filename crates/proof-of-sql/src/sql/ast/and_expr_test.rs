@@ -2,10 +2,7 @@ use super::{test_utility::*, ProvableExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            make_random_test_accessor_owned_table, owned_table_utility::*, Column, ColumnType,
-            OwnedTableTestAccessor, RandomTestAccessorDescriptor, TestAccessor,
-        },
+        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
     },
     sql::{
         ast::{
@@ -75,24 +72,24 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
 }
 
 fn test_random_tables_with_given_offset(offset: usize) {
-    let descr = RandomTestAccessorDescriptor {
-        min_rows: 1,
-        max_rows: 20,
-        min_value: -3,
-        max_value: 3,
-    };
+    let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = [
-        ("a", ColumnType::BigInt),
-        ("b", ColumnType::VarChar),
-        ("c", ColumnType::BigInt),
-        ("d", ColumnType::VarChar),
-    ];
     for _ in 0..20 {
-        let data = make_random_test_accessor_owned_table(&mut rng, &cols, &descr);
-        let filter_val1 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let filter_val1 = format!("s{filter_val1}");
-        let filter_val2 = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
+        let n = Uniform::new(1, 21).sample(&mut rng);
+        let data = owned_table([
+            bigint("a", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "b",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+            bigint("c", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "d",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+        ]);
+        let filter_val1 = format!("s{}", dist.sample(&mut rng));
+        let filter_val2 = dist.sample(&mut rng);
 
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
