@@ -1,8 +1,12 @@
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 use super::DataFrameExpr;
+#[cfg(feature = "polars")]
 use super::ToPolarsExpr;
+#[cfg(feature = "polars")]
 use crate::base::database::{INT128_PRECISION, INT128_SCALE};
 use dyn_partial_eq::DynPartialEq;
+#[cfg(feature = "polars")]
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
 use proof_of_sql_parser::{intermediate_ast::AliasedResultExpr, Identifier};
 use serde::{Deserialize, Serialize};
@@ -32,6 +36,7 @@ impl GroupByExpr {
         }
     }
 
+    #[cfg(feature = "polars")]
     fn agg_exprs(&self) -> Vec<Expr> {
         self.aliased_exprs
             .iter()
@@ -40,8 +45,13 @@ impl GroupByExpr {
     }
 }
 
+#[cfg(not(feature = "polars"))]
+#[typetag::serde]
+impl super::RecordBatchExpr for GroupByExpr {}
+#[cfg(feature = "polars")]
 super::impl_record_batch_expr_for_data_frame_expr!(GroupByExpr);
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 impl DataFrameExpr for GroupByExpr {
     fn lazy_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
         // TODO: polars currently lacks support for min/max aggregation in data frames
@@ -82,6 +92,7 @@ impl DataFrameExpr for GroupByExpr {
     }
 }
 
+#[cfg(any(test, feature = "polars"))]
 pub(crate) fn group_by_map_i128_to_utf8(v: i128) -> String {
     // use big end to allow
     // skipping leading zeros
@@ -105,6 +116,7 @@ pub(crate) fn group_by_map_i128_to_utf8(v: i128) -> String {
 
 // Polars doesn't support Decimal columns inside group by.
 // So we need to remap them to the supported UTF8 type.
+#[cfg(feature = "polars")]
 fn group_by_map_to_utf8_if_decimal(expr: Expr) -> Expr {
     expr.map(
         |series| match series.dtype().clone() {

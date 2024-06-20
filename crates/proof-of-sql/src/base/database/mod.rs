@@ -6,6 +6,7 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
+#[cfg(feature = "polars")]
 pub(crate) use column::{INT128_PRECISION, INT128_SCALE};
 
 mod literal_value;
@@ -17,7 +18,9 @@ pub use table_ref::TableRef;
 mod arrow_array_to_column_conversion;
 pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
+#[cfg(any(test, feature = "polars"))]
 mod record_batch_dataframe_conversion;
+#[cfg(any(test, feature = "polars"))]
 pub(crate) use record_batch_dataframe_conversion::{
     dataframe_to_record_batch, record_batch_to_dataframe,
 };
