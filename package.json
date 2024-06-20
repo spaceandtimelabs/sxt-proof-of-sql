@@ -1,0 +1,72 @@
+{
+    "name": "proof_of_sql",
+    "version": "0.0.0-development",
+    "devDependencies": {
+        "conventional-changelog-conventionalcommits": "^5.0.0",
+        "semantic-release": "^21.0.5"
+    },
+    "release": {
+        "branches": [
+            "main"
+        ],
+        "tagFormat": "v${version}",
+        "plugins": [
+            [
+                "@semantic-release/commit-analyzer",
+                {
+                    "preset": "conventionalCommits",
+                    "releaseRules": [
+                        { "breaking": true, "release": "minor" },
+                        { "revert": true, "release": "patch" },
+                        { "type": "feat", "release": "patch" },
+                        { "type": "fix", "release": "patch" },
+                        { "type": "build", "release": "patch" },
+                        { "type": "docs", "release": "patch" },
+                        { "type": "chore", "release": "patch" },
+                        { "type": "bench", "release": "patch" },
+                        { "type": "perf", "release": "patch" },
+                        { "type": "refactor", "release": "patch" },
+                        { "type": "test", "release": "patch" },
+                        { "type": "ci", "release": "patch" }
+                    ],
+                    "parserOpts": {
+                        "noteKeywords": [
+                            "BREAKING CHANGE",
+                            "BREAKING CHANGES",
+                            "BREAKING"
+                        ]
+                    }
+                }
+            ],
+            "@semantic-release/release-notes-generator",
+            [
+                "@semantic-release/exec",
+                {
+                    "prepareCmd": "bash ./ci/build.sh ${nextRelease.version}"
+                }
+            ],
+            [
+                "@semantic-release/github",
+                {
+                    "assets": [
+                        {
+                            "path": "dist/*.h"
+                        },
+                        {
+                            "path": "dist/*.so*"
+                        },
+                        {
+                            "path": "dist/*.zip"
+                        },
+                        {
+                            "path": "dist/*.tar.gz"
+                        }
+                    ]
+                }
+            ]
+        ]
+    },
+    "dependencies": {
+        "@semantic-release/exec": "^6.0.3"
+    }
+}

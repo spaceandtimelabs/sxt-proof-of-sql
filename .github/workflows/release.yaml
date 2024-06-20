@@ -1,0 +1,33 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read # for checkout
+jobs:
+  release:
+    name: Release
+    runs-on: large-8-core-32gb-22-04
+    environment: deploy #!! DO NOT CHANGE THIS LINE !! #
+    permissions:
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
+    steps:
+      - uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: 0 # download tags, see https://github.com/actions/checkout/issues/100
+      - run: git config --global --add safe.directory $(realpath .)
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+      - name: Semantic Release
+        run: |
+          npm install semantic-release
+          npx semantic-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          #CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }} #TODO: add CRATES_TOKEN
