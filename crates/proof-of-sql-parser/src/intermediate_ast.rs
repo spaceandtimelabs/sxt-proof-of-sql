@@ -5,7 +5,7 @@
 ***/
 
 use crate::{
-    intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimeStamp, Identifier,
+    intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimestamp, Identifier,
 };
 use serde::{Deserialize, Serialize};
 
@@ -331,7 +331,7 @@ pub enum Literal {
     /// Decimal Literal
     Decimal(IntermediateDecimal),
     /// Timestamp Literal
-    TimestampTZ(IntermediateTimeStamp),
+    TimestampTZ(IntermediateTimestamp),
 }
 
 impl From<bool> for Literal {

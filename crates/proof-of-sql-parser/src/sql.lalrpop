@@ -3,7 +3,7 @@ use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
 use crate::intermediate_decimal::IntermediateDecimal;
-use crate::intermediate_time::IntermediateTimeStamp;
+use crate::intermediate_time::IntermediateTimestamp;
 
 grammar;
 
@@ -341,8 +341,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::TimestampTZ(value)),
 };
 
-TimestampLiteral: IntermediateTimeStamp = {
-    <ts:TIMESTAMP_LIT> =>? IntermediateTimeStamp::try_from(ts).map_err(|_| User {error: "Invalid timestamp format"}),
+TimestampLiteral: IntermediateTimestamp = {
+    <ts:TIMESTAMP_LIT> =>? IntermediateTimestamp::try_from(ts).map_err(|_| User {error: "Invalid timestamp format"}),
 };
 
 Int128UnaryNumericLiteral: i128 = {

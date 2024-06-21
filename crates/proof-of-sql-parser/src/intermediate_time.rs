@@ -3,11 +3,16 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// An initermediate type of components extracted from a timestamp string.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeUnit {
+    /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
     Second,
+    /// Represents milliseconds with precision 3: ex "2024-06-20 12:34:56.123"
     Millisecond,
+    /// Represents microseconds with precision 6: ex "2024-06-20 12:34:56.123456"
     Microsecond,
+    /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
     Nanosecond,
 }
 
@@ -22,13 +27,17 @@ impl fmt::Display for IntermediateTimeUnit {
     }
 }
 
+/// Captures a timezone from a timestamp query
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeZone {
+    /// Default variant for UTC timezoen
     Utc,
-    FixedOffset(i32), // Offset in seconds
+    /// TImezone offset in seconds
+    FixedOffset(i32),
 }
 
 impl IntermediateTimeZone {
+    /// Parse a timezone from a count of seconds
     pub fn from_offset(offset: i32) -> Self {
         if offset == 0 {
             IntermediateTimeZone::Utc
@@ -56,20 +65,26 @@ impl fmt::Display for IntermediateTimeZone {
     }
 }
 
+/// Error encountered during timestamp parsing
 #[derive(Debug, Error)]
 pub enum TimeParseError {
+    /// Could not parse a timestamp from string
     #[error("Invalid timestamp format")]
     InvalidFormat,
 }
 
+/// Intermediate Time
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub struct IntermediateTimeStamp {
-    pub timestamp: i64, // Use epoch time in the smallest unit (nanoseconds)
-    pub unit: IntermediateTimeUnit, // The unit of the timestamp value
-    pub timezone: IntermediateTimeZone, // The timezone of the timestamp
+pub struct IntermediateTimestamp {
+    /// Count of time units since the unix epoch
+    pub timestamp: i64,
+    /// Seconds, milliseconds, microseconds, or nanoseconds
+    pub unit: IntermediateTimeUnit,
+    /// Timezone captured from parsed string
+    pub timezone: IntermediateTimeZone,
 }
 
-impl TryFrom<&str> for IntermediateTimeStamp {
+impl TryFrom<&str> for IntermediateTimestamp {
     type Error = TimeParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -77,7 +92,8 @@ impl TryFrom<&str> for IntermediateTimeStamp {
     }
 }
 
-pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimeStamp, &'static str> {
+/// Parses a timestamp from valid strings obtained from the lexer
+pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimestamp, &'static str> {
     let format_with_tz = "%Y-%m-%d %H:%M:%S%.f%:z";
     let format_without_tz = "%Y-%m-%d %H:%M:%S%.f";
 
@@ -108,7 +124,7 @@ pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimeStamp, &
             let offset_seconds = dt.offset().fix().local_minus_utc();
             let fraction = extract_fraction(ts);
             let unit = determine_precision(fraction);
-            return Ok(IntermediateTimeStamp {
+            return Ok(IntermediateTimestamp {
                 timestamp: timestamp_nanos,
                 unit,
                 timezone: IntermediateTimeZone::from_offset(offset_seconds),
@@ -124,7 +140,7 @@ pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimeStamp, &
         if let Some(timestamp_nanos) = datetime_utc.timestamp_nanos_opt() {
             let fraction = extract_fraction(ts);
             let unit = determine_precision(fraction);
-            return Ok(IntermediateTimeStamp {
+            return Ok(IntermediateTimestamp {
                 timestamp: timestamp_nanos,
                 unit,
                 timezone: IntermediateTimeZone::Utc,
