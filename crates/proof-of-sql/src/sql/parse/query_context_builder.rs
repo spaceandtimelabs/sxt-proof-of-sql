@@ -250,13 +250,15 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
-            Literal::TimeStampTZ(itu, itz, _) => {
-                let posql_tu = itu
+            Literal::TimestampTZ(its) => {
+                let posql_tu = its
+                    .unit
                     .to_string()
                     .parse::<PoSQLTimeUnit>()
                     .map_err(|_| ConversionError::InvalidTimeUnit)?;
 
-                let posql_tz = itz
+                let posql_tz = its
+                    .timezone
                     .to_string()
                     .parse::<PoSQLTimeZone>()
                     .map_err(|_| ConversionError::InvalidTimeZone)?;

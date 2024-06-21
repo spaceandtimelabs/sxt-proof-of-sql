@@ -30,7 +30,7 @@ impl ToPolarsExpr for Expression {
                 Literal::Int128(value) => value.to_lit(),
                 Literal::VarChar(_) => panic!("Expression not supported"),
                 Literal::Decimal(_) => todo!(),
-                Literal::TimeStampTZ(_, _, _) => todo!(),
+                Literal::TimestampTZ(_) => todo!(),
             },
             Expression::Column(identifier) => col(identifier.as_str()),
             Expression::Binary { op, left, right } => {

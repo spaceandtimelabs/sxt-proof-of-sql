@@ -1,6 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Offset, TimeZone, Utc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeUnit {
@@ -54,11 +55,26 @@ impl fmt::Display for IntermediateTimeZone {
         }
     }
 }
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Error)]
+pub enum TimeParseError {
+    #[error("Invalid timestamp format")]
+    InvalidFormat,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IntermediateTimeStamp {
     pub timestamp: i64, // Use epoch time in the smallest unit (nanoseconds)
     pub unit: IntermediateTimeUnit, // The unit of the timestamp value
     pub timezone: IntermediateTimeZone, // The timezone of the timestamp
+}
+
+impl TryFrom<&str> for IntermediateTimeStamp {
+    type Error = TimeParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        parse_intermediate_timestamp(value).map_err(|_| TimeParseError::InvalidFormat)
+    }
 }
 
 pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimeStamp, &'static str> {

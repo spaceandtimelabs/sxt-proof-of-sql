@@ -85,19 +85,23 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::TimeStampTZ(itu, itz, its) => {
-                let posql_tu = itu
+            Literal::TimestampTZ(its) => {
+                let posql_tu = its
+                    .unit
                     .to_string()
                     .parse::<PoSQLTimeUnit>()
                     .map_err(|_| ConversionError::InvalidTimeUnit)?;
 
-                let posql_tz = itz
+                let posql_tz = its
+                    .timezone
                     .to_string()
                     .parse::<PoSQLTimeZone>()
                     .map_err(|_| ConversionError::InvalidTimeUnit)?;
 
-                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
-                    posql_tu, posql_tz, *its,
+                Ok(ProvableExprPlan::new_literal(LiteralValue::TimestampTZ(
+                    posql_tu,
+                    posql_tz,
+                    its.timestamp,
                 )))
             }
         }
