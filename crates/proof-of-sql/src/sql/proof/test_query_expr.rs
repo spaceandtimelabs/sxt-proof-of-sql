@@ -5,6 +5,7 @@ use super::{
 use crate::base::{
     database::{
         ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+        OwnedTable,
     },
     proof::ProofError,
     scalar::Curve25519Scalar,
@@ -77,6 +78,7 @@ impl ProofExpr<RistrettoPoint> for TestQueryExpr {
         &self,
         builder: &mut VerificationBuilder<RistrettoPoint>,
         accessor: &dyn CommitmentAccessor<RistrettoPoint>,
+        _result: Option<&OwnedTable<Curve25519Scalar>>,
     ) -> Result<(), ProofError> {
         if let Some(f) = &self.verifier_fn {
             f(builder, accessor);

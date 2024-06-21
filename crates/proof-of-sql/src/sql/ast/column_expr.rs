@@ -8,6 +8,7 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 /// Provable expression for a column
@@ -36,6 +37,11 @@ impl<C: Commitment> ColumnExpr<C> {
     /// Wrap the column output name and its type within the ColumnField
     pub fn get_column_field(&self) -> ColumnField {
         ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
+    }
+
+    /// Get the column identifier
+    pub fn column_id(&self) -> Identifier {
+        self.column_ref.column_id()
     }
 }
 

@@ -64,11 +64,12 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         &self,
         builder: &mut crate::sql::proof::VerificationBuilder<C>,
         accessor: &dyn crate::base::database::CommitmentAccessor<C>,
+        result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
     ) -> Result<(), crate::base::proof::ProofError> {
         match self {
-            ProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor),
-            ProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor),
-            ProofPlan::DenseFilter(expr) => expr.verifier_evaluate(builder, accessor),
+            ProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),
+            ProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor, result),
+            ProofPlan::DenseFilter(expr) => expr.verifier_evaluate(builder, accessor, result),
         }
     }
 

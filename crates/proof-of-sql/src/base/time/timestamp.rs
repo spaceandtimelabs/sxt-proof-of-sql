@@ -65,10 +65,10 @@ impl TryFrom<Option<Arc<str>>> for PoSQLTimeZone {
     }
 }
 
-impl FromStr for PoSQLTimeZone {
-    type Err = &'static str;
+impl TryFrom<&str> for PoSQLTimeZone {
+    type Error = &'static str;
 
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         Tz::from_str(value)
             .map(PoSQLTimeZone)
             .map_err(|_| "Invalid timezone string")

@@ -77,4 +77,70 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
         }
     }
+
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i16], panicking if it is not.
+    pub fn i16_iter(&self) -> impl Iterator<Item = &i16> {
+        match self {
+            OwnedColumn::SmallInt(col) => col.iter(),
+            _ => panic!("Expected SmallInt column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i32], panicking if it is not.
+    pub fn i32_iter(&self) -> impl Iterator<Item = &i32> {
+        match self {
+            OwnedColumn::Int(col) => col.iter(),
+            _ => panic!("Expected Int column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i64], panicking if it is not.
+    pub fn i64_iter(&self) -> impl Iterator<Item = &i64> {
+        match self {
+            OwnedColumn::BigInt(col) => col.iter(),
+            OwnedColumn::TimestampTZ(_, _, col) => col.iter(),
+            _ => panic!("Expected TimestampTZ or BigInt column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i128], panicking if it is not.
+    pub fn i128_iter(&self) -> impl Iterator<Item = &i128> {
+        match self {
+            OwnedColumn::Int128(col) => col.iter(),
+            _ => panic!("Expected Int128 column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [bool], panicking if it is not.
+    pub fn bool_iter(&self) -> impl Iterator<Item = &bool> {
+        match self {
+            OwnedColumn::Boolean(col) => col.iter(),
+            _ => panic!("Expected Boolean column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is a [Scalar], panicking if it is not.
+    pub fn scalar_iter(&self) -> impl Iterator<Item = &S> {
+        match self {
+            OwnedColumn::Scalar(col) => col.iter(),
+            OwnedColumn::Decimal75(_, _, col) => col.iter(),
+            _ => panic!("Expected Scalar or Decimal75 column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [String], panicking if it is not.
+    pub fn string_iter(&self) -> impl Iterator<Item = &String> {
+        match self {
+            OwnedColumn::VarChar(col) => col.iter(),
+            _ => panic!("Expected VarChar column"),
+        }
+    }
 }

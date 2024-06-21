@@ -83,11 +83,11 @@ impl ProvableQueryResult {
         evaluation_point: &[S],
         table_length: usize,
         column_result_fields: &[ColumnField],
-    ) -> Option<Vec<S>> {
+    ) -> Result<Vec<S>, QueryError> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
         if !self.indexes.valid(table_length) {
-            return None;
+            return Err(QueryError::InvalidIndexes);
         }
 
         let evaluation_vec_len = self
@@ -119,7 +119,6 @@ impl ProvableQueryResult {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
                 }?;
-
                 val += evaluation_vec[index as usize] * x;
                 offset += sz;
             }
@@ -127,10 +126,10 @@ impl ProvableQueryResult {
         }
 
         if offset != self.data.len() {
-            return None;
+            return Err(QueryError::MiscellaneousEvaluationError);
         }
 
-        Some(res)
+        Ok(res)
     }
 
     /// Convert the intermediate query result into a final query result
@@ -150,56 +149,47 @@ impl ProvableQueryResult {
                 .iter()
                 .map(|field| match field.data_type() {
                     ColumnType::Boolean => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Boolean(col)))
                     }
                     ColumnType::SmallInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::SmallInt(col)))
                     }
                     ColumnType::Int => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Int(col)))
                     }
                     ColumnType::BigInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::BigInt(col)))
                     }
                     ColumnType::Int128 => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Int128(col)))
                     }
                     ColumnType::VarChar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::InvalidString)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::VarChar(col)))
                     }
                     ColumnType::Scalar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Scalar(col)))
                     }
                     ColumnType::Decimal75(precision, scale) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
                     }
                     ColumnType::TimestampTZ(tu, tz) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)
-                            .ok_or(QueryError::Overflow)?;
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
                     }

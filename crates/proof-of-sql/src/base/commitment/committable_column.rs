@@ -223,24 +223,25 @@ mod tests {
     #[test]
     fn we_can_get_type_and_length_of_timestamp_column() {
         // empty case
-        let smallint_committable_column =
+        let committable_column =
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[]);
-        assert_eq!(smallint_committable_column.len(), 0);
-        assert!(smallint_committable_column.is_empty());
+        assert_eq!(committable_column.len(), 0);
+        assert!(committable_column.is_empty());
         assert_eq!(
-            smallint_committable_column.column_type(),
+            committable_column.column_type(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC)
         );
 
-        let smallint_committable_column = CommittableColumn::TimestampTZ(
+        let committable_column = CommittableColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::UTC,
             &[12, 34, 56],
         );
-        assert_eq!(smallint_committable_column.len(), 3);
-        assert!(!smallint_committable_column.is_empty());
+
+        assert_eq!(committable_column.len(), 3);
+        assert!(!committable_column.is_empty());
         assert_eq!(
-            smallint_committable_column.column_type(),
+            committable_column.column_type(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC)
         );
     }
