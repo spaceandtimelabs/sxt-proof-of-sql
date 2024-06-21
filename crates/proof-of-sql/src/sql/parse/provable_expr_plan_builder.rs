@@ -73,7 +73,7 @@ impl ProvableExprPlanBuilder<'_> {
             Literal::Decimal(d) => {
                 let scale = d.scale();
                 let precision = Precision::new(d.precision())
-                    .map_err(|_| ConversionError::InvalidPrecision(d.precision()))?;
+                    .map_err(|_| ConversionError::InvalidPrecision(d.precision() as i16))?;
                 Ok(ProvableExprPlan::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
@@ -130,13 +130,19 @@ impl ProvableExprPlanBuilder<'_> {
                 let right = self.visit_expr(right);
                 ProvableExprPlan::try_new_inequality(left?, right?, true)
             }
-            BinaryOperator::Add
-            | BinaryOperator::Subtract
-            | BinaryOperator::Multiply
-            | BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
-                "Binary operator {:?} is not supported yet",
-                op
-            ))),
+            BinaryOperator::Add => {
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_add(left?, right?)
+            }
+            BinaryOperator::Subtract => {
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_subtract(left?, right?)
+            }
+            BinaryOperator::Multiply | BinaryOperator::Division => Err(
+                ConversionError::Unprovable(format!("Binary operator {:?} is not supported", op)),
+            ),
         }
     }
 }

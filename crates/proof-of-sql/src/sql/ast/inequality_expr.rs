@@ -1,7 +1,7 @@
 use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
-    scale_and_subtract, scale_and_subtract_eval, verifier_evaluate_equals_zero,
+    scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
     verifier_evaluate_or, verifier_evaluate_sign, ProvableExpr, ProvableExprPlan,
 };
 use crate::{
@@ -54,11 +54,13 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
         let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lte {
-            scale_and_subtract(alloc, lhs_column, rhs_column, false)
+            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, false)
+            scale_and_subtract(alloc, rhs_column, lhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         };
 
@@ -81,11 +83,13 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
     ) -> Column<'a, C::Scalar> {
         let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
         let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
+        let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lte {
-            scale_and_subtract(alloc, lhs_column, rhs_column, false)
+            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, false)
+            scale_and_subtract(alloc, rhs_column, lhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         };
 
@@ -110,11 +114,10 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff_eval = if self.is_lte {
-            scale_and_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale)
+            scale_and_add_subtract_eval(lhs_eval, rhs_eval, lhs_scale, rhs_scale, true)
         } else {
-            scale_and_subtract_eval(rhs_eval, lhs_eval, rhs_scale, lhs_scale)
-        }
-        .expect("Failed to scale and subtract");
+            scale_and_add_subtract_eval(rhs_eval, lhs_eval, rhs_scale, lhs_scale, true)
+        };
 
         // diff == 0
         let equals_zero = verifier_evaluate_equals_zero(builder, diff_eval);
