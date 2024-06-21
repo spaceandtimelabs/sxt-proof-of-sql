@@ -75,6 +75,16 @@ impl TryFrom<&str> for PoSQLTimeZone {
     }
 }
 
+impl FromStr for PoSQLTimeZone {
+    type Err = &'static str;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Tz::from_str(value)
+            .map(PoSQLTimeZone)
+            .map_err(|_| "Invalid timezone string")
+    }
+}
+
 /// Specifies different units of time measurement relative to the Unix epoch. It is essentially
 /// a wrapper over [arrow::datatypes::TimeUnit] so that we can derive Copy and implement custom traits
 /// such as bit distribution and Hash.
