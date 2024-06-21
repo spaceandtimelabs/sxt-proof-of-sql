@@ -7,7 +7,7 @@
     },
     "release": {
         "branches": [
-            "main"
+            "versioning-1"
         ],
         "tagFormat": "v${version}",
         "plugins": [
