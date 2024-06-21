@@ -23,7 +23,7 @@ where
     /// Create a new `QueryCommitments` from a collection of columns and an accessor.
     fn from_accessor_with_max_bounds(
         columns: impl IntoIterator<Item = ColumnRef>,
-        accessor: &impl CommitmentAccessor<Decompressed<C>>,
+        accessor: &(impl CommitmentAccessor<Decompressed<C>> + SchemaAccessor),
     ) -> Self;
 }
 
@@ -34,7 +34,7 @@ where
 {
     fn from_accessor_with_max_bounds(
         columns: impl IntoIterator<Item = ColumnRef>,
-        accessor: &impl CommitmentAccessor<Decompressed<C>>,
+        accessor: &(impl CommitmentAccessor<Decompressed<C>> + SchemaAccessor),
     ) -> Self {
         columns
             .into_iter()
@@ -49,7 +49,16 @@ where
             .map(|(table_ref, columns)| {
                 (
                     table_ref,
-                    TableCommitment::from_accessor_with_max_bounds(table_ref, &columns, accessor),
+                    TableCommitment::from_accessor_with_max_bounds(
+                        table_ref,
+                        &Vec::from_iter(
+                            accessor
+                                .lookup_schema(table_ref)
+                                .iter()
+                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied()),
+                        ),
+                        accessor,
+                    ),
                 )
             })
             .collect()
