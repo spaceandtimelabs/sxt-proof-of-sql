@@ -6,6 +6,7 @@ use crate::{
     },
     sql::{
         ast::{test_utility::*, ProofPlan, ProvableExpr, ProvableExprPlan},
+        parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
     },
 };
@@ -100,6 +101,19 @@ fn we_can_prove_a_typical_add_subtract_query_with_decimals() {
     assert_eq!(res, expected_res);
 }
 
+// Column type issue tests
+#[test]
+fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
+    let data = owned_table([decimal75("a", 75, 2, [1_i16, 2, 3, 4])]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    assert!(matches!(
+        ProvableExprPlan::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
+        Err(ConversionError::DataTypeMismatch(..))
+    ));
+}
+
+// Overflow tests
 // select a + b as c from sxt.t where b = 1
 #[test]
 fn result_expr_can_overflow() {
