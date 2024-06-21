@@ -46,23 +46,7 @@
                 }
             ],
             [
-                "@semantic-release/github",
-                {
-                    "assets": [
-                        {
-                            "path": "dist/*.h"
-                        },
-                        {
-                            "path": "dist/*.so*"
-                        },
-                        {
-                            "path": "dist/*.zip"
-                        },
-                        {
-                            "path": "dist/*.tar.gz"
-                        }
-                    ]
-                }
+                "@semantic-release/github"
             ]
         ]
     },
