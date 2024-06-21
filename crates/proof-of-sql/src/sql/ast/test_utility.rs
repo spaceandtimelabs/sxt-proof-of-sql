@@ -5,6 +5,7 @@ use super::{
 use crate::base::{
     commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
+    math::decimal::Precision,
 };
 use proof_of_sql_parser::Identifier;
 
@@ -63,6 +64,20 @@ pub fn or<C: Commitment>(
     ProvableExprPlan::try_new_or(left, right).unwrap()
 }
 
+pub fn add<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::try_new_add(left, right).unwrap()
+}
+
+pub fn subtract<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::try_new_subtract(left, right).unwrap()
+}
+
 pub fn const_bool<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_literal(LiteralValue::Boolean(val))
 }
@@ -84,6 +99,18 @@ pub fn const_varchar<C: Commitment>(val: &str) -> ProvableExprPlan<C> {
 
 pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_literal(LiteralValue::Scalar(val.into()))
+}
+
+pub fn const_decimal75<C: Commitment, T: Into<C::Scalar>>(
+    precision: u8,
+    scale: i8,
+    val: T,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::Decimal75(
+        Precision::new(precision).unwrap(),
+        scale,
+        val.into(),
+    ))
 }
 
 pub fn tab(tab: TableRef) -> TableExpr {

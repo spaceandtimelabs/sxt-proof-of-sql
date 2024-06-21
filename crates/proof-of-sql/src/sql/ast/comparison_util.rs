@@ -33,6 +33,8 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: Column<'a, S>,
     rhs: Column<'a, S>,
+    lhs_scale: i8,
+    rhs_scale: i8,
     is_equal: bool,
 ) -> ConversionResult<&'a [S]> {
     let lhs_len = lhs.len();
@@ -53,8 +55,6 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             rhs_type.to_string(),
         ));
     }
-    let lhs_scale = lhs_type.scale().unwrap_or(0);
-    let rhs_scale = rhs_type.scale().unwrap_or(0);
     let max_scale = std::cmp::max(lhs_scale, rhs_scale);
     let lhs_upscale = max_scale - lhs_scale;
     let rhs_upscale = max_scale - rhs_scale;
@@ -81,17 +81,4 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         &rhs.to_scalar_with_scaling(rhs_upscale),
         lhs_len,
     )
-}
-
-/// The counterpart of `scale_and_subtract` for evaluating decimal expressions.
-pub(crate) fn scale_and_subtract_eval<S: Scalar>(
-    lhs_eval: S,
-    rhs_eval: S,
-    lhs_scale: i8,
-    rhs_scale: i8,
-) -> ConversionResult<S> {
-    let max_scale = lhs_scale.max(rhs_scale);
-    let scaled_lhs_eval = scale_scalar(lhs_eval, max_scale - lhs_scale)?;
-    let scaled_rhs_eval = scale_scalar(rhs_eval, max_scale - rhs_scale)?;
-    Ok(scaled_lhs_eval - scaled_rhs_eval)
 }

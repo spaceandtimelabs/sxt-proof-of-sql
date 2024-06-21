@@ -207,15 +207,15 @@ pub enum ColumnType {
     /// Mapped to String
     #[serde(alias = "VARCHAR", alias = "varchar")]
     VarChar,
-    /// Mapped to Curve25519Scalar
-    #[serde(alias = "SCALAR", alias = "scalar")]
-    Scalar,
     /// Mapped to i256
     #[serde(rename = "Decimal75", alias = "DECIMAL75", alias = "decimal75")]
     Decimal75(Precision, i8),
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
+    /// Mapped to Curve25519Scalar
+    #[serde(alias = "SCALAR", alias = "scalar")]
+    Scalar,
 }
 
 impl ColumnType {
@@ -238,6 +238,44 @@ impl ColumnType {
             self,
             ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
         )
+    }
+
+    /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
+    fn to_integer_bits(self) -> Option<usize> {
+        match self {
+            ColumnType::SmallInt => Some(16),
+            ColumnType::Int => Some(32),
+            ColumnType::BigInt => Some(64),
+            ColumnType::Int128 => Some(128),
+            _ => None,
+        }
+    }
+
+    /// Returns the ColumnType of the integer type with the given number of bits if it is a valid integer type.
+    ///
+    /// Otherwise, return None.
+    fn from_integer_bits(bits: usize) -> Option<Self> {
+        match bits {
+            16 => Some(ColumnType::SmallInt),
+            32 => Some(ColumnType::Int),
+            64 => Some(ColumnType::BigInt),
+            128 => Some(ColumnType::Int128),
+            _ => None,
+        }
+    }
+
+    /// Returns the larger integer type of two ColumnTypes if they are both integers.
+    ///
+    /// If either of the columns is not an integer, return None.
+    pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
+        // If either of the columns is not an integer, return None
+        if !self.is_integer() || !other.is_integer() {
+            return None;
+        }
+        Self::from_integer_bits(std::cmp::max(
+            self.to_integer_bits().unwrap(),
+            other.to_integer_bits().unwrap(),
+        ))
     }
 
     /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.

@@ -13,7 +13,7 @@ use proof_of_sql::{
     record_batch,
     sql::{
         parse::{ConversionError, QueryExpr},
-        proof::QueryProof,
+        proof::{QueryError, QueryProof},
     },
 };
 
@@ -160,41 +160,68 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
     assert_eq!(owned_table_result, expected_result);
 }
 
-//TODO: Once arithmetic is supported, this test should be updated to use arithmetic.
 #[test]
 #[cfg(feature = "blitzar")]
-fn we_cannot_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
+fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
+        owned_table([bigint("a", [1, 2, 3]), bigint("b", [4, 1, 2])]),
         0,
     );
-    let res_query = QueryExpr::<RistrettoPoint>::try_new(
+    let query = QueryExpr::<RistrettoPoint>::try_new(
         "SELECT * FROM table WHERE b >= a + 1".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
-    );
-    assert!(matches!(res_query, Err(ConversionError::Unprovable(_))));
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let owned_table_result: OwnedTable<Curve25519Scalar> = query
+        .result()
+        .transform_results(owned_table_result.try_into().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let expected_result = owned_table([bigint("a", [1]), bigint("b", [4])]);
+    assert_eq!(owned_table_result, expected_result);
 }
 
 #[test]
-fn we_cannot_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
+fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
     let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
+    let dory_verifier_setup = (&dory_prover_setup).into();
     let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
         dory_prover_setup.clone(),
     );
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 2])]),
+        owned_table([bigint("a", [1, -1, 3]), bigint("b", [0, 0, 2])]),
         0,
     );
-    let res_query = QueryExpr::<DoryCommitment>::try_new(
-        "SELECT * FROM table WHERE b >= -(a)".parse().unwrap(),
+    let query = QueryExpr::<DoryCommitment>::try_new(
+        "SELECT * FROM table WHERE b > 1 - a".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
-    );
-    assert!(matches!(res_query, Err(ConversionError::Unprovable(_))));
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
+        .unwrap()
+        .table;
+    let expected_result = owned_table([bigint("a", [3]), bigint("b", [2])]);
+    assert_eq!(owned_table_result, expected_result);
 }
 
 #[test]
@@ -269,22 +296,45 @@ fn we_can_prove_a_basic_inequality_query_with_dory() {
 
 #[test]
 #[cfg(feature = "blitzar")]
+fn decimal_type_issues_should_cause_provable_ast_to_fail() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([decimal75("d0", 12, 0, [10])]),
+        0,
+    );
+    let large_decimal = format!("0.{}", "1".repeat(75));
+    let query_string = format!("SELECT d0 + {} as res FROM table", large_decimal);
+    assert!(matches!(
+        QueryExpr::<RistrettoPoint>::try_new(
+            query_string.parse().unwrap(),
+            "sxt".parse().unwrap(),
+            &accessor,
+        ),
+        Err(ConversionError::DataTypeMismatch(..))
+    ));
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
 fn we_can_prove_a_complex_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
-            bigint("a", [1, 2, 3]),
-            bigint("b", [1, 0, 1]),
-            bigint("c", [3, 3, -3]),
-            bigint("d", [1, 2, 3]),
+            smallint("a", [1_i16, 2, 3]),
+            int("b", [1_i32, 0, 1]),
+            bigint("c", [3_i64, 3, -3]),
+            bigint("d", [1_i64, 2, 3]),
             varchar("e", ["d", "e", "f"]),
             boolean("f", [true, false, false]),
+            decimal75("d0", 12, 4, [1, 2, 3]),
+            decimal75("d1", 12, 2, [3, 4, 2]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT *, 45 as g, (a = b) or f as h FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
+        "SELECT a + b + c + 1 as t, 45.7 as g, (a = b) or f as h, d0 + d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -298,14 +348,10 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        bigint("a", [3]),
-        bigint("b", [1]),
-        bigint("c", [-3]),
-        bigint("d", [3]),
-        varchar("e", ["f"]),
-        boolean("f", [false]),
-        bigint("g", [45]),
+        bigint("t", [2]),
+        decimal75("g", 3, 1, [457]),
         boolean("h", [false]),
+        decimal75("dr", 16, 4, [14203]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -327,11 +373,13 @@ fn we_can_prove_a_complex_query_with_dory() {
             bigint("d", [1, 2, 3]),
             varchar("e", ["d", "e", "f"]),
             boolean("f", [true, false, true]),
+            decimal75("d0", 12, 4, [1, 2, 3]),
+            decimal75("d1", 12, 2, [3, 4, 2]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT *, 32 as g, (c >= d) and f as h FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f"
+        "SELECT 0.5 + a - b + c - d as res, 32 as g, (c >= d) and f as h, a + b + 1 + c + d + d0 - d1 + 0.5 as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and d1 - d0 > 0.01"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -350,14 +398,10 @@ fn we_can_prove_a_complex_query_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        smallint("a", [1_i16]),
-        int("b", [1]),
-        bigint("c", [3]),
-        bigint("d", [1]),
-        varchar("e", ["d"]),
-        boolean("f", [true]),
+        decimal75("res", 22, 1, [25]),
         bigint("g", [32]),
         boolean("h", [true]),
+        decimal75("res2", 26, 4, [74701]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -436,4 +480,60 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         bigint("e", [1, 2, 1]),
     ]);
     assert_eq!(owned_table_result, expected_result);
+}
+
+// Overflow checks
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_query_with_overflow_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([smallint("a", [i16::MAX]), smallint("b", [1_i16])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a + b as c from table".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    assert!(matches!(
+        proof.verify(query.proof_expr(), &accessor, &serialized_result, &()),
+        Err(QueryError::Overflow)
+    ));
+}
+
+#[test]
+fn we_can_prove_a_query_with_overflow_with_dory() {
+    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
+    let dory_verifier_setup = (&dory_prover_setup).into();
+
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
+        dory_prover_setup.clone(),
+    );
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([bigint("a", [i64::MIN]), smallint("b", [1_i16])]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a - b as c from table".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    assert!(matches!(
+        proof.verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup
+        ),
+        Err(QueryError::Overflow)
+    ));
 }

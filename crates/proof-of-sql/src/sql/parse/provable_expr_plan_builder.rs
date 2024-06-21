@@ -152,13 +152,19 @@ impl ProvableExprPlanBuilder<'_> {
                 let right = self.visit_expr(right);
                 ProvableExprPlan::try_new_inequality(left?, right?, true)
             }
-            BinaryOperator::Add
-            | BinaryOperator::Subtract
-            | BinaryOperator::Multiply
-            | BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
-                "Binary operator {:?} is not supported yet",
-                op
-            ))),
+            BinaryOperator::Add => {
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_add(left?, right?)
+            }
+            BinaryOperator::Subtract => {
+                let left = self.visit_expr(left);
+                let right = self.visit_expr(right);
+                ProvableExprPlan::try_new_subtract(left?, right?)
+            }
+            BinaryOperator::Multiply | BinaryOperator::Division => Err(
+                ConversionError::Unprovable(format!("Binary operator {:?} is not supported", op)),
+            ),
         }
     }
 }
