@@ -351,7 +351,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         bigint("t", [2]),
         decimal75("g", 3, 1, [457]),
         boolean("h", [false]),
-        decimal75("dr", 16, 4, [14402]),
+        decimal75("dr", 16, 4, [14203]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
