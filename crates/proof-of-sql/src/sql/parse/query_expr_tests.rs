@@ -1,6 +1,9 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, RecordBatchTestAccessor, TableRef, TestAccessor},
+    base::database::{
+        owned_table_utility::{bigint, owned_table},
+        ColumnType, OwnedTableTestAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
+    },
     record_batch,
     sql::{
         ast::{test_utility::*, ProofPlan},
@@ -9,6 +12,7 @@ use crate::{
     },
 };
 use arrow::record_batch::RecordBatch;
+use blitzar::proof::InnerProductProof;
 use curve25519_dalek::RistrettoPoint;
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
@@ -1976,4 +1980,26 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
 
     assert_eq!(filter_exprs.len(), deserialized_as_ref.len());
     assert_eq!(filter_exprs[0], deserialized_as_ref[0]);
+}
+
+#[test]
+fn we_can_get_the_same_query_expr_with_permuted_accessors() {
+    let table1 = owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 2, 3])]);
+    let table2 = owned_table([bigint("b", [1, 2, 3]), bigint("a", [1, 2, 3])]);
+    let t = "sxt.table".parse().unwrap();
+    let accessor1 = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, table1, 0, ());
+    let accessor2 = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, table2, 0, ());
+    let query1 = QueryExpr::<RistrettoPoint>::try_new(
+        "SELECT * FROM table WHERE b = 1".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor1,
+    )
+    .unwrap();
+    let query2 = QueryExpr::<RistrettoPoint>::try_new(
+        "SELECT * FROM table WHERE b = 1".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor2,
+    )
+    .unwrap();
+    assert_eq!(query1, query2);
 }

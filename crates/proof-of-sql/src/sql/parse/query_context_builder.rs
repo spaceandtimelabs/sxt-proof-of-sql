@@ -104,8 +104,9 @@ impl<'a> QueryContextBuilder<'a> {
 impl<'a> QueryContextBuilder<'a> {
     fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
         let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(*table_ref);
+        let mut columns = self.schema_accessor.lookup_schema(*table_ref);
         assert!(!columns.is_empty(), "At least one column must exist");
+        columns.sort_by_key(|v| v.0);
         columns
     }
 
