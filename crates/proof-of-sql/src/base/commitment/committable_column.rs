@@ -237,7 +237,6 @@ mod tests {
             PoSQLTimeZone::UTC,
             &[12, 34, 56],
         );
-
         assert_eq!(committable_column.len(), 3);
         assert!(!committable_column.is_empty());
         assert_eq!(

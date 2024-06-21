@@ -55,7 +55,6 @@ rayon = { version = "1.5" }
 serde = { version = "1" }
 serde_json = { version = "1" }
 thiserror = { version = "1" }
-time = {version = "0.3.36", features = ["serde"]}
 tracing = { version = "0.1.36" }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }
