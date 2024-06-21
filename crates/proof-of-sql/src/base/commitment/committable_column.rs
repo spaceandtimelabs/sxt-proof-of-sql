@@ -3,7 +3,7 @@ use crate::base::{
     math::decimal::Precision,
     ref_into::RefInto,
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+    time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;

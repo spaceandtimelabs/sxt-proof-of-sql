@@ -1,4 +1,4 @@
-use crate::base::time::timestamp::{PoSQLTimeUnit, Time};
+use crate::base::time::timeunit::{PoSQLTimeUnit, Time};
 use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,

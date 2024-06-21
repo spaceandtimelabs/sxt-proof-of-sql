@@ -2,7 +2,7 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+        time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     proof_primitive::dory::DoryScalar,
 };

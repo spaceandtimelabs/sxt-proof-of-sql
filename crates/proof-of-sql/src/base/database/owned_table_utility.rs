@@ -16,7 +16,7 @@
 use super::{OwnedColumn, OwnedTable};
 use crate::base::{
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+    time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use core::ops::Deref;
 use proof_of_sql_parser::Identifier;

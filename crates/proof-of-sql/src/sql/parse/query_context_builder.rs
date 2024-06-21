@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+        time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::parse::{ConversionError, ConversionResult},
 };

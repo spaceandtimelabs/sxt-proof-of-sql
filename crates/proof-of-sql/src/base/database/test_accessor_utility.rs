@@ -1,4 +1,4 @@
-use crate::base::{database::ColumnType, time::timestamp::PoSQLTimeUnit};
+use crate::base::{database::ColumnType, time::timeunit::PoSQLTimeUnit};
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,

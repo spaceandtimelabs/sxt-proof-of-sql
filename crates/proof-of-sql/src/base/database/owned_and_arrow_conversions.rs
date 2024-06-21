@@ -20,7 +20,7 @@ use crate::base::{
     },
     math::decimal::Precision,
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+    time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use arrow::{
     array::{

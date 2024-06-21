@@ -6,7 +6,7 @@ use super::ColumnType;
 use crate::base::{
     math::decimal::Precision,
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+    time::{timeunit::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
