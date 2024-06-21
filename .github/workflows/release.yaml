@@ -6,9 +6,13 @@ on:
 permissions:
   contents: read # for checkout
 jobs:
+  lint-and-test:
+    uses: ./.github/workflows/lint-and-test.yml
+
   release:
     name: Release
     runs-on: large-8-core-32gb-22-04
+    needs: [lint-and-test]
     environment: deploy #!! DO NOT CHANGE THIS LINE !! #
     permissions:
       contents: write # to be able to publish a GitHub release
