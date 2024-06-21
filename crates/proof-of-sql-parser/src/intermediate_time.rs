@@ -13,6 +13,10 @@ pub enum IntermediateTimestampError {
     #[error("Invalid timezone")]
     /// Error converting intermediate time zones to PoSQL timezones
     InvalidTimeZone,
+
+    /// Could not parse a timestamp from string
+    #[error("Invalid timestamp format")]
+    InvalidFormat,
 }
 
 /// An initermediate type of components extracted from a timestamp string.
@@ -77,14 +81,6 @@ impl fmt::Display for IntermediateTimeZone {
     }
 }
 
-/// Error encountered during timestamp parsing
-#[derive(Debug, Error)]
-pub enum TimeParseError {
-    /// Could not parse a timestamp from string
-    #[error("Invalid timestamp format")]
-    InvalidFormat,
-}
-
 /// Intermediate Time
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IntermediateTimestamp {
@@ -97,10 +93,10 @@ pub struct IntermediateTimestamp {
 }
 
 impl TryFrom<&str> for IntermediateTimestamp {
-    type Error = TimeParseError;
+    type Error = IntermediateTimestampError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        parse_intermediate_timestamp(value).map_err(|_| TimeParseError::InvalidFormat)
+        parse_intermediate_timestamp(value).map_err(|_| IntermediateTimestampError::InvalidFormat)
     }
 }
 
