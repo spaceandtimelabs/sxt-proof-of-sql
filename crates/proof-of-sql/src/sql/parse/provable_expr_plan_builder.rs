@@ -3,13 +3,14 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
-        math::decimal::{try_into_to_scalar, Precision},
+        math::decimal::{try_into_to_scalar, DecimalError, Precision},
         time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::ast::{ColumnExpr, ProvableExprPlan},
 };
 use proof_of_sql_parser::{
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
+    intermediate_time::IntermediateTimestampError,
     Identifier,
 };
 use std::collections::HashMap;
@@ -73,8 +74,9 @@ impl ProvableExprPlanBuilder<'_> {
             Literal::Int128(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::Int128(*i))),
             Literal::Decimal(d) => {
                 let scale = d.scale();
-                let precision = Precision::new(d.precision())
-                    .map_err(|_| ConversionError::InvalidPrecision(d.precision()))?;
+                let precision = Precision::new(d.precision()).map_err(|_| {
+                    ConversionError::Decimal(DecimalError::InvalidPrecision(d.precision()))
+                })?;
                 Ok(ProvableExprPlan::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
@@ -90,13 +92,13 @@ impl ProvableExprPlanBuilder<'_> {
                     .unit
                     .to_string()
                     .parse::<PoSQLTimeUnit>()
-                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+                    .map_err(|_| IntermediateTimestampError::InvalidTimeUnit)?;
 
                 let posql_tz = its
                     .timezone
                     .to_string()
                     .parse::<PoSQLTimeZone>()
-                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+                    .map_err(|_| IntermediateTimestampError::InvalidTimeUnit)?;
 
                 Ok(ProvableExprPlan::new_literal(LiteralValue::TimestampTZ(
                     posql_tu,

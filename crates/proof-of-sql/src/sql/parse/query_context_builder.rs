@@ -12,6 +12,7 @@ use proof_of_sql_parser::{
         AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
         SelectResultExpr, Slice, TableExpression, UnaryOperator,
     },
+    intermediate_time::IntermediateTimestampError,
     Identifier, ResourceId,
 };
 use std::ops::Deref;
@@ -255,13 +256,13 @@ impl<'a> QueryContextBuilder<'a> {
                     .unit
                     .to_string()
                     .parse::<PoSQLTimeUnit>()
-                    .map_err(|_| ConversionError::InvalidTimeUnit)?;
+                    .map_err(|_| IntermediateTimestampError::InvalidTimeUnit)?;
 
                 let posql_tz = its
                     .timezone
                     .to_string()
                     .parse::<PoSQLTimeZone>()
-                    .map_err(|_| ConversionError::InvalidTimeZone)?;
+                    .map_err(|_| IntermediateTimestampError::InvalidTimeZone)?;
                 Ok(ColumnType::TimestampTZ(posql_tu, posql_tz))
             }
         }

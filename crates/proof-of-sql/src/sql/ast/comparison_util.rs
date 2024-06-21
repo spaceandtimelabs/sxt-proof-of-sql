@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::Column,
-        math::decimal::{scale_scalar, Precision},
+        math::decimal::{scale_scalar, DecimalError, Precision},
         scalar::Scalar,
     },
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
@@ -71,8 +71,9 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             rhs_precision_value + (max_scale - rhs_scale) as u8,
         );
         // Check if the precision is valid
-        let _max_precision = Precision::new(max_precision_value)
-            .map_err(|_| ConversionError::InvalidPrecision(max_precision_value))?;
+        let _max_precision = Precision::new(max_precision_value).map_err(|_| {
+            ConversionError::Decimal(DecimalError::InvalidPrecision(max_precision_value))
+        })?;
     }
     unchecked_subtract_impl(
         alloc,

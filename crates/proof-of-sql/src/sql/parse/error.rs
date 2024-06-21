@@ -1,5 +1,8 @@
-use crate::base::database::ColumnType;
-use proof_of_sql_parser::{intermediate_decimal::DecimalError, Identifier, ResourceId};
+use crate::base::{database::ColumnType, math::decimal::DecimalError};
+use proof_of_sql_parser::{
+    intermediate_decimal::IntermediateDecimalError, intermediate_time::IntermediateTimestampError,
+    Identifier, ResourceId,
+};
 use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.
@@ -50,18 +53,6 @@ pub enum ConversionError {
     /// General error for invalid expressions
     InvalidExpression(String),
 
-    #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Decimal rounding is not supported
-    DecimalRoundingError(String),
-
-    #[error("Error while parsing precision from query: {0}")]
-    /// Error in parsing precision in a query
-    PrecisionParseError(String),
-
-    #[error("Decimal precision is not valid: {0}")]
-    /// Decimal precision exceeds the allowed limit
-    InvalidPrecision(u8),
-
     #[error("Encountered parsing error: {0}")]
     /// General parsing error
     ParseError(String),
@@ -74,34 +65,17 @@ pub enum ConversionError {
     /// Query requires unprovable feature
     Unprovable(String),
 
-    #[error("Invalid decimal format or value: {0}")]
-    /// Error when a decimal format or value is incorrect
-    InvalidDecimal(String),
+    #[error(transparent)]
+    /// Errors related to decimal operations
+    Decimal(#[from] DecimalError),
 
-    #[error("Invalid timeunit")]
-    /// Error converting intermediate time units to PoSQL time units
-    InvalidTimeUnit,
+    #[error(transparent)]
+    /// Errors related to the processing of intermediate decimal values
+    IntermediateDecimal(#[from] IntermediateDecimalError),
 
-    #[error("Invalid timezone")]
-    /// Error converting intermediate time zones to PoSQL timezones
-    InvalidTimeZone,
-}
-
-impl From<DecimalError> for ConversionError {
-    fn from(error: DecimalError) -> Self {
-        match error {
-            DecimalError::ParseError(e) => ConversionError::ParseError(e.to_string()),
-            DecimalError::OutOfRange => ConversionError::ParseError(
-                "Intermediate decimal cannot be cast to primitive".into(),
-            ),
-            DecimalError::LossyCast => ConversionError::ParseError(
-                "Intermediate decimal has non-zero fractional part".into(),
-            ),
-            DecimalError::ConversionFailure => {
-                ConversionError::ParseError("Could not cast into intermediate decimal.".into())
-            }
-        }
-    }
+    #[error(transparent)]
+    /// Errors from intermediate timestamp conversion
+    IntermediateTimestamp(#[from] IntermediateTimestampError),
 }
 
 impl From<String> for ConversionError {

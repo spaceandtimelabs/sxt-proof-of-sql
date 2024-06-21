@@ -12,7 +12,7 @@ use thiserror::Error;
 
 /// Errors related to the processing of decimal values in proof-of-sql
 #[derive(Error, Debug, PartialEq)]
-pub enum DecimalError {
+pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
     #[error(transparent)]
     ParseError(#[from] ParseBigDecimalError),
@@ -26,6 +26,8 @@ pub enum DecimalError {
     #[error("Conversion to integer failed")]
     ConversionFailure,
 }
+
+impl Eq for IntermediateDecimalError {}
 
 /// An intermediate placeholder for a decimal
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -55,10 +57,10 @@ impl IntermediateDecimal {
         &self,
         precision: u8,
         scale: i8,
-    ) -> Result<BigInt, DecimalError> {
+    ) -> Result<BigInt, IntermediateDecimalError> {
         let scaled_decimal = self.value.with_scale(scale.into());
         if scaled_decimal.digits() > precision.into() {
-            return Err(DecimalError::LossyCast);
+            return Err(IntermediateDecimalError::LossyCast);
         }
         let (d, _) = scaled_decimal.into_bigint_and_exponent();
         Ok(d)
@@ -72,14 +74,14 @@ impl fmt::Display for IntermediateDecimal {
 }
 
 impl FromStr for IntermediateDecimal {
-    type Err = DecimalError;
+    type Err = IntermediateDecimalError;
 
     fn from_str(decimal_string: &str) -> Result<Self, Self::Err> {
         BigDecimal::from_str(decimal_string)
             .map(|value| IntermediateDecimal {
                 value: value.normalized(),
             })
-            .map_err(DecimalError::ParseError)
+            .map_err(IntermediateDecimalError::ParseError)
     }
 }
 
@@ -100,7 +102,7 @@ impl From<i64> for IntermediateDecimal {
 }
 
 impl TryFrom<&str> for IntermediateDecimal {
-    type Error = DecimalError;
+    type Error = IntermediateDecimalError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         IntermediateDecimal::from_str(s)
@@ -108,7 +110,7 @@ impl TryFrom<&str> for IntermediateDecimal {
 }
 
 impl TryFrom<String> for IntermediateDecimal {
-    type Error = DecimalError;
+    type Error = IntermediateDecimalError;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
         IntermediateDecimal::from_str(&s)
@@ -116,31 +118,31 @@ impl TryFrom<String> for IntermediateDecimal {
 }
 
 impl TryFrom<IntermediateDecimal> for i128 {
-    type Error = DecimalError;
+    type Error = IntermediateDecimalError;
 
     fn try_from(decimal: IntermediateDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
-            return Err(DecimalError::LossyCast);
+            return Err(IntermediateDecimalError::LossyCast);
         }
 
         match decimal.value.to_i128() {
             Some(value) if (i128::MIN..=i128::MAX).contains(&value) => Ok(value),
-            _ => Err(DecimalError::OutOfRange),
+            _ => Err(IntermediateDecimalError::OutOfRange),
         }
     }
 }
 
 impl TryFrom<IntermediateDecimal> for i64 {
-    type Error = DecimalError;
+    type Error = IntermediateDecimalError;
 
     fn try_from(decimal: IntermediateDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
-            return Err(DecimalError::LossyCast);
+            return Err(IntermediateDecimalError::LossyCast);
         }
 
         match decimal.value.to_i64() {
             Some(value) if (i64::MIN..=i64::MAX).contains(&value) => Ok(value),
-            _ => Err(DecimalError::OutOfRange),
+            _ => Err(IntermediateDecimalError::OutOfRange),
         }
     }
 }
@@ -197,7 +199,7 @@ mod tests {
         };
         assert_eq!(
             i128::try_from(overflow_decimal),
-            Err(DecimalError::OutOfRange)
+            Err(IntermediateDecimalError::OutOfRange)
         );
 
         let valid_decimal_negative = IntermediateDecimal {
@@ -211,7 +213,10 @@ mod tests {
         let non_integer = IntermediateDecimal {
             value: BigDecimal::from_str("100.5").unwrap(),
         };
-        assert_eq!(i128::try_from(non_integer), Err(DecimalError::LossyCast));
+        assert_eq!(
+            i128::try_from(non_integer),
+            Err(IntermediateDecimalError::LossyCast)
+        );
     }
 
     #[test]
@@ -231,7 +236,7 @@ mod tests {
         };
         assert_eq!(
             i64::try_from(overflow_decimal),
-            Err(DecimalError::OutOfRange)
+            Err(IntermediateDecimalError::OutOfRange)
         );
 
         let valid_decimal_negative = IntermediateDecimal {
@@ -245,6 +250,9 @@ mod tests {
         let non_integer = IntermediateDecimal {
             value: BigDecimal::from_str("100.5").unwrap(),
         };
-        assert_eq!(i64::try_from(non_integer), Err(DecimalError::LossyCast));
+        assert_eq!(
+            i64::try_from(non_integer),
+            Err(IntermediateDecimalError::LossyCast)
+        );
     }
 }

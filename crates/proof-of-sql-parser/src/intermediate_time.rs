@@ -3,6 +3,18 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Errors from converting an intermediate AST into a provable AST.
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum IntermediateTimestampError {
+    #[error("Invalid timeunit")]
+    /// Error converting intermediate time units to PoSQL time units
+    InvalidTimeUnit,
+
+    #[error("Invalid timezone")]
+    /// Error converting intermediate time zones to PoSQL timezones
+    InvalidTimeZone,
+}
+
 /// An initermediate type of components extracted from a timestamp string.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeUnit {
