@@ -5,6 +5,7 @@
 //!
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
+use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
@@ -60,7 +61,7 @@ impl IntermediateDecimal {
     ) -> Result<BigInt, IntermediateDecimalError> {
         let scaled_decimal = self.value.with_scale(scale.into());
         if scaled_decimal.digits() > precision.into() {
-            return Err(IntermediateDecimalError::LossyCast);
+            return Err(LossyCast);
         }
         let (d, _) = scaled_decimal.into_bigint_and_exponent();
         Ok(d)
@@ -81,7 +82,7 @@ impl FromStr for IntermediateDecimal {
             .map(|value| IntermediateDecimal {
                 value: value.normalized(),
             })
-            .map_err(IntermediateDecimalError::ParseError)
+            .map_err(ParseError)
     }
 }
 
@@ -122,12 +123,12 @@ impl TryFrom<IntermediateDecimal> for i128 {
 
     fn try_from(decimal: IntermediateDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
-            return Err(IntermediateDecimalError::LossyCast);
+            return Err(LossyCast);
         }
 
         match decimal.value.to_i128() {
             Some(value) if (i128::MIN..=i128::MAX).contains(&value) => Ok(value),
-            _ => Err(IntermediateDecimalError::OutOfRange),
+            _ => Err(OutOfRange),
         }
     }
 }
@@ -137,12 +138,12 @@ impl TryFrom<IntermediateDecimal> for i64 {
 
     fn try_from(decimal: IntermediateDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
-            return Err(IntermediateDecimalError::LossyCast);
+            return Err(LossyCast);
         }
 
         match decimal.value.to_i64() {
             Some(value) if (i64::MIN..=i64::MAX).contains(&value) => Ok(value),
-            _ => Err(IntermediateDecimalError::OutOfRange),
+            _ => Err(OutOfRange),
         }
     }
 }
@@ -197,10 +198,7 @@ mod tests {
         let overflow_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("170141183460469231731687303715884105728").unwrap(),
         };
-        assert_eq!(
-            i128::try_from(overflow_decimal),
-            Err(IntermediateDecimalError::OutOfRange)
-        );
+        assert_eq!(i128::try_from(overflow_decimal), Err(OutOfRange));
 
         let valid_decimal_negative = IntermediateDecimal {
             value: BigDecimal::from_str("-170141183460469231731687303715884105728").unwrap(),
@@ -213,10 +211,7 @@ mod tests {
         let non_integer = IntermediateDecimal {
             value: BigDecimal::from_str("100.5").unwrap(),
         };
-        assert_eq!(
-            i128::try_from(non_integer),
-            Err(IntermediateDecimalError::LossyCast)
-        );
+        assert_eq!(i128::try_from(non_integer), Err(LossyCast));
     }
 
     #[test]
@@ -234,10 +229,7 @@ mod tests {
         let overflow_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("9223372036854775808").unwrap(),
         };
-        assert_eq!(
-            i64::try_from(overflow_decimal),
-            Err(IntermediateDecimalError::OutOfRange)
-        );
+        assert_eq!(i64::try_from(overflow_decimal), Err(OutOfRange));
 
         let valid_decimal_negative = IntermediateDecimal {
             value: BigDecimal::from_str("-9223372036854775808").unwrap(),
@@ -250,9 +242,6 @@ mod tests {
         let non_integer = IntermediateDecimal {
             value: BigDecimal::from_str("100.5").unwrap(),
         };
-        assert_eq!(
-            i64::try_from(non_integer),
-            Err(IntermediateDecimalError::LossyCast)
-        );
+        assert_eq!(i64::try_from(non_integer), Err(LossyCast));
     }
 }
