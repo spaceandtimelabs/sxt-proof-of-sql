@@ -1,9 +1,7 @@
 name: CI-Lint-And-Test
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -137,4 +135,3 @@ jobs:
           cargo install cargo-udeps --locked
       - name: Run cargo udeps
         run: cargo +nightly udeps --all-targets
-  
