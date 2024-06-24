@@ -162,6 +162,85 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
 
 #[test]
 #[cfg(feature = "blitzar")]
+fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            smallint("smallint", [i16::MIN, 0, i16::MAX]),
+            int("int", [i32::MIN, 0, i32::MAX]),
+            bigint("bigint", [i64::MIN, 0, i64::MAX]),
+            int128("int128", [i128::MIN, 0, i128::MAX]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        smallint("smallint", [i16::MIN, 0, i16::MAX]),
+        int("int", [i32::MIN, 0, i32::MAX]),
+        bigint("bigint", [i64::MIN, 0, i64::MAX]),
+        int128("int128", [i128::MIN, 0, i128::MAX]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
+    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
+    let dory_verifier_setup = (&dory_prover_setup).into();
+    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
+        dory_prover_setup.clone(),
+    );
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            smallint("smallint", [i16::MIN, 0, i16::MAX]),
+            int("int", [i32::MIN, 0, i32::MAX]),
+            bigint("bigint", [i64::MIN, 0, i64::MAX]),
+            int128("int128", [i128::MIN, 0, i128::MAX]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT * FROM table".parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        smallint("smallint", [i16::MIN, 0, i16::MAX]),
+        int("int", [i32::MIN, 0, i32::MAX]),
+        bigint("bigint", [i64::MIN, 0, i64::MAX]),
+        int128("int128", [i128::MIN, 0, i128::MAX]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
