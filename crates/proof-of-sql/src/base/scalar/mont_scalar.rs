@@ -166,7 +166,7 @@ impl<T: MontConfig<4>> TryFrom<num_bigint::BigInt> for MontScalar<T> {
 
         // Check if the number of digits exceeds the maximum precision allowed
         if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(ConversionError::Decimal(DecimalError::InvalidDecimal(format!(
+            return Err(ConversionError::DecimalConversion(DecimalError::InvalidDecimal(format!(
                 "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
                 digits.len(),
                 MAX_SUPPORTED_PRECISION

@@ -72,7 +72,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::Decimal(DecimalError::InvalidPrecision(
+            ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
                 max_precision_value.to_string(),
             ))
         })?;

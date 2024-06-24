@@ -73,7 +73,7 @@ impl ProvableExprPlanBuilder<'_> {
             Literal::Decimal(d) => {
                 let scale = d.scale();
                 let precision = Precision::new(d.precision()).map_err(|_| {
-                    ConversionError::Decimal(DecimalError::InvalidPrecision(
+                    ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
                         d.precision().to_string(),
                     ))
                 })?;

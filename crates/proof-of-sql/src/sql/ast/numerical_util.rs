@@ -42,13 +42,15 @@ pub(crate) fn try_add_subtract_column_types(
             + 1_i16;
         let precision = u8::try_from(precision_value)
             .map_err(|_| {
-                ConversionError::Decimal(DecimalError::InvalidPrecision(
+                ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
                     precision_value.to_string(),
                 ))
             })
             .and_then(|p| {
                 Precision::new(p).map_err(|_| {
-                    ConversionError::Decimal(DecimalError::InvalidPrecision(p.to_string()))
+                    ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
+                        p.to_string(),
+                    ))
                 })
             })?;
         Ok(ColumnType::Decimal75(precision, scale))
