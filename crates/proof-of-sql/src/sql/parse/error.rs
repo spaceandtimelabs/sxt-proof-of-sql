@@ -56,11 +56,11 @@ pub enum ConversionError {
 
     #[error(transparent)]
     /// Errors related to decimal operations
-    DecimalConversion(#[from] DecimalError),
+    DecimalConversionError(#[from] DecimalError),
 
     #[error(transparent)]
     /// Errors related to decimal operations
-    IntermediateDecimalConversion(#[from] IntermediateDecimalError),
+    IntermediateDecimalConversionError(#[from] IntermediateDecimalError),
 
     #[error("Unsupported operation: cannot round literal: {0}")]
     /// Error when a rounding operation is not supported

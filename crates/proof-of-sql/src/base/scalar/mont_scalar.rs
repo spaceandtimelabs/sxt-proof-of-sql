@@ -1,7 +1,10 @@
 use super::{scalar_conversion_to_int, Scalar, ScalarConversionError};
 use crate::{
-    base::math::decimal::{DecimalError, MAX_SUPPORTED_PRECISION},
-    sql::parse::ConversionError,
+    base::{
+        math::decimal::{DecimalError, MAX_SUPPORTED_PRECISION},
+        scalar::mont_scalar::DecimalError::InvalidDecimal,
+    },
+    sql::parse::{ConversionError, ConversionError::DecimalConversionError},
 };
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -166,7 +169,7 @@ impl<T: MontConfig<4>> TryFrom<num_bigint::BigInt> for MontScalar<T> {
 
         // Check if the number of digits exceeds the maximum precision allowed
         if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(ConversionError::DecimalConversion(DecimalError::InvalidDecimal(format!(
+            return Err(DecimalConversionError(InvalidDecimal(format!(
                 "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
                 digits.len(),
                 MAX_SUPPORTED_PRECISION

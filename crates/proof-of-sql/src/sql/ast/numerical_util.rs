@@ -4,7 +4,10 @@ use crate::{
         math::decimal::{scale_scalar, DecimalError, Precision},
         scalar::Scalar,
     },
-    sql::parse::{ConversionError, ConversionResult},
+    sql::{
+        ast::numerical_util::DecimalError::InvalidPrecision,
+        parse::{ConversionError, ConversionError::DecimalConversionError, ConversionResult},
+    },
 };
 use bumpalo::Bump;
 
@@ -41,17 +44,10 @@ pub(crate) fn try_add_subtract_column_types(
                 .max(right_precision_value - right_scale as i16)
             + 1_i16;
         let precision = u8::try_from(precision_value)
-            .map_err(|_| {
-                ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
-                    precision_value.to_string(),
-                ))
-            })
+            .map_err(|_| DecimalConversionError(InvalidPrecision(precision_value.to_string())))
             .and_then(|p| {
-                Precision::new(p).map_err(|_| {
-                    ConversionError::DecimalConversion(DecimalError::InvalidPrecision(
-                        p.to_string(),
-                    ))
-                })
+                Precision::new(p)
+                    .map_err(|_| DecimalConversionError(InvalidPrecision(p.to_string())))
             })?;
         Ok(ColumnType::Decimal75(precision, scale))
     }
