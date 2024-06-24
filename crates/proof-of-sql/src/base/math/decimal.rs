@@ -1,7 +1,7 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::{
     base::{
-        math::decimal::DecimalError::{DecimalRoundingError, PrecisionParseError},
+        math::decimal::DecimalError::{PrecisionParseError, RoundingError},
         scalar::Scalar,
     },
     sql::parse::{
@@ -20,17 +20,17 @@ pub enum DecimalError {
     /// Error when a decimal format or value is incorrect
     InvalidDecimal(String),
 
-    #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Decimal rounding is not supported
-    DecimalRoundingError(String),
+    #[error("Decimal precision is not valid: {0}")]
+    /// Decimal precision exceeds the allowed limit
+    InvalidPrecision(String),
 
     #[error("Error while parsing precision from query: {0}")]
     /// Error in parsing precision in a query
     PrecisionParseError(String),
 
-    #[error("Decimal precision is not valid: {0}")]
-    /// Decimal precision exceeds the allowed limit
-    InvalidPrecision(String),
+    #[error("Unsupported operation: cannot round decimal: {0}")]
+    /// Decimal rounding is not supported
+    RoundingError(String),
 }
 
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
@@ -100,7 +100,7 @@ impl<S: Scalar> Decimal<S> {
     ) -> ConversionResult<Decimal<S>> {
         let scale_factor = new_scale - self.scale;
         if scale_factor < 0 || new_precision.value() < self.precision.value() + scale_factor as u8 {
-            return Err(DecimalConversionError(DecimalRoundingError(
+            return Err(DecimalConversionError(RoundingError(
                 "Scale factor must be non-negative".to_string(),
             )));
         }
@@ -113,12 +113,12 @@ impl<S: Scalar> Decimal<S> {
         const MINIMAL_PRECISION: u8 = 19;
         let raw_precision = precision.value();
         if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalConversionError(DecimalRoundingError(
+            return Err(DecimalConversionError(RoundingError(
                 "Precision must be at least 19".to_string(),
             )));
         }
         if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalConversionError(DecimalRoundingError(
+            return Err(DecimalConversionError(RoundingError(
                 "Can not scale down a decimal".to_string(),
             )));
         }
@@ -131,12 +131,12 @@ impl<S: Scalar> Decimal<S> {
         const MINIMAL_PRECISION: u8 = 39;
         let raw_precision = precision.value();
         if raw_precision < MINIMAL_PRECISION {
-            return Err(DecimalConversionError(DecimalRoundingError(
+            return Err(DecimalConversionError(RoundingError(
                 "Precision must be at least 19".to_string(),
             )));
         }
         if scale < 0 || raw_precision < MINIMAL_PRECISION + scale as u8 {
-            return Err(DecimalConversionError(DecimalRoundingError(
+            return Err(DecimalConversionError(RoundingError(
                 "Can not scale down a decimal".to_string(),
             )));
         }
@@ -174,9 +174,9 @@ pub(crate) fn try_into_to_scalar<S: Scalar>(
 /// Note that we do not check for overflow.
 pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> ConversionResult<S> {
     if scale < 0 {
-        return Err(ConversionError::DecimalConversionError(
-            DecimalRoundingError("Scale factor must be non-negative".to_string()),
-        ));
+        return Err(ConversionError::DecimalConversionError(RoundingError(
+            "Scale factor must be non-negative".to_string(),
+        )));
     }
     let ten = S::from(10);
     let mut res = s;
