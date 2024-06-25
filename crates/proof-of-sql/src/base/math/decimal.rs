@@ -1,7 +1,7 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::{
     base::{
-        math::decimal::DecimalError::{PrecisionParseError, RoundingError},
+        math::decimal::DecimalError::{InvalidPrecision, RoundingError},
         scalar::Scalar,
     },
     sql::parse::{
@@ -17,19 +17,23 @@ use thiserror::Error;
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum DecimalError {
     #[error("Invalid decimal format or value: {0}")]
-    /// Error when a decimal format or value is incorrect
+    /// Error when a decimal format or value is incorrect,
+    /// the string isn't even a decimal e.g. "notastring",
+    /// "-21.233.122" etc aka InvalidDecimal
     InvalidDecimal(String),
 
     #[error("Decimal precision is not valid: {0}")]
-    /// Decimal precision exceeds the allowed limit
+    /// Decimal precision exceeds the allowed limit,
+    /// e.g. precision above 75/76/whatever set by Scalar
+    /// or non-positive aka InvalidPrecision
     InvalidPrecision(String),
 
-    #[error("Error while parsing precision from query: {0}")]
-    /// Error in parsing precision in a query
-    PrecisionParseError(String),
-
     #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Decimal rounding is not supported
+    /// Unless explicit rounding happens, what we consider to be 
+    /// RoundingError is in reality an InvalidPrecision since in
+    /// order not to round the precision will hit the upper bound.
+    /// Regardless, this error occurs when attempting to scale a
+    /// decimal in such a way that a loss of precision occurs.
     RoundingError(String),
 }
 
@@ -42,7 +46,7 @@ impl Precision {
     /// Constructor for creating a Precision instance
     pub fn new(value: u8) -> Result<Self, ConversionError> {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
-            Err(DecimalConversionError(PrecisionParseError(format!(
+            Err(DecimalConversionError(InvalidPrecision(format!(
                 "Failed to parse precision. Value of {} exceeds max supported precision of {}",
                 value, MAX_SUPPORTED_PRECISION
             ))))
@@ -159,8 +163,9 @@ impl<S: Scalar> Decimal<S> {
 /// * `target_scale` - The scale (number of decimal places) to use in the scalar.
 ///
 /// ## Errors
-/// Returns `ConversionError::PrecisionParseError` if the number of digits in
-/// the decimal exceeds the `target_precision` after adjusting for `target_scale`.
+/// Returns `InvalidPrecision` error if the number of digits in
+/// the decimal exceeds the `target_precision` before or after adjusting for
+/// `target_scale`, or if the target precision is zero.
 pub(crate) fn try_into_to_scalar<S: Scalar>(
     d: &IntermediateDecimal,
     target_precision: Precision,
@@ -174,7 +179,7 @@ pub(crate) fn try_into_to_scalar<S: Scalar>(
 /// Note that we do not check for overflow.
 pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> ConversionResult<S> {
     if scale < 0 {
-        return Err(ConversionError::DecimalConversionError(RoundingError(
+        return Err(DecimalConversionError(RoundingError(
             "Scale factor must be non-negative".to_string(),
         )));
     }
