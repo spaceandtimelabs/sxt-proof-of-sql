@@ -3,9 +3,12 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
-        math::decimal::{try_into_to_scalar, Precision},
+        math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
     },
-    sql::ast::{ColumnExpr, ProvableExprPlan},
+    sql::{
+        ast::{ColumnExpr, ProvableExprPlan},
+        parse::ConversionError::DecimalConversionError,
+    },
 };
 use proof_of_sql_parser::{
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
@@ -72,8 +75,9 @@ impl ProvableExprPlanBuilder<'_> {
             Literal::Int128(i) => Ok(ProvableExprPlan::new_literal(LiteralValue::Int128(*i))),
             Literal::Decimal(d) => {
                 let scale = d.scale();
-                let precision = Precision::new(d.precision())
-                    .map_err(|_| ConversionError::InvalidPrecision(d.precision() as i16))?;
+                let precision = Precision::new(d.precision()).map_err(|_| {
+                    DecimalConversionError(InvalidPrecision(d.precision().to_string()))
+                })?;
                 Ok(ProvableExprPlan::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,

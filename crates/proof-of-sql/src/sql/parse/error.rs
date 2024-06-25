@@ -1,5 +1,5 @@
-use crate::base::database::ColumnType;
-use proof_of_sql_parser::{intermediate_decimal::DecimalError, Identifier, ResourceId};
+use crate::base::{database::ColumnType, math::decimal::DecimalError};
+use proof_of_sql_parser::{Identifier, ResourceId};
 use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.
@@ -50,50 +50,17 @@ pub enum ConversionError {
     /// General error for invalid expressions
     InvalidExpression(String),
 
-    #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Decimal rounding is not supported
-    DecimalRoundingError(String),
-
-    #[error("Error while parsing precision from query: {0}")]
-    /// Error in parsing precision in a query
-    PrecisionParseError(String),
-
-    #[error("Decimal precision is not valid: {0}")]
-    /// Decimal precision is an integer but exceeds the allowed limit. We use i16 here to include all kinds of invalid precision values.
-    InvalidPrecision(i16),
-
     #[error("Encountered parsing error: {0}")]
     /// General parsing error
     ParseError(String),
 
-    #[error("Unsupported operation: cannot round literal: {0}")]
-    /// Error when a rounding operation is not supported
-    LiteralRoundDownError(String),
+    #[error(transparent)]
+    /// Errors related to decimal operations
+    DecimalConversionError(#[from] DecimalError),
 
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature
     Unprovable(String),
-
-    #[error("Invalid decimal format or value: {0}")]
-    /// Error when a decimal format or value is incorrect
-    InvalidDecimal(String),
-}
-
-impl From<DecimalError> for ConversionError {
-    fn from(error: DecimalError) -> Self {
-        match error {
-            DecimalError::ParseError(e) => ConversionError::ParseError(e.to_string()),
-            DecimalError::OutOfRange => ConversionError::ParseError(
-                "Intermediate decimal cannot be cast to primitive".into(),
-            ),
-            DecimalError::LossyCast => ConversionError::ParseError(
-                "Intermediate decimal has non-zero fractional part".into(),
-            ),
-            DecimalError::ConversionFailure => {
-                ConversionError::ParseError("Could not cast into intermediate decimal.".into())
-            }
-        }
-    }
 }
 
 impl From<String> for ConversionError {
