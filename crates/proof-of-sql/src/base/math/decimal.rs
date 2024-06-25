@@ -29,7 +29,7 @@ pub enum DecimalError {
     InvalidPrecision(String),
 
     #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Unless explicit rounding happens, what we consider to be 
+    /// Unless explicit rounding happens, what we consider to be
     /// RoundingError is in reality an InvalidPrecision since in
     /// order not to round the precision will hit the upper bound.
     /// Regardless, this error occurs when attempting to scale a
