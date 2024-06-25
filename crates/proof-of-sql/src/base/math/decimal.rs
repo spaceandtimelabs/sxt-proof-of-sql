@@ -1,7 +1,9 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::{
     base::{
-        math::decimal::DecimalError::{InvalidPrecision, RoundingError},
+        math::decimal::DecimalError::{
+            IntermediateDecimalConversionError, InvalidPrecision, RoundingError,
+        },
         scalar::Scalar,
     },
     sql::parse::{
@@ -9,7 +11,7 @@ use crate::{
         ConversionResult,
     },
 };
-use proof_of_sql_parser::intermediate_decimal::IntermediateDecimal;
+use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 
@@ -29,12 +31,20 @@ pub enum DecimalError {
     InvalidPrecision(String),
 
     #[error("Unsupported operation: cannot round decimal: {0}")]
-    /// Unless explicit rounding happens, what we consider to be
-    /// RoundingError is in reality an InvalidPrecision since in
-    /// order not to round the precision will hit the upper bound.
-    /// Regardless, this error occurs when attempting to scale a
+    /// This error occurs when attempting to scale a
     /// decimal in such a way that a loss of precision occurs.
     RoundingError(String),
+
+    /// Errors that may occur when parsing an intermediate decimal
+    /// into a posql decimal
+    #[error("Intermediate decimal conversion error: {0}")]
+    IntermediateDecimalConversionError(IntermediateDecimalError),
+}
+
+impl From<IntermediateDecimalError> for ConversionError {
+    fn from(err: IntermediateDecimalError) -> ConversionError {
+        DecimalConversionError(IntermediateDecimalConversionError(err))
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Copy)]
