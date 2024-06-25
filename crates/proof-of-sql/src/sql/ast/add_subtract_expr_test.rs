@@ -167,10 +167,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
 // select a, b from sxt.t where a + b >= 0
 #[test]
 fn overflow_in_where_clause_doesnt_error_out() {
-    let data = owned_table([
-        bigint("a", [i64::MAX, i64::MIN + 1]),
-        smallint("b", [1_i16, 0]),
-    ]);
+    let data = owned_table([bigint("a", [i64::MAX, i64::MIN]), smallint("b", [1_i16, 0])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast: ProofPlan<RistrettoPoint> = dense_filter(
