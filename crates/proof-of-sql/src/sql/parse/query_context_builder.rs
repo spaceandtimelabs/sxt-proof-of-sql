@@ -4,7 +4,7 @@ use crate::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
     },
-    sql::ast::try_add_subtract_column_types,
+    sql::ast::{try_add_subtract_column_types, try_multiply_column_types},
 };
 use proof_of_sql_parser::{
     intermediate_ast::{
@@ -313,9 +313,8 @@ pub(crate) fn type_check_binary_operation(
         BinaryOperator::Add | BinaryOperator::Subtract => {
             try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok()
         }
-        BinaryOperator::Multiply | BinaryOperator::Division => {
-            left_dtype.is_numeric() && right_dtype.is_numeric()
-        }
+        BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
+        BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
     }
 }
 

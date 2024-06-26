@@ -30,6 +30,11 @@ pub enum DecimalError {
     /// or non-positive aka InvalidPrecision
     InvalidPrecision(String),
 
+    #[error("Decimal scale is not valid: {0}")]
+    /// Decimal scale is not valid. Here we use i16 in order to include
+    /// invalid scale values
+    InvalidScale(i16),
+
     #[error("Unsupported operation: cannot round decimal: {0}")]
     /// This error occurs when attempting to scale a
     /// decimal in such a way that a loss of precision occurs.

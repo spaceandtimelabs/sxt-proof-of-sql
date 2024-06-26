@@ -1,6 +1,6 @@
 use super::{
-    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, NotExpr, OrExpr,
-    ProvableExpr,
+    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
+    NotExpr, OrExpr, ProvableExpr,
 };
 use crate::{
     base::{
@@ -37,6 +37,8 @@ pub enum ProvableExprPlan<C: Commitment> {
     Inequality(InequalityExpr<C>),
     /// Provable numeric `+` / `-` expression
     AddSubtract(AddSubtractExpr<C>),
+    /// Provable numeric `*` expression
+    Multiply(MultiplyExpr<C>),
 }
 impl<C: Commitment> ProvableExprPlan<C> {
     /// Create column expression
@@ -154,6 +156,26 @@ impl<C: Commitment> ProvableExprPlan<C> {
         }
     }
 
+    /// Create a new multiply expression
+    pub fn try_new_multiply(
+        lhs: ProvableExprPlan<C>,
+        rhs: ProvableExprPlan<C>,
+    ) -> ConversionResult<Self> {
+        let lhs_datatype = lhs.data_type();
+        let rhs_datatype = rhs.data_type();
+        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Multiply) {
+            Err(ConversionError::DataTypeMismatch(
+                lhs_datatype.to_string(),
+                rhs_datatype.to_string(),
+            ))
+        } else {
+            Ok(Self::Multiply(MultiplyExpr::new(
+                Box::new(lhs),
+                Box::new(rhs),
+            )))
+        }
+    }
+
     /// Check that the plan has the correct data type
     fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
         if self.data_type() == data_type {
@@ -178,6 +200,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Equals(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Inequality(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::AddSubtract(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::Multiply(expr) => ProvableExpr::<C>::count(expr, builder),
         }
     }
 
@@ -185,6 +208,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         match self {
             ProvableExprPlan::Column(expr) => expr.data_type(),
             ProvableExprPlan::AddSubtract(expr) => expr.data_type(),
+            ProvableExprPlan::Multiply(expr) => expr.data_type(),
             ProvableExprPlan::Literal(expr) => ProvableExpr::<C>::data_type(expr),
             ProvableExprPlan::And(_)
             | ProvableExprPlan::Or(_)
@@ -225,6 +249,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::AddSubtract(expr) => {
                 ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
+            ProvableExprPlan::Multiply(expr) => {
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+            }
         }
     }
 
@@ -259,6 +286,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::AddSubtract(expr) => {
                 ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
+            ProvableExprPlan::Multiply(expr) => {
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+            }
         }
     }
 
@@ -278,6 +308,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Equals(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Inequality(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::AddSubtract(expr) => expr.verifier_evaluate(builder, accessor),
+            ProvableExprPlan::Multiply(expr) => expr.verifier_evaluate(builder, accessor),
         }
     }
 
@@ -299,6 +330,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
             ProvableExprPlan::AddSubtract(expr) => {
+                ProvableExpr::<C>::get_column_references(expr, columns)
+            }
+            ProvableExprPlan::Multiply(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
         }

@@ -78,8 +78,23 @@ pub fn subtract<C: Commitment>(
     ProvableExprPlan::try_new_subtract(left, right).unwrap()
 }
 
+pub fn multiply<C: Commitment>(
+    left: ProvableExprPlan<C>,
+    right: ProvableExprPlan<C>,
+) -> ProvableExprPlan<C> {
+    ProvableExprPlan::try_new_multiply(left, right).unwrap()
+}
+
 pub fn const_bool<C: Commitment>(val: bool) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_literal(LiteralValue::Boolean(val))
+}
+
+pub fn const_smallint<C: Commitment>(val: i16) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::SmallInt(val))
+}
+
+pub fn const_int<C: Commitment>(val: i32) -> ProvableExprPlan<C> {
+    ProvableExprPlan::new_literal(LiteralValue::Int(val))
 }
 
 pub fn const_bigint<C: Commitment>(val: i64) -> ProvableExprPlan<C> {

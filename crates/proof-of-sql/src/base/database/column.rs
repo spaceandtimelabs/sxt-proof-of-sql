@@ -131,6 +131,23 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns element at index as scalar
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => S::from(col[index]),
+            Self::SmallInt(col) => S::from(col[index]),
+            Self::Int(col) => S::from(col[index]),
+            Self::BigInt(col) => S::from(col[index]),
+            Self::Int128(col) => S::from(col[index]),
+            Self::Scalar(col) => col[index],
+            Self::Decimal75(_, _, col) => col[index],
+            Self::VarChar((_, scals)) => scals[index],
+            Self::TimestampTZ(_, _, col) => S::from(col[index]),
+        })
+    }
+
     /// Convert a column to a vector of Scalar values with scaling
     pub(crate) fn to_scalar_with_scaling(&self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");

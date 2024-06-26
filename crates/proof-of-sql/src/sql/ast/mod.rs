@@ -7,6 +7,11 @@ pub(crate) use add_subtract_expr::AddSubtractExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod add_subtract_expr_test;
 
+mod multiply_expr;
+use multiply_expr::MultiplyExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod multiply_expr_test;
+
 mod filter_expr;
 pub(crate) use filter_expr::FilterExpr;
 #[cfg(test)]
@@ -59,7 +64,8 @@ pub(crate) use comparison_util::scale_and_subtract;
 
 mod numerical_util;
 pub(crate) use numerical_util::{
-    add_subtract_columns, scale_and_add_subtract_eval, try_add_subtract_column_types,
+    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
+    try_add_subtract_column_types, try_multiply_column_types,
 };
 
 mod equals_expr;
