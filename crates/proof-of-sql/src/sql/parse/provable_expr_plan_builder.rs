@@ -88,6 +88,7 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
+            Literal::Timestamp(_) => todo!(),
         }
     }
 

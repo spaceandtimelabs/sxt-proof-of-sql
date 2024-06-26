@@ -2,7 +2,7 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
-use crate::intermediate_decimal::IntermediateDecimal;
+use crate::{intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimestamp};
 
 grammar;
 
@@ -337,6 +337,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
+
+    <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -371,6 +373,14 @@ pub StringLiteral: String = {
 pub BooleanLiteral: bool = {
     "true" => true,
     "false" => false,
+};
+
+DateTimeString: String = {
+    TIMESTAMP_LITERAL => <>.to_string(),
+};
+
+TimestampLiteral: IntermediateTimestamp = {
+    "timestamp" <datetime: DateTimeString> =>? IntermediateTimestamp::try_from(&datetime).map_err(|e| User {error: "invalid timestamp format"}),
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,6 +423,8 @@ match {
     r"[sS][uU][mM]" => "sum",
     r"[tT][rR][uU][eE]" => "true",
     r"[fF][aA][lL][sS][eE]" => "false",
+    r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
+    
 
     "," => ",",
     "." => ".",
@@ -435,4 +447,5 @@ match {
     // Integer numbers (without a fractional part)
     r"[+-]?[0-9]+" => INTEGER_LIT,
     r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
+    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)?" => TIMESTAMP_LITERAL,
 }

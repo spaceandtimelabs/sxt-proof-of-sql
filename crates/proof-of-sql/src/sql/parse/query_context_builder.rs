@@ -249,6 +249,8 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
+            // TODO: Timestamp support
+            Literal::Timestamp(_its) => todo!(),
         }
     }
 

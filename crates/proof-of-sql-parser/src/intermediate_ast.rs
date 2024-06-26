@@ -4,7 +4,9 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{intermediate_decimal::IntermediateDecimal, Identifier};
+use crate::{
+    intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimestamp, Identifier,
+};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -328,6 +330,8 @@ pub enum Literal {
     VarChar(String),
     /// Decimal Literal
     Decimal(IntermediateDecimal),
+    /// Timestamp Literal
+    Timestamp(IntermediateTimestamp),
 }
 
 impl From<bool> for Literal {
@@ -376,6 +380,12 @@ impl_string_to_literal!(String);
 impl From<IntermediateDecimal> for Literal {
     fn from(val: IntermediateDecimal) -> Self {
         Literal::Decimal(val)
+    }
+}
+
+impl From<IntermediateTimestamp> for Literal {
+    fn from(time: IntermediateTimestamp) -> Self {
+        Literal::Timestamp(time)
     }
 }
 
