@@ -2,7 +2,7 @@ use crate::base::{
     database::ColumnType,
     math::decimal::Precision,
     scalar::Scalar,
-    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use serde::{Deserialize, Serialize};
 
