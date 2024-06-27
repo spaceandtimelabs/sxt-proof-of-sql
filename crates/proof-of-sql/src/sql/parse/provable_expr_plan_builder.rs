@@ -90,11 +90,9 @@ impl ProvableExprPlanBuilder<'_> {
                 s.into(),
             )))),
             Literal::Timestamp(its) => {
-                let posql_time_unit = PoSQLTimeUnit::from(its.timeunit);
-                let posql_time_zone = PoSQLTimeZone::try_from(its.timezone)?;
                 Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
-                    posql_time_unit,
-                    posql_time_zone,
+                    PoSQLTimeUnit::from(its.timeunit),
+                    PoSQLTimeZone::try_from(its.timezone)?,
                     its.timestamp.timestamp(),
                 )))
             }

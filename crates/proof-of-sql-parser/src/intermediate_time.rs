@@ -118,11 +118,7 @@ impl IntermediateTimestamp {
     ///    - If parsing succeeds, it extracts the timezone offset using `dt.offset().local_minus_utc()`
     ///      and then uses this to construct the appropriate `IntermediateTimeZone`.
     ///
-    /// 2. **Unix Epoch Time Parsing**:
-    ///    - Since Unix epoch timestamps don't inherently carry timezone information,
-    ///      any Unix time parsed directly from an integer is assumed to be in UTC.
-    ///
-    /// 3. **Timezone Parsing and Conversion**:
+    /// 2. **Timezone Parsing and Conversion**:
     ///    - The `from_offset` method is used to determine whether the timezone should be represented
     ///      as `Utc` or `FixedOffset`. This function simplifies the decision based on the offset value.
     ///
@@ -140,14 +136,8 @@ impl IntermediateTimestamp {
     /// let timestamp_str_with_tz = "2009-01-03T18:15:05+03:00";
     /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str_with_tz).unwrap();
     /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::FixedOffset(10800)); // 3 hours in seconds
-    ///
-    /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
-    /// let unix_time_str = "1231006505";
-    /// let intermediate_timestamp = IntermediateTimestamp::try_from(unix_time_str).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
     /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, IntermediateTimestampError> {
-        // Attempt to parse the input as an RFC 3339 timestamp
         DateTime::parse_from_rfc3339(timestamp_str)
             .map(|dt| {
                 let offset_seconds = dt.offset().local_minus_utc();
@@ -157,27 +147,38 @@ impl IntermediateTimestamp {
                     timezone: IntermediateTimeZone::from_offset(offset_seconds),
                 }
             })
-            .or_else(|e| {
-                // If RFC 3339 parsing fails, attempt to parse as a raw i64 Unix timestamp
-                timestamp_str
-                    .parse::<i64>()
-                    .map_err(|e| IntermediateTimestampError::InvalidFormat(e.to_string()))
-                    .and_then(|epoch| {
-                        match Utc.timestamp_opt(epoch, 0) {
-                            LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
-                                timestamp,
-                                timeunit: IntermediateTimeUnit::Second,
-                                timezone: IntermediateTimeZone::Utc, // Assume UTC for raw Unix time
-                            }),
-                            LocalResult::Ambiguous(_, _) => {
-                                Err(IntermediateTimestampError::Ambiguous)
-                            }
-                            LocalResult::None => {
-                                Err(IntermediateTimestampError::LocalTimeDoesNotExist)
-                            }
-                        }
-                    })
-                    .map_err(|_| IntermediateTimestampError::ParsingError(e.to_string()))
+            .map_err(|e| IntermediateTimestampError::ParsingError(e.to_string()))
+    }
+
+    /// Attempts to parse a timestamp string into an `IntermediateTimestamp` structure.
+    /// This function supports two primary formats:
+    ///
+    /// 1. **Unix Epoch Time Parsing**:
+    ///    - Since Unix epoch timestamps don't inherently carry timezone information,
+    ///      any Unix time parsed directly from an integer is assumed to be in UTC.
+    ///
+    /// # Examples
+    /// ```
+    /// use chrono::{DateTime, Utc};
+    /// use proof_of_sql_parser::intermediate_time::{IntermediateTimestamp, IntermediateTimeZone};
+    ///
+    /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
+    /// let unix_time_str = "1231006505";
+    /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time_str).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
+    /// ```
+    pub fn to_timestamp(timestamp_str: &str) -> Result<Self, IntermediateTimestampError> {
+        timestamp_str
+            .parse::<i64>()
+            .map_err(|e| IntermediateTimestampError::InvalidFormat(e.to_string()))
+            .and_then(|epoch| match Utc.timestamp_opt(epoch, 0) {
+                LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
+                    timestamp,
+                    timeunit: IntermediateTimeUnit::Second,
+                    timezone: IntermediateTimeZone::Utc,
+                }),
+                LocalResult::Ambiguous(_, _) => Err(IntermediateTimestampError::Ambiguous),
+                LocalResult::None => Err(IntermediateTimestampError::LocalTimeDoesNotExist),
             })
     }
 }
@@ -223,7 +224,7 @@ mod tests {
     fn test_unix_epoch_time_timezone() {
         let unix_time = 1_593_000_000.to_string(); // Unix time as string
         let expected_timezone = IntermediateTimeZone::Utc; // Unix time should always be UTC
-        let result = IntermediateTimestamp::try_from(&unix_time).unwrap();
+        let result = IntermediateTimestamp::to_timestamp(&unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
@@ -233,7 +234,7 @@ mod tests {
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = IntermediateTimeUnit::Second; // Assuming basic second precision for Unix timestamp
         let input = unix_time.to_string(); // Simulate input as string since Unix times are often transmitted as strings
-        let result = IntermediateTimestamp::try_from(&input).unwrap();
+        let result = IntermediateTimestamp::to_timestamp(&input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
         assert_eq!(result.timeunit, expected_unit);
@@ -322,5 +323,41 @@ mod tests {
             result,
             Err(IntermediateTimestampError::ParsingError(_))
         ));
+    }
+
+    #[test]
+    fn test_basic_date_time_support() {
+        let inputs = ["2009-01-03T18:15:05Z", "2009-01-03T18:15:05+02:00"];
+        for input in inputs {
+            assert!(
+                DateTime::parse_from_rfc3339(input).is_ok(),
+                "Should parse correctly: {}",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn test_leap_seconds() {
+        let input = "1998-12-31T23:59:60Z"; // fyi the 59:-->60<-- is the leap second
+        assert!(DateTime::parse_from_rfc3339(input).is_ok());
+    }
+
+    #[test]
+    fn test_rejecting_incorrect_formats() {
+        let incorrect_formats = [
+            "2009-January-03",
+            "25:61:61",
+            "20090103",
+            "181505",
+            "18:15:05",
+        ];
+        for input in incorrect_formats {
+            assert!(
+                DateTime::parse_from_rfc3339(input).is_err(),
+                "Should reject incorrect format: {}",
+                input
+            );
+        }
     }
 }

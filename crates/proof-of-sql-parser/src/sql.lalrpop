@@ -337,6 +337,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
+
+    <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -375,8 +377,8 @@ pub BooleanLiteral: bool = {
 
 TimestampLiteral: IntermediateTimestamp = {
     "timestamp" <content: STRING_LITERAL> =>? {
-        IntermediateTimestamp::try_from(content.trim())
-            .map_err(|e| User { error: "unable to parse timestamp from query" })
+        IntermediateTimestamp::try_from(content.trim_matches('\'').trim())
+            .map_err(|_| User { error: "unable to parse timestamp from query" })
     },
 };
 
