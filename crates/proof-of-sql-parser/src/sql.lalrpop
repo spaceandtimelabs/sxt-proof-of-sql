@@ -337,8 +337,6 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
-
-    <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -375,12 +373,11 @@ pub BooleanLiteral: bool = {
     "false" => false,
 };
 
-DateTimeString: String = {
-    TIMESTAMP_LITERAL => <>.to_string(),
-};
-
 TimestampLiteral: IntermediateTimestamp = {
-    "timestamp" <datetime: DateTimeString> =>? IntermediateTimestamp::try_from(&datetime).map_err(|e| User {error: "invalid timestamp format"}),
+    "timestamp" <content: STRING_LITERAL>  =>? {
+        IntermediateTimestamp::try_from(content.trim())
+            .map_err(|e| User { error: "unable to parse timestamp from query" })
+    },
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,5 +444,4 @@ match {
     // Integer numbers (without a fractional part)
     r"[+-]?[0-9]+" => INTEGER_LIT,
     r"'(?s)(?:''|[^'])*'" => STRING_LITERAL,
-    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)?" => TIMESTAMP_LITERAL,
 }

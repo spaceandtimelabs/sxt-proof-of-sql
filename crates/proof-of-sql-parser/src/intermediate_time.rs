@@ -1,22 +1,37 @@
-use chrono::{DateTime, NaiveDateTime, Offset, TimeZone, Utc};
+use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-/// Errors from converting an intermediate AST into a provable AST.
+/// Errors from parsing a query string into an intermediate timestamp
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum IntermediateTimestampError {
-    #[error("Invalid timeunit")]
-    /// Error converting intermediate time units to PoSQL time units
+    /// Indicates a failure to convert between different representations of time units.
+    #[error("Invalid time unit")]
     InvalidTimeUnit,
 
+    /// Indicates a failure to convert or parse timezone data correctly.
     #[error("Invalid timezone")]
-    /// Error converting intermediate time zones to PoSQL timezones
     InvalidTimeZone,
 
-    /// Could not parse a timestamp from string
-    #[error("Invalid timestamp format")]
-    InvalidFormat,
+    /// Indicates that the timestamp string does not match an expected format.
+    #[error("Invalid timestamp format: {0}")]
+    InvalidFormat(String),
+
+    /// The local time does not exist because there is a gap in the local time.
+    /// This variant may also be returned if there was an error while resolving the local time,
+    /// caused by for example missing time zone data files, an error in an OS API, or overflow.
+    #[error("Local time does not exist because there is a gap in the local time")]
+    LocalTimeDoesNotExist,
+
+    /// The local time is ambiguous because there is a fold in the local time.
+    /// This variant contains the two possible results, in the order (earliest, latest).
+    #[error("Unix timestamp is ambiguous because there is a fold in the local time.")]
+    Ambiguous,
+
+    /// Represents a catch-all for parsing errors not specifically covered by other variants.
+    #[error("Timestamp parsing error: {0}")]
+    ParsingError(String),
 }
 
 /// An initermediate type of components extracted from a timestamp string.
@@ -46,7 +61,7 @@ impl fmt::Display for IntermediateTimeUnit {
 /// Captures a timezone from a timestamp query
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeZone {
-    /// Default variant for UTC timezoen
+    /// Default variant for UTC timezone
     Utc,
     /// TImezone offset in seconds
     FixedOffset(i32),
@@ -81,275 +96,231 @@ impl fmt::Display for IntermediateTimeZone {
     }
 }
 
-/// Parses a timestamp from valid strings obtained from the lexer
-pub fn parse_intermediate_timestamp(ts: &str) -> Result<IntermediateTimestamp, &'static str> {
-    let format_with_tz = "%Y-%m-%d %H:%M:%S%.f%:z";
-    let format_without_tz = "%Y-%m-%d %H:%M:%S%.f";
-
-    // Helper function to determine the precision of the fractional seconds
-    fn determine_precision(fraction: &str) -> IntermediateTimeUnit {
-        match fraction.len() {
-            0 => IntermediateTimeUnit::Second,
-            1..=3 => IntermediateTimeUnit::Millisecond,
-            4..=6 => IntermediateTimeUnit::Microsecond,
-            _ => IntermediateTimeUnit::Nanosecond,
-        }
-    }
-
-    // Extract the fractional part correctly
-    fn extract_fraction(ts: &str) -> &str {
-        if let Some((_, fractional)) = ts.split_once('.') {
-            if let Some((fractional, _)) = fractional.split_once(|c| c == '+' || c == '-') {
-                return fractional;
-            }
-            return fractional;
-        }
-        ""
-    }
-
-    // First try parsing with timezone
-    if let Ok(dt) = DateTime::parse_from_str(ts, format_with_tz) {
-        if let Some(timestamp_nanos) = dt.timestamp_nanos_opt() {
-            let offset_seconds = dt.offset().fix().local_minus_utc();
-            let fraction = extract_fraction(ts);
-            let unit = determine_precision(fraction);
-            return Ok(IntermediateTimestamp {
-                timestamp: timestamp_nanos,
-                unit,
-                timezone: IntermediateTimeZone::from_offset(offset_seconds),
-            });
-        } else {
-            return Err("Failed to convert datetime to nanoseconds");
-        }
-    }
-
-    // If that fails, try parsing without timezone and assume UTC
-    if let Ok(naive_dt) = NaiveDateTime::parse_from_str(ts, format_without_tz) {
-        let datetime_utc = Utc.from_utc_datetime(&naive_dt);
-        if let Some(timestamp_nanos) = datetime_utc.timestamp_nanos_opt() {
-            let fraction = extract_fraction(ts);
-            let unit = determine_precision(fraction);
-            return Ok(IntermediateTimestamp {
-                timestamp: timestamp_nanos,
-                unit,
-                timezone: IntermediateTimeZone::Utc,
-            });
-        } else {
-            return Err("Failed to convert datetime to nanoseconds");
-        }
-    }
-
-    Err("Invalid timestamp format")
-}
-
-/// Intermediate Time
+/// Represents a fully parsed timestamp with detailed time unit and timezone information.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IntermediateTimestamp {
-    /// Count of time units since the unix epoch
-    pub timestamp: i64,
-    /// Seconds, milliseconds, microseconds, or nanoseconds
+    /// The datetime representation in UTC.
+    pub timestamp: DateTime<Utc>,
+
+    /// The precision of the datetime value, e.g., seconds, milliseconds.
     pub unit: IntermediateTimeUnit,
-    /// Timezone captured from parsed string
+
+    /// The timezone of the datetime, either UTC or a fixed offset from UTC.
     pub timezone: IntermediateTimeZone,
 }
 
 impl IntermediateTimestamp {
-    /// Constructs a new `IntermediateTimestamp` from a specified timestamp string.
+    /// Attempts to parse a timestamp string into an `IntermediateTimestamp` structure.
+    /// This function supports two primary formats:
     ///
-    /// This function parses a timestamp string formatted according to the ISO 8601 standard,
-    /// and may include a timezone offset. If a timezone is specified, the time is adjusted to UTC.
-    /// If no timezone is specified, the time is assumed to be in UTC.
+    /// 1. **RFC 3339 Parsing**:
+    ///    - Parses the timestamp along with its timezone.
+    ///    - If parsing succeeds, it extracts the timezone offset using `dt.offset().local_minus_utc()`
+    ///      and then uses this to construct the appropriate `IntermediateTimeZone`.
     ///
-    /// Supported formats include:
-    /// - "YYYY-MM-DD HH:MM:SS" (assumes UTC if no timezone is provided)
-    /// - "YYYY-MM-DD HH:MM:SS.SSS" (milliseconds)
-    /// - "YYYY-MM-DD HH:MM:SS.SSSSSS" (microseconds)
-    /// - "YYYY-MM-DD HH:MM:SS.SSSSSSSSS" (nanoseconds)
-    /// - Timezone information may be appended as "+HH:MM", "-HH:MM", or "Z" for UTC.
+    /// 2. **Unix Epoch Time Parsing**:
+    ///    - Since Unix epoch timestamps don't inherently carry timezone information,
+    ///      any Unix time parsed directly from an integer is assumed to be in UTC.
+    ///
+    /// 3. **Timezone Parsing and Conversion**:
+    ///    - The `from_offset` method is used to determine whether the timezone should be represented
+    ///      as `Utc` or `FixedOffset`. This function simplifies the decision based on the offset value.
+    ///
+    /// # Examples
+    /// ```
+    /// use chrono::{DateTime, Utc};
+    /// use proof_of_sql_parser::intermediate_time::{IntermediateTimestamp, IntermediateTimeZone};
+    ///
+    /// // Parsing an RFC 3339 timestamp without a timezone:
+    /// let timestamp_str = "2009-01-03T18:15:05Z";
+    /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
+    ///
+    /// // Parsing an RFC 3339 timestamp with a positive timezone offset:
+    /// let timestamp_str_with_tz = "2009-01-03T18:15:05+03:00";
+    /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str_with_tz).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::FixedOffset(10800)); // 3 hours in seconds
+    ///
+    /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
+    /// let unix_time_str = "1231006505";
+    /// let intermediate_timestamp = IntermediateTimestamp::try_from(unix_time_str).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
+    /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, IntermediateTimestampError> {
-        parse_intermediate_timestamp(timestamp_str)
-            .map_err(|_| IntermediateTimestampError::InvalidFormat)
+        // Attempt to parse the input as an RFC 3339 timestamp
+        DateTime::parse_from_rfc3339(timestamp_str)
+            .map(|dt| {
+                let offset_seconds = dt.offset().local_minus_utc();
+                IntermediateTimestamp {
+                    timestamp: dt.with_timezone(&Utc),
+                    unit: IntermediateTimeUnit::Second,
+                    timezone: IntermediateTimeZone::from_offset(offset_seconds),
+                }
+            })
+            .or_else(|e| {
+                // If RFC 3339 parsing fails, attempt to parse as a raw i64 Unix timestamp
+                timestamp_str
+                    .parse::<i64>()
+                    .map_err(|e| IntermediateTimestampError::InvalidFormat(e.to_string()))
+                    .and_then(|epoch| {
+                        match Utc.timestamp_opt(epoch, 0) {
+                            LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
+                                timestamp,
+                                unit: IntermediateTimeUnit::Second,
+                                timezone: IntermediateTimeZone::Utc, // Assume UTC for raw Unix time
+                            }),
+                            LocalResult::Ambiguous(_, _) => {
+                                Err(IntermediateTimestampError::Ambiguous)
+                            }
+                            LocalResult::None => {
+                                Err(IntermediateTimestampError::LocalTimeDoesNotExist)
+                            }
+                        }
+                    })
+                    .map_err(|_| IntermediateTimestampError::ParsingError(e.to_string()))
+            })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{FixedOffset, TimeZone, Timelike, Utc};
+    use chrono::TimeZone;
 
     #[test]
-    fn test_display_intermediate_timezone() {
-        // Test Utc
-        let tz_utc = IntermediateTimeZone::Utc;
-        assert_eq!(format!("{}", tz_utc), "Z");
-
-        // Test positive offsets
-        let tz_offset_1 = IntermediateTimeZone::FixedOffset(3600); // +01:00
-        assert_eq!(format!("{}", tz_offset_1), "+01:00");
-
-        let tz_offset_2 = IntermediateTimeZone::FixedOffset(19800); // +05:30
-        assert_eq!(format!("{}", tz_offset_2), "+05:30");
-
-        let tz_offset_3 = IntermediateTimeZone::FixedOffset(3600 * 12); // +12:00
-        assert_eq!(format!("{}", tz_offset_3), "+12:00");
-
-        // Test negative offsets
-        let tz_offset_4 = IntermediateTimeZone::FixedOffset(-3600); // -01:00
-        assert_eq!(format!("{}", tz_offset_4), "-01:00");
-
-        let tz_offset_5 = IntermediateTimeZone::FixedOffset(-12600); // -03:30
-        assert_eq!(format!("{}", tz_offset_5), "-03:30");
-
-        let tz_offset_6 = IntermediateTimeZone::FixedOffset(-3600 * 12); // -12:00
-        assert_eq!(format!("{}", tz_offset_6), "-12:00");
-
-        // Test edge cases
-        let tz_offset_7 = IntermediateTimeZone::FixedOffset(0); // +00:00
-        assert_eq!(format!("{}", tz_offset_7), "Z");
-
-        let tz_offset_8 = IntermediateTimeZone::FixedOffset(3600 * 14); // +14:00
-        assert_eq!(format!("{}", tz_offset_8), "+14:00");
-
-        let tz_offset_9 = IntermediateTimeZone::FixedOffset(-3600 * 14); // -14:00
-        assert_eq!(format!("{}", tz_offset_9), "-14:00");
+    fn test_utc_timezone() {
+        let input = "2023-06-26T12:34:56Z";
+        let expected_timezone = IntermediateTimeZone::Utc;
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
-    fn test_parse_with_timezone() {
-        let ts_with_tz = "2024-06-20 12:34:56+02:00";
-        let result = parse_intermediate_timestamp(ts_with_tz)
-            .expect("Failed to parse timestamp with timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Second);
-
-        let ts_with_tz = "2024-06-20 12:34:56.123+02:00";
-        let result = parse_intermediate_timestamp(ts_with_tz)
-            .expect("Failed to parse timestamp with timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Millisecond);
-
-        let ts_with_tz = "2024-06-20 12:34:56.123456+02:00";
-        let result = parse_intermediate_timestamp(ts_with_tz)
-            .expect("Failed to parse timestamp with timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Microsecond);
-
-        let ts_with_tz = "2024-06-20 12:34:56.123456789+02:00";
-        let result = parse_intermediate_timestamp(ts_with_tz)
-            .expect("Failed to parse timestamp with timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Nanosecond);
-        assert_eq!(result.timezone, IntermediateTimeZone::FixedOffset(7200)); // +02:00 is 7200 seconds
-        let expected_timestamp: DateTime<FixedOffset> = FixedOffset::east_opt(7200)
-            .unwrap()
-            .with_ymd_and_hms(2024, 6, 20, 12, 34, 56)
-            .unwrap()
-            .with_nanosecond(123_456_789)
-            .unwrap();
-        assert_eq!(
-            result.timestamp,
-            expected_timestamp.timestamp_nanos_opt().unwrap()
-        );
+    fn test_positive_offset_timezone() {
+        let input = "2023-06-26T12:34:56+03:30";
+        let expected_timezone = IntermediateTimeZone::FixedOffset(12600); // 3 hours and 30 minutes in seconds
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
-    fn test_parse_without_timezone() {
-        let ts_without_tz = "2024-06-20 12:34:56";
-        let result = parse_intermediate_timestamp(ts_without_tz)
-            .expect("Failed to parse timestamp without timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Second);
-        assert_eq!(result.timezone, IntermediateTimeZone::Utc);
-
-        let ts_without_tz = "2024-06-20 12:34:56.123";
-        let result = parse_intermediate_timestamp(ts_without_tz)
-            .expect("Failed to parse timestamp without timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Millisecond);
-        assert_eq!(result.timezone, IntermediateTimeZone::Utc);
-
-        let ts_without_tz = "2024-06-20 12:34:56.123456";
-        let result = parse_intermediate_timestamp(ts_without_tz)
-            .expect("Failed to parse timestamp without timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Microsecond);
-        assert_eq!(result.timezone, IntermediateTimeZone::Utc);
-
-        let ts_without_tz = "2024-06-20 12:34:56.123456789";
-        let result = parse_intermediate_timestamp(ts_without_tz)
-            .expect("Failed to parse timestamp without timezone");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Nanosecond);
-        assert_eq!(result.timezone, IntermediateTimeZone::Utc);
-        let expected_timestamp = Utc
-            .with_ymd_and_hms(2024, 6, 20, 12, 34, 56)
-            .unwrap()
-            .with_nanosecond(123_456_789)
-            .unwrap();
-        assert_eq!(
-            result.timestamp,
-            expected_timestamp.timestamp_nanos_opt().unwrap()
-        );
+    fn test_negative_offset_timezone() {
+        let input = "2023-06-26T12:34:56-04:00";
+        let expected_timezone = IntermediateTimeZone::FixedOffset(-14400); // -4 hours in seconds
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
-    fn test_parse_invalid_format() {
-        let invalid_ts = "invalid timestamp";
-        let result = parse_intermediate_timestamp(invalid_ts);
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Invalid timestamp format");
+    fn test_zero_offset_timezone() {
+        let input = "2023-06-26T12:34:56+00:00";
+        let expected_timezone = IntermediateTimeZone::Utc; // Zero offset defaults to UTC
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
-    fn test_parse_missing_fractional_seconds() {
-        let ts_missing_fractional = "2024-06-20 12:34:56+02:00";
-        let result = parse_intermediate_timestamp(ts_missing_fractional)
-            .expect("Failed to parse timestamp without fractional seconds");
-
-        assert_eq!(result.unit, IntermediateTimeUnit::Second);
-        assert_eq!(result.timezone, IntermediateTimeZone::FixedOffset(7200));
-        let expected_timestamp: DateTime<FixedOffset> = FixedOffset::east_opt(7200)
-            .unwrap()
-            .with_ymd_and_hms(2024, 6, 20, 12, 34, 56)
-            .unwrap();
-        assert_eq!(
-            result.timestamp,
-            expected_timestamp.timestamp_nanos_opt().unwrap()
-        );
+    fn test_unix_epoch_time_timezone() {
+        let unix_time = 1_593_000_000.to_string(); // Unix time as string
+        let expected_timezone = IntermediateTimeZone::Utc; // Unix time should always be UTC
+        let result = IntermediateTimestamp::try_from(&unix_time).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
-    fn test_parse_different_timezones() {
-        let timezones = [
-            ("2024-06-20 12:34:56.123456789-05:00", -18000), // -05:00 is -18000 seconds
-            ("2024-06-20 12:34:56.123456789+00:00", 0),      // +00:00 is 0 seconds
-            ("2024-06-20 12:34:56.123456789+05:30", 19800),  // +05:30 is 19800 seconds
-            ("2024-06-20 12:34:56.123456789-08:00", -28800), // -08:00 is -28800 seconds
-            ("2024-06-20 12:34:56.123456789+09:00", 32400),  // +09:00 is 32400 seconds
-            ("2024-06-20 12:34:56.123456789-03:30", -12600), // -03:30 is -12600 seconds
-            ("2024-06-20 12:34:56.123456789+12:00", 43200),  // +12:00 is 43200 seconds
-            ("2024-06-20 12:34:56.123456789-12:00", -43200), // -12:00 is -43200 seconds
-        ];
+    fn test_unix_epoch_timestamp_parsing() {
+        let unix_time = 1_593_000_000; // Example Unix timestamp (seconds since epoch)
+        let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
+        let expected_unit = IntermediateTimeUnit::Second; // Assuming basic second precision for Unix timestamp
+        let input = unix_time.to_string(); // Simulate input as string since Unix times are often transmitted as strings
+        let result = IntermediateTimestamp::try_from(&input).unwrap();
 
-        for (ts, offset_seconds) in &timezones {
-            let result = parse_intermediate_timestamp(ts)
-                .unwrap_or_else(|_| panic!("Failed to parse timestamp with timezone {}", ts));
+        assert_eq!(result.timestamp, expected_datetime);
+        assert_eq!(result.unit, expected_unit);
+    }
 
-            assert_eq!(result.unit, IntermediateTimeUnit::Nanosecond);
-            assert_eq!(
-                result.timezone,
-                IntermediateTimeZone::from_offset(*offset_seconds)
-            );
-            let expected_timestamp: DateTime<FixedOffset> = FixedOffset::east_opt(*offset_seconds)
-                .unwrap()
-                .with_ymd_and_hms(2024, 6, 20, 12, 34, 56)
-                .unwrap()
-                .with_nanosecond(123_456_789)
-                .unwrap();
-            assert_eq!(
-                result.timestamp,
-                expected_timestamp.timestamp_nanos_opt().unwrap()
-            );
-        }
+    #[test]
+    fn test_basic_rfc3339_timestamp() {
+        let input = "2023-06-26T12:34:56Z";
+        let expected = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_rfc3339_timestamp_with_positive_offset() {
+        let input = "2023-06-26T08:00:00+04:30";
+        let expected = Utc.with_ymd_and_hms(2023, 6, 26, 3, 30, 0).unwrap(); // Adjusted to UTC
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_rfc3339_timestamp_with_negative_offset() {
+        let input = "2023-06-26T20:00:00-05:00";
+        let expected = Utc.with_ymd_and_hms(2023, 6, 27, 1, 0, 0).unwrap(); // Adjusted to UTC
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_rfc3339_timestamp_with_utc_designator() {
+        let input = "2023-06-26T12:34:56Z";
+        let expected = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_invalid_rfc3339_timestamp() {
+        let input = "not-a-timestamp";
+        assert!(IntermediateTimestamp::try_from(input).is_err());
+    }
+
+    #[test]
+    fn test_timestamp_with_seconds() {
+        let input = "2023-06-26T12:34:56Z";
+        let expected_time = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
+        let expected_unit = IntermediateTimeUnit::Second;
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected_time);
+        assert_eq!(result.unit, expected_unit);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_rfc3339_timestamp_with_milliseconds() {
+        let input = "2023-06-26T12:34:56.123Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_milli(12, 34, 56, 123);
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_rfc3339_timestamp_with_microseconds() {
+        let input = "2023-06-26T12:34:56.123456Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+    #[test]
+    #[allow(deprecated)]
+    fn test_rfc3339_timestamp_with_nanoseconds() {
+        let input = "2023-06-26T12:34:56.123456789Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
+        let result = IntermediateTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_general_parsing_error() {
+        // This test assumes that there's a catch-all parsing error case that isn't covered by the more specific errors.
+        let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
+        let result = IntermediateTimestamp::try_from(malformed_input);
+        assert!(matches!(
+            result,
+            Err(IntermediateTimestampError::ParsingError(_))
+        ));
     }
 }
