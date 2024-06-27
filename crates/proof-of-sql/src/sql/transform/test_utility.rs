@@ -1,4 +1,4 @@
-use super::*;
+use super::{select_expr::SelectTerm, *};
 use proof_of_sql_parser::intermediate_ast::*;
 
 pub fn lit_i64(literal: i64) -> Box<Expression> {
@@ -20,8 +20,9 @@ pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
 }
 
-pub(crate) fn select(result_schema: &[impl ToPolarsExpr]) -> Box<dyn RecordBatchExpr> {
-    #[allow(deprecated)]
+pub(crate) fn select(
+    result_schema: impl IntoIterator<Item = impl Into<SelectTerm>>,
+) -> Box<dyn RecordBatchExpr> {
     Box::new(SelectExpr::new(result_schema))
 }
 
@@ -34,9 +35,7 @@ pub fn schema(columns: &[(&str, &str)]) -> Vec<AliasedResultExpr> {
 
 pub fn result(columns: &[(&str, &str)]) -> ResultExpr {
     let mut composition = CompositionExpr::default();
-    composition.add(Box::new(SelectExpr::new_from_aliased_result_exprs(
-        &schema(columns),
-    )));
+    composition.add(Box::new(SelectExpr::new(&schema(columns))));
     ResultExpr::new(Box::new(composition))
 }
 

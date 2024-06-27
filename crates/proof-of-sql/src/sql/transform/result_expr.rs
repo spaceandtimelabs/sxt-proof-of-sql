@@ -1,9 +1,9 @@
-use crate::{
-    base::database::{dataframe_to_record_batch, record_batch_to_dataframe},
-    sql::transform::RecordBatchExpr,
-};
+#[cfg(feature = "polars")]
+use crate::base::database::{dataframe_to_record_batch, record_batch_to_dataframe};
+use crate::sql::transform::RecordBatchExpr;
 use arrow::record_batch::RecordBatch;
 use dyn_partial_eq::DynPartialEq;
+#[cfg(feature = "polars")]
 use polars::prelude::{IntoLazy, LazyFrame};
 use serde::{Deserialize, Serialize};
 
@@ -23,11 +23,13 @@ impl ResultExpr {
     }
 }
 
+#[cfg(feature = "polars")]
 pub(super) fn record_batch_to_lazy_frame(result_batch: RecordBatch) -> Option<(LazyFrame, usize)> {
     let num_input_rows = result_batch.num_rows();
     let df = record_batch_to_dataframe(result_batch)?;
     Some((df.lazy(), num_input_rows))
 }
+#[cfg(feature = "polars")]
 pub(super) fn lazy_frame_to_record_batch(lazy_frame: LazyFrame) -> Option<RecordBatch> {
     // We're currently excluding NULLs in post-processing due to a lack of
     // prover support, aiming to avoid future complexities.

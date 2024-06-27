@@ -48,6 +48,14 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
         run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+      - name: Run cargo check (proof-of-sql) (just "polars" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="polars"
+      - name: Run cargo check (proof-of-sql) (no "test" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="blitzar polars"
+      - name: Run cargo check (proof-of-sql) (no "blitzar" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="test polars"
+      - name: Run cargo check (proof-of-sql) (no "polars" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="blitzar test"
 
   test:
     name: Test Suite
