@@ -1,11 +1,11 @@
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnField, ColumnRef, ColumnType, LiteralValue, TableRef},
+        database::{ColumnRef, ColumnType, LiteralValue, TableRef},
     },
     sql::{
-        ast::{ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
-        parse::{ConversionError, ConversionResult, WhereExprBuilder},
+        ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
+        parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
 use proof_of_sql_parser::{
@@ -251,7 +251,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
             .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:
         // 1. Group by columns (it is mandatory to have all of them in the correct order)
-        // 2. Sum(col) expressions (it is optional to have any)
+        // 2. Sum(expr) expressions (it is optional to have any)
         // 3. count(*) with an alias (it is mandatory to have one and only one)
         let num_group_by_columns = group_by_exprs.len();
         let num_result_columns = value.res_aliased_exprs.len();
@@ -289,28 +289,22 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
             .map(|res| {
                 if let Expression::Aggregation {
                     op: AggregationOperator::Sum,
-                    expr,
+                    ..
                 } = (*res.expr).clone()
                 {
-                    if let Expression::Column(ident) = *expr {
-                        // For sums the outgoing ColumnType is the same as the incoming ColumnType
-                        let column_type = *value
-                            .column_mapping
-                            .get(&ident)
-                            .expect("QueryContext should never allow unknown cols to be in sum")
-                            .column_type();
-                        let res_column_field = ColumnField::new(res.alias, column_type);
-                        let column_expr =
-                            ColumnExpr::new(ColumnRef::new(table.table_ref, ident, column_type));
-                        Some((column_expr, res_column_field))
-                    } else {
-                        None
-                    }
+                    let res_provable_expr_plan =
+                        ProvableExprPlanBuilder::new(&value.column_mapping).build(&res.expr);
+                    res_provable_expr_plan
+                        .ok()
+                        .map(|provable_expr_plan| AliasedProvableExprPlan {
+                            alias: res.alias,
+                            expr: provable_expr_plan,
+                        })
                 } else {
                     None
                 }
             })
-            .collect::<Option<Vec<(ColumnExpr<C>, ColumnField)>>>();
+            .collect::<Option<Vec<AliasedProvableExprPlan<C>>>>();
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];
