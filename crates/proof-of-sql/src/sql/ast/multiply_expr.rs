@@ -59,7 +59,7 @@ impl<C: Commitment> ProvableExpr<C> for MultiplyExpr<C> {
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.and_expr.prover_evaluate",
+        name = "proofs.sql.ast.multiply_expr.prover_evaluate",
         level = "info",
         skip_all
     )]
