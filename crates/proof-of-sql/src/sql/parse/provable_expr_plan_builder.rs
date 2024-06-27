@@ -4,6 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::{
         ast::{ColumnExpr, ProvableExprPlan},
@@ -88,7 +89,15 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(_) => todo!(),
+            Literal::Timestamp(its) => {
+                let posql_time_unit = PoSQLTimeUnit::from(its.timeunit);
+                let posql_time_zone = PoSQLTimeZone::try_from(its.timezone)?;
+                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                    posql_time_unit,
+                    posql_time_zone,
+                    its.timestamp.timestamp(),
+                )))
+            }
         }
     }
 

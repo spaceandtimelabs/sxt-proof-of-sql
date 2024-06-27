@@ -3,6 +3,7 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
+        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
     },
     sql::ast::{try_add_subtract_column_types, try_multiply_column_types},
 };
@@ -249,8 +250,11 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
-            // TODO: Timestamp support
-            Literal::Timestamp(_its) => todo!(),
+            Literal::Timestamp(its) => {
+                let posql_time_unit = PoSQLTimeUnit::from(its.timeunit);
+                let posql_time_zone = PoSQLTimeZone::try_from(its.timezone)?;
+                Ok(ColumnType::TimestampTZ(posql_time_unit, posql_time_zone))
+            }
         }
     }
 

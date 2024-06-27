@@ -1,9 +1,37 @@
 use crate::base::database::{ArrowArrayToColumnConversionError, OwnedArrowConversionError};
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
+use chrono::{offset::FixedOffset, DateTime, Utc};
 use chrono_tz::Tz;
 use core::fmt;
+use proof_of_sql_parser::intermediate_time::{IntermediateTimeUnit, IntermediateTimeZone};
 use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+/// Enum representing errors that can occur during timestamp conversion.
+pub enum TimestampConversionError {
+    /// Indicates an invalid timezone offset was provided.
+    InvalidTimezoneOffset,
+    /// Error parsing a timezone string into a valid timezone.
+    TimeZoneStringParseError,
+    /// General failure to convert a timezone due to an underlying issue.
+    TimeZoneConversionFailure,
+}
+impl std::error::Error for TimestampConversionError {}
+
+impl fmt::Display for TimestampConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            TimestampConversionError::InvalidTimezoneOffset => write!(f, "Invalid timezone offset"),
+            TimestampConversionError::TimeZoneStringParseError => {
+                write!(f, "Failed to parse timezone string")
+            }
+            TimestampConversionError::TimeZoneConversionFailure => {
+                write!(f, "Failed to convert timezone")
+            }
+        }
+    }
+}
 
 /// A wrapper around i64 to mitigate conflicting From<i64>
 /// implementations
@@ -34,6 +62,26 @@ impl PoSQLTimeZone {
     }
 }
 
+impl TryFrom<IntermediateTimeZone> for PoSQLTimeZone {
+    type Error = TimestampConversionError;
+
+    fn try_from(tz: IntermediateTimeZone) -> Result<Self, Self::Error> {
+        match tz {
+            IntermediateTimeZone::Utc => Ok(PoSQLTimeZone::UTC),
+            IntermediateTimeZone::FixedOffset(seconds) => FixedOffset::east_opt(seconds)
+                .ok_or(TimestampConversionError::InvalidTimezoneOffset)
+                .and_then(|fixed_offset| {
+                    let datetime: DateTime<Utc> = Utc::now();
+                    let offset_datetime = datetime.with_timezone(&fixed_offset);
+                    let tz_string = offset_datetime.format("%Z").to_string();
+                    Tz::from_str(&tz_string)
+                        .map(PoSQLTimeZone)
+                        .map_err(|_| TimestampConversionError::TimeZoneStringParseError)
+                }),
+        }
+    }
+}
+
 impl From<&PoSQLTimeZone> for Arc<str> {
     fn from(timezone: &PoSQLTimeZone) -> Self {
         Arc::from(timezone.0.name())
@@ -53,25 +101,25 @@ impl fmt::Display for PoSQLTimeZone {
 }
 
 impl TryFrom<Option<Arc<str>>> for PoSQLTimeZone {
-    type Error = &'static str;
+    type Error = TimestampConversionError;
 
     fn try_from(value: Option<Arc<str>>) -> Result<Self, Self::Error> {
         match value {
             Some(arc_str) => Tz::from_str(&arc_str)
                 .map(PoSQLTimeZone)
-                .map_err(|_| "Invalid timezone string"),
+                .map_err(|_| TimestampConversionError::TimeZoneConversionFailure),
             None => Ok(PoSQLTimeZone(Tz::UTC)), // Default to UTC
         }
     }
 }
 
 impl TryFrom<&str> for PoSQLTimeZone {
-    type Error = &'static str;
+    type Error = TimestampConversionError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Tz::from_str(value)
             .map(PoSQLTimeZone)
-            .map_err(|_| "Invalid timezone string")
+            .map_err(|_| TimestampConversionError::TimeZoneConversionFailure)
     }
 }
 
@@ -88,6 +136,17 @@ pub enum PoSQLTimeUnit {
     Microsecond,
     /// Represents a time unit of one nanosecond (1/1,000,000,000 of a second).
     Nanosecond,
+}
+
+impl From<IntermediateTimeUnit> for PoSQLTimeUnit {
+    fn from(unit: IntermediateTimeUnit) -> Self {
+        match unit {
+            IntermediateTimeUnit::Second => PoSQLTimeUnit::Second,
+            IntermediateTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
+            IntermediateTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
+            IntermediateTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+        }
+    }
 }
 
 impl From<PoSQLTimeUnit> for ArrowTimeUnit {
@@ -132,6 +191,24 @@ impl From<&'static str> for OwnedArrowConversionError {
 impl From<&'static str> for ArrowArrayToColumnConversionError {
     fn from(error: &'static str) -> Self {
         ArrowArrayToColumnConversionError::TimezoneConversionError(error.to_string())
+    }
+}
+
+impl From<TimestampConversionError> for OwnedArrowConversionError {
+    fn from(error: TimestampConversionError) -> Self {
+        OwnedArrowConversionError::InvalidTimezone(error.to_string())
+    }
+}
+
+impl From<TimestampConversionError> for ArrowArrayToColumnConversionError {
+    fn from(error: TimestampConversionError) -> Self {
+        ArrowArrayToColumnConversionError::TimezoneConversionError(error.to_string())
+    }
+}
+
+impl From<TimestampConversionError> for String {
+    fn from(error: TimestampConversionError) -> Self {
+        format!("{}", error)
     }
 }
 

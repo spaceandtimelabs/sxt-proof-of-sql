@@ -103,7 +103,7 @@ pub struct IntermediateTimestamp {
     pub timestamp: DateTime<Utc>,
 
     /// The precision of the datetime value, e.g., seconds, milliseconds.
-    pub unit: IntermediateTimeUnit,
+    pub timeunit: IntermediateTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
     pub timezone: IntermediateTimeZone,
@@ -153,7 +153,7 @@ impl IntermediateTimestamp {
                 let offset_seconds = dt.offset().local_minus_utc();
                 IntermediateTimestamp {
                     timestamp: dt.with_timezone(&Utc),
-                    unit: IntermediateTimeUnit::Second,
+                    timeunit: IntermediateTimeUnit::Second,
                     timezone: IntermediateTimeZone::from_offset(offset_seconds),
                 }
             })
@@ -166,7 +166,7 @@ impl IntermediateTimestamp {
                         match Utc.timestamp_opt(epoch, 0) {
                             LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
                                 timestamp,
-                                unit: IntermediateTimeUnit::Second,
+                                timeunit: IntermediateTimeUnit::Second,
                                 timezone: IntermediateTimeZone::Utc, // Assume UTC for raw Unix time
                             }),
                             LocalResult::Ambiguous(_, _) => {
@@ -236,7 +236,7 @@ mod tests {
         let result = IntermediateTimestamp::try_from(&input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
-        assert_eq!(result.unit, expected_unit);
+        assert_eq!(result.timeunit, expected_unit);
     }
 
     #[test]
@@ -284,7 +284,7 @@ mod tests {
         let expected_unit = IntermediateTimeUnit::Second;
         let result = IntermediateTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected_time);
-        assert_eq!(result.unit, expected_unit);
+        assert_eq!(result.timeunit, expected_unit);
     }
 
     #[test]
