@@ -4,7 +4,7 @@ use crate::{
         database::Column,
         math::decimal::Precision,
         scalar::Scalar,
-        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::parse::ConversionError,
 };
