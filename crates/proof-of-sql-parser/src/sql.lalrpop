@@ -374,7 +374,7 @@ pub BooleanLiteral: bool = {
 };
 
 TimestampLiteral: IntermediateTimestamp = {
-    "timestamp" <content: STRING_LITERAL>  =>? {
+    "timestamp" <content: STRING_LITERAL> =>? {
         IntermediateTimestamp::try_from(content.trim())
             .map_err(|e| User { error: "unable to parse timestamp from query" })
     },
