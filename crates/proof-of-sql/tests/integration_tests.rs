@@ -533,7 +533,6 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
 }
 
 #[test]
-#[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_group_by_query_with_curve25519() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(

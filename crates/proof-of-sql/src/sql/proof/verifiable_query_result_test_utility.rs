@@ -24,6 +24,7 @@ pub fn exercise_verification(
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
+    dbg!(&res.verify(expr, accessor, &()).err());
     assert!(res.verify(expr, accessor, &()).is_ok());
 
     // try changing the result

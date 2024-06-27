@@ -16,6 +16,8 @@ pub struct AggregatedColumns<'a, S: Scalar> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
     /// This is effectively just the original group_by columns filtered by the selection.
     pub group_by_columns: Vec<Column<'a, S>>,
+    /// The resulting columns that are exclusively functions of group_by_columns.
+    pub result_columns: Vec<Column<'a, S>>,
     /// Resulting sums of the groups for the columns in `sum_columns_in`.
     pub sum_columns: Vec<&'a [S]>,
     /// The number of rows in each group.
@@ -29,7 +31,9 @@ pub enum AggregateColumnsError {
 
 /// This is a function that gives the result of a group by query similar to the following:
 /// ```sql
-///     SELECT <group_by[0]>, <group_by[1]>, ..., SUM(<sum_columns[0]>), SUM(<sum_columns[1]>), ..., COUNT(*)
+///     SELECT <group_by[0]>, <group_by[1]>, ...,
+///     <result_columns[0]>, <result_columns[1]>, ...,
+///     SUM(<sum_columns[0]>), SUM(<sum_columns[1]>), ..., COUNT(*)
 ///         WHERE selection GROUP BY <group_by[0]>, <group_by[1]>, ...
 /// ```
 ///
@@ -38,6 +42,7 @@ pub enum AggregateColumnsError {
 pub fn aggregate_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     group_by_columns_in: &[Column<'a, S>],
+    result_columns_in: &[Column<'a, S>],
     sum_columns_in: &[Column<S>],
     selection_column_in: &[bool],
 ) -> Result<AggregatedColumns<'a, S>, AggregateColumnsError> {
@@ -47,6 +52,11 @@ pub fn aggregate_columns<'a, S: Scalar>(
         }
     }
     for col in sum_columns_in {
+        if col.len() != selection_column_in.len() {
+            return Err(AggregateColumnsError::ColumnLengthMismatch);
+        }
+    }
+    for col in result_columns_in {
         if col.len() != selection_column_in.len() {
             return Err(AggregateColumnsError::ColumnLengthMismatch);
         }
@@ -78,6 +88,11 @@ pub fn aggregate_columns<'a, S: Scalar>(
             .iter()
             .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes)),
     );
+    let result_columns_out = Vec::from_iter(
+        result_columns_in
+            .iter()
+            .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes)),
+    );
 
     // This calls the `sum_aggregate_column_by_index_counts` function on each column in `sum_columns`
     // and gives a vector of `S` slices
@@ -90,6 +105,7 @@ pub fn aggregate_columns<'a, S: Scalar>(
 
     Ok(AggregatedColumns {
         group_by_columns: group_by_columns_out,
+        result_columns: result_columns_out,
         sum_columns: sum_columns_out,
         count_column: count_column_out,
     })

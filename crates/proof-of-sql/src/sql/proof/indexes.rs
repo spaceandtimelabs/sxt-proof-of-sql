@@ -3,7 +3,7 @@ use core::ops::Range;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 /// Indexes of a table for use in the ProvableQueryResult
 pub enum Indexes {
     /// Sparse indexes. (i.e. explicitly specified indexes)

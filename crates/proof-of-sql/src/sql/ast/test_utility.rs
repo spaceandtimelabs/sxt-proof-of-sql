@@ -254,17 +254,29 @@ pub fn sum_expr<C: Commitment>(
     }
 }
 
+pub fn count_expr<C: Commitment>(
+    expr: ProvableExprPlan<C>,
+    alias: &str,
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr: ProvableExprPlan::new_aggregate(AggregationOperator::Count, expr),
+        alias: alias.parse().unwrap(),
+    }
+}
+
 pub fn group_by<C: Commitment>(
     group_by_exprs: Vec<ColumnExpr<C>>,
-    sum_expr: Vec<AliasedProvableExprPlan<C>>,
-    count_alias: &str,
+    result_exprs: Vec<AliasedProvableExprPlan<C>>,
+    sum_exprs: Vec<AliasedProvableExprPlan<C>>,
+    count_exprs: Vec<AliasedProvableExprPlan<C>>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
     ProofPlan::GroupBy(GroupByExpr::new(
         group_by_exprs,
-        sum_expr,
-        count_alias.parse().unwrap(),
+        result_exprs,
+        sum_exprs,
+        count_exprs,
         table,
         where_clause,
     ))
