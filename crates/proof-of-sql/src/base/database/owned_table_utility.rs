@@ -212,7 +212,8 @@ pub fn decimal75<S: Scalar>(
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*,
 ///     scalar::Curve25519Scalar,
-///     time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone}};
+///     time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone}
+/// };
 /// use chrono_tz::Europe::London;
 ///
 /// let result = owned_table::<Curve25519Scalar>([
