@@ -70,7 +70,7 @@ impl<C: Commitment> ProvableExpr<C> for AddSubtractExpr<C> {
     }
 
     #[tracing::instrument(
-        name = "proofs.sql.ast.not_expr.prover_evaluate",
+        name = "proofs.sql.ast.add_subtract_expr.prover_evaluate",
         level = "info",
         skip_all
     )]
