@@ -15,7 +15,8 @@
 use super::scalar_and_i256_conversions::convert_scalar_to_i256;
 use crate::base::{
     database::{
-        scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
+        scalar_and_i256_conversions::convert_i256_to_scalar,
+        OwnedArrowConversionError::TimestampConversionError, OwnedColumn, OwnedTable,
         OwnedTableError,
     },
     math::decimal::Precision,
@@ -195,9 +196,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampSecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::TimestampConversionError(
-                                UnsupportedTimestampUnit("Second".to_string()),
-                            )
+                            TimestampConversionError(UnsupportedTimestampUnit("Second".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -211,9 +210,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMillisecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::TimestampConversionError(
-                                UnsupportedTimestampUnit("Millisecond".to_string()),
-                            )
+                            TimestampConversionError(UnsupportedTimestampUnit(
+                                "Millisecond".to_string(),
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -227,9 +226,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMicrosecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::TimestampConversionError(
-                                UnsupportedTimestampUnit("Microsecond".to_string()),
-                            )
+                            TimestampConversionError(UnsupportedTimestampUnit(
+                                "Microsecond".to_string(),
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -243,9 +242,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampNanosecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::TimestampConversionError(
-                                UnsupportedTimestampUnit("Nanosecond".to_string()),
-                            )
+                            TimestampConversionError(UnsupportedTimestampUnit(
+                                "Nanosecond".to_string(),
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
