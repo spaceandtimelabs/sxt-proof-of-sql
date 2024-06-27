@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
     indexes: Indexes,
@@ -198,6 +198,8 @@ impl ProvableQueryResult {
         )?;
 
         assert_eq!(offset, self.data.len());
+        println!("Owned Table: {:?}", owned_table);
+        println!("Provable Query Result: {:?}", self);
         assert_eq!(owned_table.num_columns(), self.num_columns());
 
         Ok(owned_table)

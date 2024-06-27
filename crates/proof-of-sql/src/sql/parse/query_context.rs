@@ -4,7 +4,10 @@ use crate::{
         database::{ColumnRef, ColumnType, LiteralValue, TableRef},
     },
     sql::{
-        ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
+        ast::{
+            AggregateExpr, AliasedProvableExprPlan, ColumnExpr, GroupByExpr, ProvableExprPlan,
+            TableExpr,
+        },
         parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
@@ -250,81 +253,79 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
             })
             .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:
-        // 1. Group by columns (it is mandatory to have all of them in the correct order)
-        // 2. Sum(expr) expressions (it is optional to have any)
-        // 3. count(*) with an alias (it is mandatory to have one and only one)
-        let num_group_by_columns = group_by_exprs.len();
-        let num_result_columns = value.res_aliased_exprs.len();
-        if num_result_columns < num_group_by_columns + 1 {
-            return Ok(None);
-        }
-        let res_group_by_columns = &value.res_aliased_exprs[..num_group_by_columns].to_vec();
-        let sum_expr_columns =
-            &value.res_aliased_exprs[num_group_by_columns..num_result_columns - 1].to_vec();
-        // Check group by columns
-        let group_by_compliance = value
-            .group_by_exprs
-            .iter()
-            .zip(res_group_by_columns.iter())
-            .all(|(ident, res)| {
-                //TODO: This is due to a workaround related to polars
-                //Need to remove it when possible (PROOF-850)
-                if let Expression::Aggregation {
-                    op: AggregationOperator::First,
-                    expr,
-                } = (*res.expr).clone()
-                {
-                    if let Expression::Column(res_ident) = *expr {
-                        res_ident == *ident
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            });
-        // Check sums
-        let sum_expr = sum_expr_columns
+        // 1. Expressions exclusively consisting of group by columns
+        // 2. Sum(expr) expressions with an alias
+        // 3. count(expr) with an alias
+        let opt_res_expr_plans = value
+            .res_aliased_exprs
             .iter()
             .map(|res| {
-                if let Expression::Aggregation {
+                let res_provable_expr_plan =
+                    ProvableExprPlanBuilder::new(&value.column_mapping).build(&res.expr);
+                res_provable_expr_plan
+                    .ok()
+                    .map(|provable_expr_plan| AliasedProvableExprPlan {
+                        alias: res.alias,
+                        expr: provable_expr_plan,
+                    })
+            })
+            .collect::<Option<Vec<AliasedProvableExprPlan<C>>>>();
+        if opt_res_expr_plans.is_none() {
+            return Ok(None);
+        }
+        let res_expr_plans = opt_res_expr_plans.expect("the none case was just checked");
+        let sum_exprs = res_expr_plans
+            .iter()
+            .filter_map(|res| {
+                if let ProvableExprPlan::Aggregate(AggregateExpr {
                     op: AggregationOperator::Sum,
-                    ..
-                } = (*res.expr).clone()
+                    expr,
+                }) = &res.expr
                 {
-                    let res_provable_expr_plan =
-                        ProvableExprPlanBuilder::new(&value.column_mapping).build(&res.expr);
-                    res_provable_expr_plan
-                        .ok()
-                        .map(|provable_expr_plan| AliasedProvableExprPlan {
-                            alias: res.alias,
-                            expr: provable_expr_plan,
-                        })
+                    Some(AliasedProvableExprPlan {
+                        alias: res.alias,
+                        expr: *expr.clone(),
+                    })
                 } else {
                     None
                 }
             })
-            .collect::<Option<Vec<AliasedProvableExprPlan<C>>>>();
-
-        // Check count(*)
-        let count_column = &value.res_aliased_exprs[num_result_columns - 1];
-        let count_column_compliant = if let Expression::Aggregation {
-            op: AggregationOperator::Count,
-            expr,
-        } = (*count_column.expr).clone()
-        {
-            //TODO: This is due to a workaround related to polars
-            matches!(*expr, Expression::Column(_))
-        } else {
-            false
-        };
-        if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
-            return Ok(None);
-        }
+            .collect::<Vec<AliasedProvableExprPlan<C>>>();
+        let count_exprs = res_expr_plans
+            .iter()
+            .filter_map(|res| {
+                if let ProvableExprPlan::Aggregate(AggregateExpr {
+                    op: AggregationOperator::Count,
+                    expr,
+                }) = &res.expr
+                {
+                    Some(AliasedProvableExprPlan {
+                        alias: res.alias,
+                        expr: *expr.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<AliasedProvableExprPlan<C>>>();
+        let res_exprs = res_expr_plans
+            .iter()
+            .filter_map(|res| {
+                if let ProvableExprPlan::Aggregate(_expr) = &res.expr {
+                    None
+                } else {
+                    Some(AliasedProvableExprPlan {
+                        alias: res.alias,
+                        expr: res.expr.clone(),
+                    })
+                }
+            })
+            .collect::<Vec<AliasedProvableExprPlan<C>>>();
         Ok(Some(GroupByExpr::new(
             group_by_exprs,
-            sum_expr.expect("the none case was just checked"),
-            count_column.alias,
+            res_exprs,
+            sum_exprs,
+            count_exprs,
             table,
             where_clause,
         )))

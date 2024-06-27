@@ -1115,8 +1115,13 @@ fn we_can_do_provable_group_by() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["department"], &accessor),
+            vec![
+                aliased_plan(column(t, "department", &accessor), "department"),
+                sum_expr(column(t, "salary", &accessor), "total_salary"),
+                count_expr(const_bigint(1), "num_employee"),
+            ],
             vec![sum_expr(column(t, "salary", &accessor), "total_salary")],
-            "num_employee",
+            vec![count_expr(const_bigint(1), "num_employee")],
             tab(t),
             const_bool(true),
         ),
@@ -1149,8 +1154,12 @@ fn we_can_do_provable_group_by_without_sum() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["department"], &accessor),
+            vec![
+                aliased_plan(column(t, "department", &accessor), "department"),
+                count_expr(const_bigint(1), "num_employee"),
+            ],
             vec![],
-            "num_employee",
+            vec![count_expr(const_bigint(1), "num_employee")],
             tab(t),
             const_bool(true),
         ),
@@ -1183,8 +1192,14 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["state", "department"], &accessor),
+            vec![
+                aliased_plan(column(t, "state", &accessor), "state"),
+                aliased_plan(column(t, "department", &accessor), "department"),
+                sum_expr(column(t, "salary", &accessor), "total_salary"),
+                count_expr(const_bigint(1), "num_employee"),
+            ],
             vec![sum_expr(column(t, "salary", &accessor), "total_salary")],
-            "num_employee",
+            vec![count_expr(const_bigint(1), "num_employee")],
             tab(t),
             const_bool(true),
         ),
@@ -1220,10 +1235,16 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
         group_by(
             cols_expr(t, &["department"], &accessor),
             vec![
+                aliased_plan(column(t, "department", &accessor), "department"),
+                sum_expr(column(t, "salary", &accessor), "total_salary"),
+                sum_expr(column(t, "tax", &accessor), "total_tax"),
+                count_expr(const_bigint(1), "num_employee"),
+            ],
+            vec![
                 sum_expr(column(t, "salary", &accessor), "total_salary"),
                 sum_expr(column(t, "tax", &accessor), "total_tax"),
             ],
-            "num_employee",
+            vec![count_expr(const_bigint(1), "num_employee")],
             tab(t),
             lte(column(t, "tax", &accessor), const_bigint(1)),
         ),

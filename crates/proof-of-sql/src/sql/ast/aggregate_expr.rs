@@ -17,8 +17,8 @@ use std::collections::HashSet;
 /// Currently it doesn't do much since aggregation logic is implemented elsewhere
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AggregateExpr<C: Commitment> {
-    op: AggregationOperator,
-    expr: Box<ProvableExprPlan<C>>,
+    pub(crate) op: AggregationOperator,
+    pub(crate) expr: Box<ProvableExprPlan<C>>,
 }
 
 impl<C: Commitment> AggregateExpr<C> {

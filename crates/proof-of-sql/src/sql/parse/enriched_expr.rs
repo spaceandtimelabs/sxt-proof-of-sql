@@ -29,11 +29,13 @@ impl<C: Commitment> EnrichedExpr<C> {
     pub fn new(
         expression: AliasedResultExpr,
         column_mapping: HashMap<Identifier, ColumnRef>,
+        allow_aggregates: bool,
     ) -> Self {
-        // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
-        // Re-enable aggregations when we add `GroupByExpr` generalizations.
-        let res_provable_expr_plan =
-            ProvableExprPlanBuilder::new_agg(&column_mapping).build(&expression.expr);
+        let res_provable_expr_plan = if allow_aggregates {
+            ProvableExprPlanBuilder::new(&column_mapping).build(&expression.expr)
+        } else {
+            ProvableExprPlanBuilder::new_agg(&column_mapping).build(&expression.expr)
+        };
         match res_provable_expr_plan {
             Ok(provable_expr_plan) => {
                 let alias = expression.alias;

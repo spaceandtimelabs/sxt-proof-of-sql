@@ -140,19 +140,11 @@ impl<'a> QueryContextBuilder<'a> {
 
     //TODO: Actually support multicolumn expressions
     fn visit_wildcard_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
-        let (col_name, col_type) = match self.context.get_any_result_column_ref() {
-            Some((name, col_type)) => (name, col_type),
-            None => self.lookup_schema().into_iter().next().unwrap(),
-        };
-
-        // Replace `count(*)` with `count(col_name)` to overcome limitations in Polars.
-        *expr = Expression::Column(col_name);
-
-        // Visit the column to ensure its inclusion in the result column set.
-        self.visit_column_expr(expr)?;
+        // Replace `count(*)` with `count(1)` to overcome limitations in Polars.
+        *expr = Expression::Literal(Literal::BigInt(1));
 
         // Return the column type
-        Ok(col_type)
+        Ok(ColumnType::BigInt)
     }
 
     fn visit_column_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
