@@ -520,12 +520,12 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         dense_filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
-                (
+                aliased_plan(
                     not(or(
                         equal(column(t, "a", &accessor), column(t, "b", &accessor)),
                         equal(column(t, "c", &accessor), column(t, "f", &accessor)),
                     )),
-                    "boolean".parse().unwrap(),
+                    "boolean",
                 ),
             ],
             tab(t),
@@ -561,7 +561,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
         dense_filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
-                (const_int128(i128::MIN), "b".parse().unwrap()),
+                aliased_plan(const_int128(i128::MIN), "b"),
             ],
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MIN)),
@@ -590,7 +590,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
         dense_filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
-                (const_int128(i128::MAX), "ma".parse().unwrap()),
+                aliased_plan(const_int128(i128::MAX), "ma"),
             ],
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MAX)),
@@ -620,9 +620,9 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
         dense_filter(
             vec![
                 aliased_col_expr_plan(t, "a", "b_rename", &accessor),
-                (
+                aliased_plan(
                     equal(column(t, "a", &accessor), column(t, "b", &accessor)),
-                    "boolean".parse().unwrap(),
+                    "boolean",
                 ),
             ],
             tab(t),
@@ -695,7 +695,7 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
         dense_filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
-                (const_bigint(3), "b".parse().unwrap()),
+                aliased_plan(const_bigint(3), "b"),
             ],
             tab(t),
             const_bool(true),
@@ -1071,12 +1071,12 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
         dense_filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
-                (
+                aliased_plan(
                     and(
                         column(t, "boolean", &accessor),
                         gte(column(t, "a", &accessor), const_bigint(4)),
                     ),
-                    "res".parse().unwrap(),
+                    "res",
                 ),
             ],
             tab(t),
@@ -1274,7 +1274,7 @@ fn we_can_group_by_without_using_aggregate_functions() {
     let expected_ast = QueryExpr::new(
         dense_filter(
             vec![
-                (const_bool(true), "is_remote".parse().unwrap()),
+                aliased_plan(const_bool(true), "is_remote"),
                 col_expr_plan(t, "department", &accessor),
             ],
             tab(t),
@@ -1625,21 +1625,18 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
     let expected_ast = QueryExpr::new(
         dense_filter(
             vec![
-                (
+                aliased_plan(
                     add(column(t, "a", &accessor), column(t, "b", &accessor)),
-                    "__expr__".parse().unwrap(),
+                    "__expr__",
                 ),
-                (
-                    multiply(const_bigint(2), column(t, "f", &accessor)),
-                    "f2".parse().unwrap(),
-                ),
-                (
+                aliased_plan(multiply(const_bigint(2), column(t, "f", &accessor)), "f2"),
+                aliased_plan(
                     subtract(const_bigint(-77), column(t, "h", &accessor)),
-                    "col".parse().unwrap(),
+                    "col",
                 ),
-                (
+                aliased_plan(
                     add(column(t, "a", &accessor), column(t, "f", &accessor)),
-                    "af".parse().unwrap(),
+                    "af",
                 ),
             ],
             tab(t),
@@ -1680,7 +1677,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
     let expected_ast = QueryExpr::new(
         dense_filter(
             vec![
-                (
+                aliased_plan(
                     multiply(
                         add(const_bigint(2), column(t, "f", &accessor)),
                         add(
@@ -1688,9 +1685,9 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
                             multiply(const_bigint(2), column(t, "h", &accessor)),
                         ),
                     ),
-                    "__expr__".parse().unwrap(),
+                    "__expr__",
                 ),
-                (
+                aliased_plan(
                     multiply(
                         add(
                             add(
@@ -1704,7 +1701,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
                         ),
                         add(column(t, "f", &accessor), const_bigint(2)),
                     ),
-                    "d".parse().unwrap(),
+                    "d",
                 ),
             ],
             tab(t),

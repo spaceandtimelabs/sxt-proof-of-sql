@@ -1,4 +1,7 @@
 //! This module proves provable ASTs.
+mod aliased_provable_expr_plan;
+pub(crate) use aliased_provable_expr_plan::AliasedProvableExprPlan;
+
 mod filter_result_expr;
 pub(crate) use filter_result_expr::FilterResultExpr;
 
