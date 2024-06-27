@@ -402,7 +402,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         "sxt.table".parse().unwrap(),
         owned_table([
             smallint("a", [1_i16, 2, 3]),
-            int("b", [1_i32, 0, 1]),
+            int("b", [1_i32, 4, 3]),
             bigint("c", [3_i64, 3, -3]),
             bigint("d", [1_i64, 2, 3]),
             varchar("e", ["d", "e", "f"]),
@@ -413,7 +413,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT a + b + c + 1 as t, 45.7 as g, (a = b) or f as h, d0 + d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
+        "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -427,10 +427,10 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        bigint("t", [2]),
+        bigint("t", [-5]),
         decimal75("g", 3, 1, [457]),
-        boolean("h", [false]),
-        decimal75("dr", 16, 4, [14203]),
+        boolean("h", [true]),
+        decimal75("dr", 26, 6, [1400006]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -452,13 +452,13 @@ fn we_can_prove_a_complex_query_with_dory() {
             bigint("d", [1, 2, 3]),
             varchar("e", ["d", "e", "f"]),
             boolean("f", [true, false, true]),
-            decimal75("d0", 12, 4, [1, 2, 3]),
+            decimal75("d0", 12, 4, [1, 4, 3]),
             decimal75("d1", 12, 2, [3, 4, 2]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT 0.5 + a - b + c - d as res, 32 as g, (c >= d) and f as h, a + b + 1 + c + d + d0 - d1 + 0.5 as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and d1 - d0 > 0.01"
+        "SELECT 0.5 + a * b * c - d as res, 32 as g, (c >= d) and f as h, (a + 1) * (b + 1 + c + d + d0 - d1 + 0.5) as res2 FROM table WHERE (a < b) = (c <= d) and e <> 'f' and f and 100000 * d1 * d0 + a = 1.3"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -480,7 +480,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         decimal75("res", 22, 1, [25]),
         bigint("g", [32]),
         boolean("h", [true]),
-        decimal75("res2", 26, 4, [74701]),
+        decimal75("res2", 46, 4, [129402]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

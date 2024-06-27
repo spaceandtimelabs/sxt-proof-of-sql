@@ -447,7 +447,7 @@ fn we_can_convert_an_ast_with_cond_or() {
     );
     let ast = query_to_provable_ast(
         t,
-        "select a from sxt_tab where (b = 3) or (c = -2)",
+        "select a from sxt_tab where (b * 3 = 3) or (c = -2)",
         &accessor,
     );
     let expected_ast = QueryExpr::new(
@@ -455,7 +455,10 @@ fn we_can_convert_an_ast_with_cond_or() {
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             or(
-                equal(column(t, "b", &accessor), const_bigint(3)),
+                equal(
+                    multiply(column(t, "b", &accessor), const_bigint(3)),
+                    const_bigint(3),
+                ),
                 equal(column(t, "c", &accessor), const_bigint(-2)),
             ),
         ),
@@ -1627,6 +1630,10 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
                     "__expr__".parse().unwrap(),
                 ),
                 (
+                    multiply(const_bigint(2), column(t, "f", &accessor)),
+                    "f2".parse().unwrap(),
+                ),
+                (
                     subtract(const_bigint(-77), column(t, "h", &accessor)),
                     "col".parse().unwrap(),
                 ),
@@ -1634,17 +1641,13 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
                     add(column(t, "a", &accessor), column(t, "f", &accessor)),
                     "af".parse().unwrap(),
                 ),
-                col_expr_plan(t, "a", &accessor),
-                col_expr_plan(t, "b", &accessor),
-                col_expr_plan(t, "f", &accessor),
-                col_expr_plan(t, "h", &accessor),
             ],
             tab(t),
             const_bool(true),
         ),
         composite_result(vec![select(&[
             pc("__expr__").alias("__expr__"),
-            (lit_i64(2) * pc("f")).alias("f2"),
+            pc("f2").alias("f2"),
             pc("col").alias("col"),
             pc("af").alias("af"),
             // TODO: add `a / b as a_div_b` result expr once polars properly
@@ -1676,14 +1679,40 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            cols_expr_plan(t, &["c", "f", "g", "h"], &accessor),
+            vec![
+                (
+                    multiply(
+                        add(const_bigint(2), column(t, "f", &accessor)),
+                        add(
+                            add(column(t, "c", &accessor), column(t, "g", &accessor)),
+                            multiply(const_bigint(2), column(t, "h", &accessor)),
+                        ),
+                    ),
+                    "__expr__".parse().unwrap(),
+                ),
+                (
+                    multiply(
+                        add(
+                            add(
+                                multiply(
+                                    subtract(column(t, "h", &accessor), column(t, "g", &accessor)),
+                                    const_bigint(2),
+                                ),
+                                column(t, "c", &accessor),
+                            ),
+                            column(t, "g", &accessor),
+                        ),
+                        add(column(t, "f", &accessor), const_bigint(2)),
+                    ),
+                    "d".parse().unwrap(),
+                ),
+            ],
             tab(t),
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            ((lit_i64(2) + pc("f")) * (pc("c") + pc("g") + lit_i64(2) * pc("h"))).alias("__expr__"),
-            (((pc("h") - pc("g")) * lit_i64(2) + pc("c") + pc("g")) * (pc("f") + lit_i64(2)))
-                .alias("d"),
+            pc("__expr__").alias("__expr__"),
+            pc("d").alias("d"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
