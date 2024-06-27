@@ -2,7 +2,7 @@ use super::{LiteralValue, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
-    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;

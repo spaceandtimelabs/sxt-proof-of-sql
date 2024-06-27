@@ -5,7 +5,7 @@ use super::{
 use crate::base::{
     database::owned_table_utility::*,
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
-    time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use blitzar::proof::InnerProductProof;
 
