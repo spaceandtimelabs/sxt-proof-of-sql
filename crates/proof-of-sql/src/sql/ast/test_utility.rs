@@ -1,13 +1,12 @@
 use super::{
-    ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr, GroupByExpr, ProofPlan,
-    ProvableExprPlan, TableExpr,
+    AliasedProvableExprPlan, ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr,
+    GroupByExpr, ProofPlan, ProvableExprPlan, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
     database::{ColumnField, ColumnRef, ColumnType, LiteralValue, SchemaAccessor, TableRef},
     math::decimal::Precision,
 };
-use proof_of_sql_parser::Identifier;
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -155,34 +154,44 @@ pub fn filter<C: Commitment>(
     ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
 }
 
+pub fn aliased_plan<C: Commitment>(
+    expr: ProvableExprPlan<C>,
+    alias: &str,
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr,
+        alias: alias.parse().unwrap(),
+    }
+}
+
 pub fn aliased_col_expr_plan<C: Commitment>(
     tab: TableRef,
     old_name: &str,
     new_name: &str,
     accessor: &impl SchemaAccessor,
-) -> (ProvableExprPlan<C>, Identifier) {
-    (
-        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, old_name, accessor))),
-        new_name.parse().unwrap(),
-    )
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr: ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, old_name, accessor))),
+        alias: new_name.parse().unwrap(),
+    }
 }
 
 pub fn col_expr_plan<C: Commitment>(
     tab: TableRef,
     name: &str,
     accessor: &impl SchemaAccessor,
-) -> (ProvableExprPlan<C>, Identifier) {
-    (
-        ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, name, accessor))),
-        name.parse().unwrap(),
-    )
+) -> AliasedProvableExprPlan<C> {
+    AliasedProvableExprPlan {
+        expr: ProvableExprPlan::Column(ColumnExpr::<C>::new(col_ref(tab, name, accessor))),
+        alias: name.parse().unwrap(),
+    }
 }
 
 pub fn aliased_cols_expr_plan<C: Commitment>(
     tab: TableRef,
     names: &[(&str, &str)],
     accessor: &impl SchemaAccessor,
-) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+) -> Vec<AliasedProvableExprPlan<C>> {
     names
         .iter()
         .map(|(old_name, new_name)| aliased_col_expr_plan(tab, old_name, new_name, accessor))
@@ -193,7 +202,7 @@ pub fn cols_expr_plan<C: Commitment>(
     tab: TableRef,
     names: &[&str],
     accessor: &impl SchemaAccessor,
-) -> Vec<(ProvableExprPlan<C>, Identifier)> {
+) -> Vec<AliasedProvableExprPlan<C>> {
     names
         .iter()
         .map(|name| col_expr_plan(tab, name, accessor))
@@ -220,7 +229,7 @@ pub fn cols_expr<C: Commitment>(
 }
 
 pub fn dense_filter<C: Commitment>(
-    results: Vec<(ProvableExprPlan<C>, Identifier)>,
+    results: Vec<AliasedProvableExprPlan<C>>,
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {

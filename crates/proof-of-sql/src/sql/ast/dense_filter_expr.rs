@@ -1,8 +1,6 @@
 use super::{
     dense_filter_util::{fold_columns, fold_vals},
-    filter_columns,
-    provable_expr_plan::ProvableExprPlan,
-    ProvableExpr, TableExpr,
+    filter_columns, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
 };
 use crate::{
     base::{
@@ -23,7 +21,6 @@ use crate::{
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use num_traits::{One, Zero};
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, marker::PhantomData};
 
@@ -35,7 +32,7 @@ use std::{collections::HashSet, marker::PhantomData};
 /// This differs from the [`FilterExpr`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) aliased_results: Vec<(ProvableExprPlan<C>, Identifier)>,
+    pub(super) aliased_results: Vec<AliasedProvableExprPlan<C>>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
@@ -44,7 +41,7 @@ pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
 impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     /// Creates a new dense_filter expression.
     pub fn new(
-        aliased_results: Vec<(ProvableExprPlan<C>, Identifier)>,
+        aliased_results: Vec<AliasedProvableExprPlan<C>>,
         table: TableExpr,
         where_clause: ProvableExprPlan<C>,
     ) -> Self {
@@ -68,7 +65,7 @@ where
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
         for aliased_expr in self.aliased_results.iter() {
-            aliased_expr.0.count(builder)?;
+            aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
         builder.count_intermediate_mles(2);
@@ -99,7 +96,7 @@ where
         let columns_evals = Vec::from_iter(
             self.aliased_results
                 .iter()
-                .map(|(expr, _)| expr.verifier_evaluate(builder, accessor))
+                .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. indexes
@@ -128,15 +125,15 @@ where
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.aliased_results
             .iter()
-            .map(|(expr, alias)| ColumnField::new(*alias, expr.data_type()))
+            .map(|aliased_expr| ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type()))
             .collect()
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         let mut columns = HashSet::new();
 
-        for (col, _) in self.aliased_results.iter() {
-            col.get_column_references(&mut columns);
+        for aliased_expr in self.aliased_results.iter() {
+            aliased_expr.expr.get_column_references(&mut columns);
         }
 
         self.where_clause.get_column_references(&mut columns);
@@ -165,11 +162,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|(expr, _)| expr.result_evaluate(builder.table_length(), alloc, accessor)),
-        );
+        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
+            aliased_expr
+                .expr
+                .result_evaluate(builder.table_length(), alloc, accessor)
+        }));
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
@@ -200,7 +197,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         let columns = Vec::from_iter(
             self.aliased_results
                 .iter()
-                .map(|(expr, _)| expr.prover_evaluate(builder, alloc, accessor)),
+                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
