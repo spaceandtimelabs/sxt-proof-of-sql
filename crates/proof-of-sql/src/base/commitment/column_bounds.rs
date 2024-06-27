@@ -292,7 +292,7 @@ mod tests {
         database::OwnedColumn,
         math::decimal::Precision,
         scalar::Curve25519Scalar,
-        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     };
     use itertools::Itertools;
 
