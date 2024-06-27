@@ -15,4 +15,4 @@ sed -i 's/version = "*.*.*" # DO NOT CHANGE THIS LINE! This will be automaticall
 sed -i 's/path = "[^"]*"/version = "'${NEW_VERSION}'"/g' Cargo.toml
 
 cargo publish -p proof-of-sql-parser --dry-run
-cargo publish -p proof-of-sql --dry-run
+#cargo publish -p proof-of-sql --dry-run
