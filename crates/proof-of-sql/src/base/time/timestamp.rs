@@ -1,33 +1,7 @@
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
-use proof_of_sql_parser::intermediate_time::{IntermediateTimeUnit, IntermediateTimeZone};
+use proof_of_sql_parser::intermediate_time::IntermediateTimeUnit;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
-/// Enum representing errors that can occur during timestamp conversion.
-pub enum TimestampConversionError {
-    /// Indicates an invalid timezone offset was provided.
-    InvalidTimezoneOffset,
-    /// Error parsing a timezone string into a valid timezone.
-    TimeZoneStringParseError,
-    /// General failure to convert a timezone due to an underlying issue.
-    TimeZoneConversionFailure,
-}
-impl std::error::Error for TimestampConversionError {}
-
-impl fmt::Display for TimestampConversionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            TimestampConversionError::InvalidTimezoneOffset => write!(f, "Invalid timezone offset"),
-            TimestampConversionError::TimeZoneStringParseError => {
-                write!(f, "Failed to parse timezone string")
-            }
-            TimestampConversionError::TimeZoneConversionFailure => {
-                write!(f, "Failed to convert timezone")
-            }
-        }
-    }
-}
 
 /// A wrapper around i64 to mitigate conflicting From<i64>
 /// implementations

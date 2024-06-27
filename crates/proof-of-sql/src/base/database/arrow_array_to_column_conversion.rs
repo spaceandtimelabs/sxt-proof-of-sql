@@ -4,7 +4,7 @@ use crate::{
         database::Column,
         math::decimal::Precision,
         scalar::Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
+        time::{error::TimeError, timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::parse::ConversionError,
 };
@@ -38,9 +38,9 @@ pub enum ArrowArrayToColumnConversionError {
     /// Variant for conversion errors
     #[error("conversion error: {0}")]
     ConversionError(#[from] ConversionError),
-    /// Variant for timezone conversion errors, i.e. invalid timezone
-    #[error("Timezone conversion failed: {0}")]
-    TimezoneConversionError(String),
+    /// Using TimeError to handle all time-related errors
+    #[error(transparent)]
+    TimestampConversionError(#[from] TimeError),
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)

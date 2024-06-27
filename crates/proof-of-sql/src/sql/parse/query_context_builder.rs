@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
-        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::ast::{try_add_subtract_column_types, try_multiply_column_types},
 };

@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
-        time::timestamp::{PoSQLTimeUnit, PoSQLTimeZone},
+        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::{
         ast::{ColumnExpr, ProvableExprPlan},

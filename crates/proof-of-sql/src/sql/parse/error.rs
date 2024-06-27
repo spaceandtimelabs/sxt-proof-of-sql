@@ -1,6 +1,4 @@
-use crate::base::{
-    database::ColumnType, math::decimal::DecimalError, time::timestamp::TimestampConversionError,
-};
+use crate::base::{database::ColumnType, math::decimal::DecimalError, time::error::TimeError};
 use proof_of_sql_parser::{Identifier, ResourceId};
 use thiserror::Error;
 
@@ -62,7 +60,7 @@ pub enum ConversionError {
 
     /// Errors related to timestamp parsing
     #[error("Timestamp error: {0}")]
-    TimestampError(#[from] TimestampConversionError),
+    TimestampConversionError(#[from] TimeError),
 
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature

@@ -1,6 +1,8 @@
-use crate::base::database::{ArrowArrayToColumnConversionError, OwnedArrowConversionError};
+use super::error::TimeError;
+use chrono::{DateTime, FixedOffset, Utc};
 use chrono_tz::Tz;
 use core::fmt;
+use proof_of_sql_parser::intermediate_time::IntermediateTimeZone;
 use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
 
@@ -14,12 +16,30 @@ pub struct PoSQLTimeZone(Tz);
 impl PoSQLTimeZone {
     /// Convenience constant for the UTC timezone
     pub const UTC: PoSQLTimeZone = PoSQLTimeZone(Tz::UTC);
-}
 
-impl PoSQLTimeZone {
     /// Create a new ProofsTimeZone from a chrono TimeZone
     pub fn new(tz: Tz) -> Self {
         PoSQLTimeZone(tz)
+    }
+}
+
+impl TryFrom<IntermediateTimeZone> for PoSQLTimeZone {
+    type Error = TimeError;
+
+    fn try_from(tz: IntermediateTimeZone) -> Result<Self, Self::Error> {
+        match tz {
+            IntermediateTimeZone::Utc => Ok(PoSQLTimeZone::UTC),
+            IntermediateTimeZone::FixedOffset(seconds) => FixedOffset::east_opt(seconds)
+                .ok_or(TimeError::InvalidTimezoneOffset)
+                .and_then(|fixed_offset| {
+                    let datetime: DateTime<Utc> = Utc::now();
+                    let offset_datetime = datetime.with_timezone(&fixed_offset);
+                    let tz_string = offset_datetime.format("%Z").to_string();
+                    Tz::from_str(&tz_string)
+                        .map(PoSQLTimeZone)
+                        .map_err(|_| TimeError::TimeZoneStringParseError)
+                }),
+        }
     }
 }
 
@@ -42,13 +62,13 @@ impl fmt::Display for PoSQLTimeZone {
 }
 
 impl TryFrom<Option<Arc<str>>> for PoSQLTimeZone {
-    type Error = &'static str;
+    type Error = TimeError;
 
     fn try_from(value: Option<Arc<str>>) -> Result<Self, Self::Error> {
         match value {
             Some(arc_str) => Tz::from_str(&arc_str)
                 .map(PoSQLTimeZone)
-                .map_err(|_| "Invalid timezone string"),
+                .map_err(|_| TimeError::InvalidTimezone("Invalid timezone string".to_string())),
             None => Ok(PoSQLTimeZone(Tz::UTC)), // Default to UTC
         }
     }
@@ -61,18 +81,6 @@ impl TryFrom<&str> for PoSQLTimeZone {
         Tz::from_str(value)
             .map(PoSQLTimeZone)
             .map_err(|_| "Invalid timezone string")
-    }
-}
-
-impl From<&'static str> for OwnedArrowConversionError {
-    fn from(error: &'static str) -> Self {
-        OwnedArrowConversionError::InvalidTimezone(error.to_string())
-    }
-}
-
-impl From<&'static str> for ArrowArrayToColumnConversionError {
-    fn from(error: &'static str) -> Self {
-        ArrowArrayToColumnConversionError::TimezoneConversionError(error.to_string())
     }
 }
 
