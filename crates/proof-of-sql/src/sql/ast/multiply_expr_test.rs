@@ -33,21 +33,18 @@ fn we_can_prove_a_typical_multiply_query() {
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast = dense_filter(
         vec![
-            (
-                multiply(column(t, "a", &accessor), const_int(2)),
-                "a".parse().unwrap(),
-            ),
+            aliased_plan(multiply(column(t, "a", &accessor), const_int(2)), "a"),
             col_expr_plan(t, "c", &accessor),
-            (
+            aliased_plan(
                 multiply(column(t, "b", &accessor), const_decimal75(2, 1, 45)),
-                "b".parse().unwrap(),
+                "b",
             ),
-            (
+            aliased_plan(
                 add(
                     multiply(column(t, "d", &accessor), const_smallint(3)),
                     const_decimal75(2, 1, 47),
                 ),
-                "d".parse().unwrap(),
+                "d",
             ),
             col_expr_plan(t, "e", &accessor),
         ],
@@ -96,9 +93,9 @@ fn result_expr_can_overflow() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast: ProofPlan<RistrettoPoint> = dense_filter(
-        vec![(
+        vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
-            "c".parse().unwrap(),
+            "c",
         )],
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(2)),
@@ -121,9 +118,9 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast: ProofPlan<RistrettoPoint> = dense_filter(
-        vec![(
+        vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
-            "c".parse().unwrap(),
+            "c",
         )],
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(0)),
@@ -171,9 +168,9 @@ fn result_expr_can_overflow_more() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast: ProofPlan<RistrettoPoint> = dense_filter(
-        vec![(
+        vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
-            "c".parse().unwrap(),
+            "c",
         )],
         tab(t),
         const_bool(true),
@@ -268,12 +265,12 @@ fn test_random_tables_with_given_offset(offset: usize) {
         let ast = dense_filter(
             vec![
                 col_expr_plan(t, "d", &accessor),
-                (
+                aliased_plan(
                     add(
                         multiply(column(t, "a", &accessor), column(t, "c", &accessor)),
                         const_int128(4),
                     ),
-                    "f".parse().unwrap(),
+                    "f",
                 ),
             ],
             tab(t),
@@ -331,12 +328,12 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let add_subtract_expr: ProvableExprPlan<RistrettoPoint> = multiply(
+    let arithmetic_expr: ProvableExprPlan<RistrettoPoint> = multiply(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_decimal75(2, 1, 15)),
     );
     let alloc = Bump::new();
-    let res = add_subtract_expr.result_evaluate(4, &alloc, &accessor);
+    let res = arithmetic_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res_scalar = [0, 5, 75, 25]
         .iter()
         .map(|v| Curve25519Scalar::from(*v))

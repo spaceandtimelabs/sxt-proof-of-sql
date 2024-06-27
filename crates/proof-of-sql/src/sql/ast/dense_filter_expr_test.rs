@@ -1,9 +1,6 @@
 use crate::{
     base::{database::owned_table_utility::*, math::decimal::Precision},
-    sql::ast::{
-        test_utility::{and, not, or},
-        ProvableExprPlan,
-    },
+    sql::ast::{test_utility::*, ProvableExprPlan},
 };
 use crate::{
     base::{
@@ -46,21 +43,21 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let b = Identifier::try_new("b").unwrap();
     let provable_ast = DenseFilterExpr::<RistrettoPoint>::new(
         vec![
-            (
+            aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
                 ))),
-                a,
+                "a",
             ),
-            (
+            aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     b,
                     ColumnType::BigInt,
                 ))),
-                b,
+                "b",
             ),
         ],
         TableExpr { table_ref },
@@ -98,21 +95,21 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let f = Identifier::try_new("f").unwrap();
     let provable_ast = DenseFilterExpr::new(
         vec![
-            (
+            aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
                 ))),
-                a,
+                "a",
             ),
-            (
+            aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     f,
                     ColumnType::BigInt,
                 ))),
-                f,
+                "f",
             ),
         ],
         TableExpr { table_ref },
@@ -438,10 +435,10 @@ fn we_can_prove_a_dense_filter() {
             col_expr_plan(t, "c", &accessor),
             col_expr_plan(t, "d", &accessor),
             col_expr_plan(t, "e", &accessor),
-            (const_int128(105), "const".parse().unwrap()),
-            (
+            aliased_plan(const_int128(105), "const"),
+            aliased_plan(
                 equal(column(t, "b", &accessor), column(t, "c", &accessor)),
-                "bool".parse().unwrap(),
+                "bool",
             ),
         ],
         tab(t),
