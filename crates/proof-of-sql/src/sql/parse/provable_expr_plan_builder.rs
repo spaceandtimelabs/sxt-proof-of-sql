@@ -6,12 +6,12 @@ use crate::{
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
     },
     sql::{
-        ast::{ColumnExpr, ProvableExprPlan},
+        ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
         parse::ConversionError::DecimalConversionError,
     },
 };
 use proof_of_sql_parser::{
-    intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
+    intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,
 };
 use std::collections::HashMap;
@@ -20,12 +20,23 @@ use std::collections::HashMap;
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct ProvableExprPlanBuilder<'a> {
     column_mapping: &'a HashMap<Identifier, ColumnRef>,
+    in_agg_scope: bool,
 }
 
 impl<'a> ProvableExprPlanBuilder<'a> {
     /// Creates a new `ProvableExprPlanBuilder` with the given column mapping.
     pub fn new(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
-        Self { column_mapping }
+        Self {
+            column_mapping,
+            in_agg_scope: false,
+        }
+    }
+    /// Creates a new `ProvableExprPlanBuilder` with the given column mapping and within aggregation scope.
+    pub(crate) fn new_agg(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
+        Self {
+            column_mapping,
+            in_agg_scope: true,
+        }
     }
     /// Builds a `proofs::sql::ast::ProvableExprPlan` from a `proof_of_sql_parser::intermediate_ast::Expression`
     pub fn build<C: Commitment>(
@@ -47,6 +58,7 @@ impl ProvableExprPlanBuilder<'_> {
             Expression::Literal(lit) => self.visit_literal(lit),
             Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
+            Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable(format!(
                 "Expression {:?} is not supported yet",
                 expr
@@ -151,6 +163,32 @@ impl ProvableExprPlanBuilder<'_> {
             }
             BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
                 "Binary operator {:?} is not supported at this location",
+                op
+            ))),
+        }
+    }
+
+    fn visit_aggregate_expr<C: Commitment>(
+        &self,
+        op: AggregationOperator,
+        expr: &Expression,
+    ) -> Result<ProvableExprPlan<C>, ConversionError> {
+        if self.in_agg_scope {
+            return Err(ConversionError::InvalidExpression(
+                "nested aggregations are invalid".to_string(),
+            ));
+        }
+        let expr = ProvableExprPlanBuilder::new_agg(self.column_mapping).visit_expr(expr)?;
+        match (op, expr.data_type().is_numeric()) {
+            (AggregationOperator::Count, _) | (AggregationOperator::Sum, true) => {
+                Ok(ProvableExprPlan::new_aggregate(op, expr))
+            }
+            (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression(format!(
+                "Aggregation operator {:?} doesn't work with non-numeric types",
+                op
+            ))),
+            _ => Err(ConversionError::Unprovable(format!(
+                "Aggregation operator {:?} is not supported at this location",
                 op
             ))),
         }

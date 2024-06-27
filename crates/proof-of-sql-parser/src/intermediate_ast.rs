@@ -112,7 +112,7 @@ pub enum UnaryOperator {
 }
 
 // Aggregation operators
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 /// Aggregation operators
 pub enum AggregationOperator {
     /// Maximum
