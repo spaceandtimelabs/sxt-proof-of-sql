@@ -42,7 +42,7 @@
             [
                 "@semantic-release/exec",
                 {
-                    "prepareCmd": "bash ./ci/build.sh ${nextRelease.version}"
+                    "prepareCmd": "bash ./ci/publish.sh ${nextRelease.version}"
                 }
             ],
             [
