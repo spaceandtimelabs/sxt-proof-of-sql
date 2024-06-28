@@ -1,5 +1,5 @@
 use super::{
-    AddSubtractExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
+    AddSubtractExpr, AggregationFunctionExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr, MultiplyExpr,
     NotExpr, OrExpr, ProvableExpr,
 };
 use crate::{
@@ -39,6 +39,8 @@ pub enum ProvableExprPlan<C: Commitment> {
     AddSubtract(AddSubtractExpr<C>),
     /// Provable numeric `*` expression
     Multiply(MultiplyExpr<C>),
+    /// Provable aggregate function expression
+    AggregateFunction(AggregateFunctionExpr<C>),
 }
 impl<C: Commitment> ProvableExprPlan<C> {
     /// Create column expression
@@ -176,6 +178,11 @@ impl<C: Commitment> ProvableExprPlan<C> {
         }
     }
 
+    /// Create a new aggregate function expression
+    pub fn try_new_aggregate_function(op: AggregationOperator, expr: ProvableExprPlan<C>) -> ConversionResult<Self> {
+        Ok(Self::AggregateFunction(AggregateFunctionExpr::new(op, Box::new(expr))))
+    }
+
     /// Check that the plan has the correct data type
     fn check_data_type(&self, data_type: ColumnType) -> ConversionResult<()> {
         if self.data_type() == data_type {
@@ -201,6 +208,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Inequality(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::AddSubtract(expr) => ProvableExpr::<C>::count(expr, builder),
             ProvableExprPlan::Multiply(expr) => ProvableExpr::<C>::count(expr, builder),
+            ProvableExprPlan::AggregateFunction(expr) => ProvableExpr::<C>::count(expr, builder),
         }
     }
 
@@ -209,6 +217,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Column(expr) => expr.data_type(),
             ProvableExprPlan::AddSubtract(expr) => expr.data_type(),
             ProvableExprPlan::Multiply(expr) => expr.data_type(),
+            ProvableExprPlan::AggregateFunction(expr) => expr.data_type(),
             ProvableExprPlan::Literal(expr) => ProvableExpr::<C>::data_type(expr),
             ProvableExprPlan::And(_)
             | ProvableExprPlan::Or(_)
@@ -252,6 +261,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Multiply(expr) => {
                 ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
+            ProvableExprPlan::AggregateFunction(expr) => {
+                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+            }
         }
     }
 
@@ -289,6 +301,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Multiply(expr) => {
                 ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
+            ProvableExprPlan::AggregateFunction(expr) => {
+                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+            }
         }
     }
 
@@ -309,6 +324,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
             ProvableExprPlan::Inequality(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::AddSubtract(expr) => expr.verifier_evaluate(builder, accessor),
             ProvableExprPlan::Multiply(expr) => expr.verifier_evaluate(builder, accessor),
+            ProvableExprPlan::AggregateFunction(expr) => expr.verifier_evaluate(builder, accessor),
         }
     }
 
@@ -333,6 +349,9 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
             ProvableExprPlan::Multiply(expr) => {
+                ProvableExpr::<C>::get_column_references(expr, columns)
+            }
+            ProvableExprPlan::AggregateFunction(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
         }

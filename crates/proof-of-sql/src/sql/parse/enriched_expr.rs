@@ -63,4 +63,13 @@ impl<C: Commitment> EnrichedExpr<C> {
     pub fn is_provable(&self) -> bool {
         self.provable_expr_plan.is_some()
     }
+
+    /// Get the provable expression plan if it exists. Otherwise return an error.
+    pub fn get_provable_expr_plan(&self) -> Result<&ProvableExprPlan<C>, ConversionError> {
+        self.provable_expr_plan
+            .as_ref()
+            .ok_or(ConversionError::Unprovable(
+                "The expression is not provable".to_string(),
+            ))
+    }
 }

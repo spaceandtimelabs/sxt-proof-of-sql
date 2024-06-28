@@ -1,8 +1,7 @@
 use super::{
     aggregate_columns, fold_columns, fold_vals,
     group_by_util::{compare_indexes_by_owned_columns, AggregatedColumns},
-    provable_expr_plan::ProvableExprPlan,
-    ColumnExpr, ProvableExpr, TableExpr,
+    AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
 };
 use crate::{
     base::{
@@ -29,19 +28,19 @@ use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore
-///     SELECT <group_by_expr1>, ..., <group_by_exprM>,
+///     SELECT <group_by_expr1>.0 as <group_by_expr1>.1, ..., <group_by_exprM>.0 as <group_by_exprM>.1,
 ///         SUM(<sum_expr1>.0) as <sum_expr1>.1, ..., SUM(<sum_exprN>.0) as <sum_exprN>.1,
 ///         COUNT(*) as count_alias
 ///     FROM <table>
 ///     WHERE <where_clause>
-///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
+///     GROUP BY <group_by_expr1>.0, ..., <group_by_exprM>.0
 /// ```
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr<C: Commitment> {
-    pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
-    pub(super) sum_expr: Vec<(ColumnExpr<C>, ColumnField)>,
+    pub(super) group_by_exprs: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) sum_expr: Vec<AliasedProvableExprPlan<C>>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
@@ -50,8 +49,8 @@ pub struct GroupByExpr<C: Commitment> {
 impl<C: Commitment> GroupByExpr<C> {
     /// Creates a new group_by expression.
     pub fn new(
-        group_by_exprs: Vec<ColumnExpr<C>>,
-        sum_expr: Vec<(ColumnExpr<C>, ColumnField)>,
+        group_by_exprs: Vec<AliasedProvableExprPlan<C>>,
+        sum_expr: Vec<AliasedProvableExprPlan<C>>,
         count_alias: Identifier,
         table: TableExpr,
         where_clause: ProvableExprPlan<C>,
@@ -73,12 +72,12 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for expr in self.group_by_exprs.iter() {
-            expr.count(builder)?;
+        for aliased_expr in self.group_by_exprs.iter() {
+            aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
-        for expr in self.sum_expr.iter() {
-            expr.0.count(builder)?;
+        for aliased_expr in self.sum_expr.iter() {
+            aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
         builder.count_result_columns(1);
@@ -110,12 +109,12 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
         let group_by_evals = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
             .sum_expr
             .iter()
-            .map(|expr| expr.0.verifier_evaluate(builder, accessor))
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         // 3. indexes
         let indexes_eval = builder
@@ -150,7 +149,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
                 let cols = self
                     .group_by_exprs
                     .iter()
-                    .map(|col| table.inner_table().get(&col.column_id()))
+                    .map(|aliased_expr| table.inner_table().get(&aliased_expr.alias))
                     .collect::<Option<Vec<_>>>()
                     .ok_or(ProofError::VerificationError(
                         "Result does not all correct group by columns.",
@@ -169,25 +168,27 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        let mut fields = Vec::new();
-        for col in self.group_by_exprs.iter() {
-            fields.push(col.get_column_field());
-        }
-        for col in self.sum_expr.iter() {
-            fields.push(col.1);
-        }
-        fields.push(ColumnField::new(self.count_alias, ColumnType::BigInt));
-        fields
+        self.group_by_exprs
+            .iter()
+            .map(|aliased_expr| ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type()))
+            .chain(self.sum_expr.iter().map(|aliased_expr| {
+                ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
+            }))
+            .chain(std::iter::once(ColumnField::new(
+                self.count_alias,
+                ColumnType::BigInt,
+            )))
+            .collect()
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         let mut columns = HashSet::new();
 
-        for col in self.group_by_exprs.iter() {
-            columns.insert(col.get_column_reference());
+        for aliased_expr in self.group_by_exprs.iter() {
+            aliased_expr.expr.get_column_references(&mut columns);
         }
-        for col in self.sum_expr.iter() {
-            columns.insert(col.0.get_column_reference());
+        for aliased_expr in self.sum_expr.iter() {
+            aliased_expr.expr.get_column_references(&mut columns);
         }
 
         self.where_clause.get_column_references(&mut columns);
@@ -214,13 +215,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let group_by_columns = Vec::from_iter(
-            self.group_by_exprs
-                .iter()
-                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
-        );
-        let sum_columns = Vec::from_iter(self.sum_expr.iter().map(|expr| {
-            expr.0
+        let group_by_columns = Vec::from_iter(self.group_by_exprs.iter().map(|aliased_expr| {
+            aliased_expr
+                .expr
+                .result_evaluate(builder.table_length(), alloc, accessor)
+        }));
+        let sum_columns = Vec::from_iter(self.sum_expr.iter().map(|aliased_expr| {
+            aliased_expr
+                .expr
                 .result_evaluate(builder.table_length(), alloc, accessor)
         }));
         // Compute filtered_columns and indexes
@@ -262,12 +264,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
         let group_by_columns = Vec::from_iter(
             self.group_by_exprs
                 .iter()
-                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
+                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
         );
         let sum_columns = Vec::from_iter(
             self.sum_expr
                 .iter()
-                .map(|expr| expr.0.prover_evaluate(builder, alloc, accessor)),
+                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
         );
         // Compute filtered_columns and indexes
         let AggregatedColumns {

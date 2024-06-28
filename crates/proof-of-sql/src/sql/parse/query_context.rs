@@ -24,7 +24,7 @@ pub struct QueryContext {
     in_result_scope: bool,
     has_visited_group_by: bool,
     order_by_exprs: Vec<OrderBy>,
-    group_by_exprs: Vec<Identifier>,
+    group_by_exprs: Vec<AliasedResultExpr>,
     where_expr: Option<Box<Expression>>,
     result_column_set: HashSet<Identifier>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
@@ -75,9 +75,8 @@ impl QueryContext {
         }
 
         if self.in_agg_scope {
-            // TODO: Disable this once we support nested aggregations
             return Err(ConversionError::InvalidExpression(
-                "nested aggregations are not supported".to_string(),
+                "nested aggregations are invalid".to_string(),
             ));
         }
 
@@ -119,8 +118,8 @@ impl QueryContext {
 
         // Add the group by columns to the result column set
         // to ensure their integrity in the filter expression.
-        for group_column in &self.group_by_exprs {
-            self.result_column_set.insert(*group_column);
+        for aliased_group_by_expr in &self.group_by_exprs {
+            self.result_column_set.insert(*aliased_group_by_expr.alias);
         }
 
         self.has_visited_group_by = true;
@@ -204,7 +203,12 @@ impl QueryContext {
     }
 
     pub fn get_group_by_exprs(&self) -> &[Identifier] {
-        &self.group_by_exprs
+        let aliases = self
+            .group_by_exprs
+            .iter()
+            .map(|aliased_expr| aliased_expr.alias)
+            .collect::<Vec<_>>();
+        aliases.as_slice()
     }
 
     pub fn get_result_column_set(&self) -> HashSet<Identifier> {
@@ -224,10 +228,6 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
     type Error = ConversionError;
 
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExpr<C>>, Self::Error> {
-        // Currently if there is no where clause, we can't prove the query
-        if value.where_expr.is_none() {
-            return Ok(None);
-        }
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true)));
@@ -238,95 +238,43 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
         let group_by_exprs = value
             .group_by_exprs
             .iter()
-            .map(|expr| -> Result<ColumnExpr<C>, ConversionError> {
-                value
-                    .column_mapping
-                    .get(expr)
-                    .ok_or(ConversionError::MissingColumn(
-                        Box::new(*expr),
-                        Box::new(resource_id),
-                    ))
-                    .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
+            .map(|aliased_expr| -> Result<AliasedProvableExprPlan<C>, ConversionError> {
+                let enriched_expr = EnrichedExpr::new(aliased_expr, value.column_mapping.clone());
+                enriched_expr.get_provable_expr_plan()
             })
-            .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
-        // For a query to be provable the result columns must be of one of three kinds below:
-        // 1. Group by columns (it is mandatory to have all of them in the correct order)
-        // 2. Sum(col) expressions (it is optional to have any)
-        // 3. count(*) with an alias (it is mandatory to have one and only one)
-        let num_group_by_columns = group_by_exprs.len();
-        let num_result_columns = value.res_aliased_exprs.len();
-        if num_result_columns < num_group_by_columns + 1 {
-            return Ok(None);
-        }
-        let res_group_by_columns = &value.res_aliased_exprs[..num_group_by_columns].to_vec();
-        let sum_expr_columns =
-            &value.res_aliased_exprs[num_group_by_columns..num_result_columns - 1].to_vec();
-        // Check group by columns
-        let group_by_compliance = value
-            .group_by_exprs
+            .collect::<Result<Vec<AliasedProvableExprPlan<C>>, ConversionError>>()?;
+        // Allowed result expressions
+        // 1. SUM(expr) for arbitrary provable expressions expr
+        // 2. COUNT(expr) for arbitrary provable expressions expr (which until NULL is introduced is basically count(1))
+        // 3. expressions with group by aliases only
+        // Look for count_column if exists
+        let aliased_provable_exprs = value
+            .res_aliased_exprs
             .iter()
-            .zip(res_group_by_columns.iter())
-            .all(|(ident, res)| {
-                //TODO: This is due to a workaround related to polars
-                //Need to remove it when possible (PROOF-850)
-                if let Expression::Aggregation {
-                    op: AggregationOperator::First,
-                    expr,
-                } = (*res.expr).clone()
-                {
-                    if let Expression::Column(res_ident) = *expr {
-                        res_ident == *ident
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            });
-        // Check sums
-        let sum_expr = sum_expr_columns
-            .iter()
-            .map(|res| {
-                if let Expression::Aggregation {
-                    op: AggregationOperator::Sum,
-                    expr,
-                } = (*res.expr).clone()
-                {
-                    if let Expression::Column(ident) = *expr {
-                        // For sums the outgoing ColumnType is the same as the incoming ColumnType
-                        let column_type = *value
-                            .column_mapping
-                            .get(&ident)
-                            .expect("QueryContext should never allow unknown cols to be in sum")
-                            .column_type();
-                        let res_column_field = ColumnField::new(res.alias, column_type);
-                        let column_expr =
-                            ColumnExpr::new(ColumnRef::new(table.table_ref, ident, column_type));
-                        Some((column_expr, res_column_field))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+            .map(|aliased_expr| -> Result<AliasedProvableExprPlan<C>, ConversionError> {
+                let enriched_expr = EnrichedExpr::new(aliased_expr, value.column_mapping.clone());
+                enriched_expr.get_provable_expr_plan()
             })
-            .collect::<Option<Vec<(ColumnExpr<C>, ColumnField)>>>();
-
-        // Check count(*)
-        let count_column = &value.res_aliased_exprs[num_result_columns - 1];
-        let count_column_compliant = if let Expression::Aggregation {
-            op: AggregationOperator::Count,
-            expr,
-        } = (*count_column.expr).clone()
-        {
-            //TODO: This is due to a workaround related to polars
-            matches!(*expr, Expression::Column(_))
-        } else {
-            false
-        };
-        if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
-            return Ok(None);
-        }
+            .collect::<Result<Vec<AliasedProvableExprPlan<C>>, ConversionError>>()?;
+        let mut count_columns = vec![];
+        let mut sum_exprs = vec![];
+        aliased_provable_exprs.iter().for_each(|aliased_expr| {
+            match aliased_expr {
+                AliasedProvableExprPlan::AggregateFunction(agg) => {
+                    match agg.op {
+                        AggregationOperator::Count => {
+                            //TODO: When we accept NULL we need to keep track of what we are counting
+                            count_columns.push(agg.alias);
+                        }
+                        AggregationOperator::Sum => {
+                            sum_exprs.push(agg.clone());
+                        }
+                        _ => {}
+                    }
+                }
+                AliasedProvableExprPlan::Column(_) => {}
+            }
+        });
         Ok(Some(GroupByExpr::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
