@@ -63,14 +63,14 @@ pub trait Commitment:
         + for<'a> serde::Deserialize<'a>;
 
     /// The public setup for the commitment scheme.
-    type PublicSetup;
+    type PublicSetup<'a>;
 
     /// Compute the commitments for the given columns.
     fn compute_commitments(
         commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
-        setup: &Self::PublicSetup,
+        setup: &Self::PublicSetup<'_>,
     );
 
     /// Compute a linear combination of the given commitments: `sum commitment[i] * multiplier[i]`.
@@ -79,13 +79,13 @@ pub trait Commitment:
 
 impl Commitment for RistrettoPoint {
     type Scalar = Curve25519Scalar;
-    type PublicSetup = ();
+    type PublicSetup<'a> = ();
     #[cfg(feature = "blitzar")]
     fn compute_commitments(
         commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
-        _setup: &Self::PublicSetup,
+        _setup: &Self::PublicSetup<'_>,
     ) {
         let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
         let mut compressed_commitments = vec![Default::default(); committable_columns.len()];
@@ -108,7 +108,7 @@ impl Commitment for RistrettoPoint {
         _commitments: &mut [Self],
         _committable_columns: &[CommittableColumn],
         _offset: usize,
-        _setup: &Self::PublicSetup,
+        _setup: &Self::PublicSetup<'_>,
     ) {
         unimplemented!()
     }

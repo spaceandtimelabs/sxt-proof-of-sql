@@ -36,7 +36,7 @@ pub(crate) use dory_messages::DoryMessages;
 mod dory_messages_test;
 
 mod setup;
-pub(crate) use setup::{ProverSetup, VerifierSetup};
+pub use setup::{ProverSetup, VerifierSetup};
 #[cfg(test)]
 mod setup_test;
 
@@ -103,8 +103,7 @@ pub(crate) use vmv_state::{VMVProverState, VMVVerifierState};
 mod vmv_state_test;
 
 mod dory_public_setup;
-pub use dory_public_setup::DoryProverPublicSetup;
-pub(crate) use dory_public_setup::DoryVerifierPublicSetup;
+pub use dory_public_setup::{DoryProverPublicSetup, DoryVerifierPublicSetup};
 
 mod dory_commitment;
 #[cfg(test)]

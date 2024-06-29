@@ -13,13 +13,13 @@ pub struct NumColumnsMismatch;
 pub trait VecCommitmentExt {
     /// The public setup parameters required to compute the commitments.
     /// This is simply precomputed data that is required to compute the commitments.
-    type CommitmentPublicSetup;
+    type CommitmentPublicSetup<'a>;
 
     /// Returns a collection of commitments to the provided columns using the given generator offset.
     fn from_columns_with_offset<'a, C>(
         columns: impl IntoIterator<Item = C>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self
     where
         C: Into<CommittableColumn<'a>>;
@@ -28,7 +28,7 @@ pub trait VecCommitmentExt {
     fn from_commitable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self;
 
     /// Append rows of data from the provided columns to the existing commitments.
@@ -41,7 +41,7 @@ pub trait VecCommitmentExt {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Result<(), NumColumnsMismatch>
     where
         C: Into<CommittableColumn<'a>>;
@@ -51,7 +51,7 @@ pub trait VecCommitmentExt {
         &mut self,
         columns: impl IntoIterator<Item = C>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) where
         C: Into<CommittableColumn<'a>>;
 
@@ -92,11 +92,11 @@ fn unsafe_sub_assign<C: Commitment>(a: &mut [C], b: &[C]) {
 }
 
 impl<C: Commitment> VecCommitmentExt for Vec<C> {
-    type CommitmentPublicSetup = C::PublicSetup;
+    type CommitmentPublicSetup<'a> = C::PublicSetup<'a>;
     fn from_columns_with_offset<'a, COL>(
         columns: impl IntoIterator<Item = COL>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self
     where
         COL: Into<CommittableColumn<'a>>,
@@ -110,7 +110,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
     fn from_commitable_columns_with_offset(
         committable_columns: &[CommittableColumn],
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self {
         let mut commitments = vec![C::default(); committable_columns.len()];
         C::compute_commitments(&mut commitments, committable_columns, offset, setup);
@@ -122,7 +122,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
         &mut self,
         columns: impl IntoIterator<Item = COL>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Result<(), NumColumnsMismatch>
     where
         COL: Into<CommittableColumn<'a>>,
@@ -145,7 +145,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
         &mut self,
         columns: impl IntoIterator<Item = COL>,
         offset: usize,
-        setup: &Self::CommitmentPublicSetup,
+        setup: &Self::CommitmentPublicSetup<'_>,
     ) where
         COL: Into<CommittableColumn<'a>>,
     {
