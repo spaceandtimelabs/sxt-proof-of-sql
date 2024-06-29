@@ -9,13 +9,13 @@ use proof_of_sql_parser::Identifier;
 
 /// A test accessor that uses OwnedTable as the underlying table type.
 /// Note: this is not optimized for performance, so should not be used for benchmarks.
-pub struct OwnedTableTestAccessor<CP: CommitmentEvaluationProof> {
+pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
     tables: IndexMap<TableRef, (OwnedTable<CP::Scalar>, usize)>,
     alloc: Bump,
-    setup: Option<CP::ProverPublicSetup>,
+    setup: Option<CP::ProverPublicSetup<'a>>,
 }
 
-impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<CP> {
+impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<'_, CP> {
     fn default() -> Self {
         Self {
             tables: Default::default(),
@@ -25,22 +25,18 @@ impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<CP> {
     }
 }
 
-impl<CP: CommitmentEvaluationProof> Clone for OwnedTableTestAccessor<CP>
-where
-    CP::ProverPublicSetup: Clone,
-{
+impl<CP: CommitmentEvaluationProof> Clone for OwnedTableTestAccessor<'_, CP> {
     fn clone(&self) -> Self {
         Self {
             tables: self.tables.clone(),
-            setup: self.setup.clone(),
+            setup: self.setup,
             ..Default::default()
         }
     }
 }
 
-impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment> for OwnedTableTestAccessor<CP>
-where
-    CP::ProverPublicSetup: Clone,
+impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
+    for OwnedTableTestAccessor<'_, CP>
 {
     type Table = OwnedTable<CP::Scalar>;
 
@@ -66,7 +62,7 @@ where
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
-impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<CP> {
+impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<'_, CP> {
     fn get_column(&self, column: ColumnRef) -> Column<CP::Scalar> {
         match self
             .tables
@@ -100,7 +96,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
     }
 }
 impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
-    for OwnedTableTestAccessor<CP>
+    for OwnedTableTestAccessor<'_, CP>
 {
     fn get_commitment(&self, column: ColumnRef) -> CP::Commitment {
         let (table, offset) = self.tables.get(&column.table_ref()).unwrap();
@@ -110,7 +106,7 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
             .unwrap()[0]
     }
 }
-impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<CP> {
+impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {
     fn get_length(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
     }
@@ -119,7 +115,7 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<
         self.tables.get(&table_ref).unwrap().1
     }
 }
-impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<CP> {
+impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_, CP> {
     fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
         Some(
             self.tables
@@ -143,12 +139,9 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<CP
     }
 }
 
-impl<CP: CommitmentEvaluationProof> OwnedTableTestAccessor<CP>
-where
-    CP::ProverPublicSetup: Clone,
-{
+impl<'a, CP: CommitmentEvaluationProof> OwnedTableTestAccessor<'a, CP> {
     /// Create a new empty test accessor with the given setup.
-    pub fn new_empty_with_setup(setup: CP::ProverPublicSetup) -> Self {
+    pub fn new_empty_with_setup(setup: CP::ProverPublicSetup<'a>) -> Self {
         let mut res = Self::new_empty();
         res.setup = Some(setup);
         res
@@ -159,7 +152,7 @@ where
         table_ref: TableRef,
         owned_table: OwnedTable<CP::Scalar>,
         offset: usize,
-        setup: CP::ProverPublicSetup,
+        setup: CP::ProverPublicSetup<'a>,
     ) -> Self {
         let mut res = Self::new_empty_with_setup(setup);
         res.add_table(table_ref, owned_table, offset);

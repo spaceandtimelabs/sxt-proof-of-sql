@@ -118,13 +118,17 @@ mod tests {
             commitment::{NumColumnsMismatch, VecCommitmentExt},
             database::{Column, OwnedColumn},
         },
-        proof_primitive::dory::rand_util::test_rng,
+        proof_primitive::dory::{rand_util::test_rng, ProverSetup, PublicParameters},
     };
     use ark_ec::pairing::Pairing;
 
     #[test]
     fn we_can_convert_from_columns() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+        let Gamma_1 = &public_parameters.Gamma_1;
+        let Gamma_2 = &public_parameters.Gamma_2;
 
         // empty case
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(
@@ -148,32 +152,16 @@ mod tests {
 
         let mut expected_commitments = vec![DoryCommitment::default(); 2];
         expected_commitments[0] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_a[0]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[1]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[2]).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_a[0]).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * DoryScalar::from(column_a[1]).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * DoryScalar::from(column_a[2]).0,
         );
         expected_commitments[1] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_b[0].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[1].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[2].clone()).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_b[0].clone()).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0])
+                    * DoryScalar::from(column_b[1].clone()).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0])
+                    * DoryScalar::from(column_b[2].clone()).0,
         );
 
         assert_eq!(commitments, expected_commitments);
@@ -181,7 +169,11 @@ mod tests {
 
     #[test]
     fn we_can_append_rows() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+        let Gamma_1 = &public_parameters.Gamma_1;
+        let Gamma_2 = &public_parameters.Gamma_2;
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
@@ -204,48 +196,22 @@ mod tests {
 
         let mut expected_commitments = vec![DoryCommitment::default(); 2];
         expected_commitments[0] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_a[0]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[1]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[2]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[3],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[3]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_a[4]).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_a[0]).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * DoryScalar::from(column_a[1]).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * DoryScalar::from(column_a[2]).0
+                + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * DoryScalar::from(column_a[3]).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * DoryScalar::from(column_a[4]).0,
         );
         expected_commitments[1] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_b[0].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[1].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[2].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[3],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[3].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_b[4].clone()).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_b[0].clone()).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0])
+                    * DoryScalar::from(column_b[1].clone()).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0])
+                    * DoryScalar::from(column_b[2].clone()).0
+                + Pairing::pairing(Gamma_1[3], Gamma_2[0])
+                    * DoryScalar::from(column_b[3].clone()).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1])
+                    * DoryScalar::from(column_b[4].clone()).0,
         );
 
         assert_eq!(commitments, expected_commitments);
@@ -253,7 +219,9 @@ mod tests {
 
     #[test]
     fn we_cannot_append_rows_with_different_column_count() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
@@ -290,7 +258,11 @@ mod tests {
 
     #[test]
     fn we_can_extend_columns() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+        let Gamma_1 = &public_parameters.Gamma_1;
+        let Gamma_2 = &public_parameters.Gamma_2;
 
         let column_a = [12i64, 34, 56];
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
@@ -314,60 +286,28 @@ mod tests {
         let mut expected_commitments = vec![DoryCommitment::default(); 4];
 
         expected_commitments[0] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_a[0]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[1]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[2]).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_a[0]).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * DoryScalar::from(column_a[1]).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * DoryScalar::from(column_a[2]).0,
         );
         expected_commitments[1] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_b[0].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[1].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[2].clone()).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_b[0].clone()).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0])
+                    * DoryScalar::from(column_b[1].clone()).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0])
+                    * DoryScalar::from(column_b[2].clone()).0,
         );
         expected_commitments[2] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_c[0].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_c[1].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_c[2].clone()).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_c[0].clone()).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0])
+                    * DoryScalar::from(column_c[1].clone()).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0])
+                    * DoryScalar::from(column_c[2].clone()).0,
         );
         expected_commitments[3] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_d[0]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_d[1]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_d[2]).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_d[0]).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * DoryScalar::from(column_d[1]).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * DoryScalar::from(column_d[2]).0,
         );
 
         assert_eq!(commitments, expected_commitments);
@@ -375,7 +315,11 @@ mod tests {
 
     #[test]
     fn we_can_add_commitment_collections() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+        let Gamma_1 = &public_parameters.Gamma_1;
+        let Gamma_2 = &public_parameters.Gamma_2;
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
@@ -399,48 +343,22 @@ mod tests {
 
         let mut expected_commitments = vec![DoryCommitment::default(); 2];
         expected_commitments[0] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_a[0]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[1]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[2]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[3],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_a[3]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_a[4]).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_a[0]).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * DoryScalar::from(column_a[1]).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * DoryScalar::from(column_a[2]).0
+                + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * DoryScalar::from(column_a[3]).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * DoryScalar::from(column_a[4]).0,
         );
         expected_commitments[1] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[0],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_b[0].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[1],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[1].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[2],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[2].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[3],
-                    setup.public_parameters().Gamma_2[0],
-                ) * DoryScalar::from(column_b[3].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_b[4].clone()).0,
+            Pairing::pairing(Gamma_1[0], Gamma_2[0]) * DoryScalar::from(column_b[0].clone()).0
+                + Pairing::pairing(Gamma_1[1], Gamma_2[0])
+                    * DoryScalar::from(column_b[1].clone()).0
+                + Pairing::pairing(Gamma_1[2], Gamma_2[0])
+                    * DoryScalar::from(column_b[2].clone()).0
+                + Pairing::pairing(Gamma_1[3], Gamma_2[0])
+                    * DoryScalar::from(column_b[3].clone()).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1])
+                    * DoryScalar::from(column_b[4].clone()).0,
         );
 
         assert_eq!(commitments, expected_commitments);
@@ -448,7 +366,9 @@ mod tests {
 
     #[test]
     fn we_cannot_add_commitment_collections_of_mixed_column_counts() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
@@ -491,7 +411,11 @@ mod tests {
 
     #[test]
     fn we_can_sub_commitment_collections() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+        let Gamma_1 = &public_parameters.Gamma_1;
+        let Gamma_2 = &public_parameters.Gamma_2;
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
@@ -516,24 +440,13 @@ mod tests {
         let mut expected_commitments = vec![DoryCommitment::default(); 2];
 
         expected_commitments[0] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[3],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_a[3]).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_a[4]).0,
+            Pairing::pairing(Gamma_1[3], Gamma_2[0]) * DoryScalar::from(column_a[3]).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * DoryScalar::from(column_a[4]).0,
         );
         expected_commitments[1] = DoryCommitment(
-            Pairing::pairing(
-                setup.public_parameters().Gamma_1[3],
-                setup.public_parameters().Gamma_2[0],
-            ) * DoryScalar::from(column_b[3].clone()).0
-                + Pairing::pairing(
-                    setup.public_parameters().Gamma_1[0],
-                    setup.public_parameters().Gamma_2[1],
-                ) * DoryScalar::from(column_b[4].clone()).0,
+            Pairing::pairing(Gamma_1[3], Gamma_2[0]) * DoryScalar::from(column_b[3].clone()).0
+                + Pairing::pairing(Gamma_1[0], Gamma_2[1])
+                    * DoryScalar::from(column_b[4].clone()).0,
         );
 
         assert_eq!(commitments, expected_commitments);
@@ -541,7 +454,9 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_commitment_collections_of_mixed_column_counts() {
-        let setup = DoryProverPublicSetup::rand(5, 2, &mut test_rng());
+        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 2);
 
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);

@@ -9,7 +9,10 @@ use proof_of_sql::{
         database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
-    proof_primitive::dory::{DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup},
+    proof_primitive::dory::{
+        DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+        ProverSetup, PublicParameters, VerifierSetup,
+    },
     record_batch,
     sql::{
         parse::{ConversionError, QueryExpr},
@@ -44,12 +47,14 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_minimal_filter_query_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([boolean("a", [true, false])]),
@@ -103,12 +108,14 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_equality_query_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 1])]),
@@ -198,11 +205,13 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
@@ -272,11 +281,13 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([bigint("a", [1, -1, 3]), bigint("b", [0, 0, 2])]),
@@ -341,12 +352,14 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_inequality_query_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([bigint("a", [1, 2, 3]), bigint("b", [1, 0, 4])]),
@@ -437,12 +450,14 @@ fn we_can_prove_a_complex_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_complex_query_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
@@ -519,12 +534,14 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_group_by_query_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
@@ -587,12 +604,14 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_overflow_with_dory() {
-    let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
-    let dory_verifier_setup = (&dory_prover_setup).into();
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
 
-    let mut accessor = OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(
-        dory_prover_setup.clone(),
-    );
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([bigint("a", [i64::MIN]), smallint("b", [1_i16])]),
