@@ -38,7 +38,7 @@ where
 
 /// Private convenience aliases.
 type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
-type Setup<C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup;
+type Setup<'a, C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup<'a>;
 
 impl<C> ColumnCommitments<C>
 where

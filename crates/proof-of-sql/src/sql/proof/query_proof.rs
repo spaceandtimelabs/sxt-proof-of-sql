@@ -45,7 +45,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
-        setup: &CP::ProverPublicSetup,
+        setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
         let table_length = expr.get_length(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
@@ -85,7 +85,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         builder: ProofBuilder<CP::Scalar>,
         generator_offset: usize,
         mut transcript: Transcript,
-        setup: &CP::ProverPublicSetup,
+        setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
@@ -156,7 +156,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
-        setup: &CP::VerifierPublicSetup,
+        setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         let table_length = expr.get_length(accessor);
         let generator_offset = expr.get_offset(accessor);

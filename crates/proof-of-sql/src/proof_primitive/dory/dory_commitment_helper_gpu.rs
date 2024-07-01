@@ -38,7 +38,7 @@ fn get_offset_commits(
             data_size,
         );
 
-        setup.public_parameters().blitzar_msm(
+        setup.prover_setup().blitzar_msm(
             &mut ones_blitzar_commits[num_zero_commits..num_zero_commits + 1],
             data_size as u32,
             first_row_transpose.as_slice(),
@@ -53,7 +53,7 @@ fn get_offset_commits(
                 let mut middle_row_blitzar_commit =
                     vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 1];
 
-                setup.public_parameters().blitzar_msm(
+                setup.prover_setup().blitzar_msm(
                     &mut middle_row_blitzar_commit,
                     data_size as u32,
                     middle_row_transpose.as_slice(),
@@ -70,7 +70,7 @@ fn get_offset_commits(
             let last_row_transpose =
                 transpose::transpose_for_fixed_msm(last_row, 0, 1, num_columns, data_size);
 
-            setup.public_parameters().blitzar_msm(
+            setup.prover_setup().blitzar_msm(
                 &mut ones_blitzar_commits[num_of_commits - 1..num_of_commits],
                 data_size as u32,
                 last_row_transpose.as_slice(),
@@ -103,12 +103,12 @@ where
     let num_of_commits = ((column.len() + offset) + num_columns - 1) / num_columns;
     let column_transpose =
         transpose::transpose_for_fixed_msm(column, offset, num_of_commits, num_columns, data_size);
-    let gamma_2_slice = &setup.public_parameters().Gamma_2[0..num_of_commits];
+    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
 
     // Compute the commitment for the entire data set
     let mut blitzar_commits =
         vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_commits];
-    setup.public_parameters().blitzar_msm(
+    setup.prover_setup().blitzar_msm(
         &mut blitzar_commits,
         data_size as u32,
         column_transpose.as_slice(),

@@ -97,7 +97,7 @@ where
 }
 
 /// Private convenience alias.
-type Setup<C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup;
+type Setup<'a, C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup<'a>;
 type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
 
 impl<C> TableCommitment<C>

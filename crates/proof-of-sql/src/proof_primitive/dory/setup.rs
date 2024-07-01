@@ -2,8 +2,6 @@ use super::{G1Affine, G2Affine, PublicParameters, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-#[cfg(feature = "blitzar")]
-use blitzar::compute::{ElementP2, MsmHandle};
 use itertools::MultiUnzip;
 use num_traits::One;
 
@@ -30,7 +28,8 @@ pub struct ProverSetup<'a> {
     pub(super) max_nu: usize,
     /// The handle to the `blitzar` Gamma_1 instances.
     #[cfg(feature = "blitzar")]
-    blitzar_handle: &'a MsmHandle<ElementP2<ark_bls12_381::g1::Config>>,
+    blitzar_handle:
+        blitzar::compute::MsmHandle<blitzar::compute::ElementP2<ark_bls12_381::g1::Config>>,
 }
 
 impl<'a> ProverSetup<'a> {
@@ -42,12 +41,13 @@ impl<'a> ProverSetup<'a> {
         H_2: G2Affine,
         Gamma_2_fin: G2Affine,
         max_nu: usize,
-        #[cfg(feature = "blitzar")] blitzar_handle: &'a MsmHandle<
-            ElementP2<ark_bls12_381::g1::Config>,
-        >,
     ) -> Self {
         assert_eq!(Gamma_1.len(), 1 << max_nu);
         assert_eq!(Gamma_2.len(), 1 << max_nu);
+        #[cfg(feature = "blitzar")]
+        let blitzar_handle = blitzar::compute::MsmHandle::new(&Vec::from_iter(
+            Gamma_1.iter().copied().map(Into::into),
+        ));
         let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..max_nu + 1)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
@@ -67,7 +67,7 @@ impl<'a> ProverSetup<'a> {
     #[tracing::instrument(name = "ProverSetup::blitzar_msm", level = "debug", skip_all)]
     pub(super) fn blitzar_msm(
         &self,
-        res: &mut [ElementP2<ark_bls12_381::g1::Config>],
+        res: &mut [blitzar::compute::ElementP2<ark_bls12_381::g1::Config>],
         element_num_bytes: u32,
         scalars: &[u8],
     ) {
@@ -84,8 +84,6 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
             value.H_2,
             value.Gamma_2_fin,
             value.max_nu,
-            #[cfg(feature = "blitzar")]
-            &value.blitzar_handle,
         )
     }
 }

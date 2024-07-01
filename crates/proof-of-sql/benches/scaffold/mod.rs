@@ -16,7 +16,7 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
     size: usize,
-    prover_setup: &CP::ProverPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
     alloc: &'a Bump,
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
@@ -41,8 +41,8 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
     size: usize,
-    prover_setup: &CP::ProverPublicSetup,
-    verifier_setup: &CP::VerifierPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
     let mut accessor = BenchmarkAccessor::default();
     let mut rng = rand::thread_rng();
@@ -68,8 +68,8 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
     sizes: &[usize],
-    prover_setup: &CP::ProverPublicSetup,
-    verifier_setup: &CP::VerifierPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
     let mut group = c.benchmark_group(format!("{} - {}", title, query));
     group.sample_size(10);

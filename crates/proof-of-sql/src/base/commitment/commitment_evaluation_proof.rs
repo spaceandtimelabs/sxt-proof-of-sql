@@ -14,17 +14,17 @@ pub trait CommitmentEvaluationProof {
     /// The associated scalar that the commitment is for.
     type Scalar: Scalar + Serialize + for<'a> Deserialize<'a>;
     /// The associated commitment type.
-    type Commitment: Commitment<Scalar = Self::Scalar, PublicSetup = Self::ProverPublicSetup>
+    type Commitment: for<'a> Commitment<Scalar = Self::Scalar, PublicSetup<'a> = Self::ProverPublicSetup<'a>>
         + Serialize
         + for<'a> Deserialize<'a>;
     /// The error type for the proof.
     type Error;
     /// The public setup parameters required by the prover.
     /// This is simply precomputed data that is required by the prover to create a proof.
-    type ProverPublicSetup;
+    type ProverPublicSetup<'a>: Copy;
     /// The public setup parameters required by the verifier.
     /// This is simply precomputed data that is required by the verifier to verify a proof.
-    type VerifierPublicSetup;
+    type VerifierPublicSetup<'a>: Copy;
     /// Create a new proof.
     ///
     /// Note: b_point must have length `nu`, where `2^nu` is at least the length of `a`.
@@ -35,7 +35,7 @@ pub trait CommitmentEvaluationProof {
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
-        setup: &Self::ProverPublicSetup,
+        setup: &Self::ProverPublicSetup<'_>,
     ) -> Self;
     /// Verify a proof.
     ///
@@ -51,7 +51,7 @@ pub trait CommitmentEvaluationProof {
         b_point: &[Self::Scalar],
         generators_offset: u64,
         table_length: usize,
-        setup: &Self::VerifierPublicSetup,
+        setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error>;
     /// Verify a batch proof. This can be more efficient than verifying individual proofs for some schemes.
     #[allow(clippy::too_many_arguments)]
@@ -64,7 +64,7 @@ pub trait CommitmentEvaluationProof {
         b_point: &[Self::Scalar],
         generators_offset: u64,
         table_length: usize,
-        setup: &Self::VerifierPublicSetup,
+        setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
         self.verify_proof(
             transcript,
@@ -83,14 +83,14 @@ impl CommitmentEvaluationProof for InnerProductProof {
     type Scalar = MontScalar<ark_curve25519::FrConfig>;
     type Commitment = RistrettoPoint;
     type Error = ProofError;
-    type ProverPublicSetup = ();
-    type VerifierPublicSetup = ();
+    type ProverPublicSetup<'a> = ();
+    type VerifierPublicSetup<'a> = ();
     fn new(
         transcript: &mut Transcript,
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
-        _setup: &Self::ProverPublicSetup,
+        _setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
         assert!(!a.is_empty());
         let b = &mut vec![Default::default(); a.len()];
@@ -115,7 +115,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
         b_point: &[Self::Scalar],
         generators_offset: u64,
         table_length: usize,
-        _setup: &Self::VerifierPublicSetup,
+        _setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
         assert!(table_length > 0);
         let b = &mut vec![Default::default(); table_length];
