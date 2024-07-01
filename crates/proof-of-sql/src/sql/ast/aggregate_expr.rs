@@ -29,8 +29,8 @@ impl<C: Commitment> AggregateExpr<C> {
 }
 
 impl<C: Commitment> ProvableExpr<C> for AggregateExpr<C> {
-    fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
-        Ok(())
+    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
+        self.expr.count(builder)
     }
 
     fn data_type(&self) -> ColumnType {

@@ -1115,13 +1115,7 @@ fn we_can_do_provable_group_by() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["department"], &accessor),
-            sums_expr(
-                t,
-                &["salary"],
-                &["total_salary"],
-                &[ColumnType::BigInt],
-                &accessor,
-            ),
+            vec![sum_expr(column(t, "salary", &accessor), "total_salary")],
             "num_employee",
             tab(t),
             const_bool(true),
@@ -1189,13 +1183,7 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["state", "department"], &accessor),
-            sums_expr(
-                t,
-                &["salary"],
-                &["total_salary"],
-                &[ColumnType::BigInt],
-                &accessor,
-            ),
+            vec![sum_expr(column(t, "salary", &accessor), "total_salary")],
             "num_employee",
             tab(t),
             const_bool(true),
@@ -1231,13 +1219,10 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
     let expected_ast = QueryExpr::new(
         group_by(
             cols_expr(t, &["department"], &accessor),
-            sums_expr(
-                t,
-                &["salary", "tax"],
-                &["total_salary", "total_tax"],
-                &[ColumnType::BigInt, ColumnType::BigInt],
-                &accessor,
-            ),
+            vec![
+                sum_expr(column(t, "salary", &accessor), "total_salary"),
+                sum_expr(column(t, "tax", &accessor), "total_tax"),
+            ],
             "num_employee",
             tab(t),
             lte(column(t, "tax", &accessor), const_bigint(1)),
@@ -1251,6 +1236,7 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
     );
     assert_eq!(ast, expected_ast);
 }
+
 ///////////////////////////
 // Group By Expressions - Polars
 ///////////////////////////
