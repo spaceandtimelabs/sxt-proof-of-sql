@@ -27,8 +27,8 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
                 "times",
                 PoSQLTimeUnit::Second,
                 PoSQLTimeZone::UTC,
-                [-2208988800, 0, 1577836800],
-            ), // 1900, 1970 and 2020
+                [i64::MIN, 0, i64::MAX],
+            ),
         ]),
         0,
     );
@@ -81,8 +81,8 @@ fn we_can_prove_a_basic_query_containing_unix_epoch_with_dory() {
                 "times",
                 PoSQLTimeUnit::Second,
                 PoSQLTimeZone::UTC,
-                [-2208988800, 1231006505, 1577836800],
-            ), // 1900, 1970 and 2020
+                [i64::MIN, 1231006505, i64::MAX],
+            ),
         ]),
         0,
     );
