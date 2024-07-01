@@ -434,7 +434,6 @@ match {
     r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
     r"[tT][oO]_[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "to_timestamp",
     
-
     "," => ",",
     "." => ".",
     "(" => "(",
