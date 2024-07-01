@@ -167,19 +167,16 @@ impl IntermediateTimestamp {
     /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time_str).unwrap();
     /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
     /// ```
-    pub fn to_timestamp(timestamp_str: &str) -> Result<Self, IntermediateTimestampError> {
-        timestamp_str
-            .parse::<i64>()
-            .map_err(|e| IntermediateTimestampError::InvalidFormat(e.to_string()))
-            .and_then(|epoch| match Utc.timestamp_opt(epoch, 0) {
-                LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
-                    timestamp,
-                    timeunit: IntermediateTimeUnit::Second,
-                    timezone: IntermediateTimeZone::Utc,
-                }),
-                LocalResult::Ambiguous(_, _) => Err(IntermediateTimestampError::Ambiguous),
-                LocalResult::None => Err(IntermediateTimestampError::LocalTimeDoesNotExist),
-            })
+    pub fn to_timestamp(epoch: i64) -> Result<Self, IntermediateTimestampError> {
+        match Utc.timestamp_opt(epoch, 0) {
+            LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
+                timestamp,
+                timeunit: IntermediateTimeUnit::Second,
+                timezone: IntermediateTimeZone::Utc,
+            }),
+            LocalResult::Ambiguous(_, _) => Err(IntermediateTimestampError::Ambiguous),
+            LocalResult::None => Err(IntermediateTimestampError::LocalTimeDoesNotExist),
+        }
     }
 }
 
@@ -222,9 +219,9 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_time_timezone() {
-        let unix_time = 1_593_000_000.to_string(); // Unix time as string
+        let unix_time = 1_593_000_000; // Unix time as string
         let expected_timezone = IntermediateTimeZone::Utc; // Unix time should always be UTC
-        let result = IntermediateTimestamp::to_timestamp(&unix_time).unwrap();
+        let result = IntermediateTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
@@ -233,8 +230,8 @@ mod tests {
         let unix_time = 1_593_000_000; // Example Unix timestamp (seconds since epoch)
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = IntermediateTimeUnit::Second; // Assuming basic second precision for Unix timestamp
-        let input = unix_time.to_string(); // Simulate input as string since Unix times are often transmitted as strings
-        let result = IntermediateTimestamp::to_timestamp(&input).unwrap();
+        let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
+        let result = IntermediateTimestamp::to_timestamp(input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
         assert_eq!(result.timeunit, expected_unit);

@@ -339,6 +339,8 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
 
     <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
+
+    <value: UnixTimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -379,6 +381,13 @@ TimestampLiteral: IntermediateTimestamp = {
     "timestamp" <content: STRING_LITERAL> =>? {
         IntermediateTimestamp::try_from(content.trim_matches('\'').trim())
             .map_err(|_| User { error: "unable to parse timestamp from query" })
+    },
+};
+
+UnixTimestampLiteral: IntermediateTimestamp = {
+    // Handling the to_timestamp function with numeric input
+    "to_timestamp" "(" <epoch: Int64NumericLiteral> ")" =>? {
+        IntermediateTimestamp::to_timestamp(epoch).map_err(|_| User { error: "unable to parse timestamp from query" })
     },
 };
 
@@ -423,6 +432,7 @@ match {
     r"[tT][rR][uU][eE]" => "true",
     r"[fF][aA][lL][sS][eE]" => "false",
     r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
+    r"[tT][oO]_[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "to_timestamp",
     
 
     "," => ",",
