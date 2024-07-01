@@ -34,4 +34,4 @@ jobs:
           npx semantic-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          #CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }} #TODO: add CRATES_TOKEN
+          CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}

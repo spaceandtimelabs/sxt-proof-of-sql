@@ -1,15 +1,14 @@
-use super::test_utility::{
-    and, cols_expr, column, const_int128, const_varchar, equal, group_by, sums_expr, tab,
-};
+use super::test_utility::*;
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{owned_table_utility::*, ColumnType, OwnedTableTestAccessor, TestAccessor},
+        database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
     sql::proof::{exercise_verification, VerifiableQueryResult},
 };
 
+/// select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
 #[test]
 fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     let data = owned_table([
@@ -22,7 +21,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     accessor.add_table(t, data, 0);
     let expr = group_by(
         cols_expr(t, &["a"], &accessor),
-        sums_expr(t, &["c"], &["sum_c"], &[ColumnType::BigInt], &accessor),
+        vec![sum_expr(column(t, "c", &accessor), "sum_c")],
         "__count__",
         tab(t),
         equal(column(t, "b", &accessor), const_int128(99)),
@@ -33,6 +32,41 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     let expected = owned_table([
         bigint("a", [1, 2]),
         bigint("sum_c", [101 + 104, 102 + 103]),
+        bigint("__count__", [2, 2]),
+    ]);
+    assert_eq!(res, expected);
+}
+
+/// select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+#[test]
+fn we_can_prove_a_group_by_with_bigint_columns() {
+    let data = owned_table([
+        bigint("a", [1, 2, 2, 1, 2]),
+        bigint("b", [99, 99, 99, 99, 0]),
+        bigint("c", [101, 102, 103, 104, 105]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(t, data, 0);
+    let expr = group_by(
+        cols_expr(t, &["a"], &accessor),
+        vec![sum_expr(
+            add(
+                multiply(column(t, "c", &accessor), const_bigint(2)),
+                const_bigint(1),
+            ),
+            "sum_c",
+        )],
+        "__count__",
+        tab(t),
+        equal(column(t, "b", &accessor), const_int128(99)),
+    );
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    exercise_verification(&res, &expr, &accessor, t);
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let expected = owned_table([
+        bigint("a", [1, 2]),
+        bigint("sum_c", [(101 + 104) * 2 + 2, (102 + 103) * 2 + 2]),
         bigint("__count__", [2, 2]),
     ]);
     assert_eq!(res, expected);
@@ -118,7 +152,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
 
-    // SELECT scalar_group, int128_group, bigint_group, sum(int128_filter) as sum_int, sum(bigint_filter) as sum_bigint, sum(scalar_filter) as sum_scal, count(*) as __count__
+    // SELECT scalar_group, int128_group, bigint_group, sum(bigint_sum + 1) as sum_int, sum(bigint_sum - int128_sum) as sum_bigint, sum(scalar_filter) as sum_scal, count(*) as __count__
     //  FROM sxt.t WHERE int128_filter = 1020 AND varchar_filter = 'f2'
     //  GROUP BY scalar_group, int128_group, bigint_group
     let expr = group_by(
@@ -127,13 +161,20 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
             &["scalar_group", "int128_group", "bigint_group"],
             &accessor,
         ),
-        sums_expr(
-            t,
-            &["bigint_sum", "int128_sum", "scalar_sum"],
-            &["sum_int", "sum_128", "sum_scal"],
-            &[ColumnType::BigInt, ColumnType::Int128, ColumnType::Scalar],
-            &accessor,
-        ),
+        vec![
+            sum_expr(
+                add(column(t, "bigint_sum", &accessor), const_bigint(1)),
+                "sum_int",
+            ),
+            sum_expr(
+                subtract(
+                    column(t, "bigint_sum", &accessor),
+                    column(t, "int128_sum", &accessor),
+                ),
+                "sum_128",
+            ),
+            sum_expr(column(t, "scalar_sum", &accessor), "sum_scal"),
+        ],
         "__count__",
         tab(t),
         and(
@@ -148,24 +189,25 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         scalar("scalar_group", [4, 4, 4]),
         int128("int128_group", [8, 8, 9]),
         bigint("bigint_group", [6, 7, 6]),
-        bigint("sum_int", [1406, 927, 637]),
-        int128("sum_128", [1342, 1262, 513]),
+        bigint("sum_int", [1409, 929, 638]),
+        int128("sum_128", [64, -335, 124]),
         scalar("sum_scal", [1116, 1033, 375]),
         bigint("__count__", [3, 2, 1]),
     ]);
     assert_eq!(res, expected);
 
-    // SELECT sum(int128_filter) as sum_int, sum(bigint_filter) as sum_bigint, sum(scalar_filter) as sum_scal, count(*) as __count__
+    // SELECT sum(bigint_sum) as sum_int, sum(int128_sum * 4) as sum_128, sum(scalar_sum) as sum_scal, count(*) as __count__
     //  FROM sxt.t WHERE int128_filter = 1020 AND varchar_filter = 'f2'
     let expr = group_by(
         vec![],
-        sums_expr(
-            t,
-            &["bigint_sum", "int128_sum", "scalar_sum"],
-            &["sum_int", "sum_128", "sum_scal"],
-            &[ColumnType::BigInt, ColumnType::Int128, ColumnType::Scalar],
-            &accessor,
-        ),
+        vec![
+            sum_expr(column(t, "bigint_sum", &accessor), "sum_int"),
+            sum_expr(
+                multiply(column(t, "int128_sum", &accessor), const_bigint(4)),
+                "sum_128",
+            ),
+            sum_expr(column(t, "scalar_sum", &accessor), "sum_scal"),
+        ],
         "__count__",
         tab(t),
         and(
@@ -178,7 +220,7 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     let res = res.verify(&expr, &accessor, &()).unwrap().table;
     let expected = owned_table([
         bigint("sum_int", [1406 + 927 + 637]),
-        int128("sum_128", [1342 + 1262 + 513]),
+        int128("sum_128", [(1342 + 1262 + 513) * 4]),
         scalar("sum_scal", [1116 + 1033 + 375]),
         bigint("__count__", [3 + 2 + 1]),
     ]);
