@@ -59,6 +59,7 @@ impl<C: Commitment> QueryExpr<C> {
                 .build()?,
         };
         let result_aliased_exprs = context.get_aliased_result_exprs()?;
+        let column_mapping = context.get_column_mapping();
         let group_by = context.get_group_by_exprs();
         if !group_by.is_empty() {
             if let Some(group_by_expr) = Option::<GroupByExpr<C>>::try_from(&context)? {
@@ -72,10 +73,11 @@ impl<C: Commitment> QueryExpr<C> {
                 });
             }
         }
-        let column_mapping = context.get_column_mapping();
         let enriched_exprs = result_aliased_exprs
             .iter()
-            .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone()))
+            .map(|aliased_expr| {
+                EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone(), false)
+            })
             .collect::<Vec<_>>();
         let select_exprs = enriched_exprs
             .iter()

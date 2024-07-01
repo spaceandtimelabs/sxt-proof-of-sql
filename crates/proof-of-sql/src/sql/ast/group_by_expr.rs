@@ -22,26 +22,28 @@ use crate::{
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use num_traits::One;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore
-///     SELECT <group_by_expr1>, ..., <group_by_exprM>,
-///         SUM(<sum_expr1>.expr) as <sum_expr1>.alias, ..., SUM(<sum_exprN>.expr) as <sum_exprN>.alias,
-///         COUNT(*) as count_alias
+///     SELECT <result_exprs[1].expr> as <result_expr[1].alias>, ..., <result_exprs[K].expr> as <result_exprs[K].alias>,
+///         SUM(<sum_exprs[1].expr>) as <sum_exprs[1].alias>, ..., SUM(<sum_exprs[M].expr>) as <sum_exprs[M].alias>,
+///         COUNT(<count_exprs[1].expr>) as <count_exprs[1].alias>, ..., COUNT(<count_exprs[N].expr>) as <count_exprs[N].alias>
 ///     FROM <table>
 ///     WHERE <where_clause>
-///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
+///     GROUP BY <group_by_exprs[1]>, ..., <group_by_exprs[L]>
 /// ```
 ///
-/// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
+/// Note:
+/// 1. If `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
+/// 2. Result expressions must only contain columns that are in the `group_by_exprs`.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr<C: Commitment> {
     pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
-    pub(super) sum_expr: Vec<AliasedProvableExprPlan<C>>,
-    pub(super) count_alias: Identifier,
+    pub(super) result_exprs: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) sum_exprs: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) count_exprs: Vec<AliasedProvableExprPlan<C>>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
 }
@@ -50,16 +52,18 @@ impl<C: Commitment> GroupByExpr<C> {
     /// Creates a new group_by expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
-        sum_expr: Vec<AliasedProvableExprPlan<C>>,
-        count_alias: Identifier,
+        result_exprs: Vec<AliasedProvableExprPlan<C>>,
+        sum_exprs: Vec<AliasedProvableExprPlan<C>>,
+        count_exprs: Vec<AliasedProvableExprPlan<C>>,
         table: TableExpr,
         where_clause: ProvableExprPlan<C>,
     ) -> Self {
         Self {
             group_by_exprs,
-            sum_expr,
+            result_exprs,
+            sum_exprs,
             table,
-            count_alias,
+            count_exprs,
             where_clause,
         }
     }
@@ -74,13 +78,16 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
         self.where_clause.count(builder)?;
         for expr in self.group_by_exprs.iter() {
             expr.count(builder)?;
-            builder.count_result_columns(1);
         }
-        for aliased_expr in self.sum_expr.iter() {
+        for aliased_expr in self.result_exprs.iter() {
             aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
-        builder.count_result_columns(1);
+        for aliased_expr in self.sum_exprs.iter() {
+            aliased_expr.expr.count(builder)?;
+            builder.count_result_columns(1);
+        }
+        builder.count_result_columns(self.count_exprs.len());
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(3);
         builder.count_degree(3);
@@ -112,7 +119,12 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             .map(|expr| expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         let aggregate_evals = self
-            .sum_expr
+            .sum_exprs
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .collect::<Result<Vec<_>, _>>()?;
+        let result_evals = self
+            .result_exprs
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
@@ -127,7 +139,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             repeat_with(|| builder.consume_result_mle()).take(self.group_by_exprs.len()),
         );
         let sum_result_columns_evals =
-            Vec::from_iter(repeat_with(|| builder.consume_result_mle()).take(self.sum_expr.len()));
+            Vec::from_iter(repeat_with(|| builder.consume_result_mle()).take(self.sum_exprs.len()));
         let count_column_eval = builder.consume_result_mle();
 
         let alpha = builder.consume_post_result_challenge();
@@ -145,6 +157,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             ),
         )?;
         match result {
+            // Check for uniqueness
             Some(table) => {
                 let cols = self
                     .group_by_exprs
@@ -164,30 +177,36 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             }
             None => todo!("GroupByExpr currently only supported at top level of query plan."),
         }
+        // 5. set result columns
+        let result_columns_evals = Vec::from_iter(
+            repeat_with(|| builder.consume_result_mle()).take(self.result_exprs.len()),
+        );
         Ok(())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
-        self.group_by_exprs
+        self.result_exprs
             .iter()
-            .map(|col| col.get_column_field())
-            .chain(self.sum_expr.iter().map(|aliased_expr| {
+            .map(|aliased_expr| ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type()))
+            .chain(self.sum_exprs.iter().map(|aliased_expr| {
                 ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
             }))
-            .chain(std::iter::once(ColumnField::new(
-                self.count_alias,
-                ColumnType::BigInt,
-            )))
+            .chain(
+                self.count_exprs
+                    .iter()
+                    .map(|aliased_expr| ColumnField::new(aliased_expr.alias, ColumnType::BigInt)),
+            )
             .collect()
     }
 
     fn get_column_references(&self) -> HashSet<ColumnRef> {
         let mut columns = HashSet::new();
 
+        // No need to add columns from result_exprs since they are already in group_by_exprs
         for col in self.group_by_exprs.iter() {
             columns.insert(col.get_column_reference());
         }
-        for aliased_expr in self.sum_expr.iter() {
+        for aliased_expr in self.sum_exprs.iter() {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 
@@ -220,7 +239,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
                 .iter()
                 .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
         );
-        let sum_columns = Vec::from_iter(self.sum_expr.iter().map(|aliased_expr| {
+        let sum_columns = Vec::from_iter(self.sum_exprs.iter().map(|aliased_expr| {
             aliased_expr
                 .expr
                 .result_evaluate(builder.table_length(), alloc, accessor)
@@ -242,6 +261,15 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             builder.produce_result_column(col);
         }
         builder.produce_result_column(count_column);
+        // 5. set result columns
+        let result_columns = Vec::from_iter(self.result_exprs.iter().map(|aliased_expr| {
+            aliased_expr
+                .expr
+                .result_evaluate(builder.table_length(), alloc, accessor)
+        }));
+        for col in result_columns {
+            builder.produce_result_column(col);
+        }
         builder.request_post_result_challenges(2);
     }
 
@@ -267,7 +295,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
                 .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
         );
         let sum_columns = Vec::from_iter(
-            self.sum_expr
+            self.sum_exprs
                 .iter()
                 .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
         );
@@ -289,6 +317,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             beta,
             (&group_by_columns, &sum_columns, selection),
             (&group_by_result_columns, &sum_result_columns, count_column),
+        );
+        // 3. set result columns
+        let result_columns = Vec::from_iter(
+            self.result_exprs
+                .iter()
+                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
         );
     }
 }
