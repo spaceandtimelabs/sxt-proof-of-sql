@@ -34,7 +34,7 @@ pub enum IntermediateTimestampError {
     ParsingError(String),
 }
 
-/// An initermediate type of components extracted from a timestamp string.
+/// An intermediate type representing the time units from a parsed query
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IntermediateTimeUnit {
     /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
@@ -96,7 +96,7 @@ impl fmt::Display for IntermediateTimeZone {
     }
 }
 
-/// Represents a fully parsed timestamp with detailed time unit and timezone information.
+/// Represents a fully parsed timestamp with detailed time unit and timezone information
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IntermediateTimestamp {
     /// The datetime representation in UTC.
@@ -163,8 +163,8 @@ impl IntermediateTimestamp {
     /// use proof_of_sql_parser::intermediate_time::{IntermediateTimestamp, IntermediateTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
-    /// let unix_time_str = "1231006505";
-    /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time_str).unwrap();
+    /// let unix_time = 1231006505;
+    /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time).unwrap();
     /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
     /// ```
     pub fn to_timestamp(epoch: i64) -> Result<Self, IntermediateTimestampError> {
