@@ -533,6 +533,41 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_basic_group_by_query_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            bigint("a", [1, 1, 2, 3, 2]),
+            bigint("b", [1, 0, 4, 2, 3]),
+            bigint("c", [-2, 2, 1, 0, 1]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a, sum(2 * b + 1) as d, count(*) as e FROM table WHERE c >= 0 group by a"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        bigint("a", [1, 2, 3]),
+        bigint("d", [1, 16, 5]),
+        bigint("e", [1, 2, 1]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
 fn we_can_prove_a_basic_group_by_query_with_dory() {
     let public_parameters = PublicParameters::rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
@@ -552,7 +587,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT a, sum(b) as d, count(*) as e FROM table WHERE c >= 0 group by a"
+        "SELECT a, sum(2 * b + 1) as d, count(*) as e FROM table WHERE c >= 0 group by a"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -572,7 +607,7 @@ fn we_can_prove_a_basic_group_by_query_with_dory() {
         .table;
     let expected_result = owned_table([
         bigint("a", [1, 2, 3]),
-        bigint("d", [0, 7, 2]),
+        bigint("d", [1, 16, 5]),
         bigint("e", [1, 2, 1]),
     ]);
     assert_eq!(owned_table_result, expected_result);
