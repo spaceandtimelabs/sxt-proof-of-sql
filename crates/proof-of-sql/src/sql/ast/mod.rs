@@ -40,6 +40,11 @@ pub(crate) use provable_expr::ProvableExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod provable_expr_test;
 
+mod projection_expr;
+pub(crate) use projection_expr::ProjectionExpr;
+#[cfg(all(test, feature = "blitzar"))]
+mod projection_expr_test;
+
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;
 #[cfg(all(test, feature = "blitzar"))]

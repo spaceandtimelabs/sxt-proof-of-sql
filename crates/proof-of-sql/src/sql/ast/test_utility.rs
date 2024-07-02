@@ -1,6 +1,6 @@
 use super::{
     AliasedProvableExprPlan, ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr,
-    GroupByExpr, ProofPlan, ProvableExprPlan, TableExpr,
+    GroupByExpr, ProjectionExpr, ProofPlan, ProvableExprPlan, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -227,6 +227,13 @@ pub fn cols_expr<C: Commitment>(
         .iter()
         .map(|name| col_expr(tab, name, accessor))
         .collect()
+}
+
+pub fn projection<C: Commitment>(
+    results: Vec<AliasedProvableExprPlan<C>>,
+    table: TableExpr,
+) -> ProofPlan<C> {
+    ProofPlan::Projection(ProjectionExpr::new(results, table))
 }
 
 pub fn dense_filter<C: Commitment>(
