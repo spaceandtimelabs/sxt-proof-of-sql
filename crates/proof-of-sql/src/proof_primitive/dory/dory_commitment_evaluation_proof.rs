@@ -2,7 +2,7 @@ use super::{
     build_vmv_prover_state, build_vmv_verifier_state, compute_T_vec_prime, compute_nu,
     eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
     extended_dory_inner_product_verify, DeferredGT, DoryCommitment, DoryMessages,
-    DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, ProverSetup, F,
+    DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
 };
 use crate::base::commitment::CommitmentEvaluationProof;
 use merlin::Transcript;
@@ -30,8 +30,8 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
     type Scalar = DoryScalar;
     type Commitment = DoryCommitment;
     type Error = DoryError;
-    type ProverPublicSetup = DoryProverPublicSetup;
-    type VerifierPublicSetup = DoryVerifierPublicSetup;
+    type ProverPublicSetup<'a> = DoryProverPublicSetup<'a>;
+    type VerifierPublicSetup<'a> = DoryVerifierPublicSetup<'a>;
 
     #[tracing::instrument(name = "DoryEvaluationProof::new", level = "debug", skip_all)]
     fn new(
@@ -39,7 +39,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
-        setup: &Self::ProverPublicSetup,
+        setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
         // Dory PCS Logic
         if generators_offset != 0 {
@@ -49,7 +49,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         }
         let a: &[F] = bytemuck::TransparentWrapper::peel_slice(a);
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
-        let prover_setup: &ProverSetup = &setup.public_parameters().into();
+        let prover_setup = setup.prover_setup();
         let nu = compute_nu(b_point.len(), setup.sigma());
         if nu > prover_setup.max_nu {
             return Default::default(); // Note: this will always result in a verification error.
@@ -72,7 +72,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         b_point: &[Self::Scalar],
         generators_offset: u64,
         _table_length: usize,
-        setup: &Self::VerifierPublicSetup,
+        setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
         self.verify_batched_proof(
             transcript,
@@ -94,7 +94,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         b_point: &[Self::Scalar],
         generators_offset: u64,
         _table_length: usize,
-        setup: &Self::VerifierPublicSetup,
+        setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
         let a_commit = DeferredGT::new(
             commit_batch.iter().map(|c| c.0),

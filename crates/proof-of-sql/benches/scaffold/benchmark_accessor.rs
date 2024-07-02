@@ -22,7 +22,7 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         &mut self,
         table_ref: TableRef,
         columns: &[(Identifier, Column<'a, C::Scalar>)],
-        setup: &C::PublicSetup,
+        setup: &C::PublicSetup<'_>,
     ) {
         self.table_schemas.insert(
             table_ref,

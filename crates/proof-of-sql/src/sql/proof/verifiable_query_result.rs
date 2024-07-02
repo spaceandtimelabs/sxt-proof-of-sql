@@ -81,7 +81,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     pub fn new(
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
-        setup: &CP::ProverPublicSetup,
+        setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
@@ -112,7 +112,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         &self,
         expr: &(impl ProofExpr<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
-        setup: &CP::VerifierPublicSetup,
+        setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.

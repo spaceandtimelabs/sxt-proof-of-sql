@@ -143,9 +143,11 @@ mod tests {
             },
             scalar::Curve25519Scalar,
         },
-        proof_primitive::dory::{DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup},
+        proof_primitive::dory::{
+            test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup,
+            PublicParameters,
+        },
     };
-    use ark_std::test_rng;
     use curve25519_dalek::RistrettoPoint;
 
     #[test]
@@ -328,7 +330,9 @@ mod tests {
 
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
-        let setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
+        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let prover_setup = ProverSetup::from(&public_parameters);
+        let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 
         let column_a_id: Identifier = "column_a".parse().unwrap();
         let column_b_id: Identifier = "column_b".parse().unwrap();
