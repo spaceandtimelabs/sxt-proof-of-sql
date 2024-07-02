@@ -27,12 +27,12 @@ where
 
     // Compute commitments for the rows.
     let first_row_commit = G1Projective::msm_unchecked(
-        &setup.public_parameters().Gamma_1[first_row_offset..num_columns],
+        &setup.prover_setup().Gamma_1.last().unwrap()[first_row_offset..num_columns],
         &Vec::from_iter(first_row.iter().map(|s| s.into().0)),
     );
     let remaining_row_commits = remaining_rows.map(|row| {
         G1Projective::msm_unchecked(
-            &setup.public_parameters().Gamma_1[..num_columns],
+            &setup.prover_setup().Gamma_1.last().unwrap()[..num_columns],
             &Vec::from_iter(row.iter().map(|s| s.into().0)),
         )
     });
@@ -40,7 +40,8 @@ where
     // Compute the commitment for the entire matrix.
     DoryCommitment(pairings::multi_pairing(
         once(first_row_commit).chain(remaining_row_commits),
-        &setup.public_parameters().Gamma_2[rows_offset..(rows_offset + remaining_row_count + 1)],
+        &setup.prover_setup().Gamma_2.last().unwrap()
+            [rows_offset..(rows_offset + remaining_row_count + 1)],
     ))
 }
 

@@ -7,8 +7,8 @@ use merlin::Transcript;
 use num_traits::{One, Zero};
 
 pub fn test_simple_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
-    prover_setup: &CP::ProverPublicSetup,
-    verifier_setup: &CP::VerifierPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
     let mut transcript = Transcript::new(b"evaluation_proof");
     let proof = CP::new(
@@ -44,8 +44,8 @@ pub fn test_simple_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
 }
 
 pub fn test_commitment_evaluation_proof_with_length_1<CP: CommitmentEvaluationProof>(
-    prover_setup: &CP::ProverPublicSetup,
-    verifier_setup: &CP::VerifierPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
     let mut rng = ark_std::test_rng();
     let r = CP::Scalar::rand(&mut rng);
@@ -64,8 +64,8 @@ pub fn test_commitment_evaluation_proof_with_length_1<CP: CommitmentEvaluationPr
 pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     table_length: usize,
     offset: usize,
-    prover_setup: &CP::ProverPublicSetup,
-    verifier_setup: &CP::VerifierPublicSetup,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
     let nu = table_length.next_power_of_two().trailing_zeros() as usize;
     assert!(table_length <= 1 << nu);

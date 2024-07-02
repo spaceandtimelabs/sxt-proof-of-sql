@@ -102,7 +102,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     pub fn commit_intermediate_mles<V: VecCommitmentExt>(
         &self,
         offset_generators: usize,
-        setup: &V::CommitmentPublicSetup,
+        setup: &V::CommitmentPublicSetup<'_>,
     ) -> V {
         V::from_commitable_columns_with_offset(
             &self.commitment_descriptor,
