@@ -1,9 +1,5 @@
-use crate::base::{
-    database::ColumnType,
-    math::decimal::Precision,
-    scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-};
+use crate::base::{database::ColumnType, math::decimal::Precision, scalar::Scalar};
+use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use serde::{Deserialize, Serialize};
 
 /// Represents a literal value.

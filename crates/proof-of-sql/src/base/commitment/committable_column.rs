@@ -3,10 +3,10 @@ use crate::base::{
     math::decimal::Precision,
     ref_into::RefInto,
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
+use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Column data in "committable form".
 ///
@@ -194,10 +194,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::{
-        base::{scalar::Curve25519Scalar, time::timezone::PoSQLTimeZone},
-        proof_primitive::dory::DoryScalar,
-    };
+    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use blitzar::compute::compute_curve25519_commitments;
     use curve25519_dalek::ristretto::CompressedRistretto;
 

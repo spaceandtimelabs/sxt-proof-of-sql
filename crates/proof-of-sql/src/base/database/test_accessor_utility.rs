@@ -1,4 +1,4 @@
-use crate::base::{database::ColumnType, time::timestamp::PoSQLTimeUnit};
+use crate::base::database::ColumnType;
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
@@ -8,6 +8,7 @@ use arrow::{
     datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
+use proof_of_sql_parser::intermediate_time::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

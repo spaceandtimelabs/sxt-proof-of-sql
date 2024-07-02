@@ -163,14 +163,13 @@ impl ColumnCommitmentMetadata {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::base::{
-        commitment::column_bounds::Bounds,
-        database::OwnedColumn,
-        math::decimal::Precision,
+        commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
         scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     };
+    use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_metadata() {

@@ -15,12 +15,12 @@
 use super::scalar_and_i256_conversions::convert_scalar_to_i256;
 use crate::base::{
     database::{
-        scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
+        scalar_and_i256_conversions::convert_i256_to_scalar,
+        OwnedArrowConversionError::TimestampConversionError, OwnedColumn, OwnedTable,
         OwnedTableError,
     },
     math::decimal::Precision,
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use arrow::{
     array::{
@@ -33,7 +33,12 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use indexmap::IndexMap;
-use proof_of_sql_parser::{Identifier, ParseError};
+use proof_of_sql_parser::{
+    intermediate_time::{
+        PoSQLTimeUnit, PoSQLTimeZone, TimeError, TimeError::UnsupportedTimestampUnit,
+    },
+    Identifier, ParseError,
+};
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -56,12 +61,9 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an Arrow array with nulls.
     #[error("null values are not supported in OwnedColumn yet")]
     NullNotSupportedYet,
-    /// This error occurs when trying to convert from an unsupported timestamp unit.
-    #[error("unsupported timestamp unit: {0}")]
-    UnsupportedTimestampUnit(String),
-    /// This error occurs when trying to convert from an invalid timezone string.
-    #[error("invalid timezone string: {0}")]
-    InvalidTimezone(String), // New error variant for timezone strings
+    /// Using TimeError to handle all time-related errors
+    #[error(transparent)]
+    TimestampConversionError(#[from] TimeError),
 }
 
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
@@ -194,9 +196,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampSecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::UnsupportedTimestampUnit(
-                                "Second".to_string(),
-                            )
+                            TimestampConversionError(UnsupportedTimestampUnit("Second".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -210,9 +210,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMillisecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                            TimestampConversionError(UnsupportedTimestampUnit(
                                 "Millisecond".to_string(),
-                            )
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -226,9 +226,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMicrosecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                            TimestampConversionError(UnsupportedTimestampUnit(
                                 "Microsecond".to_string(),
-                            )
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -242,9 +242,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampNanosecondArray>()
                         .ok_or_else(|| {
-                            OwnedArrowConversionError::UnsupportedTimestampUnit(
+                            TimestampConversionError(UnsupportedTimestampUnit(
                                 "Nanosecond".to_string(),
-                            )
+                            ))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(

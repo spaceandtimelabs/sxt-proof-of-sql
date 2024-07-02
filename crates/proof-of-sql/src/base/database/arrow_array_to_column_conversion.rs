@@ -1,11 +1,6 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::{
-    base::{
-        database::Column,
-        math::decimal::Precision,
-        scalar::Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-    },
+    base::{database::Column, math::decimal::Precision, scalar::Scalar},
     sql::parse::ConversionError,
 };
 use arrow::{
@@ -17,6 +12,7 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone, TimeError};
 use std::ops::Range;
 use thiserror::Error;
 
@@ -38,9 +34,9 @@ pub enum ArrowArrayToColumnConversionError {
     /// Variant for conversion errors
     #[error("conversion error: {0}")]
     ConversionError(#[from] ConversionError),
-    /// Variant for timezone conversion errors, i.e. invalid timezone
-    #[error("Timezone conversion failed: {0}")]
-    TimezoneConversionError(String),
+    /// Using TimeError to handle all time-related errors
+    #[error(transparent)]
+    TimestampConversionError(#[from] TimeError),
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
