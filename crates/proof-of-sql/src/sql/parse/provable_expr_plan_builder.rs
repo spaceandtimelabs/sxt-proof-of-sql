@@ -4,7 +4,6 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::{
         ast::{ColumnExpr, ProvableExpr, ProvableExprPlan},
@@ -13,6 +12,7 @@ use crate::{
 };
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
+    intermediate_time::PoSQLTimeZone,
     Identifier,
 };
 use std::collections::HashMap;
@@ -103,7 +103,7 @@ impl ProvableExprPlanBuilder<'_> {
             )))),
             Literal::Timestamp(its) => {
                 Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
-                    PoSQLTimeUnit::from(its.timeunit),
+                    its.timeunit,
                     PoSQLTimeZone::try_from(its.timezone)?,
                     its.timestamp.timestamp(),
                 )))

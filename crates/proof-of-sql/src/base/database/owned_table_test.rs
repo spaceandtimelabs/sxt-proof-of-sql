@@ -2,12 +2,14 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     proof_primitive::dory::DoryScalar,
 };
 use indexmap::IndexMap;
-use proof_of_sql_parser::Identifier;
+use proof_of_sql_parser::{
+    intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    Identifier,
+};
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {

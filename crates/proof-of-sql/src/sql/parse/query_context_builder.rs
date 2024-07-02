@@ -3,7 +3,6 @@ use crate::{
     base::{
         database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
         math::decimal::Precision,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     sql::ast::{try_add_subtract_column_types, try_multiply_column_types},
 };
@@ -12,6 +11,7 @@ use proof_of_sql_parser::{
         AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
         SelectResultExpr, Slice, TableExpression, UnaryOperator,
     },
+    intermediate_time::PoSQLTimeZone,
     Identifier, ResourceId,
 };
 use std::ops::Deref;
@@ -251,7 +251,7 @@ impl<'a> QueryContextBuilder<'a> {
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
             Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
-                PoSQLTimeUnit::from(its.timeunit),
+                its.timeunit,
                 PoSQLTimeZone::try_from(its.timezone)?,
             )),
         }

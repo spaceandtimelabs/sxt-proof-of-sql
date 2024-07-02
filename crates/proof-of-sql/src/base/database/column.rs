@@ -2,11 +2,13 @@ use super::{LiteralValue, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
+use proof_of_sql_parser::{
+    intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    Identifier,
+};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

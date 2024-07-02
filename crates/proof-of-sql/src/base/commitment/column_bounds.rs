@@ -288,13 +288,9 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{
-        database::OwnedColumn,
-        math::decimal::Precision,
-        scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-    };
+    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use itertools::Itertools;
+    use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_bounds_by_method() {

@@ -21,11 +21,6 @@ use crate::base::{
     },
     math::decimal::Precision,
     scalar::Scalar,
-    time::{
-        error::TimeError::{self, UnsupportedTimestampUnit},
-        timestamp::PoSQLTimeUnit,
-        timezone::PoSQLTimeZone,
-    },
 };
 use arrow::{
     array::{
@@ -38,7 +33,12 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use indexmap::IndexMap;
-use proof_of_sql_parser::{Identifier, ParseError};
+use proof_of_sql_parser::{
+    intermediate_time::{
+        PoSQLTimeUnit, PoSQLTimeZone, TimeError, TimeError::UnsupportedTimestampUnit,
+    },
+    Identifier, ParseError,
+};
 use std::sync::Arc;
 use thiserror::Error;
 

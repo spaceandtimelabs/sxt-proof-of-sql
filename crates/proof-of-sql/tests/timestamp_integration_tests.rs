@@ -9,7 +9,7 @@ use proof_of_sql::{
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
-    use proof_of_sql::base::time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone};
+    use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
     let dory_verifier_setup = (&dory_prover_setup).into();
@@ -63,7 +63,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_unix_epoch_with_dory() {
-    use proof_of_sql::base::time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone};
+    use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     let dory_prover_setup = DoryProverPublicSetup::rand(4, 3, &mut test_rng());
     let dory_verifier_setup = (&dory_prover_setup).into();

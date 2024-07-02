@@ -1,11 +1,6 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::{
-    base::{
-        database::Column,
-        math::decimal::Precision,
-        scalar::Scalar,
-        time::{error::TimeError, timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-    },
+    base::{database::Column, math::decimal::Precision, scalar::Scalar},
     sql::parse::ConversionError,
 };
 use arrow::{
@@ -17,6 +12,7 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
+use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone, TimeError};
 use std::ops::Range;
 use thiserror::Error;
 
