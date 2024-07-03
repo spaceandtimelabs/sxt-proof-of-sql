@@ -1,88 +1,22 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType, OwnedTable,
-            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
-            TestAccessor,
-        },
+        database::{owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor},
         scalar::{Curve25519Scalar, Scalar},
     },
-    record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::*, ProvableExpr, ProvableExprPlan},
+    sql::{
+        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
+        proof::{exercise_verification, VerifiableQueryResult},
+    },
 };
-use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use polars::prelude::*;
+use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
-
-fn create_test_col_lit_equals_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
-    table_ref: &str,
-    results: &[&str],
-    filter_col: &str,
-    filter_val: T,
-    data: RecordBatch,
-    offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    let t = table_ref.parse().unwrap();
-    accessor.add_table(t, data, offset);
-    let equals_expr = equal(
-        column(t, filter_col, &accessor),
-        const_scalar(filter_val.into()),
-    );
-    let df_filter = polars::prelude::col(filter_col).eq(lit(filter_val));
-    TestExprNode::new(t, results, equals_expr, df_filter, accessor)
-}
-
-fn create_test_col_equals_expr(
-    table_ref: &str,
-    results: &[&str],
-    filter_col_lhs: &str,
-    filter_col_rhs: &str,
-    data: RecordBatch,
-    offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    let t = table_ref.parse().unwrap();
-    accessor.add_table(t, data, offset);
-    let equals_expr = equal(
-        column(t, filter_col_lhs, &accessor),
-        column(t, filter_col_rhs, &accessor),
-    );
-    let df_filter = polars::prelude::col(filter_col_lhs).eq(col(filter_col_rhs));
-    TestExprNode::new(t, results, equals_expr, df_filter, accessor)
-}
-
-// col_bool = (col_lhs = col_rhs)
-fn create_test_complex_col_equals_expr(
-    table_ref: &str,
-    results: &[&str],
-    filter_col_bool: &str,
-    filter_col_lhs: &str,
-    filter_col_rhs: &str,
-    data: RecordBatch,
-    offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    let t = table_ref.parse().unwrap();
-    accessor.add_table(t, data, offset);
-    let equals_expr = equal(
-        column(t, filter_col_bool, &accessor),
-        equal(
-            column(t, filter_col_lhs, &accessor),
-            column(t, filter_col_rhs, &accessor),
-        ),
-    );
-    let df_filter =
-        polars::prelude::col(filter_col_bool).eq(col(filter_col_lhs).eq(col(filter_col_rhs)));
-    TestExprNode::new(t, results, equals_expr, df_filter, accessor)
-}
 
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
@@ -92,20 +26,17 @@ fn we_can_prove_an_equality_query_with_no_rows() {
         varchar("d", [""; 0]),
         decimal75("e", 75, 0, [0; 0]),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["a", "d"],
-        "b",
-        0_i64,
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d"], &accessor),
+        tab(t),
+        equal(column(t, "b", &accessor), const_bigint(0_i64)),
     );
-    let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
-        "a" => Vec::<i64>::new(),
-        "d" => Vec::<String>::new(),
-    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
 }
 
@@ -117,14 +48,17 @@ fn we_can_prove_another_equality_query_with_no_rows() {
         varchar("d", [""; 0]),
         decimal75("e", 75, 0, [0; 0]),
     ]);
-
-    let test_expr =
-        create_test_col_equals_expr("sxt.t", &["a", "d"], "a", "b", data.try_into().unwrap(), 0);
-    let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
-        "a" => Vec::<i64>::new(),
-        "d" => Vec::<String>::new(),
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d"], &accessor),
+        tab(t),
+        equal(column(t, "a", &accessor), column(t, "b", &accessor)),
     );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("a", [0; 0]), varchar("d", [""; 0])]);
     assert_eq!(res, expected_res);
 }
 
@@ -137,25 +71,25 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
         varchar("c", ["t"; 0]),
         decimal75("e", 75, 0, [0; 0]),
     ]);
-
-    let test_expr = create_test_complex_col_equals_expr(
-        "sxt.t",
-        &["b", "c", "e"],
-        "bool",
-        "a",
-        "b",
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["b", "c", "e"], &accessor),
+        tab(t),
+        equal(
+            column(t, "bool", &accessor),
+            equal(column(t, "a", &accessor), column(t, "b", &accessor)),
+        ),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("b", [1; 0]),
         varchar("c", ["t"; 0]),
         decimal75("e", 75, 0, [0; 0]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
 #[test]
@@ -166,22 +100,17 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
         varchar("d", ["abc"]),
         decimal75("e", 75, 0, [0]),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["d", "a"],
-        "b",
-        0_i64,
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["d", "a"], &accessor),
+        tab(t),
+        equal(column(t, "b", &accessor), const_bigint(0_i64)),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res = record_batch!(
-        "d" => ["abc"],
-        "a" => [123_i64],
-    );
-
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([varchar("d", ["abc"]), bigint("a", [123_i64])]);
     assert_eq!(res, expected_res);
 }
 
@@ -193,16 +122,17 @@ fn we_can_prove_another_equality_query_with_a_single_selected_row() {
         varchar("d", ["abc"]),
         decimal75("e", 75, 0, [0]),
     ]);
-
-    let test_expr =
-        create_test_col_equals_expr("sxt.t", &["d", "a"], "a", "b", data.try_into().unwrap(), 0);
-    let res = test_expr.verify_expr();
-
-    let expected_res = record_batch!(
-        "d" => ["abc"],
-        "a" => [123_i64],
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["d", "a"], &accessor),
+        tab(t),
+        equal(column(t, "a", &accessor), column(t, "b", &accessor)),
     );
-
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([varchar("d", ["abc"]), bigint("a", [123_i64])]);
     assert_eq!(res, expected_res);
 }
 
@@ -214,24 +144,22 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
         varchar("d", ["abc"]),
         decimal75("e", 75, 0, [Curve25519Scalar::MAX_SIGNED]),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["a", "d", "e"],
-        "b",
-        0_i64,
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d", "e"], &accessor),
+        tab(t),
+        equal(column(t, "b", &accessor), const_bigint(0_i64)),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("a", [0; 0]),
         varchar("d", [""; 0]),
         decimal75("e", 75, 0, [0; 0]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
 #[test]
@@ -252,24 +180,22 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
             ],
         ),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["a", "c", "e"],
-        "b",
-        0_i64,
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "c", "e"], &accessor),
+        tab(t),
+        equal(column(t, "b", &accessor), const_bigint(0_i64)),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("a", [1, 3]),
         varchar("c", ["t", "jj"]),
         decimal75("e", 75, 0, [0, 2]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
 #[test]
@@ -291,25 +217,25 @@ fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
             ],
         ),
     ]);
-
-    let test_expr = create_test_complex_col_equals_expr(
-        "sxt.t",
-        &["a", "c", "e"],
-        "bool",
-        "a",
-        "b",
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "c", "e"], &accessor),
+        tab(t),
+        equal(
+            column(t, "bool", &accessor),
+            equal(column(t, "a", &accessor), column(t, "b", &accessor)),
+        ),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("a", [1, 2]),
         varchar("c", ["t", "ghi"]),
         decimal75("e", 75, 0, [0, 1]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
 #[test]
@@ -331,24 +257,22 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
             ],
         ),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["a", "c", "e"],
-        "b",
-        123_u64,
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "c", "e"], &accessor),
+        tab(t),
+        equal(column(t, "b", &accessor), const_bigint(123_i64)),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("a", [1, 3]),
         varchar("c", ["t", "jj"]),
         decimal75("e", 42, 10, vec![0, 2]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
 #[test]
@@ -371,103 +295,95 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
             ],
         ),
     ]);
-
-    let test_expr = create_test_col_lit_equals_expr(
-        "sxt.t",
-        &["a", "b", "e"],
-        "c",
-        "ghi",
-        data.try_into().unwrap(),
-        0,
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "b", "e"], &accessor),
+        tab(t),
+        equal(column(t, "c", &accessor), const_varchar("ghi")),
     );
-    let res = test_expr.verify_expr();
-
-    let expected_res: OwnedTable<Curve25519Scalar> = owned_table([
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
         bigint("a", [2, 5]),
         bigint("b", [5, 0]),
         decimal75("e", 42, 10, [1, -1]),
     ]);
-
-    assert_eq!(res, expected_res.try_into().unwrap());
+    assert_eq!(res, expected_res);
 }
 
-#[test]
-fn verify_fails_if_data_between_prover_and_verifier_differ() {
-    let data = record_batch!(
-        "a" => [1_i64, 2, 3, 4],
-        "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0_i64, 5, 0, 5],
-    );
-    let test_expr = create_test_col_lit_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
-
-    let data = record_batch!(
-        "a" => [1_i64, 2, 3, 4],
-        "c" => ["t", "ghi", "jj", "f"],
-        "b" => [0_i64, 2, 0, 5],
-    );
-    let tampered_test_expr =
-        create_test_col_lit_equals_expr("sxt.t", &["a", "c"], "b", 0_u64, data, 0);
-
-    let res = test_expr.create_verifiable_result();
-    assert!(res
-        .verify(&test_expr.ast, &tampered_test_expr.accessor, &())
-        .is_err());
-}
-
-fn we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(offset: usize) {
-    let descr = RandomTestAccessorDescriptor {
-        min_rows: 1,
-        max_rows: 20,
-        min_value: -3,
-        max_value: 3,
-    };
+fn test_random_tables_with_given_offset(offset: usize) {
+    let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = [
-        ("aa", ColumnType::BigInt),
-        ("ab", ColumnType::VarChar),
-        ("b", ColumnType::BigInt),
-    ];
     for _ in 0..20 {
-        // filtering by string value
-        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_col_lit_equals_expr(
-            "sxt.t",
-            &["aa", "ab", "b"],
-            "ab",
-            ("s".to_owned() + &filter_val.to_string()[..]).as_str(),
-            data,
-            offset,
-        );
-        let res = test_expr.verify_expr();
-        let expected_res = test_expr.query_table();
-        assert_eq!(res, expected_res);
+        // Generate random table
+        let n = Uniform::new(1, 21).sample(&mut rng);
+        let data = owned_table([
+            bigint("a", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "b",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+            bigint("c", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "d",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+        ]);
 
-        // filtering by integer value
-        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_col_lit_equals_expr(
-            "sxt.t",
-            &["aa", "ab", "b"],
-            "b",
-            filter_val,
-            data,
+        // Generate random values to filter by
+        let filter_val = format!("s{}", dist.sample(&mut rng));
+
+        // Create and verify proof
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+            t,
+            data.clone(),
             offset,
+            (),
         );
-        let res = test_expr.verify_expr();
-        let expected_res = test_expr.query_table();
-        assert_eq!(res, expected_res);
+        let ast = dense_filter(
+            cols_expr_plan(t, &["a", "d"], &accessor),
+            tab(t),
+            equal(
+                column(t, "b", &accessor),
+                const_varchar(filter_val.as_str()),
+            ),
+        );
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        exercise_verification(&verifiable_res, &ast, &accessor, t);
+        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+
+        // Calculate/compare expected result
+        let (expected_a, expected_d): (Vec<_>, Vec<_>) = multizip((
+            data["a"].i64_iter(),
+            data["b"].string_iter(),
+            data["c"].i64_iter(),
+            data["d"].string_iter(),
+        ))
+        .filter_map(|(a, b, _c, d)| {
+            if b == &filter_val {
+                Some((*a, d.clone()))
+            } else {
+                None
+            }
+        })
+        .multiunzip();
+        let expected_result = owned_table([bigint("a", expected_a), varchar("d", expected_d)]);
+
+        assert_eq!(expected_result, res)
     }
 }
 
 #[test]
-fn we_can_query_random_tables_with_a_zero_offset() {
-    we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(0);
+fn we_can_query_random_tables_using_a_zero_offset() {
+    test_random_tables_with_given_offset(0);
 }
 
 #[test]
-fn we_can_query_random_tables_with_a_non_zero_offset() {
-    we_can_query_random_tables_with_multiple_selected_rows_and_given_offset(121);
+fn we_can_query_random_tables_using_a_non_zero_offset() {
+    test_random_tables_with_given_offset(121);
 }
 
 #[test]
@@ -488,10 +404,8 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
             ],
         ),
     ]);
-
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
-    accessor.add_table(t, data, 0);
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let equals_expr: ProvableExprPlan<RistrettoPoint> = equal(
         column(t, "e", &accessor),
         const_scalar(Curve25519Scalar::ZERO),

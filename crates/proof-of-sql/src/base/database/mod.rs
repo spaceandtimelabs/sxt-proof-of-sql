@@ -6,7 +6,6 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
-pub(crate) use column::{INT128_PRECISION, INT128_SCALE};
 
 mod literal_value;
 pub use literal_value::LiteralValue;
@@ -59,6 +58,7 @@ mod test_accessor;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
+#[allow(unused_imports)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
 
 #[cfg(any(test, feature = "test"))]

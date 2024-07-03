@@ -104,9 +104,9 @@ fn test_random_tables_with_given_offset(offset: usize) {
             and(
                 equal(
                     column(t, "b", &accessor),
-                    const_scalar(filter_val1.as_str()),
+                    const_varchar(filter_val1.as_str()),
                 ),
-                equal(column(t, "c", &accessor), const_scalar(filter_val2)),
+                equal(column(t, "c", &accessor), const_bigint(filter_val2)),
             ),
         );
         let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());

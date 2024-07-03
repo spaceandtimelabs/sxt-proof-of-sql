@@ -1,4 +1,10 @@
 //! This module contains postprocessing for non-provable components.
+/// The precision for [ColumnType::INT128] values
+pub const INT128_PRECISION: usize = 38;
+
+/// The scale for [ColumnType::INT128] values
+pub const INT128_SCALE: usize = 0;
+
 mod result_expr;
 pub use result_expr::ResultExpr;
 

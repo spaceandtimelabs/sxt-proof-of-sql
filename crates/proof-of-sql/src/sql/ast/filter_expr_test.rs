@@ -2,19 +2,20 @@ use crate::{
     base::{
         database::{
             owned_table_utility::*, ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable,
-            OwnedTableTestAccessor, RecordBatchTestAccessor, TableRef, TestAccessor,
+            OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::DoryCommitment,
-    record_batch,
     sql::{
         ast::{
             test_utility::*, ColumnExpr, FilterExpr, FilterResultExpr, LiteralExpr,
             ProvableExprPlan, TableExpr,
         },
-        proof::{ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult},
+        proof::{
+            exercise_verification, ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
+        },
     },
 };
 use arrow::datatypes::{Field, Schema};
@@ -150,24 +151,19 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 
 #[test]
 fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
-    let data = record_batch!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-    );
+    let data = owned_table([
+        bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
+        bigint("b", [1_i64, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(t, data, 0);
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let where_clause = equal(column(t, "a", &accessor), const_int128(5));
-    let expr = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-    let res = res
-        .verify(&expr, &accessor, &())
-        .unwrap()
-        .into_record_batch();
-    let expected = record_batch!(
-        "b" => [3_i64, 5],
-    );
-    assert_eq!(res, expected);
+    let ast = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("b", [3_i64, 5])]);
+    assert_eq!(res, expected_res);
 }
 
 #[test]

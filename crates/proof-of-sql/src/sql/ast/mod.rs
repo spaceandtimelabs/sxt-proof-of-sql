@@ -92,9 +92,6 @@ mod sign_expr_test;
 mod table_expr;
 pub(crate) use table_expr::TableExpr;
 
-#[cfg(all(test, feature = "blitzar"))]
-mod test_expr;
-
 #[cfg(test)]
 pub(crate) mod test_utility;
 

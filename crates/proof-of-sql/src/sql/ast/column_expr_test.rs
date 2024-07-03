@@ -1,30 +1,23 @@
 use crate::{
-    base::database::{RecordBatchTestAccessor, TestAccessor},
-    record_batch,
-    sql::ast::{test_expr::TestExprNode, test_utility::*},
+    base::{
+        commitment::InnerProductProof,
+        database::{owned_table_utility::*, OwnedTableTestAccessor},
+    },
+    sql::{
+        ast::test_utility::*,
+        proof::{exercise_verification, VerifiableQueryResult},
+    },
 };
-use arrow::record_batch::RecordBatch;
-
-fn create_test_bool_col_expr(
-    table_ref: &str,
-    results: &[&str],
-    filter_col: &str,
-    data: RecordBatch,
-    offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    let table_ref = table_ref.parse().unwrap();
-    accessor.add_table(table_ref, data, offset);
-    let col_expr = column(table_ref, filter_col, &accessor);
-    let df_filter = polars::prelude::col(filter_col);
-    TestExprNode::new(table_ref, results, col_expr, df_filter, accessor)
-}
 
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
-    let data = record_batch!("a" => [true, false]);
-    let test_expr = create_test_bool_col_expr("sxt.t", &["a"], "a", data.clone(), 0);
-    let res = test_expr.verify_expr();
-    let expected = record_batch!("a" => [true]);
-    assert_eq!(res, expected);
+    let data = owned_table([boolean("a", [true, false])]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = projection(cols_expr_plan(t, &["a"], &accessor), tab(t));
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([boolean("a", [true, false])]);
+    assert_eq!(res, expected_res);
 }
