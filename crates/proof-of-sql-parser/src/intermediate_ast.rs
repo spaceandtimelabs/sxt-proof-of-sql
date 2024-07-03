@@ -4,9 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{
-    intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimestamp, Identifier,
-};
+use crate::{intermediate_decimal::IntermediateDecimal, parser_time::PoSQLTimestamp, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -331,7 +329,7 @@ pub enum Literal {
     /// Decimal Literal
     Decimal(IntermediateDecimal),
     /// Timestamp Literal
-    Timestamp(IntermediateTimestamp),
+    Timestamp(PoSQLTimestamp),
 }
 
 impl From<bool> for Literal {
@@ -383,8 +381,8 @@ impl From<IntermediateDecimal> for Literal {
     }
 }
 
-impl From<IntermediateTimestamp> for Literal {
-    fn from(time: IntermediateTimestamp) -> Self {
+impl From<PoSQLTimestamp> for Literal {
+    fn from(time: PoSQLTimestamp) -> Self {
         Literal::Timestamp(time)
     }
 }

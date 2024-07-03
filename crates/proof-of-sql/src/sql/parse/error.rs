@@ -1,5 +1,5 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
-use proof_of_sql_parser::{intermediate_time::PoSQLTimestampError, Identifier, ResourceId};
+use proof_of_sql_parser::{parser_time::PoSQLTimestampError, Identifier, ResourceId};
 use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.

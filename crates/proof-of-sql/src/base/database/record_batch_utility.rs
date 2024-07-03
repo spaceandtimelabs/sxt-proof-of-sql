@@ -2,7 +2,7 @@ use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
-use proof_of_sql_parser::intermediate_time::PoSQLTimeUnit;
+use proof_of_sql_parser::parser_time::PoSQLTimeUnit;
 use std::sync::Arc;
 
 /// Extension trait for Vec<T> to convert it to an Arrow array

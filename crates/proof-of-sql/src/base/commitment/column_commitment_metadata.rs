@@ -169,7 +169,7 @@ mod tests {
         commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
-    use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::parser_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_construct_metadata() {

@@ -11,7 +11,6 @@ use proof_of_sql_parser::{
         AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
         SelectResultExpr, Slice, TableExpression, UnaryOperator,
     },
-    intermediate_time::PoSQLTimeZone,
     Identifier, ResourceId,
 };
 use std::ops::Deref;
@@ -250,10 +249,7 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(
-                its.timeunit,
-                PoSQLTimeZone::try_from(its.timezone)?,
-            )),
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit, its.timezone)),
         }
     }
 

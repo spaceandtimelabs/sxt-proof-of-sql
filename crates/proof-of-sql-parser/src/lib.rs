@@ -3,7 +3,7 @@
 /// Module for handling an intermediate decimal type received from the lexer.
 pub mod intermediate_decimal;
 /// Module for handling an intermediate timestamp type received from the lexer.
-pub mod intermediate_time;
+pub mod parser_time;
 #[macro_use]
 extern crate lalrpop_util;
 

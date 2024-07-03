@@ -17,7 +17,7 @@ use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use core::ops::Deref;
 use proof_of_sql_parser::{
-    intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    parser_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
 

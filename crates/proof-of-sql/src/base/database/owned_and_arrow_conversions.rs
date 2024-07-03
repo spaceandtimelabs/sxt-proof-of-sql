@@ -34,7 +34,7 @@ use arrow::{
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
-    intermediate_time::{
+    parser_time::{
         PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError, PoSQLTimestampError::InvalidTimeUnit,
     },
     Identifier, ParseError,

@@ -17,25 +17,17 @@ pub enum PoSQLTimestampError {
     #[error("invalid timezone offset")]
     InvalidTimezoneOffset,
 
-    /// Error when a timezone string fails to parse correctly.
-    #[error("failed to parse timezone string")]
-    TimeZoneStringParseError,
-
     /// Error indicating a general failure to convert a timezone.
     #[error("failed to convert timezone")]
-    TimeZoneConversionFailure,
+    TimeZoneConversionFailure(String),
 
     /// Indicates a failure to convert between different representations of time units.
     #[error("Invalid time unit")]
     InvalidTimeUnit(String),
 
-    /// Indicates a failure to convert or parse timezone data correctly.
-    #[error("Invalid timezone")]
-    InvalidTimeZone(String),
-
     /// Indicates that the timestamp string does not match an expected format.
     #[error("Invalid timestamp format: {0}")]
-    InvalidFormat(String),
+    InvalidTimestampFormat(String),
 
     /// The local time does not exist because there is a gap in the local time.
     /// This variant may also be returned if there was an error while resolving the local time,
@@ -84,47 +76,9 @@ impl fmt::Display for PoSQLTimeUnit {
     }
 }
 
-/// Captures a timezone from a timestamp query
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub enum IntermediateTimeZone {
-    /// Default variant for UTC timezone
-    Utc,
-    /// TImezone offset in seconds
-    FixedOffset(i32),
-}
-
-impl IntermediateTimeZone {
-    /// Parse a timezone from a count of seconds
-    pub fn from_offset(offset: i32) -> Self {
-        if offset == 0 {
-            IntermediateTimeZone::Utc
-        } else {
-            IntermediateTimeZone::FixedOffset(offset)
-        }
-    }
-}
-
-impl fmt::Display for IntermediateTimeZone {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            IntermediateTimeZone::Utc => write!(f, "Z"),
-            IntermediateTimeZone::FixedOffset(offset) => {
-                if *offset == 0 {
-                    write!(f, "Z")
-                } else {
-                    let total_minutes = offset / 60;
-                    let hours = total_minutes / 60;
-                    let minutes = total_minutes.abs() % 60;
-                    write!(f, "{:+03}:{:02}", hours, minutes)
-                }
-            }
-        }
-    }
-}
-
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct IntermediateTimestamp {
+pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
     pub timestamp: DateTime<Utc>,
 
@@ -132,17 +86,17 @@ pub struct IntermediateTimestamp {
     pub timeunit: PoSQLTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
-    pub timezone: IntermediateTimeZone,
+    pub timezone: PoSQLTimeZone,
 }
 
-impl IntermediateTimestamp {
-    /// Attempts to parse a timestamp string into an `IntermediateTimestamp` structure.
+impl PoSQLTimestamp {
+    /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
     /// This function supports two primary formats:
     ///
     /// 1. **RFC 3339 Parsing**:
     ///    - Parses the timestamp along with its timezone.
     ///    - If parsing succeeds, it extracts the timezone offset using `dt.offset().local_minus_utc()`
-    ///      and then uses this to construct the appropriate `IntermediateTimeZone`.
+    ///      and then uses this to construct the appropriate `PoSQLTimeZone`.
     ///
     /// 2. **Timezone Parsing and Conversion**:
     ///    - The `from_offset` method is used to determine whether the timezone should be represented
@@ -151,32 +105,34 @@ impl IntermediateTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::intermediate_time::{IntermediateTimestamp, IntermediateTimeZone};
+    /// use proof_of_sql_parser::intermediate_time::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing an RFC 3339 timestamp without a timezone:
     /// let timestamp_str = "2009-01-03T18:15:05Z";
-    /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
+    /// let intermediate_timestamp = PoSQLTimestamp::try_from(timestamp_str).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::Utc);
     ///
     /// // Parsing an RFC 3339 timestamp with a positive timezone offset:
     /// let timestamp_str_with_tz = "2009-01-03T18:15:05+03:00";
-    /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str_with_tz).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::FixedOffset(10800)); // 3 hours in seconds
+    /// let intermediate_timestamp = PoSQLTimestamp::try_from(timestamp_str_with_tz).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::FixedOffset(10800)); // 3 hours in seconds
     /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, PoSQLTimestampError> {
-        DateTime::parse_from_rfc3339(timestamp_str)
-            .map(|dt| {
-                let offset_seconds = dt.offset().local_minus_utc();
-                IntermediateTimestamp {
-                    timestamp: dt.with_timezone(&Utc),
-                    timeunit: PoSQLTimeUnit::Second,
-                    timezone: IntermediateTimeZone::from_offset(offset_seconds),
-                }
-            })
-            .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))
+        let dt = DateTime::parse_from_rfc3339(timestamp_str)
+            .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))?;
+
+        let offset_seconds = dt.offset().local_minus_utc();
+        let timezone = PoSQLTimeZone::from_offset(offset_seconds)
+            .map_err(|e| PoSQLTimestampError::TimeZoneConversionFailure(e.to_string()))?;
+
+        Ok(PoSQLTimestamp {
+            timestamp: dt.with_timezone(&Utc),
+            timeunit: PoSQLTimeUnit::Second,
+            timezone,
+        })
     }
 
-    /// Attempts to parse a timestamp string into an `IntermediateTimestamp` structure.
+    /// Attempts to parse a timestamp string into an `PoSQLTimestamp` structure.
     /// This function supports two primary formats:
     ///
     /// 1. **Unix Epoch Time Parsing**:
@@ -186,19 +142,19 @@ impl IntermediateTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::intermediate_time::{IntermediateTimestamp, IntermediateTimeZone};
+    /// use proof_of_sql_parser::intermediate_time::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;
-    /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
+    /// let intermediate_timestamp = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
+    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::Utc);
     /// ```
     pub fn to_timestamp(epoch: i64) -> Result<Self, PoSQLTimestampError> {
         match Utc.timestamp_opt(epoch, 0) {
-            LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
+            LocalResult::Single(timestamp) => Ok(PoSQLTimestamp {
                 timestamp,
                 timeunit: PoSQLTimeUnit::Second,
-                timezone: IntermediateTimeZone::Utc,
+                timezone: PoSQLTimeZone::UTC,
             }),
             LocalResult::Ambiguous(_, _) => Err(PoSQLTimestampError::Ambiguous),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
@@ -243,25 +199,19 @@ impl PoSQLTimeZone {
     pub fn new(tz: Tz) -> Self {
         PoSQLTimeZone(tz)
     }
-}
 
-impl TryFrom<IntermediateTimeZone> for PoSQLTimeZone {
-    type Error = PoSQLTimestampError;
-
-    fn try_from(tz: IntermediateTimeZone) -> Result<Self, Self::Error> {
-        match tz {
-            IntermediateTimeZone::Utc => Ok(PoSQLTimeZone::UTC),
-            IntermediateTimeZone::FixedOffset(seconds) => FixedOffset::east_opt(seconds)
-                .ok_or(PoSQLTimestampError::InvalidTimezoneOffset)
-                .and_then(|fixed_offset| {
-                    let datetime: DateTime<Utc> = Utc::now();
-                    let offset_datetime = datetime.with_timezone(&fixed_offset);
-                    let tz_string = offset_datetime.format("%Z").to_string();
-                    Tz::from_str(&tz_string)
-                        .map(PoSQLTimeZone)
-                        .map_err(|_| PoSQLTimestampError::TimeZoneStringParseError)
-                }),
-        }
+    /// Create a timezone from a fixed offset in seconds
+    pub fn from_offset(seconds: i32) -> Result<Self, PoSQLTimestampError> {
+        FixedOffset::east_opt(seconds)
+            .ok_or(PoSQLTimestampError::InvalidTimezoneOffset)
+            .and_then(|offset| {
+                let datetime: DateTime<Utc> = Utc::now();
+                let offset_datetime = datetime.with_timezone(&offset);
+                let tz_string = offset_datetime.format("%Z").to_string();
+                Tz::from_str(&tz_string)
+                    .map(PoSQLTimeZone)
+                    .map_err(|_| PoSQLTimestampError::InvalidTimezone(tz_string))
+            })
     }
 }
 
@@ -373,40 +323,40 @@ mod tests {
     #[test]
     fn test_utc_timezone() {
         let input = "2023-06-26T12:34:56Z";
-        let expected_timezone = IntermediateTimeZone::Utc;
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let expected_timezone = PoSQLTimeZone::UTC;
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
     fn test_positive_offset_timezone() {
         let input = "2023-06-26T12:34:56+03:30";
-        let expected_timezone = IntermediateTimeZone::FixedOffset(12600); // 3 hours and 30 minutes in seconds
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let expected_timezone = PoSQLTimeZone::from_offset(12600).unwrap(); // 3 hours and 30 minutes in seconds
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
     fn test_negative_offset_timezone() {
         let input = "2023-06-26T12:34:56-04:00";
-        let expected_timezone = IntermediateTimeZone::FixedOffset(-14400); // -4 hours in seconds
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let expected_timezone = PoSQLTimeZone::from_offset(-14400).unwrap(); // -4 hours in seconds
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
     fn test_zero_offset_timezone() {
         let input = "2023-06-26T12:34:56+00:00";
-        let expected_timezone = IntermediateTimeZone::Utc; // Zero offset defaults to UTC
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let expected_timezone = PoSQLTimeZone::UTC; // Zero offset defaults to UTC
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
     #[test]
     fn test_unix_epoch_time_timezone() {
         let unix_time = 1_593_000_000; // Unix time as string
-        let expected_timezone = IntermediateTimeZone::Utc; // Unix time should always be UTC
-        let result = IntermediateTimestamp::to_timestamp(unix_time).unwrap();
+        let expected_timezone = PoSQLTimeZone::UTC; // Unix time should always be UTC
+        let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
 
@@ -416,7 +366,7 @@ mod tests {
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = PoSQLTimeUnit::Second; // Assuming basic second precision for Unix timestamp
         let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
-        let result = IntermediateTimestamp::to_timestamp(input).unwrap();
+        let result = PoSQLTimestamp::to_timestamp(input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
         assert_eq!(result.timeunit, expected_unit);
@@ -426,7 +376,7 @@ mod tests {
     fn test_basic_rfc3339_timestamp() {
         let input = "2023-06-26T12:34:56Z";
         let expected = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
@@ -434,7 +384,7 @@ mod tests {
     fn test_rfc3339_timestamp_with_positive_offset() {
         let input = "2023-06-26T08:00:00+04:30";
         let expected = Utc.with_ymd_and_hms(2023, 6, 26, 3, 30, 0).unwrap(); // Adjusted to UTC
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
@@ -442,7 +392,7 @@ mod tests {
     fn test_rfc3339_timestamp_with_negative_offset() {
         let input = "2023-06-26T20:00:00-05:00";
         let expected = Utc.with_ymd_and_hms(2023, 6, 27, 1, 0, 0).unwrap(); // Adjusted to UTC
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
@@ -450,14 +400,14 @@ mod tests {
     fn test_rfc3339_timestamp_with_utc_designator() {
         let input = "2023-06-26T12:34:56Z";
         let expected = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
     #[test]
     fn test_invalid_rfc3339_timestamp() {
         let input = "not-a-timestamp";
-        assert!(IntermediateTimestamp::try_from(input).is_err());
+        assert!(PoSQLTimestamp::try_from(input).is_err());
     }
 
     #[test]
@@ -465,7 +415,7 @@ mod tests {
         let input = "2023-06-26T12:34:56Z";
         let expected_time = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
         let expected_unit = PoSQLTimeUnit::Second;
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected_time);
         assert_eq!(result.timeunit, expected_unit);
     }
@@ -475,7 +425,7 @@ mod tests {
     fn test_rfc3339_timestamp_with_milliseconds() {
         let input = "2023-06-26T12:34:56.123Z";
         let expected = Utc.ymd(2023, 6, 26).and_hms_milli(12, 34, 56, 123);
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
@@ -484,7 +434,7 @@ mod tests {
     fn test_rfc3339_timestamp_with_microseconds() {
         let input = "2023-06-26T12:34:56.123456Z";
         let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
     #[test]
@@ -492,7 +442,7 @@ mod tests {
     fn test_rfc3339_timestamp_with_nanoseconds() {
         let input = "2023-06-26T12:34:56.123456789Z";
         let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
-        let result = IntermediateTimestamp::try_from(input).unwrap();
+        let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected);
     }
 
@@ -500,7 +450,7 @@ mod tests {
     fn test_general_parsing_error() {
         // This test assumes that there's a catch-all parsing error case that isn't covered by the more specific errors.
         let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
-        let result = IntermediateTimestamp::try_from(malformed_input);
+        let result = PoSQLTimestamp::try_from(malformed_input);
         assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
     }
 

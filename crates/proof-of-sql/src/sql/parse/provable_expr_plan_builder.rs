@@ -12,7 +12,6 @@ use crate::{
 };
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
-    intermediate_time::PoSQLTimeZone,
     Identifier,
 };
 use std::collections::HashMap;
@@ -101,13 +100,9 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(its) => {
-                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
-                    its.timeunit,
-                    PoSQLTimeZone::try_from(its.timezone)?,
-                    its.timestamp.timestamp(),
-                )))
-            }
+            Literal::Timestamp(its) => Ok(ProvableExprPlan::new_literal(
+                LiteralValue::TimeStampTZ(its.timeunit, its.timezone, its.timestamp.timestamp()),
+            )),
         }
     }
 

@@ -2,7 +2,7 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
-use crate::{intermediate_decimal::IntermediateDecimal, intermediate_time::IntermediateTimestamp};
+use crate::{intermediate_decimal::IntermediateDecimal, parser_time::PoSQLTimestamp};
 
 grammar;
 
@@ -377,17 +377,17 @@ pub BooleanLiteral: bool = {
     "false" => false,
 };
 
-TimestampLiteral: IntermediateTimestamp = {
+TimestampLiteral: PoSQLTimestamp = {
     "timestamp" <content: STRING_LITERAL> =>? {
-        IntermediateTimestamp::try_from(content.trim_matches('\'').trim())
+        PoSQLTimestamp::try_from(content.trim_matches('\'').trim())
             .map_err(|_| User { error: "unable to parse timestamp from query" })
     },
 };
 
-UnixTimestampLiteral: IntermediateTimestamp = {
+UnixTimestampLiteral: PoSQLTimestamp = {
     // Handling the to_timestamp function with numeric input
     "to_timestamp" "(" <epoch: Int64NumericLiteral> ")" =>? {
-        IntermediateTimestamp::to_timestamp(epoch).map_err(|_| User { error: "unable to parse timestamp from query" })
+        PoSQLTimestamp::to_timestamp(epoch).map_err(|_| User { error: "unable to parse timestamp from query" })
     },
 };
 
