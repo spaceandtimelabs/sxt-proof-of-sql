@@ -1,12 +1,6 @@
 use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
 use crate::{
-    base::{
-        bit::BitDistribution,
-        database::{RecordBatchTestAccessor, TestAccessor},
-        polynomial::MultilinearExtension,
-        scalar::Curve25519Scalar,
-    },
-    record_batch,
+    base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::{
         ast::result_evaluate_sign,
         proof::{
@@ -23,10 +17,6 @@ use num_traits::Zero;
 fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let data = [123_i64, 123, 123];
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(t, record_batch!("a" => data), 0);
-
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
     let mut builder = ProofBuilder::new(3, 2, Vec::new());
@@ -39,10 +29,6 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
 fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_column() {
     let data = [-123_i64, -123, -123];
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(t, record_batch!("a" => data), 0);
-
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
     let mut builder = ProofBuilder::new(3, 2, Vec::new());

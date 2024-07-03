@@ -112,6 +112,8 @@ pub fn const_varchar<C: Commitment>(val: &str) -> ProvableExprPlan<C> {
     )))
 }
 
+/// Create a constant scalar value. Used if we don't want to specify column types.
+#[allow(dead_code)]
 pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> ProvableExprPlan<C> {
     ProvableExprPlan::new_literal(LiteralValue::Scalar(val.into()))
 }

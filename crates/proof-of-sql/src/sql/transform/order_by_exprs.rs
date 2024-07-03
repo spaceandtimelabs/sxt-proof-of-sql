@@ -1,6 +1,6 @@
 #[allow(deprecated)]
 use super::DataFrameExpr;
-use crate::base::database::{INT128_PRECISION, INT128_SCALE};
+use super::{INT128_PRECISION, INT128_SCALE};
 use arrow::datatypes::ArrowNativeTypeOp;
 use dyn_partial_eq::DynPartialEq;
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
