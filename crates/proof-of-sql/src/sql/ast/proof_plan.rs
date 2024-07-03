@@ -1,4 +1,4 @@
-use super::{DenseFilterExpr, FilterExpr, GroupByExpr};
+use super::{DenseFilterExpr, FilterExpr, GroupByExpr, ProjectionExpr};
 use crate::{
     base::commitment::Commitment,
     sql::proof::{ProofExpr, ProverEvaluate},
@@ -8,6 +8,11 @@ use serde::{Deserialize, Serialize};
 /// The query plan for proving a query
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ProofPlan<C: Commitment> {
+    /// Provable expressions for queries of the form
+    /// ```ignore
+    ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
+    /// ```
+    Projection(ProjectionExpr<C>),
     /// Provable expressions for queries of the form, where the result is sent in a sparse form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
@@ -37,6 +42,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         accessor: &dyn crate::base::database::MetadataAccessor,
     ) -> Result<(), crate::base::proof::ProofError> {
         match self {
+            ProofPlan::Projection(expr) => expr.count(builder, accessor),
             ProofPlan::Filter(expr) => expr.count(builder, accessor),
             ProofPlan::GroupBy(expr) => expr.count(builder, accessor),
             ProofPlan::DenseFilter(expr) => expr.count(builder, accessor),
@@ -45,6 +51,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
 
     fn get_length(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
         match self {
+            ProofPlan::Projection(expr) => expr.get_length(accessor),
             ProofPlan::Filter(expr) => expr.get_length(accessor),
             ProofPlan::GroupBy(expr) => expr.get_length(accessor),
             ProofPlan::DenseFilter(expr) => expr.get_length(accessor),
@@ -53,6 +60,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
 
     fn get_offset(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
         match self {
+            ProofPlan::Projection(expr) => expr.get_offset(accessor),
             ProofPlan::Filter(expr) => expr.get_offset(accessor),
             ProofPlan::GroupBy(expr) => expr.get_offset(accessor),
             ProofPlan::DenseFilter(expr) => expr.get_offset(accessor),
@@ -67,6 +75,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
     ) -> Result<(), crate::base::proof::ProofError> {
         match self {
+            ProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
             ProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),
             ProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor, result),
             ProofPlan::DenseFilter(expr) => expr.verifier_evaluate(builder, accessor, result),
@@ -75,6 +84,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
 
     fn get_column_result_fields(&self) -> Vec<crate::base::database::ColumnField> {
         match self {
+            ProofPlan::Projection(expr) => expr.get_column_result_fields(),
             ProofPlan::Filter(expr) => expr.get_column_result_fields(),
             ProofPlan::GroupBy(expr) => expr.get_column_result_fields(),
             ProofPlan::DenseFilter(expr) => expr.get_column_result_fields(),
@@ -83,6 +93,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
 
     fn get_column_references(&self) -> std::collections::HashSet<crate::base::database::ColumnRef> {
         match self {
+            ProofPlan::Projection(expr) => expr.get_column_references(),
             ProofPlan::Filter(expr) => expr.get_column_references(),
             ProofPlan::GroupBy(expr) => expr.get_column_references(),
             ProofPlan::DenseFilter(expr) => expr.get_column_references(),
@@ -99,6 +110,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) {
         match self {
+            ProofPlan::Projection(expr) => expr.result_evaluate(builder, alloc, accessor),
             ProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
             ProofPlan::GroupBy(expr) => expr.result_evaluate(builder, alloc, accessor),
             ProofPlan::DenseFilter(expr) => expr.result_evaluate(builder, alloc, accessor),
@@ -113,6 +125,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProofPlan<C> {
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) {
         match self {
+            ProofPlan::Projection(expr) => expr.prover_evaluate(builder, alloc, accessor),
             ProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),
             ProofPlan::GroupBy(expr) => expr.prover_evaluate(builder, alloc, accessor),
             ProofPlan::DenseFilter(expr) => expr.prover_evaluate(builder, alloc, accessor),
