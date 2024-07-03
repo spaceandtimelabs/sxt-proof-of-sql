@@ -142,12 +142,12 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::intermediate_time::{PoSQLTimestamp, PoSQLTimeZone};
+    /// use proof_of_sql_parser::parser_time::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;
     /// let intermediate_timestamp = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::Utc);
+    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::UTC);
     /// ```
     pub fn to_timestamp(epoch: i64) -> Result<Self, PoSQLTimestampError> {
         match Utc.timestamp_opt(epoch, 0) {
@@ -186,8 +186,6 @@ impl From<ArrowTimeUnit> for PoSQLTimeUnit {
 
 /// A typed TimeZone for a [`TimeStamp`]. It is optionally
 /// used to define a timezone other than UTC for a new TimeStamp.
-/// It exists as a wrapper around chrono-tz because chrono-tz does
-/// not implement uniform bit distribution
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct PoSQLTimeZone(Tz);
 
@@ -256,6 +254,45 @@ impl TryFrom<&str> for PoSQLTimeZone {
     }
 }
 
+
+#[cfg(test)]
+mod timezone_offset_tests {
+    use crate::parser_time::{PoSQLTimeZone, PoSQLTimestamp};
+
+    #[test]
+    fn test_utc_timezone() {
+        let input = "2023-06-26T12:34:56Z";
+        let expected_timezone = PoSQLTimeZone::UTC;
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
+    }
+
+    #[test]
+    fn test_positive_offset_timezone() {
+        let input = "2023-06-26T12:34:56+03:30";
+        let expected_timezone = PoSQLTimeZone::from_offset(12600).unwrap(); // 3 hours and 30 minutes in seconds
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
+    }
+
+    #[test]
+    fn test_negative_offset_timezone() {
+        let input = "2023-06-26T12:34:56-04:00";
+        let expected_timezone = PoSQLTimeZone::from_offset(-14400).unwrap(); // -4 hours in seconds
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
+    }
+
+    #[test]
+    fn test_zero_offset_timezone() {
+        let input = "2023-06-26T12:34:56+00:00";
+        let expected_timezone = PoSQLTimeZone::UTC; // Zero offset defaults to UTC
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timezone, expected_timezone);
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -321,38 +358,6 @@ mod tests {
     }
 
     #[test]
-    fn test_utc_timezone() {
-        let input = "2023-06-26T12:34:56Z";
-        let expected_timezone = PoSQLTimeZone::UTC;
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_positive_offset_timezone() {
-        let input = "2023-06-26T12:34:56+03:30";
-        let expected_timezone = PoSQLTimeZone::from_offset(12600).unwrap(); // 3 hours and 30 minutes in seconds
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_negative_offset_timezone() {
-        let input = "2023-06-26T12:34:56-04:00";
-        let expected_timezone = PoSQLTimeZone::from_offset(-14400).unwrap(); // -4 hours in seconds
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_zero_offset_timezone() {
-        let input = "2023-06-26T12:34:56+00:00";
-        let expected_timezone = PoSQLTimeZone::UTC; // Zero offset defaults to UTC
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
     fn test_unix_epoch_time_timezone() {
         let unix_time = 1_593_000_000; // Unix time as string
         let expected_timezone = PoSQLTimeZone::UTC; // Unix time should always be UTC
@@ -371,6 +376,11 @@ mod tests {
         assert_eq!(result.timestamp, expected_datetime);
         assert_eq!(result.timeunit, expected_unit);
     }
+}
+
+#[cfg(test)]
+mod rfc3339_tests {
+    use super::*;
 
     #[test]
     fn test_basic_rfc3339_timestamp() {
@@ -453,6 +463,11 @@ mod tests {
         let result = PoSQLTimestamp::try_from(malformed_input);
         assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
     }
+}
+
+#[cfg(test)]
+mod datetime_tests {
+    use super::*;
 
     #[test]
     fn test_basic_date_time_support() {
