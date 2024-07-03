@@ -35,7 +35,7 @@ use arrow::{
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
     intermediate_time::{
-        PoSQLTimeUnit, PoSQLTimeZone, TimeError, TimeError::UnsupportedTimestampUnit,
+        PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError, PoSQLTimestampError::InvalidTimeUnit,
     },
     Identifier, ParseError,
 };
@@ -63,7 +63,7 @@ pub enum OwnedArrowConversionError {
     NullNotSupportedYet,
     /// Using TimeError to handle all time-related errors
     #[error(transparent)]
-    TimestampConversionError(#[from] TimeError),
+    TimestampConversionError(#[from] PoSQLTimestampError),
 }
 
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
@@ -196,7 +196,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampSecondArray>()
                         .ok_or_else(|| {
-                            TimestampConversionError(UnsupportedTimestampUnit("Second".to_string()))
+                            TimestampConversionError(InvalidTimeUnit("Second".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -210,9 +210,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMillisecondArray>()
                         .ok_or_else(|| {
-                            TimestampConversionError(UnsupportedTimestampUnit(
-                                "Millisecond".to_string(),
-                            ))
+                            TimestampConversionError(InvalidTimeUnit("Millisecond".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -226,9 +224,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampMicrosecondArray>()
                         .ok_or_else(|| {
-                            TimestampConversionError(UnsupportedTimestampUnit(
-                                "Microsecond".to_string(),
-                            ))
+                            TimestampConversionError(InvalidTimeUnit("Microsecond".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
@@ -242,9 +238,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         .as_any()
                         .downcast_ref::<TimestampNanosecondArray>()
                         .ok_or_else(|| {
-                            TimestampConversionError(UnsupportedTimestampUnit(
-                                "Nanosecond".to_string(),
-                            ))
+                            TimestampConversionError(InvalidTimeUnit("Nanosecond".to_string()))
                         })?;
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(

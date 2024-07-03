@@ -12,7 +12,7 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone, TimeError};
+use proof_of_sql_parser::intermediate_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use std::ops::Range;
 use thiserror::Error;
 
@@ -36,7 +36,7 @@ pub enum ArrowArrayToColumnConversionError {
     ConversionError(#[from] ConversionError),
     /// Using TimeError to handle all time-related errors
     #[error(transparent)]
-    TimestampConversionError(#[from] TimeError),
+    TimestampConversionError(#[from] PoSQLTimestampError),
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)

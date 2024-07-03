@@ -1,16 +1,14 @@
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
-use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
+use chrono::{offset::LocalResult, DateTime, FixedOffset, TimeZone, Utc};
+use chrono_tz::Tz;
 use core::fmt;
 use serde::{Deserialize, Serialize};
+use std::{str::FromStr, sync::Arc};
 use thiserror::Error;
 
 /// Errors related to time operations, including timezone and timestamp conversions.
 #[derive(Error, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum TimeError {
-    /// Error indicating the timestamp unit provided is not supported.
-    #[error("unsupported timestamp unit: {0}")]
-    UnsupportedTimestampUnit(String),
-
+pub enum PoSQLTimestampError {
     /// Error when the timezone string provided cannot be parsed into a valid timezone.
     #[error("invalid timezone string: {0}")]
     InvalidTimezone(String),
@@ -26,25 +24,14 @@ pub enum TimeError {
     /// Error indicating a general failure to convert a timezone.
     #[error("failed to convert timezone")]
     TimeZoneConversionFailure,
-}
 
-// This exists because TryFrom<DataType> for ColumnType error is String
-impl From<TimeError> for String {
-    fn from(error: TimeError) -> Self {
-        error.to_string()
-    }
-}
-
-/// Errors from parsing a query string into an intermediate timestamp
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum IntermediateTimestampError {
     /// Indicates a failure to convert between different representations of time units.
     #[error("Invalid time unit")]
-    InvalidTimeUnit,
+    InvalidTimeUnit(String),
 
     /// Indicates a failure to convert or parse timezone data correctly.
     #[error("Invalid timezone")]
-    InvalidTimeZone,
+    InvalidTimeZone(String),
 
     /// Indicates that the timestamp string does not match an expected format.
     #[error("Invalid timestamp format: {0}")]
@@ -64,6 +51,13 @@ pub enum IntermediateTimestampError {
     /// Represents a catch-all for parsing errors not specifically covered by other variants.
     #[error("Timestamp parsing error: {0}")]
     ParsingError(String),
+}
+
+// This exists because TryFrom<DataType> for ColumnType error is String
+impl From<PoSQLTimestampError> for String {
+    fn from(error: PoSQLTimestampError) -> Self {
+        error.to_string()
+    }
 }
 
 /// An intermediate type representing the time units from a parsed query
@@ -169,7 +163,7 @@ impl IntermediateTimestamp {
     /// let intermediate_timestamp = IntermediateTimestamp::try_from(timestamp_str_with_tz).unwrap();
     /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::FixedOffset(10800)); // 3 hours in seconds
     /// ```
-    pub fn try_from(timestamp_str: &str) -> Result<Self, IntermediateTimestampError> {
+    pub fn try_from(timestamp_str: &str) -> Result<Self, PoSQLTimestampError> {
         DateTime::parse_from_rfc3339(timestamp_str)
             .map(|dt| {
                 let offset_seconds = dt.offset().local_minus_utc();
@@ -179,7 +173,7 @@ impl IntermediateTimestamp {
                     timezone: IntermediateTimeZone::from_offset(offset_seconds),
                 }
             })
-            .map_err(|e| IntermediateTimestampError::ParsingError(e.to_string()))
+            .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))
     }
 
     /// Attempts to parse a timestamp string into an `IntermediateTimestamp` structure.
@@ -199,15 +193,15 @@ impl IntermediateTimestamp {
     /// let intermediate_timestamp = IntermediateTimestamp::to_timestamp(unix_time).unwrap();
     /// assert_eq!(intermediate_timestamp.timezone, IntermediateTimeZone::Utc);
     /// ```
-    pub fn to_timestamp(epoch: i64) -> Result<Self, IntermediateTimestampError> {
+    pub fn to_timestamp(epoch: i64) -> Result<Self, PoSQLTimestampError> {
         match Utc.timestamp_opt(epoch, 0) {
             LocalResult::Single(timestamp) => Ok(IntermediateTimestamp {
                 timestamp,
                 timeunit: PoSQLTimeUnit::Second,
                 timezone: IntermediateTimeZone::Utc,
             }),
-            LocalResult::Ambiguous(_, _) => Err(IntermediateTimestampError::Ambiguous),
-            LocalResult::None => Err(IntermediateTimestampError::LocalTimeDoesNotExist),
+            LocalResult::Ambiguous(_, _) => Err(PoSQLTimestampError::Ambiguous),
+            LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
     }
 }
@@ -234,10 +228,6 @@ impl From<ArrowTimeUnit> for PoSQLTimeUnit {
     }
 }
 
-use chrono::FixedOffset;
-use chrono_tz::Tz;
-use std::{str::FromStr, sync::Arc};
-
 /// A typed TimeZone for a [`TimeStamp`]. It is optionally
 /// used to define a timezone other than UTC for a new TimeStamp.
 /// It exists as a wrapper around chrono-tz because chrono-tz does
@@ -256,20 +246,20 @@ impl PoSQLTimeZone {
 }
 
 impl TryFrom<IntermediateTimeZone> for PoSQLTimeZone {
-    type Error = TimeError;
+    type Error = PoSQLTimestampError;
 
     fn try_from(tz: IntermediateTimeZone) -> Result<Self, Self::Error> {
         match tz {
             IntermediateTimeZone::Utc => Ok(PoSQLTimeZone::UTC),
             IntermediateTimeZone::FixedOffset(seconds) => FixedOffset::east_opt(seconds)
-                .ok_or(TimeError::InvalidTimezoneOffset)
+                .ok_or(PoSQLTimestampError::InvalidTimezoneOffset)
                 .and_then(|fixed_offset| {
                     let datetime: DateTime<Utc> = Utc::now();
                     let offset_datetime = datetime.with_timezone(&fixed_offset);
                     let tz_string = offset_datetime.format("%Z").to_string();
                     Tz::from_str(&tz_string)
                         .map(PoSQLTimeZone)
-                        .map_err(|_| TimeError::TimeZoneStringParseError)
+                        .map_err(|_| PoSQLTimestampError::TimeZoneStringParseError)
                 }),
         }
     }
@@ -294,13 +284,13 @@ impl fmt::Display for PoSQLTimeZone {
 }
 
 impl TryFrom<Option<Arc<str>>> for PoSQLTimeZone {
-    type Error = TimeError;
+    type Error = PoSQLTimestampError;
 
     fn try_from(value: Option<Arc<str>>) -> Result<Self, Self::Error> {
         match value {
-            Some(arc_str) => Tz::from_str(&arc_str)
-                .map(PoSQLTimeZone)
-                .map_err(|_| TimeError::InvalidTimezone("Invalid timezone string".to_string())),
+            Some(arc_str) => Tz::from_str(&arc_str).map(PoSQLTimeZone).map_err(|_| {
+                PoSQLTimestampError::InvalidTimezone("Invalid timezone string".to_string())
+            }),
             None => Ok(PoSQLTimeZone(Tz::UTC)), // Default to UTC
         }
     }
@@ -379,12 +369,6 @@ mod tests {
         assert!(result.is_ok(), "None should convert without error");
         assert_eq!(result.unwrap().0, Tz::UTC, "None should default to UTC");
     }
-}
-
-#[cfg(test)]
-mod timezone_tests {
-    use super::*;
-    use chrono::TimeZone;
 
     #[test]
     fn test_utc_timezone() {
@@ -517,10 +501,7 @@ mod timezone_tests {
         // This test assumes that there's a catch-all parsing error case that isn't covered by the more specific errors.
         let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
         let result = IntermediateTimestamp::try_from(malformed_input);
-        assert!(matches!(
-            result,
-            Err(IntermediateTimestampError::ParsingError(_))
-        ));
+        assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
     }
 
     #[test]

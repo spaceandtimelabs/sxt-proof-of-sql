@@ -1,5 +1,5 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
-use proof_of_sql_parser::{intermediate_time::TimeError, Identifier, ResourceId};
+use proof_of_sql_parser::{intermediate_time::PoSQLTimestampError, Identifier, ResourceId};
 use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.
@@ -60,7 +60,7 @@ pub enum ConversionError {
 
     /// Errors related to timestamp parsing
     #[error("Timestamp error: {0}")]
-    TimestampConversionError(#[from] TimeError),
+    TimestampConversionError(#[from] PoSQLTimestampError),
 
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature
