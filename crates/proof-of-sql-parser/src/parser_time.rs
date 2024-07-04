@@ -211,7 +211,9 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                 // Check for named timezones like "UTC"
                 match tz {
                     "Utc" => Ok(PoSQLTimeZone::Utc),
-                    tz if tz.chars().count() == 6 && (tz.starts_with('+') || tz.starts_with('-')) => {
+                    tz if tz.chars().count() == 6
+                        && (tz.starts_with('+') || tz.starts_with('-')) =>
+                    {
                         let sign = if tz.starts_with('-') { -1 } else { 1 };
                         let hours = tz[1..3]
                             .parse::<i32>()
@@ -221,10 +223,10 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                             .map_err(|_| PoSQLTimestampError::InvalidTimezoneOffset)?;
                         let total_seconds = sign * ((hours * 3600) + (minutes * 60));
                         Ok(PoSQLTimeZone::FixedOffset(total_seconds))
-                    },
-                    _ => Err(PoSQLTimestampError::InvalidTimezone(tz.to_string()))
+                    }
+                    _ => Err(PoSQLTimestampError::InvalidTimezone(tz.to_string())),
                 }
-            },
+            }
             None => Ok(PoSQLTimeZone::Utc),
         }
     }
@@ -270,10 +272,14 @@ mod timezone_parsing_tests {
                 _ => tz_str,
             };
 
-            assert_eq!(formatted_tz, expected_tz, "Mismatch in roundtrip for timezone: {}", tz_str);
+            assert_eq!(
+                formatted_tz, expected_tz,
+                "Mismatch in roundtrip for timezone: {}",
+                tz_str
+            );
         }
     }
-    
+
     #[test]
     fn test_display_fixed_offset_positive() {
         let timezone = PoSQLTimeZone::FixedOffset(4500); // +01:15
