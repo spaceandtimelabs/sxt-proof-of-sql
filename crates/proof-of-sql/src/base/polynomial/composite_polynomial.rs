@@ -22,6 +22,7 @@ use std::{rc::Rc, vec::Vec};
 /// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
 ///
 /// The result polynomial is used as the prover key.
+#[derive(Clone, Debug)]
 pub struct CompositePolynomial<S: Scalar> {
     /// max number of multiplicands in each product
     pub max_multiplicands: usize,
@@ -36,6 +37,7 @@ pub struct CompositePolynomial<S: Scalar> {
 
 /// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
 /// This data structures will is used as the verifier key.
+#[derive(Clone, Debug)]
 pub struct CompositePolynomialInfo {
     /// max number of multiplicands in each product
     pub max_multiplicands: usize,
