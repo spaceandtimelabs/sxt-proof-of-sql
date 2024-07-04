@@ -276,7 +276,7 @@ impl ArrayRefExt for ArrayRef {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
                         Ok(Column::TimestampTZ(
                             PoSQLTimeUnit::Second,
-                            PoSQLTimeZone::try_from(tz.clone())?,
+                            PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
                     } else {
@@ -289,7 +289,7 @@ impl ArrayRefExt for ArrayRef {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
                         Ok(Column::TimestampTZ(
                             PoSQLTimeUnit::Millisecond,
-                            PoSQLTimeZone::try_from(tz.clone())?,
+                            PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
                     } else {
@@ -302,7 +302,7 @@ impl ArrayRefExt for ArrayRef {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
                         Ok(Column::TimestampTZ(
                             PoSQLTimeUnit::Microsecond,
-                            PoSQLTimeZone::try_from(tz.clone())?,
+                            PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
                     } else {
@@ -315,7 +315,7 @@ impl ArrayRefExt for ArrayRef {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
                         Ok(Column::TimestampTZ(
                             PoSQLTimeUnit::Nanosecond,
-                            PoSQLTimeZone::try_from(tz.clone())?,
+                            PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
                     } else {
@@ -367,13 +367,13 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
         );
     }
 
@@ -383,7 +383,7 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array
@@ -391,7 +391,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
         );
     }
 
@@ -401,13 +401,13 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
         );
     }
 
@@ -417,7 +417,7 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200];
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(3..5), None);
@@ -433,7 +433,7 @@ mod tests {
         let data = vec![Some(1625072400), None, Some(1625083200)];
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
@@ -992,7 +992,7 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         let result = array
@@ -1000,7 +1000,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[..])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[..])
         );
     }
 
@@ -1054,7 +1054,7 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         // Test using a range smaller than the array size
@@ -1062,7 +1062,7 @@ mod tests {
             array
                 .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
         );
     }
 
@@ -1113,14 +1113,14 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
         let result = array
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
         assert_eq!(
             result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
         );
     }
 
@@ -1142,7 +1142,7 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("UTC"),
+            Some("Utc"),
         ));
 
         assert_eq!(

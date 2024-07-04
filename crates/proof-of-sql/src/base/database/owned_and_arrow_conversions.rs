@@ -201,7 +201,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Second,
-                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
                 }
@@ -215,7 +215,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Millisecond,
-                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
                 }
@@ -229,7 +229,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Microsecond,
-                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
                 }
@@ -243,7 +243,7 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Nanosecond,
-                        PoSQLTimeZone::try_from(timezone.clone())?,
+                        PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
                 }

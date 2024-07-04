@@ -224,24 +224,24 @@ mod tests {
     fn we_can_get_type_and_length_of_timestamp_column() {
         // empty case
         let committable_column =
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[]);
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[]);
         assert_eq!(committable_column.len(), 0);
         assert!(committable_column.is_empty());
         assert_eq!(
             committable_column.column_type(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC)
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
         );
 
         let committable_column = CommittableColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             &[12, 34, 56],
         );
         assert_eq!(committable_column.len(), 3);
         assert!(!committable_column.is_empty());
         assert_eq!(
             committable_column.column_type(),
-            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC)
+            ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
         );
     }
 
@@ -390,12 +390,12 @@ mod tests {
         let from_borrowed_column =
             CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::UTC,
+                PoSQLTimeZone::Utc,
                 &[],
             ));
         assert_eq!(
             from_borrowed_column,
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
         );
 
         // non-empty case
@@ -403,12 +403,12 @@ mod tests {
         let from_borrowed_column =
             CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::UTC,
+                PoSQLTimeZone::Utc,
                 &timestamps,
             ));
         assert_eq!(
             from_borrowed_column,
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &timestamps)
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps)
         );
     }
 
@@ -571,26 +571,26 @@ mod tests {
         // empty case
         let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             Vec::new(),
         );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[])
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
         );
 
         // non-empty case
         let timestamps = vec![1625072400, 1625076000, 1625083200];
         let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             timestamps.clone(),
         );
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(
             from_owned_column,
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &timestamps)
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps)
         );
     }
 
@@ -877,7 +877,7 @@ mod tests {
     fn we_can_commit_to_timestamp_column_through_committable_column() {
         // Empty case
         let committable_column =
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &[]);
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[]);
         let sequence = Sequence::from(&committable_column);
         let mut commitment_buffer = [CompressedRistretto::default()];
         compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
@@ -886,7 +886,7 @@ mod tests {
         // Non-empty case
         let timestamps = [1625072400, 1625076000, 1625083200];
         let committable_column =
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC, &timestamps);
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(timestamps.as_slice());

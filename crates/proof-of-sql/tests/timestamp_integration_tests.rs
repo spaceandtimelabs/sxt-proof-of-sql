@@ -25,7 +25,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_curve25519() {
             timestamptz(
                 "times",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::UTC,
+                PoSQLTimeZone::Utc,
                 [i64::MIN, 0, i64::MAX],
             ),
         ]),
@@ -48,7 +48,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_curve25519() {
     let expected_result = owned_table([timestamptz(
         "times",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::UTC,
+        PoSQLTimeZone::Utc,
         [0],
     )]);
     assert_eq!(owned_table_result, expected_result);
@@ -74,7 +74,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
             timestamptz(
                 "times",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::UTC,
+                PoSQLTimeZone::Utc,
                 [i64::MIN, 0, i64::MAX],
             ),
         ]),
@@ -102,7 +102,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     let expected_result = owned_table([timestamptz(
         "times",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::UTC,
+        PoSQLTimeZone::Utc,
         [0],
     )]);
     assert_eq!(owned_table_result, expected_result);

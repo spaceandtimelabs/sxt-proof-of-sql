@@ -533,7 +533,7 @@ mod tests {
 
         let timestamp_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             vec![1_i64, 2, 3, 4],
         );
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
