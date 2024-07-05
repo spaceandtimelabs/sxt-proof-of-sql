@@ -215,7 +215,6 @@ pub fn decimal75<S: Scalar>(
 /// };
 /// use proof_of_sql_parser::{parser_time::{PoSQLTimeUnit, PoSQLTimeZone},
 /// };
-/// use chrono_tz::Europe::London;
 ///
 /// let result = owned_table::<Curve25519Scalar>([
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),

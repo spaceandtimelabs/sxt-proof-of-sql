@@ -367,7 +367,7 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("Utc"),
+            Some("Z"),
         ));
 
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
@@ -383,7 +383,7 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("Utc"),
+            Some("+00:00"),
         ));
 
         let result = array
@@ -401,7 +401,7 @@ mod tests {
         let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("Utc"),
+            Some("+0:00"),
         ));
 
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
@@ -433,7 +433,7 @@ mod tests {
         let data = vec![Some(1625072400), None, Some(1625083200)];
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
-            Some("Utc"),
+            Some("00:00"),
         ));
 
         let result = array.to_column::<DoryScalar>(&alloc, &(0..3), None);
