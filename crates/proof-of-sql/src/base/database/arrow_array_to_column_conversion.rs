@@ -992,7 +992,7 @@ mod tests {
         let data = vec![1625072400, 1625076000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
-            Some("Utc"),
+            Some("UTC"),
         ));
 
         let result = array

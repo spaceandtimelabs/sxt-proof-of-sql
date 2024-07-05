@@ -59,7 +59,7 @@ pub enum ConversionError {
     DecimalConversionError(#[from] DecimalError),
 
     /// Errors related to timestamp parsing
-    #[error("Timestamp error: {0}")]
+    #[error("Timestamp conversion error: {0}")]
     TimestampConversionError(#[from] PoSQLTimestampError),
 
     #[error("Query not provable because: {0}")]
