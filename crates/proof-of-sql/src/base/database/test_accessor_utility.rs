@@ -8,7 +8,7 @@ use arrow::{
     datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::parser_time::PoSQLTimeUnit;
+use proof_of_sql_parser::posql_time::unit::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,

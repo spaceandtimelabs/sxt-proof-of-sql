@@ -12,7 +12,10 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::parser_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use proof_of_sql_parser::{
+    error::PoSQLTimestampError,
+    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+};
 use std::ops::Range;
 use thiserror::Error;
 

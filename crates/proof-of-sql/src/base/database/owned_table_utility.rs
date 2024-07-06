@@ -17,7 +17,7 @@ use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use core::ops::Deref;
 use proof_of_sql_parser::{
-    parser_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    posql_time::{timezone, unit::PoSQLTimeUnit},
     Identifier,
 };
 
@@ -213,8 +213,8 @@ pub fn decimal75<S: Scalar>(
 /// use proof_of_sql::base::{database::owned_table_utility::*,
 ///     scalar::Curve25519Scalar,
 /// };
-/// use proof_of_sql_parser::{parser_time::{PoSQLTimeUnit, PoSQLTimeZone},
-/// };
+/// use proof_of_sql_parser::{
+///    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
@@ -223,7 +223,7 @@ pub fn decimal75<S: Scalar>(
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
-    timezone: PoSQLTimeZone,
+    timezone: timezone::PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
     (

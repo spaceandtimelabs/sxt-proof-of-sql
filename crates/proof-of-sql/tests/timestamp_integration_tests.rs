@@ -9,8 +9,7 @@ use proof_of_sql::{
     },
     sql::{parse::QueryExpr, proof::QueryProof},
 };
-use proof_of_sql_parser::parser_time::{PoSQLTimeUnit, PoSQLTimeZone};
-
+use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_curve25519() {

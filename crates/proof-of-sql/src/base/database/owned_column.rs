@@ -4,7 +4,7 @@
 /// This is the analog of an arrow Array.
 use super::ColumnType;
 use crate::base::{math::decimal::Precision, scalar::Scalar};
-use proof_of_sql_parser::parser_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]

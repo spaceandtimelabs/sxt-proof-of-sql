@@ -1,71 +1,7 @@
-use arrow::datatypes::TimeUnit as ArrowTimeUnit;
+use super::{timezone, unit::PoSQLTimeUnit};
+use crate::error::PoSQLTimestampError;
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
-use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use thiserror::Error;
-
-/// Errors related to time operations, including timezone and timestamp conversions.s
-#[derive(Error, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum PoSQLTimestampError {
-    /// Error when the timezone string provided cannot be parsed into a valid timezone.
-    #[error("invalid timezone string: {0}")]
-    InvalidTimezone(String),
-
-    /// Error indicating an invalid timezone offset was provided.
-    #[error("invalid timezone offset")]
-    InvalidTimezoneOffset,
-
-    /// Indicates a failure to convert between different representations of time units.
-    #[error("Invalid time unit")]
-    InvalidTimeUnit(String),
-
-    /// The local time does not exist because there is a gap in the local time.
-    /// This variant may also be returned if there was an error while resolving the local time,
-    /// caused by for example missing time zone data files, an error in an OS API, or overflow.
-    #[error("Local time does not exist because there is a gap in the local time")]
-    LocalTimeDoesNotExist,
-
-    /// The local time is ambiguous because there is a fold in the local time.
-    /// This variant contains the two possible results, in the order (earliest, latest).
-    #[error("Unix timestamp is ambiguous because there is a fold in the local time.")]
-    Ambiguous,
-
-    /// Represents a catch-all for parsing errors not specifically covered by other variants.
-    #[error("Timestamp parsing error: {0}")]
-    ParsingError(String),
-}
-
-// This exists because TryFrom<DataType> for ColumnType error is String
-impl From<PoSQLTimestampError> for String {
-    fn from(error: PoSQLTimestampError) -> Self {
-        error.to_string()
-    }
-}
-
-/// An intermediate type representing the time units from a parsed query
-#[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PoSQLTimeUnit {
-    /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
-    Second,
-    /// Represents milliseconds with precision 3: ex "2024-06-20 12:34:56.123"
-    Millisecond,
-    /// Represents microseconds with precision 6: ex "2024-06-20 12:34:56.123456"
-    Microsecond,
-    /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
-    Nanosecond,
-}
-
-impl fmt::Display for PoSQLTimeUnit {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PoSQLTimeUnit::Second => write!(f, "Second"),
-            PoSQLTimeUnit::Millisecond => write!(f, "Millisecond"),
-            PoSQLTimeUnit::Microsecond => write!(f, "Microsecond"),
-            PoSQLTimeUnit::Nanosecond => write!(f, "Nanosecond"),
-        }
-    }
-}
 
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -77,7 +13,7 @@ pub struct PoSQLTimestamp {
     pub timeunit: PoSQLTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
-    pub timezone: PoSQLTimeZone,
+    pub timezone: timezone::PoSQLTimeZone,
 }
 
 impl PoSQLTimestamp {
@@ -113,7 +49,7 @@ impl PoSQLTimestamp {
             .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))?;
 
         let offset_seconds = dt.offset().local_minus_utc();
-        let timezone = PoSQLTimeZone::from_offset(offset_seconds);
+        let timezone = timezone::PoSQLTimeZone::from_offset(offset_seconds);
         let nanoseconds = dt.timestamp_subsec_nanos();
         let timeunit = if nanoseconds % 1_000 != 0 {
             PoSQLTimeUnit::Nanosecond
@@ -154,7 +90,7 @@ impl PoSQLTimestamp {
             LocalResult::Single(timestamp) => Ok(PoSQLTimestamp {
                 timestamp,
                 timeunit: PoSQLTimeUnit::Second,
-                timezone: PoSQLTimeZone::Utc,
+                timezone: timezone::PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(_, _) => Err(PoSQLTimestampError::Ambiguous),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
@@ -162,128 +98,37 @@ impl PoSQLTimestamp {
     }
 }
 
-impl From<PoSQLTimeUnit> for ArrowTimeUnit {
-    fn from(unit: PoSQLTimeUnit) -> Self {
-        match unit {
-            PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
-            PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
-            PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
-            PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
-        }
-    }
-}
-
-impl From<ArrowTimeUnit> for PoSQLTimeUnit {
-    fn from(unit: ArrowTimeUnit) -> Self {
-        match unit {
-            ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
-            ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
-            ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
-            ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
-        }
-    }
-}
-
-/// Captures a timezone from a timestamp query
-#[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PoSQLTimeZone {
-    /// Default variant for UTC timezone
-    Utc,
-    /// TImezone offset in seconds
-    FixedOffset(i32),
-}
-
-impl PoSQLTimeZone {
-    /// Parse a timezone from a count of seconds
-    pub fn from_offset(offset: i32) -> Self {
-        if offset == 0 {
-            PoSQLTimeZone::Utc
-        } else {
-            PoSQLTimeZone::FixedOffset(offset)
-        }
-    }
-}
-
-impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
-    type Error = PoSQLTimestampError;
-
-    fn try_from(value: &Option<Arc<str>>) -> Result<Self, Self::Error> {
-        match value {
-            Some(tz_str) => {
-                let tz = Arc::as_ref(tz_str).to_uppercase();
-                match tz.as_str() {
-                    "Z" | "UTC" | "00:00" | "+00:00" | "0:00" | "+0:00" => Ok(PoSQLTimeZone::Utc),
-                    tz if tz.chars().count() == 6
-                        && (tz.starts_with('+') || tz.starts_with('-')) =>
-                    {
-                        let sign = if tz.starts_with('-') { -1 } else { 1 };
-                        let hours = tz[1..3]
-                            .parse::<i32>()
-                            .map_err(|_| PoSQLTimestampError::InvalidTimezoneOffset)?;
-                        let minutes = tz[4..6]
-                            .parse::<i32>()
-                            .map_err(|_| PoSQLTimestampError::InvalidTimezoneOffset)?;
-                        let total_seconds = sign * ((hours * 3600) + (minutes * 60));
-                        Ok(PoSQLTimeZone::FixedOffset(total_seconds))
-                    }
-                    _ => Err(PoSQLTimestampError::InvalidTimezone(tz.to_string())),
-                }
-            }
-            None => Ok(PoSQLTimeZone::Utc),
-        }
-    }
-}
-
-impl fmt::Display for PoSQLTimeZone {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            PoSQLTimeZone::Utc => {
-                write!(f, "00:00")
-            }
-            PoSQLTimeZone::FixedOffset(seconds) => {
-                let hours = seconds / 3600;
-                let minutes = (seconds.abs() % 3600) / 60;
-                if seconds < 0 {
-                    write!(f, "-{:02}:{:02}", hours.abs(), minutes)
-                } else {
-                    write!(f, "+{:02}:{:02}", hours, minutes)
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod timezone_parsing_tests {
-    use super::*;
+    use crate::posql_time::timezone;
 
     #[test]
     fn test_display_fixed_offset_positive() {
-        let timezone = PoSQLTimeZone::FixedOffset(4500); // +01:15
+        let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
         assert_eq!(format!("{}", timezone), "+01:15");
     }
 
     #[test]
     fn test_display_fixed_offset_negative() {
-        let timezone = PoSQLTimeZone::FixedOffset(-3780); // -01:03
+        let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
         assert_eq!(format!("{}", timezone), "-01:03");
     }
 
     #[test]
     fn test_display_utc() {
-        let timezone = PoSQLTimeZone::Utc;
+        let timezone = timezone::PoSQLTimeZone::Utc;
         assert_eq!(format!("{}", timezone), "00:00");
     }
 }
 
 #[cfg(test)]
 mod timezone_offset_tests {
-    use crate::parser_time::{PoSQLTimeZone, PoSQLTimestamp};
+    use crate::posql_time::{timestamp::PoSQLTimestamp, timezone};
 
     #[test]
     fn test_utc_timezone() {
         let input = "2023-06-26T12:34:56Z";
-        let expected_timezone = PoSQLTimeZone::Utc;
+        let expected_timezone = timezone::PoSQLTimeZone::Utc;
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
@@ -291,7 +136,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_positive_offset_timezone() {
         let input = "2023-06-26T12:34:56+03:30";
-        let expected_timezone = PoSQLTimeZone::from_offset(12600); // 3 hours and 30 minutes in seconds
+        let expected_timezone = timezone::PoSQLTimeZone::from_offset(12600); // 3 hours and 30 minutes in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
@@ -299,7 +144,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_negative_offset_timezone() {
         let input = "2023-06-26T12:34:56-04:00";
-        let expected_timezone = PoSQLTimeZone::from_offset(-14400); // -4 hours in seconds
+        let expected_timezone = timezone::PoSQLTimeZone::from_offset(-14400); // -4 hours in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
@@ -307,7 +152,7 @@ mod timezone_offset_tests {
     #[test]
     fn test_zero_offset_timezone() {
         let input = "2023-06-26T12:34:56+00:00";
-        let expected_timezone = PoSQLTimeZone::Utc; // Zero offset defaults to UTC
+        let expected_timezone = timezone::PoSQLTimeZone::Utc; // Zero offset defaults to UTC
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
@@ -320,7 +165,7 @@ mod tests {
     #[test]
     fn test_unix_epoch_time_timezone() {
         let unix_time = 1231006505; // Unix time as string
-        let expected_timezone = PoSQLTimeZone::Utc; // Unix time should always be UTC
+        let expected_timezone = timezone::PoSQLTimeZone::Utc; // Unix time should always be UTC
         let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }
