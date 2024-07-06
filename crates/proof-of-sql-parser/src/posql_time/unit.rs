@@ -56,7 +56,6 @@ mod time_unit_tests {
 
     use crate::posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit};
     use chrono::{TimeZone, Utc};
-    
 
     #[test]
     fn test_rfc3339_timestamp_with_milliseconds() {
