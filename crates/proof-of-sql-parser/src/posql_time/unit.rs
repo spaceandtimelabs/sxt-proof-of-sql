@@ -47,3 +47,40 @@ impl fmt::Display for PoSQLTimeUnit {
         }
     }
 }
+
+// allow(deprecated) for the sole purpose of testing that
+// timestamp precision is parsed correctly.
+#[cfg(test)]
+#[allow(deprecated)]
+mod time_unit_tests {
+
+    use crate::posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit};
+    use chrono::{TimeZone, Utc};
+    
+
+    #[test]
+    fn test_rfc3339_timestamp_with_milliseconds() {
+        let input = "2023-06-26T12:34:56.123Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_milli(12, 34, 56, 123);
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timeunit, PoSQLTimeUnit::Millisecond);
+        assert_eq!(result.timestamp, expected);
+    }
+
+    #[test]
+    fn test_rfc3339_timestamp_with_microseconds() {
+        let input = "2023-06-26T12:34:56.123456Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timeunit, PoSQLTimeUnit::Microsecond);
+        assert_eq!(result.timestamp, expected);
+    }
+    #[test]
+    fn test_rfc3339_timestamp_with_nanoseconds() {
+        let input = "2023-06-26T12:34:56.123456789Z";
+        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
+        let result = PoSQLTimestamp::try_from(input).unwrap();
+        assert_eq!(result.timeunit, PoSQLTimeUnit::Nanosecond);
+        assert_eq!(result.timestamp, expected);
+    }
+}

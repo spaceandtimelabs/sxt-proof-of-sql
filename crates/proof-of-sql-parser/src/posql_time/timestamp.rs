@@ -32,7 +32,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::parser_time::{PoSQLTimestamp, PoSQLTimeZone};
+    /// use proof_of_sql_parser::posql_time::{timestamp::PoSQLTimestamp, timezone::PoSQLTimeZone};
     ///
     /// // Parsing an RFC 3339 timestamp without a timezone:
     /// let timestamp_str = "2009-01-03T18:15:05Z";
@@ -78,7 +78,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::parser_time::{PoSQLTimestamp, PoSQLTimeZone};
+    /// use proof_of_sql_parser::posql_time::{timestamp::PoSQLTimestamp, timezone::PoSQLTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;
@@ -95,66 +95,6 @@ impl PoSQLTimestamp {
             LocalResult::Ambiguous(_, _) => Err(PoSQLTimestampError::Ambiguous),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
-    }
-}
-
-#[cfg(test)]
-mod timezone_parsing_tests {
-    use crate::posql_time::timezone;
-
-    #[test]
-    fn test_display_fixed_offset_positive() {
-        let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
-        assert_eq!(format!("{}", timezone), "+01:15");
-    }
-
-    #[test]
-    fn test_display_fixed_offset_negative() {
-        let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
-        assert_eq!(format!("{}", timezone), "-01:03");
-    }
-
-    #[test]
-    fn test_display_utc() {
-        let timezone = timezone::PoSQLTimeZone::Utc;
-        assert_eq!(format!("{}", timezone), "00:00");
-    }
-}
-
-#[cfg(test)]
-mod timezone_offset_tests {
-    use crate::posql_time::{timestamp::PoSQLTimestamp, timezone};
-
-    #[test]
-    fn test_utc_timezone() {
-        let input = "2023-06-26T12:34:56Z";
-        let expected_timezone = timezone::PoSQLTimeZone::Utc;
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_positive_offset_timezone() {
-        let input = "2023-06-26T12:34:56+03:30";
-        let expected_timezone = timezone::PoSQLTimeZone::from_offset(12600); // 3 hours and 30 minutes in seconds
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_negative_offset_timezone() {
-        let input = "2023-06-26T12:34:56-04:00";
-        let expected_timezone = timezone::PoSQLTimeZone::from_offset(-14400); // -4 hours in seconds
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
-    }
-
-    #[test]
-    fn test_zero_offset_timezone() {
-        let input = "2023-06-26T12:34:56+00:00";
-        let expected_timezone = timezone::PoSQLTimeZone::Utc; // Zero offset defaults to UTC
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
     }
 }
 
@@ -241,41 +181,6 @@ mod rfc3339_tests {
         let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
         let result = PoSQLTimestamp::try_from(malformed_input);
         assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
-    }
-}
-
-#[cfg(test)]
-#[allow(deprecated)]
-mod time_unit_tests {
-
-    use super::*;
-
-    #[test]
-    fn test_rfc3339_timestamp_with_milliseconds() {
-        let input = "2023-06-26T12:34:56.123Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_milli(12, 34, 56, 123);
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timeunit, PoSQLTimeUnit::Millisecond);
-        assert_eq!(result.timestamp, expected);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn test_rfc3339_timestamp_with_microseconds() {
-        let input = "2023-06-26T12:34:56.123456Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timeunit, PoSQLTimeUnit::Microsecond);
-        assert_eq!(result.timestamp, expected);
-    }
-    #[test]
-    #[allow(deprecated)]
-    fn test_rfc3339_timestamp_with_nanoseconds() {
-        let input = "2023-06-26T12:34:56.123456789Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
-        let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timeunit, PoSQLTimeUnit::Nanosecond);
-        assert_eq!(result.timestamp, expected);
     }
 }
 
