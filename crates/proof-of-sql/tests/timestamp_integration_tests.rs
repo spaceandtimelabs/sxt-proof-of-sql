@@ -115,6 +115,8 @@ fn run_timestamp_query_test(
     assert_eq!(owned_table_result, expected_result);
 }
 
+#[cfg(feature = "blitzar")]
+#[cfg(feature = "test")]
 mod tests {
 
     use crate::run_timestamp_query_test;
