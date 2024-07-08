@@ -17,10 +17,6 @@ pub use composition_expr::CompositionExpr;
 #[cfg(test)]
 pub mod composition_expr_test;
 
-mod owned_table_postprocessing;
-#[allow(unused_imports)]
-pub(crate) use owned_table_postprocessing::OwnedTablePostprocessing;
-
 mod data_frame_expr;
 #[allow(deprecated)]
 pub(crate) use data_frame_expr::DataFrameExpr;

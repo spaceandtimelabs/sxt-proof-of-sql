@@ -45,6 +45,25 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(_, _, col) => col.len(),
         }
     }
+
+    /// Returns the sliced column.
+    pub fn slice(&self, start: usize, end: usize) -> Self {
+        match self {
+            OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
+            OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
+            OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
+            OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
+            OwnedColumn::VarChar(col) => OwnedColumn::VarChar(col[start..end].to_vec()),
+            OwnedColumn::Int128(col) => OwnedColumn::Int128(col[start..end].to_vec()),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                OwnedColumn::Decimal75(*precision, *scale, col[start..end].to_vec())
+            }
+            OwnedColumn::Scalar(col) => OwnedColumn::Scalar(col[start..end].to_vec()),
+            OwnedColumn::TimestampTZ(tu, tz, col) => {
+                OwnedColumn::TimestampTZ(*tu, *tz, col[start..end].to_vec())
+            }
+        }
+    }
     /// Returns true if the column is empty.
     pub fn is_empty(&self) -> bool {
         match self {
