@@ -16,7 +16,9 @@ pub use table_ref::TableRef;
 mod arrow_array_to_column_conversion;
 pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
+#[cfg(any(test, feature = "polars"))]
 mod record_batch_dataframe_conversion;
+#[cfg(any(test, feature = "polars"))]
 pub(crate) use record_batch_dataframe_conversion::{
     dataframe_to_record_batch, record_batch_to_dataframe,
 };

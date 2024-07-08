@@ -1,7 +1,10 @@
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 use super::DataFrameExpr;
+#[cfg(feature = "polars")]
 use super::{ToPolarsExpr, INT128_PRECISION, INT128_SCALE};
 use dyn_partial_eq::DynPartialEq;
+#[cfg(feature = "polars")]
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
 use proof_of_sql_parser::{intermediate_ast::AliasedResultExpr, Identifier};
 use serde::{Deserialize, Serialize};
@@ -10,32 +13,43 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, DynPartialEq, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExpr {
     /// A list of aggregation column expressions
-    agg_exprs: Vec<Expr>,
+    aliased_exprs: Vec<AliasedResultExpr>,
 
     /// A list of group by column expressions
-    by_exprs: Vec<Expr>,
+    by_ids: Vec<Identifier>,
 }
 
 impl GroupByExpr {
     /// Create a new group by expression containing the group by and aggregation expressions
     pub fn new(by_ids: &[Identifier], aliased_exprs: &[AliasedResultExpr]) -> Self {
-        let by_exprs = Vec::from_iter(by_ids.iter().map(|id| col(id.as_str())));
-        let agg_exprs = Vec::from_iter(aliased_exprs.iter().map(ToPolarsExpr::to_polars_expr));
-        assert!(!agg_exprs.is_empty(), "Agg expressions must not be empty");
         assert!(
-            !by_exprs.is_empty(),
-            "Group by expressions must not be empty"
+            !aliased_exprs.is_empty(),
+            "Agg expressions must not be empty"
         );
+        assert!(!by_ids.is_empty(), "Group by expressions must not be empty");
 
         Self {
-            by_exprs,
-            agg_exprs,
+            by_ids: by_ids.to_vec(),
+            aliased_exprs: aliased_exprs.to_vec(),
         }
+    }
+
+    #[cfg(feature = "polars")]
+    fn agg_exprs(&self) -> Vec<Expr> {
+        self.aliased_exprs
+            .iter()
+            .map(ToPolarsExpr::to_polars_expr)
+            .collect()
     }
 }
 
+#[cfg(not(feature = "polars"))]
+#[typetag::serde]
+impl super::RecordBatchExpr for GroupByExpr {}
+#[cfg(feature = "polars")]
 super::impl_record_batch_expr_for_data_frame_expr!(GroupByExpr);
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 impl DataFrameExpr for GroupByExpr {
     fn lazy_transformation(&self, lazy_frame: LazyFrame, num_input_rows: usize) -> LazyFrame {
         // TODO: polars currently lacks support for min/max aggregation in data frames
@@ -43,23 +57,23 @@ impl DataFrameExpr for GroupByExpr {
         // We remove the group by clause to temporarily work around this limitation.
         // Issue created to track progress: https://github.com/pola-rs/polars/issues/11232
         if num_input_rows == 0 {
-            return lazy_frame.select(&self.agg_exprs).limit(0);
+            return lazy_frame.select(&self.agg_exprs()).limit(0);
         }
 
         if num_input_rows == 1 {
-            return lazy_frame.select(&self.agg_exprs);
+            return lazy_frame.select(&self.agg_exprs());
         }
 
         // Add invalid column aliases to group by expressions so that we can
         // exclude them from the final result.
-        let by_expr_aliases = (0..self.by_exprs.len())
+        let by_expr_aliases = (0..self.by_ids.len())
             .map(|pos| "#$".to_owned() + pos.to_string().as_str())
             .collect::<Vec<_>>();
 
         let by_exprs: Vec<_> = self
-            .by_exprs
-            .clone()
-            .into_iter()
+            .by_ids
+            .iter()
+            .map(|id| col(id.as_str()))
             .zip(by_expr_aliases.iter())
             .map(|(expr, alias)| expr.alias(alias.as_str()))
             // TODO: remove this mapping once Polars supports decimal columns inside group by
@@ -71,11 +85,12 @@ impl DataFrameExpr for GroupByExpr {
         // to avoid non-deterministic results with our tests.
         lazy_frame
             .group_by_stable(&by_exprs)
-            .agg(&self.agg_exprs)
+            .agg(&self.agg_exprs())
             .select(&[col("*").exclude(by_expr_aliases)])
     }
 }
 
+#[cfg(any(test, feature = "polars"))]
 pub(crate) fn group_by_map_i128_to_utf8(v: i128) -> String {
     // use big end to allow
     // skipping leading zeros
@@ -99,6 +114,7 @@ pub(crate) fn group_by_map_i128_to_utf8(v: i128) -> String {
 
 // Polars doesn't support Decimal columns inside group by.
 // So we need to remap them to the supported UTF8 type.
+#[cfg(feature = "polars")]
 fn group_by_map_to_utf8_if_decimal(expr: Expr) -> Expr {
     expr.map(
         |series| match series.dtype().clone() {

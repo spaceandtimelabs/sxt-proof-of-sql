@@ -1,10 +1,16 @@
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 use super::DataFrameExpr;
+#[cfg(feature = "polars")]
 use super::{INT128_PRECISION, INT128_SCALE};
+#[cfg(any(test, feature = "polars"))]
 use arrow::datatypes::ArrowNativeTypeOp;
 use dyn_partial_eq::DynPartialEq;
+#[cfg(feature = "polars")]
 use polars::prelude::{col, DataType, Expr, GetOutput, LazyFrame, NamedFrom, Series};
-use proof_of_sql_parser::intermediate_ast::{OrderBy, OrderByDirection};
+use proof_of_sql_parser::intermediate_ast::OrderBy;
+#[cfg(feature = "polars")]
+use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 use serde::{Deserialize, Serialize};
 
 /// A node representing a list of `OrderBy` expressions.
@@ -20,8 +26,13 @@ impl OrderByExprs {
     }
 }
 
+#[cfg(not(feature = "polars"))]
+#[typetag::serde]
+impl super::RecordBatchExpr for OrderByExprs {}
+#[cfg(feature = "polars")]
 super::impl_record_batch_expr_for_data_frame_expr!(OrderByExprs);
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 impl DataFrameExpr for OrderByExprs {
     /// Sort the `LazyFrame` by the `OrderBy` expressions.
     fn lazy_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
@@ -51,6 +62,7 @@ impl DataFrameExpr for OrderByExprs {
 /// * `a < b` if and only if `map_i128_to_utf8(a) < map_i128_to_utf8(b)`.
 /// * `a == b` if and only if `map_i128_to_utf8(a) == map_i128_to_utf8(b)`.
 /// * `a > b` if and only if `map_i128_to_utf8(a) > map_i128_to_utf8(b)`.
+#[cfg(any(test, feature = "polars"))]
 pub(crate) fn order_by_map_i128_to_utf8(v: i128) -> String {
     let is_neg = v.is_negative() as u8;
     v.abs()
@@ -78,6 +90,7 @@ pub(crate) fn order_by_map_i128_to_utf8(v: i128) -> String {
 
 // Polars doesn't support Decimal columns inside order by.
 // So we need to remap them to the supported UTF8 type.
+#[cfg(feature = "polars")]
 fn order_by_map_to_utf8_if_decimal(expr: Expr) -> Expr {
     expr.map(
         |series| match series.dtype().clone() {

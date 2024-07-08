@@ -1,13 +1,15 @@
+#[cfg(any(test, feature = "polars"))]
+use super::{dataframe_to_record_batch, record_batch_to_dataframe};
 use super::{
-    dataframe_to_record_batch, record_batch_to_dataframe, ArrayRefExt, Column, ColumnRef,
-    ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
-    TestAccessor,
+    ArrayRefExt, Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+    SchemaAccessor, TableRef, TestAccessor,
 };
 use crate::base::scalar::{compute_commitment_for_testing, Curve25519Scalar};
 use arrow::{array::ArrayRef, datatypes::DataType, record_batch::RecordBatch};
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use indexmap::IndexMap;
+#[cfg(any(test, feature = "polars"))]
 use polars::prelude::DataFrame;
 use proof_of_sql_parser::Identifier;
 use std::collections::HashMap;
@@ -114,6 +116,7 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
 
 impl RecordBatchTestAccessor {
     /// Apply a query function to table and then convert the result to a RecordBatch
+    #[cfg(any(test, feature = "polars"))]
     pub fn query_table(
         &self,
         table_ref: TableRef,

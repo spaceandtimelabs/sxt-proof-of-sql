@@ -36,13 +36,10 @@ impl ResultExprBuilder {
                 .iter()
                 .map(|aliased_expr| Expression::Column(aliased_expr.alias))
                 .collect();
-            self.composition
-                .add(Box::new(SelectExpr::new_from_expressions(&exprs)));
+            self.composition.add(Box::new(SelectExpr::new(&exprs)));
         } else {
             self.composition
-                .add(Box::new(SelectExpr::new_from_aliased_result_exprs(
-                    aliased_exprs,
-                )));
+                .add(Box::new(SelectExpr::new(aliased_exprs)));
         }
         self
     }

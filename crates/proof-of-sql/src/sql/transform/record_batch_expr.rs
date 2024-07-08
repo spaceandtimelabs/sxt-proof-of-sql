@@ -7,9 +7,13 @@ use std::fmt::Debug;
 #[dyn_partial_eq]
 pub trait RecordBatchExpr: Debug + Send + Sync {
     /// Apply the transformation to the `RecordBatch` and return the result.
-    fn apply_transformation(&self, record_batch: RecordBatch) -> Option<RecordBatch>;
+    #[allow(unused_variables)]
+    fn apply_transformation(&self, record_batch: RecordBatch) -> Option<RecordBatch> {
+        None
+    }
 }
 
+#[cfg(feature = "polars")]
 macro_rules! impl_record_batch_expr_for_data_frame_expr {
     ($t:ty) => {
         #[typetag::serde]
@@ -29,4 +33,5 @@ macro_rules! impl_record_batch_expr_for_data_frame_expr {
     };
 }
 
+#[cfg(feature = "polars")]
 pub(crate) use impl_record_batch_expr_for_data_frame_expr;

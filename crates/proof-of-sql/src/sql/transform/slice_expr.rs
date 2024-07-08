@@ -1,6 +1,8 @@
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 use super::DataFrameExpr;
 use dyn_partial_eq::DynPartialEq;
+#[cfg(feature = "polars")]
 use polars::prelude::LazyFrame;
 use serde::{Deserialize, Serialize};
 
@@ -30,8 +32,13 @@ impl SliceExpr {
     }
 }
 
+#[cfg(not(feature = "polars"))]
+#[typetag::serde]
+impl super::RecordBatchExpr for SliceExpr {}
+#[cfg(feature = "polars")]
 super::record_batch_expr::impl_record_batch_expr_for_data_frame_expr!(SliceExpr);
 #[allow(deprecated)]
+#[cfg(feature = "polars")]
 impl DataFrameExpr for SliceExpr {
     /// Apply the slice transformation to the given `LazyFrame`.
     fn lazy_transformation(&self, lazy_frame: LazyFrame, _: usize) -> LazyFrame {
