@@ -115,10 +115,8 @@ fn run_timestamp_query_test(
     assert_eq!(owned_table_result, expected_result);
 }
 
-#[cfg(test)]
 mod tests {
 
-    #![cfg(feature = "test")]
     use crate::run_timestamp_query_test;
     use chrono::DateTime;
 
