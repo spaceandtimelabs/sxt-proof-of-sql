@@ -15,7 +15,8 @@ pub enum ParseError {
     ResourceIdParseError(String),
 }
 
-/// TODO: Add docs
+/// General parsing error that may occur, for example if the provided schema/object_name strings
+/// aren't valid postgres-style identifiers (excluding dollar signs).
 pub type ParseResult<T> = std::result::Result<T, ParseError>;
 
 /// Errors related to time operations, including timezone and timestamp conversions.s
@@ -42,7 +43,7 @@ pub enum PoSQLTimestampError {
     /// The local time is ambiguous because there is a fold in the local time.
     /// This variant contains the two possible results, in the order (earliest, latest).
     #[error("Unix timestamp is ambiguous because there is a fold in the local time.")]
-    Ambiguous,
+    Ambiguous(String),
 
     /// Represents a catch-all for parsing errors not specifically covered by other variants.
     #[error("Timestamp parsing error: {0}")]

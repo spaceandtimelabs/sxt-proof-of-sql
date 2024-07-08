@@ -153,6 +153,41 @@ mod tests {
         assert!(Identifier::from_str("GOOD_IDENTIFIER.").is_err());
         assert!(Identifier::from_str(".GOOD_IDENTIFIER").is_err());
         assert!(Identifier::from_str(&"LONG_IDENTIFIER_OVER_64_CHARACTERS".repeat(12)).is_err());
+
+        // Test for reserved keywords
+        let keywords = [
+            "all",
+            "asc",
+            "desc",
+            "as",
+            "and",
+            "from",
+            "not",
+            "or",
+            "select",
+            "where",
+            "order",
+            "by",
+            "limit",
+            "offset",
+            "group",
+            "min",
+            "max",
+            "count",
+            "sum",
+            "true",
+            "false",
+            "timestamp",
+            "to_timestamp",
+        ];
+
+        for keyword in keywords.iter() {
+            assert!(
+                Identifier::from_str(keyword).is_err(),
+                "Should not parse keyword as identifier: {}",
+                keyword
+            );
+        }
     }
 
     #[test]

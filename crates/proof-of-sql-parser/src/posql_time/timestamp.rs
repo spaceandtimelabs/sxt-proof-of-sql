@@ -92,7 +92,9 @@ impl PoSQLTimestamp {
                 timeunit: PoSQLTimeUnit::Second,
                 timezone: timezone::PoSQLTimeZone::Utc,
             }),
-            LocalResult::Ambiguous(_, _) => Err(PoSQLTimestampError::Ambiguous),
+            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
+                format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
+            )),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
     }
@@ -121,11 +123,6 @@ mod tests {
         assert_eq!(result.timestamp, expected_datetime);
         assert_eq!(result.timeunit, expected_unit);
     }
-}
-
-#[cfg(test)]
-mod rfc3339_tests {
-    use super::*;
 
     #[test]
     fn test_basic_rfc3339_timestamp() {
@@ -162,7 +159,12 @@ mod rfc3339_tests {
     #[test]
     fn test_invalid_rfc3339_timestamp() {
         let input = "not-a-timestamp";
-        assert!(PoSQLTimestamp::try_from(input).is_err());
+        assert_eq!(
+            PoSQLTimestamp::try_from(input),
+            Err(PoSQLTimestampError::ParsingError(
+                "input contains invalid characters".into()
+            ))
+        );
     }
 
     #[test]
@@ -182,11 +184,6 @@ mod rfc3339_tests {
         let result = PoSQLTimestamp::try_from(malformed_input);
         assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
     }
-}
-
-#[cfg(test)]
-mod datetime_tests {
-    use super::*;
 
     #[test]
     fn test_basic_date_time_support() {
@@ -203,7 +200,34 @@ mod datetime_tests {
     #[test]
     fn test_leap_seconds() {
         let input = "1998-12-31T23:59:60Z"; // fyi the 59:-->60<-- is the leap second
-        assert!(DateTime::parse_from_rfc3339(input).is_ok());
+        assert!(PoSQLTimestamp::try_from(input).is_ok());
+    }
+
+    #[test]
+    fn test_leap_seconds_ranges() {
+        // Timestamp just before the leap second
+        let before_leap_second = "1998-12-31T23:59:59Z";
+        // Timestamp during the leap second
+        let leap_second = "1998-12-31T23:59:60Z";
+        // Timestamp just after the leap second
+        let after_leap_second = "1999-01-01T00:00:00Z";
+
+        // Parse timestamps
+        let before_leap_dt = PoSQLTimestamp::try_from(before_leap_second).unwrap();
+        let leap_second_dt = PoSQLTimestamp::try_from(leap_second).unwrap();
+        let after_leap_dt = PoSQLTimestamp::try_from(after_leap_second).unwrap();
+
+        // Ensure that "23:59:60Z" is considered equivalent to "23:59:59Z" + 1 second
+        assert_eq!(
+            before_leap_dt.timestamp,
+            leap_second_dt.timestamp - chrono::Duration::seconds(1)
+        );
+
+        // Ensure that "23:59:60Z" + 1 second is "1999-01-01T00:00:00Z"
+        assert_eq!(
+            after_leap_dt.timestamp,
+            leap_second_dt.timestamp + chrono::Duration::seconds(1)
+        );
     }
 
     #[test]

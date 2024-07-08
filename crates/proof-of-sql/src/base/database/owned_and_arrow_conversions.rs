@@ -33,7 +33,7 @@ use arrow::{
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
-    error::{PoSQLTimestampError, PoSQLTimestampError::InvalidTimeUnit},
+    error::PoSQLTimestampError,
     posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
     Identifier, ParseError,
 };
@@ -193,7 +193,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let array = value
                         .as_any()
                         .downcast_ref::<TimestampSecondArray>()
-                        .ok_or_else(|| InvalidTimeUnit("Second".to_string()))?;
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Second,
@@ -205,7 +207,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let array = value
                         .as_any()
                         .downcast_ref::<TimestampMillisecondArray>()
-                        .ok_or_else(|| InvalidTimeUnit("Millisecond".to_string()))?;
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Millisecond,
@@ -217,7 +221,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let array = value
                         .as_any()
                         .downcast_ref::<TimestampMicrosecondArray>()
-                        .ok_or_else(|| InvalidTimeUnit("Microsecond".to_string()))?;
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Microsecond,
@@ -229,7 +235,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     let array = value
                         .as_any()
                         .downcast_ref::<TimestampNanosecondArray>()
-                        .ok_or_else(|| InvalidTimeUnit("Nanosecond".to_string()))?;
+                        .expect(
+                            "This cannot fail, all Arrow TimeUnits are mapped to PoSQL TimeUnits",
+                        );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
                         PoSQLTimeUnit::Nanosecond,
