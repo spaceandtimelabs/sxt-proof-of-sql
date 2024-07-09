@@ -1,3 +1,4 @@
+use crate::error::PoSQLTimestampError;
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -13,6 +14,19 @@ pub enum PoSQLTimeUnit {
     Microsecond,
     /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
     Nanosecond,
+}
+
+impl TryFrom<&str> for PoSQLTimeUnit {
+    type Error = PoSQLTimestampError;
+    fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
+        match value {
+            "0" => Ok(PoSQLTimeUnit::Second),
+            "3" => Ok(PoSQLTimeUnit::Millisecond),
+            "6" => Ok(PoSQLTimeUnit::Microsecond),
+            "9" => Ok(PoSQLTimeUnit::Nanosecond),
+            _ => Err(PoSQLTimestampError::UnsupportedPrecision(value.into())),
+        }
+    }
 }
 
 impl From<PoSQLTimeUnit> for ArrowTimeUnit {
@@ -54,8 +68,24 @@ impl fmt::Display for PoSQLTimeUnit {
 #[allow(deprecated)]
 mod time_unit_tests {
 
-    use crate::posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit};
+    use crate::{
+        error::PoSQLTimestampError,
+        posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit},
+    };
     use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn test_invalid_precision() {
+        let invalid_precisions = ["1", "2", "4", "5", "7", "8", "10"]; // Testing various invalid inputs
+        for &value in invalid_precisions.iter() {
+            let result = PoSQLTimeUnit::try_from(value);
+            assert!(
+                matches!(result, Err(PoSQLTimestampError::UnsupportedPrecision(err)) if err == *value),
+                "Failed with value: {}",
+                value
+            );
+        }
+    }
 
     #[test]
     fn test_rfc3339_timestamp_with_milliseconds() {
