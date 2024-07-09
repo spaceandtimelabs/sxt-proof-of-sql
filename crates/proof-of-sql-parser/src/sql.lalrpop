@@ -2,7 +2,7 @@ use crate::intermediate_ast;
 use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
-use crate::intermediate_decimal::IntermediateDecimal;
+use crate::{intermediate_decimal::IntermediateDecimal, posql_time::timestamp::PoSQLTimestamp};
 
 grammar;
 
@@ -337,6 +337,10 @@ LiteralValue: Box<intermediate_ast::Literal> = {
     },
 
     <value: DecimalNumericLiteral> => Box::new(intermediate_ast::Literal::Decimal(value)),
+
+    <value: TimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
+
+    <value: UnixTimestampLiteral> => Box::new(intermediate_ast::Literal::Timestamp(value)),
 };
 
 Int128UnaryNumericLiteral: i128 = {
@@ -371,6 +375,20 @@ pub StringLiteral: String = {
 pub BooleanLiteral: bool = {
     "true" => true,
     "false" => false,
+};
+
+TimestampLiteral: PoSQLTimestamp = {
+    "timestamp" <content: STRING_LITERAL> =>? {
+        PoSQLTimestamp::try_from(content.trim_matches('\'').trim())
+            .map_err(|_| User { error: "unable to parse timestamp from query" })
+    },
+};
+
+UnixTimestampLiteral: PoSQLTimestamp = {
+    // Handling the to_timestamp function with numeric input
+    "to_timestamp" "(" <epoch: Int64NumericLiteral> ")" =>? {
+        PoSQLTimestamp::to_timestamp(epoch).map_err(|_| User { error: "unable to parse timestamp from query" })
+    },
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,7 +431,9 @@ match {
     r"[sS][uU][mM]" => "sum",
     r"[tT][rR][uU][eE]" => "true",
     r"[fF][aA][lL][sS][eE]" => "false",
-
+    r"[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "timestamp",
+    r"[tT][oO]_[tT][iI][mM][eE][sS][tT][aA][mM][pP]" => "to_timestamp",
+    
     "," => ",",
     "." => ".",
     "(" => "(",

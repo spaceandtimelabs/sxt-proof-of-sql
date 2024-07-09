@@ -30,7 +30,7 @@ bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
-chrono-tz = {workspace = true, features = ["serde"]}
+chrono = {workspace = true, features = ["serde"]}
 derive_more = { workspace = true }
 dyn_partial_eq = { workspace = true }
 hashbrown = { workspace = true }

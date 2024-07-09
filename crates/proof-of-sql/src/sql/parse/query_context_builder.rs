@@ -249,6 +249,7 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit, its.timezone)),
         }
     }
 
@@ -284,6 +285,7 @@ pub(crate) fn type_check_binary_operation(
             matches!(
                 (left_dtype, right_dtype),
                 (ColumnType::VarChar, ColumnType::VarChar)
+                    | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                     | (ColumnType::Boolean, ColumnType::Boolean)
                     | (_, ColumnType::Scalar)
                     | (ColumnType::Scalar, _)
@@ -304,6 +306,7 @@ pub(crate) fn type_check_binary_operation(
                     return false;
                 }
             }
+            // TODO: inequality support for timestamps
             left_dtype.is_numeric() && right_dtype.is_numeric()
                 || matches!(
                     (left_dtype, right_dtype),

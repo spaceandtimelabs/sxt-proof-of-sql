@@ -2,11 +2,13 @@ use super::{LiteralValue, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
-use proof_of_sql_parser::Identifier;
+use proof_of_sql_parser::{
+    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    Identifier,
+};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -334,9 +336,10 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(timeunit, timezone) => {
-                DataType::Timestamp(ArrowTimeUnit::from(*timeunit), Some(Arc::from(timezone)))
-            }
+            ColumnType::TimestampTZ(timeunit, timezone) => DataType::Timestamp(
+                ArrowTimeUnit::from(*timeunit),
+                Some(Arc::from(timezone.to_string())),
+            ),
         }
     }
 }
@@ -357,7 +360,7 @@ impl TryFrom<DataType> for ColumnType {
             }
             DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
                 PoSQLTimeUnit::from(time_unit),
-                PoSQLTimeZone::try_from(timezone_option)?,
+                PoSQLTimeZone::try_from(&timezone_option)?,
             )),
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
@@ -471,9 +474,9 @@ mod tests {
 
     #[test]
     fn column_type_serializes_to_string() {
-        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC);
+        let column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
         let serialized = serde_json::to_string(&column_type).unwrap();
-        assert_eq!(serialized, r#"{"TimestampTZ":["Second","UTC"]}"#);
+        assert_eq!(serialized, r#"{"TimestampTZ":["Second","Utc"]}"#);
 
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();

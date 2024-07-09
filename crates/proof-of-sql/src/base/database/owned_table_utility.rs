@@ -14,12 +14,12 @@
 //! ]);
 //! ```
 use super::{OwnedColumn, OwnedTable};
-use crate::base::{
-    scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-};
+use crate::base::scalar::Scalar;
 use core::ops::Deref;
-use proof_of_sql_parser::Identifier;
+use proof_of_sql_parser::{
+    posql_time::{timezone, unit::PoSQLTimeUnit},
+    Identifier,
+};
 
 /// Creates an OwnedTable from a list of (Identifier, OwnedColumn) pairs.
 /// This is a convenience wrapper around OwnedTable::try_from_iter primarily for use in tests and
@@ -212,18 +212,18 @@ pub fn decimal75<S: Scalar>(
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*,
 ///     scalar::Curve25519Scalar,
-///     time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone}
 /// };
-/// use chrono_tz::Europe::London;
+/// use proof_of_sql_parser::{
+///    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::new(London), vec![1625072400, 1625076000, 1625079600]),
+///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
-    timezone: PoSQLTimeZone,
+    timezone: timezone::PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
     (

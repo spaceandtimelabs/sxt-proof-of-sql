@@ -3,11 +3,9 @@
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
 use super::ColumnType;
-use crate::base::{
-    math::decimal::Precision,
-    scalar::Scalar,
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-};
+use crate::base::{math::decimal::Precision, scalar::Scalar};
+use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 /// Supported types for OwnedColumn

@@ -1,8 +1,8 @@
-use crate::base::time::timestamp::{PoSQLTimeUnit, Time};
 use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
+use proof_of_sql_parser::posql_time::unit::PoSQLTimeUnit;
 use std::sync::Arc;
 
 /// Extension trait for Vec<T> to convert it to an Arrow array
@@ -21,6 +21,16 @@ impl ToArrow for Vec<bool> {
     fn to_array(self) -> Arc<dyn arrow::array::Array> {
         Arc::new(<arrow::array::BooleanArray>::from(self))
     }
+}
+
+/// A wrapper around i64 to mitigate conflicting From<i64>
+/// implementations
+#[derive(Clone)]
+pub struct Time {
+    /// i64 count of timeunits since unix epoch
+    pub timestamp: i64,
+    /// Timeunit of this time
+    pub unit: PoSQLTimeUnit,
 }
 
 impl ToArrow for Vec<Time> {

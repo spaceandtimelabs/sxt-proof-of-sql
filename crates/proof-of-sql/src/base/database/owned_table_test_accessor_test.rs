@@ -5,9 +5,9 @@ use super::{
 use crate::base::{
     database::owned_table_utility::*,
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
-    time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
 };
 use blitzar::proof::InnerProductProof;
+use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -52,7 +52,7 @@ fn we_can_access_the_columns_of_a_table() {
         timestamptz(
             "time",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [4, 5, 6, 5],
         ),
     ]);
@@ -110,7 +110,7 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(
         table_ref_2,
         "time".parse().unwrap(),
-        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::UTC),
+        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
     );
     match accessor.get_column(column) {
         Column::TimestampTZ(_, _, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),

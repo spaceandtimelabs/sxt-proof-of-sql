@@ -2,12 +2,14 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
     },
     proof_primitive::dory::DoryScalar,
 };
 use indexmap::IndexMap;
-use proof_of_sql_parser::Identifier;
+use proof_of_sql_parser::{
+    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    Identifier,
+};
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
@@ -58,18 +60,18 @@ fn we_can_create_an_owned_table_with_data() {
             [true, false, true, false, true, false, true, false, true],
         ),
         timestamptz(
-            "timestamp",
+            "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
     let mut table = IndexMap::new();
     table.insert(
-        Identifier::try_new("timestamp").unwrap(),
+        Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
         ),
     );
@@ -125,9 +127,9 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         varchar("c", ["0"; 0]),
         boolean("d", [false; 0]),
         timestamptz(
-            "timestamp",
+            "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [0; 0],
         ),
     ]);
@@ -137,9 +139,9 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         bigint("a", [0; 0]),
         varchar("c", ["0"; 0]),
         timestamptz(
-            "timestamp",
+            "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [0; 0],
         ),
     ]);
@@ -153,9 +155,9 @@ fn we_get_inequality_between_tables_with_differing_data() {
         varchar("c", ["0"]),
         boolean("d", [true]),
         timestamptz(
-            "timestamp",
+            "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [1625072400],
         ),
     ]);
@@ -165,9 +167,9 @@ fn we_get_inequality_between_tables_with_differing_data() {
         varchar("c", ["0"]),
         boolean("d", [true]),
         timestamptz(
-            "timestamp",
+            "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            PoSQLTimeZone::Utc,
             [1625076000],
         ),
     ]);

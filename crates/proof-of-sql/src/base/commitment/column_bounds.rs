@@ -288,13 +288,9 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{
-        database::OwnedColumn,
-        math::decimal::Precision,
-        scalar::Curve25519Scalar,
-        time::{timestamp::PoSQLTimeUnit, timezone::PoSQLTimeZone},
-    };
+    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use itertools::Itertools;
+    use proof_of_sql_parser::posql_time::{timezone, unit::PoSQLTimeUnit};
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -537,7 +533,7 @@ mod tests {
 
         let timestamp_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::UTC,
+            timezone::PoSQLTimeZone::Utc,
             vec![1_i64, 2, 3, 4],
         );
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);

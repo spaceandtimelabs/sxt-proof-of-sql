@@ -15,8 +15,10 @@ doctest = true
 test = true
 
 [dependencies]
+arrow = { workspace = true }
 arrayvec = { workspace = true, features = ["serde"] }
 bigdecimal = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
 lalrpop-util = { workspace = true, features = ["lexer", "unicode"] }
 serde = { workspace = true, features = ["serde_derive"] }
 thiserror = { workspace = true }
