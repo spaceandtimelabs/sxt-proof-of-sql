@@ -1,102 +1,98 @@
 use crate::{
     base::{
         commitment::InnerProductProof,
-        database::{
-            make_random_test_accessor_data, owned_table_utility::*, Column, ColumnType,
-            OwnedTableTestAccessor, RandomTestAccessorDescriptor, RecordBatchTestAccessor,
-            TestAccessor,
-        },
-        scalar::Curve25519Scalar,
+        database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
     },
-    record_batch,
-    sql::ast::{
-        test_expr::TestExprNode,
-        test_utility::{column, const_int128, const_scalar, equal, not as unot},
-        ProvableExpr, ProvableExprPlan,
+    sql::{
+        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
+        proof::{exercise_verification, VerifiableQueryResult},
     },
 };
-use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use polars::prelude::*;
+use itertools::{multizip, MultiUnzip};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
 
-fn create_test_not_expr<T: Into<Curve25519Scalar> + Copy + Literal>(
-    table_ref: &str,
-    results: &[&str],
-    filter_col: &str,
-    filter_val: T,
-    data: RecordBatch,
-    offset: usize,
-) -> TestExprNode {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    let t = table_ref.parse().unwrap();
-    accessor.add_table(t, data, offset);
-    let df_filter = polars::prelude::col(filter_col).neq(lit(filter_val));
-    let not_expr = unot(equal(
-        column(t, filter_col, &accessor),
-        const_scalar(filter_val.into()),
-    ));
-    TestExprNode::new(t, results, not_expr, df_filter, accessor)
-}
-
 #[test]
 fn we_can_prove_a_not_equals_query_with_a_single_selected_row() {
-    let data = record_batch!(
-        "a" => [123_i64, 456],
-        "b" => [0_i64, 1],
-        "d" => ["alfa", "gama"]
+    let data = owned_table([
+        bigint("a", [123_i64, 456]),
+        bigint("b", [0_i64, 1]),
+        varchar("d", ["alfa", "gama"]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d"], &accessor),
+        tab(t),
+        not(equal(column(t, "b", &accessor), const_bigint(1))),
     );
-    let test_expr = create_test_not_expr("sxt.t", &["a", "d"], "b", 1_i64, data, 0);
-    let res = test_expr.verify_expr();
-    let expected_res = record_batch!(
-        "a" => [123_i64],
-        "d" => ["alfa"]
-    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([bigint("a", [123]), varchar("d", ["alfa"])]);
     assert_eq!(res, expected_res);
 }
 
 fn test_random_tables_with_given_offset(offset: usize) {
-    let descr = RandomTestAccessorDescriptor {
-        min_rows: 1,
-        max_rows: 20,
-        min_value: -3,
-        max_value: 3,
-    };
+    let dist = Uniform::new(-3, 4);
     let mut rng = StdRng::from_seed([0u8; 32]);
-    let cols = [
-        ("aa", ColumnType::BigInt),
-        ("ab", ColumnType::VarChar),
-        ("b", ColumnType::BigInt),
-    ];
     for _ in 0..20 {
-        // filtering by string value
-        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr = create_test_not_expr(
-            "sxt.t",
-            &["aa", "ab", "b"],
-            "ab",
-            ("s".to_owned() + &filter_val.to_string()[..]).as_str(),
-            data,
-            offset,
-        );
-        let res = test_expr.verify_expr();
-        let expected_res = test_expr.query_table();
-        assert_eq!(res, expected_res);
+        // Generate random table
+        let n = Uniform::new(1, 21).sample(&mut rng);
+        let data = owned_table([
+            bigint("a", dist.sample_iter(&mut rng).take(n)),
+            varchar(
+                "b",
+                dist.sample_iter(&mut rng).take(n).map(|v| format!("s{v}")),
+            ),
+        ]);
 
-        // filtering by integer value
-        let data = make_random_test_accessor_data(&mut rng, &cols, &descr);
-        let filter_val = Uniform::new(descr.min_value, descr.max_value + 1).sample(&mut rng);
-        let test_expr =
-            create_test_not_expr("sxt.t", &["aa", "ab", "b"], "b", filter_val, data, offset);
-        let res = test_expr.verify_expr();
-        let expected_res = test_expr.query_table();
-        assert_eq!(res, expected_res);
+        // Generate random values to filter by
+        let filter_val_a = dist.sample(&mut rng);
+        let filter_val_b = format!("s{}", dist.sample(&mut rng));
+
+        // Create and verify proof
+        let t = "sxt.t".parse().unwrap();
+        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+            t,
+            data.clone(),
+            offset,
+            (),
+        );
+        let ast = dense_filter(
+            cols_expr_plan(t, &["a", "b"], &accessor),
+            tab(t),
+            not(and(
+                equal(column(t, "a", &accessor), const_bigint(filter_val_a)),
+                equal(
+                    column(t, "b", &accessor),
+                    const_scalar(filter_val_b.as_str()),
+                ),
+            )),
+        );
+        let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+        exercise_verification(&verifiable_res, &ast, &accessor, t);
+        let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+
+        // Calculate/compare expected result
+        let (expected_a, expected_b): (Vec<_>, Vec<_>) =
+            multizip((data["a"].i64_iter(), data["b"].string_iter()))
+                .filter_map(|(a, b)| {
+                    if a != &filter_val_a || b != &filter_val_b {
+                        Some((*a, b.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .multiunzip();
+        let expected_result = owned_table([bigint("a", expected_a), varchar("b", expected_b)]);
+
+        assert_eq!(expected_result, res)
     }
 }
 
@@ -121,7 +117,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     let not_expr: ProvableExprPlan<RistrettoPoint> =
-        unot(equal(column(t, "b", &accessor), const_int128(1)));
+        not(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);
     let expected_res = Column::Boolean(&[true, false]);

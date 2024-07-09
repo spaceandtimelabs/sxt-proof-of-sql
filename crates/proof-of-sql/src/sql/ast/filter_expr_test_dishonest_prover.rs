@@ -1,11 +1,10 @@
 use super::{OstensibleFilterExpr, ProvableExpr};
 use crate::{
     base::{
-        database::{Column, DataAccessor, RecordBatchTestAccessor, TestAccessor},
+        database::{owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor},
         proof::ProofError,
         scalar::Curve25519Scalar,
     },
-    record_batch,
     sql::{
         ast::test_utility::*,
         proof::{
@@ -81,18 +80,18 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
 
 #[test]
 fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
-    let data = record_batch!(
-        "a" => [1_i64, 4_i64, 5_i64, 2_i64, 5_i64],
-        "b" => [1_i64, 2, 3, 4, 5],
-    );
+    let data = owned_table([
+        bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
+        bigint("b", [1_i64, 2, 3, 4, 5]),
+    ]);
     let t = "sxt.t".parse().unwrap();
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(t, data, 0);
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let where_clause = equal(column(t, "a", &accessor), const_int128(5_i128));
-    let expr = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let ast = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let verifiable_res: VerifiableQueryResult<InnerProductProof> =
+        VerifiableQueryResult::new(&ast, &accessor, &());
     assert!(matches!(
-        res.verify(&expr, &accessor, &()),
+        verifiable_res.verify(&ast, &accessor, &()),
         Err(QueryError::ProofError(ProofError::VerificationError(_)))
     ));
 }

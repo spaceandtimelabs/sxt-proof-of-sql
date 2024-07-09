@@ -1,4 +1,4 @@
-use crate::base::database::{INT128_PRECISION, INT128_SCALE};
+use super::{INT128_PRECISION, INT128_SCALE};
 use polars::prelude::{DataType, Expr, Literal, LiteralValue, Series};
 
 /// Convert a Rust type to a Polars `Expr` type.
