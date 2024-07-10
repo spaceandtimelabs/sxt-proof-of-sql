@@ -67,12 +67,61 @@ impl fmt::Display for PoSQLTimeUnit {
 #[cfg(test)]
 #[allow(deprecated)]
 mod time_unit_tests {
-
-    use crate::{
-        error::PoSQLTimestampError,
-        posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit},
-    };
+    use super::*;
+    use crate::{error::PoSQLTimestampError, posql_time::timestamp::PoSQLTimestamp};
     use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn test_valid_precisions() {
+        assert_eq!(PoSQLTimeUnit::try_from("0"), Ok(PoSQLTimeUnit::Second));
+        assert_eq!(PoSQLTimeUnit::try_from("3"), Ok(PoSQLTimeUnit::Millisecond));
+        assert_eq!(PoSQLTimeUnit::try_from("6"), Ok(PoSQLTimeUnit::Microsecond));
+        assert_eq!(PoSQLTimeUnit::try_from("9"), Ok(PoSQLTimeUnit::Nanosecond));
+    }
+
+    #[test]
+    fn test_invalid_precisions() {
+        // Test some random incorrect values
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("1"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "1")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("2"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "2")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("4"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "4")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("5"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "5")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("7"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "7")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("8"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "8")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("10"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "10")
+        );
+        // Non-numeric strings
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("abc"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "abc")
+        );
+        // Empty string
+        assert!(
+            matches!(PoSQLTimeUnit::try_from(""), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x.is_empty())
+        );
+    }
+
+    #[test]
+    fn test_edge_cases_with_non_numeric_inputs() {
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("zero"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "zero")
+        );
+        assert!(
+            matches!(PoSQLTimeUnit::try_from("three"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "three")
+        );
+    }
 
     #[test]
     fn test_invalid_precision() {
