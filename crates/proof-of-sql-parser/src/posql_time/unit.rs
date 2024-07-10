@@ -83,6 +83,9 @@ mod time_unit_tests {
     fn test_invalid_precisions() {
         // Test some random incorrect values
         assert!(
+            matches!(PoSQLTimeUnit::try_from("-1"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "-1")
+        );
+        assert!(
             matches!(PoSQLTimeUnit::try_from("1"), Err(PoSQLTimestampError::UnsupportedPrecision(x)) if x == "1")
         );
         assert!(
