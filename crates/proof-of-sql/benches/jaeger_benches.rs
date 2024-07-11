@@ -54,9 +54,9 @@ fn main() {
             let pp =
                 PublicParameters::rand(10, &mut proof_of_sql::proof_primitive::dory::test_rng());
             let ps = ProverSetup::from(&pp);
-            let prover_public_setup = DoryProverPublicSetup::new(&ps, 10);
+            let prover_setup = DoryProverPublicSetup::new(&ps, 10);
             let vs = VerifierSetup::from(&pp);
-            let verifier_public_setup = DoryVerifierPublicSetup::new(&vs, 10);
+            let verifier_setup = DoryVerifierPublicSetup::new(&vs, 10);
 
             for _ in 0..3 {
                 for (title, query, columns) in QUERIES.iter() {
