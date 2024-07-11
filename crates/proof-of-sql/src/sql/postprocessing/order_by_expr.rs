@@ -26,7 +26,7 @@ impl<S: Scalar> OrderByExpr<S> {
 }
 
 impl<S: Scalar> PostprocessingStep<S> for OrderByExpr<S> {
-    /// Apply the slice transformation to the given `OwnedTable`.
+    /// Apply the ordering transformation to the given `OwnedTable`.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         let mut indexes = (0..owned_table.num_rows()).collect::<Vec<_>>();
         // Evaluate the columns by which we order

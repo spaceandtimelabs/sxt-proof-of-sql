@@ -1,5 +1,9 @@
 //! This module contains new lightweight postprocessing for non-provable components.
 mod error;
+
+mod evaluate;
+pub use evaluate::PostprocessingEvaluator;
+
 #[allow(unused_imports)]
 pub use error::{PostprocessingError, PostprocessingResult};
 mod owned_table_postprocessing;

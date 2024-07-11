@@ -56,6 +56,23 @@ impl<S: Scalar> OwnedColumn<S> {
         }
     }
 
+    /// Returns element at index as scalar
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => S::from(col[index]),
+            Self::SmallInt(col) => S::from(col[index]),
+            Self::Int(col) => S::from(col[index]),
+            Self::BigInt(col) => S::from(col[index]),
+            Self::Int128(col) => S::from(col[index]),
+            Self::Scalar(col) => col[index],
+            Self::Decimal75(_, _, col) => col[index],
+            Self::VarChar(col) => S::from(col[index]),
+            Self::TimestampTZ(_, _, col) => S::from(col[index]),
+        })
+    }
+
     /// Returns the column with its entries permutated
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
@@ -209,7 +226,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
                 OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, col) => col[i].cmp(&col[j]),
+                OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
                 OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),

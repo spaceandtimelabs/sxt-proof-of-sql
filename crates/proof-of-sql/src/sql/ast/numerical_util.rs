@@ -93,6 +93,43 @@ pub(crate) fn try_multiply_column_types(
     }
 }
 
+/// Determine the output type of a division operation if it is possible
+/// to multiply the two input types. If the types are not compatible, return
+/// an error.
+pub(crate) fn try_division_column_types(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ConversionResult<ColumnType> {
+    if !lhs.is_numeric()
+        || !rhs.is_numeric()
+        || lhs == ColumnType::Scalar
+        || rhs == ColumnType::Scalar
+    {
+        return Err(ConversionError::DataTypeMismatch(
+            lhs.to_string(),
+            rhs.to_string(),
+        ));
+    }
+
+    let left_precision_value = lhs.precision_value().unwrap_or(0) as i16;
+    let right_precision_value = rhs.precision_value().unwrap_or(0) as i16;
+    let left_scale = lhs.scale().unwrap_or(0) as i16;
+    let right_scale = rhs.scale().unwrap_or(0) as i16;
+    let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
+    let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
+    let scale = i8::try_from(raw_scale)
+        .map_err(|_| DecimalConversionError(DecimalError::InvalidScale(raw_scale)))?;
+    let precision = u8::try_from(precision_value)
+        .map_err(|_| {
+            DecimalConversionError(DecimalError::InvalidPrecision(precision_value.to_string()))
+        })
+        .and_then(|p| {
+            Precision::new(p)
+                .map_err(|_| DecimalConversionError(DecimalError::InvalidPrecision(p.to_string())))
+        })?;
+    Ok(ColumnType::Decimal75(precision, scale))
+}
+
 /// Add or subtract two columns together.
 pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     lhs: Column<'a, S>,
@@ -121,6 +158,47 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     res
 }
 
+// Add or subtract two owned columns together.
+pub(crate) fn add_subtract_owned_columns<S: Scalar>(
+    lhs: OwnedColumn<S>,
+    rhs: OwnedColumn<S>,
+    is_subtract: bool,
+) -> OwnedColumn<S> {
+    let lhs_len = lhs.len();
+    let rhs_len = rhs.len();
+    assert!(
+        lhs_len == rhs_len,
+        "lhs and rhs should have the same length"
+    );
+    let res_type = try_add_subtract_column_types(lhs.data_type(), rhs.data_type())
+        .expect("Operation is not supported");
+    // Check that lhs and rhs are numeric
+    assert!(lhs.data_type().is_numeric());
+    assert!(rhs.data_type().is_numeric());
+    let lhs_scale = lhs.data_type().scale().unwrap_or(0);
+    let rhs_scale = rhs.data_type().scale().unwrap_or(0);
+    let max_scale = lhs_scale.max(rhs_scale);
+    let lhs_upscale_factor =
+        scale_scalar(S::ONE, max_scale - lhs_scale).expect("Invalid scale factor");
+    let rhs_upscale_factor =
+        scale_scalar(S::ONE, max_scale - rhs_scale).expect("Invalid scale factor");
+    let res: Vec<S> = (0..lhs_len)
+        .map(|i| {
+            if is_subtract {
+                lhs.scalar_at(i) * lhs_upscale_factor - rhs.scalar_at(i) * rhs_upscale_factor
+            } else {
+                lhs.scalar_at(i) * lhs_upscale_factor + rhs.scalar_at(i) * rhs_upscale_factor
+            }
+        })
+        .collect();
+    OwnedColumn::Decimal75(
+        Precision::new(res_type.precision_value())
+            .expect("Precision of a valid column type should be valid"),
+        res_type.scale,
+        res,
+    )
+}
+
 /// Multiply two columns together.
 pub(crate) fn multiply_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
@@ -136,6 +214,53 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     alloc.alloc_slice_fill_with(lhs_len, |i| {
         lhs.scalar_at(i).unwrap() * rhs.scalar_at(i).unwrap()
     })
+}
+
+/// Multiply two owned columns together.
+pub(crate) fn multiply_owned_columns<S: Scalar>(
+    lhs: &OwnedColumn<S>,
+    rhs: &OwnedColumn<S>,
+) -> OwnedColumn<S> {
+    let lhs_len = lhs.len();
+    let rhs_len = rhs.len();
+    assert!(
+        lhs_len == rhs_len,
+        "lhs and rhs should have the same length"
+    );
+    let res_type = try_multiply_column_types(lhs.data_type(), rhs.data_type())
+        .expect("Operation is not supported");
+    // Check that lhs and rhs are numeric
+    assert!(lhs.data_type().is_numeric());
+    assert!(rhs.data_type().is_numeric());
+    let res: Vec<S> = (0..lhs_len)
+        .map(|i| lhs.scalar_at(i) * rhs.scalar_at(i))
+        .collect();
+    OwnedColumn::Decimal75(
+        Precision::new(res_type.precision_value())
+            .expect("Precision of a valid column type should be valid"),
+        res_type.scale,
+        res,
+    )
+}
+
+/// Divide an owned column by another.
+pub(crate) fn divide_owned_columns<S: Scalar>(
+    lhs: &OwnedColumn<S>,
+    rhs: &OwnedColumn<S>,
+) -> OwnedColumn<S> {
+    let lhs_len = lhs.len();
+    let rhs_len = rhs.len();
+    assert!(
+        lhs_len == rhs_len,
+        "lhs and rhs should have the same length"
+    );
+    // Check that lhs and rhs are numeric
+    assert!(lhs.data_type().is_numeric());
+    assert!(rhs.data_type().is_numeric());
+    let res: Vec<S> = (0..lhs_len)
+        .map(|i| lhs.scalar_at(i) / rhs.scalar_at(i))
+        .collect();
+    OwnedColumn::Scalar(res)
 }
 
 /// The counterpart of `add_subtract_columns` for evaluating decimal expressions.

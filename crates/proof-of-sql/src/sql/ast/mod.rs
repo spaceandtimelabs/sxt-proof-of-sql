@@ -75,8 +75,9 @@ pub(crate) use comparison_util::scale_and_subtract;
 
 mod numerical_util;
 pub(crate) use numerical_util::{
-    add_subtract_columns, multiply_columns, scale_and_add_subtract_eval,
-    try_add_subtract_column_types, try_multiply_column_types,
+    add_subtract_columns, add_subtract_owned_columns, divide_owned_columns, multiply_columns,
+    multiply_owned_columns, scale_and_add_subtract_eval, try_add_subtract_column_types,
+    try_divide_column_types, try_multiply_column_types,
 };
 
 mod equals_expr;
