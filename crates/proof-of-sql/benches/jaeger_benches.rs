@@ -2,14 +2,21 @@
 //! To run, execute the following commands:
 //! ```bash
 //! docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
-//! cargo bench -p proof-of-sql --bench jaeger_benches
+//! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
+//! cargo bench -p proof-of-sql --bench jaeger_benches Dory --features="test"
 //! ```
 //! Then, navigate to http://localhost:16686 to view the traces.
 
 use blitzar::{compute::init_backend, proof::InnerProductProof};
+#[cfg(feature = "test")]
+use proof_of_sql::proof_primitive::dory::{
+    DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
+    PublicParameters, VerifierSetup,
+};
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
 use scaffold::jaeger_scaffold;
+use std::env;
 
 const SIZE: usize = 1_000_000;
 
@@ -25,13 +32,47 @@ fn main() {
         .with(opentelemetry)
         .try_init()
         .unwrap();
-    {
-        // Run 3 times to ensure that warm-up of the GPU has occured.
-        for _ in 0..3 {
-            for (title, query, columns) in QUERIES.iter() {
-                jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
+
+    // Check for command-line arguments to select the benchmark type.
+    let args: Vec<String> = env::args().collect();
+    let benchmark_type = args
+        .get(1)
+        .expect("Please specify the benchmark type: InnerProductProof or Dory");
+
+    match benchmark_type.as_str() {
+        "InnerProductProof" => {
+            // Run 3 times to ensure that warm-up of the GPU has occurred.
+            for _ in 0..3 {
+                for (title, query, columns) in QUERIES.iter() {
+                    jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
+                }
             }
         }
+        #[cfg(feature = "test")]
+        "Dory" => {
+            // Run 3 times to ensure that warm-up of the GPU has occurred.
+            let pp =
+                PublicParameters::rand(10, &mut proof_of_sql::proof_primitive::dory::test_rng());
+            let ps = ProverSetup::from(&pp);
+            let prover_public_setup = DoryProverPublicSetup::new(&ps, 10);
+            let vs = VerifierSetup::from(&pp);
+            let verifier_public_setup = DoryVerifierPublicSetup::new(&vs, 10);
+
+            for _ in 0..3 {
+                for (title, query, columns) in QUERIES.iter() {
+                    jaeger_scaffold::<DoryEvaluationProof>(
+                        title,
+                        query,
+                        columns,
+                        SIZE,
+                        &prover_setup,
+                        &verifier_setup,
+                    );
+                }
+            }
+        }
+        _ => panic!("Invalid benchmark type specified."),
     }
+
     opentelemetry::global::shutdown_tracer_provider();
 }
