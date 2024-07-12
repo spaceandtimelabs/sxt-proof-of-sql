@@ -30,7 +30,7 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE a".parse().unwrap(),
+        "SELECT * FROM table WHERE a;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -91,7 +91,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE b = 1".parse().unwrap(),
+        "SELECT * FROM table WHERE b = 1;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -152,7 +152,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE b >= 1".parse().unwrap(),
+        "SELECT * FROM table WHERE b >= 1;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -223,7 +223,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table".parse().unwrap(),
+        "SELECT * FROM table;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -294,7 +294,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
         0,
     );
     let query = QueryExpr::<DoryCommitment>::try_new(
-        "SELECT * FROM table WHERE b > 1 - a".parse().unwrap(),
+        "SELECT * FROM table WHERE b > 1 - a;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -327,7 +327,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "select primes, amount from public.test_table where primes = 'abcd'"
+        "select primes, amount from public.test_table where primes = 'abcd';"
             .parse()
             .unwrap(),
         "public".parse().unwrap(),
@@ -396,7 +396,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
         0,
     );
     let large_decimal = format!("0.{}", "1".repeat(75));
-    let query_string = format!("SELECT d0 + {} as res FROM table", large_decimal);
+    let query_string = format!("SELECT d0 + {} as res FROM table;", large_decimal);
     assert!(matches!(
         QueryExpr::<RistrettoPoint>::try_new(
             query_string.parse().unwrap(),
@@ -426,7 +426,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
+        "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f;"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),

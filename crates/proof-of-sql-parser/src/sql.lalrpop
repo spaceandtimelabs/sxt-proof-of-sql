@@ -14,7 +14,7 @@ grammar;
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub SelectStatement: select_statement::SelectStatement = {
-    <expr: SelectCore> <order_by: ("order" "by" <OrderByList>)?> <slice: SliceClause?> => 
+    <expr: SelectCore> <order_by: ("order" "by" <OrderByList>)?> <slice: SliceClause?> ";"? => 
         select_statement::SelectStatement {
             expr,
             order_by: order_by.unwrap_or(vec![]),
@@ -448,6 +448,7 @@ match {
     "<=" => "<=",
     ">" => ">",
     "<" => "<",
+    ";" => ";",
 } else {
     r"[A-Za-z_][A-Za-z0-9_]*" => ID,
     // Decimal numbers with mandatory fractional part
