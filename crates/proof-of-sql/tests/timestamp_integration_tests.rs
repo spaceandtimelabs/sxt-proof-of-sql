@@ -41,7 +41,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT times FROM table WHERE times = timestamp '1970-01-01T00:00:00Z'"
+        "SELECT times FROM table WHERE times = timestamp '1970-01-01T00:00:00Z';"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -128,7 +128,7 @@ mod tests {
         let expected_timestamps = vec![1609459200];
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2021-01-01T00:00:00Z'",
+            "SELECT * FROM table WHERE times = timestamp '2021-01-01T00:00:00Z';",
             test_timestamps,
             expected_timestamps,
         );
@@ -180,7 +180,7 @@ mod tests {
 
         // Test the query to select the leap second
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '1999-01-01T00:00:00Z'",
+            "SELECT * FROM table WHERE times = timestamp '1999-01-01T00:00:00Z';",
             test_timestamps.clone(),
             expected_timestamps[1..2].to_vec(),
         );
@@ -199,7 +199,7 @@ mod tests {
         let expected_timestamps = vec![test_timestamps[1]]; // Expect only the new year start
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2024-01-01T00:00:00Z'",
+            "SELECT * FROM table WHERE times = timestamp '2024-01-01T00:00:00Z';",
             test_timestamps,
             expected_timestamps,
         );
@@ -238,7 +238,7 @@ mod tests {
         let expected_timestamps = vec![test_timestamps[0]]; // Expect the leap day
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2024-02-29T12:00:00Z'",
+            "SELECT * FROM table WHERE times = timestamp '2024-02-29T12:00:00Z';",
             test_timestamps,
             expected_timestamps,
         );
@@ -274,7 +274,7 @@ mod tests {
         let expected_timestamps = vec![test_timestamps[0]];
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z'",
+            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z';",
             test_timestamps,
             expected_timestamps,
         );
@@ -296,7 +296,7 @@ mod tests {
         ];
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = to_timestamp(1231006505)",
+            "SELECT * FROM table WHERE times = to_timestamp(1231006505);",
             test_timestamps,
             expected_timestamps,
         );
@@ -321,7 +321,7 @@ mod tests {
         let expected_timestamps = vec![1582934400];
 
         run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = to_timestamp(1582934400)",
+            "SELECT * FROM table WHERE times = to_timestamp(1582934400);",
             test_timestamps,
             expected_timestamps,
         );
