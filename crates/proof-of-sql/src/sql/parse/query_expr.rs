@@ -7,7 +7,10 @@ use crate::{
         transform::ResultExpr,
     },
 };
-use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
+use proof_of_sql_parser::{
+    intermediate_ast::{AliasedResultExpr, Expression, SetExpression},
+    Identifier, SelectStatement,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -62,10 +65,20 @@ impl<C: Commitment> QueryExpr<C> {
         let group_by = context.get_group_by_exprs();
         if !group_by.is_empty() {
             if let Some(group_by_expr) = Option::<GroupByExpr<C>>::try_from(&context)? {
+                // If the group by expression is provable the projection step is just identity.
+                let new_result_aliased_exprs = result_aliased_exprs
+                    .iter()
+                    .map(|aliased_expr| {
+                        AliasedResultExpr::new(
+                            Expression::Column(aliased_expr.alias),
+                            aliased_expr.alias,
+                        )
+                    })
+                    .collect::<Vec<_>>();
                 return Ok(Self {
                     proof_expr: ProofPlan::GroupBy(group_by_expr),
                     result: ResultExprBuilder::default()
-                        .add_select_exprs(result_aliased_exprs)
+                        .add_select_exprs(&new_result_aliased_exprs)
                         .add_order_by_exprs(context.get_order_by_exprs()?)
                         .add_slice_expr(context.get_slice_expr())
                         .build(),
