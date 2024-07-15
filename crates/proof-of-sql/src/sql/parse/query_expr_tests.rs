@@ -1094,7 +1094,6 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
 ///////////////////////////
 // Group By Expressions - Prover
 ///////////////////////////
-#[ignore]
 #[test]
 fn we_can_do_provable_group_by() {
     let t = "sxt.employees".parse().unwrap();
@@ -1121,14 +1120,14 @@ fn we_can_do_provable_group_by() {
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            pc("department").first().alias("department"),
-            pc("salary").sum().alias("total_salary"),
-            pc("department").count().alias("num_employee"),
+            pc("department").alias("department"),
+            pc("total_salary").alias("total_salary"),
+            pc("num_employee").alias("num_employee"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
 }
-#[ignore]
+
 #[test]
 fn we_can_do_provable_group_by_without_sum() {
     let t = "sxt.employees".parse().unwrap();
@@ -1155,13 +1154,13 @@ fn we_can_do_provable_group_by_without_sum() {
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            pc("department").first().alias("department"),
-            pc("department").count().alias("num_employee"),
+            pc("department").alias("department"),
+            pc("num_employee").alias("num_employee"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
 }
-#[ignore]
+
 #[test]
 fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let t = "sxt.employees".parse().unwrap();
@@ -1189,10 +1188,10 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
             const_bool(true),
         ),
         composite_result(vec![select(&[
-            pc("state").first().alias("state"),
-            pc("department").first().alias("department"),
-            pc("salary").sum().alias("total_salary"),
-            pc("department").count().alias("num_employee"),
+            pc("state").alias("state"),
+            pc("department").alias("department"),
+            pc("total_salary").alias("total_salary"),
+            pc("num_employee").alias("num_employee"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
@@ -1228,17 +1227,17 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
             lte(column(t, "tax", &accessor), const_bigint(1)),
         ),
         composite_result(vec![select(&[
-            pc("department").first().alias("department"),
-            pc("salary").sum().alias("total_salary"),
-            pc("tax").sum().alias("total_tax"),
-            pc("department").count().alias("num_employee"),
+            pc("department").alias("department"),
+            pc("total_salary").alias("total_salary"),
+            pc("total_tax").alias("total_tax"),
+            pc("num_employee").alias("num_employee"),
         ])]),
     );
     assert_eq!(ast, expected_ast);
 }
 
 ///////////////////////////
-// Group By Expressions - Polars
+// Group By Expressions - Postprocessing
 ///////////////////////////
 #[test]
 fn we_can_group_by_without_using_aggregate_functions() {

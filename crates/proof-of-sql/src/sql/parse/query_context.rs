@@ -224,10 +224,6 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
     type Error = ConversionError;
 
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExpr<C>>, Self::Error> {
-        // Currently if there is no where clause, we can't prove the query
-        if value.where_expr.is_none() {
-            return Ok(None);
-        }
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true)));
@@ -283,6 +279,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
                     false
                 }
             });
+
         // Check sums
         let sum_expr = sum_expr_columns
             .iter()
@@ -318,6 +315,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
         } else {
             false
         };
+
         if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
             return Ok(None);
         }

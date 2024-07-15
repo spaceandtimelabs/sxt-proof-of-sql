@@ -568,6 +568,131 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_cat_group_by_query_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.cats".parse().unwrap(),
+        owned_table([
+            int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            varchar(
+                "name",
+                [
+                    "Chloe",
+                    "Margaret",
+                    "Prudence",
+                    "Lucy",
+                    "Ms. Kitty",
+                    "Pepper",
+                    "Rocky",
+                    "Smokey",
+                    "Tiger",
+                    "Whiskers",
+                ],
+            ),
+            smallint("age", [12_i16, 2, 3, 3, 10, 2, 2, 4, 5, 6]),
+            varchar(
+                "human",
+                [
+                    "Ian", "Ian", "Gretta", "Gretta", "Gretta", "Gretta", "Gretta", "Alice", "Bob",
+                    "Charlie",
+                ],
+            ),
+            bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varchar("human", ["Gretta", "Ian"]),
+        smallint("total_cat_age", [4_i16, 2]),
+        bigint("num_cats", [2, 1]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_cat_group_by_query_with_dory() {
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        "sxt.cats".parse().unwrap(),
+        owned_table([
+            int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            varchar(
+                "name",
+                [
+                    "Chloe",
+                    "Margaret",
+                    "Prudence",
+                    "Lucy",
+                    "Ms. Kitty",
+                    "Pepper",
+                    "Rocky",
+                    "Smokey",
+                    "Tiger",
+                    "Whiskers",
+                ],
+            ),
+            smallint("age", [12_i16, 2, 3, 3, 10, 2, 2, 4, 5, 6]),
+            varchar(
+                "human",
+                [
+                    "Ian", "Ian", "Gretta", "Gretta", "Gretta", "Gretta", "Gretta", "Alice", "Bob",
+                    "Charlie",
+                ],
+            ),
+            bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varchar("human", ["Gretta", "Ian"]),
+        smallint("total_cat_age", [4_i16, 2]),
+        bigint("num_cats", [2, 1]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
 fn we_can_prove_a_basic_group_by_query_with_dory() {
     let public_parameters = PublicParameters::rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
