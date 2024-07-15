@@ -40,6 +40,7 @@ mod test_accessor_utility;
 pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
 
 mod owned_column;
+pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
 mod owned_table;
 pub use owned_table::OwnedTable;
