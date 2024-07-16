@@ -370,4 +370,5 @@ impl super::Scalar for Curve25519Scalar {
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
+
 scalar_conversion_to_int!(Curve25519Scalar);
