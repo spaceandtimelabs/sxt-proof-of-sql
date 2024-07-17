@@ -161,7 +161,6 @@ mod tests {
             test_timestamps.clone(),
             vec![i64::MIN, -1, 0],
         );
-
     }
 
     // This test simulates the following query:
