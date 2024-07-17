@@ -374,7 +374,7 @@ mod tests {
 
 #[test]
 #[cfg(feature = "blitzar")]
-fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
+fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
     use curve25519_dalek::RistrettoPoint;
     use proof_of_sql::base::{database::OwnedTable, scalar::Curve25519Scalar};
 
@@ -387,14 +387,14 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 [
-                    0, // Beginning of Unix time
-                    444_972_800_000_000_000, // Fall of Berlin Wall: Nov 9, 1989
-                    828_230_400_000_000_000, // Y2K: Jan 1, 2000
+                    0,                         // Beginning of Unix time
+                    444_972_800_000_000_000,   // Fall of Berlin Wall: Nov 9, 1989
+                    828_230_400_000_000_000,   // Y2K: Jan 1, 2000
                     1_231_006_505_000_000_000, // Bitcoin genesis block: Jan 3, 2009
                     1_483_228_800_000_000_000, // Leap second: Dec 31, 2016
                     1_546_300_800_000_000_000, // Unix time for Jan 1, 2019
                     1_609_459_200_000_000_000, // Start of the 2020s: Jan 1, 2020
-                    i64::MAX, // Far future
+                    i64::MAX,                  // Far future
                 ],
             ),
             timestamptz(
@@ -402,14 +402,14 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 [
-                    i64::MIN, // Far past
-                    444_973_500_000_000_000, // 20 minutes after the Fall of Berlin Wall
-                    828_234_000_000_000_000, // 1 hour after Y2K
+                    i64::MIN,                  // Far past
+                    444_973_500_000_000_000,   // 20 minutes after the Fall of Berlin Wall
+                    828_234_000_000_000_000,   // 1 hour after Y2K
                     1_231_006_805_000_000_000, // 5 minutes after Bitcoin genesis block
                     1_483_229_200_000_000_000, // 1 hour after the leap second
                     1_546_304_400_000_000_000, // 1 hour after Jan 1, 2019
                     1_609_462_800_000_000_000, // 1 hour after the start of 2020
-                    i64::MAX, // Far future
+                    i64::MAX,                  // Far future
                 ],
             ),
         ]),
