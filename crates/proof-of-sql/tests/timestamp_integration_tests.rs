@@ -134,6 +134,36 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_basic_timestamp_inequality_query() {
+        let test_timestamps = vec![i64::MIN, -1, 0, 1, i64::MAX];
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00Z';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -1],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00Z';",
+            test_timestamps.clone(),
+            vec![1, i64::MAX],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00Z';",
+            test_timestamps.clone(),
+            vec![0, 1, i64::MAX],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00Z';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -1, 0],
+        );
+
+    }
+
     // This test simulates the following query:
     //
     // 1. Creating a table:
