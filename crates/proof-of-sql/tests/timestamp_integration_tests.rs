@@ -371,3 +371,99 @@ mod tests {
         );
     }
 }
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
+    use curve25519_dalek::RistrettoPoint;
+    use proof_of_sql::base::{database::OwnedTable, scalar::Curve25519Scalar};
+
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            timestamptz(
+                "start_time",
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::Utc,
+                [
+                    0, // Beginning of Unix time
+                    444_972_800_000_000_000, // Fall of Berlin Wall: Nov 9, 1989
+                    828_230_400_000_000_000, // Y2K: Jan 1, 2000
+                    1_231_006_505_000_000_000, // Bitcoin genesis block: Jan 3, 2009
+                    1_483_228_800_000_000_000, // Leap second: Dec 31, 2016
+                    1_546_300_800_000_000_000, // Unix time for Jan 1, 2019
+                    1_609_459_200_000_000_000, // Start of the 2020s: Jan 1, 2020
+                    i64::MAX, // Far future
+                ],
+            ),
+            timestamptz(
+                "end_time",
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::Utc,
+                [
+                    i64::MIN, // Far past
+                    444_973_500_000_000_000, // 20 minutes after the Fall of Berlin Wall
+                    828_234_000_000_000_000, // 1 hour after Y2K
+                    1_231_006_805_000_000_000, // 5 minutes after Bitcoin genesis block
+                    1_483_229_200_000_000_000, // 1 hour after the leap second
+                    1_546_304_400_000_000_000, // 1 hour after Jan 1, 2019
+                    1_609_462_800_000_000_000, // 1 hour after the start of 2020
+                    i64::MAX, // Far future
+                ],
+            ),
+        ]),
+        0,
+    );
+    let query = QueryExpr::<RistrettoPoint>::try_new(
+        "SELECT * FROM table WHERE end_time >= start_time"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let owned_table_result: OwnedTable<Curve25519Scalar> = query
+        .result()
+        .transform_results(owned_table_result.try_into().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let expected_result = owned_table([
+        timestamptz(
+            "start_time",
+            PoSQLTimeUnit::Nanosecond,
+            PoSQLTimeZone::Utc,
+            [
+                444_972_800_000_000_000,
+                828_230_400_000_000_000,
+                1_231_006_505_000_000_000,
+                1_483_228_800_000_000_000,
+                1_546_300_800_000_000_000,
+                1_609_459_200_000_000_000,
+                i64::MAX,
+            ],
+        ),
+        timestamptz(
+            "end_time",
+            PoSQLTimeUnit::Nanosecond,
+            PoSQLTimeZone::Utc,
+            [
+                444_973_500_000_000_000,
+                828_234_000_000_000_000,
+                1_231_006_805_000_000_000,
+                1_483_229_200_000_000_000,
+                1_546_304_400_000_000_000,
+                1_609_462_800_000_000_000,
+                i64::MAX,
+            ],
+        ),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
