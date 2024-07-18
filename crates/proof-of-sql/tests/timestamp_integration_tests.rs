@@ -167,7 +167,7 @@ mod tests {
     fn test_timestamp_inequality_queries_with_timezone_offsets() {
         // Test with a range of timestamps around the Unix epoch
         // 60 * 60 = 3600 * 8 (PST offset) = 28800
-        let test_timestamps = vec![i64::MIN, -28800, -28799, 0, 1, i64::MAX];
+        let test_timestamps = vec![i64::MIN, 28800, 28799, 0, 1, i64::MAX];
 
         // Test timezone offset -08:00 (e.g., Pacific Standard Time)
         run_timestamp_query_test(
@@ -178,39 +178,39 @@ mod tests {
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
-            vec![i64::MIN, -28800, -28799, 0, 1],
+            vec![i64::MIN, 28799, 0, 1],
         );
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
-            vec![i64::MAX],
+            vec![28800, i64::MAX],
         );
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
-            vec![i64::MIN, -28800, -28799, 0, 1],
+            vec![i64::MIN, 28800, 28799, 0, 1],
         );
 
         // Test timezone offset +00:00 (e.g., UTC)
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
-            vec![1, i64::MAX],
+            vec![28800, 28799, 1, i64::MAX],
         );
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
-            vec![i64::MIN, -28800, -28799],
+            vec![i64::MIN],
         );
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
-            vec![0, 1, i64::MAX],
+            vec![28800, 28799, 0, 1, i64::MAX],
         );
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
-            vec![i64::MIN, -28800, -28799, 0],
+            vec![i64::MIN, 0],
         );
     }
 
@@ -434,40 +434,31 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         "sxt.table".parse().unwrap(),
         owned_table([
             timestamptz(
-                "start_time",
-                PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::Utc,
-                [
-                    0, // Beginning of Unix time
-                    444_972_800_000_000_000,
-                    828_230_400_000_000_000,
-                    1_231_006_505_000_000_000,
-                    1_483_228_800_000_000_000,
-                    1_546_300_800_000_000_000,
-                    1_609_459_200_000_000_000,
-                    i64::MAX,
-                ],
-            ),
-            timestamptz(
-                "end_time",
+                "a",
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 [
                     i64::MIN,
-                    444_973_500_000_000_000,
-                    828_234_000_000_000_000,
-                    1_231_006_805_000_000_000,
-                    1_483_229_200_000_000_000,
-                    1_546_304_400_000_000_000,
-                    1_609_462_800_000_000_000,
+                    2,
+                    -1,
+                    0,
+                    1,
+                    -2,
+                    1231006505000000000, // bitcoin genesis block time
                     i64::MAX,
                 ],
+            ),
+            timestamptz(
+                "b",
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::Utc,
+                [i64::MAX, -2, -1, -1231006505000000000, 0, 1, 2, i64::MIN],
             ),
         ]),
         0,
     );
     let query = QueryExpr::<RistrettoPoint>::try_new(
-        "SELECT * FROM table WHERE end_time >= start_time"
+        "select *, a <= b as res from TABLE where a <= b"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -488,33 +479,18 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         .unwrap();
     let expected_result = owned_table([
         timestamptz(
-            "start_time",
+            "a",
             PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::Utc,
-            [
-                444_972_800_000_000_000,
-                828_230_400_000_000_000,
-                1_231_006_505_000_000_000,
-                1_483_228_800_000_000_000,
-                1_546_300_800_000_000_000,
-                1_609_459_200_000_000_000,
-                i64::MAX,
-            ],
+            [i64::MIN, -1, -2],
         ),
         timestamptz(
-            "end_time",
+            "b",
             PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::Utc,
-            [
-                444_973_500_000_000_000,
-                828_234_000_000_000_000,
-                1_231_006_805_000_000_000,
-                1_483_229_200_000_000_000,
-                1_546_304_400_000_000_000,
-                1_609_462_800_000_000_000,
-                i64::MAX,
-            ],
+            [i64::MAX, -1, 1],
         ),
+        boolean("res", [true, true, true]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
