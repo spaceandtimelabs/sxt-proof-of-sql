@@ -4,8 +4,8 @@ use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
     base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        test_rng, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
-        PublicParameters, VerifierSetup,
+        test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup,
+        DoryVerifierPublicSetup, ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{
         parse::QueryExpr,
@@ -426,10 +426,13 @@ mod tests {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
-    use curve25519_dalek::RistrettoPoint;
-    use proof_of_sql::base::{database::OwnedTable, scalar::Curve25519Scalar};
-
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
@@ -457,7 +460,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         ]),
         0,
     );
-    let query = QueryExpr::<RistrettoPoint>::try_new(
+    let query = QueryExpr::<DoryCommitment>::try_new(
         "select *, a <= b as res from TABLE where a <= b"
             .parse()
             .unwrap(),
@@ -466,17 +469,16 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
     )
     .unwrap();
     let (proof, serialized_result) =
-        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
     let owned_table_result = proof
-        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
         .unwrap()
         .table;
-    let owned_table_result: OwnedTable<Curve25519Scalar> = query
-        .result()
-        .transform_results(owned_table_result.try_into().unwrap())
-        .unwrap()
-        .try_into()
-        .unwrap();
     let expected_result = owned_table([
         timestamptz(
             "a",
