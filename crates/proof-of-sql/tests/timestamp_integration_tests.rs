@@ -438,7 +438,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 [
-                    0,                         // Beginning of Unix time
+                    0, // Beginning of Unix time
                     444_972_800_000_000_000,
                     828_230_400_000_000_000,
                     1_231_006_505_000_000_000,
