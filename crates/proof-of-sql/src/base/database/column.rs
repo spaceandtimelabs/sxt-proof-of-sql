@@ -505,6 +505,10 @@ mod tests {
 
     #[test]
     fn we_can_deserialize_columns_from_valid_strings() {
+        let expected_column_type = ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc);
+        let deserialized: ColumnType = serde_json::from_str(r#"{"TimestampTZ":["Second","Utc"]}"#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+        
         let expected_column_type = ColumnType::Boolean;
         let deserialized: ColumnType = serde_json::from_str(r#""Boolean""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
@@ -654,6 +658,9 @@ mod tests {
         assert!(deserialized.is_err());
 
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""DecImal75""#);
+        assert!(deserialized.is_err());
+
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#"{"TimestampTZ":["Utc","Second"]}"#);
         assert!(deserialized.is_err());
 
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Varchar""#);
