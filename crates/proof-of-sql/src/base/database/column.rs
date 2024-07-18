@@ -382,8 +382,7 @@ impl std::fmt::Display for ColumnType {
             ColumnType::Scalar => write!(f, "SCALAR"),
             ColumnType::TimestampTZ(timeunit, timezone) => write!(
                 f,
-                "TIMESTAMP(TIMEUNIT: {:?}, TIMEZONE: {timeunit})",
-                timezone
+                "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})"
             ),
         }
     }
