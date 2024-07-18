@@ -163,6 +163,99 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_timestamp_inequality_queries_with_timezone_offsets() {
+        let test_timestamps = vec![i64::MIN, -18000, -17999, 0, 1, i64::MAX]; // Test with a range of timestamps around the Unix epoch
+
+        // Test timezone offset +05:00 (e.g., Indian Standard Time)
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00+05:00';",
+            test_timestamps.clone(),
+            vec![-17999, 0, 1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00+05:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00+05:00';",
+            test_timestamps.clone(),
+            vec![-18000, -17999, 0, 1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00+05:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000],
+        );
+
+        // Test timezone offset -08:00 (e.g., Pacific Standard Time)
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00-08:00';",
+            test_timestamps.clone(),
+            vec![i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00-08:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999, 0, 1],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00-08:00';",
+            test_timestamps.clone(),
+            vec![i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00-08:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999, 0, 1],
+        );
+
+        // Test timezone offset +01:00 (e.g., Central European Time)
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1969-12-31T23:00:00+01:00';",
+            test_timestamps.clone(),
+            vec![0, 1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1969-12-31T23:00:00+01:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1969-12-31T23:00:00+01:00';",
+            test_timestamps.clone(),
+            vec![0, 1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1969-12-31T23:00:00+01:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999],
+        );
+
+        // Test timezone offset +00:00 (e.g., UTC)
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00+00:00';",
+            test_timestamps.clone(),
+            vec![1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00+00:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00+00:00';",
+            test_timestamps.clone(),
+            vec![0, 1, i64::MAX],
+        );
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00+00:00';",
+            test_timestamps.clone(),
+            vec![i64::MIN, -18000, -17999, 0],
+        );
+    }
+
     // This test simulates the following query:
     //
     // 1. Creating a table:
