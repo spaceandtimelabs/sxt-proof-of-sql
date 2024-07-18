@@ -128,7 +128,7 @@ fn we_cannot_parse_strings_having_incorrect_quotes() {
 #[test]
 fn we_can_parse_a_query_with_constants() {
     let ast =
-        "SELECT 3 as bigint, true as boolean, 'proof' as varchar, -2.34 as decimal FROM SXT_TAB"
+        "SELECT 3 as bigint, true as boolean, 'proof' as varchar, -2.34 as decimal FROM SXT_TAB;"
             .parse::<SelectStatement>()
             .unwrap();
     let expected_ast = select(
@@ -171,7 +171,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_simple_bool() {
 
 #[test]
 fn we_can_parse_a_query_with_a_column_equals_a_simple_integer() {
-    let ast = "SELECT A FROM SXT_TAB WHERE A = 3"
+    let ast = "SELECT A FROM SXT_TAB WHERE A = 3;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -207,7 +207,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_string() {
 
 #[test]
 fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
-    let ast = "SELECT A FROM SXT_TAB WHERE A = -0.32"
+    let ast = "SELECT A FROM SXT_TAB WHERE A = -0.32;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -254,7 +254,7 @@ fn we_can_parse_a_query_with_two_result_columns() {
 //(PROOF-864)
 #[test]
 fn we_can_parse_a_query_using_select_star() {
-    let ast = "SELECT * FROM sxt_Tab WHERE A = -(B)"
+    let ast = "SELECT * FROM sxt_Tab WHERE A = -(B);"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -314,7 +314,7 @@ fn we_can_parse_a_query_using_multiple_select_star_expressions() {
 
 #[test]
 fn we_can_parse_a_query_with_one_equals_filter_having_a_positive_literal() {
-    let ast = "select a, true as boolean from sxt_tab where b = +4"
+    let ast = "select a, true as boolean from sxt_tab where b = +4;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -370,7 +370,7 @@ fn we_can_parse_a_query_with_one_not_equals_filter_expression() {
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_not_filter_expression() {
-    let ast = "select a from sxt_tab where not (b = d + 3)"
+    let ast = "select a from sxt_tab where not (b = d + 3);"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -426,7 +426,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_an
 
 #[test]
 fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
-    let ast = "select a from sxt_tab where (b = 3) or (c = -2.34)"
+    let ast = "select a from sxt_tab where (b = 3) or (c = -2.34);"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -450,7 +450,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
 
 #[test]
 fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {
-    let ast = "select a from sxt_tab where (b = 3) and (not (c = d - 2))"
+    let ast = "select a from sxt_tab where (b = 3) and (not (c = d - 2));"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -510,7 +510,7 @@ fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal(
     );
     assert_eq!(ast, expected_ast);
 
-    let ast = "select a from sxt_tab where b = -170141183460469231731687303715884105728"
+    let ast = "select a from sxt_tab where b = -170141183460469231731687303715884105728;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -556,7 +556,7 @@ fn we_can_parse_a_query_with_the_maximum_i128_value_as_the_equal_filter_literal(
 
 #[test]
 fn we_can_parse_a_query_and_rename_a_result_column_using_the_as_keyword() {
-    let ast = "select a as a_rename from sxt_tab where b = 4 + d"
+    let ast = "select a as a_rename from sxt_tab where b = 4 + d;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -592,7 +592,7 @@ fn we_can_parse_a_query_and_rename_a_result_column_without_using_the_as_keyword(
 
 #[test]
 fn we_can_parse_logical_not_with_more_precedence_priority_than_logical_and() {
-    let parsed_ast = "select a from sxt_tab where a = 3 and not b = 2.53"
+    let parsed_ast = "select a from sxt_tab where a = 3 and not b = 2.53;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = "select a from sxt_tab where (a = 3) and (not b = 2.53)"
@@ -624,7 +624,7 @@ fn we_can_parse_logical_and_with_more_precedence_priority_than_logical_or() {
     let ast = "select a from sxt_tab where a = -1 or c = -3 and a = 3"
         .parse::<SelectStatement>()
         .unwrap();
-    let expected_ast = "select a from sxt_tab where a = -1 or (c = -3 and a = 3)"
+    let expected_ast = "select a from sxt_tab where a = -1 or (c = -3 and a = 3);"
         .parse::<SelectStatement>()
         .unwrap();
     assert_eq!(ast, expected_ast);
@@ -665,7 +665,7 @@ fn we_can_parse_logical_or_with_left_associativity() {
 
 #[test]
 fn we_can_parse_a_query_with_one_schema_followed_by_a_table_name() {
-    let ast = "select a from eth.sxt_tab where b <= 4"
+    let ast = "select a from eth.sxt_tab where b <= 4;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -702,7 +702,7 @@ fn we_can_parse_a_query_without_a_filter() {
 
 #[test]
 fn we_can_parse_a_single_order_by_with_ascending_direction_as_default() {
-    let ast = "select a from tab order by x"
+    let ast = "select a from tab order by x;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -733,7 +733,7 @@ fn we_can_parse_a_single_order_by_with_a_filter() {
 
 #[test]
 fn we_can_parse_a_single_order_by_in_the_ascending_direction() {
-    let ast = "select a from tab order by x asc"
+    let ast = "select a from tab order by x asc;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -759,7 +759,7 @@ fn we_can_parse_a_single_order_by_in_the_descending_direction() {
 
 #[test]
 fn we_can_parse_multiple_order_by() {
-    let ast = "select * from tab order by x desc, y, z asc"
+    let ast = "select * from tab order by x desc, y, z asc;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -788,6 +788,16 @@ fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
 }
 
 #[test]
+fn we_cannot_parse_queries_with_stray_semicolons() {
+    assert!("select a from tab order by ;x"
+        .parse::<SelectStatement>()
+        .is_err());
+    assert!("select a from ; tab".parse::<SelectStatement>().is_err());
+    assert!("select a from tab;;".parse::<SelectStatement>().is_err());
+    assert!("select a ; from tab;".parse::<SelectStatement>().is_err());
+}
+
+#[test]
 fn we_cannot_parse_invalid_order_by_expressions() {
     assert!("select a from tab order by x y"
         .parse::<SelectStatement>()
@@ -805,7 +815,7 @@ fn we_cannot_parse_invalid_order_by_expressions() {
 
 #[test]
 fn we_cannot_parse_a_query_with_two_schemas_followed_by_a_table_name() {
-    assert!("select a from schema.Identifier.tab"
+    assert!("select a from schema.Identifier.tab;"
         .parse::<SelectStatement>()
         .is_err());
 }
@@ -836,13 +846,13 @@ fn we_cannot_parse_a_query_with_select_tablename_followed_by_star() {
 #[test]
 fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
     assert!("select tab.a from tab".parse::<SelectStatement>().is_err());
-    assert!("select tab.a from eth.tab"
+    assert!("select tab.a from eth.tab;"
         .parse::<SelectStatement>()
         .is_err());
     assert!("select eth.tab.a from eth.tab"
         .parse::<SelectStatement>()
         .is_err());
-    assert!("select a from eth.tab where tab.b = 3"
+    assert!("select a from eth.tab where tab.b = 3;"
         .parse::<SelectStatement>()
         .is_err());
 }
@@ -850,13 +860,6 @@ fn we_cannot_parse_a_query_with_schemas_followed_by_column_and_table_names() {
 #[test]
 fn we_cannot_parse_a_query_with_a_subquery() {
     assert!("select a from (select a from tab where b = 4)"
-        .parse::<SelectStatement>()
-        .is_err());
-}
-
-#[test]
-fn we_cannot_parse_a_query_ending_with_a_semicolon() {
-    assert!("select a from tab where b = 3;"
         .parse::<SelectStatement>()
         .is_err());
 }
@@ -883,7 +886,7 @@ fn we_cannot_parse_a_query_having_a_negative_limit_clause() {
 
 #[test]
 fn we_can_parse_a_query_having_a_simple_offset_clause() {
-    let ast = "select a from tab offset 3"
+    let ast = "select a from tab offset 3;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -896,7 +899,7 @@ fn we_can_parse_a_query_having_a_simple_offset_clause() {
 
 #[test]
 fn we_can_parse_a_query_having_a_negative_offset_clause() {
-    let ast = "select a from tab offset -3"
+    let ast = "select a from tab offset -3;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -909,7 +912,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
 
 #[test]
 fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
-    let ast = "select a from tab limit 55 offset 3"
+    let ast = "select a from tab limit 55 offset 3;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -919,7 +922,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     );
     assert_eq!(ast, expected_ast);
 
-    let ast = "select a from tab offset 3 limit 55"
+    let ast = "select a from tab offset 3 limit 55;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -933,7 +936,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 #[test]
 fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by(
 ) {
-    let ast = "select a from tab where a = 3 order by a limit 55 offset 3"
+    let ast = "select a from tab where a = 3 order by a limit 55 offset 3;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -952,9 +955,11 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
 #[test]
 fn we_cannot_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_but_followed_by_order_by(
 ) {
-    assert!("select a from tab where a = 3 limit 55 offset 3 order by a"
-        .parse::<SelectStatement>()
-        .is_err());
+    assert!(
+        "select a from tab where a = 3 limit 55 offset 3 order by a;"
+            .parse::<SelectStatement>()
+            .is_err()
+    );
 }
 
 #[test]
@@ -977,7 +982,7 @@ fn we_can_parse_a_query_with_filter_ge() {
 
 #[test]
 fn we_can_parse_a_query_with_filter_lt() {
-    let ast = "select a from tab where b < 4"
+    let ast = "select a from tab where b < 4;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1013,7 +1018,7 @@ fn we_can_parse_a_query_with_filter_le() {
 
 #[test]
 fn we_can_parse_a_query_with_filter_gt() {
-    let ast = "select a from tab where b > 4"
+    let ast = "select a from tab where b > 4;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1032,7 +1037,7 @@ fn we_can_parse_a_query_with_filter_gt() {
 #[test]
 fn we_cannot_parse_a_query_with_inner_join_keyword() {
     assert!(
-        "select tab1.a from tab1 join tab2 on tab1.c = tab2.c where tab2.b > 4"
+        "select tab1.a from tab1 join tab2 on tab1.c = tab2.c where tab2.b > 4;"
             .parse::<SelectStatement>()
             .is_err()
     );
@@ -1042,7 +1047,7 @@ fn we_cannot_parse_a_query_with_inner_join_keyword() {
 #[test]
 fn we_cannot_parse_a_query_with_case_when_keyword() {
     assert!(
-        "select case when a == 2 then 3 else 5 from tab where b <= 4"
+        "select case when a == 2 then 3 else 5 from tab where b <= 4;"
             .parse::<SelectStatement>()
             .is_err()
     );
@@ -1106,7 +1111,7 @@ fn we_cannot_parse_queries_with_long_identifiers() {
 ////////////////////////////////
 #[test]
 fn we_can_parse_a_simple_group_by_clause() {
-    let ast = "select a from tab group by a"
+    let ast = "select a from tab group by a;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1118,7 +1123,7 @@ fn we_can_parse_a_simple_group_by_clause() {
 }
 #[test]
 fn we_can_parse_a_simple_group_by_clause_with_multiple_columns() {
-    let ast = "select a from tab group by a, b, d"
+    let ast = "select a from tab group by a, b, d;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1171,7 +1176,7 @@ fn we_can_parse_a_group_by_clause_containing_multiple_aggregations() {
 #[test]
 fn we_can_parse_a_group_by_clause_containing_multiple_aggregations_where_clause_order_by_and_limit()
 {
-    let ast = "select min(a), max(a) as max_a, sum(c), count(a), count(*) count_all from tab where d = 3 group by a, b order by b limit 2"
+    let ast = "select min(a), max(a) as max_a, sum(c), count(a), count(*) count_all from tab where d = 3 group by a, b order by b limit 2;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
@@ -1202,7 +1207,7 @@ fn we_cannot_parse_a_group_by_clause_after_order_by() {
 
 #[test]
 fn we_cannot_parse_a_group_by_clause_before_where_expr() {
-    assert!("select a from tab group by a where a = 3"
+    assert!("select a from tab group by a where a = 3;"
         .parse::<SelectStatement>()
         .is_err());
 }
@@ -1239,7 +1244,7 @@ fn we_cannot_parse_a_non_count_aggregations_with_wildcard() {
 
 #[test]
 fn we_can_parse_a_simple_add_mul_sub_arithmetic_expressions_in_the_result_expr() {
-    let ast = "select a + b, 2 * f, -77 - h, sum(a) / sum(b) from tab"
+    let ast = "select a + b, 2 * f, -77 - h, sum(a) / sum(b) from tab;"
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(

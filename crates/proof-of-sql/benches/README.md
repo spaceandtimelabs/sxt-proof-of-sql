@@ -8,9 +8,10 @@ To run benchmarks with Jaeger, you need to do the following
     ```bash
     docker run --rm -d --name jaeger -p 6831:6831/udp -p 16686:16686 jaegertracing/all-in-one:latest
     ```
-2. Run the benchmark.
+2. Run a benchmark.
     ```bash
-    cargo bench -p proof-of-sql --bench jaeger_benches
+    cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
+    cargo bench -p proof-of-sql --bench jaeger_benches Dory --features="test"
     ```
 3. Navigate to http://localhost:16686/ to see the results.
 4. To end the Jaeger service, run

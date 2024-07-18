@@ -30,7 +30,7 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE a".parse().unwrap(),
+        "SELECT * FROM table WHERE a;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -91,7 +91,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE b = 1".parse().unwrap(),
+        "SELECT * FROM table WHERE b = 1;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -152,7 +152,7 @@ fn we_can_prove_a_basic_inequality_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table WHERE b >= 1".parse().unwrap(),
+        "SELECT * FROM table WHERE b >= 1;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -223,7 +223,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT * FROM table".parse().unwrap(),
+        "SELECT * FROM table;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -294,7 +294,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
         0,
     );
     let query = QueryExpr::<DoryCommitment>::try_new(
-        "SELECT * FROM table WHERE b > 1 - a".parse().unwrap(),
+        "SELECT * FROM table WHERE b > 1 - a;".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,
     )
@@ -327,7 +327,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "select primes, amount from public.test_table where primes = 'abcd'"
+        "select primes, amount from public.test_table where primes = 'abcd';"
             .parse()
             .unwrap(),
         "public".parse().unwrap(),
@@ -396,7 +396,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
         0,
     );
     let large_decimal = format!("0.{}", "1".repeat(75));
-    let query_string = format!("SELECT d0 + {} as res FROM table", large_decimal);
+    let query_string = format!("SELECT d0 + {} as res FROM table;", large_decimal);
     assert!(matches!(
         QueryExpr::<RistrettoPoint>::try_new(
             query_string.parse().unwrap(),
@@ -426,7 +426,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         0,
     );
     let query = QueryExpr::try_new(
-        "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f"
+        "SELECT a + (b * c) + 1 as t, 45.7 as g, (a = b) or f as h, d0 * d1 + 1.4 as dr FROM table WHERE (a >= b) = (c < d) and (e = 'e') = f;"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -563,6 +563,131 @@ fn we_can_prove_a_basic_group_by_query_with_curve25519() {
         bigint("a", [1, 2, 3]),
         bigint("d", [1, 16, 5]),
         bigint("e", [1, 2, 1]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_cat_group_by_query_with_curve25519() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.cats".parse().unwrap(),
+        owned_table([
+            int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            varchar(
+                "name",
+                [
+                    "Chloe",
+                    "Margaret",
+                    "Prudence",
+                    "Lucy",
+                    "Ms. Kitty",
+                    "Pepper",
+                    "Rocky",
+                    "Smokey",
+                    "Tiger",
+                    "Whiskers",
+                ],
+            ),
+            smallint("age", [12_i16, 2, 3, 3, 10, 2, 2, 4, 5, 6]),
+            varchar(
+                "human",
+                [
+                    "Ian", "Ian", "Gretta", "Gretta", "Gretta", "Gretta", "Gretta", "Alice", "Bob",
+                    "Charlie",
+                ],
+            ),
+            bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varchar("human", ["Gretta", "Ian"]),
+        smallint("total_cat_age", [4_i16, 2]),
+        bigint("num_cats", [2, 1]),
+    ]);
+    assert_eq!(owned_table_result, expected_result);
+}
+
+#[test]
+fn we_can_prove_a_cat_group_by_query_with_dory() {
+    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, 3);
+
+    let mut accessor =
+        OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
+    accessor.add_table(
+        "sxt.cats".parse().unwrap(),
+        owned_table([
+            int("id", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            varchar(
+                "name",
+                [
+                    "Chloe",
+                    "Margaret",
+                    "Prudence",
+                    "Lucy",
+                    "Ms. Kitty",
+                    "Pepper",
+                    "Rocky",
+                    "Smokey",
+                    "Tiger",
+                    "Whiskers",
+                ],
+            ),
+            smallint("age", [12_i16, 2, 3, 3, 10, 2, 2, 4, 5, 6]),
+            varchar(
+                "human",
+                [
+                    "Ian", "Ian", "Gretta", "Gretta", "Gretta", "Gretta", "Gretta", "Alice", "Bob",
+                    "Charlie",
+                ],
+            ),
+            bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<DoryEvaluationProof>::new(query.proof_expr(), &accessor, &dory_prover_setup);
+    let owned_table_result = proof
+        .verify(
+            query.proof_expr(),
+            &accessor,
+            &serialized_result,
+            &dory_verifier_setup,
+        )
+        .unwrap()
+        .table;
+    let expected_result = owned_table([
+        varchar("human", ["Gretta", "Ian"]),
+        smallint("total_cat_age", [4_i16, 2]),
+        bigint("num_cats", [2, 1]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

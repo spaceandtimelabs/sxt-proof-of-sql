@@ -1,4 +1,4 @@
-use super::{PostprocessingResult, PostprocessingStep, SliceExpr};
+use super::{OrderByExpr, PostprocessingResult, PostprocessingStep, SliceExpr};
 use crate::base::{database::OwnedTable, scalar::Scalar};
 
 /// An enum for nodes that can apply postprocessing to a `OwnedTable`.
@@ -6,6 +6,8 @@ use crate::base::{database::OwnedTable, scalar::Scalar};
 pub enum OwnedTablePostprocessing<S: Scalar> {
     /// Slice the `OwnedTable` with the given `SliceExpr`.
     Slice(SliceExpr<S>),
+    /// Order the `OwnedTable` with the given `OrderByExpr`.
+    OrderBy(OrderByExpr<S>),
 }
 
 impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing<S> {
@@ -13,6 +15,7 @@ impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing<S> {
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         match self {
             OwnedTablePostprocessing::Slice(slice_expr) => slice_expr.apply(owned_table),
+            OwnedTablePostprocessing::OrderBy(order_by_expr) => order_by_expr.apply(owned_table),
         }
     }
 }
@@ -21,6 +24,10 @@ impl<S: Scalar> OwnedTablePostprocessing<S> {
     /// Create a new `OwnedTablePostprocessing` with the given `SliceExpr`.
     pub fn new_slice(slice_expr: SliceExpr<S>) -> Self {
         Self::Slice(slice_expr)
+    }
+    /// Create a new `OwnedTablePostprocessing` with the given `OrderByExpr`.
+    pub fn new_order_by(order_by_expr: OrderByExpr<S>) -> Self {
+        Self::OrderBy(order_by_expr)
     }
 }
 

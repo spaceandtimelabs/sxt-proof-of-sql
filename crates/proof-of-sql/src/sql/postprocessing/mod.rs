@@ -11,8 +11,12 @@ pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
 pub mod test_utility;
 
+mod order_by_expr;
+pub use order_by_expr::OrderByExpr;
+#[cfg(test)]
+mod order_by_expr_test;
+
 mod slice_expr;
 pub use slice_expr::SliceExpr;
-
 #[cfg(test)]
 mod slice_expr_test;
