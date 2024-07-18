@@ -1,3 +1,4 @@
+use crate::error::PoSQLTimestampError;
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -13,6 +14,19 @@ pub enum PoSQLTimeUnit {
     Microsecond,
     /// Represents nanoseconds with precision 9: ex "2024-06-20 12:34:56.123456789"
     Nanosecond,
+}
+
+impl TryFrom<&str> for PoSQLTimeUnit {
+    type Error = PoSQLTimestampError;
+    fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
+        match value {
+            "0" => Ok(PoSQLTimeUnit::Second),
+            "3" => Ok(PoSQLTimeUnit::Millisecond),
+            "6" => Ok(PoSQLTimeUnit::Microsecond),
+            "9" => Ok(PoSQLTimeUnit::Nanosecond),
+            _ => Err(PoSQLTimestampError::UnsupportedPrecision(value.into())),
+        }
+    }
 }
 
 impl From<PoSQLTimeUnit> for ArrowTimeUnit {
@@ -53,9 +67,31 @@ impl fmt::Display for PoSQLTimeUnit {
 #[cfg(test)]
 #[allow(deprecated)]
 mod time_unit_tests {
-
-    use crate::posql_time::{timestamp::PoSQLTimestamp, unit::PoSQLTimeUnit};
+    use super::*;
+    use crate::{error::PoSQLTimestampError, posql_time::timestamp::PoSQLTimestamp};
     use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn test_valid_precisions() {
+        assert_eq!(PoSQLTimeUnit::try_from("0"), Ok(PoSQLTimeUnit::Second));
+        assert_eq!(PoSQLTimeUnit::try_from("3"), Ok(PoSQLTimeUnit::Millisecond));
+        assert_eq!(PoSQLTimeUnit::try_from("6"), Ok(PoSQLTimeUnit::Microsecond));
+        assert_eq!(PoSQLTimeUnit::try_from("9"), Ok(PoSQLTimeUnit::Nanosecond));
+    }
+
+    #[test]
+    fn test_invalid_precision() {
+        let invalid_precisions = [
+            "1", "2", "4", "5", "7", "8", "10", "zero", "three", "cat", "-1", "-2",
+        ]; // Testing all your various invalid inputs
+        for &value in invalid_precisions.iter() {
+            let result = PoSQLTimeUnit::try_from(value);
+            assert!(matches!(
+                result,
+                Err(PoSQLTimestampError::UnsupportedPrecision(_))
+            ));
+        }
+    }
 
     #[test]
     fn test_rfc3339_timestamp_with_milliseconds() {
