@@ -13,15 +13,17 @@ FROM table
 ```
 ## Supported in the Prover
 * DataTypes
-    - Boolean
+    - Bool / Boolean
     - Numeric Types
-        * SmallInt / Int16
-        * Int / Int32
-        * BigInt / Int64
+        * SmallInt (16 bits)
+        * Int / Integer (32 bits)
+        * BigInt (64 bits)
         * Int128
         * Decimal75
     - Character Types
         * Varchar [^1]
+    - Date / Time Types
+        * Timestamp
 * Operators
     - Logical Operators
         * AND, OR
