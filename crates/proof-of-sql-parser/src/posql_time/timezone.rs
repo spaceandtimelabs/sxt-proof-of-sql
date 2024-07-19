@@ -57,7 +57,7 @@ impl fmt::Display for PoSQLTimeZone {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             PoSQLTimeZone::Utc => {
-                write!(f, "00:00")
+                write!(f, "+00:00")
             }
             PoSQLTimeZone::FixedOffset(seconds) => {
                 let hours = seconds / 3600;
@@ -91,7 +91,7 @@ mod timezone_parsing_tests {
     #[test]
     fn test_display_utc() {
         let timezone = timezone::PoSQLTimeZone::Utc;
-        assert_eq!(format!("{}", timezone), "00:00");
+        assert_eq!(format!("{}", timezone), "+00:00");
     }
 }
 
