@@ -5,7 +5,7 @@ mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
 use crate::sql::parse::ConversionError;
-use core::ops::Sub;
+use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
 mod mont_scalar_from;
@@ -79,6 +79,14 @@ pub trait Scalar:
     const ONE: Self;
     /// 1 + 1
     const TWO: Self;
+    /// Compare two `Scalar`s as signed numbers.
+    fn signed_cmp(&self, other: &Self) -> Ordering {
+        match *self - *other {
+            x if x.is_zero() => Ordering::Equal,
+            x if x > Self::MAX_SIGNED => Ordering::Less,
+            _ => Ordering::Greater,
+        }
+    }
 }
 
 macro_rules! scalar_conversion_to_int {
@@ -207,4 +215,5 @@ macro_rules! scalar_conversion_to_int {
         }
     };
 }
+
 pub(crate) use scalar_conversion_to_int;

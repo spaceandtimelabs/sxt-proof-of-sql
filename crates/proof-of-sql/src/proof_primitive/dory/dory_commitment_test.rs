@@ -1,5 +1,6 @@
 use super::DoryScalar;
 use crate::base::scalar::{Scalar, ScalarConversionError};
+use core::cmp::Ordering;
 #[test]
 fn test_dory_scalar_to_i8() {
     assert_eq!(TryInto::<i8>::try_into(DoryScalar::from(0)).unwrap(), 0);
@@ -133,4 +134,18 @@ fn test_dory_scalar_to_i128_overflow() {
         TryInto::<i128>::try_into(DoryScalar::from(i128::MIN) - DoryScalar::ONE),
         Err(ScalarConversionError::Overflow(_))
     );
+}
+
+#[test]
+fn scalar_comparison_works() {
+    let zero = DoryScalar::ZERO;
+    let one = DoryScalar::ONE;
+    let two = DoryScalar::TWO;
+    let max = DoryScalar::MAX_SIGNED;
+    let min = max + one;
+    assert_eq!(max.signed_cmp(&one), Ordering::Greater);
+    assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
+    assert_eq!(min.signed_cmp(&zero), Ordering::Less);
+    assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
+    assert_eq!(two * max + one, zero);
 }

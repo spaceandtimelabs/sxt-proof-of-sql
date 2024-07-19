@@ -598,12 +598,18 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
                     "Charlie",
                 ],
             ),
+            boolean(
+                "is_female",
+                [
+                    true, true, true, true, true, true, false, false, false, false,
+                ],
+            ),
             bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+        "select human, sum(age + 0.1) as total_adjusted_cat_age, count(*) as num_cats from sxt.cats where is_female group by human order by human"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -618,8 +624,8 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
         .table;
     let expected_result = owned_table([
         varchar("human", ["Gretta", "Ian"]),
-        smallint("total_cat_age", [4_i16, 2]),
-        bigint("num_cats", [2, 1]),
+        decimal75("total_adjusted_cat_age", 7, 1, [184_i16, 142]),
+        bigint("num_cats", [4, 2]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -653,7 +659,12 @@ fn we_can_prove_a_cat_group_by_query_with_dory() {
                     "Whiskers",
                 ],
             ),
-            smallint("age", [12_i16, 2, 3, 3, 10, 2, 2, 4, 5, 6]),
+            decimal75(
+                "diff_from_ideal_weight",
+                3,
+                1,
+                [103_i16, -20, 34, 34, 103, -25, -25, 47, 52, 63],
+            ),
             varchar(
                 "human",
                 [
@@ -661,12 +672,18 @@ fn we_can_prove_a_cat_group_by_query_with_dory() {
                     "Charlie",
                 ],
             ),
+            boolean(
+                "is_female",
+                [
+                    true, true, true, true, true, true, false, false, false, false,
+                ],
+            ),
             bigint("proof_order", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         ]),
         0,
     );
     let query = QueryExpr::try_new(
-        "select human, sum(age) as total_cat_age, count(*) as num_cats from sxt.cats where age = 2 group by human"
+        "select diff_from_ideal_weight, count(*) as num_cats from sxt.cats where is_female group by diff_from_ideal_weight order by diff_from_ideal_weight"
             .parse()
             .unwrap(),
         "sxt".parse().unwrap(),
@@ -685,9 +702,8 @@ fn we_can_prove_a_cat_group_by_query_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        varchar("human", ["Gretta", "Ian"]),
-        smallint("total_cat_age", [4_i16, 2]),
-        bigint("num_cats", [2, 1]),
+        decimal75("diff_from_ideal_weight", 3, 1, [-25, -20, 34, 103]),
+        bigint("num_cats", [1_i64, 1, 2, 2]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

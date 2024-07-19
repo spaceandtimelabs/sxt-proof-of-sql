@@ -1,5 +1,6 @@
-use crate::base::scalar::Curve25519Scalar;
+use crate::base::scalar::{Curve25519Scalar, Scalar};
 use byte_slice_cast::AsByteSlice;
+use core::cmp::Ordering;
 use num_traits::{One, Zero};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -65,6 +66,20 @@ fn the_one_scalar_is_the_multiplicative_identity() {
             Curve25519Scalar::one()
         );
     }
+}
+
+#[test]
+fn scalar_comparison_works() {
+    let zero = Curve25519Scalar::ZERO;
+    let one = Curve25519Scalar::ONE;
+    let two = Curve25519Scalar::TWO;
+    let max = Curve25519Scalar::MAX_SIGNED;
+    let min = max + one;
+    assert_eq!(max.signed_cmp(&one), Ordering::Greater);
+    assert_eq!(one.signed_cmp(&zero), Ordering::Greater);
+    assert_eq!(min.signed_cmp(&zero), Ordering::Less);
+    assert_eq!((two * max).signed_cmp(&zero), Ordering::Less);
+    assert_eq!(two * max + one, zero);
 }
 
 #[test]
