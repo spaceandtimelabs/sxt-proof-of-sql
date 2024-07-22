@@ -171,8 +171,9 @@ See the [SQL specification](https://github.com/spaceandtimelabs/sxt-proof-of-sql
 * `GROUP BY`
 * Comparison operations: `=`, `>=`, `<=`, etc.
 * Logical operations: `AND`, `OR`, `NOT`.
+* Numerical operations `+`, `-`, `*`.
 * Aggregations: `SUM`, `COUNT`
-* Data Types: `BIGINT`, `VARCHAR`, `DECIMAL75`.
+* Data Types: `BOOLEAN`, Integer types, `VARCHAR`, `DECIMAL75`, `TIMESTAMP`.
 
 
 ## Roadmap
