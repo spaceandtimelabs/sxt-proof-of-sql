@@ -52,7 +52,18 @@ pub trait CommitmentEvaluationProof {
         generators_offset: u64,
         table_length: usize,
         setup: &Self::VerifierPublicSetup<'_>,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), Self::Error> {
+        self.verify_batched_proof(
+            transcript,
+            core::slice::from_ref(a_commit),
+            &[Self::Scalar::ONE],
+            product,
+            b_point,
+            generators_offset,
+            table_length,
+            setup,
+        )
+    }
     /// Verify a batch proof. This can be more efficient than verifying individual proofs for some schemes.
     #[allow(clippy::too_many_arguments)]
     fn verify_batched_proof(
@@ -65,17 +76,7 @@ pub trait CommitmentEvaluationProof {
         generators_offset: u64,
         table_length: usize,
         setup: &Self::VerifierPublicSetup<'_>,
-    ) -> Result<(), Self::Error> {
-        self.verify_proof(
-            transcript,
-            &Self::Commitment::fold_commitments(commit_batch, batching_factors),
-            product,
-            b_point,
-            generators_offset,
-            table_length,
-            setup,
-        )
-    }
+    ) -> Result<(), Self::Error>;
 }
 
 #[cfg(feature = "blitzar")]
@@ -107,10 +108,12 @@ impl CommitmentEvaluationProof for InnerProductProof {
             generators_offset,
         )
     }
-    fn verify_proof(
+
+    fn verify_batched_proof(
         &self,
         transcript: &mut Transcript,
-        a_commit: &Self::Commitment,
+        commit_batch: &[Self::Commitment],
+        batching_factors: &[Self::Scalar],
         product: &Self::Scalar,
         b_point: &[Self::Scalar],
         generators_offset: u64,
@@ -127,7 +130,14 @@ impl CommitmentEvaluationProof for InnerProductProof {
         }
         self.verify(
             transcript,
-            a_commit,
+            &commit_batch
+                .iter()
+                .zip(batching_factors.iter())
+                .map(|(c, m)| *m * c)
+                .fold(Default::default(), |mut a, c| {
+                    a += c;
+                    a
+                }),
             &product.into(),
             &slice_ops::slice_cast(b),
             generators_offset,

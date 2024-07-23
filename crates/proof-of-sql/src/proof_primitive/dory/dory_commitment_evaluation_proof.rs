@@ -6,7 +6,6 @@ use super::{
 };
 use crate::base::commitment::CommitmentEvaluationProof;
 use merlin::Transcript;
-use num_traits::One;
 use thiserror::Error;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
@@ -63,28 +62,11 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         messages
     }
 
-    #[tracing::instrument(name = "DoryEvaluationProof::verify_proof", level = "debug", skip_all)]
-    fn verify_proof(
-        &self,
-        transcript: &mut Transcript,
-        a_commit: &Self::Commitment,
-        product: &Self::Scalar,
-        b_point: &[Self::Scalar],
-        generators_offset: u64,
-        _table_length: usize,
-        setup: &Self::VerifierPublicSetup<'_>,
-    ) -> Result<(), Self::Error> {
-        self.verify_batched_proof(
-            transcript,
-            &[*a_commit],
-            &[DoryScalar::one()],
-            product,
-            b_point,
-            generators_offset,
-            _table_length,
-            setup,
-        )
-    }
+    #[tracing::instrument(
+        name = "DoryEvaluationProof::verify_batched_proof",
+        level = "debug",
+        skip_all
+    )]
     fn verify_batched_proof(
         &self,
         transcript: &mut Transcript,
