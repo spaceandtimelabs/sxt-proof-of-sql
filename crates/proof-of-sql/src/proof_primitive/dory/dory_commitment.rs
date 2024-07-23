@@ -30,7 +30,6 @@ use crate::base::{
 };
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use bytemuck::TransparentWrapper;
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
 use num_traits::One;
@@ -60,10 +59,8 @@ impl Scalar for DoryScalar {
     SubAssign,
     CanonicalSerialize,
     CanonicalDeserialize,
-    TransparentWrapper,
 )]
 /// The Dory commitment type.
-#[repr(transparent)]
 pub struct DoryCommitment(pub(super) GT);
 
 /// The default for GT is the the additive identity, but should be the multiplicative identity.
