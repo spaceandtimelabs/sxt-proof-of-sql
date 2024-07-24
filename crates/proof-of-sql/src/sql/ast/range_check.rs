@@ -1,46 +1,33 @@
+use bytemuck::{Pod, Zeroable};
+
 use crate::{
     base::{commitment::Commitment, proof::ProofError, scalar::Scalar},
     sql::proof::{ProofBuilder, VerificationBuilder},
 };
 
-/// Evaluates the range check of scalar values by converting each scalar into 
-/// a byte array and processing it through a proof builder. This function 
-/// targets zero-copy commitment computation when converting from `Scalar` to
+/// Evaluates the range check of scalar values by converting each scalar into
+/// a byte array and processing it through a proof builder. This function
+/// targets zero-copy commitment computation when converting from [Scalar] to
 /// word-sized targets.
 ///
 /// # Safety
-/// This function uses `unsafe` to convert scalar values (`S`) represented as 
-/// `[u64; 4]` arrays into byte (word) slices. It requires that data alignment of `u64` 
-/// is sufficient for `u8`, and that the `expr` slice lives at least as long as 
-/// `'a`. The conversion exposes native endianness, and only the first 31 bytes 
-/// of the `u64` array are accessed because we are eventually trying to prove 
+/// This function safely converts scalar values (`Scalar`) to byte slices using 
+/// `bytemuck`. The data alignment of `u64` ensures proper alignment for `u8`. 
+/// It requires that data alignment of `u64` is sufficient for `u8`, 
+/// and that the `expr` slice lives at least as long as `'a`. 
+/// The conversion exposes native endianness, and only the first 31 bytes
+/// of the `u64` array are accessed because we are eventually trying to prove
 /// that the bytes are within the range [0, (p - 1)/2], or [0, 2^248 - 1].
-pub fn prover_evaluate_range_check<'a, S: Scalar>(
+pub fn prover_evaluate_range_check<'a, S: Scalar + Pod + Zeroable>(
     builder: &mut ProofBuilder<'a, S>,
     expr: &'a [S],
 ) {
     let byte_refs: Vec<&'a [u8]> = expr
         .iter()
-        .map(|&s| {
-            let scalar_u64s: [u64; 4] = s.into();
-            // Strategy: Use `unsafe` to zero-copy pointer cast from `[u64; 4]` to `&[u8]`.
-            // Safety:
-            // * Alignment: `u64` variables have stricter alignment requirements compared to `u8`.
-            //    Therefore, a pointer to `u64` is guaranteed to be correctly aligned for `u8` access.
-            // * This block assumes that the data in `expr` (which `scalar_u64s` references)
-            //    lives long enough for the duration of this function's execution, matching or exceeding `'a`.
-            // * Endianness: This conversion exposes the machine's native endianness. The bytes are accessed
-            //    directly from the `u64` data structure, which means the byte order will reflect the machine's
-            //    architecture (little-endian or big-endian).
-            // * Data Integrity: Direct byte access via this method does not alter the original data.
-            // Only the first 31 bytes of the `u64` array are used, avoiding any out-of-bounds access.
-            unsafe {
-                let scalar_bytes: &[u8] = std::slice::from_raw_parts(
-                    scalar_u64s.as_ptr() as *const u8,
-                    std::mem::size_of::<[u64; 4]>(),
-                );
-                std::slice::from_raw_parts(scalar_bytes.as_ptr(), 31)
-            }
+        .map(|s| {
+            // Convert directly from &S to &[u8] and take the first 31 bytes
+            let scalar_bytes: &[u8] = bytemuck::bytes_of(s);
+            &scalar_bytes[..31]
         })
         .collect();
 
@@ -54,7 +41,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar>(
 /// polynomial evaluation.
 ///
 /// The function first retrieves the necessary coefficients from a
-/// `VerificationBuilder` and then evaluates the polynomial. If the evaluated
+/// [VerificationBuilder] and then evaluates the polynomial. If the evaluated
 /// result matches the given `expr_eval`, it confirms the validity of the
 /// expression; otherwise, it raises an error.
 ///
