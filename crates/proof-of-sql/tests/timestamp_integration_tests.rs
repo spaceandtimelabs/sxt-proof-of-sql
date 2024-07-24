@@ -12,7 +12,7 @@ use proof_of_sql::{
         proof::{QueryProof, VerifiableQueryResult},
     },
 };
-use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {

@@ -1,4 +1,4 @@
-use crate::error::PoSQLTimestampError;
+use super::PoSQLTimestampError;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

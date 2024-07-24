@@ -7,7 +7,7 @@ use crate::{
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
-    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
 

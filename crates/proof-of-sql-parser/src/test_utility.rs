@@ -1,5 +1,6 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
 
+/// A == B
 pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::Equal,
@@ -8,6 +9,7 @@ pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// A >= B
 pub fn ge(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::GreaterThanOrEqual,
@@ -16,6 +18,7 @@ pub fn ge(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// A <= B
 pub fn le(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::LessThanOrEqual,
@@ -24,6 +27,7 @@ pub fn le(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// NOT P
 pub fn not(expr: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Unary {
         op: UnaryOperator::Not,
@@ -31,6 +35,7 @@ pub fn not(expr: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// P AND Q
 pub fn and(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::And,
@@ -39,6 +44,7 @@ pub fn and(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// P OR Q
 pub fn or(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
         op: BinaryOperator::Or,
@@ -47,6 +53,7 @@ pub fn or(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// Get table from schema and name
 pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     Box::new(TableExpression::Named {
         table: name.parse().unwrap(),
@@ -54,18 +61,22 @@ pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     })
 }
 
+/// Get column from name
 pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
 }
 
+/// Get literal from value
 pub fn lit<L: Into<Literal>>(literal: L) -> Box<Expression> {
     Box::new(Expression::Literal(literal.into()))
 }
 
+/// SELECT *
 pub fn col_res_all() -> SelectResultExpr {
     SelectResultExpr::ALL
 }
 
+/// SELECT COL AS ALIAS
 pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: col_val,
@@ -73,10 +84,12 @@ pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT COL1, COL2, ...
 pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
     names.iter().map(|name| col_res(col(name), name)).collect()
 }
 
+/// SELECT MIN(EXPR) AS ALIAS
 pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Box::new(Expression::Aggregation {
@@ -87,6 +100,7 @@ pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT MAX(EXPR) AS ALIAS
 pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Expression::Aggregation {
@@ -98,6 +112,7 @@ pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT SUM(EXPR) AS ALIAS
 pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Expression::Aggregation {
@@ -109,6 +124,7 @@ pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT COUNT(EXPR) AS ALIAS
 pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Expression::Aggregation {
@@ -120,6 +136,7 @@ pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT COUNT(*) AS ALIAS
 pub fn count_all_res(alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Expression::Aggregation {
@@ -131,6 +148,7 @@ pub fn count_all_res(alias: &str) -> SelectResultExpr {
     })
 }
 
+/// SELECT COL1, COL2, ... FROM TAB WHERE EXPR GROUP BY ...
 pub fn query(
     result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
@@ -145,6 +163,7 @@ pub fn query(
     })
 }
 
+/// SELECT COL1, COL2, ... FROM TAB GROUP BY ...
 pub fn query_all(
     result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
@@ -158,6 +177,7 @@ pub fn query_all(
     })
 }
 
+/// SELECT ... ORDER BY ... [LIMIT ... OFFSET ...]
 pub fn select(
     expr: Box<SetExpression>,
     order_by: Vec<OrderBy>,
@@ -170,6 +190,7 @@ pub fn select(
     }
 }
 
+/// ORDER BY ID [ASC|DESC]
 pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     vec![OrderBy {
         expr: id.parse().unwrap(),
@@ -177,6 +198,7 @@ pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     }]
 }
 
+/// ORDER BY ID0 [ASC|DESC], ID1 [ASC|DESC], ...
 pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
     ids.iter()
         .zip(directions.iter())
@@ -187,6 +209,7 @@ pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
         .collect::<Vec<_>>()
 }
 
+/// LIMIT N OFFSET M
 pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
     Some(Slice {
         number_rows,
@@ -194,6 +217,7 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
     })
 }
 
+/// GROUP BY ID0, ID1, ...
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()
 }

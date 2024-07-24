@@ -4,9 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{
-    intermediate_decimal::IntermediateDecimal, posql_time::timestamp::PoSQLTimestamp, Identifier,
-};
+use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.

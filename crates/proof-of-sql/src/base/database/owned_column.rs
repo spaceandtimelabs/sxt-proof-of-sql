@@ -13,7 +13,7 @@ use crate::base::{
 use core::cmp::Ordering;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection,
-    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 
 #[derive(Debug, PartialEq, Clone, Eq)]

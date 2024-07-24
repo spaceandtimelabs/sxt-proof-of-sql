@@ -6,7 +6,7 @@ use crate::base::{
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::{
-    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
