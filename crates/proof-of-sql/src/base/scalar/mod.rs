@@ -66,6 +66,7 @@ pub trait Scalar:
     + std::convert::From<i64>
     + std::convert::From<i32>
     + std::convert::From<i16>
+    + for<'a> std::convert::From<&'a u8>
     + std::convert::From<bool>
     + TryFrom<BigInt, Error = ScalarConversionError>
 {
