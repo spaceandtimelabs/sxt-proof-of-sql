@@ -51,7 +51,9 @@ fn compute_dory_commitment(
     setup: &DoryProverPublicSetup,
 ) -> DoryCommitment {
     match committable_column {
-        CommittableColumn::RangeCheckWord(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::RangeCheckWord(column) => {
+            compute_dory_commitment_impl(column, offset, setup)
+        }
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
