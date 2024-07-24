@@ -1,8 +1,5 @@
 use super::scalar_and_i256_conversions::convert_i256_to_scalar;
-use crate::{
-    base::{database::Column, math::decimal::Precision, scalar::Scalar},
-    sql::parse::ConversionError,
-};
+use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
 use arrow::{
     array::{
         Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
@@ -25,15 +22,15 @@ pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
     #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
     UnsupportedType(DataType),
+    /// Variant for decimal errors
+    #[error(transparent)]
+    DecimalError(#[from] crate::base::math::decimal::DecimalError),
     /// This error occurs when trying to convert from an i256 to a Scalar.
     #[error("decimal conversion failed: {0}")]
     DecimalConversionFailed(i256),
     /// This error occurs when the specified range is out of the bounds of the array.
     #[error("index out of bounds: the len is {0} but the index is {1}")]
     IndexOutOfBounds(usize, usize),
-    /// Variant for conversion errors
-    #[error("conversion error: {0}")]
-    ConversionError(#[from] ConversionError),
     /// Using TimeError to handle all time-related errors
     #[error(transparent)]
     TimestampConversionError(#[from] PoSQLTimestampError),

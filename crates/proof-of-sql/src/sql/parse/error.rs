@@ -1,5 +1,8 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
-use proof_of_sql_parser::{posql_time::PoSQLTimestampError, Identifier, ResourceId};
+use proof_of_sql_parser::{
+    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
+    ResourceId,
+};
 use thiserror::Error;
 
 /// Errors from converting an intermediate AST into a provable AST.
@@ -76,6 +79,14 @@ impl From<String> for ConversionError {
 impl From<ConversionError> for String {
     fn from(error: ConversionError) -> Self {
         error.to_string()
+    }
+}
+
+impl From<IntermediateDecimalError> for ConversionError {
+    fn from(err: IntermediateDecimalError) -> ConversionError {
+        ConversionError::DecimalConversionError(DecimalError::IntermediateDecimalConversionError(
+            err,
+        ))
     }
 }
 

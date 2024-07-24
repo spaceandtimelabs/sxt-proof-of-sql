@@ -4,7 +4,6 @@ pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
-use crate::sql::parse::ConversionError;
 use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
@@ -68,7 +67,7 @@ pub trait Scalar:
     + std::convert::From<i32>
     + std::convert::From<i16>
     + std::convert::From<bool>
-    + TryFrom<BigInt, Error = ConversionError>
+    + TryFrom<BigInt, Error = ScalarConversionError>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.
