@@ -28,9 +28,8 @@ use crate::base::{
     impl_serde_for_ark_serde_checked,
     scalar::{scalar_conversion_to_int, MontScalar, Scalar, ScalarConversionError},
 };
-use ark_ec::{pairing::PairingOutput, VariableBaseMSM};
+use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use bytemuck::TransparentWrapper;
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
 use num_traits::One;
@@ -60,10 +59,8 @@ impl Scalar for DoryScalar {
     SubAssign,
     CanonicalSerialize,
     CanonicalDeserialize,
-    TransparentWrapper,
 )]
 /// The Dory commitment type.
-#[repr(transparent)]
 pub struct DoryCommitment(pub(super) GT);
 
 /// The default for GT is the the additive identity, but should be the multiplicative identity.
@@ -100,13 +97,6 @@ impl Commitment for DoryCommitment {
         assert_eq!(commitments.len(), committable_columns.len());
         let c = super::compute_dory_commitments(committable_columns, offset, setup);
         commitments.copy_from_slice(&c);
-    }
-
-    fn fold_commitments(commitments: &[Self], multipliers: &[Self::Scalar]) -> Self {
-        Self(VariableBaseMSM::msm_unchecked(
-            TransparentWrapper::peel_slice(commitments),
-            TransparentWrapper::peel_slice(multipliers),
-        ))
     }
 }
 
