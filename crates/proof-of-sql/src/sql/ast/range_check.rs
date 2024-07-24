@@ -1,9 +1,8 @@
-use bytemuck::{Pod, Zeroable};
-
 use crate::{
     base::{commitment::Commitment, proof::ProofError, scalar::Scalar},
     sql::proof::{ProofBuilder, VerificationBuilder},
 };
+use bytemuck::{Pod, Zeroable};
 
 /// Evaluates the range check of scalar values by converting each scalar into
 /// a byte array and processing it through a proof builder. This function
@@ -11,10 +10,10 @@ use crate::{
 /// word-sized targets.
 ///
 /// # Safety
-/// This function safely converts scalar values (`Scalar`) to byte slices using 
-/// `bytemuck`. The data alignment of `u64` ensures proper alignment for `u8`. 
-/// It requires that data alignment of `u64` is sufficient for `u8`, 
-/// and that the `expr` slice lives at least as long as `'a`. 
+/// This function safely converts scalar values (`Scalar`) to byte slices using
+/// `bytemuck`. The data alignment of `u64` ensures proper alignment for `u8`.
+/// It requires that data alignment of `u64` is sufficient for `u8`,
+/// and that the `expr` slice lives at least as long as `'a`.
 /// The conversion exposes native endianness, and only the first 31 bytes
 /// of the `u64` array are accessed because we are eventually trying to prove
 /// that the bytes are within the range [0, (p - 1)/2], or [0, 2^248 - 1].

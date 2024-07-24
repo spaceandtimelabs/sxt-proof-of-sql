@@ -57,7 +57,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::TimestampTZ(_, _, col) => col.len(),
-            CommittableColumn::RangeCheckWord(_) => todo!(),
+            CommittableColumn::RangeCheckWord(col) => col.len(),
         }
     }
 
@@ -197,7 +197,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
-            CommittableColumn::RangeCheckWord(_) => todo!(),
+            CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
         }
     }
 }
