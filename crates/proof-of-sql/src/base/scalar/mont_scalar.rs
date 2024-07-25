@@ -1,11 +1,5 @@
 use super::{scalar_conversion_to_int, Scalar, ScalarConversionError};
-use crate::{
-    base::{
-        math::decimal::{DecimalError, MAX_SUPPORTED_PRECISION},
-        scalar::mont_scalar::DecimalError::InvalidDecimal,
-    },
-    sql::parse::{ConversionError, ConversionError::DecimalConversionError},
-};
+use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
@@ -157,8 +151,8 @@ impl<T: MontConfig<4>> MontScalar<T> {
     }
 }
 
-impl<T: MontConfig<4>> TryFrom<num_bigint::BigInt> for MontScalar<T> {
-    type Error = ConversionError;
+impl<T: MontConfig<4>> TryFrom<BigInt> for MontScalar<T> {
+    type Error = ScalarConversionError;
 
     fn try_from(value: BigInt) -> Result<Self, Self::Error> {
         // Obtain the absolute value to ignore the sign when counting digits
@@ -169,11 +163,11 @@ impl<T: MontConfig<4>> TryFrom<num_bigint::BigInt> for MontScalar<T> {
 
         // Check if the number of digits exceeds the maximum precision allowed
         if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(DecimalConversionError(InvalidDecimal(format!(
+            return Err(ScalarConversionError::Overflow(format!(
                 "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
                 digits.len(),
                 MAX_SUPPORTED_PRECISION
-            ))));
+            )));
         }
 
         // Continue with the previous logic
