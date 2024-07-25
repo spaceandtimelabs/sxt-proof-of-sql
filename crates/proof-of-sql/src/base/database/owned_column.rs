@@ -56,6 +56,60 @@ impl<S: Scalar> OwnedColumn<S> {
         }
     }
 
+    /// Returns element at index as scalar
+    ///
+    /// Note that if index is out of bounds, this function will return None
+    pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
+        (index < self.len()).then_some(match self {
+            Self::Boolean(col) => S::from(col[index]),
+            Self::SmallInt(col) => S::from(col[index]),
+            Self::Int(col) => S::from(col[index]),
+            Self::BigInt(col) => S::from(col[index]),
+            Self::Int128(col) => S::from(col[index]),
+            Self::Scalar(col) => col[index],
+            Self::Decimal75(_, _, col) => col[index],
+            Self::VarChar(col) => S::from(col[index].clone()),
+            Self::TimestampTZ(_, _, col) => S::from(col[index]),
+        })
+    }
+
+    /// Cast a column of scalars to a numeric or timestamp column
+    pub(crate) fn from_scalars(scalars: Vec<S>, column_type: ColumnType) -> Option<Self> {
+        match column_type {
+            ColumnType::SmallInt => scalars
+                .iter()
+                .map(|s| -> Option<i16> { (*s).try_into().ok() })
+                .collect::<Option<Vec<i16>>>()
+                .map(OwnedColumn::SmallInt),
+            ColumnType::Int => scalars
+                .iter()
+                .map(|s| -> Option<i32> { (*s).try_into().ok() })
+                .collect::<Option<Vec<i32>>>()
+                .map(OwnedColumn::Int),
+            ColumnType::BigInt => scalars
+                .iter()
+                .map(|s| -> Option<i64> { (*s).try_into().ok() })
+                .collect::<Option<Vec<i64>>>()
+                .map(OwnedColumn::BigInt),
+            ColumnType::Int128 => scalars
+                .iter()
+                .map(|s| -> Option<i128> { (*s).try_into().ok() })
+                .collect::<Option<Vec<i128>>>()
+                .map(OwnedColumn::Int128),
+            ColumnType::Scalar => Some(OwnedColumn::Scalar(scalars.to_vec())),
+            ColumnType::Decimal75(precision, scale) => {
+                Some(OwnedColumn::Decimal75(precision, scale, scalars.to_vec()))
+            }
+            ColumnType::TimestampTZ(tu, tz) => scalars
+                .iter()
+                .map(|s| -> Option<i64> { (*s).try_into().ok() })
+                .collect::<Option<Vec<i64>>>()
+                .map(|s| OwnedColumn::TimestampTZ(tu, tz, s)),
+            // Boolean and VarChar columns are not supported by this function
+            _ => None,
+        }
+    }
+
     /// Returns the column with its entries permutated
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
@@ -108,6 +162,15 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
         }
     }
+
+    /// Returns the column as a slice of booleans if it is a boolean column. Otherwise, returns None.
+    pub(crate) fn as_boolean(&self) -> Option<&[bool]> {
+        match self {
+            Self::Boolean(col) => Some(col),
+            _ => None,
+        }
+    }
+
     /// Returns the type of the column.
     pub fn column_type(&self) -> ColumnType {
         match self {
@@ -209,7 +272,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
                 OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, col) => col[i].cmp(&col[j]),
+                OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
                 OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),

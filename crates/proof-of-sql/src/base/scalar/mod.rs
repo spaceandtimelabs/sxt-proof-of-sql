@@ -68,6 +68,7 @@ pub trait Scalar:
     + std::convert::From<i16>
     + std::convert::From<bool>
     + TryFrom<BigInt, Error = ScalarConversionError>
+    + Into<BigInt>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.
     /// It is the largest signed value that can be represented in the field with the natural embedding.

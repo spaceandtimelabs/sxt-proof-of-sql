@@ -14,7 +14,7 @@ const MAX_SUPPORTED_I256: i256 = i256::from_parts(
 pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
     let is_negative = val > &S::MAX_SIGNED;
     let abs_scalar = if is_negative { -*val } else { *val };
-    let limbs = abs_scalar.into();
+    let limbs: [u64; 4] = abs_scalar.into();
 
     let low = (limbs[0] as u128) | ((limbs[1] as u128) << 64);
     let high = (limbs[2] as i128) | ((limbs[3] as i128) << 64);

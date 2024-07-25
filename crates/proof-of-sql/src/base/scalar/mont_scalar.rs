@@ -182,6 +182,12 @@ impl<T: MontConfig<4>> TryFrom<BigInt> for MontScalar<T> {
         }
     }
 }
+impl<T: MontConfig<4>> From<MontScalar<T>> for BigInt {
+    fn from(val: MontScalar<T>) -> Self {
+        let raw: [u8; 32] = bytemuck::cast(val.0 .0 .0);
+        BigInt::from_bytes_le(num_bigint::Sign::Plus, &raw)
+    }
+}
 impl<T: MontConfig<4>> From<[u64; 4]> for MontScalar<T> {
     fn from(value: [u64; 4]) -> Self {
         Self(Fp::new(ark_ff::BigInt(value)))
