@@ -22,14 +22,14 @@ pub fn read_record_batch_from_csv(
     path: &Path,
 ) -> Result<RecordBatch, Box<dyn Error>> {
     let mut csv = ReaderBuilder::new(Arc::new(schema))
-        .has_header(true)
+        .with_header(true)
         .build(File::open(path)?)?;
     let batch = csv.next().ok_or("Empty table.")??;
     Ok(batch)
 }
 fn append_record_batch_to_csv(batch: &RecordBatch, path: &Path) -> Result<(), Box<dyn Error>> {
     let mut writer = WriterBuilder::new()
-        .has_headers(false)
+        .with_header(false)
         .build(OpenOptions::new().append(true).open(path)?);
     writer.write(batch)?;
     Ok(())
