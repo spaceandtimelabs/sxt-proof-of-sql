@@ -1,6 +1,12 @@
+mod error;
+/// Errors related to time operations, including timezone and timestamp conversions.
+pub use error::PoSQLTimestampError;
+mod timestamp;
 /// Defines an RFC3339-formatted timestamp
-pub mod timestamp;
+pub use timestamp::PoSQLTimestamp;
+mod timezone;
 /// Defines a timezone as count of seconds offset from UTC
-pub mod timezone;
+pub use timezone::PoSQLTimeZone;
+mod unit;
 /// Defines the precision of the timestamp
-pub mod unit;
+pub use unit::PoSQLTimeUnit;

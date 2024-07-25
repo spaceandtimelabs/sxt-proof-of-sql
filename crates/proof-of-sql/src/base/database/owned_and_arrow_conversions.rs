@@ -33,8 +33,7 @@ use arrow::{
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
-    error::PoSQLTimestampError,
-    posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     Identifier, ParseError,
 };
 use std::sync::Arc;

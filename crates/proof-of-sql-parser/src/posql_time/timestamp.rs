@@ -1,5 +1,4 @@
-use super::{timezone, unit::PoSQLTimeUnit};
-use crate::error::PoSQLTimestampError;
+use super::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +12,7 @@ pub struct PoSQLTimestamp {
     pub timeunit: PoSQLTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
-    pub timezone: timezone::PoSQLTimeZone,
+    pub timezone: PoSQLTimeZone,
 }
 
 impl PoSQLTimestamp {
@@ -32,7 +31,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::posql_time::{timestamp::PoSQLTimestamp, timezone::PoSQLTimeZone};
+    /// use proof_of_sql_parser::posql_time::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing an RFC 3339 timestamp without a timezone:
     /// let timestamp_str = "2009-01-03T18:15:05Z";
@@ -49,7 +48,7 @@ impl PoSQLTimestamp {
             .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))?;
 
         let offset_seconds = dt.offset().local_minus_utc();
-        let timezone = timezone::PoSQLTimeZone::from_offset(offset_seconds);
+        let timezone = PoSQLTimeZone::from_offset(offset_seconds);
         let nanoseconds = dt.timestamp_subsec_nanos();
         let timeunit = if nanoseconds % 1_000 != 0 {
             PoSQLTimeUnit::Nanosecond
@@ -78,7 +77,7 @@ impl PoSQLTimestamp {
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
-    /// use proof_of_sql_parser::posql_time::{timestamp::PoSQLTimestamp, timezone::PoSQLTimeZone};
+    /// use proof_of_sql_parser::posql_time::{PoSQLTimestamp, PoSQLTimeZone};
     ///
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;
@@ -90,7 +89,7 @@ impl PoSQLTimestamp {
             LocalResult::Single(timestamp) => Ok(PoSQLTimestamp {
                 timestamp,
                 timeunit: PoSQLTimeUnit::Second,
-                timezone: timezone::PoSQLTimeZone::Utc,
+                timezone: PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
                 format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
@@ -107,7 +106,7 @@ mod tests {
     #[test]
     fn test_unix_epoch_time_timezone() {
         let unix_time = 1231006505; // Unix time as string
-        let expected_timezone = timezone::PoSQLTimeZone::Utc; // Unix time should always be UTC
+        let expected_timezone = PoSQLTimeZone::Utc; // Unix time should always be UTC
         let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
     }

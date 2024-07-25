@@ -1,4 +1,4 @@
-use crate::error::PoSQLTimestampError;
+use super::PoSQLTimestampError;
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -68,7 +68,7 @@ impl fmt::Display for PoSQLTimeUnit {
 #[allow(deprecated)]
 mod time_unit_tests {
     use super::*;
-    use crate::{error::PoSQLTimestampError, posql_time::timestamp::PoSQLTimestamp};
+    use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
     use chrono::{TimeZone, Utc};
 
     #[test]

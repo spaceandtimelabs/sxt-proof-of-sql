@@ -6,7 +6,7 @@ use crate::base::{
 };
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
-use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Column data in "committable form".
 ///

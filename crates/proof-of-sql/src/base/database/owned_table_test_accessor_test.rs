@@ -7,7 +7,7 @@ use crate::base::{
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
 };
 use blitzar::proof::InnerProductProof;
-use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
