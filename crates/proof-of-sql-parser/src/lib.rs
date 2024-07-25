@@ -9,12 +9,11 @@ extern crate lalrpop_util;
 
 pub mod intermediate_ast;
 
-#[cfg(all(test, feature = "parser-test-utility"))]
+#[cfg(test)]
 mod intermediate_ast_tests;
 
-#[cfg(feature = "parser-test-utility")]
 /// Shortcuts to construct intermediate AST nodes.
-pub mod test_utility;
+pub mod utility;
 
 pub(crate) mod select_statement;
 pub use select_statement::SelectStatement;

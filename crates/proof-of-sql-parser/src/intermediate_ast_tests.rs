@@ -2,7 +2,7 @@ use crate::{
     intermediate_ast::OrderByDirection::{Asc, Desc},
     intermediate_decimal::IntermediateDecimal,
     sql::*,
-    test_utility::*,
+    utility::*,
     SelectStatement,
 };
 

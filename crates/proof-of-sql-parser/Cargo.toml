@@ -23,9 +23,6 @@ lalrpop-util = { workspace = true, features = ["lexer", "unicode"] }
 serde = { workspace = true, features = ["serde_derive"] }
 thiserror = { workspace = true }
 
-[features]
-parser-test-utility = []
-
 [build-dependencies]
 lalrpop = { version = "0.20.0" }
 
