@@ -18,8 +18,8 @@ ark-poly = { version = "0.4.0", features = [ "parallel" ] }
 ark-serialize = { version = "0.4.0" }
 ark-std = { version = "0.4.0", features = [ "parallel" ] }
 arrayvec = { version = "0.7" }
-arrow = { version = "51.0" }
-arrow-csv = { version = "51.0" }
+arrow = { version = "45.0" }
+arrow-csv = { version = "45.0" }
 bit-iter = { version = "1.1.1" }
 bigdecimal = { version = "0.4.5", features = ["serde"] }
 blake3 = { version = "1.3.3" }
