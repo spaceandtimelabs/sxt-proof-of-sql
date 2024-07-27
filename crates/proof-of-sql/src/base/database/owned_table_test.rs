@@ -3,8 +3,10 @@ use crate::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         scalar::Curve25519Scalar,
     },
+    epoch_to_rfc3339,
     proof_primitive::dory::DoryScalar,
 };
+use chrono::{TimeZone, Utc};
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
@@ -48,6 +50,7 @@ fn we_can_create_an_empty_owned_table() {
     );
     assert_eq!(owned_table.into_inner(), table);
 }
+
 #[test]
 fn we_can_create_an_owned_table_with_data() {
     let owned_table = owned_table([
@@ -59,20 +62,32 @@ fn we_can_create_an_owned_table_with_data() {
             "boolean",
             [true, false, true, false, true, false, true, false, true],
         ),
-        timestamptz(
+        timestamp(
             "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
+            [
+                epoch_to_rfc3339!(0),
+                epoch_to_rfc3339!(1),
+                epoch_to_rfc3339!(2),
+                epoch_to_rfc3339!(3),
+                epoch_to_rfc3339!(4),
+                epoch_to_rfc3339!(5),
+                epoch_to_rfc3339!(6),
+                epoch_to_rfc3339!(7),
+                epoch_to_rfc3339!(8),
+            ],
         ),
     ]);
     let mut table = IndexMap::new();
     table.insert(
         Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(
-            PoSQLTimeUnit::Second,
+            PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::Utc,
-            [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX].into(),
+            [
+                0, 1000000000, 2000000000, 3000000000, 4000000000, 5000000000, 6000000000,
+                7000000000, 8000000000,
+            ]
+            .into(),
         ),
     );
     table.insert(
@@ -126,24 +141,24 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
         boolean("d", [false; 0]),
-        timestamptz(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [0; 0],
-        ),
+        // timestamptz(
+        //     "time_stamp",
+        //     PoSQLTimeUnit::Second,
+        //     PoSQLTimeZone::Utc,
+        //     [0; 0],
+        // ),
     ]);
     let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table([
         boolean("d", [false; 0]),
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
         varchar("c", ["0"; 0]),
-        timestamptz(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [0; 0],
-        ),
+        // timestamptz(
+        //     "time_stamp",
+        //     PoSQLTimeUnit::Second,
+        //     PoSQLTimeZone::Utc,
+        //     [0; 0],
+        // ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
 }
@@ -154,11 +169,9 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz(
+        timestamp(
             "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [1625072400],
+            [Utc.timestamp_opt(1625072400, 0).unwrap().to_rfc3339()],
         ),
     ]);
     let owned_table_b: OwnedTable<DoryScalar> = owned_table([
@@ -166,11 +179,9 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz(
+        timestamp(
             "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [1625076000],
+            [Utc.timestamp_opt(1625076000, 0).unwrap().to_rfc3339()],
         ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);

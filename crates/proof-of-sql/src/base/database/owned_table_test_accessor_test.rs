@@ -7,6 +7,7 @@ use crate::base::{
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
 };
 use blitzar::proof::InnerProductProof;
+use chrono::{TimeZone, Utc};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
@@ -49,11 +50,14 @@ fn we_can_access_the_columns_of_a_table() {
         varchar("varchar", ["a", "bc", "d", "e"]),
         scalar("scalar", [1, 2, 3, 4]),
         boolean("boolean", [true, false, true, false]),
-        timestamptz(
+        timestamp(
             "time",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [4, 5, 6, 5],
+            [
+                epoch_to_rfc3339!(4),
+                epoch_to_rfc3339!(5),
+                epoch_to_rfc3339!(6),
+                epoch_to_rfc3339!(5),
+            ],
         ),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
@@ -113,7 +117,12 @@ fn we_can_access_the_columns_of_a_table() {
         ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
     );
     match accessor.get_column(column) {
-        Column::TimestampTZ(_, _, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
+        Column::TimestampTZ(_, _, col) => {
+            assert_eq!(
+                col.to_vec(),
+                vec![4000000000, 5000000000, 6000000000, 5000000000]
+            )
+        }
         _ => panic!("Invalid column type"),
     };
 }
