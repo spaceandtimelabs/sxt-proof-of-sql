@@ -82,8 +82,9 @@ impl<'a> ProverSetup<'a> {
         output_bit_table: &[u32],
         scalars: &[u8],
     ) {
-        self.blitzar_handle.packed_msm(res, output_bit_table, scalars)
-    }    
+        self.blitzar_handle
+            .packed_msm(res, output_bit_table, scalars)
+    }
 }
 
 impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {

@@ -158,13 +158,96 @@ fn compute_dory_commitment(
     }
 }
 
+#[tracing::instrument(
+    name = "compute_dory_commitments_packed_impl (gpu)",
+    level = "debug",
+    skip_all
+)]
+fn compute_dory_commitments_packed_impl(
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    setup: &DoryProverPublicSetup,
+) -> Vec<DoryCommitment> {
+    let bit_table = transpose::get_output_bit_table(committable_columns);
+    let num_of_outputs = bit_table.len();
+    let num_columns = 1 << setup.sigma();
+
+    let (scalars_update, scalar_offsets) = transpose::get_packed_scalar_and_offset_scalar_offset(
+        &bit_table,
+        committable_columns,
+        offset,
+        num_columns,
+    );
+
+    let num_of_commits = scalars_update.len();
+
+    let mut blitzar_commits =
+        vec![
+            vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs];
+            num_of_commits
+        ];
+
+    let mut blitzar_commits_offsets =
+        vec![
+            vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs];
+            num_of_commits
+        ];
+
+    for i in 0..num_of_commits {
+        if !bit_table.is_empty() {
+            setup.prover_setup().blitzar_packed_msm(
+                &mut blitzar_commits[i],
+                &bit_table,
+                scalars_update[i].as_slice(),
+            );
+            setup.prover_setup().blitzar_packed_msm(
+                &mut blitzar_commits_offsets[i],
+                &bit_table,
+                scalar_offsets[i].as_slice(),
+            );
+        }
+    }
+
+    let commits: Vec<Vec<G1Affine>> = (0..num_of_commits)
+        .map(|i| blitzar_commits[i].par_iter().map(|x| x.into()).collect())
+        .collect();
+
+    let commits_offsets: Vec<Vec<G1Affine>> = (0..num_of_commits)
+        .map(|i| {
+            blitzar_commits_offsets[i]
+                .par_iter()
+                .map(|x| x.into())
+                .collect()
+        })
+        .collect();
+
+    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
+
+    let mut dc: Vec<DoryCommitment> = vec![DoryCommitment::default(); num_of_outputs];
+    let mut indivual_commits: Vec<G1Affine> = vec![G1Affine::default(); num_of_commits];
+    let mut indivual_commits_offset: Vec<G1Affine> = vec![G1Affine::default(); num_of_commits];
+
+    for i in 0..num_of_outputs {
+        for j in 0..num_of_commits {
+            indivual_commits[j] = commits[j][i];
+            indivual_commits_offset[j] = commits_offsets[j][i]
+                .mul(transpose::get_min_as_fr(&committable_columns[i]))
+                .into_affine();
+        }
+
+        dc[i] = DoryCommitment(
+            pairings::multi_pairing(&indivual_commits, gamma_2_slice)
+                + pairings::multi_pairing(&indivual_commits_offset, gamma_2_slice),
+        );
+    }
+
+    dc
+}
+
 pub(super) fn compute_dory_commitments(
     committable_columns: &[CommittableColumn],
     offset: usize,
     setup: &DoryProverPublicSetup,
 ) -> Vec<DoryCommitment> {
-    committable_columns
-        .iter()
-        .map(|column| compute_dory_commitment(column, offset, setup))
-        .collect()
+    compute_dory_commitments_packed_impl(committable_columns, offset, setup)
 }
