@@ -172,14 +172,15 @@ fn compute_dory_commitments_packed_impl(
     let num_of_outputs = bit_table.len();
     let num_columns = 1 << setup.sigma();
 
-    let (scalars_update, scalar_offsets) = transpose::get_packed_scalar_and_offset_scalar_offset(
-        &bit_table,
-        committable_columns,
-        offset,
-        num_columns,
-    );
+    let (packed_scalars, packed_scalar_offsets) =
+        transpose::get_packed_scalar_and_offset_scalar_offset(
+            &bit_table,
+            committable_columns,
+            offset,
+            num_columns,
+        );
 
-    let num_of_commits = scalars_update.len();
+    let num_of_commits = packed_scalars.len();
 
     let mut blitzar_commits =
         vec![
@@ -198,12 +199,12 @@ fn compute_dory_commitments_packed_impl(
             setup.prover_setup().blitzar_packed_msm(
                 &mut blitzar_commits[i],
                 &bit_table,
-                scalars_update[i].as_slice(),
+                packed_scalars[i].as_slice(),
             );
             setup.prover_setup().blitzar_packed_msm(
                 &mut blitzar_commits_offsets[i],
                 &bit_table,
-                scalar_offsets[i].as_slice(),
+                packed_scalar_offsets[i].as_slice(),
             );
         }
     }
@@ -222,26 +223,22 @@ fn compute_dory_commitments_packed_impl(
         .collect();
 
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
+    (0..num_of_outputs)
+        .map(|i| {
+            let indivual_commits: Vec<G1Affine> =
+                (0..num_of_commits).map(|j| commits[j][i]).collect();
 
-    let mut dc: Vec<DoryCommitment> = vec![DoryCommitment::default(); num_of_outputs];
-    let mut indivual_commits: Vec<G1Affine> = vec![G1Affine::default(); num_of_commits];
-    let mut indivual_commits_offset: Vec<G1Affine> = vec![G1Affine::default(); num_of_commits];
+            let min = transpose::get_min_as_fr(&committable_columns[i]);
+            let indivual_commits_offset: Vec<G1Affine> = (0..num_of_commits)
+                .map(|j| commits_offsets[j][i].mul(min).into_affine())
+                .collect();
 
-    for i in 0..num_of_outputs {
-        for j in 0..num_of_commits {
-            indivual_commits[j] = commits[j][i];
-            indivual_commits_offset[j] = commits_offsets[j][i]
-                .mul(transpose::get_min_as_fr(&committable_columns[i]))
-                .into_affine();
-        }
-
-        dc[i] = DoryCommitment(
-            pairings::multi_pairing(&indivual_commits, gamma_2_slice)
-                + pairings::multi_pairing(&indivual_commits_offset, gamma_2_slice),
-        );
-    }
-
-    dc
+            DoryCommitment(
+                pairings::multi_pairing(&indivual_commits, gamma_2_slice)
+                    + pairings::multi_pairing(&indivual_commits_offset, gamma_2_slice),
+            )
+        })
+        .collect()
 }
 
 pub(super) fn compute_dory_commitments(
