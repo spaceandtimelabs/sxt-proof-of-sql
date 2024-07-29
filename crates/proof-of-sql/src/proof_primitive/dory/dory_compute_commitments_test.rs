@@ -7,7 +7,7 @@ use crate::{
 use ark_ec::pairing::Pairing;
 use ark_std::test_rng;
 use num_traits::Zero;
-use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_int128_values() {

@@ -410,7 +410,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
 mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;
-    use proof_of_sql_parser::posql_time::{timezone::PoSQLTimeZone, unit::PoSQLTimeUnit};
+    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
     fn we_can_transpose_empty_column() {
