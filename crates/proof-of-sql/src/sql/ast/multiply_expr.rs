@@ -2,11 +2,14 @@ use super::{ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            try_multiply_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
+            DataAccessor,
+        },
         proof::ProofError,
     },
     sql::{
-        ast::{multiply_columns, try_multiply_column_types},
+        ast::multiply_columns,
         proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
     },
 };
