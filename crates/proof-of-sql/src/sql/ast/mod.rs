@@ -129,3 +129,6 @@ mod group_by_util_test;
 
 mod proof_plan;
 pub use proof_plan::ProofPlan;
+/// Allow dead code until node is used for inequality
+#[allow(dead_code)]
+mod range_check;
