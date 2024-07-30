@@ -209,33 +209,30 @@ fn compute_dory_commitments_packed_impl(
         }
     }
 
-    let commits: Vec<Vec<G1Affine>> = (0..num_of_commits)
-        .map(|i| blitzar_commits[i].par_iter().map(|x| x.into()).collect())
+    let commits: Vec<Vec<G1Affine>> = blitzar_commits
+        .into_iter()
+        .map(|commit| commit.into_par_iter().map(|x| x.into()).collect())
         .collect();
 
-    let commits_offsets: Vec<Vec<G1Affine>> = (0..num_of_commits)
-        .map(|i| {
-            blitzar_commits_offsets[i]
-                .par_iter()
-                .map(|x| x.into())
-                .collect()
-        })
+    let commits_offsets: Vec<Vec<G1Affine>> = blitzar_commits_offsets
+        .into_iter()
+        .map(|commit_offset| commit_offset.into_par_iter().map(|x| x.into()).collect())
         .collect();
 
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
     (0..num_of_outputs)
         .map(|i| {
-            let indivual_commits: Vec<G1Affine> =
+            let individual_commits: Vec<G1Affine> =
                 (0..num_of_commits).map(|j| commits[j][i]).collect();
 
             let min = transpose::get_min_as_fr(&committable_columns[i]);
-            let indivual_commits_offset: Vec<G1Affine> = (0..num_of_commits)
+            let individual_commits_offset: Vec<G1Affine> = (0..num_of_commits)
                 .map(|j| commits_offsets[j][i].mul(min).into_affine())
                 .collect();
 
             DoryCommitment(
-                pairings::multi_pairing(&indivual_commits, gamma_2_slice)
-                    + pairings::multi_pairing(&indivual_commits_offset, gamma_2_slice),
+                pairings::multi_pairing(&individual_commits, gamma_2_slice)
+                    + pairings::multi_pairing(&individual_commits_offset, gamma_2_slice),
             )
         })
         .collect()
