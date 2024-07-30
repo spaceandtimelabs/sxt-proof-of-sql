@@ -140,3 +140,5 @@ type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;
 
 mod pairings;
 mod transpose;
+
+mod dynamic_dory_structure;
