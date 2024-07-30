@@ -1,5 +1,6 @@
 use super::{
-    extended_dory_inner_product_prove, extended_dory_inner_product_verify, rand_F_tensors,
+    extended_dory_inner_product_prove, extended_dory_inner_product_verify,
+    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, rand_F_tensors,
     rand_G_vecs, test_rng, DoryMessages, ExtendedProverState, G1Affine, PublicParameters, GT,
 };
 use ark_std::UniformRand;
@@ -26,7 +27,8 @@ fn we_can_prove_and_verify_an_extended_dory_inner_product() {
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -58,7 +60,8 @@ fn we_can_prove_and_verify_an_extended_dory_inner_product_for_multiple_nu_values
             &mut messages,
             &mut transcript,
             verifier_state,
-            &verifier_setup
+            &verifier_setup,
+            extended_dory_reduce_verify_fold_s_vecs
         ));
     }
 }
@@ -86,7 +89,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_a_message_is_modified()
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -113,7 +117,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_few_GT_me
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -140,7 +145,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_many_GT_m
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -167,7 +173,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_few_G1_me
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -194,7 +201,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_there_are_too_many_G1_m
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -219,7 +227,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_transcripts_differ(
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -247,7 +256,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_setups_differ() {
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -274,7 +284,8 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_the_base_commitment_is_
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }
 
@@ -301,6 +312,7 @@ fn we_fail_to_verify_an_extended_dory_inner_product_when_a_scalar_commitment_is_
         &mut messages,
         &mut transcript,
         verifier_state,
-        &verifier_setup
+        &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs
     ));
 }

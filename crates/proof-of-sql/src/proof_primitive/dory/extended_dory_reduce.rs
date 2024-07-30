@@ -91,7 +91,8 @@ pub fn extended_dory_reduce_verify(
         alphas,
         betas,
     );
-    extended_dory_reduce_verify_fold_s_vecs(state, alphas);
+    state.alphas[state.base_state.nu - 1] = alphas.0;
+    state.alpha_invs[state.base_state.nu - 1] = alphas.1;
     state.base_state.nu -= 1;
     true
 }

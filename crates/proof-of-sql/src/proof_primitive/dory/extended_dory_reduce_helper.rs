@@ -104,12 +104,19 @@ pub fn extended_dory_reduce_verify_update_Es(
 /// `s1_tensor[nu-1] <- s1_tensor[nu-1] * (1- alpha) + alpha`
 ///
 /// and taking the product in [fold_scalars_0_verify](super::fold_scalars_0_verify).
-pub fn extended_dory_reduce_verify_fold_s_vecs(
-    state: &mut ExtendedVerifierState,
-    (alpha, alpha_inv): (F, F),
-) {
-    state.s1_tensor[state.base_state.nu - 1] *= F::ONE - alpha;
-    state.s1_tensor[state.base_state.nu - 1] += alpha;
-    state.s2_tensor[state.base_state.nu - 1] *= F::ONE - alpha_inv;
-    state.s2_tensor[state.base_state.nu - 1] += alpha_inv;
+pub fn extended_dory_reduce_verify_fold_s_vecs(state: &ExtendedVerifierState) -> (F, F) {
+    (
+        state
+            .s1_tensor
+            .iter()
+            .zip(state.alphas.iter())
+            .map(|(s, a)| (F::ONE - s) * a + s)
+            .product(),
+        state
+            .s2_tensor
+            .iter()
+            .zip(state.alpha_invs.iter())
+            .map(|(s, a)| (F::ONE - s) * a + s)
+            .product(),
+    )
 }

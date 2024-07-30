@@ -1,6 +1,7 @@
 use super::{
-    fold_scalars_0_prove, fold_scalars_0_verify, rand_F_tensors, rand_G_vecs, test_rng,
-    DoryMessages, ExtendedProverState, PublicParameters,
+    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, fold_scalars_0_prove,
+    fold_scalars_0_verify, rand_F_tensors, rand_G_vecs, test_rng, DoryMessages,
+    ExtendedProverState, PublicParameters,
 };
 use merlin::Transcript;
 
@@ -27,6 +28,7 @@ fn we_can_fold_scalars() {
         &mut transcript,
         verifier_state,
         &verifier_setup,
+        extended_dory_reduce_verify_fold_s_vecs,
     );
     assert_eq!(
         prover_folded_state.calculate_verifier_state(&prover_setup),

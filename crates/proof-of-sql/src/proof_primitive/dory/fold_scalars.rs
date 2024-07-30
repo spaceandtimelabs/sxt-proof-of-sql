@@ -1,7 +1,7 @@
 use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     pairings, DeferredGT, DoryMessages, G1Projective, G2Projective, ProverSetup, ProverState,
-    VerifierSetup, VerifierState,
+    VerifierSetup, VerifierState, F,
 };
 use merlin::Transcript;
 
@@ -33,11 +33,11 @@ pub fn fold_scalars_0_verify(
     transcript: &mut Transcript,
     mut state: ExtendedVerifierState,
     setup: &VerifierSetup,
+    fold_s_tensors_verify: impl Fn(&ExtendedVerifierState) -> (F, F),
 ) -> VerifierState {
     assert_eq!(state.base_state.nu, 0);
     let (gamma, gamma_inv) = messages.verifier_F_message(transcript);
-    let s1_folded = state.s1_tensor.iter().product();
-    let s2_folded = state.s2_tensor.iter().product();
+    let (s1_folded, s2_folded) = fold_s_tensors_verify(&state);
     state.base_state.C += DeferredGT::from(setup.H_T) * s1_folded * s2_folded
         + DeferredGT::from(pairings::pairing(
             setup.H_1,
