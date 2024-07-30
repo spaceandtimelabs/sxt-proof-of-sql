@@ -17,7 +17,7 @@ use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use core::ops::Deref;
 use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
+    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     Identifier,
 };
 
@@ -217,17 +217,95 @@ pub fn decimal75<S: Scalar>(
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
+///     timestamptz_epoch("event_time",
+///                        PoSQLTimeUnit::Second,
+///                        PoSQLTimeZone::Utc,
+///                        vec![1625072400, 1625076000, 1625079600]
+///     ),
 /// ]);
 /// ```
-pub fn timestamptz<S: Scalar>(
+pub fn timestamptz_epoch<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
     timezone: PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
-    (
+    let result = (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
-    )
+    );
+
+    dbg!(result.clone().1);
+
+    result
+}
+
+/// Creates a (Identifier, OwnedColumn) pair for a timestamp column.
+/// This is primarily intended for use in conjunction with [owned_table].
+///
+/// # Parameters
+/// - `name`: The name of the column.
+/// - `time_unit`: The time unit of the timestamps.
+/// - `timezone`: The timezone for the timestamps.
+/// - `data`: The data for the column, provided as an iterator over `i64` values representing time since the unix epoch.
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*,
+///     scalar::Curve25519Scalar,
+/// };
+/// use proof_of_sql_parser::{
+///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
+///
+/// let result = owned_table::<Curve25519Scalar>([
+///        timestamptz("event_time", vec![
+///            "1969-12-31T23:59:59Z", // One second before the Unix epoch
+///            "1970-01-01T00:00:00Z", // The Unix epoch
+///            "1970-01-01T00:00:01Z", // One second after the Unix epoch
+///        ].iter().map(|s| s.to_string())),
+/// ]);
+/// ```
+pub fn timestamptz<S: Scalar>(
+    name: impl Deref<Target = str>,
+    time_unit: PoSQLTimeUnit,
+    data: impl IntoIterator<Item = String>,
+) -> (Identifier, OwnedColumn<S>) {
+    let parsed_data: Vec<PoSQLTimestamp> = data
+        .into_iter()
+        .map(|timestamp_str| {
+            PoSQLTimestamp::try_from(&timestamp_str).expect("Failed to parse timestamp")
+        })
+        .collect();
+
+    // Build the OwnedColumn using the time unit from the first timestamp in parsed_data
+    let result = (
+        name.parse().unwrap(),
+        OwnedColumn::TimestampTZ(
+            // We assume all timestamps have the same time unit, so take the unit from the first timestamp.
+            parsed_data
+                .first()
+                .expect("No timestamps provided")
+                .timeunit,
+            PoSQLTimeZone::Utc,
+            parsed_data
+                .into_iter()
+                .map(|ts| match time_unit {
+                    PoSQLTimeUnit::Nanosecond => ts.timestamp.timestamp_nanos_opt().unwrap(),
+                    PoSQLTimeUnit::Microsecond => ts.timestamp.timestamp_micros(),
+                    PoSQLTimeUnit::Millisecond => ts.timestamp.timestamp_millis(),
+                    PoSQLTimeUnit::Second => ts.timestamp.timestamp(),
+                })
+                .collect(),
+        ),
+    );
+
+    result
+}
+
+#[macro_export]
+/// Macro to convert a given Unix timestamp in seconds into an RFC 3339 formatted string.
+macro_rules! epoch_to_rfc3339 {
+    ($x:expr) => {
+        Utc.timestamp_opt($x, 0).unwrap().to_rfc3339()
+    };
 }

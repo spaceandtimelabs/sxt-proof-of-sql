@@ -59,7 +59,7 @@ fn we_can_create_an_owned_table_with_data() {
             "boolean",
             [true, false, true, false, true, false, true, false, true],
         ),
-        timestamptz(
+        timestamptz_epoch(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -126,7 +126,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
         boolean("d", [false; 0]),
-        timestamptz(
+        timestamptz_epoch(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -138,7 +138,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
         varchar("c", ["0"; 0]),
-        timestamptz(
+        timestamptz_epoch(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -154,7 +154,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz(
+        timestamptz_epoch(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -166,7 +166,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz(
+        timestamptz_epoch(
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,

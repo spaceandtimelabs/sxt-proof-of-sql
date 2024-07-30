@@ -15,6 +15,7 @@ use proof_of_sql::{
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
+#[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     let public_parameters = PublicParameters::rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
@@ -34,8 +35,13 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
             timestamptz(
                 "times",
                 PoSQLTimeUnit::Second,
-                PoSQLTimeZone::Utc,
-                [i64::MIN, 0, i64::MAX],
+                [
+                    "1969-12-31T23:59:59Z", // One second before the Unix epoch
+                    "1970-01-01T00:00:00Z", // The Unix epoch
+                    "1970-01-01T00:00:01Z", // One second after the Unix epoch
+                ]
+                .iter()
+                .map(|s| s.to_string()),
             ),
         ]),
         0,
@@ -62,27 +68,27 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     let expected_result = owned_table([timestamptz(
         "times",
         PoSQLTimeUnit::Second,
-        PoSQLTimeZone::Utc,
-        [0],
+        ["1970-01-01T00:00:00Z".to_string()],
     )]);
     assert_eq!(owned_table_result, expected_result);
 }
 
-/// Runs a timestamp query test.
+/// Runs a timestamp query test with unix epochs as input.
 #[cfg(feature = "blitzar")]
-fn run_timestamp_query_test(
+fn run_timestamp_epoch_query_test(
     query_str: &str,
     test_timestamps: Vec<i64>,     // Input timestamps for the test
     expected_timestamps: Vec<i64>, // Expected timestamps to match the query result
+    expected_timeunit: PoSQLTimeUnit,
 ) {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
 
     // Setting up a table specifically for timestamps
     accessor.add_table(
         "sxt.table".parse().unwrap(),
-        owned_table([timestamptz(
+        owned_table([timestamptz_epoch(
             "times",
-            PoSQLTimeUnit::Second,
+            expected_timeunit,
             PoSQLTimeZone::Utc,
             test_timestamps,
         )]),
@@ -104,11 +110,59 @@ fn run_timestamp_query_test(
         .verify(query.proof_expr(), &accessor, &())
         .unwrap()
         .table;
-    let expected_result = owned_table([timestamptz(
+    let expected_result = owned_table([timestamptz_epoch(
         "times",
-        PoSQLTimeUnit::Second,
+        expected_timeunit,
         PoSQLTimeZone::Utc,
         expected_timestamps,
+    )]);
+
+    // Check if the results match the expected results
+    assert_eq!(owned_table_result, expected_result);
+}
+
+/// Runs a timestamp query test with unix epochs as input.
+#[cfg(feature = "blitzar")]
+fn run_timestamp_query_test(
+    query_str: &str,
+    test_timestamps: Vec<&str>, // Input timestamps for the test
+    test_timeunit: PoSQLTimeUnit,
+    expected_timestamps: Vec<&str>, // Expected timestamps to match the query
+) {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+
+    // Setting up a table specifically for timestamps
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([timestamptz(
+            "times",
+            test_timeunit,
+            test_timestamps.iter().map(|s| s.to_string()),
+        )]),
+        0,
+    );
+
+    // Parse and execute the query
+    let query = QueryExpr::try_new(
+        query_str.parse().unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+
+    let proof = VerifiableQueryResult::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+
+    // Verify the results
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &())
+        .unwrap()
+        .table;
+    dbg!("owned table result:");
+    dbg!(owned_table_result.clone());
+    let expected_result = owned_table([timestamptz(
+        "times",
+        test_timeunit,
+        expected_timestamps.iter().map(|s| s.to_string()),
     )]);
 
     // Check if the results match the expected results
@@ -119,18 +173,34 @@ fn run_timestamp_query_test(
 #[cfg(feature = "test")]
 mod tests {
 
-    use crate::run_timestamp_query_test;
+    use crate::{run_timestamp_epoch_query_test, run_timestamp_query_test};
     use chrono::DateTime;
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
+
+    #[test]
+    fn test_precision_and_rounding() {
+        // Testing timestamps near rounding thresholds
+        let test_timestamps = vec!["2023-10-10T12:34:56.789Z"];
+        let expected_timestamps = vec!["2023-10-10T12:34:56.789Z"];
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z';",
+            test_timestamps,
+            PoSQLTimeUnit::Millisecond,
+            expected_timestamps,
+        );
+    }
 
     #[test]
     fn test_basic_timestamp_query() {
         let test_timestamps = vec![1609459200, 1612137600, 1614556800];
         let expected_timestamps = vec![1609459200];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '2021-01-01T00:00:00Z';",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -138,28 +208,32 @@ mod tests {
     fn test_basic_timestamp_inequality_query() {
         let test_timestamps = vec![i64::MIN, -1, 0, 1, i64::MAX];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00Z';",
             test_timestamps.clone(),
             vec![i64::MIN, -1],
+            PoSQLTimeUnit::Second,
         );
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00Z';",
             test_timestamps.clone(),
             vec![1, i64::MAX],
+            PoSQLTimeUnit::Second,
         );
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00Z';",
             test_timestamps.clone(),
             vec![0, 1, i64::MAX],
+            PoSQLTimeUnit::Second,
         );
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00Z';",
             test_timestamps.clone(),
             vec![i64::MIN, -1, 0],
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -170,47 +244,55 @@ mod tests {
         let test_timestamps = vec![i64::MIN, 28800, 28799, 0, 1, i64::MAX];
 
         // Test timezone offset -08:00 (e.g., Pacific Standard Time)
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
             vec![i64::MAX],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
             vec![i64::MIN, 28799, 0, 1],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
             vec![28800, i64::MAX],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00-08:00';",
             test_timestamps.clone(),
             vec![i64::MIN, 28800, 28799, 0, 1],
+            PoSQLTimeUnit::Second,
         );
 
         // Test timezone offset +00:00 (e.g., UTC)
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times > timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
             vec![28800, 28799, 1, i64::MAX],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times < timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
             vec![i64::MIN],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times >= timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
             vec![28800, 28799, 0, 1, i64::MAX],
+            PoSQLTimeUnit::Second,
         );
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times <= timestamp '1970-01-01T00:00:00+00:00';",
             test_timestamps.clone(),
             vec![i64::MIN, 0],
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -236,10 +318,11 @@ mod tests {
         let test_timestamps = vec![1230995705, 1230992105, 1230999305, 1230995705];
         let expected_timestamps = vec![1230995705, 1230995705];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '2009-01-03T19:15:05+04:00'",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -252,17 +335,19 @@ mod tests {
         let expected_timestamps = [915148799, 915148800, 915148801]; // Expect the leap second to be parsed and matched
 
         // Test the query to select the leap second
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '1998-12-31T23:59:60Z'",
             test_timestamps.clone(),
             expected_timestamps[0..1].to_vec(),
+            PoSQLTimeUnit::Second,
         );
 
         // Test the query to select the leap second
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '1999-01-01T00:00:00Z';",
             test_timestamps.clone(),
             expected_timestamps[1..2].to_vec(),
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -278,28 +363,25 @@ mod tests {
         ];
         let expected_timestamps = vec![test_timestamps[1]]; // Expect only the new year start
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '2024-01-01T00:00:00Z';",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
     #[test]
     fn test_fractional_seconds_handling() {
         let test_timestamps = vec![
-            DateTime::parse_from_rfc3339("2023-07-01T12:00:00.999Z")
-                .unwrap()
-                .timestamp(),
-            DateTime::parse_from_rfc3339("2023-07-01T12:00:01.000Z")
-                .unwrap()
-                .timestamp(),
+            "2023-07-01T12:00:00.999Z", /* "2023-07-01T12:00:01.000Z"*/
         ];
-        let expected_timestamps = vec![test_timestamps[0]]; // Expect the fractional second just before the full second
+        let expected_timestamps = vec!["2023-07-01T12:00:00.999Z"];
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = timestamp '2023-07-01T12:00:00.999Z'",
             test_timestamps,
+            PoSQLTimeUnit::Millisecond,
             expected_timestamps,
         );
     }
@@ -317,10 +399,11 @@ mod tests {
         ];
         let expected_timestamps = vec![test_timestamps[0]]; // Expect the leap day
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '2024-02-29T12:00:00Z';",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -336,27 +419,11 @@ mod tests {
                 .timestamp(), // Eastern Time, same moment
         ];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = timestamp '2023-08-15T20:00:00Z'", // UTC time
             test_timestamps.clone(),
             test_timestamps,
-        );
-    }
-
-    #[test]
-    fn test_precision_and_rounding() {
-        // Testing timestamps near rounding thresholds
-        let test_timestamps = vec![
-            DateTime::parse_from_rfc3339("2023-10-10T12:34:56.789Z")
-                .unwrap()
-                .timestamp(), // Close to rounding up
-        ];
-        let expected_timestamps = vec![test_timestamps[0]];
-
-        run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z';",
-            test_timestamps,
-            expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -375,10 +442,11 @@ mod tests {
                 .timestamp(), // The expected timestamp, same as test
         ];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1231006505);",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -388,10 +456,11 @@ mod tests {
         let test_timestamps = vec![1583651999, 1583652000]; // Spring forward at 2 AM
         let expected_timestamps = vec![1583651999]; // Only the time before the DST jump should match
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1583651999)",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -400,10 +469,11 @@ mod tests {
         let test_timestamps = vec![1582934400]; // 2020-02-29T00:00:00Z
         let expected_timestamps = vec![1582934400];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1582934400);",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 
@@ -415,10 +485,11 @@ mod tests {
         ];
         let expected_timestamps = vec![1603587600];
 
-        run_timestamp_query_test(
+        run_timestamp_epoch_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1603587600)",
             test_timestamps,
             expected_timestamps,
+            PoSQLTimeUnit::Second,
         );
     }
 }
@@ -436,7 +507,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
-            timestamptz(
+            timestamptz_epoch(
                 "a",
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
@@ -447,11 +518,11 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                     0,
                     1,
                     -2,
-                    1231006505000000000, // bitcoin genesis block time
+                    1231006505000000000, // bitcoin genesis block time in ns
                     i64::MAX,
                 ],
             ),
-            timestamptz(
+            timestamptz_epoch(
                 "b",
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
@@ -480,13 +551,13 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        timestamptz(
+        timestamptz_epoch(
             "a",
             PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::Utc,
             [i64::MIN, -1, -2],
         ),
-        timestamptz(
+        timestamptz_epoch(
             "b",
             PoSQLTimeUnit::Nanosecond,
             PoSQLTimeZone::Utc,

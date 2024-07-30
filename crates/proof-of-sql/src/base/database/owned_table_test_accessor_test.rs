@@ -49,7 +49,7 @@ fn we_can_access_the_columns_of_a_table() {
         varchar("varchar", ["a", "bc", "d", "e"]),
         scalar("scalar", [1, 2, 3, 4]),
         boolean("boolean", [true, false, true, false]),
-        timestamptz(
+        timestamptz_epoch(
             "time",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,

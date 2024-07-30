@@ -16,6 +16,18 @@ pub enum PoSQLTimeUnit {
     Nanosecond,
 }
 
+impl PoSQLTimeUnit {
+    /// Get the number of digits needed to represent the precision of this time unit
+    pub fn get_scale(&self) -> i8 {
+        match self {
+            PoSQLTimeUnit::Second => 0,
+            PoSQLTimeUnit::Millisecond => 3,
+            PoSQLTimeUnit::Microsecond => 6,
+            PoSQLTimeUnit::Nanosecond => 9,
+        }
+    }
+}
+
 impl TryFrom<&str> for PoSQLTimeUnit {
     type Error = PoSQLTimestampError;
     fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
@@ -100,6 +112,7 @@ mod time_unit_tests {
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit, PoSQLTimeUnit::Millisecond);
         assert_eq!(result.timestamp, expected);
+        assert_eq!(expected.timestamp_millis(), 1687782896123);
     }
 
     #[test]
@@ -109,6 +122,7 @@ mod time_unit_tests {
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit, PoSQLTimeUnit::Microsecond);
         assert_eq!(result.timestamp, expected);
+        assert_eq!(expected.timestamp_micros(), 1687782896123456);
     }
     #[test]
     fn test_rfc3339_timestamp_with_nanoseconds() {
@@ -117,5 +131,6 @@ mod time_unit_tests {
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit, PoSQLTimeUnit::Nanosecond);
         assert_eq!(result.timestamp, expected);
+        assert_eq!(expected.timestamp_nanos_opt().unwrap(), 1687782896123456789);
     }
 }
