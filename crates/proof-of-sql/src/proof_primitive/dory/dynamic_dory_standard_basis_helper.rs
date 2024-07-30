@@ -103,29 +103,43 @@ pub(super) fn fold_dynamic_standard_basis_tensors(
     alphas: &[F],
     alpha_invs: &[F],
 ) -> (F, F) {
-    fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
-        let nu = fold_factors.len();
-        assert_eq!(vec.len(), 1 << fold_factors.len());
-        for i in (0..nu).rev() {
-            let (lo, hi) = vec.split_at_mut(vec.len() / 2);
-            lo.iter_mut().zip(hi).for_each(|(l, h)| {
-                *l *= fold_factors[i];
-                *l += h;
-            });
-            vec = lo;
-        }
-    }
     let nu = point.len() / 2 + 1;
     debug_assert_eq!(alphas.len(), nu);
     debug_assert_eq!(alpha_invs.len(), nu);
-    let mut lo_vec = vec![F::ZERO; 1 << nu];
-    let mut hi_vec = vec![F::ZERO; 1 << nu];
-    lo_vec[0] = F::ONE;
-    hi_vec[0] = F::ONE;
-    compute_dynamic_standard_basis_vecs(point, &mut lo_vec, &mut hi_vec);
-    naive_fold(&mut lo_vec, alphas);
-    naive_fold(&mut hi_vec, alpha_invs);
-    (lo_vec[0], hi_vec[0])
+    let lo_fold = if point.is_empty() {
+        alphas[0]
+    } else {
+        point.iter().zip(alphas).map(|(v, a)| v + a).product()
+    };
+    let hi_fold = point
+        .iter()
+        .enumerate()
+        .fold(
+            (alpha_invs[0] + F::ONE, F::ZERO),
+            |(acc, prev_partial), (i, &p)| {
+                if i == 0 {
+                    (acc, F::ZERO)
+                } else if i == 1 {
+                    (acc * alpha_invs[i / 2 + 1] + p * alpha_invs[i / 2], F::ZERO)
+                } else if i % 2 == 0 {
+                    let partial = (i / 2 + 1..i)
+                        .zip(alpha_invs)
+                        .map(|(k, a)| point[k] + a)
+                        .product();
+                    (acc + p * partial, partial)
+                } else {
+                    (
+                        acc * alpha_invs[i / 2 + 1]
+                            + p * alpha_invs[i / 2]
+                                * (point[i - 1] + alpha_invs[i / 2 - 1])
+                                * prev_partial,
+                        F::ZERO,
+                    )
+                }
+            },
+        )
+        .0;
+    (lo_fold, hi_fold)
 }
 
 #[cfg(test)]
