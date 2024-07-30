@@ -97,6 +97,37 @@ fn build_partial_second_half_standard_basis_vecs(
     }
 }
 
+#[allow(dead_code)]
+pub(super) fn fold_dynamic_standard_basis_tensors(
+    point: &[F],
+    alphas: &[F],
+    alpha_invs: &[F],
+) -> (F, F) {
+    fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
+        let nu = fold_factors.len();
+        assert_eq!(vec.len(), 1 << fold_factors.len());
+        for i in (0..nu).rev() {
+            let (lo, hi) = vec.split_at_mut(vec.len() / 2);
+            lo.iter_mut().zip(hi).for_each(|(l, h)| {
+                *l *= fold_factors[i];
+                *l += h;
+            });
+            vec = lo;
+        }
+    }
+    let nu = point.len() / 2 + 1;
+    debug_assert_eq!(alphas.len(), nu);
+    debug_assert_eq!(alpha_invs.len(), nu);
+    let mut lo_vec = vec![F::ZERO; 1 << nu];
+    let mut hi_vec = vec![F::ZERO; 1 << nu];
+    lo_vec[0] = F::ONE;
+    hi_vec[0] = F::ONE;
+    compute_dynamic_standard_basis_vecs(point, &mut lo_vec, &mut hi_vec);
+    naive_fold(&mut lo_vec, alphas);
+    naive_fold(&mut hi_vec, alpha_invs);
+    (lo_vec[0], hi_vec[0])
+}
+
 #[cfg(test)]
 mod tests {
     use super::{super::dynamic_dory_structure::row_start_index, *};
@@ -276,6 +307,248 @@ mod tests {
                     beta * get_binary_eval(row_start_index(i), &point)
                 );
             }
+        }
+    }
+
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_0_point() {
+        let mut lo_vec = vec![F::ZERO; 2];
+        let mut hi_vec = vec![F::ZERO; 2];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200)];
+        let alpha_invs = vec![F::from(300)];
+        let lo_fold_expected = lo_vec[0] * F::from(200) + lo_vec[1];
+        let hi_fold_expected = hi_vec[0] * F::from(300) + hi_vec[1];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_1_point() {
+        let mut lo_vec = vec![F::ZERO; 2];
+        let mut hi_vec = vec![F::ZERO; 2];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![F::from(5)];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200)];
+        let alpha_invs = vec![F::from(300)];
+        let lo_fold_expected = lo_vec[0] * F::from(200) + lo_vec[1];
+        let hi_fold_expected = hi_vec[0] * F::from(300) + hi_vec[1];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_2_point() {
+        let mut lo_vec = vec![F::ZERO; 4];
+        let mut hi_vec = vec![F::ZERO; 4];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![F::from(5), F::from(7)];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200), F::from(201)];
+        let alpha_invs = vec![F::from(300), F::from(301)];
+        let lo_fold_expected = lo_vec[0] * F::from(200 * 201)
+            + lo_vec[1] * F::from(201)
+            + lo_vec[2] * F::from(200)
+            + lo_vec[3];
+        let hi_fold_expected = hi_vec[0] * F::from(300 * 301)
+            + hi_vec[1] * F::from(301)
+            + hi_vec[2] * F::from(300)
+            + hi_vec[3];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_3_point() {
+        let mut lo_vec = vec![F::ZERO; 4];
+        let mut hi_vec = vec![F::ZERO; 4];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![F::from(5), F::from(7), F::from(11)];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200), F::from(201)];
+        let alpha_invs = vec![F::from(300), F::from(301)];
+        let lo_fold_expected = lo_vec[0] * F::from(200 * 201)
+            + lo_vec[1] * F::from(201)
+            + lo_vec[2] * F::from(200)
+            + lo_vec[3];
+        let hi_fold_expected = hi_vec[0] * F::from(300 * 301)
+            + hi_vec[1] * F::from(301)
+            + hi_vec[2] * F::from(300)
+            + hi_vec[3];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_4_point() {
+        let mut lo_vec = vec![F::ZERO; 8];
+        let mut hi_vec = vec![F::ZERO; 8];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![F::from(5), F::from(7), F::from(11), F::from(13)];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200), F::from(201), F::from(202)];
+        let alpha_invs = vec![F::from(300), F::from(301), F::from(302)];
+        let lo_fold_expected = lo_vec[0] * F::from(200 * 201 * 202)
+            + lo_vec[1] * F::from(201 * 202)
+            + lo_vec[2] * F::from(200 * 202)
+            + lo_vec[3] * F::from(202)
+            + lo_vec[4] * F::from(200 * 201)
+            + lo_vec[5] * F::from(201)
+            + lo_vec[6] * F::from(200)
+            + lo_vec[7];
+        let hi_fold_expected = hi_vec[0] * F::from(300 * 301 * 302)
+            + hi_vec[1] * F::from(301 * 302)
+            + hi_vec[2] * F::from(300 * 302)
+            + hi_vec[3] * F::from(302)
+            + hi_vec[4] * F::from(300 * 301)
+            + hi_vec[5] * F::from(301)
+            + hi_vec[6] * F::from(300)
+            + hi_vec[7];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+    #[test]
+    fn we_can_fold_dynamic_standard_basis_tensors_of_length_5_point() {
+        let mut lo_vec = vec![F::ZERO; 8];
+        let mut hi_vec = vec![F::ZERO; 8];
+        lo_vec[0] = F::ONE;
+        hi_vec[0] = F::ONE;
+        let point = vec![
+            F::from(5),
+            F::from(7),
+            F::from(11),
+            F::from(13),
+            F::from(17),
+        ];
+        compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+        let alphas = vec![F::from(200), F::from(201), F::from(202)];
+        let alpha_invs = vec![F::from(300), F::from(301), F::from(302)];
+        let lo_fold_expected = lo_vec[0] * F::from(200 * 201 * 202)
+            + lo_vec[1] * F::from(201 * 202)
+            + lo_vec[2] * F::from(200 * 202)
+            + lo_vec[3] * F::from(202)
+            + lo_vec[4] * F::from(200 * 201)
+            + lo_vec[5] * F::from(201)
+            + lo_vec[6] * F::from(200)
+            + lo_vec[7];
+        let hi_fold_expected = hi_vec[0] * F::from(300 * 301 * 302)
+            + hi_vec[1] * F::from(301 * 302)
+            + hi_vec[2] * F::from(300 * 302)
+            + hi_vec[3] * F::from(302)
+            + hi_vec[4] * F::from(300 * 301)
+            + hi_vec[5] * F::from(301)
+            + hi_vec[6] * F::from(300)
+            + hi_vec[7];
+        let (lo_fold, hi_fold) = fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+        assert_eq!(lo_fold, lo_fold_expected);
+        assert_eq!(hi_fold, hi_fold_expected);
+    }
+
+    fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
+        let nu = fold_factors.len();
+        assert_eq!(vec.len(), 1 << fold_factors.len());
+        for i in (0..nu).rev() {
+            let (lo, hi) = vec.split_at_mut(vec.len() / 2);
+            lo.iter_mut().zip(hi).for_each(|(l, h)| {
+                *l *= fold_factors[i];
+                *l += h;
+            });
+            vec = lo;
+        }
+    }
+    #[test]
+    fn we_can_naive_fold_length_0_fold_factors() {
+        let fold_factors = vec![];
+        let mut vec = vec![F::from(100)];
+        naive_fold(&mut vec, &fold_factors);
+        assert_eq!(vec[0], F::from(100));
+    }
+    #[test]
+    fn we_can_naive_fold_length_1_fold_factors() {
+        let fold_factors = vec![F::from(2)];
+        let mut vec = vec![F::from(100), F::from(101)];
+        naive_fold(&mut vec, &fold_factors);
+        assert_eq!(vec[0], F::from(100 * 2 + 101));
+    }
+    #[test]
+    fn we_can_naive_fold_length_2_fold_factors() {
+        let fold_factors = vec![F::from(2), F::from(3)];
+        let mut vec = vec![F::from(100), F::from(101), F::from(102), F::from(103)];
+        naive_fold(&mut vec, &fold_factors);
+        assert_eq!(vec[0], F::from(100 * 2 * 3 + 101 * 3 + 102 * 2 + 103));
+    }
+    #[test]
+    fn we_can_naive_fold_length_3_fold_factors() {
+        let fold_factors = vec![F::from(2), F::from(3), F::from(5)];
+        let mut vec = vec![
+            F::from(100),
+            F::from(101),
+            F::from(102),
+            F::from(103),
+            F::from(104),
+            F::from(105),
+            F::from(106),
+            F::from(107),
+        ];
+        naive_fold(&mut vec, &fold_factors);
+        assert_eq!(
+            vec[0],
+            F::from(
+                100 * 2 * 3 * 5
+                    + 101 * 3 * 5
+                    + 102 * 2 * 5
+                    + 103 * 5
+                    + 104 * 2 * 3
+                    + 105 * 3
+                    + 106 * 2
+                    + 107
+            )
+        );
+    }
+
+    #[test]
+    fn we_can_fold_dynamic_random_standard_basis_tensors() {
+        use ark_std::{test_rng, UniformRand};
+        use itertools::Itertools;
+        let mut rng = test_rng();
+        for num_vars in 0..10 {
+            let point = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect_vec();
+            let nu = point.len() / 2 + 1;
+            let mut lo_vec = vec![F::ZERO; 1 << nu];
+            let mut hi_vec = vec![F::ZERO; 1 << nu];
+            lo_vec[0] = F::ONE;
+            hi_vec[0] = F::ONE;
+            compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
+
+            let alphas = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(nu)
+                .collect_vec();
+            let alpha_invs = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(nu)
+                .collect_vec();
+            let (lo_fold, hi_fold) =
+                fold_dynamic_standard_basis_tensors(&point, &alphas, &alpha_invs);
+            naive_fold(&mut lo_vec, &alphas);
+            naive_fold(&mut hi_vec, &alpha_invs);
+            assert_eq!(lo_fold, lo_vec[0]);
+            assert_eq!(hi_fold, hi_vec[0]);
         }
     }
 }
