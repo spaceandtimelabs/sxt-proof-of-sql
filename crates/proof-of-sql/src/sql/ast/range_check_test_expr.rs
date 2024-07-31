@@ -9,8 +9,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
-        SumcheckSubpolynomialType, VerificationBuilder,
+        CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -42,16 +41,17 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
         let scalar_vector = a.clone().to_scalar_with_scaling(1);
 
         let scalar_values = alloc.alloc_slice_copy(&scalar_vector);
+
         prover_evaluate_range_check(builder, scalar_values);
 
-        // a * a - a = 0
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (S::one(), vec![Box::new(a.clone()), Box::new(a.clone())]),
-                (-S::one(), vec![Box::new(a.clone())]),
-            ],
-        );
+        // // a * a - a = 0
+        // builder.produce_sumcheck_subpolynomial(
+        //     SumcheckSubpolynomialType::Identity,
+        //     vec![
+        //         (S::one(), vec![Box::new(a.clone()), Box::new(a.clone())]),
+        //         (-S::one(), vec![Box::new(a.clone())]),
+        //     ],
+        // );
     }
 }
 
@@ -74,9 +74,11 @@ impl<C: Commitment> ProofExpr<C> for RangeCheckTestExpr {
         builder: &mut CountBuilder,
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        builder.count_anchored_mles(1);
+        builder.count_anchored_mles(0);
+        builder.count_intermediate_mles(32);
+        builder.count_result_columns(0);
         builder.count_subpolynomials(1);
-        builder.count_degree(3);
+        builder.count_degree(2);
         Ok(())
     }
     fn verifier_evaluate(
@@ -105,16 +107,26 @@ mod tests {
 
     #[test]
     fn we_can_verify_that_every_value_in_colum_is_binary() {
-        let data = owned_table([bigint("a", [1, 0, 1, 0, 1])]);
+        let data = owned_table([bigint(
+            "a",
+            [
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1,
+            ],
+        )]);
         let t = "sxt.t".parse().unwrap();
         let column = ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt);
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let expr = RangeCheckTestExpr { column };
+
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+
         let res = verifiable_res.verify(&expr, &accessor, &()).unwrap().table;
+
         let expected_res = owned_table([]);
         assert_eq!(res, expected_res);
     }
+
     #[test]
     fn we_cannot_verify_an_invalid_that_every_value_in_colum_is_binary() {
         let data = owned_table([bigint("a", [1, 0, 1, 3, 1])]);

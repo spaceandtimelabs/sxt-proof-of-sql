@@ -62,9 +62,8 @@ pub fn verifier_evaluate_range_check<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     expr_eval: C::Scalar,
 ) -> Result<(), ProofError> {
-    let mut word_columns_evals: Vec<C::Scalar> = Vec::with_capacity(30);
-
-    for _ in 0..30 {
+    let mut word_columns_evals: Vec<C::Scalar> = Vec::with_capacity(31);
+    for _ in 0..31 {
         let mle = builder.consume_intermediate_mle();
         word_columns_evals.push(mle);
     }
@@ -72,9 +71,12 @@ pub fn verifier_evaluate_range_check<C: Commitment>(
     let base: C::Scalar = C::Scalar::from(256);
     let mut accumulated = word_columns_evals[0];
 
-    for eval in word_columns_evals.iter().skip(1) {
+    for eval in word_columns_evals.iter() {
         accumulated = accumulated * base + *eval;
     }
+
+    dbg!(expr_eval);
+    dbg!(accumulated);
 
     if expr_eval == accumulated {
         Ok(())
