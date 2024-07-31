@@ -1,8 +1,9 @@
 use super::{
     build_vmv_prover_state, build_vmv_verifier_state, compute_T_vec_prime, compute_nu,
     eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
-    extended_dory_inner_product_verify, DeferredGT, DoryCommitment, DoryMessages,
-    DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
+    extended_dory_inner_product_verify,
+    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, DeferredGT,
+    DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
 };
 use crate::base::commitment::CommitmentEvaluationProof;
 use merlin::Transcript;
@@ -101,6 +102,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
             transcript,
             extended_state,
             verifier_setup,
+            extended_dory_reduce_verify_fold_s_vecs,
         ) {
             Err(DoryError::VerificationError)?;
         }

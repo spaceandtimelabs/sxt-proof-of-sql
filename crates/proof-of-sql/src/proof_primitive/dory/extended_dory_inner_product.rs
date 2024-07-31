@@ -1,6 +1,6 @@
 use super::{
     scalar_product_prove, scalar_product_verify, DoryMessages, ExtendedProverState,
-    ExtendedVerifierState, ProverSetup, VerifierSetup,
+    ExtendedVerifierState, ProverSetup, VerifierSetup, F,
 };
 use crate::proof_primitive::dory::{
     extended_dory_reduce_prove, extended_dory_reduce_verify, fold_scalars_0_prove,
@@ -34,6 +34,7 @@ pub fn extended_dory_inner_product_verify(
     transcript: &mut Transcript,
     mut state: ExtendedVerifierState,
     setup: &VerifierSetup,
+    fold_s_tensors_verify: impl Fn(&ExtendedVerifierState) -> (F, F),
 ) -> bool {
     let nu = state.base_state.nu;
     assert!(setup.max_nu >= nu);
@@ -42,6 +43,7 @@ pub fn extended_dory_inner_product_verify(
             return false;
         }
     }
-    let base_state = fold_scalars_0_verify(messages, transcript, state, setup);
+    let base_state =
+        fold_scalars_0_verify(messages, transcript, state, setup, fold_s_tensors_verify);
     scalar_product_verify(messages, transcript, base_state, setup)
 }

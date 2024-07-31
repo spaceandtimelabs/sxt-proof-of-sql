@@ -79,6 +79,8 @@ impl ExtendedProverState {
             E_2: E_2.into(),
             s1_tensor: self.s1_tensor.clone(),
             s2_tensor: self.s2_tensor.clone(),
+            alphas: vec![Default::default(); self.base_state.nu],
+            alpha_invs: vec![Default::default(); self.base_state.nu],
         }
     }
 }
@@ -95,10 +97,14 @@ pub struct ExtendedVerifierState {
     pub(super) E_1: DeferredG1,
     /// The "commitment" to s2. This should be <s1,v2>. This will be mutated during the proof verification.
     pub(super) E_2: DeferredG2,
-    /// The first tensor of F elements in the witness. This will be mutated during the proof verification.
+    /// The first tensor of F elements in the witness. This will NOT be mutated during the proof verification.
     pub(super) s1_tensor: Vec<F>,
-    /// The second tensor of F elements in the witness. This will be mutated during the proof verification.
+    /// The second tensor of F elements in the witness. This will NOT be mutated during the proof verification.
     pub(super) s2_tensor: Vec<F>,
+    /// The folding factors for the s1_tensors. This will be populated during the proof verification.
+    pub(super) alphas: Vec<F>,
+    /// The folding factors for the s2_tensors. This will be populated during the proof verification.
+    pub(super) alpha_invs: Vec<F>,
 }
 
 impl ExtendedVerifierState {
@@ -120,6 +126,8 @@ impl ExtendedVerifierState {
             E_2,
             s1_tensor,
             s2_tensor,
+            alphas: vec![Default::default(); nu],
+            alpha_invs: vec![Default::default(); nu],
         }
     }
 }
