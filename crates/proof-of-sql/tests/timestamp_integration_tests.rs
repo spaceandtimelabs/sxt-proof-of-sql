@@ -602,7 +602,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                     "1983-01-01T00:00:00Z", // Official start of the Internet (TCP/IP)
                     "1927-03-07T00:00:00Z", // Discovery of Penicillin
                     "2004-02-04T00:00:00Z", // Founding of Facebook
-                    "1964-05-20T00:00:00Z",
+                    "1964-05-20T00:00:00Z", // Cosmic Microwave Background Radiation discovered
                 ]
                 .iter()
                 .map(|s| s.to_string()),
@@ -617,7 +617,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                     "1993-04-30T00:00:00Z", // World Wide Web goes live
                     "1905-11-21T00:00:00Z", // Einstein's paper on mass-energy equivalence, E=mc²
                     "2003-04-14T00:00:00Z", // Completion of the first draft of the human genome
-                    "2011-11-26T05:17:57Z",
+                    "2011-11-26T05:17:57Z", // Curiosity Rover lands on Mars
                 ]
                 .iter()
                 .map(|s| s.to_string()),

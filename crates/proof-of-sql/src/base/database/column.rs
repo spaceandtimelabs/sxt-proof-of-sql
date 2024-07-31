@@ -306,7 +306,6 @@ impl ColumnType {
             _ => None,
         }
     }
-
     /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
     pub fn scale(&self) -> Option<i8> {
         match self {
