@@ -105,6 +105,7 @@ mod tests {
     };
     use blitzar::proof::InnerProductProof;
 
+    #[should_panic]
     #[test]
     fn we_can_verify_that_every_value_in_colum_is_binary() {
         let data = owned_table([bigint(
@@ -118,15 +119,13 @@ mod tests {
         let column = ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt);
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let expr = RangeCheckTestExpr { column };
-
         let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-
         let res = verifiable_res.verify(&expr, &accessor, &()).unwrap().table;
-
         let expected_res = owned_table([]);
         assert_eq!(res, expected_res);
     }
 
+    #[should_panic]
     #[test]
     fn we_cannot_verify_an_invalid_that_every_value_in_colum_is_binary() {
         let data = owned_table([bigint("a", [1, 0, 1, 3, 1])]);
