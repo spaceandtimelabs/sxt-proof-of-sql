@@ -50,6 +50,7 @@ impl PoSQLTimestamp {
         let offset_seconds = dt.offset().local_minus_utc();
         let timezone = PoSQLTimeZone::from_offset(offset_seconds);
         let nanoseconds = dt.timestamp_subsec_nanos();
+
         let timeunit = if nanoseconds % 1_000 != 0 {
             PoSQLTimeUnit::Nanosecond
         } else if nanoseconds % 1_000_000 != 0 {

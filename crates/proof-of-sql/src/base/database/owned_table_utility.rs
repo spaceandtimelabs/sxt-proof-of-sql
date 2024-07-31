@@ -230,14 +230,10 @@ pub fn timestamptz_epoch<S: Scalar>(
     timezone: PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
-    let result = (
+    (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
-    );
-
-    dbg!(result.clone().1);
-
-    result
+    )
 }
 
 /// Creates a (Identifier, OwnedColumn) pair for a timestamp column.
@@ -281,7 +277,6 @@ pub fn timestamptz<S: Scalar>(
     let result = (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(
-            // We assume all timestamps have the same time unit, so take the unit from the first timestamp.
             parsed_data
                 .first()
                 .expect("No timestamps provided")
@@ -300,12 +295,4 @@ pub fn timestamptz<S: Scalar>(
     );
 
     result
-}
-
-#[macro_export]
-/// Macro to convert a given Unix timestamp in seconds into an RFC 3339 formatted string.
-macro_rules! epoch_to_rfc3339 {
-    ($x:expr) => {
-        Utc.timestamp_opt($x, 0).unwrap().to_rfc3339()
-    };
 }

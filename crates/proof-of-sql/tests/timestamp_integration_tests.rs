@@ -125,8 +125,8 @@ fn run_timestamp_epoch_query_test(
 #[cfg(feature = "blitzar")]
 fn run_timestamp_query_test(
     query_str: &str,
-    test_timestamps: Vec<&str>, // Input timestamps for the test
     test_timeunit: PoSQLTimeUnit,
+    test_timestamps: Vec<&str>,     // Input timestamps for the test
     expected_timestamps: Vec<&str>, // Expected timestamps to match the query
 ) {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
@@ -157,8 +157,6 @@ fn run_timestamp_query_test(
         .verify(query.proof_expr(), &accessor, &())
         .unwrap()
         .table;
-    dbg!("owned table result:");
-    dbg!(owned_table_result.clone());
     let expected_result = owned_table([timestamptz(
         "times",
         test_timeunit,
@@ -178,20 +176,6 @@ mod tests {
     use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 
     #[test]
-    fn test_precision_and_rounding() {
-        // Testing timestamps near rounding thresholds
-        let test_timestamps = vec!["2023-10-10T12:34:56.789Z"];
-        let expected_timestamps = vec!["2023-10-10T12:34:56.789Z"];
-
-        run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z';",
-            test_timestamps,
-            PoSQLTimeUnit::Millisecond,
-            expected_timestamps,
-        );
-    }
-
-    #[test]
     fn test_basic_timestamp_query() {
         let test_timestamps = vec![1609459200, 1612137600, 1614556800];
         let expected_timestamps = vec![1609459200];
@@ -201,6 +185,107 @@ mod tests {
             test_timestamps,
             expected_timestamps,
             PoSQLTimeUnit::Second,
+        );
+    }
+
+    #[test]
+    fn test_precision_and_rounding() {
+        // Testing timestamps near rounding thresholds in milliseconds
+        let test_timestamps = vec!["2009-01-03T18:15:05.999Z"];
+        let expected_timestamps = vec!["2009-01-03T18:15:05.999Z"];
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2009-01-03T18:15:05.999Z';",
+            PoSQLTimeUnit::Millisecond,
+            test_timestamps,
+            expected_timestamps,
+        );
+
+        // test microseconds
+        let test_timestamps = vec!["2009-01-03T18:15:05.999999Z"];
+        let expected_timestamps = vec!["2009-01-03T18:15:05.999999Z"];
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2009-01-03T18:15:05.999999Z';",
+            PoSQLTimeUnit::Microsecond,
+            test_timestamps,
+            expected_timestamps,
+        );
+
+        // test nanoseconds
+        let test_timestamps = vec!["2009-01-03T18:15:05.999999999Z"];
+        let expected_timestamps = vec!["2009-01-03T18:15:05.999999999Z"];
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2009-01-03T18:15:05.999999999Z';",
+            PoSQLTimeUnit::Nanosecond,
+            test_timestamps,
+            expected_timestamps,
+        );
+    }
+
+    #[test]
+    fn test_equality_with_variety_of_rfc3339_timestamps() {
+        // Testing timestamps near rounding thresholds
+        let test_timestamps = vec![
+            "2009-01-03T18:15:05Z", // Bitcoin genesis block time
+            "1970-01-01T00:00:00Z", // Unix epoch
+            "1969-07-20T20:17:40Z", // Apollo 11 moon landing
+            "1993-04-30T00:00:00Z", // World Wide Web goes live
+            "1927-03-07T00:00:00Z", // Discovery of Penicillin
+            "2004-02-04T00:00:00Z", // Founding of Facebook
+            "2011-11-26T05:17:57Z", // Curiosity Rover lands on Mars
+        ];
+        let expected_timestamps = vec!["2009-01-03T18:15:05Z"];
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2009-01-03T18:15:05Z';",
+            PoSQLTimeUnit::Second,
+            test_timestamps.clone(),
+            expected_timestamps.clone(),
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times >= timestamp '1993-04-30T00:00:00Z';",
+            PoSQLTimeUnit::Second,
+            test_timestamps.clone(),
+            vec![
+                "2009-01-03T18:15:05Z",
+                "1993-04-30T00:00:00Z",
+                "2004-02-04T00:00:00Z",
+                "2011-11-26T05:17:57Z",
+            ],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times > timestamp '1993-04-30T00:00:00Z';",
+            PoSQLTimeUnit::Second,
+            test_timestamps.clone(),
+            vec![
+                "2009-01-03T18:15:05Z",
+                "2004-02-04T00:00:00Z",
+                "2011-11-26T05:17:57Z",
+            ],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times <= timestamp '1993-04-30T00:00:00Z';",
+            PoSQLTimeUnit::Second,
+            test_timestamps.clone(),
+            vec![
+                "1970-01-01T00:00:00Z",
+                "1969-07-20T20:17:40Z",
+                "1993-04-30T00:00:00Z",
+                "1927-03-07T00:00:00Z",
+            ],
+        );
+
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times < timestamp '1993-04-30T00:00:00Z';",
+            PoSQLTimeUnit::Second,
+            test_timestamps.clone(),
+            vec![
+                "1970-01-01T00:00:00Z",
+                "1969-07-20T20:17:40Z",
+                "1927-03-07T00:00:00Z",
+            ],
         );
     }
 
@@ -380,8 +465,8 @@ mod tests {
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = timestamp '2023-07-01T12:00:00.999Z'",
-            test_timestamps,
             PoSQLTimeUnit::Millisecond,
+            test_timestamps,
             expected_timestamps,
         );
     }
@@ -507,26 +592,31 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
-            timestamptz_epoch(
+            timestamptz(
                 "a",
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::Utc,
-                [
-                    i64::MIN,
-                    2,
-                    -1,
-                    0,
-                    1,
-                    -2,
-                    1231006505000000000, // bitcoin genesis block time in ns
-                    i64::MAX,
-                ],
+                ["2009-01-03T18:15:05Z", // Bitcoin genesis block time
+                    "1961-04-12T06:07:00Z", // First human spaceflight by Yuri Gagarin
+                    "1969-07-20T20:17:40Z", // Apollo 11 moon landing
+                    "1983-01-01T00:00:00Z", // Official start of the Internet (TCP/IP)
+                    "1927-03-07T00:00:00Z", // Discovery of Penicillin
+                    "2004-02-04T00:00:00Z", // Founding of Facebook
+                    "1964-05-20T00:00:00Z"]
+                .iter()
+                .map(|s| s.to_string()),
             ),
-            timestamptz_epoch(
+            timestamptz(
                 "b",
                 PoSQLTimeUnit::Nanosecond,
-                PoSQLTimeZone::Utc,
-                [i64::MAX, -2, -1, -1231006505000000000, 0, 1, 2, i64::MIN],
+                ["1953-02-28T00:00:00Z", // Publication of DNA's double helix structure
+                    "1970-01-01T00:00:00Z", // Unix epoch
+                    "1954-12-23T00:00:00Z", // First successful kidney transplant
+                    "1993-04-30T00:00:00Z", // World Wide Web goes live
+                    "1905-11-21T00:00:00Z", // Einstein's paper on mass-energy equivalence, E=mc²
+                    "2003-04-14T00:00:00Z", // Completion of the first draft of the human genome
+                    "2011-11-26T05:17:57Z"]
+                .iter()
+                .map(|s| s.to_string()),
             ),
         ]),
         0,
@@ -551,17 +641,23 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         .unwrap()
         .table;
     let expected_result = owned_table([
-        timestamptz_epoch(
+        timestamptz(
             "a",
             PoSQLTimeUnit::Nanosecond,
-            PoSQLTimeZone::Utc,
-            [i64::MIN, -1, -2],
+            ["1961-04-12T06:07:00Z",
+                "1983-01-01T00:00:00Z",
+                "1964-05-20T00:00:00Z"]
+            .iter()
+            .map(|s| s.to_string()),
         ),
-        timestamptz_epoch(
+        timestamptz(
             "b",
             PoSQLTimeUnit::Nanosecond,
-            PoSQLTimeZone::Utc,
-            [i64::MAX, -1, 1],
+            ["1970-01-01T00:00:00Z",
+                "1993-04-30T00:00:00Z",
+                "2011-11-26T05:17:57Z"]
+            .iter()
+            .map(|s| s.to_string()),
         ),
         boolean("res", [true, true, true]),
     ]);
