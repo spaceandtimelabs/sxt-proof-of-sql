@@ -254,11 +254,13 @@ pub fn timestamptz_epoch<S: Scalar>(
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///        timestamptz("event_time", vec![
-///            "1969-12-31T23:59:59Z", // One second before the Unix epoch
-///            "1970-01-01T00:00:00Z", // The Unix epoch
-///            "1970-01-01T00:00:01Z", // One second after the Unix epoch
-///        ].iter().map(|s| s.to_string())),
+///         timestamptz("event_time",
+///         PoSQLTimeUnit::Second,
+///         vec![
+///             "1969-12-31T23:59:59Z", // One second before the Unix epoch
+///             "1970-01-01T00:00:00Z", // The Unix epoch
+///             "1970-01-01T00:00:01Z", // One second after the Unix epoch
+///         ].iter().map(|s| s.to_string())),
 /// ]);
 /// ```
 pub fn timestamptz<S: Scalar>(

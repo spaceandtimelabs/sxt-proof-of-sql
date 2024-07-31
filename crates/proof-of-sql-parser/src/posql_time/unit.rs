@@ -16,18 +16,6 @@ pub enum PoSQLTimeUnit {
     Nanosecond,
 }
 
-impl PoSQLTimeUnit {
-    /// Get the number of digits needed to represent the precision of this time unit
-    pub fn get_scale(&self) -> i8 {
-        match self {
-            PoSQLTimeUnit::Second => 0,
-            PoSQLTimeUnit::Millisecond => 3,
-            PoSQLTimeUnit::Microsecond => 6,
-            PoSQLTimeUnit::Nanosecond => 9,
-        }
-    }
-}
-
 impl TryFrom<&str> for PoSQLTimeUnit {
     type Error = PoSQLTimestampError;
     fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {

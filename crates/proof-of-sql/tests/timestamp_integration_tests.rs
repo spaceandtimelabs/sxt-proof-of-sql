@@ -595,26 +595,30 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
             timestamptz(
                 "a",
                 PoSQLTimeUnit::Nanosecond,
-                ["2009-01-03T18:15:05Z", // Bitcoin genesis block time
+                [
+                    "2009-01-03T18:15:05Z", // Bitcoin genesis block time
                     "1961-04-12T06:07:00Z", // First human spaceflight by Yuri Gagarin
                     "1969-07-20T20:17:40Z", // Apollo 11 moon landing
                     "1983-01-01T00:00:00Z", // Official start of the Internet (TCP/IP)
                     "1927-03-07T00:00:00Z", // Discovery of Penicillin
                     "2004-02-04T00:00:00Z", // Founding of Facebook
-                    "1964-05-20T00:00:00Z"]
+                    "1964-05-20T00:00:00Z",
+                ]
                 .iter()
                 .map(|s| s.to_string()),
             ),
             timestamptz(
                 "b",
                 PoSQLTimeUnit::Nanosecond,
-                ["1953-02-28T00:00:00Z", // Publication of DNA's double helix structure
+                [
+                    "1953-02-28T00:00:00Z", // Publication of DNA's double helix structure
                     "1970-01-01T00:00:00Z", // Unix epoch
                     "1954-12-23T00:00:00Z", // First successful kidney transplant
                     "1993-04-30T00:00:00Z", // World Wide Web goes live
                     "1905-11-21T00:00:00Z", // Einstein's paper on mass-energy equivalence, E=mc²
                     "2003-04-14T00:00:00Z", // Completion of the first draft of the human genome
-                    "2011-11-26T05:17:57Z"]
+                    "2011-11-26T05:17:57Z",
+                ]
                 .iter()
                 .map(|s| s.to_string()),
             ),
@@ -644,18 +648,22 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
         timestamptz(
             "a",
             PoSQLTimeUnit::Nanosecond,
-            ["1961-04-12T06:07:00Z",
+            [
+                "1961-04-12T06:07:00Z",
                 "1983-01-01T00:00:00Z",
-                "1964-05-20T00:00:00Z"]
+                "1964-05-20T00:00:00Z",
+            ]
             .iter()
             .map(|s| s.to_string()),
         ),
         timestamptz(
             "b",
             PoSQLTimeUnit::Nanosecond,
-            ["1970-01-01T00:00:00Z",
+            [
+                "1970-01-01T00:00:00Z",
                 "1993-04-30T00:00:00Z",
-                "2011-11-26T05:17:57Z"]
+                "2011-11-26T05:17:57Z",
+            ]
             .iter()
             .map(|s| s.to_string()),
         ),

@@ -47,7 +47,6 @@ pub use owned_table::OwnedTable;
 pub(crate) use owned_table::OwnedTableError;
 #[cfg(test)]
 mod owned_table_test;
-#[macro_use]
 pub mod owned_table_utility;
 
 mod owned_and_arrow_conversions;

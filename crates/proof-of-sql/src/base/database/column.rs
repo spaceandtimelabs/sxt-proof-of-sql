@@ -253,11 +253,6 @@ impl ColumnType {
         )
     }
 
-    /// Returns true if this column is a timestamp and false otherwise
-    pub fn is_timestamp(&self) -> bool {
-        matches!(self, ColumnType::TimestampTZ(_, _))
-    }
-
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
@@ -317,10 +312,6 @@ impl ColumnType {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
-            Self::TimestampTZ(PoSQLTimeUnit::Second, _) => Some(0),
-            Self::TimestampTZ(PoSQLTimeUnit::Millisecond, _) => Some(3),
-            Self::TimestampTZ(PoSQLTimeUnit::Microsecond, _) => Some(6),
-            Self::TimestampTZ(PoSQLTimeUnit::Nanosecond, _) => Some(9),
             _ => None,
         }
     }
