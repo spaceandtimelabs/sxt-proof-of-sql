@@ -509,16 +509,7 @@ mod tests {
     #[test]
     fn we_can_naive_fold_length_3_fold_factors() {
         let fold_factors = vec![F::from(2), F::from(3), F::from(5)];
-        let mut vec = vec![
-            F::from(100),
-            F::from(101),
-            F::from(102),
-            F::from(103),
-            F::from(104),
-            F::from(105),
-            F::from(106),
-            F::from(107),
-        ];
+        let mut vec = [100, 101, 102, 103, 104, 105, 106, 107].map(F::from);
         naive_fold(&mut vec, &fold_factors);
         assert_eq!(
             vec[0],
