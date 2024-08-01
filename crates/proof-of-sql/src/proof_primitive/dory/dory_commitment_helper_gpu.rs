@@ -1,9 +1,12 @@
-use super::{pairings, transpose, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine};
+use super::{
+    pairings, transpose, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine, G2Affine,
+};
 use crate::base::commitment::CommittableColumn;
 use ark_bls12_381::Fr;
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::{compute::ElementP2, sequence::Sequence};
+use bumpalo::collections::vec;
 use rayon::prelude::*;
 use zerocopy::AsBytes;
 
@@ -168,66 +171,64 @@ fn compute_dory_commitments_packed_impl(
     offset: usize,
     setup: &DoryProverPublicSetup,
 ) -> Vec<DoryCommitment> {
-    let bit_table = transpose::get_output_bit_table(committable_columns);
-    let num_of_outputs = bit_table.len();
-    let num_columns = 1 << setup.sigma();
+    if committable_columns.is_empty() {
+        return vec![];
+    }
 
+    let num_of_outputs = committable_columns.len();
+    let num_of_generators = 1 << setup.sigma();
+    let num_of_commits =
+        transpose::get_num_of_commits(committable_columns, offset, num_of_generators);
+
+    let bit_table = transpose::get_output_bit_table(committable_columns);
     let (packed_scalars, packed_scalar_offsets) =
         transpose::get_packed_scalar_and_offset_scalar_offset(
             &bit_table,
             committable_columns,
             offset,
-            num_columns,
+            num_of_generators,
+            num_of_commits,
         );
 
-    let num_of_commits = packed_scalars.len();
+    let bit_table_for_packed_msm: Vec<u32> =
+        transpose::get_repeated_bit_table(&bit_table, num_of_commits);
 
     let mut blitzar_commits =
-        vec![
-            vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs];
-            num_of_commits
-        ];
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs * num_of_commits];
 
-    let mut blitzar_commits_offsets =
-        vec![
-            vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs];
-            num_of_commits
-        ];
+    let mut blitzar_commit_offsets =
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs * num_of_commits];
 
-    for i in 0..num_of_commits {
-        if !bit_table.is_empty() {
-            setup.prover_setup().blitzar_packed_msm(
-                &mut blitzar_commits[i],
-                &bit_table,
-                packed_scalars[i].as_slice(),
-            );
-            setup.prover_setup().blitzar_packed_msm(
-                &mut blitzar_commits_offsets[i],
-                &bit_table,
-                packed_scalar_offsets[i].as_slice(),
-            );
-        }
+    if !bit_table_for_packed_msm.is_empty() {
+        setup.prover_setup().blitzar_packed_msm(
+            &mut blitzar_commits,
+            &bit_table_for_packed_msm,
+            packed_scalars.as_slice(),
+        );
+        setup.prover_setup().blitzar_packed_msm(
+            &mut blitzar_commit_offsets,
+            &bit_table_for_packed_msm,
+            packed_scalar_offsets.as_slice(),
+        );
     }
 
-    let commits: Vec<Vec<G1Affine>> = blitzar_commits
-        .into_iter()
-        .map(|commit| commit.into_par_iter().map(|x| x.into()).collect())
-        .collect();
-
-    let commits_offsets: Vec<Vec<G1Affine>> = blitzar_commits_offsets
-        .into_iter()
-        .map(|commit_offset| commit_offset.into_par_iter().map(|x| x.into()).collect())
-        .collect();
+    let commits: Vec<G1Affine> = blitzar_commits.par_iter().map(Into::into).collect();
+    let commit_offsets: Vec<G1Affine> = blitzar_commit_offsets.par_iter().map(Into::into).collect();
 
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
     (0..num_of_outputs)
         .map(|i| {
-            let individual_commits: Vec<G1Affine> =
-                (0..num_of_commits).map(|j| commits[j][i]).collect();
+            let individual_commits: Vec<G1Affine> = (0..num_of_commits)
+                .map(|j| commits[i + j * num_of_outputs])
+                .collect();
 
             let min = transpose::get_min_as_fr(&committable_columns[i]);
             let individual_commits_offset: Vec<G1Affine> = (0..num_of_commits)
-                .map(|j| commits_offsets[j][i].mul(min).into_affine())
+                .map(|j| {
+                    commit_offsets[i + j * num_of_outputs]
+                        .mul(min)
+                        .into_affine()
+                })
                 .collect();
 
             DoryCommitment(

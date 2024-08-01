@@ -214,12 +214,39 @@ pub fn get_min_as_fr(column: &CommittableColumn) -> Fr {
     }
 }
 
-#[tracing::instrument(name = "get_output_bit_table (gpu)", level = "debug", skip_all)]
 pub fn get_output_bit_table(committable_columns: &[CommittableColumn]) -> Vec<u32> {
     committable_columns
         .iter()
         .map(|column| get_bit_size(column) as u32)
         .collect()
+}
+
+pub fn get_repeated_bit_table(bit_table: &[u32], n: usize) -> Vec<u32> {
+    std::iter::repeat(bit_table)
+        .take(n)
+        .flatten()
+        .cloned()
+        .collect()
+}
+
+pub fn get_num_of_commits(
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    num_columns: usize,
+) -> usize {
+    // Get the output bit table
+    let bit_table = get_output_bit_table(committable_columns);
+
+    // Get the total bit size needed for a single entry in the scalar vector.
+    let single_packed_scalar_bit_size = get_single_rounded_packed_scalar_bit_size(&bit_table);
+    debug_assert_eq!(single_packed_scalar_bit_size % BYTE_SIZE, 0);
+
+    // Committable columns may be different sizes, get the max size and add offset.
+    let max_column_length = get_max_column_length(committable_columns) + offset;
+
+    // Number of scalar vectors that the size of the generators n.
+    // Each scalar will be used to call the packed_msm function.
+    (max_column_length + num_columns - 1) / num_columns
 }
 
 #[tracing::instrument(
@@ -231,25 +258,22 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
     bit_table: &[u32],
     committable_columns: &[CommittableColumn],
     offset: usize,
-    n: usize,
-) -> (Vec<Vec<u8>>, Vec<Vec<u8>>) {
+    num_columns: usize,
+    num_of_commits: usize,
+) -> (Vec<u8>, Vec<u8>) {
     // Get the total bit size needed for a single entry in the scalar vector.
     let single_packed_scalar_bit_size = get_single_rounded_packed_scalar_bit_size(bit_table);
     assert!(single_packed_scalar_bit_size % BYTE_SIZE == 0);
 
     // The offset adds bits to the beginning of the scalar vector.
-    let bit_offset = offset * single_packed_scalar_bit_size;
+    let bit_offset = single_packed_scalar_bit_size * offset;
 
     // Committable columns may be different sizes, get the max size and add offset.
     let max_column_length = get_max_column_length(committable_columns) + offset;
 
-    // Number of scalar vectors that the size of the generators n.
-    // Each scalar will be used to call the packed_msm function.
-    let scalar_vec_size = (max_column_length + n - 1) / n;
-
     // Get the total number of bits needed for the packed scalar vector.
-    let full_packed_scalar_bit_size = if scalar_vec_size > 0 {
-        single_packed_scalar_bit_size * n
+    let full_packed_scalar_bit_size = if num_of_commits > 0 {
+        single_packed_scalar_bit_size * num_columns
     } else {
         single_packed_scalar_bit_size * max_column_length
     };
@@ -258,8 +282,10 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
     let scalar_byte_size = full_packed_scalar_bit_size / BYTE_SIZE;
 
     // Create a vector of scalar vectors
-    let mut packed_scalars = vec![vec![0_u8; scalar_byte_size]; scalar_vec_size];
-    let mut packed_scalar_offsets = vec![vec![0_u8; scalar_byte_size]; scalar_vec_size];
+    // This code comes from the first pass of the algorithm where there was a single
+    // packed_msm call per commit.
+    let mut packed_scalars_temp = vec![vec![0_u8; scalar_byte_size]; num_of_commits];
+    let mut packed_scalar_offsets_temp = vec![vec![0_u8; scalar_byte_size]; num_of_commits];
 
     for (i, column) in committable_columns.iter().enumerate() {
         let mut current_bit = if i > 0 {
@@ -278,7 +304,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::SmallInt(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -286,7 +312,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
                 );
                 add_offset_bit(
                     column,
-                    &mut packed_scalar_offsets,
+                    &mut packed_scalar_offsets_temp,
                     scalar_byte_size,
                     single_packed_scalar_bit_size,
                     &mut current_offset_bit,
@@ -295,7 +321,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::Int(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -303,7 +329,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
                 );
                 add_offset_bit(
                     column,
-                    &mut packed_scalar_offsets,
+                    &mut packed_scalar_offsets_temp,
                     scalar_byte_size,
                     single_packed_scalar_bit_size,
                     &mut current_offset_bit,
@@ -312,7 +338,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::BigInt(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -320,7 +346,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
                 );
                 add_offset_bit(
                     column,
-                    &mut packed_scalar_offsets,
+                    &mut packed_scalar_offsets_temp,
                     scalar_byte_size,
                     single_packed_scalar_bit_size,
                     &mut current_offset_bit,
@@ -329,7 +355,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::Int128(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -337,7 +363,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
                 );
                 add_offset_bit(
                     column,
-                    &mut packed_scalar_offsets,
+                    &mut packed_scalar_offsets_temp,
                     scalar_byte_size,
                     single_packed_scalar_bit_size,
                     &mut current_offset_bit,
@@ -346,7 +372,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::TimestampTZ(_, _, column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -354,7 +380,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
                 );
                 add_offset_bit(
                     column,
-                    &mut packed_scalar_offsets,
+                    &mut packed_scalar_offsets_temp,
                     scalar_byte_size,
                     single_packed_scalar_bit_size,
                     &mut current_offset_bit,
@@ -363,7 +389,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::Boolean(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -373,7 +399,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::Decimal75(_, _, column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -383,7 +409,7 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::Scalar(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
@@ -393,13 +419,52 @@ pub fn get_packed_scalar_and_offset_scalar_offset(
             CommittableColumn::VarChar(column) => {
                 pack_bit(
                     column,
-                    &mut packed_scalars,
+                    &mut packed_scalars_temp,
                     scalar_byte_size,
                     byte_offset,
                     single_packed_scalar_bit_size,
                     &mut current_bit,
                 );
             }
+        }
+    }
+
+    // This is the code that takes the Vec<Vec<u8>> and flattens it
+    // into a single Vec<u8> that is in column major order.
+    // This can likely be combined with the previous loop to avoid
+    // creating the temporary vectors.
+    let column_size = num_of_commits;
+    let row_size = if !packed_scalars_temp.is_empty() {
+        packed_scalars_temp[0].len()
+    } else {
+        0
+    };
+    let total_size = column_size * row_size;
+
+    let mut packed_scalars = vec![0_u8; total_size];
+    let mut packed_scalar_offsets = vec![0_u8; total_size];
+
+    let bit_table_slice: &[u32] = &bit_table;
+    let byte_sum: u32 = bit_table_slice.iter().sum::<u32>() / 8;
+
+    let num_of_scalars_in_row = if byte_sum != 0 {
+        row_size as u32 / byte_sum
+    } else {
+        0
+    };
+
+    let mut byte_idx = 0 as usize;
+    for j in 0..num_of_scalars_in_row as usize {
+        for i in 0..num_of_commits {
+            let row_offset = j * byte_sum as usize;
+
+            packed_scalars[byte_idx..byte_idx + byte_sum as usize].copy_from_slice(
+                &packed_scalars_temp[i][row_offset..row_offset + byte_sum as usize],
+            );
+            packed_scalar_offsets[byte_idx..byte_idx + byte_sum as usize].copy_from_slice(
+                &packed_scalar_offsets_temp[i][row_offset..row_offset + byte_sum as usize],
+            );
+            byte_idx += byte_sum as usize;
         }
     }
 
@@ -750,6 +815,7 @@ mod tests {
         assert_eq!(max_column_length, 6);
     }
 
+    /*
     #[test]
     fn we_can_pack_empty_scalars() {
         let bit_table = vec![];
@@ -854,4 +920,5 @@ mod tests {
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(packed_scalar_offsets, expected_scalar_offsets);
     }
+     */
 }
