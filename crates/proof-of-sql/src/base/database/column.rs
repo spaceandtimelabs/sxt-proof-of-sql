@@ -303,19 +303,20 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            _ => None,
+            Self::Boolean | Self::VarChar => None,
         }
     }
     /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
     pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
-            Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
-            Self::TimestampTZ(PoSQLTimeUnit::Second, _) => Some(0),
-            Self::TimestampTZ(PoSQLTimeUnit::Millisecond, _) => Some(3),
-            Self::TimestampTZ(PoSQLTimeUnit::Microsecond, _) => Some(6),
-            Self::TimestampTZ(PoSQLTimeUnit::Nanosecond, _) => Some(9),
-            _ => None,
+            Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::Scalar
+            | Self::TimestampTZ(_, _) => Some(0),
+            Self::Boolean | Self::VarChar => None,
         }
     }
 }
