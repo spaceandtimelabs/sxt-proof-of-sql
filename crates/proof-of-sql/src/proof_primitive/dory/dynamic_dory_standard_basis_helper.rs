@@ -441,13 +441,7 @@ mod tests {
         let mut hi_vec = vec![F::ZERO; 8];
         lo_vec[0] = F::ONE;
         hi_vec[0] = F::ONE;
-        let point = vec![
-            F::from(5),
-            F::from(7),
-            F::from(11),
-            F::from(13),
-            F::from(17),
-        ];
+        let point = [5, 7, 11, 13, 17].map(F::from);
         compute_dynamic_standard_basis_vecs(&point, &mut lo_vec, &mut hi_vec);
 
         let alphas = vec![F::from(200), F::from(201), F::from(202)];
