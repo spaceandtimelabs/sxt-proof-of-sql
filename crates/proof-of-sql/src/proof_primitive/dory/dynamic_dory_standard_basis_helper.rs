@@ -120,7 +120,7 @@ pub(super) fn fold_dynamic_standard_basis_tensors(
                 if i == 0 {
                     (acc, F::ZERO)
                 } else if i == 1 {
-                    (acc * alpha_invs[i / 2 + 1] + p * alpha_invs[i / 2], F::ZERO)
+                    (acc * alpha_invs[1] + p * alpha_invs[0], F::ZERO)
                 } else if i % 2 == 0 {
                     let partial = (i / 2 + 1..i)
                         .zip(alpha_invs)
