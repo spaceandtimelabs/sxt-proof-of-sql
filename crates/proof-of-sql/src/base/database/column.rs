@@ -311,6 +311,10 @@ impl ColumnType {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
+            Self::TimestampTZ(PoSQLTimeUnit::Second, _) => Some(0),
+            Self::TimestampTZ(PoSQLTimeUnit::Millisecond, _) => Some(3),
+            Self::TimestampTZ(PoSQLTimeUnit::Microsecond, _) => Some(6),
+            Self::TimestampTZ(PoSQLTimeUnit::Nanosecond, _) => Some(9),
             _ => None,
         }
     }

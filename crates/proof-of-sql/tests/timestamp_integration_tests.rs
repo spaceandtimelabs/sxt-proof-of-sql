@@ -219,6 +219,16 @@ mod tests {
             test_timestamps,
             expected_timestamps,
         );
+
+        // test nanoseconds
+        let test_timestamps = vec!["2009-01-03T18:15:05.999Z", "2009-01-03T18:15:05.000Z"];
+        let expected_timestamps = vec!["2009-01-03T18:15:05.000Z"];
+        run_timestamp_query_test(
+            "SELECT * FROM table WHERE times = timestamp '2009-01-03T18:15:05Z';",
+            PoSQLTimeUnit::Millisecond,
+            test_timestamps,
+            expected_timestamps,
+        );
     }
 
     #[test]
