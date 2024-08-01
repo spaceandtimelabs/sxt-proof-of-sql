@@ -9,7 +9,7 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use proof_of_sql_parser::posql_time::{PoSQLTimeZone, PoSQLTimestampError};
 use std::ops::Range;
 use thiserror::Error;
 
@@ -272,7 +272,6 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Second => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampSecondArray>() {
                         Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Second,
                             PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
@@ -285,7 +284,6 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Millisecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMillisecondArray>() {
                         Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Millisecond,
                             PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
@@ -298,7 +296,6 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Microsecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampMicrosecondArray>() {
                         Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Microsecond,
                             PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
@@ -311,7 +308,6 @@ impl ArrayRefExt for ArrayRef {
                 ArrowTimeUnit::Nanosecond => {
                     if let Some(array) = self.as_any().downcast_ref::<TimestampNanosecondArray>() {
                         Ok(Column::TimestampTZ(
-                            PoSQLTimeUnit::Nanosecond,
                             PoSQLTimeZone::try_from(tz)?,
                             &array.values()[range.start..range.end],
                         ))
@@ -370,7 +366,7 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeZone::Utc, &data[1..3])
         );
     }
 
@@ -386,10 +382,7 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(2..2), None)
             .unwrap();
-        assert_eq!(
-            result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
-        );
+        assert_eq!(result, Column::TimestampTZ(PoSQLTimeZone::Utc, &[]));
     }
 
     #[test]
@@ -404,7 +397,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(1..1), None);
         assert_eq!(
             result.unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
+            Column::TimestampTZ(PoSQLTimeZone::Utc, &[])
         );
     }
 
@@ -995,10 +988,7 @@ mod tests {
         let result = array
             .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
             .unwrap();
-        assert_eq!(
-            result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[..])
-        );
+        assert_eq!(result, Column::TimestampTZ(PoSQLTimeZone::Utc, &data[..]));
     }
 
     #[test]
@@ -1059,7 +1049,7 @@ mod tests {
             array
                 .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
                 .unwrap(),
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &data[1..3])
+            Column::TimestampTZ(PoSQLTimeZone::Utc, &data[1..3])
         );
     }
 
@@ -1115,10 +1105,7 @@ mod tests {
         let result = array
             .to_column::<DoryScalar>(&alloc, &(0..0), None)
             .unwrap();
-        assert_eq!(
-            result,
-            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[])
-        );
+        assert_eq!(result, Column::TimestampTZ(PoSQLTimeZone::Utc, &[]));
     }
 
     #[test]

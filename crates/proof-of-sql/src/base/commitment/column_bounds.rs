@@ -221,7 +221,7 @@ impl ColumnBounds {
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
-            CommittableColumn::TimestampTZ(_, _, times) => {
+            CommittableColumn::TimestampTZ(_, times) => {
                 ColumnBounds::TimestampTZ(Bounds::from_iter(*times))
             }
             CommittableColumn::Boolean(_)
@@ -290,7 +290,7 @@ mod tests {
     use super::*;
     use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use itertools::Itertools;
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeZone;
 
     #[test]
     fn we_can_construct_bounds_by_method() {
@@ -531,11 +531,8 @@ mod tests {
         let decimal75_column_bounds = ColumnBounds::from_column(&committable_decimal75_column);
         assert_eq!(decimal75_column_bounds, ColumnBounds::NoOrder);
 
-        let timestamp_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            vec![1_i64, 2, 3, 4],
-        );
+        let timestamp_column =
+            OwnedColumn::<Curve25519Scalar>::TimestampTZ(PoSQLTimeZone::Utc, vec![1_i64, 2, 3, 4]);
         let committable_timestamp_column = CommittableColumn::from(&timestamp_column);
         let timestamp_column_bounds = ColumnBounds::from_column(&committable_timestamp_column);
         assert_eq!(

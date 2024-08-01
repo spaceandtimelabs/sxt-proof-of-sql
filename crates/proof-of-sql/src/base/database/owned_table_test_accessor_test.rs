@@ -7,7 +7,7 @@ use crate::base::{
     scalar::{compute_commitment_for_testing, Curve25519Scalar},
 };
 use blitzar::proof::InnerProductProof;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use proof_of_sql_parser::posql_time::PoSQLTimeZone;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -49,12 +49,7 @@ fn we_can_access_the_columns_of_a_table() {
         varchar("varchar", ["a", "bc", "d", "e"]),
         scalar("scalar", [1, 2, 3, 4]),
         boolean("boolean", [true, false, true, false]),
-        timestamptz_epoch(
-            "time",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [4, 5, 6, 5],
-        ),
+        timestamptz_epoch("time", PoSQLTimeZone::Utc, [4, 5, 6, 5]),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
@@ -110,10 +105,10 @@ fn we_can_access_the_columns_of_a_table() {
     let column = ColumnRef::new(
         table_ref_2,
         "time".parse().unwrap(),
-        ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+        ColumnType::TimestampTZ(PoSQLTimeZone::Utc),
     );
     match accessor.get_column(column) {
-        Column::TimestampTZ(_, _, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
+        Column::TimestampTZ(_, col) => assert_eq!(col.to_vec(), vec![4, 5, 6, 5]),
         _ => panic!("Invalid column type"),
     };
 }

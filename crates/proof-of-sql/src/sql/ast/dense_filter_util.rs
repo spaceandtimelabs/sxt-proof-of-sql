@@ -65,8 +65,7 @@ pub fn filter_column_by_index<'a, S: Scalar>(
             *scale,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),
-        Column::TimestampTZ(tu, tz, col) => Column::TimestampTZ(
-            *tu,
+        Column::TimestampTZ(tz, col) => Column::TimestampTZ(
             *tz,
             alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])),
         ),

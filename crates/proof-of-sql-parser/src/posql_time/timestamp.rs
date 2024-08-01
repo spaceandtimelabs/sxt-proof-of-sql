@@ -1,4 +1,4 @@
-use super::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use super::{PoSQLTimeZone, PoSQLTimestampError};
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -7,9 +7,6 @@ use serde::{Deserialize, Serialize};
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
     pub timestamp: DateTime<Utc>,
-
-    /// The precision of the datetime value, e.g., seconds, milliseconds.
-    pub timeunit: PoSQLTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
     pub timezone: PoSQLTimeZone,
@@ -49,20 +46,9 @@ impl PoSQLTimestamp {
 
         let offset_seconds = dt.offset().local_minus_utc();
         let timezone = PoSQLTimeZone::from_offset(offset_seconds);
-        let nanoseconds = dt.timestamp_subsec_nanos();
-        let timeunit = if nanoseconds % 1_000 != 0 {
-            PoSQLTimeUnit::Nanosecond
-        } else if nanoseconds % 1_000_000 != 0 {
-            PoSQLTimeUnit::Microsecond
-        } else if nanoseconds % 1_000_000_000 != 0 {
-            PoSQLTimeUnit::Millisecond
-        } else {
-            PoSQLTimeUnit::Second
-        };
 
         Ok(PoSQLTimestamp {
             timestamp: dt.with_timezone(&Utc),
-            timeunit,
             timezone,
         })
     }
@@ -88,7 +74,6 @@ impl PoSQLTimestamp {
         match Utc.timestamp_opt(epoch, 0) {
             LocalResult::Single(timestamp) => Ok(PoSQLTimestamp {
                 timestamp,
-                timeunit: PoSQLTimeUnit::Second,
                 timezone: PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
@@ -115,12 +100,10 @@ mod tests {
     fn test_unix_epoch_timestamp_parsing() {
         let unix_time = 1231006505; // Example Unix timestamp (seconds since epoch)
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
-        let expected_unit = PoSQLTimeUnit::Second; // Assuming basic second precision for Unix timestamp
         let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
         let result = PoSQLTimestamp::to_timestamp(input).unwrap();
 
         assert_eq!(result.timestamp, expected_datetime);
-        assert_eq!(result.timeunit, expected_unit);
     }
 
     #[test]
@@ -170,10 +153,9 @@ mod tests {
     fn test_timestamp_with_seconds() {
         let input = "2023-06-26T12:34:56Z";
         let expected_time = Utc.with_ymd_and_hms(2023, 6, 26, 12, 34, 56).unwrap();
-        let expected_unit = PoSQLTimeUnit::Second;
+
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timestamp, expected_time);
-        assert_eq!(result.timeunit, expected_unit);
     }
 
     #[test]

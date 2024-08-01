@@ -116,7 +116,7 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
         }
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         // The following should never be reached because the `SUM` function can only be applied to numeric types.
-        Column::VarChar(_) | Column::TimestampTZ(_, _, _) | Column::Boolean(_) => {
+        Column::VarChar(_) | Column::TimestampTZ(_, _) | Column::Boolean(_) => {
             unreachable!("SUM can not be applied to non-numeric types")
         }
     }
@@ -180,7 +180,7 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
-            Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
+            Column::TimestampTZ(_, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -206,7 +206,7 @@ pub(super) fn compare_indexes_by_owned_columns<S: Scalar>(
             OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
             OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-            OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
+            OwnedColumn::TimestampTZ(_, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

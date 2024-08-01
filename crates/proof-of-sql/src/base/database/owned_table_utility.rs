@@ -17,7 +17,7 @@ use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use core::ops::Deref;
 use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
+    posql_time::{PoSQLTimeZone, PoSQLTimestamp},
     Identifier,
 };
 
@@ -214,11 +214,11 @@ pub fn decimal75<S: Scalar>(
 ///     scalar::Curve25519Scalar,
 /// };
 /// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
+///    posql_time::PoSQLTimeZone};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
 ///     timestamptz_epoch("event_time",
-///                        PoSQLTimeUnit::Second,
+///
 ///                        PoSQLTimeZone::Utc,
 ///                        vec![1625072400, 1625076000, 1625079600]
 ///     ),
@@ -226,13 +226,12 @@ pub fn decimal75<S: Scalar>(
 /// ```
 pub fn timestamptz_epoch<S: Scalar>(
     name: impl Deref<Target = str>,
-    time_unit: PoSQLTimeUnit,
     timezone: PoSQLTimeZone,
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
         name.parse().unwrap(),
-        OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
+        OwnedColumn::TimestampTZ(timezone, data.into_iter().collect()),
     )
 }
 
@@ -251,11 +250,10 @@ pub fn timestamptz_epoch<S: Scalar>(
 ///     scalar::Curve25519Scalar,
 /// };
 /// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
+///    posql_time::PoSQLTimeZone};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
 ///         timestamptz("event_time",
-///         PoSQLTimeUnit::Second,
 ///         vec![
 ///             "1969-12-31T23:59:59Z", // One second before the Unix epoch
 ///             "1970-01-01T00:00:00Z", // The Unix epoch
@@ -265,7 +263,6 @@ pub fn timestamptz_epoch<S: Scalar>(
 /// ```
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
-    time_unit: PoSQLTimeUnit,
     data: impl IntoIterator<Item = String>,
 ) -> (Identifier, OwnedColumn<S>) {
     let parsed_data: Vec<PoSQLTimestamp> = data
@@ -276,25 +273,15 @@ pub fn timestamptz<S: Scalar>(
         .collect();
 
     // Build the OwnedColumn using the time unit from the first timestamp in parsed_data
-    let result = (
+
+    (
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(
-            parsed_data
-                .first()
-                .expect("No timestamps provided")
-                .timeunit,
             PoSQLTimeZone::Utc,
             parsed_data
                 .into_iter()
-                .map(|ts| match time_unit {
-                    PoSQLTimeUnit::Nanosecond => ts.timestamp.timestamp_nanos_opt().unwrap(),
-                    PoSQLTimeUnit::Microsecond => ts.timestamp.timestamp_micros(),
-                    PoSQLTimeUnit::Millisecond => ts.timestamp.timestamp_millis(),
-                    PoSQLTimeUnit::Second => ts.timestamp.timestamp(),
-                })
+                .map(|ts| ts.timestamp.timestamp_nanos_opt().unwrap())
                 .collect(),
         ),
-    );
-
-    result
+    )
 }

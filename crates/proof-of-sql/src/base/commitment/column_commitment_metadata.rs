@@ -40,7 +40,7 @@ impl ColumnCommitmentMetadata {
             | (ColumnType::Int, ColumnBounds::Int(_))
             | (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
-            | (ColumnType::TimestampTZ(_, _), ColumnBounds::TimestampTZ(_))
+            | (ColumnType::TimestampTZ(_), ColumnBounds::TimestampTZ(_))
             | (
                 ColumnType::Boolean
                 | ColumnType::VarChar
@@ -73,7 +73,7 @@ impl ColumnCommitmentMetadata {
                 BoundsInner::try_new(i64::MIN, i64::MAX)
                     .expect("i64::MIN and i64::MAX are valid bounds for BigInt"),
             )),
-            ColumnType::TimestampTZ(_, _) => ColumnBounds::TimestampTZ(super::Bounds::Bounded(
+            ColumnType::TimestampTZ(_) => ColumnBounds::TimestampTZ(super::Bounds::Bounded(
                 BoundsInner::try_new(i64::MIN, i64::MAX)
                     .expect("i64::MIN and i64::MAX are valid bounds for TimeStamp"),
             )),
@@ -169,7 +169,7 @@ mod tests {
         commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
-    use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+    use proof_of_sql_parser::posql_time::PoSQLTimeZone;
 
     #[test]
     fn we_can_construct_metadata() {
@@ -228,12 +228,12 @@ mod tests {
 
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
-                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+                ColumnType::TimestampTZ(PoSQLTimeZone::Utc),
                 ColumnBounds::TimestampTZ(Bounds::Empty),
             )
             .unwrap(),
             ColumnCommitmentMetadata {
-                column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+                column_type: ColumnType::TimestampTZ(PoSQLTimeZone::Utc),
                 bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
             }
         );
@@ -370,7 +370,6 @@ mod tests {
 
         let timestamp_column: OwnedColumn<Curve25519Scalar> =
             OwnedColumn::<Curve25519Scalar>::TimestampTZ(
-                PoSQLTimeUnit::Second,
                 PoSQLTimeZone::Utc,
                 [1i64, 2, 3, 4, 5].to_vec(),
             );
@@ -379,7 +378,7 @@ mod tests {
             ColumnCommitmentMetadata::from_column(&committable_timestamp_column);
         assert_eq!(
             timestamp_metadata.column_type(),
-            &ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
+            &ColumnType::TimestampTZ(PoSQLTimeZone::Utc)
         );
         if let ColumnBounds::TimestampTZ(Bounds::Sharp(bounds)) = timestamp_metadata.bounds() {
             assert_eq!(bounds.min(), &1);
@@ -534,12 +533,12 @@ mod tests {
             1_625_065_000,
         ];
         let timezone = PoSQLTimeZone::Utc;
-        let timeunit = PoSQLTimeUnit::Second;
-        let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
+
+        let timestamp_column_a = CommittableColumn::TimestampTZ(timezone, &times[..2]);
         let timestamp_metadata_a = ColumnCommitmentMetadata::from_column(&timestamp_column_a);
-        let timestamp_column_b = CommittableColumn::TimestampTZ(timeunit, timezone, &times[2..]);
+        let timestamp_column_b = CommittableColumn::TimestampTZ(timezone, &times[2..]);
         let timestamp_metadata_b = ColumnCommitmentMetadata::from_column(&timestamp_column_b);
-        let timestamp_column_c = CommittableColumn::TimestampTZ(timeunit, timezone, &times);
+        let timestamp_column_c = CommittableColumn::TimestampTZ(timezone, &times);
         let timestamp_metadata_c = ColumnCommitmentMetadata::from_column(&timestamp_column_c);
         assert_eq!(
             timestamp_metadata_a
@@ -560,11 +559,10 @@ mod tests {
             1_625_065_000,
         ];
         let timezone = PoSQLTimeZone::Utc;
-        let timeunit = PoSQLTimeUnit::Second;
 
-        let timestamp_column_a = CommittableColumn::TimestampTZ(timeunit, timezone, &times[..2]);
+        let timestamp_column_a = CommittableColumn::TimestampTZ(timezone, &times[..2]);
         let timestamp_metadata_a = ColumnCommitmentMetadata::from_column(&timestamp_column_a);
-        let timestamp_column_b = CommittableColumn::TimestampTZ(timeunit, timezone, &times);
+        let timestamp_column_b = CommittableColumn::TimestampTZ(timezone, &times);
         let timestamp_metadata_b = ColumnCommitmentMetadata::from_column(&timestamp_column_b);
 
         let b_difference_a = timestamp_metadata_b
@@ -572,7 +570,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             b_difference_a.column_type,
-            ColumnType::TimestampTZ(timeunit, timezone)
+            ColumnType::TimestampTZ(timezone)
         );
         if let ColumnBounds::TimestampTZ(Bounds::Bounded(bounds)) = b_difference_a.bounds {
             assert_eq!(bounds.min(), &1_625_065_000);
@@ -581,7 +579,7 @@ mod tests {
             panic!("difference of overlapping bounds should be Bounded");
         }
 
-        let timestamp_column_empty = CommittableColumn::TimestampTZ(timeunit, timezone, &[]);
+        let timestamp_column_empty = CommittableColumn::TimestampTZ(timezone, &[]);
         let timestamp_metadata_empty =
             ColumnCommitmentMetadata::from_column(&timestamp_column_empty);
 
@@ -856,12 +854,12 @@ mod tests {
             .is_err());
 
         let timestamp_tz_metadata_a = ColumnCommitmentMetadata {
-            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+            column_type: ColumnType::TimestampTZ(PoSQLTimeZone::Utc),
             bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
         };
 
         let timestamp_tz_metadata_b = ColumnCommitmentMetadata {
-            column_type: ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
+            column_type: ColumnType::TimestampTZ(PoSQLTimeZone::from_offset(123456)),
             bounds: ColumnBounds::TimestampTZ(Bounds::Empty),
         };
 
