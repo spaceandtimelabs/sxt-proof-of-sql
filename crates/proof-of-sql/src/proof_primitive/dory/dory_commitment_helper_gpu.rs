@@ -155,6 +155,9 @@ fn compute_dory_commitment(
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
+        CommittableColumn::RangeCheckWord(column) => {
+            compute_dory_commitment_impl(column, offset, setup)
+        }
     }
 }
 
