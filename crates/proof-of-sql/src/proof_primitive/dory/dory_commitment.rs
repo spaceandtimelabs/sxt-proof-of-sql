@@ -32,6 +32,7 @@ use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
+use num_bigint::BigInt;
 use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
