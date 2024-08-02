@@ -49,12 +49,7 @@ fn we_can_access_the_columns_of_a_table() {
         varchar("varchar", ["a", "bc", "d", "e"]),
         scalar("scalar", [1, 2, 3, 4]),
         boolean("boolean", [true, false, true, false]),
-        timestamptz_epoch(
-            "time",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [4, 5, 6, 5],
-        ),
+        timestamptz("time", PoSQLTimeUnit::Second, [4, 5, 6, 5]),
     ]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 

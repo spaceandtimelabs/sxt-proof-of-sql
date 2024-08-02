@@ -217,84 +217,52 @@ pub fn decimal75<S: Scalar>(
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
 /// let result = owned_table::<Curve25519Scalar>([
-///     timestamptz_epoch("event_time",
+///     timestamptz("event_time",
 ///                        PoSQLTimeUnit::Second,
-///                        PoSQLTimeZone::Utc,
 ///                        vec![1625072400, 1625076000, 1625079600]
 ///     ),
-/// ]);
-/// ```
-pub fn timestamptz_epoch<S: Scalar>(
-    name: impl Deref<Target = str>,
-    time_unit: PoSQLTimeUnit,
-    timezone: PoSQLTimeZone,
-    data: impl IntoIterator<Item = i64>,
-) -> (Identifier, OwnedColumn<S>) {
-    (
-        name.parse().unwrap(),
-        OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
-    )
-}
-
-/// Creates a (Identifier, OwnedColumn) pair for a timestamp column.
-/// This is primarily intended for use in conjunction with [owned_table].
-///
-/// # Parameters
-/// - `name`: The name of the column.
-/// - `time_unit`: The time unit of the timestamps.
-/// - `timezone`: The timezone for the timestamps.
-/// - `data`: The data for the column, provided as an iterator over `i64` values representing time since the unix epoch.
-///
-/// # Example
-/// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*,
-///     scalar::Curve25519Scalar,
-/// };
-/// use proof_of_sql_parser::{
-///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
-///
-/// let result = owned_table::<Curve25519Scalar>([
-///         timestamptz("event_time",
-///         PoSQLTimeUnit::Second,
-///         vec![
-///             "1969-12-31T23:59:59Z", // One second before the Unix epoch
-///             "1970-01-01T00:00:00Z", // The Unix epoch
-///             "1970-01-01T00:00:01Z", // One second after the Unix epoch
-///         ].iter().map(|s| s.to_string())),
 /// ]);
 /// ```
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
-    data: impl IntoIterator<Item = String>,
+    data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
-    let parsed_data: Vec<PoSQLTimestamp> = data
-        .into_iter()
-        .map(|timestamp_str| {
-            PoSQLTimestamp::try_from(&timestamp_str).expect("Failed to parse timestamp")
-        })
-        .collect();
-
-    // Build the OwnedColumn using the time unit from the first timestamp in parsed_data
-    let result = (
+    (
         name.parse().unwrap(),
-        OwnedColumn::TimestampTZ(
-            parsed_data
-                .first()
-                .expect("No timestamps provided")
-                .timeunit,
-            PoSQLTimeZone::Utc,
-            parsed_data
-                .into_iter()
-                .map(|ts| match time_unit {
-                    PoSQLTimeUnit::Nanosecond => ts.timestamp.timestamp_nanos_opt().unwrap(),
-                    PoSQLTimeUnit::Microsecond => ts.timestamp.timestamp_micros(),
-                    PoSQLTimeUnit::Millisecond => ts.timestamp.timestamp_millis(),
-                    PoSQLTimeUnit::Second => ts.timestamp.timestamp(),
-                })
-                .collect(),
-        ),
-    );
+        OwnedColumn::TimestampTZ(time_unit, PoSQLTimeZone::Utc, data.into_iter().collect()),
+    )
+}
 
-    result
+/// A nice convenience macro that allows RFC3339 strings to be parsed into their
+/// respective Unix epochs given a certain precision, ex:
+/// ```
+/// use proof_of_sql::{to_epochs, base::database::owned_table_utility::convert_timestamps_to_epochs};
+/// use proof_of_sql_parser::posql_time::{PoSQLTimestamp, PoSQLTimeUnit};
+///
+/// let result: Vec<i64> = to_epochs!(&["2009-01-03T18:15:05.999Z"], PoSQLTimeUnit::Millisecond);
+/// assert_eq!(result[0], 1231006505999);
+/// ```
+#[macro_export]
+macro_rules! to_epochs {
+    ($timestamps:expr, $timeunit:expr) => {{
+        // Call the function with provided arguments
+        convert_timestamps_to_epochs($timestamps, $timeunit)
+    }};
+}
+
+/// Define a function that handles the conversion
+pub fn convert_timestamps_to_epochs(timestamps: &[&str], timeunit: PoSQLTimeUnit) -> Vec<i64> {
+    timestamps
+        .iter()
+        .map(|&s| {
+            let ts = PoSQLTimestamp::try_from(s).unwrap();
+            match timeunit {
+                PoSQLTimeUnit::Second => ts.timestamp.timestamp(),
+                PoSQLTimeUnit::Millisecond => ts.timestamp.timestamp_millis(),
+                PoSQLTimeUnit::Microsecond => ts.timestamp.timestamp_micros(),
+                PoSQLTimeUnit::Nanosecond => ts.timestamp.timestamp_nanos_opt().unwrap(),
+            }
+        })
+        .collect()
 }

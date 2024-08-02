@@ -4,3 +4,7 @@ pub mod parse;
 pub mod postprocessing;
 pub mod proof;
 pub mod transform;
+/// Contains testing machinery shared between different
+/// modules.
+#[cfg(feature = "test")]
+pub mod utils;

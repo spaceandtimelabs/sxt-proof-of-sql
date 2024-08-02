@@ -59,10 +59,9 @@ fn we_can_create_an_owned_table_with_data() {
             "boolean",
             [true, false, true, false, true, false, true, false, true],
         ),
-        timestamptz_epoch(
+        timestamptz(
             "time_stamp",
             PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
@@ -126,24 +125,14 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
         boolean("d", [false; 0]),
-        timestamptz_epoch(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [0; 0],
-        ),
+        timestamptz("time_stamp", PoSQLTimeUnit::Second, [0; 0]),
     ]);
     let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table([
         boolean("d", [false; 0]),
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
         varchar("c", ["0"; 0]),
-        timestamptz_epoch(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [0; 0],
-        ),
+        timestamptz("time_stamp", PoSQLTimeUnit::Second, [0; 0]),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
 }
@@ -154,24 +143,14 @@ fn we_get_inequality_between_tables_with_differing_data() {
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz_epoch(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [1625072400],
-        ),
+        timestamptz("time_stamp", PoSQLTimeUnit::Second, [1625072400]),
     ]);
     let owned_table_b: OwnedTable<DoryScalar> = owned_table([
         bigint("a", [1]),
         int128("b", [0]),
         varchar("c", ["0"]),
         boolean("d", [true]),
-        timestamptz_epoch(
-            "time_stamp",
-            PoSQLTimeUnit::Second,
-            PoSQLTimeZone::Utc,
-            [1625076000],
-        ),
+        timestamptz("time_stamp", PoSQLTimeUnit::Second, [1625076000]),
     ]);
     assert_ne!(owned_table_a, owned_table_b);
 }
