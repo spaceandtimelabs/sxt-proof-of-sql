@@ -7,6 +7,12 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
+mod column_operation;
+pub use column_operation::{try_add_subtract_column_types, try_multiply_column_types};
+
+mod column_operation_error;
+pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
+
 mod literal_value;
 pub use literal_value::LiteralValue;
 
@@ -42,6 +48,7 @@ pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccess
 mod owned_column;
 pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
+
 mod owned_table;
 pub use owned_table::OwnedTable;
 pub(crate) use owned_table::OwnedTableError;

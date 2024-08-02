@@ -1,4 +1,7 @@
-use crate::base::{database::ColumnType, math::decimal::DecimalError};
+use crate::base::{
+    database::{ColumnOperationError, ColumnType},
+    math::decimal::DecimalError,
+};
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
     ResourceId,
@@ -64,6 +67,10 @@ pub enum ConversionError {
     /// Errors related to timestamp parsing
     #[error("Timestamp conversion error: {0}")]
     TimestampConversionError(#[from] PoSQLTimestampError),
+
+    /// Errors related to column operations
+    #[error(transparent)]
+    ColumnOperationError(#[from] ColumnOperationError),
 
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature

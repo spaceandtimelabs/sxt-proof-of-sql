@@ -1,10 +1,10 @@
 use super::{ConversionError, ConversionResult, QueryContext};
-use crate::{
-    base::{
-        database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
-        math::decimal::Precision,
+use crate::base::{
+    database::{
+        try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
+        SchemaAccessor, TableRef,
     },
-    sql::ast::{try_add_subtract_column_types, try_multiply_column_types},
+    math::decimal::Precision,
 };
 use proof_of_sql_parser::{
     intermediate_ast::{
@@ -313,8 +313,12 @@ pub(crate) fn type_check_binary_operation(
                         | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                 )
         }
-        BinaryOperator::Add | BinaryOperator::Subtract => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype).is_ok()
+        BinaryOperator::Add => {
+            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Add).is_ok()
+        }
+        BinaryOperator::Subtract => {
+            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Subtract)
+                .is_ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
         BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
