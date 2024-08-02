@@ -2,13 +2,11 @@ use crate::base::database::ColumnType;
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray,
+        StringArray, TimestampNanosecondArray,
     },
     datatypes::{i256, DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
@@ -117,25 +115,18 @@ pub fn make_random_test_accessor_data(
                 columns.push(Arc::new(StringArray::from(col)));
             }
             ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
-            ColumnType::TimestampTZ(tu, tz) => {
+            ColumnType::TimestampTZ(tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Timestamp((*tu).into(), Some(Arc::from(tz.to_string()))),
+                    DataType::Timestamp(
+                        arrow::datatypes::TimeUnit::Nanosecond,
+                        Some(Arc::from(tz.to_string())),
+                    ),
                     false,
                 ));
                 // Create the correct timestamp array based on the time unit
-                let timestamp_array: Arc<dyn Array> = match tu {
-                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
-                    PoSQLTimeUnit::Millisecond => {
-                        Arc::new(TimestampMillisecondArray::from(values.to_vec()))
-                    }
-                    PoSQLTimeUnit::Microsecond => {
-                        Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
-                    }
-                    PoSQLTimeUnit::Nanosecond => {
-                        Arc::new(TimestampNanosecondArray::from(values.to_vec()))
-                    }
-                };
+                let timestamp_array: Arc<dyn Array> =
+                    Arc::new(TimestampNanosecondArray::from(values.to_vec()));
                 columns.push(timestamp_array);
             }
         }

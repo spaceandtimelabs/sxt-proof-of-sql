@@ -11,10 +11,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use core::cmp::Ordering;
-use proof_of_sql_parser::{
-    intermediate_ast::OrderByDirection,
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-};
+use proof_of_sql_parser::{intermediate_ast::OrderByDirection, posql_time::PoSQLTimeZone};
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
@@ -37,7 +34,7 @@ pub enum OwnedColumn<S: Scalar> {
     /// Scalar columns
     Scalar(Vec<S>),
     /// Timestamp columns
-    TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+    TimestampTZ(PoSQLTimeZone, Vec<i64>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -52,7 +49,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) => col.len(),
             OwnedColumn::Scalar(col) => col.len(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.len(),
+            OwnedColumn::TimestampTZ(_, col) => col.len(),
         }
     }
 
@@ -69,8 +66,8 @@ impl<S: Scalar> OwnedColumn<S> {
                 OwnedColumn::Decimal75(*precision, *scale, permutation.try_apply(col)?)
             }
             OwnedColumn::Scalar(col) => OwnedColumn::Scalar(permutation.try_apply(col)?),
-            OwnedColumn::TimestampTZ(tu, tz, col) => {
-                OwnedColumn::TimestampTZ(*tu, *tz, permutation.try_apply(col)?)
+            OwnedColumn::TimestampTZ(tz, col) => {
+                OwnedColumn::TimestampTZ(*tz, permutation.try_apply(col)?)
             }
         })
     }
@@ -88,8 +85,8 @@ impl<S: Scalar> OwnedColumn<S> {
                 OwnedColumn::Decimal75(*precision, *scale, col[start..end].to_vec())
             }
             OwnedColumn::Scalar(col) => OwnedColumn::Scalar(col[start..end].to_vec()),
-            OwnedColumn::TimestampTZ(tu, tz, col) => {
-                OwnedColumn::TimestampTZ(*tu, *tz, col[start..end].to_vec())
+            OwnedColumn::TimestampTZ(tz, col) => {
+                OwnedColumn::TimestampTZ(*tz, col[start..end].to_vec())
             }
         }
     }
@@ -105,7 +102,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) => col.is_empty(),
             OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
+            OwnedColumn::TimestampTZ(_, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -121,7 +118,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Decimal75(precision, scale, _) => {
                 ColumnType::Decimal75(*precision, *scale)
             }
-            OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            OwnedColumn::TimestampTZ(tz, _) => ColumnType::TimestampTZ(*tz),
         }
     }
 
@@ -149,7 +146,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn i64_iter(&self) -> impl Iterator<Item = &i64> {
         match self {
             OwnedColumn::BigInt(col) => col.iter(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.iter(),
+            OwnedColumn::TimestampTZ(_, col) => col.iter(),
             _ => panic!("Expected TimestampTZ or BigInt column"),
         }
     }
@@ -212,7 +209,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Decimal75(_, _, col) => col[i].cmp(&col[j]),
                 OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-                OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
+                OwnedColumn::TimestampTZ(_, col) => col[i].cmp(&col[j]),
             };
             match direction {
                 OrderByDirection::Asc => ordering,

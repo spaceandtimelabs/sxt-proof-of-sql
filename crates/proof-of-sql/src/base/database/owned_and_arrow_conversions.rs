@@ -33,7 +33,7 @@ use arrow::{
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
+    posql_time::{PoSQLTimeZone, PoSQLTimestampError},
     Identifier, ParseError,
 };
 use std::sync::Arc;
@@ -86,12 +86,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             }
             OwnedColumn::Scalar(_) => unimplemented!("Cannot convert Scalar type to arrow type"),
             OwnedColumn::VarChar(col) => Arc::new(StringArray::from(col)),
-            OwnedColumn::TimestampTZ(time_unit, _, col) => match time_unit {
-                PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(col)),
-                PoSQLTimeUnit::Millisecond => Arc::new(TimestampMillisecondArray::from(col)),
-                PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
-                PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
-            },
+            OwnedColumn::TimestampTZ(_, col) => Arc::new(TimestampNanosecondArray::from(col)),
         }
     }
 }
@@ -197,7 +192,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
-                        PoSQLTimeUnit::Second,
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
@@ -211,7 +205,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
-                        PoSQLTimeUnit::Millisecond,
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
@@ -225,7 +218,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
-                        PoSQLTimeUnit::Microsecond,
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))
@@ -239,7 +231,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                         );
                     let timestamps = array.values().iter().copied().collect::<Vec<i64>>();
                     Ok(OwnedColumn::TimestampTZ(
-                        PoSQLTimeUnit::Nanosecond,
                         PoSQLTimeZone::try_from(timezone)?,
                         timestamps,
                     ))

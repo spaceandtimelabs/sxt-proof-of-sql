@@ -1,7 +1,7 @@
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Int16Array, Int32Array, Int64Array, StringArray,
-        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+        TimestampNanosecondArray,
     },
     datatypes::{DataType, Field, Schema, TimeUnit as ArrowTimeUnit},
     record_batch::RecordBatch,
@@ -209,38 +209,15 @@ pub fn dataframe_to_record_batch(data: DataFrame) -> Option<RecordBatch> {
                 DataType::Decimal128(38, 0)
             }
             // NOTE: Polars does not support seconds
-            polars::datatypes::DataType::Datetime(timeunit, timezone) => {
+            polars::datatypes::DataType::Datetime(_, timezone) => {
                 let col = series.i64().unwrap().cont_slice().unwrap();
                 let timezone_arc = timezone.as_ref().map(|tz| Arc::from(tz.as_str()));
-                let arrow_array: Arc<dyn Array> = match timeunit {
-                    polars::datatypes::TimeUnit::Nanoseconds => {
-                        Arc::new(TimestampNanosecondArray::with_timezone_opt(
-                            col.to_vec().into(),
-                            timezone_arc,
-                        ))
-                    }
-                    polars::datatypes::TimeUnit::Microseconds => {
-                        Arc::new(TimestampMicrosecondArray::with_timezone_opt(
-                            col.to_vec().into(),
-                            timezone_arc,
-                        ))
-                    }
-                    polars::datatypes::TimeUnit::Milliseconds => {
-                        Arc::new(TimestampMillisecondArray::with_timezone_opt(
-                            col.to_vec().into(),
-                            timezone_arc,
-                        ))
-                    }
-                };
+                let arrow_array: Arc<dyn Array> = Arc::new(
+                    TimestampNanosecondArray::with_timezone_opt(col.to_vec().into(), timezone_arc),
+                );
+
                 columns.push(arrow_array);
-                DataType::Timestamp(
-                    match timeunit {
-                        polars::datatypes::TimeUnit::Nanoseconds => ArrowTimeUnit::Nanosecond,
-                        polars::datatypes::TimeUnit::Microseconds => ArrowTimeUnit::Microsecond,
-                        polars::datatypes::TimeUnit::Milliseconds => ArrowTimeUnit::Millisecond,
-                    },
-                    None,
-                )
+                DataType::Timestamp(ArrowTimeUnit::Nanosecond, None)
             }
             _ => return None,
         };
