@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         bit::BitDistribution,
-        commitment::{Commitment, CommitmentEvaluationProof, VecCommitmentExt},
+        commitment::{Commitment, CommitmentEvaluationProof},
         database::{CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
@@ -182,13 +182,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             Err(ProofError::VerificationError("invalid proof size"))?;
         }
 
-        let commitments =
-            self.commitments
-                .to_decompressed()
-                .ok_or(ProofError::VerificationError(
-                    "commitment failed to decompress",
-                ))?;
-
         // construct a transcript for the proof
         let mut transcript = make_transcript(expr, result, table_length, generator_offset);
 
@@ -263,7 +256,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             generator_offset,
             sumcheck_evaluations,
             &self.bit_distributions,
-            &commitments,
+            &self.commitments,
             sumcheck_random_scalars.subpolynomial_multipliers,
             &evaluation_random_scalars,
             post_result_challenges,
@@ -308,7 +301,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
         result.num_columns() == counts.result_columns
-            && self.commitments.num_commitments() == counts.intermediate_mles
+            && self.commitments.len() == counts.intermediate_mles
             && self.pre_result_mle_evaluations.len()
                 == counts.intermediate_mles + counts.anchored_mles
     }

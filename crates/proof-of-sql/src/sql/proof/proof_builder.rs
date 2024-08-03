@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::{
     bit::BitDistribution,
-    commitment::{CommittableColumn, VecCommitmentExt},
+    commitment::{Commitment, CommittableColumn},
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
@@ -99,16 +99,19 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         level = "debug",
         skip_all
     )]
-    pub fn commit_intermediate_mles<V: VecCommitmentExt>(
+    pub fn commit_intermediate_mles<C: Commitment>(
         &self,
         offset_generators: usize,
-        setup: &V::CommitmentPublicSetup<'_>,
-    ) -> V {
-        V::from_commitable_columns_with_offset(
+        setup: &C::PublicSetup<'_>,
+    ) -> Vec<C> {
+        let mut commitments = vec![C::default(); self.commitment_descriptor.len()];
+        C::compute_commitments(
+            &mut commitments,
             &self.commitment_descriptor,
             offset_generators,
             setup,
-        )
+        );
+        commitments
     }
 
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
