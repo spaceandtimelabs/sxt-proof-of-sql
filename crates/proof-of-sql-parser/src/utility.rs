@@ -53,6 +53,42 @@ pub fn or(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// Construct a new boxed `Expression` A + B
+pub fn add(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Add,
+        left,
+        right,
+    })
+}
+
+/// Construct a new boxed `Expression` A - B
+pub fn sub(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Subtract,
+        left,
+        right,
+    })
+}
+
+/// Construct a new boxed `Expression` A * B
+pub fn mul(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Multiply,
+        left,
+        right,
+    })
+}
+
+/// Construct a new boxed `Expression` A / B
+pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Binary {
+        op: BinaryOperator::Division,
+        left,
+        right,
+    })
+}
+
 /// Get table from schema and name.
 ///
 /// If the schema is `None`, the table is assumed to be in the default schema.

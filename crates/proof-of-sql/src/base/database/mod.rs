@@ -60,6 +60,12 @@ pub(crate) use owned_table::OwnedTableError;
 mod owned_table_test;
 pub mod owned_table_utility;
 
+pub(crate) mod expression_evaluation;
+mod expression_evaluation_error;
+#[cfg(test)]
+mod expression_evaluation_test;
+pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
+
 mod owned_and_arrow_conversions;
 pub use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(test)]
