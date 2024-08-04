@@ -24,6 +24,10 @@ pub enum ColumnOperationError {
     #[error("Overflow in integer operation: {0}")]
     IntegerOverflow(String),
 
+    /// Division by zero
+    #[error("Division by zero")]
+    DivisionByZero,
+
     /// Errors related to decimal operations
     #[error(transparent)]
     DecimalConversionError(#[from] DecimalError),

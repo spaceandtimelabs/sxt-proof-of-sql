@@ -8,7 +8,9 @@ mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
 mod column_operation;
-pub use column_operation::{try_add_subtract_column_types, try_multiply_column_types};
+pub use column_operation::{
+    try_add_subtract_column_types, try_divide_column_types, try_multiply_column_types,
+};
 
 mod column_operation_error;
 pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
