@@ -12,6 +12,7 @@ use crate::{
 };
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
+    posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
     Identifier,
 };
 use std::collections::HashMap;
@@ -100,9 +101,27 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(its) => Ok(ProvableExprPlan::new_literal(
-                LiteralValue::TimeStampTZ(its.timeunit(), its.timezone(), its.timestamp()),
-            )),
+            Literal::Timestamp(its) => {
+                let timestamp = match its.timeunit() {
+                    PoSQLTimeUnit::Nanosecond => {
+                        its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
+                                PoSQLTimestampError::UnsupportedPrecision("Timestamp out of range: 
+                                Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
+                                and 2262-04-11T23:47:16.854775807.".to_owned()
+                            )
+                        })?
+                    }
+                    PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
+                    PoSQLTimeUnit::Millisecond => its.timestamp().timestamp_millis(),
+                    PoSQLTimeUnit::Second => its.timestamp().timestamp(),
+                };
+
+                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                    its.timeunit(),
+                    its.timezone(),
+                    timestamp,
+                )))
+            }
         }
     }
 

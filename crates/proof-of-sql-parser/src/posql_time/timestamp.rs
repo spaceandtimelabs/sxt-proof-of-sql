@@ -16,10 +16,9 @@ pub struct PoSQLTimestamp {
 }
 
 impl PoSQLTimestamp {
-    /// Returns the number of non-leap seconds since
-    /// January 1, 1970 0:00:00 UTC (aka "UNIX timestamp").
-    pub fn timestamp(&self) -> i64 {
-        self.timestamp.timestamp()
+    /// Returns the combined date and time with time zone.
+    pub fn timestamp(&self) -> DateTime<Utc> {
+        self.timestamp
     }
 
     /// Returns the [PoSQLTimeUnit] for this timestamp
