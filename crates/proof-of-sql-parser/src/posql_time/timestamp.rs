@@ -51,12 +51,12 @@ impl PoSQLTimestamp {
     /// // Parsing an RFC 3339 timestamp without a timezone:
     /// let timestamp_str = "2009-01-03T18:15:05Z";
     /// let intermediate_timestamp = PoSQLTimestamp::try_from(timestamp_str).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::Utc);
+    /// assert_eq!(intermediate_timestamp.timezone(), PoSQLTimeZone::Utc);
     ///
     /// // Parsing an RFC 3339 timestamp with a positive timezone offset:
     /// let timestamp_str_with_tz = "2009-01-03T18:15:05+03:00";
     /// let intermediate_timestamp = PoSQLTimestamp::try_from(timestamp_str_with_tz).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::FixedOffset(10800)); // 3 hours in seconds
+    /// assert_eq!(intermediate_timestamp.timezone(), PoSQLTimeZone::FixedOffset(10800)); // 3 hours in seconds
     /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, PoSQLTimestampError> {
         let dt = DateTime::parse_from_rfc3339(timestamp_str)
@@ -97,7 +97,7 @@ impl PoSQLTimestamp {
     /// // Parsing a Unix epoch timestamp (assumed to be seconds and UTC):
     /// let unix_time = 1231006505;
     /// let intermediate_timestamp = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
-    /// assert_eq!(intermediate_timestamp.timezone, PoSQLTimeZone::Utc);
+    /// assert_eq!(intermediate_timestamp.timezone(), PoSQLTimeZone::Utc);
     /// ```
     pub fn to_timestamp(epoch: i64) -> Result<Self, PoSQLTimestampError> {
         match Utc.timestamp_opt(epoch, 0) {

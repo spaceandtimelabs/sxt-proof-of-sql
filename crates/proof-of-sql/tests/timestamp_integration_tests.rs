@@ -349,7 +349,7 @@ mod tests {
         let test_timestamps = vec![
             DateTime::parse_from_rfc3339("2023-10-10T12:34:56.789Z")
                 .unwrap()
-                .timestamp(), // Close to rounding up
+                .timestamp_millis(), // Close to rounding up
         ];
         let expected_timestamps = vec![test_timestamps[0]];
 
