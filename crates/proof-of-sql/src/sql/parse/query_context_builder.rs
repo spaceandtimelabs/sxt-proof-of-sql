@@ -249,7 +249,7 @@ impl<'a> QueryContextBuilder<'a> {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit, its.timezone)),
+            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
         }
     }
 

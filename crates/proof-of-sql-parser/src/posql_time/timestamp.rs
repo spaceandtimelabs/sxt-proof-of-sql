@@ -6,16 +6,32 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
-    pub timestamp: DateTime<Utc>,
+    timestamp: DateTime<Utc>,
 
     /// The precision of the datetime value, e.g., seconds, milliseconds.
-    pub timeunit: PoSQLTimeUnit,
+    timeunit: PoSQLTimeUnit,
 
     /// The timezone of the datetime, either UTC or a fixed offset from UTC.
-    pub timezone: PoSQLTimeZone,
+    timezone: PoSQLTimeZone,
 }
 
 impl PoSQLTimestamp {
+    /// Returns the number of non-leap seconds since
+    /// January 1, 1970 0:00:00 UTC (aka "UNIX timestamp").
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp.timestamp()
+    }
+
+    /// Returns the [PoSQLTimeUnit] for this timestamp
+    pub fn timeunit(&self) -> PoSQLTimeUnit {
+        self.timeunit
+    }
+
+    /// Returns the [PoSQLTimeZone] for this timestamp
+    pub fn timezone(&self) -> PoSQLTimeZone {
+        self.timezone
+    }
+
     /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
     /// This function supports two primary formats:
     ///

@@ -101,7 +101,7 @@ impl ProvableExprPlanBuilder<'_> {
                 s.into(),
             )))),
             Literal::Timestamp(its) => Ok(ProvableExprPlan::new_literal(
-                LiteralValue::TimeStampTZ(its.timeunit, its.timezone, its.timestamp.timestamp()),
+                LiteralValue::TimeStampTZ(its.timeunit(), its.timezone(), its.timestamp()),
             )),
         }
     }
