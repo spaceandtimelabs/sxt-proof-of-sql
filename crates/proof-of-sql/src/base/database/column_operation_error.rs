@@ -1,5 +1,5 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
+use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
 use thiserror::Error;
 
 /// Errors from operations on columns.
@@ -18,6 +18,15 @@ pub enum ColumnOperationError {
         left_type: ColumnType,
         /// `ColumnType` of right operand
         right_type: ColumnType,
+    },
+
+    /// Incorrect `ColumnType` in unary operations
+    #[error("{operator:?}(operand: {operand_type:?}) is not supported")]
+    UnaryOperationInvalidColumnType {
+        /// `UnaryOperator` that caused the error
+        operator: UnaryOperator,
+        /// `ColumnType` of the operand
+        operand_type: ColumnType,
     },
 
     /// Overflow in integer operations
