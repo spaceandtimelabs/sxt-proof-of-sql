@@ -2,9 +2,9 @@ use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{database::OwnedTable, scalar::Scalar};
 use serde::{Deserialize, Serialize};
 
-/// A `SliceExpr` represents a slice of a `LazyFrame`.
+/// A `SliceExpr` represents a slice of an `OwnedTable`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SliceExpr<S: Scalar> {
+pub struct SliceExpr {
     /// number of rows to return
     ///
     /// - if None, specify all rows
@@ -17,23 +17,19 @@ pub struct SliceExpr<S: Scalar> {
     /// - if Some(negative), specify the offset from the end
     ///   (e.g. -1 is the last row, -2 is the second to last row, etc.)
     offset_value: Option<i64>,
-
-    /// Phantom
-    _phantom: core::marker::PhantomData<S>,
 }
 
-impl<S: Scalar> SliceExpr<S> {
+impl SliceExpr {
     /// Create a new `SliceExpr` with the given `number_rows` and `offset`.
     pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
         Self {
             number_rows,
             offset_value,
-            _phantom: core::marker::PhantomData,
         }
     }
 }
 
-impl<S: Scalar> PostprocessingStep<S> for SliceExpr<S> {
+impl<S: Scalar> PostprocessingStep<S> for SliceExpr {
     /// Apply the slice transformation to the given `OwnedTable`.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         let num_rows = owned_table.num_rows();
