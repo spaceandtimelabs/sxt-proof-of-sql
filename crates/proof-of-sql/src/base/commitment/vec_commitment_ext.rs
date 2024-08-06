@@ -67,17 +67,6 @@ pub trait VecCommitmentExt {
 
     /// Returns the number of commitments in the collection.
     fn num_commitments(&self) -> usize;
-
-    /// The decompressed commitment type.
-    type DecompressedCommitment: Commitment;
-
-    /// Decompresses the commitments in the collection.
-    ///
-    /// Note: this _could_ be made to return an iterator, but the usage does not currently require it.
-    fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>>;
-
-    /// Decompresses a single commitment in the collection.
-    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment>;
 }
 
 fn unsafe_add_assign<C: Commitment>(a: &mut [C], b: &[C]) {
@@ -182,16 +171,6 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
 
     fn num_commitments(&self) -> usize {
         self.len()
-    }
-
-    type DecompressedCommitment = C;
-
-    fn to_decompressed(&self) -> Option<Vec<Self::DecompressedCommitment>> {
-        Some(self.to_vec())
-    }
-
-    fn get_decompressed_commitment(&self, i: usize) -> Option<Self::DecompressedCommitment> {
-        Some(self[i])
     }
 }
 

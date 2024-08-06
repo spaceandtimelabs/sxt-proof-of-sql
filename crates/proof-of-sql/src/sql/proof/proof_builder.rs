@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::{
     bit::BitDistribution,
-    commitment::{CommittableColumn, VecCommitmentExt},
+    commitment::{Commitment, CommittableColumn, VecCommitmentExt},
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
@@ -99,12 +99,12 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
         level = "debug",
         skip_all
     )]
-    pub fn commit_intermediate_mles<V: VecCommitmentExt>(
+    pub fn commit_intermediate_mles<C: Commitment>(
         &self,
         offset_generators: usize,
-        setup: &V::CommitmentPublicSetup<'_>,
-    ) -> V {
-        V::from_commitable_columns_with_offset(
+        setup: &C::PublicSetup<'_>,
+    ) -> Vec<C> {
+        Vec::from_commitable_columns_with_offset(
             &self.commitment_descriptor,
             offset_generators,
             setup,
