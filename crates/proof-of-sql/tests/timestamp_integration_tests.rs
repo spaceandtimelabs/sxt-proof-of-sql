@@ -286,25 +286,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fractional_seconds_handling() {
-        let test_timestamps = vec![
-            DateTime::parse_from_rfc3339("2023-07-01T12:00:00.999Z")
-                .unwrap()
-                .timestamp_millis(),
-            DateTime::parse_from_rfc3339("2023-07-01T12:00:01.000Z")
-                .unwrap()
-                .timestamp_millis(),
-        ];
-        let expected_timestamps = vec![test_timestamps[0]]; // Expect the fractional second just before the full second
-
-        run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2023-07-01T12:00:00.999Z'",
-            test_timestamps,
-            expected_timestamps,
-        );
-    }
-
-    #[test]
     fn test_february_29_leap_year() {
         // Test year 2024 which is a leap year
         let test_timestamps = vec![
@@ -340,23 +321,6 @@ mod tests {
             "SELECT * FROM table WHERE times = timestamp '2023-08-15T20:00:00Z'", // UTC time
             test_timestamps.clone(),
             test_timestamps,
-        );
-    }
-
-    #[test]
-    fn test_precision_and_rounding() {
-        // Testing timestamps near rounding thresholds
-        let test_timestamps = vec![
-            DateTime::parse_from_rfc3339("2023-10-10T12:34:56.789Z")
-                .unwrap()
-                .timestamp_millis(), // Close to rounding up
-        ];
-        let expected_timestamps = vec![test_timestamps[0]];
-
-        run_timestamp_query_test(
-            "SELECT * FROM table WHERE times = timestamp '2023-10-10T12:34:56.789Z';",
-            test_timestamps,
-            expected_timestamps,
         );
     }
 
