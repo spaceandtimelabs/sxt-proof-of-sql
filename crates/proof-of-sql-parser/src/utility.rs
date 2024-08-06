@@ -109,6 +109,14 @@ pub fn lit<L: Into<Literal>>(literal: L) -> Box<Expression> {
     Box::new(Expression::Literal(literal.into()))
 }
 
+/// An expression with an alias i.e. EXPR AS ALIAS
+pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
+    AliasedResultExpr {
+        expr,
+        alias: alias.parse().unwrap(),
+    }
+}
+
 /// Select all columns from a table i.e. SELECT *
 pub fn col_res_all() -> SelectResultExpr {
     SelectResultExpr::ALL

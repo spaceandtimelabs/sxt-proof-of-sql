@@ -9,6 +9,12 @@ pub enum PostprocessingError {
     /// Column not found
     #[error("Column not found: {0}")]
     ColumnNotFound(String),
+    /// Errors in evaluation of `Expression`s
+    #[error(transparent)]
+    ExpressionEvaluationError(#[from] crate::base::database::ExpressionEvaluationError),
+    /// Errors in constructing `OwnedTable`
+    #[error(transparent)]
+    OwnedTableError(#[from] crate::base::database::OwnedTableError),
 }
 
 /// Result type for postprocessing
