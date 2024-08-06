@@ -290,10 +290,10 @@ mod tests {
         let test_timestamps = vec![
             DateTime::parse_from_rfc3339("2023-07-01T12:00:00.999Z")
                 .unwrap()
-                .timestamp(),
+                .timestamp_millis(),
             DateTime::parse_from_rfc3339("2023-07-01T12:00:01.000Z")
                 .unwrap()
-                .timestamp(),
+                .timestamp_millis(),
         ];
         let expected_timestamps = vec![test_timestamps[0]]; // Expect the fractional second just before the full second
 
@@ -349,7 +349,7 @@ mod tests {
         let test_timestamps = vec![
             DateTime::parse_from_rfc3339("2023-10-10T12:34:56.789Z")
                 .unwrap()
-                .timestamp(), // Close to rounding up
+                .timestamp_millis(), // Close to rounding up
         ];
         let expected_timestamps = vec![test_timestamps[0]];
 
