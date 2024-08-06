@@ -5,7 +5,11 @@ use crate::base::{
     scalar::Scalar,
 };
 use core::fmt::Debug;
-use num_traits::ops::checked::{CheckedAdd, CheckedMul, CheckedSub};
+use num_bigint::BigInt;
+use num_traits::{
+    ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub},
+    Zero,
+};
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 
 // For decimal type manipulation please refer to
@@ -102,6 +106,53 @@ pub fn try_multiply_column_types(
     }
 }
 
+/// Determine the output type of a division operation if it is possible
+/// to multiply the two input types. If the types are not compatible, return
+/// an error.
+pub fn try_divide_column_types(
+    lhs: ColumnType,
+    rhs: ColumnType,
+) -> ColumnOperationResult<ColumnType> {
+    if !lhs.is_numeric()
+        || !rhs.is_numeric()
+        || lhs == ColumnType::Scalar
+        || rhs == ColumnType::Scalar
+    {
+        return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+            operator: BinaryOperator::Division,
+            left_type: lhs,
+            right_type: rhs,
+        });
+    }
+    if lhs.is_integer() && rhs.is_integer() {
+        // We can unwrap here because we know that both types are integers
+        return Ok(lhs.max_integer_type(&rhs).unwrap());
+    }
+    let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;
+    let right_precision_value = rhs.precision_value().expect("Numeric types have precision") as i16;
+    let left_scale = lhs.scale().expect("Numeric types have scale") as i16;
+    let right_scale = rhs.scale().expect("Numeric types have scale") as i16;
+    let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
+    let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
+    let scale = i8::try_from(raw_scale).map_err(|_| {
+        ColumnOperationError::DecimalConversionError(DecimalError::InvalidScale(raw_scale))
+    })?;
+    let precision = u8::try_from(precision_value)
+        .map_err(|_| {
+            ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
+                precision_value.to_string(),
+            ))
+        })
+        .and_then(|p| {
+            Precision::new(p).map_err(|_| {
+                ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
+                    p.to_string(),
+                ))
+            })
+        })?;
+    Ok(ColumnType::Decimal75(precision, scale))
+}
+
 /// Try to add two slices of the same length.
 ///
 /// We do not check for length equality here. However, we do check for integer overflow.
@@ -159,6 +210,21 @@ where
         .collect::<ColumnOperationResult<Vec<T>>>()
 }
 
+/// Divide one slice by another of the same length.
+///
+/// We do not check for length equality here. However, we do check for division by 0.
+pub(super) fn try_divide_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
+where
+    T: CheckedDiv<Output = T> + Copy + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> ColumnOperationResult<T> {
+            l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
+        })
+        .collect::<ColumnOperationResult<Vec<T>>>()
+}
+
 /// Add two slices of the same length, casting the left slice to the type of the right slice.
 ///
 /// We do not check for length equality here. However, we do check for integer overflow.
@@ -167,19 +233,19 @@ pub(super) fn try_add_slices_with_casting<SmallerType, LargerType>(
     numbers_of_larger_type: &[LargerType],
 ) -> ColumnOperationResult<Vec<LargerType>>
 where
-    SmallerType: Copy + Debug,
-    LargerType: From<SmallerType> + CheckedAdd<Output = LargerType> + Copy + Debug,
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedAdd<Output = LargerType> + Copy + Debug,
 {
     numbers_of_smaller_type
         .iter()
         .zip(numbers_of_larger_type.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
-            LargerType::from(*l)
-                .checked_add(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
+            Into::<LargerType>::into(*l).checked_add(r).ok_or(
+                ColumnOperationError::IntegerOverflow(format!(
                     "Overflow in integer addition {:?} + {:?}",
                     l, r
-                )))
+                )),
+            )
         })
         .collect()
 }
@@ -192,18 +258,18 @@ pub(super) fn try_subtract_slices_left_upcast<SmallerType, LargerType>(
     rhs: &[LargerType],
 ) -> ColumnOperationResult<Vec<LargerType>>
 where
-    SmallerType: Copy + Debug,
-    LargerType: From<SmallerType> + CheckedSub<Output = LargerType> + Copy + Debug,
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedSub<Output = LargerType> + Copy + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
-            LargerType::from(*l)
-                .checked_sub(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
+            Into::<LargerType>::into(*l).checked_sub(r).ok_or(
+                ColumnOperationError::IntegerOverflow(format!(
                     "Overflow in integer subtraction {:?} - {:?}",
                     l, r
-                )))
+                )),
+            )
         })
         .collect()
 }
@@ -216,17 +282,18 @@ pub(super) fn try_subtract_slices_right_upcast<SmallerType, LargerType>(
     rhs: &[SmallerType],
 ) -> ColumnOperationResult<Vec<LargerType>>
 where
-    SmallerType: Copy + Debug,
-    LargerType: From<SmallerType> + CheckedSub<Output = LargerType> + Copy + Debug,
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedSub<Output = LargerType> + Copy + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
-            l.checked_sub(&LargerType::from(*r))
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
+            l.checked_sub(&Into::<LargerType>::into(*r)).ok_or(
+                ColumnOperationError::IntegerOverflow(format!(
                     "Overflow in integer subtraction {:?} - {:?}",
                     l, r
-                )))
+                )),
+            )
         })
         .collect()
 }
@@ -239,19 +306,60 @@ pub(super) fn try_multiply_slices_with_casting<SmallerType, LargerType>(
     numbers_of_larger_type: &[LargerType],
 ) -> ColumnOperationResult<Vec<LargerType>>
 where
-    SmallerType: Copy + Debug,
-    LargerType: From<SmallerType> + CheckedMul<Output = LargerType> + Copy + Debug,
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedMul<Output = LargerType> + Copy + Debug,
 {
     numbers_of_smaller_type
         .iter()
         .zip(numbers_of_larger_type.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
-            LargerType::from(*l)
-                .checked_mul(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
+            Into::<LargerType>::into(*l).checked_mul(r).ok_or(
+                ColumnOperationError::IntegerOverflow(format!(
                     "Overflow in integer multiplication {:?} * {:?}",
                     l, r
-                )))
+                )),
+            )
+        })
+        .collect()
+}
+
+/// Divide one slice by another of the same length, casting the left slice to the type of the right slice.
+///
+/// We do not check for length equality here
+pub(super) fn try_divide_slices_left_upcast<SmallerType, LargerType>(
+    lhs: &[SmallerType],
+    rhs: &[LargerType],
+) -> ColumnOperationResult<Vec<LargerType>>
+where
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedDiv<Output = LargerType> + Copy + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> ColumnOperationResult<LargerType> {
+            Into::<LargerType>::into(*l)
+                .checked_div(r)
+                .ok_or(ColumnOperationError::DivisionByZero)
+        })
+        .collect()
+}
+
+/// Divide one slice by another of the same length, casting the right slice to the type of the left slice.
+///
+/// We do not check for length equality here
+pub(super) fn try_divide_slices_right_upcast<SmallerType, LargerType>(
+    lhs: &[LargerType],
+    rhs: &[SmallerType],
+) -> ColumnOperationResult<Vec<LargerType>>
+where
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: CheckedDiv<Output = LargerType> + Copy + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> ColumnOperationResult<LargerType> {
+            l.checked_div(&Into::<LargerType>::into(*r))
+                .ok_or(ColumnOperationError::DivisionByZero)
         })
         .collect()
 }
@@ -395,6 +503,63 @@ where
         Precision::new(new_precision_value).expect("Precision value is valid"),
         new_scale,
         scalars,
+    ))
+}
+
+/// Divide an owned column by another.
+///
+/// Notes:
+/// 1. We do not check for length equality here.
+/// 2. We use floor division for rounding.
+/// 3. If division by zero occurs, we return an error.
+/// 4. Precision and scale follow T-SQL rules. That is,
+///   - new_scale = max(6, right_precision + left_scale + 1)
+///   - new_precision = left_precision - left_scale + right_scale + new_scale
+pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
+    lhs: &[T0],
+    rhs: &[T1],
+    left_column_type: ColumnType,
+    right_column_type: ColumnType,
+) -> ColumnOperationResult<(Precision, i8, Vec<S>)>
+where
+    S: Scalar,
+    T0: Copy + Debug + Into<BigInt>,
+    T1: Copy + Debug + Into<BigInt>,
+{
+    let new_column_type = try_divide_column_types(left_column_type, right_column_type)?;
+    let new_precision_value = new_column_type
+        .precision_value()
+        .expect("numeric columns have precision");
+    let new_scale = new_column_type.scale().expect("numeric columns have scale");
+    let lhs_scale = left_column_type
+        .scale()
+        .expect("numeric columns have scale");
+    let rhs_scale = right_column_type
+        .scale()
+        .expect("numeric columns have scale");
+    let applied_scale = rhs_scale - lhs_scale + new_scale;
+    let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
+    let res: Vec<S> = lhs
+        .iter()
+        .zip(rhs)
+        .map(|(l, r)| -> ColumnOperationResult<S> {
+            let lhs_bigint = Into::<BigInt>::into(*l);
+            let rhs_bigint = Into::<BigInt>::into(*r);
+            if rhs_bigint.is_zero() {
+                return Err(ColumnOperationError::DivisionByZero);
+            }
+            let new_bigint = if applied_scale >= 0 {
+                lhs_bigint * &applied_scale_factor / rhs_bigint
+            } else {
+                lhs_bigint / rhs_bigint / &applied_scale_factor
+            };
+            Ok(S::try_from(new_bigint).expect("Division result should fit into scalar"))
+        })
+        .collect::<ColumnOperationResult<Vec<_>>>()?;
+    Ok((
+        Precision::new(new_precision_value).expect("Precision value is valid"),
+        new_scale,
+        res,
     ))
 }
 
@@ -711,6 +876,122 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(5).unwrap(), 64_i8);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
+            Err(ColumnOperationError::DecimalConversionError(
+                DecimalError::InvalidScale(_)
+            ))
+        ));
+    }
+
+    #[test]
+    fn we_can_divide_numeric_types() {
+        // lhs and rhs are integers with the same precision
+        let lhs = ColumnType::SmallInt;
+        let rhs = ColumnType::SmallInt;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::SmallInt;
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are integers with different precision
+        let lhs = ColumnType::SmallInt;
+        let rhs = ColumnType::Int;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Int;
+        assert_eq!(expected, actual);
+
+        // lhs is a decimal with nonnegative scale and rhs is an integer
+        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::SmallInt;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 8);
+        assert_eq!(expected, actual);
+
+        // lhs is an integer and rhs is a decimal with nonnegative scale
+        let lhs = ColumnType::SmallInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(18).unwrap(), 11);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with nonnegative scale
+        let lhs = ColumnType::Decimal75(Precision::new(20).unwrap(), 3);
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(33).unwrap(), 14);
+        assert_eq!(expected, actual);
+
+        // lhs is an integer and rhs is a decimal with negative scale
+        let lhs = ColumnType::SmallInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 11);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals one of which has negative scale
+        let lhs = ColumnType::Decimal75(Precision::new(40).unwrap(), -13);
+        let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 5);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(64).unwrap(), 6);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals both with negative scale
+        // and with result having maximum precision
+        let lhs = ColumnType::Decimal75(Precision::new(70).unwrap(), -13);
+        let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), 6);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_divide_non_numeric_or_scalar_types() {
+        let lhs = ColumnType::SmallInt;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let lhs = ColumnType::VarChar;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let lhs = ColumnType::Scalar;
+        let rhs = ColumnType::Scalar;
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+    }
+
+    #[test]
+    fn we_cannot_divide_some_numeric_types_due_to_decimal_issues() {
+        // Invalid precision
+        let lhs = ColumnType::Decimal75(Precision::new(71).unwrap(), -13);
+        let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::DecimalConversionError(
+                DecimalError::InvalidPrecision(_)
+            ))
+        ));
+
+        let lhs = ColumnType::Int;
+        let rhs = ColumnType::Decimal75(Precision::new(68).unwrap(), 67);
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::DecimalConversionError(
+                DecimalError::InvalidPrecision(_)
+            ))
+        ));
+
+        // Invalid scale
+        let lhs = ColumnType::Decimal75(Precision::new(15).unwrap(), 53_i8);
+        let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 40_i8);
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::DecimalConversionError(
                 DecimalError::InvalidScale(_)
             ))
@@ -1160,6 +1441,165 @@ mod test {
             Curve25519Scalar::from(-46),
         ];
         let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_try_divide_slices() {
+        let lhs = [5_i16, -5, -7, 9];
+        let rhs = [-3_i16, 3, -4, 5];
+        let actual = try_divide_slices(&lhs, &rhs).unwrap();
+        let expected = vec![-1_i16, -1, 1, 1];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_try_divide_slices_if_divide_by_zero() {
+        let lhs = [1_i32, 2, 3];
+        let rhs = [0_i32, -5, 6];
+        assert!(matches!(
+            try_divide_slices(&lhs, &rhs),
+            Err(ColumnOperationError::DivisionByZero)
+        ));
+    }
+
+    #[test]
+    fn we_can_try_divide_slices_left_upcast() {
+        let lhs = [5_i16, -4, -9, 9];
+        let rhs = [-3_i32, 3, -4, 5];
+        let actual = try_divide_slices_left_upcast(&lhs, &rhs).unwrap();
+        let expected = vec![-1_i32, -1, 2, 1];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_try_divide_slices_left_upcast_if_divide_by_zero() {
+        let lhs = [1_i16, 2];
+        let rhs = [0_i32, 2];
+        assert!(matches!(
+            try_divide_slices_left_upcast(&lhs, &rhs),
+            Err(ColumnOperationError::DivisionByZero)
+        ));
+    }
+
+    #[test]
+    fn we_can_try_divide_slices_right_upcast() {
+        let lhs = [15_i128, -82, -7, 9];
+        let rhs = [-3_i32, 3, -4, 5];
+        let actual = try_divide_slices_right_upcast(&lhs, &rhs).unwrap();
+        let expected = vec![-5_i128, -27, 1, 1];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_cannot_try_divide_slices_right_upcast_if_divide_by_zero() {
+        let lhs = [1_i32, 2];
+        let rhs = [0_i16, 2];
+        assert!(matches!(
+            try_divide_slices_right_upcast(&lhs, &rhs),
+            Err(ColumnOperationError::DivisionByZero)
+        ));
+    }
+
+    #[test]
+    fn we_can_try_divide_decimal_columns() {
+        // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [0_i16, 2, 3];
+        let rhs = [4_i16, 5, 2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::SmallInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(0_i64),
+            Curve25519Scalar::from(40000000_i64),
+            Curve25519Scalar::from(150000000_i64),
+        ];
+        let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with negative scale and rhs is integer
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -82, 23];
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::SmallInt;
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(5633802),
+            Curve25519Scalar::from(-18292682),
+            Curve25519Scalar::from(-8695652),
+        ];
+        let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with nonnegative scale
+        let lhs = [4_i16, 2, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [3_i64, -5, 7]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(4).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(1333333),
+            Curve25519Scalar::from(-400000),
+            Curve25519Scalar::from(-285714),
+        ];
+        let expected = (Precision::new(10).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals one of which has negative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -82, 23]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 3);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(5633802816_i128),
+            Curve25519Scalar::from(-18292682926_i128),
+            Curve25519Scalar::from(-8695652173_i128),
+        ];
+        let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with negative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -82, 23]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -3);
+        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), -2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(563380),
+            Curve25519Scalar::from(-1829268),
+            Curve25519Scalar::from(-869565),
+        ];
+        let expected = (Precision::new(9).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
     }
 }
