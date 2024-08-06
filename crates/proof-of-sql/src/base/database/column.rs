@@ -310,13 +310,14 @@ impl ColumnType {
     pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
-            Self::SmallInt
-            | Self::Int
-            | Self::BigInt
-            | Self::Int128
-            | Self::Scalar
-            | Self::TimestampTZ(_, _) => Some(0),
+            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
             Self::Boolean | Self::VarChar => None,
+            Self::TimestampTZ(tu, _) => match tu {
+                PoSQLTimeUnit::Second => Some(0),
+                PoSQLTimeUnit::Millisecond => Some(3),
+                PoSQLTimeUnit::Microsecond => Some(6),
+                PoSQLTimeUnit::Nanosecond => Some(9),
+            },
         }
     }
 }
