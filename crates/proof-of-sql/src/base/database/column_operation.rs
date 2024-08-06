@@ -1,10 +1,11 @@
+#![allow(dead_code)]
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
-    math::decimal::{scale_scalar, DecimalError, Precision},
+    math::decimal::{scale_scalar, DecimalError, Precision, MAX_SUPPORTED_PRECISION},
     scalar::Scalar,
 };
-use core::fmt::Debug;
+use core::{cmp::Ordering, fmt::Debug};
 use num_bigint::BigInt;
 use num_traits::{
     ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub},
@@ -153,12 +154,53 @@ pub fn try_divide_column_types(
     Ok(ColumnType::Decimal75(precision, scale))
 }
 
+// Binary operations on slices of the same type
+
+/// Try to check whether two slices of the same length are equal element-wise.
+///
+/// We do not check for length equality here.
+pub(super) fn slice_eq<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
+where
+    T: PartialEq + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> bool { *l == *r })
+        .collect::<Vec<_>>()
+}
+
+/// Try to check whether a slice is less than or equal to another element-wise.
+///
+/// We do not check for length equality here.
+pub(super) fn slice_le<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
+where
+    T: PartialOrd + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> bool { *l <= *r })
+        .collect::<Vec<_>>()
+}
+
+/// Try to check whether a slice is greater than or equal to another element-wise.
+///
+/// We do not check for length equality here.
+pub(super) fn slice_ge<T>(lhs: &[T], rhs: &[T]) -> Vec<bool>
+where
+    T: PartialOrd + Debug,
+{
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> bool { *l >= *r })
+        .collect::<Vec<_>>()
+}
+
 /// Try to add two slices of the same length.
 ///
 /// We do not check for length equality here. However, we do check for integer overflow.
 pub(super) fn try_add_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
 where
-    T: CheckedAdd<Output = T> + Copy + Debug,
+    T: CheckedAdd<Output = T> + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
@@ -177,7 +219,7 @@ where
 /// We do not check for length equality here. However, we do check for integer overflow.
 pub(super) fn try_subtract_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
 where
-    T: CheckedSub<Output = T> + Copy + Debug,
+    T: CheckedSub<Output = T> + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
@@ -196,7 +238,7 @@ where
 /// We do not check for length equality here. However, we do check for integer overflow.
 pub(super) fn try_multiply_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
 where
-    T: CheckedMul<Output = T> + Copy + Debug,
+    T: CheckedMul<Output = T> + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
@@ -215,7 +257,7 @@ where
 /// We do not check for length equality here. However, we do check for division by 0.
 pub(super) fn try_divide_slices<T>(lhs: &[T], rhs: &[T]) -> ColumnOperationResult<Vec<T>>
 where
-    T: CheckedDiv<Output = T> + Copy + Debug,
+    T: CheckedDiv<Output = T> + Debug,
 {
     lhs.iter()
         .zip(rhs.iter())
@@ -223,6 +265,65 @@ where
             l.checked_div(r).ok_or(ColumnOperationError::DivisionByZero)
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
+}
+
+// Casting required for binary operations on different types
+
+/// Check whether two slices of the same length are equal element-wise.
+///
+/// Note that we cast elements of the left slice to the type of the right slice.
+/// Also note that we do not check for length equality here.
+pub(super) fn slice_eq_with_casting<SmallerType, LargerType>(
+    numbers_of_smaller_type: &[SmallerType],
+    numbers_of_larger_type: &[LargerType],
+) -> Vec<bool>
+where
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: PartialEq + Copy + Debug,
+{
+    numbers_of_smaller_type
+        .iter()
+        .zip(numbers_of_larger_type.iter())
+        .map(|(l, r)| -> bool { Into::<LargerType>::into(*l) == *r })
+        .collect::<Vec<_>>()
+}
+
+/// Check whether a slice is less than or equal to another element-wise.
+///
+/// Note that we cast elements of the left slice to the type of the right slice.
+/// Also note that we do not check for length equality here.
+pub(super) fn slice_le_with_casting<SmallerType, LargerType>(
+    numbers_of_smaller_type: &[SmallerType],
+    numbers_of_larger_type: &[LargerType],
+) -> Vec<bool>
+where
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: PartialOrd + Copy + Debug,
+{
+    numbers_of_smaller_type
+        .iter()
+        .zip(numbers_of_larger_type.iter())
+        .map(|(l, r)| -> bool { Into::<LargerType>::into(*l) <= *r })
+        .collect::<Vec<_>>()
+}
+
+/// Check whether a slice is greater than or equal to another element-wise.
+///
+/// Note that we cast elements of the left slice to the type of the right slice.
+/// Also note that we do not check for length equality here.
+pub(super) fn slice_ge_with_casting<SmallerType, LargerType>(
+    numbers_of_smaller_type: &[SmallerType],
+    numbers_of_larger_type: &[LargerType],
+) -> Vec<bool>
+where
+    SmallerType: Copy + Debug + Into<LargerType>,
+    LargerType: PartialOrd + Copy + Debug,
+{
+    numbers_of_smaller_type
+        .iter()
+        .zip(numbers_of_larger_type.iter())
+        .map(|(l, r)| -> bool { Into::<LargerType>::into(*l) >= *r })
+        .collect::<Vec<_>>()
 }
 
 /// Add two slices of the same length, casting the left slice to the type of the right slice.
@@ -362,6 +463,205 @@ where
                 .ok_or(ColumnOperationError::DivisionByZero)
         })
         .collect()
+}
+
+// Decimal operations
+
+/// Check whether a numerical slice is equal to a decimal one.
+///
+/// Note that we do not check for length equality here.
+pub(super) fn eq_decimal_columns<S, T>(
+    lhs: &[T],
+    rhs: &[S],
+    left_column_type: ColumnType,
+    right_column_type: ColumnType,
+) -> Vec<bool>
+where
+    S: Scalar,
+    T: Copy + Debug + PartialEq + Zero + Into<S>,
+{
+    let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
+    let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
+    let max_scale = lhs_scale.max(rhs_scale);
+    // At most one of the scales is non-zero
+    if lhs_scale < max_scale {
+        // If scale difference is above max decimal precision values
+        // are equal if they are both zero and unequal otherwise
+        let upscale = max_scale - lhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool { l.is_zero() && *r == S::ZERO })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool { Into::<S>::into(*l) * upscale_factor == *r })
+                .collect::<Vec<_>>()
+        }
+    } else if rhs_scale < max_scale {
+        let upscale = max_scale - rhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool { l.is_zero() && *r == S::ZERO })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool { Into::<S>::into(*l) == *r * upscale_factor })
+                .collect::<Vec<_>>()
+        }
+    } else {
+        lhs.iter()
+            .zip(rhs.iter())
+            .map(|(l, r)| -> bool { Into::<S>::into(*l) == *r })
+            .collect::<Vec<_>>()
+    }
+}
+
+/// Check whether a numerical slice is less than or equal to a decimal one.
+///
+/// Note that we do not check for length equality here.
+pub(super) fn le_decimal_columns<S, T>(
+    lhs: &[T],
+    rhs: &[S],
+    left_column_type: ColumnType,
+    right_column_type: ColumnType,
+) -> Vec<bool>
+where
+    S: Scalar,
+    T: Copy + Debug + Ord + Zero + Into<S>,
+{
+    let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
+    let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
+    let max_scale = lhs_scale.max(rhs_scale);
+    // At most one of the scales is non-zero
+    if lhs_scale < max_scale {
+        // If scale difference is above max decimal precision the upscaled
+        // always have larger absolute value than the other one as long as it is nonzero
+        // Hence a (extremely upscaled) <= b if and only if a < 0 or (a == 0 and b >= 0)
+        let upscale = max_scale - lhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    Into::<S>::into(*l).signed_cmp(&S::ZERO) == Ordering::Less
+                        || (l.is_zero() && r.signed_cmp(&S::ZERO) != Ordering::Less)
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    (Into::<S>::into(*l) * upscale_factor).signed_cmp(r) != Ordering::Greater
+                })
+                .collect::<Vec<_>>()
+        }
+    } else if rhs_scale < max_scale {
+        let upscale = max_scale - rhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            // Similarly with extreme scaling we have
+            // a <= (extremely upscaled) b if and only if a < 0 or (a == 0 and b >= 0)
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    (Into::<S>::into(*l).signed_cmp(&S::ZERO) != Ordering::Greater && *r == S::ZERO)
+                        || r.signed_cmp(&S::ZERO) == Ordering::Greater
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    Into::<S>::into(*l).signed_cmp(&(*r * upscale_factor)) != Ordering::Greater
+                })
+                .collect::<Vec<_>>()
+        }
+    } else {
+        lhs.iter()
+            .zip(rhs.iter())
+            .map(|(l, r)| -> bool { Into::<S>::into(*l).signed_cmp(r) != Ordering::Greater })
+            .collect::<Vec<_>>()
+    }
+}
+
+/// Check whether a numerical slice is greater than or equal to a decimal one.
+///
+/// Note that we do not check for length equality here.
+pub(super) fn ge_decimal_columns<S, T>(
+    lhs: &[T],
+    rhs: &[S],
+    left_column_type: ColumnType,
+    right_column_type: ColumnType,
+) -> Vec<bool>
+where
+    S: Scalar,
+    T: Copy + Debug + PartialEq + Zero + Into<S>,
+{
+    let lhs_scale = left_column_type.scale().expect("Numeric types have scale");
+    let rhs_scale = right_column_type.scale().expect("Decimal types have scale");
+    let max_scale = lhs_scale.max(rhs_scale);
+    // At most one of the scales is non-zero
+    if lhs_scale < max_scale {
+        // If scale difference is above max decimal precision the upscaled
+        // always have larger absolute value than the other one as long as it is nonzero
+        // Hence a (extremely upscaled) >= b if and only if a > 0 or (a == 0 and b <= 0)
+        let upscale = max_scale - lhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    Into::<S>::into(*l).signed_cmp(&S::ZERO) == Ordering::Greater
+                        || (l.is_zero() && r.signed_cmp(&S::ZERO) != Ordering::Greater)
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    (Into::<S>::into(*l) * upscale_factor).signed_cmp(r) != Ordering::Less
+                })
+                .collect::<Vec<_>>()
+        }
+    } else if rhs_scale < max_scale {
+        let upscale = max_scale - rhs_scale;
+        if upscale > MAX_SUPPORTED_PRECISION as i8 {
+            // Similarly with extreme scaling we have
+            // a >= (extremely upscaled) b if and only if b < 0 or (a >= 0 and b == 0)
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    (Into::<S>::into(*l).signed_cmp(&S::ZERO) != Ordering::Less && *r == S::ZERO)
+                        || r.signed_cmp(&S::ZERO) == Ordering::Less
+                })
+                .collect::<Vec<_>>()
+        } else {
+            let upscale_factor =
+                scale_scalar(S::ONE, upscale).expect("Upscale factor is nonnegative");
+            lhs.iter()
+                .zip(rhs.iter())
+                .map(|(l, r)| -> bool {
+                    Into::<S>::into(*l).signed_cmp(&(*r * upscale_factor)) != Ordering::Less
+                })
+                .collect::<Vec<_>>()
+        }
+    } else {
+        lhs.iter()
+            .zip(rhs.iter())
+            .map(|(l, r)| -> bool { Into::<S>::into(*l).signed_cmp(r) != Ordering::Less })
+            .collect::<Vec<_>>()
+    }
 }
 
 /// Add two numerical slices as decimals.
@@ -998,6 +1298,377 @@ mod test {
         ));
     }
 
+    // =
+    #[test]
+    fn we_can_eq_slices() {
+        let lhs = [1_i16, 2, 3];
+        let rhs = [1_i16, 3, 3];
+        let actual = slice_eq(&lhs, &rhs);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+
+        // Try strings
+        let lhs = ["Chloe".to_string(), "Margaret".to_string()];
+        let rhs = ["Chloe".to_string(), "Chloe".to_string()];
+        let actual = slice_eq(&lhs, &rhs);
+        let expected = vec![true, false];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_eq_slices_with_cast() {
+        let lhs = [1_i16, 2, 3];
+        let rhs = [1_i32, 3, 3];
+        let actual = slice_eq_with_casting(&lhs, &rhs);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_eq_decimal_columns() {
+        // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i16, -2, 3];
+        let rhs = [100_i16, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::SmallInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, false];
+        assert_eq!(expected, actual);
+
+        // lhs is integer and rhs is decimal with negative scale
+        let lhs = [400_i64, -82, -200];
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::BigInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with nonnegative scale
+        let lhs = [4_i16, -80, 230]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -8, 23]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, 150000, -20000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
+        let lhs = [71_i64, 150000, -20000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with negative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, 150000, -20000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are decimals with extreme differences in scale
+        let lhs = [4_i16, 0, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, 0, -20000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, false];
+        assert_eq!(expected, actual);
+    }
+
+    // <=
+    #[test]
+    fn we_can_le_slices() {
+        let lhs = [1_i32, 2, 3];
+        let rhs = [1_i32, 3, 2];
+        let actual = slice_le(&lhs, &rhs);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_le_slices_with_cast() {
+        let lhs = [1_i16, 2, 3];
+        let rhs = [1_i64, 3, 2];
+        let actual = slice_le_with_casting(&lhs, &rhs);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_le_decimal_columns() {
+        // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i16, -2, 3];
+        let rhs = [100_i16, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::SmallInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs is integer and rhs is decimal with negative scale
+        let lhs = [400_i64, -82, -199];
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::BigInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with nonnegative scale
+        let lhs = [4_i16, -80, 230]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -8, 22]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, 150000, -30000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
+        let lhs = [71_i64, 150000, -19000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with negative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71000_i64, 150000, -21000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are decimals with extreme differences in scale
+        let lhs = [1_i16, 1, 1, 0, 0, 0, -1, -1, -1]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [1_i64, 0, -1, 1, 0, -1, 1, 0, -1]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, false, false, true, true, false, true, true, true];
+        assert_eq!(expected, actual);
+    }
+
+    // >=
+    #[test]
+    fn we_can_ge_slices() {
+        let lhs = [1_i128, 2, 3];
+        let rhs = [1_i128, 3, 2];
+        let actual = slice_ge(&lhs, &rhs);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_ge_slices_with_cast() {
+        let lhs = [1_i16, 2, 3];
+        let rhs = [1_i64, 3, 2];
+        let actual = slice_ge_with_casting(&lhs, &rhs);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn we_can_ge_decimal_columns() {
+        // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i16, -2, 3];
+        let rhs = [100_i16, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::SmallInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+
+        // lhs is integer and rhs is decimal with negative scale
+        let lhs = [400_i64, -82, 199];
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::BigInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with nonnegative scale
+        let lhs = [4_i16, -80, 230]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -8, -22]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
+        let lhs = [-4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, 150000, -30000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
+        let lhs = [71_i64, 150000, -19000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are both decimals with negative scale
+        let lhs = [4_i16, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71000_i64, 150000, -21000]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![false, true, true];
+        assert_eq!(expected, actual);
+
+        // lhs and rhs are decimals with extreme differences in scale
+        let lhs = [1_i16, 1, 1, 0, 0, 0, -1, -1, -1]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [1_i64, 0, -1, 1, 0, -1, 1, 0, -1]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
+        let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, true, false, true, true, false, false, false];
+        assert_eq!(expected, actual);
+    }
+
+    // +
     #[test]
     fn we_can_try_add_slices() {
         let lhs = [1_i16, 2, 3];
@@ -1140,6 +1811,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
+    // -
     #[test]
     fn we_can_try_subtract_slices() {
         let lhs = [1_i16, 2, 3];
@@ -1301,6 +1973,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
+    // *
     #[test]
     fn we_can_try_multiply_slices() {
         let lhs = [1_i16, 2, 3];
@@ -1444,6 +2117,7 @@ mod test {
         assert_eq!(expected, actual);
     }
 
+    // /
     #[test]
     fn we_can_try_divide_slices() {
         let lhs = [5_i16, -5, -7, 9];
