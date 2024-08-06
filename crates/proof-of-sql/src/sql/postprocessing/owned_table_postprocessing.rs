@@ -3,14 +3,14 @@ use crate::base::{database::OwnedTable, scalar::Scalar};
 
 /// An enum for nodes that can apply postprocessing to a `OwnedTable`.
 #[derive(Debug, Clone)]
-pub enum OwnedTablePostprocessing<S: Scalar> {
+pub enum OwnedTablePostprocessing {
     /// Slice the `OwnedTable` with the given `SliceExpr`.
-    Slice(SliceExpr<S>),
+    Slice(SliceExpr),
     /// Order the `OwnedTable` with the given `OrderByExpr`.
-    OrderBy(OrderByExpr<S>),
+    OrderBy(OrderByExpr),
 }
 
-impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing<S> {
+impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
     /// Apply the postprocessing step to the `OwnedTable` and return the result.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         match self {
@@ -20,13 +20,13 @@ impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing<S> {
     }
 }
 
-impl<S: Scalar> OwnedTablePostprocessing<S> {
+impl OwnedTablePostprocessing {
     /// Create a new `OwnedTablePostprocessing` with the given `SliceExpr`.
-    pub fn new_slice(slice_expr: SliceExpr<S>) -> Self {
+    pub fn new_slice(slice_expr: SliceExpr) -> Self {
         Self::Slice(slice_expr)
     }
     /// Create a new `OwnedTablePostprocessing` with the given `OrderByExpr`.
-    pub fn new_order_by(order_by_expr: OrderByExpr<S>) -> Self {
+    pub fn new_order_by(order_by_expr: OrderByExpr) -> Self {
         Self::OrderBy(order_by_expr)
     }
 }
@@ -34,7 +34,7 @@ impl<S: Scalar> OwnedTablePostprocessing<S> {
 /// Apply a list of postprocessing steps to an `OwnedTable`.
 pub fn apply_postprocessing_steps<S: Scalar>(
     owned_table: OwnedTable<S>,
-    postprocessing_steps: &[OwnedTablePostprocessing<S>],
+    postprocessing_steps: &[OwnedTablePostprocessing],
 ) -> PostprocessingResult<OwnedTable<S>> {
     // Sadly try_fold() only works on Options
     let mut current_table = owned_table;

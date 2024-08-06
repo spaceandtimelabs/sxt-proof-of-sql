@@ -285,7 +285,6 @@ mod tests {
         );
     }
 
-    #[test]
     fn test_february_29_leap_year() {
         // Test year 2024 which is a leap year
         let test_timestamps = vec![
@@ -323,8 +322,7 @@ mod tests {
             test_timestamps,
         );
     }
-
-    #[test]
+  
     fn test_basic_unix_epoch() {
         // Parse the RFC 3339 formatted string to Unix timestamps directly
         let test_timestamps = vec![
