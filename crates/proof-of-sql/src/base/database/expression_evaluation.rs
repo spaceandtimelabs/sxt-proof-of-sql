@@ -17,6 +17,7 @@ impl<S: Scalar> OwnedTable<S> {
             Expression::Literal(lit) => self.evaluate_literal(lit),
             Expression::Binary { op, left, right } => self.evaluate_binary_expr(*op, left, right),
             Expression::Unary { op, expr } => self.evaluate_unary_expr(*op, expr),
+            Expression::Aggregation { op, expr } => self.evaluate_aggregation_expr(*op, expr),
             _ => Err(ExpressionEvaluationError::Unsupported(format!(
                 "Expression {:?} is not supported yet",
                 expr
@@ -87,6 +88,25 @@ impl<S: Scalar> OwnedTable<S> {
             BinaryOperator::Subtract => Ok((left - right)?),
             BinaryOperator::Multiply => Ok((left * right)?),
             BinaryOperator::Division => Ok((left / right)?),
+        }
+    }
+
+    fn evaluate_aggregation_expr(
+        &self,
+        op: AggregationOperator,
+        expr: &Expression,
+    ) -> ExpressionEvaluationResult<OwnedColumn<S>> {
+        let column = self.evaluate(expr)?;
+        match op {
+            AggregationOperator::Count => Ok(OwnedColumn::BigInt(vec![column.len() as i128])),
+            AggregationOperator::Sum => Ok(OwnedColumn::Int128(vec![column.sum()?])),
+            AggregationOperator::Average => Ok(OwnedColumn::Decimal75(
+                Precision::new(2).unwrap(),
+                2,
+                vec![column.average()?.into()],
+            )),
+            AggregationOperator::Min => Ok(OwnedColumn::Int128(vec![column.min()?])),
+            AggregationOperator::Max => Ok(OwnedColumn::Int128(vec![column.max()?])),
         }
     }
 }
