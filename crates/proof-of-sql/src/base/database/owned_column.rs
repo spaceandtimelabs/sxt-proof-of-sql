@@ -2,7 +2,7 @@
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
 /// This is the analog of an arrow Array.
-use super::ColumnType;
+use super::{Column, ColumnType};
 use crate::base::{
     math::{
         decimal::Precision,
@@ -192,6 +192,26 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 }
 
+impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
+    fn from(col: &Column<'a, S>) -> Self {
+        match col {
+            Column::Boolean(col) => OwnedColumn::Boolean(col.to_vec()),
+            Column::SmallInt(col) => OwnedColumn::SmallInt(col.to_vec()),
+            Column::Int(col) => OwnedColumn::Int(col.to_vec()),
+            Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
+            Column::VarChar((col, _)) => {
+                OwnedColumn::VarChar(col.iter().map(|s| s.to_string()).collect())
+            }
+            Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
+            Column::Decimal75(precision, scale, col) => {
+                OwnedColumn::Decimal75(*precision, *scale, col.to_vec())
+            }
+            Column::Scalar(col) => OwnedColumn::Scalar(col.to_vec()),
+            Column::TimestampTZ(tu, tz, col) => OwnedColumn::TimestampTZ(*tu, *tz, col.to_vec()),
+        }
+    }
+}
+
 /// Compares the tuples (order_by_pairs[0][i], order_by_pairs[1][i], ...) and
 /// (order_by_pairs[0][j], order_by_pairs[1][j], ...) in lexicographic order.
 /// Note that direction flips the ordering.
@@ -227,6 +247,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
 mod test {
     use super::*;
     use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use bumpalo::Bump;
     use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
     #[test]
@@ -287,5 +308,58 @@ mod test {
             compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
             Ordering::Less
         )
+    }
+
+    #[test]
+    fn we_can_convert_columns_to_owned_columns_round_trip() {
+        let alloc = Bump::new();
+        // Integers
+        let col: Column<'_, Curve25519Scalar> = Column::Int128(&[1, 2, 3, 4, 5]);
+        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        assert_eq!(owned_col, OwnedColumn::Int128(vec![1, 2, 3, 4, 5]));
+        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, new_col);
+
+        // Booleans
+        let col: Column<'_, Curve25519Scalar> = Column::Boolean(&[true, false, true, false, true]);
+        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        assert_eq!(
+            owned_col,
+            OwnedColumn::Boolean(vec![true, false, true, false, true])
+        );
+        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, new_col);
+
+        // Strings
+        let strs = [
+            "Space and Time",
+            "מרחב וזמן",
+            "Χώρος και Χρόνος",
+            "Տարածություն և ժամանակ",
+            "ቦታ እና ጊዜ",
+            "სივრცე და დრო",
+        ];
+        let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
+        let col: Column<'_, Curve25519Scalar> = Column::VarChar((&strs, &scalars));
+        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        assert_eq!(
+            owned_col,
+            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>())
+        );
+        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, new_col);
+
+        // Decimals
+        let scalars: Vec<Curve25519Scalar> =
+            [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
+        let col: Column<'_, Curve25519Scalar> =
+            Column::Decimal75(Precision::new(75).unwrap(), -128, &scalars);
+        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        assert_eq!(
+            owned_col,
+            OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars.clone())
+        );
+        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, new_col);
     }
 }
