@@ -87,3 +87,11 @@ pub use owned_table_test_accessor::OwnedTableTestAccessor;
 mod owned_table_test_accessor_test;
 /// Contains traits for scalar <-> i256 conversions
 pub mod scalar_and_i256_conversions;
+
+pub(crate) mod filter_util;
+#[cfg(test)]
+mod filter_util_test;
+
+pub(crate) mod group_by_util;
+#[cfg(test)]
+mod group_by_util_test;

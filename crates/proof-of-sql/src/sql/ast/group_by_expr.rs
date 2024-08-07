@@ -1,12 +1,14 @@
 use super::{
-    aggregate_columns, fold_columns, fold_vals,
-    group_by_util::{compare_indexes_by_owned_columns, AggregatedColumns},
-    AliasedProvableExprPlan, ColumnExpr, ProvableExpr, ProvableExprPlan, TableExpr,
+    fold_columns, fold_vals, AliasedProvableExprPlan, ColumnExpr, ProvableExpr, ProvableExprPlan,
+    TableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{
+            group_by_util::{
+                aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
+            },
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
             MetadataAccessor, OwnedTable,
         },

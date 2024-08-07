@@ -108,23 +108,16 @@ mod dense_filter_expr_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod dense_filter_expr_test_dishonest_prover;
 
-mod dense_filter_util;
-pub(crate) use dense_filter_util::{
-    filter_column_by_index, filter_columns, fold_columns, fold_vals,
-};
+mod fold_util;
+pub(crate) use fold_util::{fold_columns, fold_vals};
 #[cfg(test)]
-mod dense_filter_util_test;
+mod fold_util_test;
 
 mod group_by_expr;
 pub(crate) use group_by_expr::GroupByExpr;
 
 #[cfg(all(test, feature = "blitzar"))]
 mod group_by_expr_test;
-
-mod group_by_util;
-use group_by_util::aggregate_columns;
-#[cfg(test)]
-mod group_by_util_test;
 
 mod proof_plan;
 pub use proof_plan::ProofPlan;

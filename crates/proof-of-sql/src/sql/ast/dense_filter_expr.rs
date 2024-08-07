@@ -1,13 +1,12 @@
 use super::{
-    dense_filter_util::{fold_columns, fold_vals},
-    filter_columns, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
+    fold_columns, fold_vals, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
+            DataAccessor, MetadataAccessor, OwnedTable,
         },
         proof::ProofError,
         scalar::Scalar,
