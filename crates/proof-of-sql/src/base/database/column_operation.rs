@@ -154,7 +154,34 @@ pub fn try_divide_column_types(
     Ok(ColumnType::Decimal75(precision, scale))
 }
 
+// Unary operations
+
+/// Negate a slice of boolean values.
+pub(super) fn slice_not(input: &[bool]) -> Vec<bool> {
+    input.iter().map(|l| -> bool { !*l }).collect::<Vec<_>>()
+}
+
 // Binary operations on slices of the same type
+
+/// Element-wise AND on two boolean slices of the same length.
+///
+/// We do not check for length equality here.
+pub(super) fn slice_and(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> bool { *l && *r })
+        .collect::<Vec<_>>()
+}
+
+/// Element-wise OR on two boolean slices of the same length.
+///
+/// We do not check for length equality here.
+pub(super) fn slice_or(lhs: &[bool], rhs: &[bool]) -> Vec<bool> {
+    lhs.iter()
+        .zip(rhs.iter())
+        .map(|(l, r)| -> bool { *l || *r })
+        .collect::<Vec<_>>()
+}
 
 /// Try to check whether two slices of the same length are equal element-wise.
 ///
@@ -1296,6 +1323,35 @@ mod test {
                 DecimalError::InvalidScale(_)
             ))
         ));
+    }
+
+    // NOT
+    #[test]
+    fn we_can_negate_boolean_slices() {
+        let input = [true, false, true];
+        let actual = slice_not(&input);
+        let expected = vec![false, true, false];
+        assert_eq!(expected, actual);
+    }
+
+    // AND
+    #[test]
+    fn we_can_and_boolean_slices() {
+        let lhs = [true, false, true, false];
+        let rhs = [true, true, false, false];
+        let actual = slice_and(&lhs, &rhs);
+        let expected = vec![true, false, false, false];
+        assert_eq!(expected, actual);
+    }
+
+    // OR
+    #[test]
+    fn we_can_or_boolean_slices() {
+        let lhs = [true, false, true, false];
+        let rhs = [true, true, false, false];
+        let actual = slice_or(&lhs, &rhs);
+        let expected = vec![true, true, true, false];
+        assert_eq!(expected, actual);
     }
 
     // =

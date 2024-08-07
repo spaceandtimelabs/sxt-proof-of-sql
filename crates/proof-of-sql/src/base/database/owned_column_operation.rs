@@ -4,7 +4,459 @@ use crate::base::{
     scalar::Scalar,
 };
 use core::ops::{Add, Div, Mul, Sub};
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
+use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
+
+impl<S: Scalar> OwnedColumn<S> {
+    /// Element-wise NOT operation for a column
+    pub fn element_wise_not(&self) -> ColumnOperationResult<Self> {
+        match self {
+            Self::Boolean(values) => Ok(Self::Boolean(slice_not(values))),
+            _ => Err(ColumnOperationError::UnaryOperationInvalidColumnType {
+                operator: UnaryOperator::Not,
+                operand_type: self.column_type(),
+            }),
+        }
+    }
+
+    /// Element-wise AND for two columns
+    pub fn element_wise_and(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength(
+                self.len(),
+                rhs.len(),
+            ));
+        }
+        match (self, rhs) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_and(lhs, rhs))),
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: BinaryOperator::And,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
+        }
+    }
+
+    /// Element-wise OR for two columns
+    pub fn element_wise_or(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength(
+                self.len(),
+                rhs.len(),
+            ));
+        }
+        match (self, rhs) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_or(lhs, rhs))),
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: BinaryOperator::Or,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
+        }
+    }
+
+    /// Element-wise equality check for two columns
+    pub fn element_wise_eq(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength(
+                self.len(),
+                rhs.len(),
+            ));
+        }
+        match (self, rhs.clone()) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::SmallInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Int(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+            }
+            (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int128(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::VarChar(lhs), Self::VarChar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
+                todo!("Implement equality check for TimeStampTZ")
+            }
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: BinaryOperator::Equal,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
+        }
+    }
+
+    /// Element-wise <= check for two columns
+    pub fn element_wise_le(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength(
+                self.len(),
+                rhs.len(),
+            ));
+        }
+        match (self, rhs.clone()) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::SmallInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Int(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+            }
+            (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int128(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
+                todo!("Implement inequality check for TimeStampTZ")
+            }
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: BinaryOperator::LessThanOrEqual,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
+        }
+    }
+
+    /// Element-wise >= check for two columns
+    pub fn element_wise_ge(&self, rhs: &Self) -> ColumnOperationResult<Self> {
+        if self.len() != rhs.len() {
+            return Err(ColumnOperationError::DifferentColumnLength(
+                self.len(),
+                rhs.len(),
+            ));
+        }
+        match (self, rhs.clone()) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::SmallInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Int(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+            }
+            (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Int128(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+            }
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
+                Ok(Self::Boolean(le_decimal_columns(
+                    &rhs_values,
+                    lhs_values,
+                    rhs.column_type(),
+                    self.column_type(),
+                )))
+            }
+            (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(ge_decimal_columns(
+                    lhs_values,
+                    &rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
+                todo!("Implement inequality check for TimeStampTZ")
+            }
+            _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
+                operator: BinaryOperator::GreaterThanOrEqual,
+                left_type: self.column_type(),
+                right_type: rhs.column_type(),
+            }),
+        }
+    }
+}
 
 impl<S: Scalar> Add for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
@@ -596,7 +1048,34 @@ mod test {
     use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
 
     #[test]
-    fn we_cannot_do_arithmetic_on_columns_with_different_lengths() {
+    fn we_cannot_do_binary_operation_on_columns_with_different_lengths() {
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false]);
+
+        let result = lhs.element_wise_and(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::DifferentColumnLength(_, _))
+        ));
+
+        let result = lhs.element_wise_eq(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::DifferentColumnLength(_, _))
+        ));
+
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::DifferentColumnLength(_, _))
+        ));
+
+        let result = lhs.element_wise_ge(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::DifferentColumnLength(_, _))
+        ));
+
         let lhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2]);
         let result = lhs.clone() + rhs.clone();
@@ -621,6 +1100,301 @@ mod test {
         assert!(matches!(
             result,
             Err(ColumnOperationError::DifferentColumnLength(_, _))
+        ));
+    }
+
+    #[test]
+    fn we_cannot_do_logical_operation_on_nonboolean_columns() {
+        let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
+        let result = lhs.element_wise_and(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_or(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_not();
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::UnaryOperationInvalidColumnType { .. })
+        ));
+    }
+
+    #[test]
+    fn we_can_do_logical_operation_on_boolean_columns() {
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true, false]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false, false]);
+        let result = lhs.element_wise_and(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, false, false
+            ]))
+        );
+
+        let result = lhs.element_wise_or(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, true, false
+            ]))
+        );
+
+        let result = lhs.element_wise_not();
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                false, true, false, true
+            ]))
+        );
+    }
+
+    #[test]
+    fn we_can_do_eq_operation() {
+        // Integers
+        let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 3, 2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, false
+            ]))
+        );
+
+        // Strings
+        let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "Time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        // Booleans
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false]);
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, false
+            ]))
+        );
+
+        // Decimals
+        let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
+        let rhs_scalars = [1, 2, -3].iter().map(Curve25519Scalar::from).collect();
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, false
+            ]))
+        );
+
+        // Decimals and integers
+        let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, -2, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 1, lhs_scalars);
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
+    }
+
+    #[test]
+    fn we_can_do_le_operation_on_numeric_and_boolean_columns() {
+        // Booleans
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false]);
+        let result = lhs.element_wise_le(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        // Integers
+        let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 3, 2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_le(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
+
+        // Decimals
+        let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
+        let rhs_scalars = [1, 24, -3].iter().map(Curve25519Scalar::from).collect();
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = lhs.element_wise_le(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        // Decimals and integers
+        let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, -20, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let result = lhs.element_wise_le(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                false, true, true
+            ]))
+        );
+    }
+
+    #[test]
+    fn we_can_do_ge_operation_on_numeric_and_boolean_columns() {
+        // Booleans
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false]);
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
+
+        // Integers
+        let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 3, 2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        // Decimals
+        let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
+        let rhs_scalars = [1, 24, -3].iter().map(Curve25519Scalar::from).collect();
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 3, lhs_scalars);
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
+
+        // Decimals and integers
+        let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, -20, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+    }
+
+    #[test]
+    fn we_cannot_do_comparison_on_columns_with_incompatible_types() {
+        // Strings can't be compared with other types
+        let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "Time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_ge(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        // Booleans can't be compared with other types
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        // Strings can not be <= or >= to each other
+        let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "Time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_ge(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
     }
 
