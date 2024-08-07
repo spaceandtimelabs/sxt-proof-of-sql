@@ -312,7 +312,7 @@ mod tests {
 
         let expr = equal(
             Box::new(Expression::Column(
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_nanoseconds_column").unwrap(),
             )),
             Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
                 Literal::Timestamp(
@@ -324,7 +324,7 @@ mod tests {
 
         let expr = equal(
             Box::new(Expression::Column(
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_microseconds_column").unwrap(),
             )),
             Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
                 Literal::Timestamp(
@@ -336,7 +336,7 @@ mod tests {
 
         let expr = equal(
             Box::new(Expression::Column(
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_milliseconds_column").unwrap(),
             )),
             Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
                 Literal::Timestamp(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
@@ -346,7 +346,7 @@ mod tests {
 
         let expr = equal(
             Box::new(Expression::Column(
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_seconds_column").unwrap(),
             )),
             Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
                 Literal::Timestamp(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
