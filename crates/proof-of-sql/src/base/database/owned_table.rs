@@ -5,7 +5,7 @@ use proof_of_sql_parser::Identifier;
 use thiserror::Error;
 
 /// An error that occurs when working with tables.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum OwnedTableError {
     /// The columns have different lengths.
     #[error("Columns have different lengths")]
