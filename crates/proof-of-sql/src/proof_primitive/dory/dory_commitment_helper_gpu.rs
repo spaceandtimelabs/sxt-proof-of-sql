@@ -1,5 +1,6 @@
 use super::{
-    pairings, transpose, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine, G2Affine,
+    pack_scalars, pairings, transpose, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine,
+    G2Affine,
 };
 use crate::base::commitment::CommittableColumn;
 use ark_bls12_381::Fr;
@@ -177,12 +178,12 @@ fn compute_dory_commitments_packed_impl(
 
     let num_of_outputs = committable_columns.len();
     let num_of_generators = 1 << setup.sigma();
+    let bit_table = pack_scalars::get_output_bit_table(committable_columns);
     let num_of_commits =
-        transpose::get_num_of_commits(committable_columns, offset, num_of_generators);
+        pack_scalars::get_num_of_commits(&committable_columns, offset, num_of_generators);
 
-    let bit_table = transpose::get_output_bit_table(committable_columns);
-    let (packed_scalars, packed_scalar_offsets) =
-        transpose::get_packed_scalar_and_offset_scalar_offset(
+    let (bit_table_for_packed_msm, packed_scalars) =
+        pack_scalars::get_bit_table_and_scalar_for_packed_msm(
             &bit_table,
             committable_columns,
             offset,
@@ -190,51 +191,42 @@ fn compute_dory_commitments_packed_impl(
             num_of_commits,
         );
 
-    let bit_table_for_packed_msm: Vec<u32> =
-        transpose::get_repeated_bit_table(&bit_table, num_of_commits);
-
+    let signed_commits_size = num_of_outputs * num_of_commits;
     let mut blitzar_commits =
-        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs * num_of_commits];
-
-    let mut blitzar_commit_offsets =
-        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); num_of_outputs * num_of_commits];
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 2 * signed_commits_size];
 
     if !bit_table_for_packed_msm.is_empty() {
         setup.prover_setup().blitzar_packed_msm(
             &mut blitzar_commits,
             &bit_table_for_packed_msm,
-            packed_scalars.as_slice(),
-        );
-        setup.prover_setup().blitzar_packed_msm(
-            &mut blitzar_commit_offsets,
-            &bit_table_for_packed_msm,
-            packed_scalar_offsets.as_slice(),
+            &packed_scalars.as_slice(),
         );
     }
 
     let commits: Vec<G1Affine> = blitzar_commits.par_iter().map(Into::into).collect();
-    let commit_offsets: Vec<G1Affine> = blitzar_commit_offsets.par_iter().map(Into::into).collect();
+
+    let (signed_commits, offset_commits) = commits.split_at(signed_commits_size);
+
+    let modified_commits: Vec<G1Affine> = signed_commits
+        .iter()
+        .zip(offset_commits.iter())
+        .enumerate()
+        .map(|(index, (first, second))| {
+            let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_of_commits]);
+            let modified_second = second.mul(min).into_affine();
+            *first + modified_second
+        })
+        .map(|point| point.into_affine())
+        .collect();
 
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
     (0..num_of_outputs)
         .map(|i| {
-            let individual_commits: Vec<G1Affine> = (0..num_of_commits)
-                .map(|j| commits[i + j * num_of_outputs])
-                .collect();
+            let idx = i * num_of_commits;
+            let individual_commits: Vec<G1Affine> =
+                modified_commits[idx..idx + num_of_commits].to_vec();
 
-            let min = transpose::get_min_as_fr(&committable_columns[i]);
-            let individual_commits_offset: Vec<G1Affine> = (0..num_of_commits)
-                .map(|j| {
-                    commit_offsets[i + j * num_of_outputs]
-                        .mul(min)
-                        .into_affine()
-                })
-                .collect();
-
-            DoryCommitment(
-                pairings::multi_pairing(&individual_commits, gamma_2_slice)
-                    + pairings::multi_pairing(&individual_commits_offset, gamma_2_slice),
-            )
+            DoryCommitment(pairings::multi_pairing(&individual_commits, gamma_2_slice))
         })
         .collect()
 }
