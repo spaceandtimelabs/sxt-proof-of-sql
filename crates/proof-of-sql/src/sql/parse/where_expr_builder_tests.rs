@@ -18,6 +18,8 @@ mod tests {
     use proof_of_sql_parser::{
         intermediate_ast::{BinaryOperator, Expression, Literal},
         intermediate_decimal::IntermediateDecimal,
+        posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
+        utility::{col, equal, lit},
         Identifier, SelectStatement,
     };
     use std::{collections::HashMap, str::FromStr};
@@ -70,6 +72,38 @@ mod tests {
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("varchar_column").unwrap(),
                 ColumnType::VarChar,
+            ),
+        );
+        column_mapping.insert(
+            Identifier::try_new("timestamp_second_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("timestamp_second_column").unwrap(),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
+            ),
+        );
+        column_mapping.insert(
+            Identifier::try_new("timestamp_millisecond_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("timestamp_millisecond_column").unwrap(),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
+            ),
+        );
+        column_mapping.insert(
+            Identifier::try_new("timestamp_microsecond_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("timestamp_microsecond_column").unwrap(),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
+            ),
+        );
+        column_mapping.insert(
+            Identifier::try_new("timestamp_nanosecond_column").unwrap(),
+            ColumnRef::new(
+                "sxt.sxt_tab".parse().unwrap(),
+                Identifier::try_new("timestamp_nanosecond_column").unwrap(),
+                ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping
@@ -270,6 +304,43 @@ mod tests {
             ))),
         };
         run_test_case(&column_mapping, expr_decimal);
+    }
+
+    #[test]
+    fn we_can_check_varying_precision_eq_for_timestamp() {
+        let column_mapping = get_column_mappings_for_testing();
+
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_nanosecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456789Z").unwrap()),
+            ),
+        );
+
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_microsecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456Z").unwrap()),
+            ),
+        );
+
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_millisecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
+            ),
+        );
+
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_second_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
+            ),
+        );
     }
 
     #[test]
