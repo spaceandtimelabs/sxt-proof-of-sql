@@ -7,7 +7,6 @@ use ark_bls12_381::Fr;
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::{compute::ElementP2, sequence::Sequence};
-use bumpalo::collections::vec;
 use rayon::prelude::*;
 use zerocopy::AsBytes;
 
@@ -162,6 +161,28 @@ fn compute_dory_commitment(
     }
 }
 
+#[tracing::instrument(name = "modify_commits (gpu)", level = "debug", skip_all)]
+fn modify_commits(
+    commits: &Vec<G1Affine>,
+    committable_columns: &[CommittableColumn],
+    signed_commits_size: usize,
+    num_of_commits: usize,
+) -> Vec<G1Affine> {
+    let (signed_commits, offset_commits) = commits.split_at(signed_commits_size);
+
+    signed_commits
+        .iter()
+        .zip(offset_commits.iter())
+        .enumerate()
+        .map(|(index, (first, second))| {
+            let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_of_commits]);
+            let modified_second = second.mul(min).into_affine();
+            *first + modified_second
+        })
+        .map(|point| point.into_affine())
+        .collect()
+}
+
 #[tracing::instrument(
     name = "compute_dory_commitments_packed_impl (gpu)",
     level = "debug",
@@ -178,9 +199,19 @@ fn compute_dory_commitments_packed_impl(
 
     let num_of_outputs = committable_columns.len();
     let num_of_generators = 1 << setup.sigma();
-    let bit_table = pack_scalars::get_output_bit_table(committable_columns);
+
+    // Scale the offset to avoid adding columns of zero to the packed scalar
+    // if the offset is larger than the number of generators
+    let gamma_2_offset = offset / num_of_generators;
+    let offset = offset % num_of_generators;
+
     let num_of_commits =
         pack_scalars::get_num_of_commits(&committable_columns, offset, num_of_generators);
+        
+    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
+        [gamma_2_offset..gamma_2_offset + num_of_commits];
+
+    let bit_table = pack_scalars::get_output_bit_table(committable_columns);
 
     let (bit_table_for_packed_msm, packed_scalars) =
         pack_scalars::get_bit_table_and_scalar_for_packed_msm(
@@ -205,21 +236,13 @@ fn compute_dory_commitments_packed_impl(
 
     let commits: Vec<G1Affine> = blitzar_commits.par_iter().map(Into::into).collect();
 
-    let (signed_commits, offset_commits) = commits.split_at(signed_commits_size);
+    let modified_commits = modify_commits(
+        &commits,
+        &committable_columns,
+        signed_commits_size,
+        num_of_commits,
+    );
 
-    let modified_commits: Vec<G1Affine> = signed_commits
-        .iter()
-        .zip(offset_commits.iter())
-        .enumerate()
-        .map(|(index, (first, second))| {
-            let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_of_commits]);
-            let modified_second = second.mul(min).into_affine();
-            *first + modified_second
-        })
-        .map(|point| point.into_affine())
-        .collect();
-
-    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()[0..num_of_commits];
     (0..num_of_outputs)
         .map(|i| {
             let idx = i * num_of_commits;
