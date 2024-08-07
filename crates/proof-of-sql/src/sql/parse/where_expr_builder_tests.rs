@@ -19,7 +19,7 @@ mod tests {
         intermediate_ast::{BinaryOperator, Expression, Literal},
         intermediate_decimal::IntermediateDecimal,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
-        utility::equal,
+        utility::{col, equal, lit},
         Identifier, SelectStatement,
     };
     use std::{collections::HashMap, str::FromStr};
@@ -78,7 +78,7 @@ mod tests {
             Identifier::try_new("timestamp_second_column").unwrap(),
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_second_column").unwrap(),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
             ),
         );
@@ -86,20 +86,20 @@ mod tests {
             Identifier::try_new("timestamp_millisecond_column").unwrap(),
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_millisecond_column").unwrap(),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp__microsecond_column").unwrap(),
+            Identifier::try_new("timestamp_microsecond_column").unwrap(),
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_column").unwrap(),
+                Identifier::try_new("timestamp_microsecond_column").unwrap(),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp_column").unwrap(),
+            Identifier::try_new("timestamp_nanosecond_column").unwrap(),
             ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
                 Identifier::try_new("timestamp_nanosecond_column").unwrap(),
@@ -310,49 +310,37 @@ mod tests {
     fn we_can_check_varying_precision_eq_for_timestamp() {
         let column_mapping = get_column_mappings_for_testing();
 
-        let expr = equal(
-            Box::new(Expression::Column(
-                Identifier::try_new("timestamp_nanoseconds_column").unwrap(),
-            )),
-            Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
-                Literal::Timestamp(
-                    PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456789Z").unwrap(),
-                ),
-            )),
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_nanosecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456789Z").unwrap()),
+            ),
         );
-        run_test_case(&column_mapping, *expr);
 
-        let expr = equal(
-            Box::new(Expression::Column(
-                Identifier::try_new("timestamp_microseconds_column").unwrap(),
-            )),
-            Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
-                Literal::Timestamp(
-                    PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456Z").unwrap(),
-                ),
-            )),
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_microsecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456Z").unwrap()),
+            ),
         );
-        run_test_case(&column_mapping, *expr);
 
-        let expr = equal(
-            Box::new(Expression::Column(
-                Identifier::try_new("timestamp_milliseconds_column").unwrap(),
-            )),
-            Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
-                Literal::Timestamp(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
-            )),
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_millisecond_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
+            ),
         );
-        run_test_case(&column_mapping, *expr);
 
-        let expr = equal(
-            Box::new(Expression::Column(
-                Identifier::try_new("timestamp_seconds_column").unwrap(),
-            )),
-            Box::new(proof_of_sql_parser::intermediate_ast::Expression::Literal(
-                Literal::Timestamp(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
-            )),
+        run_test_case(
+            &column_mapping,
+            *equal(
+                col("timestamp_second_column"),
+                lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
+            ),
         );
-        run_test_case(&column_mapping, *expr);
     }
 
     #[test]
