@@ -171,8 +171,8 @@ fn modify_commits(
     let (signed_commits, offset_commits) = commits.split_at(signed_commits_size);
 
     signed_commits
-        .iter()
-        .zip(offset_commits.iter())
+        .par_iter()
+        .zip(offset_commits.par_iter())
         .enumerate()
         .map(|(index, (first, second))| {
             let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_of_commits]);
@@ -244,6 +244,7 @@ fn compute_dory_commitments_packed_impl(
     );
 
     (0..num_of_outputs)
+        .into_par_iter()
         .map(|i| {
             let idx = i * num_of_commits;
             let individual_commits: Vec<G1Affine> =
@@ -251,7 +252,7 @@ fn compute_dory_commitments_packed_impl(
 
             DoryCommitment(pairings::multi_pairing(&individual_commits, gamma_2_slice))
         })
-        .collect()
+        .collect::<Vec<_>>()
 }
 
 pub(super) fn compute_dory_commitments(

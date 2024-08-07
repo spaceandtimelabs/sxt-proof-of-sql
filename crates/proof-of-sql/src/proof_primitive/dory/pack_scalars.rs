@@ -1,8 +1,6 @@
 use crate::base::commitment::CommittableColumn;
 use ark_bls12_381::Fr;
 use num_traits::ToBytes;
-use rayon::prelude::*;
-use std::sync::Mutex;
 use zerocopy::AsBytes;
 
 const BYTE_SIZE: usize = 8;
@@ -194,182 +192,167 @@ pub fn get_bit_table_and_scalar_for_packed_msm(
     let extended_bit_table_sum = extended_bit_table.iter().sum::<u32>() as usize;
     let full_row_byte_size = extended_bit_table_sum / BYTE_SIZE;
     let packed_scalar_size_extended = full_row_byte_size * num_of_generators;
-    let packed_scalars_extended = vec![0_u8; packed_scalar_size_extended];
-    let packed_scalars_extended = Mutex::new(packed_scalars_extended);
+    let mut packed_scalars_temp_extended = vec![0_u8; packed_scalar_size_extended];
 
-    committable_columns
-        .par_iter()
-        .enumerate()
-        .for_each(|(i, column)| {
-            // Get the running sum of the bit table.
-            let bit_table_sum = if i > 0 {
-                extended_bit_table
-                    .iter()
-                    .take(i * num_of_commits)
-                    .sum::<u32>() as usize
-            } else {
-                0
-            };
-            let bit_table_offset_sum = repeated_bit_table_sum + i * BYTE_SIZE * num_of_commits;
+    for (i, column) in committable_columns.iter().enumerate() {
+        // Get the running sum of the bit table.
+        let bit_table_sum = if i > 0 {
+            extended_bit_table
+                .iter()
+                .take(i * num_of_commits)
+                .sum::<u32>() as usize
+        } else {
+            0
+        };
+        let bit_table_offset_sum = repeated_bit_table_sum + i * BYTE_SIZE * num_of_commits;
 
-            // Get the byte size of the column of data.
-            let current_byte_size = get_byte_size(&committable_columns[i]);
+        // Get the byte size of the column of data.
+        let current_byte_size = get_byte_size(&committable_columns[i]);
 
-            match column {
-                CommittableColumn::SmallInt(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                    pack_bit_offset(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_offset_sum,
-                        offset,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::Int(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                    pack_bit_offset(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_offset_sum,
-                        offset,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::BigInt(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                    pack_bit_offset(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_offset_sum,
-                        offset,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::Int128(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                    pack_bit_offset(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_offset_sum,
-                        offset,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::TimestampTZ(_, _, column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                    pack_bit_offset(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_offset_sum,
-                        offset,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::Boolean(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::Decimal75(_, _, column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::Scalar(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
-                CommittableColumn::VarChar(column) => {
-                    let mut packed_scalars_extended = packed_scalars_extended.lock().unwrap();
-                    pack_bit(
-                        column,
-                        &mut packed_scalars_extended,
-                        bit_table_sum,
-                        offset,
-                        current_byte_size,
-                        full_row_byte_size,
-                        num_of_generators,
-                    );
-                }
+        match column {
+            CommittableColumn::SmallInt(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+                pack_bit_offset(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_offset_sum,
+                    offset,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
             }
-        });
+            CommittableColumn::Int(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+                pack_bit_offset(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_offset_sum,
+                    offset,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::BigInt(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+                pack_bit_offset(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_offset_sum,
+                    offset,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::Int128(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+                pack_bit_offset(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_offset_sum,
+                    offset,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::TimestampTZ(_, _, column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+                pack_bit_offset(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_offset_sum,
+                    offset,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::Boolean(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::Decimal75(_, _, column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::Scalar(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+            CommittableColumn::VarChar(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars_temp_extended,
+                    bit_table_sum,
+                    offset,
+                    current_byte_size,
+                    full_row_byte_size,
+                    num_of_generators,
+                );
+            }
+        }
+    }
 
-    let packed_scalars_extended = packed_scalars_extended.lock().unwrap().clone();
-
-    (extended_bit_table, packed_scalars_extended)
+    (extended_bit_table, packed_scalars_temp_extended)
 }
 
 #[cfg(test)]
