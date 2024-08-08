@@ -1,10 +1,8 @@
-use super::{
-    dense_filter_expr::prove_filter, filter_columns, OstensibleDenseFilterExpr, ProvableExpr,
-};
+use super::{dense_filter_expr::prove_filter, OstensibleDenseFilterExpr, ProvableExpr};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
-        database::{Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
+        database::{filter_util::*, Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
         proof::ProofError,
         scalar::Curve25519Scalar,
     },

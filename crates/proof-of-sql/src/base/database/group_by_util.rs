@@ -1,8 +1,7 @@
 //! Contains the utility functions for the `GroupByExpr` node.
 
-use super::filter_column_by_index;
 use crate::base::{
-    database::{Column, OwnedColumn},
+    database::{filter_util::filter_column_by_index, Column, OwnedColumn},
     scalar::Scalar,
 };
 use bumpalo::Bump;
@@ -100,7 +99,7 @@ pub fn aggregate_columns<'a, S: Scalar>(
 /// contains the indexes of the elements in `column`.
 ///
 /// See [`sum_aggregate_slice_by_index_counts`] for an example. This is a helper wrapper around that function.
-pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
+pub(crate) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
     alloc: &'a Bump,
     column: &Column<S>,
     counts: &[usize],
@@ -142,7 +141,7 @@ pub(super) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
 /// let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
 /// assert_eq!(result, expected);
 /// ```
-pub(super) fn sum_aggregate_slice_by_index_counts<'a, S, T>(
+pub(crate) fn sum_aggregate_slice_by_index_counts<'a, S, T>(
     alloc: &'a Bump,
     slice: &[T],
     counts: &[usize],
@@ -164,7 +163,7 @@ where
 
 /// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
 /// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
-pub(super) fn compare_indexes_by_columns<S: Scalar>(
+pub(crate) fn compare_indexes_by_columns<S: Scalar>(
     group_by: &[Column<S>],
     i: usize,
     j: usize,
@@ -190,7 +189,7 @@ pub(super) fn compare_indexes_by_columns<S: Scalar>(
 /// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
 ///
 /// Identical in functionality to [compare_indexes_by_columns]
-pub(super) fn compare_indexes_by_owned_columns<S: Scalar>(
+pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
     group_by: &[&OwnedColumn<S>],
     i: usize,
     j: usize,

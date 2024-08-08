@@ -1,17 +1,9 @@
-use super::{
-    aggregate_columns,
-    group_by_util::{
-        compare_indexes_by_columns, sum_aggregate_column_by_index_counts,
-        sum_aggregate_slice_by_index_counts,
-    },
-};
 use crate::{
     base::{
-        database::{Column, OwnedColumn},
+        database::{group_by_util::*, Column, OwnedColumn},
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::DoryScalar,
-    sql::ast::group_by_util::compare_indexes_by_owned_columns,
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
