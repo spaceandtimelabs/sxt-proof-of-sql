@@ -161,6 +161,92 @@ where
     }))
 }
 
+/// Returns a slice with the lifetime of `alloc` that contains the grouped maxima of `slice`.
+/// The `counts` slice contains the number of elements in each group and the `indexes` slice
+/// contains the indexes of the elements in `slice`. Note that for empty groups the result
+/// will be `None`.
+///
+/// For example:
+/// ```ignore
+/// let slice_a = &[
+///     100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+/// ];
+/// let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
+/// let counts = &[3, 3, 4];
+/// let expected = &[
+///     Some(Curve25519Scalar::from(max(112, 111, 101))),
+///     Some(Curve25519Scalar::from(max(110, 102, 103))),
+///     Some(Curve25519Scalar::from(max(106, 114, 113, 109))),
+/// ];
+/// let alloc = Bump::new();
+/// let result = max_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
+/// assert_eq!(result, expected);
+/// ```
+#[allow(dead_code)]
+pub(crate) fn max_aggregate_slice_by_index_counts<'a, S, T>(
+    alloc: &'a Bump,
+    slice: &[T],
+    counts: &[usize],
+    indexes: &[usize],
+) -> &'a [Option<S>]
+where
+    for<'b> S: From<&'b T> + Scalar,
+{
+    let mut index = 0;
+    alloc.alloc_slice_fill_iter(counts.iter().map(|&count| {
+        let start = index;
+        index += count;
+        // Note that currently we can't run this on empty slices
+        // In the future we have to support NULL values
+        indexes[start..index]
+            .iter()
+            .map(|i| S::from(&slice[*i]))
+            .max_by(|x, y| x.signed_cmp(y))
+    }))
+}
+
+/// Returns a slice with the lifetime of `alloc` that contains the grouped minima of `slice`.
+/// The `counts` slice contains the number of elements in each group and the `indexes` slice
+/// contains the indexes of the elements in `slice`. Note that for empty groups the result
+/// will be `None`.
+///
+/// For example:
+/// ```ignore
+/// let slice_a = &[
+///     100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+/// ];
+/// let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
+/// let counts = &[3, 3, 4];
+/// let expected = &[
+///     Some(Curve25519Scalar::from(min(112, 111, 101))),
+///     Some(Curve25519Scalar::from(min(110, 102, 103))),
+///     Some(Curve25519Scalar::from(min(106, 114, 113, 109))),
+/// ];
+/// let alloc = Bump::new();
+/// let result = min_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
+/// assert_eq!(result, expected);
+/// ```
+#[allow(dead_code)]
+pub(crate) fn min_aggregate_slice_by_index_counts<'a, S, T>(
+    alloc: &'a Bump,
+    slice: &[T],
+    counts: &[usize],
+    indexes: &[usize],
+) -> &'a [Option<S>]
+where
+    for<'b> S: From<&'b T> + Scalar,
+{
+    let mut index = 0;
+    alloc.alloc_slice_fill_iter(counts.iter().map(|&count| {
+        let start = index;
+        index += count;
+        indexes[start..index]
+            .iter()
+            .map(|i| S::from(&slice[*i]))
+            .max_by(|x, y| x.signed_cmp(y))
+    }))
+}
+
 /// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
 /// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
 pub(crate) fn compare_indexes_by_columns<S: Scalar>(
