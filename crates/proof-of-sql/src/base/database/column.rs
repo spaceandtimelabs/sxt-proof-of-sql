@@ -1,4 +1,4 @@
-use super::{LiteralValue, TableRef};
+use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
@@ -122,6 +122,33 @@ impl<'a, S: Scalar> Column<'a, S> {
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, *scalar),
             )),
+        }
+    }
+
+    /// Convert an `OwnedColumn` to a `Column`
+    pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
+        match owned_column {
+            OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
+            OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
+            OwnedColumn::Int(col) => Column::Int(col.as_slice()),
+            OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
+            OwnedColumn::Int128(col) => Column::Int128(col.as_slice()),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                Column::Decimal75(*precision, *scale, col.as_slice())
+            }
+            OwnedColumn::Scalar(col) => Column::Scalar(col.as_slice()),
+            OwnedColumn::VarChar(col) => {
+                let scalars = col.iter().map(S::from).collect::<Vec<_>>();
+                let strs = col
+                    .iter()
+                    .map(|s| s.as_str() as &'a str)
+                    .collect::<Vec<_>>();
+                Column::VarChar((
+                    alloc.alloc_slice_clone(strs.as_slice()),
+                    alloc.alloc_slice_copy(scalars.as_slice()),
+                ))
+            }
+            OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
         }
     }
 
@@ -826,5 +853,53 @@ mod tests {
         let column: Column<'_, Curve25519Scalar> = Column::Decimal75(precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
+    }
+
+    #[test]
+    fn we_can_convert_owned_columns_to_columns_round_trip() {
+        let alloc = Bump::new();
+        // Integers
+        let owned_col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::Int128(&[1, 2, 3, 4, 5]));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Booleans
+        let owned_col: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::Boolean(vec![true, false, true, false, true]);
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::Boolean(&[true, false, true, false, true]));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Strings
+        let strs = [
+            "Space and Time",
+            "Tér és Idő",
+            "Пространство и время",
+            "Spațiu și Timp",
+            "Spazju u Ħin",
+        ];
+        let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
+        let owned_col =
+            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>());
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::VarChar((&strs, &scalars)));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Decimals
+        let scalars: Vec<Curve25519Scalar> =
+            [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
+        let owned_col: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars.clone());
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(
+            col,
+            Column::Decimal75(Precision::new(75).unwrap(), 127, &scalars)
+        );
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
     }
 }
