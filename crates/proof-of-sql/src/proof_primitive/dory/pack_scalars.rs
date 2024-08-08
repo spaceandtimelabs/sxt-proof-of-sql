@@ -181,7 +181,7 @@ pub fn get_bit_table_and_scalar_for_packed_msm(
     num_of_commits: usize,
 ) -> (Vec<u32>, Vec<u8>) {
     // Extend the bit table for packed msm.
-    let repeated_bit_table = get_repeated_bit_table(&bit_table, num_of_commits);
+    let repeated_bit_table = get_repeated_bit_table(bit_table, num_of_commits);
     let repeated_bit_table_sum = repeated_bit_table.iter().sum::<u32>() as usize;
 
     // Extend for offsets
