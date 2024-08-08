@@ -1,3 +1,8 @@
+use crate::base::database::ColumnType;
+use proof_of_sql_parser::{
+    intermediate_ast::{BinaryOperator, UnaryOperator},
+    Identifier,
+};
 use thiserror::Error;
 
 /// Errors in postprocessing
@@ -15,6 +20,9 @@ pub enum PostprocessingError {
     /// Errors in constructing `OwnedTable`
     #[error(transparent)]
     OwnedTableError(#[from] crate::base::database::OwnedTableError),
+    #[error("Invalid group by: column '{0}' must not appear outside aggregate functions or `GROUP BY` clause.")]
+    /// GROUP BY clause references a column not in a group by expression outside aggregate functions
+    IdentifierNotInAggregateFunctionOrGroupByClause(Identifier),
 }
 
 /// Result type for postprocessing
