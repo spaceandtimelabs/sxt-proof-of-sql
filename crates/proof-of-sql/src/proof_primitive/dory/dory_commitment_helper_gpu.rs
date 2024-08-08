@@ -1,6 +1,4 @@
-use super::{
-    pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine,
-};
+use super::{pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine};
 use crate::base::commitment::CommittableColumn;
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
@@ -53,7 +51,7 @@ fn compute_dory_commitments_packed_impl(
 
     let num_of_commits =
         pack_scalars::get_num_of_commits(committable_columns, offset, num_of_generators);
-        
+
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
         [gamma_2_offset..gamma_2_offset + num_of_commits];
 

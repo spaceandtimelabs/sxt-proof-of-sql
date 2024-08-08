@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn we_can_get_correct_data_sizes() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3]),
             CommittableColumn::Int(&[1, 2, 3]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -379,7 +379,7 @@ mod tests {
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]),
         ];
 
-        let expected_bit_sizes = vec![16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
+        let expected_bit_sizes = [16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
         let expected_byte_size = expected_bit_sizes
             .iter()
             .map(|&x| x / BYTE_SIZE)
@@ -396,7 +396,7 @@ mod tests {
 
     #[test]
     fn we_can_get_max_column_length_of_the_same_type() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::Scalar(vec![[1, 2, 3, 4], [5, 6, 7, 8]]),
             CommittableColumn::Scalar(vec![[1, 2, 3, 4]]),
         ];
@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn we_can_get_max_column_length_of_different_types() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3]),
             CommittableColumn::Int(&[1, 2, 3]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn we_can_get_a_bit_table() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3]),
             CommittableColumn::Int(&[1, 2, 3]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -446,13 +446,13 @@ mod tests {
         ];
 
         let bit_table = get_output_bit_table(&committable_columns);
-        let expected = vec![16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
+        let expected = [16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
         assert_eq!(bit_table, expected);
     }
 
     #[test]
     fn we_can_get_a_repeated_bit_table() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[1, 2, 3]),
             CommittableColumn::Int(&[1, 2, 3]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -470,7 +470,7 @@ mod tests {
 
         let bit_table = get_output_bit_table(&committable_columns);
         let repeated_bit_table = get_repeated_bit_table(&bit_table, 3);
-        let expected = vec![
+        let expected = [
             16,
             16,
             16,
@@ -504,7 +504,7 @@ mod tests {
 
     #[test]
     fn we_can_get_num_of_columns_with_more_generators_than_columns() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::Scalar(vec![[1, 2, 3, 4], [5, 6, 7, 8]]),
             CommittableColumn::Scalar(vec![[1, 2, 3, 4]]),
         ];
@@ -517,7 +517,7 @@ mod tests {
 
     #[test]
     fn we_can_get_num_of_columns_with_more_generators_than_columns_and_offset() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::Scalar(vec![[1, 2, 3, 4], [5, 6, 7, 8]]),
             CommittableColumn::Scalar(vec![[1, 2, 3, 4]]),
         ];
@@ -530,7 +530,7 @@ mod tests {
 
     #[test]
     fn we_can_get_num_of_columns_with_more_columns_than_generators() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
             ]),
@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn we_can_get_num_of_columns_with_more_columns_than_generators_and_offset() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
             ]),
@@ -562,7 +562,7 @@ mod tests {
 
     #[test]
     fn we_can_create_a_mixed_packed_scalar() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
             ]),
@@ -575,7 +575,7 @@ mod tests {
         ];
 
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![16, 32, 16]);
+        assert_eq!(bit_table, [16, 32, 16]);
 
         let num_of_generators = 4;
         let offset = 0;
@@ -586,7 +586,7 @@ mod tests {
         let repeated_bit_table = get_repeated_bit_table(&bit_table, num_of_commits);
         assert_eq!(
             repeated_bit_table,
-            vec![16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16]
+            [16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16]
         );
 
         let (extended_bit_table, packed_scalar) = get_bit_table_and_scalar_for_packed_msm(
@@ -597,12 +597,12 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_bit_table: Vec<u32> = vec![
+        let expected_bit_table = [
             16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 16, 16, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8, 8,
             8, 8, 8, 8, 8, 8,
         ];
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             0, 128, 4, 128, 8, 128, 12, 128, 16, 128, 19, 0, 0, 128, 23, 0, 0, 128, 27, 0, 0, 128,
             31, 0, 0, 128, 35, 0, 0, 128, 38, 128, 42, 128, 46, 128, 50, 128, 54, 128, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 128, 5, 128, 9, 128, 13, 128, 17, 128, 20, 0, 0,
@@ -621,14 +621,14 @@ mod tests {
 
     #[test]
     fn we_can_create_mixed_packed_scalar_with_offset() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[0, 1, 2, 3]),
             CommittableColumn::Int(&[4, 5, 6, 7]),
             CommittableColumn::SmallInt(&[8, 9, 10, 11]),
         ];
 
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![16, 32, 16]);
+        assert_eq!(bit_table, [16, 32, 16]);
 
         let num_of_generators = 4;
         let offset = 5;
@@ -644,11 +644,11 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_bit_table: Vec<u32> = vec![
+        let expected_bit_table = [
             16, 16, 16, 32, 32, 32, 16, 16, 16, 8, 8, 8, 8, 8, 8, 8, 8, 8,
         ];
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             0, 0, 0, 0, 3, 128, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 128, 0, 0, 0, 0, 11, 128, 0, 0, 1,
             0, 0, 1, 0, 0, 1, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 4, 0, 0, 128, 0, 0, 0, 0, 0, 0, 8,
             128, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 128, 0, 0, 0, 0, 0, 0, 5, 0, 0, 128, 0,
@@ -662,7 +662,7 @@ mod tests {
 
     #[test]
     fn we_can_pack_empty_scalars() {
-        let committable_columns = vec![];
+        let committable_columns = [];
 
         let bit_table = get_output_bit_table(&committable_columns);
         assert!(bit_table.is_empty());
@@ -676,12 +676,12 @@ mod tests {
 
     #[test]
     fn we_can_pack_scalars_with_one_full_row() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
         ];
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![64, 64]);
+        assert_eq!(bit_table, [64, 64]);
 
         let offset = 0;
         let num_of_generators = 2;
@@ -697,12 +697,12 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 2, 0, 0, 0, 0, 0, 0, 128, 4,
             0, 0, 0, 0, 0, 0, 128, 1, 1,
         ];
 
-        let expected_bit_table: Vec<u32> = vec![64, 64, 8, 8];
+        let expected_bit_table = [64, 64, 8, 8];
 
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(repeated_bit_table, expected_bit_table);
@@ -710,12 +710,12 @@ mod tests {
 
     #[test]
     fn we_can_pack_scalars_with_more_than_one_row() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
         ];
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![64, 64]);
+        assert_eq!(bit_table, [64, 64]);
 
         let offset = 0;
         let num_of_generators = 1;
@@ -731,12 +731,12 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             1, 0, 0, 0, 0, 0, 0, 128, 2, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 4, 0, 0,
             0, 0, 0, 0, 128, 1, 1, 1, 1,
         ];
 
-        let expected_bit_table: Vec<u32> = vec![64, 64, 64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
 
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(repeated_bit_table, expected_bit_table);
@@ -744,12 +744,12 @@ mod tests {
 
     #[test]
     fn we_can_pack_scalars_with_one_full_row_with_offset() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
         ];
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![64, 64]);
+        assert_eq!(bit_table, [64, 64]);
 
         let offset = 1;
         let num_of_generators = 2;
@@ -765,13 +765,13 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
             0, 0, 0, 128, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
             0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,
         ];
 
-        let expected_bit_table: Vec<u32> = vec![64, 64, 64, 64, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
 
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(repeated_bit_table, expected_bit_table);
@@ -779,13 +779,13 @@ mod tests {
 
     #[test]
     fn we_can_pack_scalars_with_more_than_one_row_with_offset() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
             CommittableColumn::BigInt(&[3, 4]),
         ];
 
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![64, 64]);
+        assert_eq!(bit_table, [64, 64]);
 
         let offset = 1;
         let num_of_generators = 1;
@@ -801,12 +801,12 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 128, 2, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0,
             0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 128, 4, 0, 0, 0, 0, 0, 0, 128, 0, 1, 1, 0, 1, 1,
         ];
 
-        let expected_bit_table: Vec<u32> = vec![64, 64, 64, 64, 64, 64, 8, 8, 8, 8, 8, 8];
+        let expected_bit_table = [64, 64, 64, 64, 64, 64, 8, 8, 8, 8, 8, 8];
 
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(repeated_bit_table, expected_bit_table);
@@ -814,13 +814,13 @@ mod tests {
 
     #[test]
     fn we_can_add_offsets() {
-        let committable_columns = vec![
+        let committable_columns = [
             CommittableColumn::SmallInt(&[0, 1, 2, 3, 4, 5]),
             CommittableColumn::Int(&[6, 7, 8, 9]),
             CommittableColumn::Scalar(vec![[10, 0, 0, 0], [11, 0, 0, 0], [12, 0, 0, 0]]),
         ];
         let bit_table = get_output_bit_table(&committable_columns);
-        assert_eq!(bit_table, vec![16, 32, 64 * 4]);
+        assert_eq!(bit_table, [16, 32, 64 * 4]);
 
         let offset = 0;
         let num_of_generators = 3;
@@ -836,7 +836,7 @@ mod tests {
             num_of_commits,
         );
 
-        let expected_scalar: Vec<u8> = vec![
+        let expected_scalar = [
             0, 128, 3, 128, 6, 0, 0, 128, 9, 0, 0, 128, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1,
@@ -848,7 +848,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,
         ];
 
-        let expected_bit_table: Vec<u32> = vec![16, 16, 32, 32, 64 * 4, 64 * 4, 8, 8, 8, 8, 8, 8];
+        let expected_bit_table = [16, 16, 32, 32, 64 * 4, 64 * 4, 8, 8, 8, 8, 8, 8];
 
         assert_eq!(packed_scalar, expected_scalar);
         assert_eq!(repeated_bit_table, expected_bit_table);
