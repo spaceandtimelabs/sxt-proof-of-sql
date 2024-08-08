@@ -9,10 +9,18 @@ use rayon::prelude::*;
 fn modify_commits(
     commits: &[G1Affine],
     committable_columns: &[CommittableColumn],
-    signed_commits_size: usize,
+    num_of_outputs: usize,
     num_of_commits: usize,
 ) -> Vec<G1Affine> {
+    let signed_commits_size = num_of_outputs * num_of_commits;
+
     let (signed_commits, offset_commits) = commits.split_at(signed_commits_size);
+
+    // Currently, the packed_scalars doubles the number of commits
+    // to deal with signed commits. Commit i is offset by commit i + num_of_commits.
+    if signed_commits.len() != offset_commits.len() {
+        return vec![];
+    }
 
     signed_commits
         .par_iter()
@@ -45,7 +53,7 @@ fn compute_dory_commitments_packed_impl(
     let num_of_generators = 1 << setup.sigma();
 
     // Scale the offset to avoid adding columns of zero to the packed scalar
-    // if the offset is larger than the number of generators
+    // if the offset is larger than the number of generators.
     let gamma_2_offset = offset / num_of_generators;
     let offset = offset % num_of_generators;
 
@@ -55,25 +63,20 @@ fn compute_dory_commitments_packed_impl(
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
         [gamma_2_offset..gamma_2_offset + num_of_commits];
 
-    let bit_table = pack_scalars::get_output_bit_table(committable_columns);
+    let (bit_table, packed_scalars) = pack_scalars::get_bit_table_and_scalars_for_packed_msm(
+        committable_columns,
+        offset,
+        num_of_generators,
+        num_of_commits,
+    );
 
-    let (bit_table_for_packed_msm, packed_scalars) =
-        pack_scalars::get_bit_table_and_scalar_for_packed_msm(
-            &bit_table,
-            committable_columns,
-            offset,
-            num_of_generators,
-            num_of_commits,
-        );
-
-    let signed_commits_size = num_of_outputs * num_of_commits;
     let mut blitzar_commits =
-        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); 2 * signed_commits_size];
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); bit_table.len()];
 
-    if !bit_table_for_packed_msm.is_empty() {
+    if !bit_table.is_empty() {
         setup.prover_setup().blitzar_packed_msm(
             &mut blitzar_commits,
-            &bit_table_for_packed_msm,
+            &bit_table,
             packed_scalars.as_slice(),
         );
     }
@@ -83,7 +86,7 @@ fn compute_dory_commitments_packed_impl(
     let modified_commits = modify_commits(
         &commits,
         committable_columns,
-        signed_commits_size,
+        num_of_outputs,
         num_of_commits,
     );
 
