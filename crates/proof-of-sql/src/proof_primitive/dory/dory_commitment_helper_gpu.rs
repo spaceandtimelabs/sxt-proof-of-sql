@@ -1,5 +1,7 @@
 use super::{pairings, transpose, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Affine};
-use crate::base::commitment::CommittableColumn;
+use crate::{
+    base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+};
 use ark_bls12_381::Fr;
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
@@ -94,7 +96,7 @@ fn compute_dory_commitment_impl<'a, T>(
 where
     &'a T: Into<DoryScalar>,
     &'a [T]: Into<Sequence<'a>>,
-    T: AsBytes + Copy + transpose::OffsetToBytes,
+    T: AsBytes + Copy + OffsetToBytes,
 {
     let num_columns = 1 << setup.sigma();
     let data_size = std::mem::size_of::<T>();
