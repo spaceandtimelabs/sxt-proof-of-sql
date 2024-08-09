@@ -1,9 +1,17 @@
-use super::{ProofBuilder, ProofCounts, ProofExpr, QueryProof, TestQueryExpr, VerificationBuilder};
+use super::{
+    CountBuilder, ProofBuilder, ProofCounts, ProofExpr, ProverEvaluate, QueryProof, TestQueryExpr,
+    VerificationBuilder,
+};
 use crate::{
     base::{
-        commitment::InnerProductProof,
-        database::{CommitmentAccessor, DataAccessor, RecordBatchTestAccessor, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        commitment::{Commitment, InnerProductProof},
+        database::{
+            owned_table_utility::{bigint, owned_table},
+            ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            OwnedTable, RecordBatchTestAccessor, TestAccessor, UnimplementedTestAccessor,
+        },
+        proof::ProofError,
+        scalar::{compute_commitment_for_testing, Curve25519Scalar, Scalar},
     },
     sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
@@ -14,71 +22,109 @@ use arrow::{
 };
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use num_traits::{One, Zero};
+use indexmap::IndexSet;
+use num_traits::One;
+use serde::Serialize;
 use std::sync::Arc;
 
-fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {
-    // prove and verify an artificial polynomial where we prove
-    // that every entry in the result is zero
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 2,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
-        ..Default::default()
-    };
-    fn result_eval<'a>(
+/// Type to allow us to prove and verify an artificial polynomial where we prove
+/// that every entry in the result is zero
+#[derive(Debug, Serialize)]
+struct TrivialTestProofExpr {
+    length: usize,
+    offset: usize,
+    column_fill_value: i64,
+    evaluation: i64,
+    anchored_mle_count: usize,
+}
+impl Default for TrivialTestProofExpr {
+    fn default() -> Self {
+        Self {
+            length: 2,
+            offset: 0,
+            column_fill_value: 0,
+            evaluation: 0,
+            anchored_mle_count: 0,
+        }
+    }
+}
+impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofExpr {
+    fn result_evaluate<'a>(
+        &self,
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        _accessor: &'a dyn DataAccessor<S>,
     ) {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
+        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
         builder.produce_result_column(col as &[_]);
     }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        _accessor: &'a dyn DataAccessor<S>,
     ) {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), 0i64);
+        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
-            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
+            vec![(S::ONE, vec![Box::new(col as &[_])])],
         );
     }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
+}
+impl<C: Commitment> ProofExpr<C> for TrivialTestProofExpr {
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        _accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
+        builder.count_degree(2);
+        builder.count_result_columns(1);
+        builder.count_subpolynomials(1);
+        builder.count_anchored_mles(self.anchored_mle_count);
+        Ok(())
     }
-    let expr = TestQueryExpr {
-        table_length: n,
-        offset_generators,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
+    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
+        self.length
+    }
+    fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
+        self.offset
+    }
+    fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder<C>,
+        _accessor: &dyn CommitmentAccessor<C>,
+        _result: Option<&OwnedTable<C::Scalar>>,
+    ) -> Result<(), ProofError> {
+        assert_eq!(builder.consume_result_mle(), C::Scalar::ZERO);
+        builder.produce_sumcheck_subpolynomial_evaluation(&C::Scalar::from(self.evaluation));
+        Ok(())
+    }
+    fn get_column_result_fields(&self) -> Vec<ColumnField> {
+        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+    }
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+}
+
+fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {
+    let expr = TrivialTestProofExpr {
+        length: n,
+        offset: offset_generators,
+        ..Default::default()
     };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
         table,
     } = proof.verify(&expr, &accessor, &result, &()).unwrap();
-    let result = RecordBatch::try_from(table).unwrap();
     assert_ne!(verification_hash, [0; 32]);
-    let column_fields: Vec<Field> = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_result =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![0]))]).unwrap();
-    assert_eq!(result, expected_result);
+    let expected_result = owned_table([bigint("a1", [0])]);
+    assert_eq!(table, expected_result);
 }
 
 #[test]
@@ -98,49 +144,11 @@ fn we_can_verify_a_trivial_query_proof_with_a_non_zero_offset() {
 #[test]
 fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     // set up a proof for an artificial polynomial that doesn't sum to zero
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 2,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
+    let expr = TrivialTestProofExpr {
+        column_fill_value: 123,
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 123i64);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
-        builder.produce_result_column(col as &[_]);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 123i64);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -149,50 +157,11 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
 fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     // set up a proof for an artificial polynomial and specify an evaluation that won't
     // match the evaluation from sumcheck
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 2,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
+    let expr = TrivialTestProofExpr {
+        evaluation: 123,
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
-        builder.produce_result_column(col as &[_]);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
-        // specify an arbitrary evaluation so that verify fails
-        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::from(123u64));
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -201,49 +170,10 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
 fn veriy_fails_if_result_mle_evaluation_fails() {
     // prove and try to verify an artificial polynomial where we prove
     // that every entry in the result is zero
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 2,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
+    let expr = TrivialTestProofExpr {
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
-        builder.produce_result_column(col as &[_]);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, mut result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     match result.indexes_mut() {
         Indexes::Sparse(ref mut indexes) => {
@@ -258,50 +188,11 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
 fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
-    let mut counts = ProofCounts {
-        sumcheck_max_multiplicands: 2,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
+    let expr = TrivialTestProofExpr {
+        anchored_mle_count: 1,
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
-        builder.produce_result_column(col as &[_]);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        let col = alloc.alloc_slice_fill_copy(2, 0i64);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![(Curve25519Scalar::one(), vec![Box::new(col as &[_])])],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        assert_eq!(builder.consume_result_mle(), Curve25519Scalar::zero());
-        builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::zero());
-    }
-    counts.anchored_mles += 1;
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
