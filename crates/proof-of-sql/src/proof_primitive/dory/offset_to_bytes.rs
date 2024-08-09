@@ -1,17 +1,17 @@
-use ark_bls12_381::Fr;
+use super::F;
 use zerocopy::AsBytes;
 
 pub trait OffsetToBytes {
     const IS_SIGNED: bool;
-    fn min_as_fr() -> Fr;
+    fn min_as_fr() -> F;
     fn offset_to_bytes(&self) -> Vec<u8>;
 }
 
 impl OffsetToBytes for u8 {
     const IS_SIGNED: bool = false;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(0)
+    fn min_as_fr() -> F {
+        F::from(0)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -22,8 +22,8 @@ impl OffsetToBytes for u8 {
 impl OffsetToBytes for i16 {
     const IS_SIGNED: bool = true;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(i16::MIN)
+    fn min_as_fr() -> F {
+        F::from(i16::MIN)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -35,8 +35,8 @@ impl OffsetToBytes for i16 {
 impl OffsetToBytes for i32 {
     const IS_SIGNED: bool = true;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(i32::MIN)
+    fn min_as_fr() -> F {
+        F::from(i32::MIN)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -48,8 +48,8 @@ impl OffsetToBytes for i32 {
 impl OffsetToBytes for i64 {
     const IS_SIGNED: bool = true;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(i64::MIN)
+    fn min_as_fr() -> F {
+        F::from(i64::MIN)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -61,8 +61,8 @@ impl OffsetToBytes for i64 {
 impl OffsetToBytes for i128 {
     const IS_SIGNED: bool = true;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(i128::MIN)
+    fn min_as_fr() -> F {
+        F::from(i128::MIN)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -74,8 +74,8 @@ impl OffsetToBytes for i128 {
 impl OffsetToBytes for bool {
     const IS_SIGNED: bool = false;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(false)
+    fn min_as_fr() -> F {
+        F::from(false)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -86,8 +86,8 @@ impl OffsetToBytes for bool {
 impl OffsetToBytes for u64 {
     const IS_SIGNED: bool = false;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(0)
+    fn min_as_fr() -> F {
+        F::from(0)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
@@ -99,8 +99,8 @@ impl OffsetToBytes for u64 {
 impl OffsetToBytes for [u64; 4] {
     const IS_SIGNED: bool = false;
 
-    fn min_as_fr() -> Fr {
-        Fr::from(0)
+    fn min_as_fr() -> F {
+        F::from(0)
     }
 
     fn offset_to_bytes(&self) -> Vec<u8> {
