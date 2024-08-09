@@ -1,8 +1,7 @@
 use crate::proof_primitive::dory::offset_to_bytes::OffsetToBytes;
-use zerocopy::AsBytes;
 
 #[tracing::instrument(name = "transpose_for_fixed_msm (gpu)", level = "debug", skip_all)]
-pub fn transpose_for_fixed_msm<T: AsBytes + Copy + OffsetToBytes>(
+pub fn transpose_for_fixed_msm<T: OffsetToBytes>(
     column: &[T],
     offset: usize,
     rows: usize,
@@ -26,6 +25,7 @@ pub fn transpose_for_fixed_msm<T: AsBytes + Copy + OffsetToBytes>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zerocopy::AsBytes;
 
     #[test]
     fn we_can_transpose_empty_column() {
