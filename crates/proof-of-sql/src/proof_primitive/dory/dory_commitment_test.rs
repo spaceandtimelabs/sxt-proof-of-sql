@@ -4,6 +4,28 @@ use core::cmp::Ordering;
 use num_bigint::BigInt;
 
 #[test]
+fn test_dory_scalar_to_bool() {
+    assert!(!bool::try_from(DoryScalar::ZERO).unwrap());
+    assert!(bool::try_from(DoryScalar::ONE).unwrap());
+}
+
+#[test]
+fn test_dory_scalar_to_bool_overflow() {
+    matches!(
+        bool::try_from(DoryScalar::from(2)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+    matches!(
+        bool::try_from(DoryScalar::from(-1)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+    matches!(
+        bool::try_from(DoryScalar::from(-2)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+}
+
+#[test]
 fn test_dory_scalar_to_i8() {
     assert_eq!(i8::try_from(DoryScalar::from(0)).unwrap(), 0);
     assert_eq!(i8::try_from(DoryScalar::ONE).unwrap(), 1);

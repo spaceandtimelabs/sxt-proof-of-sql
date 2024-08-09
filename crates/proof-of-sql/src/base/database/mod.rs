@@ -51,6 +51,9 @@ mod owned_column;
 pub(crate) use owned_column::compare_indexes_by_owned_columns_with_direction;
 pub use owned_column::OwnedColumn;
 
+mod owned_column_error;
+pub use owned_column_error::{OwnedColumnError, OwnedColumnResult};
+
 pub(crate) mod owned_column_operation;
 
 mod owned_table;

@@ -104,6 +104,28 @@ fn test_curve25519_scalar_mid() {
 }
 
 #[test]
+fn test_curve25519_scalar_to_bool() {
+    assert!(!bool::try_from(Curve25519Scalar::ZERO).unwrap());
+    assert!(bool::try_from(Curve25519Scalar::ONE).unwrap());
+}
+
+#[test]
+fn test_curve25519_scalar_to_bool_overflow() {
+    matches!(
+        bool::try_from(Curve25519Scalar::from(2)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+    matches!(
+        bool::try_from(Curve25519Scalar::from(-1)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+    matches!(
+        bool::try_from(Curve25519Scalar::from(-2)),
+        Err(ScalarConversionError::Overflow(_))
+    );
+}
+
+#[test]
 fn test_curve25519_scalar_to_i8() {
     assert_eq!(i8::try_from(Curve25519Scalar::from(0)).unwrap(), 0);
     assert_eq!(i8::try_from(Curve25519Scalar::ONE).unwrap(), 1);

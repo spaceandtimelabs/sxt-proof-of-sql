@@ -43,6 +43,7 @@ pub trait Scalar:
     + for<'a> core::convert::From<&'a i32> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
+    + core::convert::TryInto <bool>
     + core::convert::TryInto <i8>
     + core::convert::TryInto <i16>
     + core::convert::TryInto <i32>
@@ -91,6 +92,32 @@ pub trait Scalar:
 
 macro_rules! scalar_conversion_to_int {
     ($scalar:ty) => {
+        impl TryFrom<$scalar> for bool {
+            type Error = ScalarConversionError;
+            fn try_from(value: $scalar) -> Result<Self, Self::Error> {
+                let (sign, abs): (i128, [u64; 4]) = if value > <$scalar>::MAX_SIGNED {
+                    (-1, (-value).into())
+                } else {
+                    (1, value.into())
+                };
+                if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+                    return Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in an i8",
+                        value
+                    )));
+                }
+                let val: i128 = sign * abs[0] as i128;
+                match val {
+                    0 => Ok(false),
+                    1 => Ok(true),
+                    _ => Err(ScalarConversionError::Overflow(format!(
+                        "{} is too large to fit in a bool",
+                        value
+                    ))),
+                }
+            }
+        }
+
         impl TryFrom<$scalar> for i8 {
             type Error = ScalarConversionError;
             fn try_from(value: $scalar) -> Result<Self, Self::Error> {
