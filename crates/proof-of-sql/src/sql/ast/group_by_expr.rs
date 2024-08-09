@@ -232,7 +232,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
             count_column,
-        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, selection)
+            ..
+        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
@@ -278,7 +279,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
             count_column,
-        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, selection)
+            ..
+        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
 
         let alpha = builder.consume_post_result_challenge();
