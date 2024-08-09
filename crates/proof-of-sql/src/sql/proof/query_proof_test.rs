@@ -8,7 +8,8 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable, RecordBatchTestAccessor, TestAccessor, UnimplementedTestAccessor,
+            OwnedTable, OwnedTableTestAccessor, RecordBatchTestAccessor, TestAccessor,
+            UnimplementedTestAccessor,
         },
         proof::ProofError,
         scalar::{compute_commitment_for_testing, Curve25519Scalar, Scalar},
@@ -197,88 +198,128 @@ fn verify_fails_if_counts_dont_match() {
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
+// prove and verify an artificial query where
+//     res_i = x_i * x_i
+// where the commitment for x is known
+#[derive(Debug, Serialize)]
+struct SquareProofExpr {
+    res: [i64; 2],
+    anchored_commit_multiplier: i64,
+}
+impl Default for SquareProofExpr {
+    fn default() -> Self {
+        Self {
+            res: [9, 25],
+            anchored_commit_multiplier: 1,
+        }
+    }
+}
+impl<S: Scalar> ProverEvaluate<S> for SquareProofExpr {
+    fn result_evaluate<'a>(
+        &self,
+        builder: &mut ResultBuilder<'a>,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) {
+        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
+        builder.produce_result_column(self.res);
+    }
+
+    fn prover_evaluate<'a>(
+        &self,
+        builder: &mut ProofBuilder<'a, S>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<S>,
+    ) {
+        let x = accessor.get_column(ColumnRef::new(
+            "sxt.test".parse().unwrap(),
+            "x".parse().unwrap(),
+            ColumnType::BigInt,
+        ));
+        let res: &[_] = alloc.alloc_slice_copy(&self.res);
+        builder.produce_anchored_mle(x.clone());
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (S::ONE, vec![Box::new(res)]),
+                (-S::ONE, vec![Box::new(x.clone()), Box::new(x)]),
+            ],
+        );
+    }
+}
+impl<C: Commitment> ProofExpr<C> for SquareProofExpr {
+    fn count(
+        &self,
+        builder: &mut CountBuilder,
+        _accessor: &dyn MetadataAccessor,
+    ) -> Result<(), ProofError> {
+        builder.count_degree(3);
+        builder.count_result_columns(1);
+        builder.count_subpolynomials(1);
+        builder.count_anchored_mles(1);
+        Ok(())
+    }
+    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
+        2
+    }
+    fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
+        accessor.get_offset("sxt.test".parse().unwrap())
+    }
+    fn verifier_evaluate(
+        &self,
+        builder: &mut VerificationBuilder<C>,
+        accessor: &dyn CommitmentAccessor<C>,
+        _result: Option<&OwnedTable<C::Scalar>>,
+    ) -> Result<(), ProofError> {
+        let res_eval = builder.consume_result_mle();
+        let x_commit = C::Scalar::from(self.anchored_commit_multiplier)
+            * accessor.get_commitment(ColumnRef::new(
+                "sxt.test".parse().unwrap(),
+                "x".parse().unwrap(),
+                ColumnType::BigInt,
+            ));
+        let x_eval = builder.consume_anchored_mle(x_commit);
+        let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        Ok(())
+    }
+    fn get_column_result_fields(&self) -> Vec<ColumnField> {
+        vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
+    }
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+}
+
 fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators: usize) {
     // prove and verify an artificial query where
     //     res_i = x_i * x_i
     // where the commitment for x is known
-    static RES: [i64; 2] = [9, 25];
-    static X: [i64; 2] = [3, 5];
-    static INDEXES: [u64; 2] = [0u64, 1u64];
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 3,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
-        anchored_mles: 1,
+    let expr = SquareProofExpr {
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
-        builder.produce_result_column(RES);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
-                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
-            ],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        let res_eval = builder.consume_result_mle();
-        let x_commit = compute_commitment_for_testing(&X, builder.generator_offset());
-        let x_eval = builder.consume_anchored_mle(x_commit);
-        let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("x", [3, 5])]),
         offset_generators,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
         table,
     } = proof.verify(&expr, &accessor, &result, &()).unwrap();
-    let result = RecordBatch::try_from(table).unwrap();
     assert_ne!(verification_hash, [0; 32]);
-    let column_fields: Vec<Field> = expr
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-    let expected_result =
-        RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![9, 25]))]).unwrap();
-    assert_eq!(result, expected_result);
+    let expected_result = owned_table([bigint("a1", [9, 25])]);
+    assert_eq!(table, expected_result);
 
     // invalid offset will fail to verify
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: offset_generators + 1,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("x", [3, 5])]),
+        offset_generators + 1,
+        (),
+    );
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
@@ -299,57 +340,16 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     // where the commitment for x is known and
     //     res_i != x_i * x_i
     // for some i
-    static RES: [i64; 2] = [9, 26];
-    static X: [i64; 2] = [3, 5];
-    static INDEXES: [u64; 2] = [0u64, 1u64];
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 3,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
-        anchored_mles: 1,
+    let expr = SquareProofExpr {
+        res: [9, 26],
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
-        builder.produce_result_column(RES);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
-                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
-            ],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        let res_eval = builder.consume_result_mle();
-        let x_commit = compute_commitment_for_testing(&X, 0_usize);
-        let x_eval = builder.consume_anchored_mle(x_commit);
-        let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("x", [3, 5])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -359,57 +359,16 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     // prove and verify an artificial query where
     //     res_i = x_i * x_i
     // where the commitment for x is known
-    static RES: [i64; 2] = [9, 25];
-    static X: [i64; 2] = [3, 5];
-    static INDEXES: [u64; 2] = [0u64, 1u64];
-    let counts = ProofCounts {
-        sumcheck_max_multiplicands: 3,
-        result_columns: 1,
-        sumcheck_subpolynomials: 1,
-        anchored_mles: 1,
+    let expr = SquareProofExpr {
+        anchored_commit_multiplier: 2,
         ..Default::default()
     };
-    fn result_eval<'a>(
-        builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.set_result_indexes(Indexes::Sparse(INDEXES.to_vec()));
-        builder.produce_result_column(RES);
-    }
-    fn prover_eval<'a>(
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
-        builder.produce_anchored_mle(&X);
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (Curve25519Scalar::one(), vec![Box::new(&RES)]),
-                (-Curve25519Scalar::one(), vec![Box::new(&X), Box::new(&X)]),
-            ],
-        );
-    }
-    fn verifier_eval(
-        builder: &mut VerificationBuilder<RistrettoPoint>,
-        _accessor: &dyn CommitmentAccessor<RistrettoPoint>,
-    ) {
-        let res_eval = builder.consume_result_mle();
-        let x_commit = Curve25519Scalar::from(2u64) * compute_commitment_for_testing(&X, 0_usize);
-        let x_eval = builder.consume_anchored_mle(x_commit);
-        let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-    }
-    let expr = TestQueryExpr {
-        table_length: 2,
-        offset_generators: 0,
-        counts,
-        result_fn: Some(Box::new(result_eval)),
-        prover_fn: Some(Box::new(prover_eval)),
-        verifier_fn: Some(Box::new(verifier_eval)),
-    };
-    let accessor = RecordBatchTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("x", [3, 5])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
