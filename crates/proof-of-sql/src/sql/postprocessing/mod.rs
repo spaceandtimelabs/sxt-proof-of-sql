@@ -10,6 +10,9 @@ pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
 pub mod test_utility;
 
+mod group_by_expr;
+pub use group_by_expr::GroupByExpr;
+
 mod order_by_expr;
 pub use order_by_expr::OrderByExpr;
 #[cfg(test)]
