@@ -1,30 +1,21 @@
 use crate::{
     base::{
-        bit::BitDistribution,
         commitment::InnerProductProof,
         database::{
             owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor, TestAccessor,
         },
         math::decimal::scale_scalar,
-        proof::{MessageLabel, TranscriptProtocol},
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{
-            prover_evaluate_equals_zero, prover_evaluate_or, test_utility::*, ProvableExpr,
-            ProvableExprPlan,
-        },
+        ast::{test_utility::*, ProofPlan, ProvableExpr, ProvableExprPlan},
         parse::ConversionError,
-        proof::{
-            exercise_verification, make_transcript, Indexes, ProofBuilder, ProofExpr, QueryProof,
-            ResultBuilder, VerifiableQueryResult,
-        },
+        proof::{exercise_verification, VerifiableQueryResult},
     },
 };
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
-use num_traits::Zero;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
@@ -390,48 +381,19 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let data = owned_table([bigint("a", [0_i64, 0, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = filter(
+    let mut ast = filter(
         cols_result(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
     );
-    let table_length = ast.get_length(&accessor);
-    let generator_offset = ast.get_offset(&accessor);
-    let alloc = Bump::new();
-
-    let mut result_builder = ResultBuilder::new(3);
-    result_builder.set_result_indexes(Indexes::Sparse(vec![0, 1, 2]));
-    let result_cols = cols_result(t, &["b"], &accessor);
-    result_cols[0].result_evaluate(&mut result_builder, &accessor);
-
-    let provable_result = result_builder.make_provable_query_result();
-    let mut transcript = make_transcript(&ast, &provable_result, table_length, generator_offset);
-    transcript.challenge_scalars::<Curve25519Scalar>(&mut [], MessageLabel::PostResultChallenges);
-
-    let mut builder = ProofBuilder::new(3, 2, Vec::new());
-
-    let lhs = [Curve25519Scalar::zero(); 3];
-    builder.produce_anchored_mle(&lhs);
-    let equals_zero = prover_evaluate_equals_zero(&mut builder, &alloc, &lhs);
-
-    let mut bit_distribution = BitDistribution {
-        or_all: [0; 4],
-        vary_mask: [0; 4],
-    };
-    bit_distribution.or_all[3] = 1 << 63;
-    assert!(bit_distribution.sign_bit());
-    builder.produce_bit_distribution(bit_distribution);
-    let sign = [true; 3];
-    prover_evaluate_or(&mut builder, &alloc, equals_zero, &sign);
-
-    let selection = [true; 3];
-    result_cols[0].prover_evaluate(&mut builder, &alloc, &accessor, &selection);
-
-    let proof = QueryProof::<InnerProductProof>::new_from_builder(builder, 0, transcript, &());
-    let res = proof
-        .verify(&ast, &accessor, &provable_result, &())
-        .unwrap()
-        .table;
+    if let ProofPlan::Filter(filter) = &mut ast {
+        if let ProvableExprPlan::Inequality(lte) = &mut filter.where_clause {
+            lte.treat_column_of_zeros_as_negative = true
+        }
+    }
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected = owned_table([bigint("b", [1_i64, 2, 3])]);
     assert_eq!(res, expected);
 }
