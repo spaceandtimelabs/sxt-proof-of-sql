@@ -66,11 +66,6 @@ mod verifiable_query_result_test_utility;
 #[cfg(all(test, feature = "blitzar"))]
 pub(crate) use verifiable_query_result_test_utility::exercise_verification;
 
-#[cfg(test)]
-mod test_query_expr;
-#[cfg(test)]
-pub(crate) use test_query_expr::TestQueryExpr;
-
 mod result_element_serialization;
 pub(crate) use result_element_serialization::{
     decode_and_convert, decode_multiple_elements, ProvableResultElement,
