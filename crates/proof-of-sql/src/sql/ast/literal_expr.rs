@@ -9,8 +9,8 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable CONST expression
 ///
@@ -75,5 +75,5 @@ impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
         Ok(commitment)
     }
 
-    fn get_column_references(&self, _columns: &mut HashSet<ColumnRef>) {}
+    fn get_column_references(&self, _columns: &mut IndexSet<ColumnRef>) {}
 }

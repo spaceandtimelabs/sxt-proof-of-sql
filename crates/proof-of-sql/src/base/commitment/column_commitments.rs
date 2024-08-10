@@ -3,9 +3,9 @@ use super::{
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
 use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use thiserror::Error;
 
 /// Cannot create commitments with duplicate identifier.
@@ -104,7 +104,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers
-        let mut unique_identifiers = HashSet::new();
+        let mut unique_identifiers = IndexSet::new();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
@@ -154,7 +154,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers.
-        let mut unique_identifiers = HashSet::new();
+        let mut unique_identifiers = IndexSet::new();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {

@@ -91,7 +91,7 @@ impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
         }
     }
 
-    fn get_column_references(&self) -> std::collections::HashSet<crate::base::database::ColumnRef> {
+    fn get_column_references(&self) -> indexmap::IndexSet<crate::base::database::ColumnRef> {
         match self {
             ProofPlan::Projection(expr) => expr.get_column_references(),
             ProofPlan::Filter(expr) => expr.get_column_references(),

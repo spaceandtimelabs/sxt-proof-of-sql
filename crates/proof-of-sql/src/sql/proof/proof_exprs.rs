@@ -8,7 +8,8 @@ use crate::base::{
     scalar::Scalar,
 };
 use bumpalo::Bump;
-use std::{collections::HashSet, fmt::Debug};
+use indexmap::IndexSet;
+use std::fmt::Debug;
 
 /// Provable nodes in the provable AST.
 pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
@@ -42,7 +43,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
     fn get_column_result_fields(&self) -> Vec<ColumnField>;
 
     /// Return all the columns referenced in the Query
-    fn get_column_references(&self) -> HashSet<ColumnRef>;
+    fn get_column_references(&self) -> IndexSet<ColumnRef>;
 }
 
 pub trait ProverEvaluate<S: Scalar> {

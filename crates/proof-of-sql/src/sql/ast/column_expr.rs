@@ -8,9 +8,10 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use core::marker::PhantomData;
+use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, marker::PhantomData};
 /// Provable expression for a column
 ///
 /// Note: this is currently limited to named column expressions.
@@ -94,10 +95,10 @@ impl<C: Commitment> ProvableExpr<C> for ColumnExpr<C> {
         Ok(builder.consume_anchored_mle(col_commit))
     }
 
-    /// Insert in the HashSet `columns` all the column
+    /// Insert in the IndexSet `columns` all the column
     /// references in the BoolExpr or forwards the call to some
     /// subsequent bool_expr
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         columns.insert(self.column_ref);
     }
 }

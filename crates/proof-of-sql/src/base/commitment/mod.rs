@@ -51,8 +51,8 @@ pub trait Commitment:
     + Eq
     + core::ops::Sub<Output = Self>
     + core::fmt::Debug
-    + std::marker::Sync
-    + std::marker::Send
+    + core::marker::Sync
+    + core::marker::Send
 {
     /// The associated scalar that the commitment is for.
     /// There are multiple possible commitment schemes for a scalar, but only one scalar for any commitment.

@@ -22,9 +22,9 @@ use arrow::datatypes::{Field, Schema};
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{Identifier, ResourceId};
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
@@ -124,7 +124,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 
     assert_eq!(
         ref_columns,
-        HashSet::from([
+        IndexSet::from([
             ColumnRef::new(
                 table_ref,
                 Identifier::try_new("a").unwrap(),

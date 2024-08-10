@@ -14,9 +14,9 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable numerical * expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -112,7 +112,7 @@ impl<C: Commitment> ProvableExpr<C> for MultiplyExpr<C> {
         Ok(lhs_times_rhs)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

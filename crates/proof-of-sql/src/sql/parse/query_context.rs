@@ -8,11 +8,12 @@ use crate::{
         parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
+use indexmap::IndexSet;
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -26,7 +27,7 @@ pub struct QueryContext {
     order_by_exprs: Vec<OrderBy>,
     group_by_exprs: Vec<Identifier>,
     where_expr: Option<Box<Expression>>,
-    result_column_set: HashSet<Identifier>,
+    result_column_set: IndexSet<Identifier>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
     column_mapping: HashMap<Identifier, ColumnRef>,
     first_result_col_out_agg_scope: Option<Identifier>,
@@ -207,7 +208,7 @@ impl QueryContext {
         &self.group_by_exprs
     }
 
-    pub fn get_result_column_set(&self) -> HashSet<Identifier> {
+    pub fn get_result_column_set(&self) -> IndexSet<Identifier> {
         self.result_column_set.clone()
     }
 
