@@ -34,7 +34,6 @@ curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 dyn_partial_eq = { version = "0.1.2" }
 flexbuffers = { version = "2.0.0" }
-hashbrown = { version = "0.14.0" }
 indexmap = { version = "2.1" }
 itertools = { version = "0.13.0" }
 lalrpop-util = { version = "0.20.0" }
