@@ -77,16 +77,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
 
-        let proof = QueryProof::new_from_builder(builder, generator_offset, transcript, setup);
-        (proof, provable_result)
-    }
-
-    pub(crate) fn new_from_builder(
-        builder: ProofBuilder<CP::Scalar>,
-        generator_offset: usize,
-        mut transcript: Transcript,
-        setup: &CP::ProverPublicSetup<'_>,
-    ) -> Self {
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
 
@@ -146,7 +136,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             pre_result_mle_evaluations,
             evaluation_proof,
         };
-        proof
+        (proof, provable_result)
     }
 
     #[tracing::instrument(name = "QueryProof::verify", level = "debug", skip_all, err)]
@@ -330,7 +320,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
 /// ```
-pub fn make_transcript<C: Commitment>(
+fn make_transcript<C: Commitment>(
     expr: &(impl ProofExpr<C> + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
