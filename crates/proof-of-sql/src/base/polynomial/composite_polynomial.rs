@@ -1,5 +1,5 @@
 use crate::base::scalar::Scalar;
-use hashbrown::HashMap;
+use indexmap::IndexMap;
 /**
  * Adopted from arkworks
  *
@@ -32,7 +32,7 @@ pub struct CompositePolynomial<S: Scalar> {
     pub products: Vec<(S, Vec<usize>)>,
     /// Stores multilinear extensions in which product multiplicand can refer to.
     pub flattened_ml_extensions: Vec<Rc<Vec<S>>>,
-    raw_pointers_lookup_table: HashMap<*const Vec<S>, usize>,
+    raw_pointers_lookup_table: IndexMap<*const Vec<S>, usize>,
 }
 
 /// Stores the number of variables and max number of multiplicands of the added polynomial used by the prover.
@@ -53,7 +53,7 @@ impl<S: Scalar> CompositePolynomial<S> {
             num_variables,
             products: Vec::new(),
             flattened_ml_extensions: Vec::new(),
-            raw_pointers_lookup_table: HashMap::new(),
+            raw_pointers_lookup_table: IndexMap::new(),
         }
     }
 

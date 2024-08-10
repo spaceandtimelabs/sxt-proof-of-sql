@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use proof_of_sql::base::{
     commitment::Commitment,
     database::{
@@ -6,15 +7,14 @@ use proof_of_sql::base::{
     },
 };
 use proof_of_sql_parser::Identifier;
-use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct BenchmarkAccessor<'a, C: Commitment> {
-    columns: HashMap<ColumnRef, Column<'a, C::Scalar>>,
-    lengths: HashMap<TableRef, usize>,
-    commitments: HashMap<ColumnRef, C>,
-    column_types: HashMap<(TableRef, Identifier), ColumnType>,
-    table_schemas: HashMap<TableRef, Vec<(Identifier, ColumnType)>>,
+    columns: IndexMap<ColumnRef, Column<'a, C::Scalar>>,
+    lengths: IndexMap<TableRef, usize>,
+    commitments: IndexMap<ColumnRef, C>,
+    column_types: IndexMap<(TableRef, Identifier), ColumnType>,
+    table_schemas: IndexMap<TableRef, Vec<(Identifier, ColumnType)>>,
 }
 
 impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {

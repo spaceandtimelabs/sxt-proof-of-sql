@@ -20,8 +20,7 @@ use arrow::datatypes::{Field, Schema};
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
-use indexmap::IndexMap;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{Identifier, ResourceId};
 use std::sync::Arc;
 

@@ -3,11 +3,11 @@ use crate::{
     base::{commitment::Commitment, database::ColumnRef},
     sql::ast::ProvableExprPlan,
 };
+use indexmap::IndexMap;
 use proof_of_sql_parser::{
     intermediate_ast::{AliasedResultExpr, Expression},
     Identifier,
 };
-use std::collections::HashMap;
 /// Enriched expression
 ///
 /// An enriched expression consists of an `proof_of_sql_parser::intermediate_ast::AliasedResultExpr`
@@ -28,7 +28,7 @@ impl<C: Commitment> EnrichedExpr<C> {
     /// and the `residue_expression` will contain the remaining expression.
     pub fn new(
         expression: AliasedResultExpr,
-        column_mapping: HashMap<Identifier, ColumnRef>,
+        column_mapping: IndexMap<Identifier, ColumnRef>,
     ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExpr` generalizations.

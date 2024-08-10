@@ -8,12 +8,11 @@ use crate::{
         parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,
 };
-use std::collections::HashMap;
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -29,7 +28,7 @@ pub struct QueryContext {
     where_expr: Option<Box<Expression>>,
     result_column_set: IndexSet<Identifier>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: HashMap<Identifier, ColumnRef>,
+    column_mapping: IndexMap<Identifier, ColumnRef>,
     first_result_col_out_agg_scope: Option<Identifier>,
 }
 
@@ -138,7 +137,7 @@ impl QueryContext {
         let mut columns = self.result_column_set.iter().collect::<Vec<_>>();
         columns.sort();
         columns.first().map(|c| {
-            let column = self.column_mapping[c];
+            let column = self.column_mapping[*c];
             (column.column_id(), *column.column_type())
         })
     }
@@ -212,7 +211,7 @@ impl QueryContext {
         self.result_column_set.clone()
     }
 
-    pub fn get_column_mapping(&self) -> HashMap<Identifier, ColumnRef> {
+    pub fn get_column_mapping(&self) -> IndexMap<Identifier, ColumnRef> {
         self.column_mapping.clone()
     }
 }

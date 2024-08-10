@@ -15,6 +15,7 @@ mod tests {
         },
     };
     use curve25519_dalek::RistrettoPoint;
+    use indexmap::IndexMap;
     use proof_of_sql_parser::{
         intermediate_ast::{BinaryOperator, Expression, Literal},
         intermediate_decimal::IntermediateDecimal,
@@ -22,16 +23,16 @@ mod tests {
         utility::{col, equal, lit},
         Identifier, SelectStatement,
     };
-    use std::{collections::HashMap, str::FromStr};
+    use std::str::FromStr;
 
-    fn run_test_case(column_mapping: &HashMap<Identifier, ColumnRef>, expr: Expression) {
+    fn run_test_case(column_mapping: &IndexMap<Identifier, ColumnRef>, expr: Expression) {
         let builder = WhereExprBuilder::new(column_mapping);
         let result = builder.build::<RistrettoPoint>(Some(Box::new(expr)));
         assert!(result.is_ok(), "Test case should succeed without panic.");
     }
 
-    fn get_column_mappings_for_testing() -> HashMap<Identifier, ColumnRef> {
-        let mut column_mapping = HashMap::new();
+    fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
+        let mut column_mapping = IndexMap::new();
         // Setup column mapping
         column_mapping.insert(
             Identifier::try_new("boolean_column").unwrap(),
@@ -373,7 +374,7 @@ mod tests {
 
     #[test]
     fn we_can_not_have_non_boolean_literal_as_where_clause() {
-        let column_mapping = HashMap::new();
+        let column_mapping = IndexMap::new();
 
         let builder = WhereExprBuilder::new(&column_mapping);
 
