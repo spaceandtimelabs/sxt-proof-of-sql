@@ -11,9 +11,9 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable numerical `+` / `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -112,7 +112,7 @@ impl<C: Commitment> ProvableExpr<C> for AddSubtractExpr<C> {
         Ok(res)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

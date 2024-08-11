@@ -14,8 +14,9 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use core::marker::PhantomData;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, marker::PhantomData};
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -95,8 +96,8 @@ where
         columns
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
-        let mut columns = HashSet::new();
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        let mut columns = IndexSet::new();
 
         for col in self.results.iter() {
             columns.insert(col.get_column_reference());

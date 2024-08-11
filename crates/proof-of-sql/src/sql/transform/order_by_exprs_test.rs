@@ -195,13 +195,10 @@ fn validate_order_by_map_i128_to_utf8_with_array(s: Vec<i128>) {
 
     // no collision happens
     assert_eq!(
-        sorted_s
-            .iter()
-            .collect::<std::collections::HashSet<_>>()
-            .len(),
+        sorted_s.iter().collect::<indexmap::IndexSet<_>>().len(),
         utf8_sorted_s
             .iter()
-            .collect::<std::collections::HashSet<_>>()
+            .collect::<indexmap::IndexSet<_>>()
             .len(),
     );
 }

@@ -3,8 +3,8 @@ use crate::base::database::{
     ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
     TableRef,
 };
+use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
-use std::collections::HashMap;
 
 /// The commitments for all of the tables in a query.
 ///
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 /// - [`MetadataAccessor`]
 /// - [`CommitmentAccessor`]
 /// - [`SchemaAccessor`]
-pub type QueryCommitments<C> = HashMap<TableRef, TableCommitment<C>>;
+pub type QueryCommitments<C> = IndexMap<TableRef, TableCommitment<C>>;
 
 /// A trait for extending the functionality of the [`QueryCommitments`] alias.
 pub trait QueryCommitmentsExt<C>
@@ -33,7 +33,7 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     ) -> Self {
         columns
             .into_iter()
-            .fold(HashMap::<_, Vec<_>>::new(), |mut table_columns, column| {
+            .fold(IndexMap::<_, Vec<_>>::new(), |mut table_columns, column| {
                 table_columns
                     .entry(column.table_ref())
                     .or_default()

@@ -350,14 +350,14 @@ fn validate_group_by_map_i128_to_utf8(s: Vec<i128>) {
     // no collision happens
     assert_eq!(
         expected_len,
-        s.iter().collect::<std::collections::HashSet<_>>().len()
+        s.iter().collect::<indexmap::IndexSet<_>>().len()
     );
 
     assert_eq!(
         expected_len,
         s.into_iter()
             .map(group_by_map_i128_to_utf8)
-            .collect::<std::collections::HashSet<_>>()
+            .collect::<indexmap::IndexSet<_>>()
             .len(),
     );
 }

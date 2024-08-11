@@ -10,7 +10,6 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 use indexmap::IndexMap;
 use polars::prelude::DataFrame;
 use proof_of_sql_parser::Identifier;
-use std::collections::HashMap;
 
 /// TestTable is used to simulate an in-memory table and commitment tracking table.
 #[derive(Clone)]
@@ -24,7 +23,7 @@ struct TestAccessorTable {
 /// TestAccessor is used to simulate an in-memory databasefor proof testing.
 pub struct RecordBatchTestAccessor {
     alloc: Bump,
-    tables: HashMap<TableRef, TestAccessorTable>,
+    tables: IndexMap<TableRef, TestAccessorTable>,
 }
 
 impl Clone for RecordBatchTestAccessor {
@@ -48,7 +47,7 @@ impl TestAccessor<RistrettoPoint> for RecordBatchTestAccessor {
     fn new_empty() -> Self {
         Self {
             alloc: Bump::new(),
-            tables: HashMap::new(),
+            tables: IndexMap::new(),
         }
     }
     fn add_table(&mut self, table_ref: TableRef, data: RecordBatch, table_offset: usize) {

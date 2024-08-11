@@ -8,8 +8,8 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable logical NOT expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -68,7 +68,7 @@ impl<C: Commitment> ProvableExpr<C> for NotExpr<C> {
         Ok(builder.mle_evaluations.one_evaluation - eval)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.expr.get_column_references(columns);
     }
 }

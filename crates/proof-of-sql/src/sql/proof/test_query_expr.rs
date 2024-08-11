@@ -13,8 +13,9 @@ use crate::base::{
 use bumpalo::Bump;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use dyn_partial_eq::DynPartialEq;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, fmt, fmt::Debug};
+use std::{fmt, fmt::Debug};
 
 type ResultFn = Box<
     dyn for<'a> Fn(&mut ResultBuilder<'a>, &'a Bump, &'a dyn DataAccessor<Curve25519Scalar>)
@@ -100,7 +101,7 @@ impl ProofExpr<RistrettoPoint> for TestQueryExpr {
         columns
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
     }
 }

@@ -10,30 +10,30 @@ use crate::{
         parse::ConversionError::DecimalConversionError,
     },
 };
+use indexmap::IndexMap;
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
     Identifier,
 };
-use std::collections::HashMap;
 
 /// Builder that enables building a `proofs::sql::ast::ProvableExprPlan` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct ProvableExprPlanBuilder<'a> {
-    column_mapping: &'a HashMap<Identifier, ColumnRef>,
+    column_mapping: &'a IndexMap<Identifier, ColumnRef>,
     in_agg_scope: bool,
 }
 
 impl<'a> ProvableExprPlanBuilder<'a> {
     /// Creates a new `ProvableExprPlanBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: false,
         }
     }
     /// Creates a new `ProvableExprPlanBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
+    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: true,

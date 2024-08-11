@@ -23,10 +23,10 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
+use indexmap::IndexSet;
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -183,8 +183,8 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             .collect()
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
-        let mut columns = HashSet::new();
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        let mut columns = IndexSet::new();
 
         for col in self.group_by_exprs.iter() {
             columns.insert(col.get_column_reference());

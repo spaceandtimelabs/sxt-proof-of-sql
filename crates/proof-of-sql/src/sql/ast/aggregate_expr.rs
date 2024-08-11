@@ -8,9 +8,9 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable aggregate expression
 ///
@@ -69,7 +69,7 @@ impl<C: Commitment> ProvableExpr<C> for AggregateExpr<C> {
         self.expr.verifier_evaluate(builder, accessor)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.expr.get_column_references(columns)
     }
 }
