@@ -22,12 +22,20 @@ pub struct InequalityExpr<C: Commitment> {
     lhs: Box<ProvableExprPlan<C>>,
     rhs: Box<ProvableExprPlan<C>>,
     is_lte: bool,
+    #[cfg(test)]
+    pub(crate) treat_column_of_zeros_as_negative: bool,
 }
 
 impl<C: Commitment> InequalityExpr<C> {
     /// Create a new less than or equal expression
     pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>, is_lte: bool) -> Self {
-        Self { lhs, rhs, is_lte }
+        Self {
+            lhs,
+            rhs,
+            is_lte,
+            #[cfg(test)]
+            treat_column_of_zeros_as_negative: false,
+        }
     }
 }
 
@@ -97,7 +105,13 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         let equals_zero = prover_evaluate_equals_zero(builder, alloc, diff);
 
         // sign(diff) == -1
-        let sign = prover_evaluate_sign(builder, alloc, diff);
+        let sign = prover_evaluate_sign(
+            builder,
+            alloc,
+            diff,
+            #[cfg(test)]
+            self.treat_column_of_zeros_as_negative,
+        );
 
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))

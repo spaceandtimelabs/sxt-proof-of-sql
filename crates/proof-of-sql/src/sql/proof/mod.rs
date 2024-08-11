@@ -41,8 +41,6 @@ pub use proof_exprs::ProofExpr;
 pub(crate) use proof_exprs::{HonestProver, ProverEvaluate, ProverHonestyMarker};
 
 mod query_proof;
-#[cfg(test)]
-pub(crate) use query_proof::make_transcript;
 #[cfg(not(feature = "test"))]
 pub(crate) use query_proof::QueryProof;
 #[cfg(feature = "test")]

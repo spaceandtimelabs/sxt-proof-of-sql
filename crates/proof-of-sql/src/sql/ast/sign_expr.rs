@@ -76,10 +76,19 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
+    #[cfg(test)] treat_column_of_zeros_as_negative: bool,
 ) -> &'a [bool] {
     let table_length = expr.len();
     // bit_distribution
     let dist = BitDistribution::new::<S, _>(expr);
+    #[cfg(test)]
+    let dist = {
+        let mut dist = dist;
+        if treat_column_of_zeros_as_negative && dist.vary_mask == [0; 4] {
+            dist.or_all[3] = 1 << 63;
+        }
+        dist
+    };
     builder.produce_bit_distribution(dist.clone());
 
     // handle the constant case
