@@ -3,6 +3,7 @@ use crate::base::commitment::CommittableColumn;
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::compute::ElementP2;
+use tracing::{span, Level};
 use rayon::prelude::*;
 
 #[tracing::instrument(name = "modify_commits (gpu)", level = "debug", skip_all)]
@@ -90,7 +91,8 @@ fn compute_dory_commitments_packed_impl(
         num_of_commits,
     );
 
-    (0..num_of_outputs)
+    let span = span!(Level::INFO, "multi_pairing").entered();
+    let dc: Vec<DoryCommitment> = (0..num_of_outputs)
         .into_par_iter()
         .map(|i| {
             let idx = i * num_of_commits;
@@ -99,7 +101,10 @@ fn compute_dory_commitments_packed_impl(
 
             DoryCommitment(pairings::multi_pairing(individual_commits, gamma_2_slice))
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+    span.exit();
+
+    dc
 }
 
 pub(super) fn compute_dory_commitments(
