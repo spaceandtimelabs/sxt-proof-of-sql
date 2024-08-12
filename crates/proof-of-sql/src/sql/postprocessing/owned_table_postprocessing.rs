@@ -1,15 +1,18 @@
-use super::{OrderByExpr, PostprocessingResult, PostprocessingStep, SelectExpr, SliceExpr};
+use super::{
+    OrderByPostprocessing, PostprocessingResult, PostprocessingStep, SelectPostprocessing,
+    SlicePostprocessing,
+};
 use crate::base::{database::OwnedTable, scalar::Scalar};
 
 /// An enum for nodes that can apply postprocessing to a `OwnedTable`.
 #[derive(Debug, Clone)]
 pub enum OwnedTablePostprocessing {
-    /// Slice the `OwnedTable` with the given `SliceExpr`.
-    Slice(SliceExpr),
-    /// Order the `OwnedTable` with the given `OrderByExpr`.
-    OrderBy(OrderByExpr),
-    /// Select the `OwnedTable` with the given `SelectExpr`.
-    Select(SelectExpr),
+    /// Slice the `OwnedTable` with the given `SlicePostprocessing`.
+    Slice(SlicePostprocessing),
+    /// Order the `OwnedTable` with the given `OrderByPostprocessing`.
+    OrderBy(OrderByPostprocessing),
+    /// Select the `OwnedTable` with the given `SelectPostprocessing`.
+    Select(SelectPostprocessing),
 }
 
 impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
@@ -24,16 +27,16 @@ impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
 }
 
 impl OwnedTablePostprocessing {
-    /// Create a new `OwnedTablePostprocessing` with the given `SliceExpr`.
-    pub fn new_slice(slice_expr: SliceExpr) -> Self {
+    /// Create a new `OwnedTablePostprocessing` with the given `SlicePostprocessing`.
+    pub fn new_slice(slice_expr: SlicePostprocessing) -> Self {
         Self::Slice(slice_expr)
     }
-    /// Create a new `OwnedTablePostprocessing` with the given `OrderByExpr`.
-    pub fn new_order_by(order_by_expr: OrderByExpr) -> Self {
+    /// Create a new `OwnedTablePostprocessing` with the given `OrderByPostprocessing`.
+    pub fn new_order_by(order_by_expr: OrderByPostprocessing) -> Self {
         Self::OrderBy(order_by_expr)
     }
-    /// Create a new `OwnedTablePostprocessing` with the given `SelectExpr`.
-    pub fn new_select(select_expr: SelectExpr) -> Self {
+    /// Create a new `OwnedTablePostprocessing` with the given `SelectPostprocessing`.
+    pub fn new_select(select_expr: SelectPostprocessing) -> Self {
         Self::Select(select_expr)
     }
 }

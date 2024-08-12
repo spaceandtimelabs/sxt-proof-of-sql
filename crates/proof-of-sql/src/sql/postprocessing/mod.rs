@@ -10,17 +10,17 @@ pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
 pub mod test_utility;
 
-mod order_by_expr;
-pub use order_by_expr::OrderByExpr;
+mod order_by_postprocessing;
+pub use order_by_postprocessing::OrderByPostprocessing;
 #[cfg(test)]
-mod order_by_expr_test;
+mod order_by_postprocessing_test;
 
-mod select_expr;
-pub use select_expr::SelectExpr;
+mod select_postprocessing;
+pub use select_postprocessing::SelectPostprocessing;
 #[cfg(test)]
-mod select_expr_test;
+mod select_postprocessing_test;
 
-mod slice_expr;
-pub use slice_expr::SliceExpr;
+mod slice_postprocessing;
+pub use slice_postprocessing::SlicePostprocessing;
 #[cfg(test)]
-mod slice_expr_test;
+mod slice_postprocessing_test;
