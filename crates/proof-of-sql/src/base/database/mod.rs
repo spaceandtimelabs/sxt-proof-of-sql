@@ -33,16 +33,6 @@ mod record_batch_utility;
 pub use record_batch_utility::ToArrow;
 
 #[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
-mod record_batch_test_accessor;
-#[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
-pub use record_batch_test_accessor::RecordBatchTestAccessor;
-
-#[cfg(all(test, feature = "blitzar"))]
-mod record_batch_test_accessor_test;
-
-#[cfg(any(test, feature = "test"))]
 mod test_accessor_utility;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
@@ -79,8 +69,12 @@ mod test_accessor;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
-#[allow(unused_imports)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
+
+#[cfg(test)]
+mod test_schema_accessor;
+#[cfg(test)]
+pub(crate) use test_schema_accessor::TestSchemaAccessor;
 
 #[cfg(any(test, feature = "test"))]
 mod owned_table_test_accessor;

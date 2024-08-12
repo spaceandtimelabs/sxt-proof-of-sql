@@ -2,20 +2,16 @@
 mod tests {
     use crate::{
         base::{
-            database::{ColumnRef, ColumnType, LiteralValue},
+            database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
             math::decimal::Precision,
         },
-        record_batch,
         sql::{
             ast::{ColumnExpr, LiteralExpr, ProvableExprPlan},
-            parse::{
-                query_expr_tests::record_batch_to_accessor, ConversionError, QueryExpr,
-                WhereExprBuilder,
-            },
+            parse::{ConversionError, QueryExpr, WhereExprBuilder},
         },
     };
     use curve25519_dalek::RistrettoPoint;
-    use indexmap::IndexMap;
+    use indexmap::{indexmap, IndexMap};
     use proof_of_sql_parser::{
         intermediate_ast::{BinaryOperator, Expression, Literal},
         intermediate_decimal::IntermediateDecimal,
@@ -389,51 +385,49 @@ mod tests {
     #[test]
     fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
         let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => ["abc"],
-            ),
-            0,
-        );
+        let accessor = TestSchemaAccessor::new(indexmap! {
+            t => indexmap! {
+                "b".parse().unwrap() => ColumnType::VarChar,
+            },
+        });
 
-        assert!(QueryExpr::<RistrettoPoint>::try_new(
-            SelectStatement::from_str("select * from sxt_tab where b = 123").unwrap(),
-            t.schema_id(),
-            &accessor,
-        )
-        .is_err());
+        assert!(matches!(
+            QueryExpr::<RistrettoPoint>::try_new(
+                SelectStatement::from_str("select * from sxt_tab where b = 123").unwrap(),
+                t.schema_id(),
+                &accessor,
+            ),
+            Err(ConversionError::DataTypeMismatch(_, _))
+        ));
     }
 
     #[test]
     fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
         let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => ["abc"],
-            ),
-            0,
-        );
+        let accessor = TestSchemaAccessor::new(indexmap! {
+            t => indexmap! {
+                "b".parse().unwrap() => ColumnType::VarChar,
+            },
+        });
 
-        assert!(QueryExpr::<RistrettoPoint>::try_new(
-            SelectStatement::from_str("select * from sxt_tab where b >= 123").unwrap(),
-            t.schema_id(),
-            &accessor,
-        )
-        .is_err());
+        assert!(matches!(
+            QueryExpr::<RistrettoPoint>::try_new(
+                SelectStatement::from_str("select * from sxt_tab where b >= 123").unwrap(),
+                t.schema_id(),
+                &accessor,
+            ),
+            Err(ConversionError::DataTypeMismatch(_, _))
+        ));
     }
 
     #[test]
     fn we_do_not_expect_an_error_while_trying_to_check_int128_column_eq_decimal_with_zero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => [123_i128],
-            ),
-            0,
-        );
+        let accessor = TestSchemaAccessor::new(indexmap! {
+            t => indexmap! {
+                "b".parse().unwrap() => ColumnType::Int128,
+            },
+        });
 
         assert!(QueryExpr::<RistrettoPoint>::try_new(
             SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
@@ -446,13 +440,11 @@ mod tests {
     #[test]
     fn we_do_not_expect_an_error_while_trying_to_check_bigint_column_eq_decimal_with_zero_scale() {
         let t = "sxt.sxt_tab".parse().unwrap();
-        let accessor = record_batch_to_accessor(
-            t,
-            record_batch!(
-                "b" => [123_i64],
-            ),
-            0,
-        );
+        let accessor = TestSchemaAccessor::new(indexmap! {
+            t => indexmap! {
+                "b".parse().unwrap() => ColumnType::BigInt,
+            },
+        });
 
         assert!(QueryExpr::<RistrettoPoint>::try_new(
             SelectStatement::from_str("select * from sxt_tab where b = 123.000").unwrap(),
