@@ -12,13 +12,13 @@ fn we_can_track_the_evaluation_of_mles_used_within_sumcheck() {
 
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&random_scalars, 3, 2);
 
-    let pre_result_evaluations = [Curve25519Scalar::from(42u64)];
+    let pcs_proof_evaluations = [Curve25519Scalar::from(42u64)];
     let result_evaluations = [Curve25519Scalar::from(51u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
         &evaluation_point,
         &sumcheck_random_scalars,
-        &pre_result_evaluations,
+        &pcs_proof_evaluations,
         &result_evaluations,
         &Indexes::Sparse(vec![]),
     );
@@ -54,13 +54,13 @@ fn we_can_track_the_evaluation_of_dense_indexes() {
 
     let sumcheck_random_scalars = SumcheckRandomScalars::new(&random_scalars, 3, 2);
 
-    let pre_result_evaluations = [Curve25519Scalar::from(42u64)];
+    let pcs_proof_evaluations = [Curve25519Scalar::from(42u64)];
     let result_evaluations = [Curve25519Scalar::from(51u64)];
     let evals = SumcheckMleEvaluations::new(
         3,
         &evaluation_point,
         &sumcheck_random_scalars,
-        &pre_result_evaluations,
+        &pcs_proof_evaluations,
         &result_evaluations,
         &Indexes::Dense(0..3),
     );

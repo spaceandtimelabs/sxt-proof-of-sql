@@ -16,7 +16,7 @@ pub struct ProofBuilder<'a, S: Scalar> {
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
     commitment_descriptor: Vec<CommittableColumn<'a>>,
-    pre_result_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
+    pcs_proof_mles: Vec<Box<dyn MultilinearExtension<S> + 'a>>,
     sumcheck_subpolynomials: Vec<SumcheckSubpolynomial<'a, S>>,
     /// The challenges used in creation of the constraints in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -39,7 +39,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
             num_sumcheck_variables,
             bit_distributions: Vec::new(),
             commitment_descriptor: Vec::new(),
-            pre_result_mles: Vec::new(),
+            pcs_proof_mles: Vec::new(),
             sumcheck_subpolynomials: Vec::new(),
             post_result_challenges,
         }
@@ -67,7 +67,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment.
     pub fn produce_anchored_mle(&mut self, data: impl MultilinearExtension<S> + 'a) {
-        self.pre_result_mles.push(Box::new(data));
+        self.pcs_proof_mles.push(Box::new(data));
     }
 
     /// Produce an MLE for a intermediate computed column that we can reference in sumcheck.
@@ -139,13 +139,13 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
     #[tracing::instrument(
-        name = "ProofBuilder::evaluate_pre_result_mles",
+        name = "ProofBuilder::evaluate_pcs_proof_mles",
         level = "debug",
         skip_all
     )]
-    pub fn evaluate_pre_result_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
-        let mut res = Vec::with_capacity(self.pre_result_mles.len());
-        for evaluator in self.pre_result_mles.iter() {
+    pub fn evaluate_pcs_proof_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
+        let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
+        for evaluator in self.pcs_proof_mles.iter() {
             res.push(evaluator.inner_product(evaluation_vec));
         }
         res
@@ -153,11 +153,11 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
-    #[tracing::instrument(name = "ProofBuilder::fold_pre_result_mles", level = "debug", skip_all)]
-    pub fn fold_pre_result_mles(&self, multipliers: &[S]) -> Vec<S> {
-        assert_eq!(multipliers.len(), self.pre_result_mles.len());
+    #[tracing::instrument(name = "ProofBuilder::fold_pcs_proof_mles", level = "debug", skip_all)]
+    pub fn fold_pcs_proof_mles(&self, multipliers: &[S]) -> Vec<S> {
+        assert_eq!(multipliers.len(), self.pcs_proof_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];
-        for (multiplier, evaluator) in multipliers.iter().zip(self.pre_result_mles.iter()) {
+        for (multiplier, evaluator) in multipliers.iter().zip(self.pcs_proof_mles.iter()) {
             evaluator.mul_add(&mut res, multiplier);
         }
         res
