@@ -10,18 +10,18 @@ use serde::{Deserialize, Serialize};
 
 /// A node representing a list of `OrderBy` expressions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct OrderByExpr {
+pub struct OrderByPostprocessing {
     by_exprs: Vec<OrderBy>,
 }
 
-impl OrderByExpr {
-    /// Create a new `OrderByExpr` node.
+impl OrderByPostprocessing {
+    /// Create a new `OrderByPostprocessing` node.
     pub fn new(by_exprs: Vec<OrderBy>) -> Self {
         Self { by_exprs }
     }
 }
 
-impl<S: Scalar> PostprocessingStep<S> for OrderByExpr {
+impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
     /// Apply the slice transformation to the given `OwnedTable`.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         let mut indexes = (0..owned_table.num_rows()).collect::<Vec<_>>();

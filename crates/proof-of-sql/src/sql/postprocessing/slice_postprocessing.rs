@@ -2,9 +2,9 @@ use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{database::OwnedTable, scalar::Scalar};
 use serde::{Deserialize, Serialize};
 
-/// A `SliceExpr` represents a slice of an `OwnedTable`.
+/// A `SlicePostprocessing` represents a slice of an `OwnedTable`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SliceExpr {
+pub struct SlicePostprocessing {
     /// number of rows to return
     ///
     /// - if None, specify all rows
@@ -19,8 +19,8 @@ pub struct SliceExpr {
     offset_value: Option<i64>,
 }
 
-impl SliceExpr {
-    /// Create a new `SliceExpr` with the given `number_rows` and `offset`.
+impl SlicePostprocessing {
+    /// Create a new `SlicePostprocessing` with the given `number_rows` and `offset`.
     pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
         Self {
             number_rows,
@@ -29,7 +29,7 @@ impl SliceExpr {
     }
 }
 
-impl<S: Scalar> PostprocessingStep<S> for SliceExpr {
+impl<S: Scalar> PostprocessingStep<S> for SlicePostprocessing {
     /// Apply the slice transformation to the given `OwnedTable`.
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         let num_rows = owned_table.num_rows();
