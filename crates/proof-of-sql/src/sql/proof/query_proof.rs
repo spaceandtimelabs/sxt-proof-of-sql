@@ -34,7 +34,7 @@ pub struct QueryProof<CP: CommitmentEvaluationProof> {
     /// Sumcheck Proof
     pub sumcheck_proof: SumcheckProof<CP::Scalar>,
     /// MLEs used in sumcheck except for the result columns
-    pub pre_result_mle_evaluations: Vec<CP::Scalar>,
+    pub pcs_proof_evaluations: Vec<CP::Scalar>,
     /// Inner product proof of the MLEs' evaluations
     pub evaluation_proof: CP,
 }
@@ -103,22 +103,20 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // evaluate the MLEs used in sumcheck except for the result columns
         let mut evaluation_vec = vec![Zero::zero(); table_length];
         compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
-        let pre_result_mle_evaluations = builder.evaluate_pre_result_mles(&evaluation_vec);
+        let pcs_proof_evaluations = builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
-        transcript.append_canonical_serialize(
-            MessageLabel::QueryMleEvaluations,
-            &pre_result_mle_evaluations,
-        );
+        transcript
+            .append_canonical_serialize(MessageLabel::QueryMleEvaluations, &pcs_proof_evaluations);
 
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
-        let mut random_scalars = vec![Zero::zero(); pre_result_mle_evaluations.len()];
+        let mut random_scalars = vec![Zero::zero(); pcs_proof_evaluations.len()];
         transcript.challenge_scalars(
             &mut random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
         );
-        let folded_mle = builder.fold_pre_result_mles(&random_scalars);
+        let folded_mle = builder.fold_pcs_proof_mles(&random_scalars);
 
         // finally, form the inner product proof of the MLEs' evaluations
         let evaluation_proof = CP::new(
@@ -133,7 +131,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             bit_distributions: builder.bit_distributions().to_vec(),
             commitments,
             sumcheck_proof,
-            pre_result_mle_evaluations,
+            pcs_proof_evaluations,
             evaluation_proof,
         };
         (proof, provable_result)
@@ -212,13 +210,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // commit to mle evaluations
         transcript.append_canonical_serialize(
             MessageLabel::QueryMleEvaluations,
-            &self.pre_result_mle_evaluations,
+            &self.pcs_proof_evaluations,
         );
 
         // draw the random scalars for the evaluation proof
-        // (i.e. the folding/random linear combination of the pre_result_mles)
-        let mut evaluation_random_scalars =
-            vec![Zero::zero(); self.pre_result_mle_evaluations.len()];
+        // (i.e. the folding/random linear combination of the pcs_proof_mles)
+        let mut evaluation_random_scalars = vec![Zero::zero(); self.pcs_proof_evaluations.len()];
         transcript.challenge_scalars(
             &mut evaluation_random_scalars,
             MessageLabel::QueryMleEvaluationsChallenge,
@@ -238,7 +235,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             table_length,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
-            &self.pre_result_mle_evaluations,
+            &self.pcs_proof_evaluations,
             &result_evaluations,
             result.indexes(),
         );
@@ -262,11 +259,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // finally, check the MLE evaluations with the inner product proof
-        let product = builder.folded_pre_result_evaluation();
+        let product = builder.folded_pcs_proof_evaluation();
         self.evaluation_proof
             .verify_batched_proof(
                 &mut transcript,
-                builder.pre_result_commitments(),
+                builder.pcs_proof_commitments(),
                 builder.inner_product_multipliers(),
                 &product,
                 &subclaim.evaluation_point,
@@ -292,8 +289,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
         result.num_columns() == counts.result_columns
             && self.commitments.len() == counts.intermediate_mles
-            && self.pre_result_mle_evaluations.len()
-                == counts.intermediate_mles + counts.anchored_mles
+            && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
     }
 }
 
