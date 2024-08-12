@@ -1,6 +1,6 @@
 use super::{
-    ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn, QueryProof, TestQueryExpr,
-    VerifiableQueryResult,
+    verifiable_query_result_test::EmptyTestQueryExpr, ProofExpr, ProvableQueryResult,
+    ProvableResultColumn, QueryProof, VerifiableQueryResult,
 };
 use crate::{
     base::{
@@ -82,12 +82,8 @@ fn tamper_no_result(
 
     // add a proof
     let mut res_p = res.clone();
-    let counts = ProofCounts {
-        ..Default::default()
-    };
-    let expr_p = TestQueryExpr {
-        table_length: 1,
-        counts,
+    let expr_p = EmptyTestQueryExpr {
+        length: 1,
         ..Default::default()
     };
     let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
