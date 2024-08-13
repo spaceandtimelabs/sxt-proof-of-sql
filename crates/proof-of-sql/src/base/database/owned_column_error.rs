@@ -2,7 +2,7 @@ use crate::base::database::ColumnType;
 use thiserror::Error;
 
 /// Errors from operations related to `OwnedColumn`s.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum OwnedColumnError {
     /// Can not perform type casting.
     #[error("Can not perform type casting from {from_type:?} to {to_type:?}")]

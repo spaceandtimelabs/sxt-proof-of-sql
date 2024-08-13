@@ -1,5 +1,19 @@
 use super::*;
-use proof_of_sql_parser::intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection};
+use proof_of_sql_parser::{
+    intermediate_ast::{AliasedResultExpr, OrderBy, OrderByDirection},
+    utility::ident,
+    Identifier,
+};
+
+pub fn group_by_postprocessing(
+    cols: &[&str],
+    result_exprs: &[AliasedResultExpr],
+) -> OwnedTablePostprocessing {
+    let ids: Vec<Identifier> = cols.iter().map(|col| ident(col)).collect();
+    OwnedTablePostprocessing::new_group_by(
+        GroupByPostprocessing::try_new(ids, result_exprs.to_vec()).unwrap(),
+    )
+}
 
 pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_select(SelectPostprocessing::new(result_exprs.to_vec()))

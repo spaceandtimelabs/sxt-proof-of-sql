@@ -11,6 +11,7 @@ use rayon::prelude::ParallelSliceMut;
 use thiserror::Error;
 
 /// The output of the `aggregate_columns` function.
+#[derive(Debug)]
 pub struct AggregatedColumns<'a, S: Scalar> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
     /// This is effectively just the original group_by columns filtered by the selection.
@@ -26,7 +27,7 @@ pub struct AggregatedColumns<'a, S: Scalar> {
     /// The number of rows in each group.
     pub count_column: &'a [i64],
 }
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum AggregateColumnsError {
     #[error("Column length mismatch")]
     ColumnLengthMismatch,

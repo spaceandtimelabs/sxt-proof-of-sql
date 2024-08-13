@@ -1,6 +1,6 @@
 use super::{
-    OrderByPostprocessing, PostprocessingResult, PostprocessingStep, SelectPostprocessing,
-    SlicePostprocessing,
+    GroupByPostprocessing, OrderByPostprocessing, PostprocessingResult, PostprocessingStep,
+    SelectPostprocessing, SlicePostprocessing,
 };
 use crate::base::{database::OwnedTable, scalar::Scalar};
 
@@ -13,6 +13,8 @@ pub enum OwnedTablePostprocessing {
     OrderBy(OrderByPostprocessing),
     /// Select the `OwnedTable` with the given `SelectPostprocessing`.
     Select(SelectPostprocessing),
+    /// Aggregate the `OwnedTable` with the given `GroupByPostprocessing`.
+    GroupBy(GroupByPostprocessing),
 }
 
 impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
@@ -22,6 +24,7 @@ impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
             OwnedTablePostprocessing::Slice(slice_expr) => slice_expr.apply(owned_table),
             OwnedTablePostprocessing::OrderBy(order_by_expr) => order_by_expr.apply(owned_table),
             OwnedTablePostprocessing::Select(select_expr) => select_expr.apply(owned_table),
+            OwnedTablePostprocessing::GroupBy(group_by_expr) => group_by_expr.apply(owned_table),
         }
     }
 }
@@ -38,6 +41,10 @@ impl OwnedTablePostprocessing {
     /// Create a new `OwnedTablePostprocessing` with the given `SelectPostprocessing`.
     pub fn new_select(select_expr: SelectPostprocessing) -> Self {
         Self::Select(select_expr)
+    }
+    /// Create a new `OwnedTablePostprocessing` with the given `GroupByPostprocessing`.
+    pub fn new_group_by(group_by_postprocessing: GroupByPostprocessing) -> Self {
+        Self::GroupBy(group_by_postprocessing)
     }
 }
 

@@ -1,10 +1,17 @@
-use super::{PostprocessingError, PostprocessingResult};
+use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
+use crate::base::{
+    database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
+    scalar::Scalar,
+};
+use bumpalo::Bump;
 use indexmap::{IndexMap, IndexSet};
+use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
     Identifier,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -146,9 +153,10 @@ impl GroupByPostprocessing {
                 )
             })
             .collect::<PostprocessingResult<Vec<AliasedResultExpr>>>()?;
+        let group_by_identifiers = by_ids.into_iter().unique().collect();
         Ok(Self {
             remainder_exprs,
-            group_by_identifiers: by_ids,
+            group_by_identifiers,
             aggregation_expr_map,
         })
     }
@@ -166,6 +174,122 @@ impl GroupByPostprocessing {
     /// Get aggregation expression map
     pub fn aggregation_expr_map(&self) -> &IndexMap<(AggregationOperator, Expression), Identifier> {
         &self.aggregation_expr_map
+    }
+}
+
+impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
+    /// Apply the group by transformation to the given `OwnedTable`.
+    fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
+        // First evaluate all the aggregated columns
+        let alloc = Bump::new();
+        let evaluated_columns: HashMap<AggregationOperator, Vec<(Identifier, OwnedColumn<S>)>> =
+            self.aggregation_expr_map
+                .iter()
+                .map(|((agg_op, expr), id)| -> PostprocessingResult<_> {
+                    let evaluated_owned_column = owned_table.evaluate(expr)?;
+                    Ok((*agg_op, (*id, evaluated_owned_column)))
+                })
+                .process_results(|iter| iter.into_group_map())?;
+        // Next actually do the GROUP BY
+        let group_by_ins = self
+            .group_by_identifiers
+            .iter()
+            .map(|id| {
+                let column = owned_table
+                    .inner_table()
+                    .get(id)
+                    .ok_or(PostprocessingError::ColumnNotFound(id.to_string()))?;
+                Ok(Column::<S>::from_owned_column(column, &alloc))
+            })
+            .collect::<PostprocessingResult<Vec<_>>>()?;
+        // TODO: Allow a filter
+        let selection_in = vec![true; owned_table.num_rows()];
+        let (sum_ids, sum_ins): (Vec<_>, Vec<_>) = evaluated_columns
+            .get(&AggregationOperator::Sum)
+            .map(|tuple| {
+                tuple
+                    .iter()
+                    .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
+                    .unzip()
+            })
+            .unwrap_or((vec![], vec![]));
+        let (max_ids, max_ins): (Vec<_>, Vec<_>) = evaluated_columns
+            .get(&AggregationOperator::Max)
+            .map(|tuple| {
+                tuple
+                    .iter()
+                    .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
+                    .unzip()
+            })
+            .unwrap_or((vec![], vec![]));
+        let (min_ids, min_ins): (Vec<_>, Vec<_>) = evaluated_columns
+            .get(&AggregationOperator::Min)
+            .map(|tuple| {
+                tuple
+                    .iter()
+                    .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
+                    .unzip()
+            })
+            .unwrap_or((vec![], vec![]));
+        let aggregation_results = aggregate_columns(
+            &alloc,
+            &group_by_ins,
+            &sum_ins,
+            &max_ins,
+            &min_ins,
+            &selection_in,
+        )?;
+        // Finally do another round of evaluation to get the final result
+        // Gather the results into a new OwnedTable
+        let group_by_outs = aggregation_results
+            .group_by_columns
+            .iter()
+            .zip(self.group_by_identifiers.iter())
+            .map(|(column, id)| Ok((*id, OwnedColumn::from(column))));
+        let sum_outs =
+            izip!(aggregation_results.sum_columns, sum_ids, sum_ins,).map(|(c_out, id, c_in)| {
+                Ok((
+                    id,
+                    OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
+                ))
+            });
+        let max_outs =
+            izip!(aggregation_results.max_columns, max_ids, max_ins,).map(|(c_out, id, c_in)| {
+                Ok((
+                    id,
+                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+                ))
+            });
+        let min_outs =
+            izip!(aggregation_results.min_columns, min_ids, min_ins,).map(|(c_out, id, c_in)| {
+                Ok((
+                    id,
+                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+                ))
+            });
+        //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
+        let count_column = OwnedColumn::BigInt(aggregation_results.count_column.to_vec());
+        let count_outs = evaluated_columns
+            .get(&AggregationOperator::Count)
+            .into_iter()
+            .flatten()
+            .map(|(id, _)| -> PostprocessingResult<_> { Ok((*id, count_column.clone())) });
+        let new_owned_table: OwnedTable<S> = group_by_outs
+            .into_iter()
+            .chain(sum_outs)
+            .chain(max_outs)
+            .chain(min_outs)
+            .chain(count_outs)
+            .process_results(|iter| OwnedTable::try_from_iter(iter))??;
+        let res = self
+            .remainder_exprs
+            .iter()
+            .map(|aliased_expr| -> PostprocessingResult<_> {
+                let column = new_owned_table.evaluate(&aliased_expr.expr)?;
+                Ok((aliased_expr.alias, column))
+            })
+            .process_results(|iter| OwnedTable::try_from_iter(iter))??;
+        Ok(res)
     }
 }
 
