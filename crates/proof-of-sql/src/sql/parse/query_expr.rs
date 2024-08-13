@@ -1,43 +1,46 @@
-use super::{EnrichedExpr, FilterExprBuilder, QueryContextBuilder, ResultExprBuilder};
+use super::{EnrichedExpr, FilterExprBuilder, QueryContextBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
         ast::{GroupByExpr, ProofPlan},
         parse::ConversionResult,
-        transform::ResultExpr,
+        postprocessing::{
+            GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
+            SelectPostprocessing, SlicePostprocessing,
+        },
     },
 };
-use proof_of_sql_parser::{
-    intermediate_ast::{AliasedResultExpr, Expression, SetExpression},
-    Identifier, SelectStatement,
-};
+use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
-/// It consists of a `ProofPlan` for provable components and a `ResultExpr` for the rest.
+/// It consists of a `ProofPlan` for provable components and a vector of `OwnedTablePostprocessing` for the rest.
 pub struct QueryExpr<C: Commitment> {
     proof_expr: ProofPlan<C>,
-    result: ResultExpr,
+    postprocessing: Vec<OwnedTablePostprocessing>,
 }
 
 // Implements fmt::Debug to aid in debugging QueryExpr.
-// Prints filter and result fields in a readable format.
+// Prints filter and postprocessing fields in a readable format.
 impl<C: Commitment> fmt::Debug for QueryExpr<C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "QueryExpr \n[{:#?},\n{:#?}\n]",
-            self.proof_expr, self.result
+            self.proof_expr, self.postprocessing
         )
     }
 }
 
 impl<C: Commitment> QueryExpr<C> {
-    /// Creates a new `QueryExpr` with the given `ProofPlan` and `ResultExpr`.
-    pub fn new(proof_expr: ProofPlan<C>, result: ResultExpr) -> Self {
-        Self { proof_expr, result }
+    /// Creates a new `QueryExpr` with the given `ProofPlan` and `OwnedTablePostprocessing`.
+    pub fn new(proof_expr: ProofPlan<C>, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
+        Self {
+            proof_expr,
+            postprocessing,
+        }
     }
 
     /// Parse an intermediate AST `SelectStatement` into a `QueryExpr`.
@@ -61,55 +64,98 @@ impl<C: Commitment> QueryExpr<C> {
                 .visit_slice_expr(ast.slice)
                 .build()?,
         };
-        let result_aliased_exprs = context.get_aliased_result_exprs()?;
+        let result_aliased_exprs = context.get_aliased_result_exprs()?.to_vec();
         let group_by = context.get_group_by_exprs();
-        if !group_by.is_empty() {
+
+        // Figure out the basic postprocessing steps.
+        let mut postprocessing = vec![];
+        let order_bys = context.get_order_by_exprs()?;
+        if !order_bys.is_empty() {
+            postprocessing.push(OwnedTablePostprocessing::new_order_by(
+                OrderByPostprocessing::new(order_bys.clone()),
+            ));
+        }
+        if let Some(slice) = context.get_slice_expr() {
+            postprocessing.push(OwnedTablePostprocessing::new_slice(
+                SlicePostprocessing::new(Some(slice.number_rows), Some(slice.offset_value)),
+            ));
+        }
+        if context.has_agg() {
             if let Some(group_by_expr) = Option::<GroupByExpr<C>>::try_from(&context)? {
-                // If the group by expression is provable the projection step is just identity.
-                let new_result_aliased_exprs = result_aliased_exprs
+                Ok(Self {
+                    proof_expr: ProofPlan::GroupBy(group_by_expr),
+                    postprocessing,
+                })
+            } else {
+                let raw_enriched_exprs = result_aliased_exprs
                     .iter()
-                    .map(|aliased_expr| {
-                        AliasedResultExpr::new(
-                            Expression::Column(aliased_expr.alias),
-                            aliased_expr.alias,
-                        )
+                    .map(|aliased_expr| EnrichedExpr {
+                        residue_expression: aliased_expr.clone(),
+                        provable_expr_plan: None,
                     })
                     .collect::<Vec<_>>();
-                return Ok(Self {
-                    proof_expr: ProofPlan::GroupBy(group_by_expr),
-                    result: ResultExprBuilder::default()
-                        .add_select_exprs(&new_result_aliased_exprs)
-                        .add_order_by_exprs(context.get_order_by_exprs()?)
-                        .add_slice_expr(context.get_slice_expr())
-                        .build(),
-                });
-            }
-        }
-        let column_mapping = context.get_column_mapping();
-        let enriched_exprs = result_aliased_exprs
-            .iter()
-            .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone()))
-            .collect::<Vec<_>>();
-        let select_exprs = enriched_exprs
-            .iter()
-            .map(|enriched_expr| enriched_expr.residue_expression.clone())
-            .collect::<Vec<_>>();
-        let filter = FilterExprBuilder::new(context.get_column_mapping())
-            .add_table_expr(*context.get_table_ref())
-            .add_where_expr(context.get_where_expr().clone())?
-            .add_result_columns(&enriched_exprs)
-            .build();
-        let result = ResultExprBuilder::default()
-            .add_group_by_exprs(context.get_group_by_exprs(), &select_exprs)
-            .add_select_exprs(&select_exprs)
-            .add_order_by_exprs(context.get_order_by_exprs()?)
-            .add_slice_expr(context.get_slice_expr())
-            .build();
+                let filter = FilterExprBuilder::new(context.get_column_mapping())
+                    .add_table_expr(*context.get_table_ref())
+                    .add_where_expr(context.get_where_expr().clone())?
+                    .add_result_columns(&raw_enriched_exprs)
+                    .build();
 
-        Ok(Self {
-            proof_expr: ProofPlan::DenseFilter(filter),
-            result,
-        })
+                let group_by_postprocessing =
+                    GroupByPostprocessing::try_new(group_by.to_vec(), result_aliased_exprs)?;
+                postprocessing.insert(
+                    0,
+                    OwnedTablePostprocessing::new_group_by(group_by_postprocessing.clone()),
+                );
+                let remainder_exprs = group_by_postprocessing.remainder_exprs();
+                // Check whether we need to do select postprocessing.
+                // That is, if any of them is not simply a column reference.
+                if remainder_exprs
+                    .iter()
+                    .any(|expr| expr.try_as_identifier().is_none())
+                {
+                    postprocessing.insert(
+                        1,
+                        OwnedTablePostprocessing::new_select(SelectPostprocessing::new(
+                            remainder_exprs.to_vec(),
+                        )),
+                    );
+                }
+                Ok(Self {
+                    proof_expr: ProofPlan::DenseFilter(filter),
+                    postprocessing,
+                })
+            }
+        } else {
+            // No group by, so we need to do a dense filter.
+            let column_mapping = context.get_column_mapping();
+            let enriched_exprs = result_aliased_exprs
+                .iter()
+                .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone()))
+                .collect::<Vec<_>>();
+            let select_exprs = enriched_exprs
+                .iter()
+                .map(|enriched_expr| enriched_expr.residue_expression.clone())
+                .collect::<Vec<_>>();
+            let filter = FilterExprBuilder::new(context.get_column_mapping())
+                .add_table_expr(*context.get_table_ref())
+                .add_where_expr(context.get_where_expr().clone())?
+                .add_result_columns(&enriched_exprs)
+                .build();
+            // Check whether we need to do select postprocessing.
+            if select_exprs
+                .iter()
+                .any(|expr| expr.try_as_identifier().is_none())
+            {
+                postprocessing.insert(
+                    0,
+                    OwnedTablePostprocessing::new_select(SelectPostprocessing::new(select_exprs)),
+                );
+            }
+            Ok(Self {
+                proof_expr: ProofPlan::DenseFilter(filter),
+                postprocessing,
+            })
+        }
     }
 
     /// Immutable access to this query's provable filter expression.
@@ -118,7 +164,7 @@ impl<C: Commitment> QueryExpr<C> {
     }
 
     /// Immutable access to this query's post-proof result transform expression.
-    pub fn result(&self) -> &ResultExpr {
-        &self.result
+    pub fn postprocessing(&self) -> &[OwnedTablePostprocessing] {
+        &self.postprocessing
     }
 }

@@ -72,6 +72,10 @@ pub enum ConversionError {
     #[error(transparent)]
     ColumnOperationError(#[from] ColumnOperationError),
 
+    /// Errors related to postprocessing
+    #[error(transparent)]
+    PostprocessingError(#[from] crate::sql::postprocessing::PostprocessingError),
+
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature
     Unprovable(String),

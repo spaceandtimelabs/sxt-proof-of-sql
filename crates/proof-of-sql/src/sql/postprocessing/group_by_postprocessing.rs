@@ -4,7 +4,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use bumpalo::Bump;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{indexmap, IndexMap, IndexSet};
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
@@ -22,8 +22,8 @@ pub struct GroupByPostprocessing {
     /// A list of identifiers in the group by clause
     group_by_identifiers: Vec<Identifier>,
 
-    /// An `IndexMap` of aggregation expressions
-    aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier>,
+    /// A list of aggregation expressions
+    aggregation_exprs: Vec<(AggregationOperator, Expression, Identifier)>,
 }
 
 /// Check whether multiple layers of aggregation exist within the same GROUP BY clause
@@ -157,7 +157,10 @@ impl GroupByPostprocessing {
         Ok(Self {
             remainder_exprs,
             group_by_identifiers,
-            aggregation_expr_map,
+            aggregation_exprs: aggregation_expr_map
+                .into_iter()
+                .map(|((op, expr), id)| (op, expr, id))
+                .collect(),
         })
     }
 
@@ -171,9 +174,9 @@ impl GroupByPostprocessing {
         &self.remainder_exprs
     }
 
-    /// Get aggregation expression map
-    pub fn aggregation_expr_map(&self) -> &IndexMap<(AggregationOperator, Expression), Identifier> {
-        &self.aggregation_expr_map
+    /// Get aggregation expressions
+    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
+        &self.aggregation_exprs
     }
 }
 
@@ -183,9 +186,9 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         // First evaluate all the aggregated columns
         let alloc = Bump::new();
         let evaluated_columns: HashMap<AggregationOperator, Vec<(Identifier, OwnedColumn<S>)>> =
-            self.aggregation_expr_map
+            self.aggregation_exprs
                 .iter()
-                .map(|((agg_op, expr), id)| -> PostprocessingResult<_> {
+                .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
                     let evaluated_owned_column = owned_table.evaluate(expr)?;
                     Ok((*agg_op, (*id, evaluated_owned_column)))
                 })
@@ -281,11 +284,18 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .chain(min_outs)
             .chain(count_outs)
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;
+        // If there are no columns at all we need to have the count column so that we can handle
+        // queries such as `SELECT 1 FROM table`
+        let target_table = if new_owned_table.is_empty() {
+            OwnedTable::try_new(indexmap! {"__count__".parse().unwrap() => count_column})?
+        } else {
+            new_owned_table
+        };
         let res = self
             .remainder_exprs
             .iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
-                let column = new_owned_table.evaluate(&aliased_expr.expr)?;
+                let column = target_table.evaluate(&aliased_expr.expr)?;
                 Ok((aliased_expr.alias, column))
             })
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;

@@ -146,6 +146,11 @@ pub fn count(expr: Box<Expression>) -> Box<Expression> {
     })
 }
 
+/// Count the rows
+pub fn count_all() -> Box<Expression> {
+    count(Box::new(Expression::Wildcard))
+}
+
 /// An expression with an alias i.e. EXPR AS ALIAS
 pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
     AliasedResultExpr {

@@ -1,6 +1,5 @@
 #![cfg(feature = "test")]
 use ark_std::test_rng;
-use arrow::record_batch::RecordBatch;
 use curve25519_dalek::RistrettoPoint;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
@@ -13,9 +12,9 @@ use proof_of_sql::{
         DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         ProverSetup, PublicParameters, VerifierSetup,
     },
-    record_batch,
     sql::{
         parse::{ConversionError, QueryExpr},
+        postprocessing::apply_postprocessing_steps,
         proof::{QueryError, QueryProof},
     },
 };
@@ -269,14 +268,10 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let owned_table_result: OwnedTable<Curve25519Scalar> = query
-        .result()
-        .transform_results(owned_table_result.try_into().unwrap())
-        .unwrap()
-        .try_into()
-        .unwrap();
+    let transformed_result: OwnedTable<Curve25519Scalar> =
+        apply_postprocessing_steps(owned_table_result, query.postprocessing()).unwrap();
     let expected_result = owned_table([bigint("a", [1]), bigint("b", [4])]);
-    assert_eq!(owned_table_result, expected_result);
+    assert_eq!(transformed_result, expected_result);
 }
 
 #[test]
@@ -340,14 +335,10 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let owned_table_result: OwnedTable<Curve25519Scalar> = query
-        .result()
-        .transform_results(owned_table_result.try_into().unwrap())
-        .unwrap()
-        .try_into()
-        .unwrap();
+    let transformed_result: OwnedTable<Curve25519Scalar> =
+        apply_postprocessing_steps(owned_table_result, query.postprocessing()).unwrap();
     let expected_result = owned_table([varchar("primes", ["abcd"]), int128("amount", [-79])]);
-    assert_eq!(owned_table_result, expected_result);
+    assert_eq!(transformed_result, expected_result);
 }
 
 #[test]
@@ -524,11 +515,10 @@ fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
         .verify(query.proof_expr(), &accessor, &serialized_result, &())
         .unwrap()
         .table;
-    let transformed_result: RecordBatch = query
-        .result()
-        .transform_results(owned_table_result.clone().try_into().unwrap())
-        .unwrap();
-    let expected_result: RecordBatch = record_batch!("a" => [1i64, 2, 3], "c" => [2i64, 2, 1]);
+    let transformed_result: OwnedTable<Curve25519Scalar> =
+        apply_postprocessing_steps(owned_table_result, query.postprocessing()).unwrap();
+    let expected_result: OwnedTable<Curve25519Scalar> =
+        owned_table([bigint("a", [1_i64, 2, 3]), bigint("c", [2_i64, 2, 1])]);
     assert_eq!(transformed_result, expected_result);
 }
 
