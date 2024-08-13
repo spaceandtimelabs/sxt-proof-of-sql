@@ -7,6 +7,7 @@
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
+use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 use thiserror::Error;
@@ -31,7 +32,7 @@ pub enum IntermediateDecimalError {
 impl Eq for IntermediateDecimalError {}
 
 /// An intermediate placeholder for a decimal
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct IntermediateDecimal {
     value: BigDecimal,
 }

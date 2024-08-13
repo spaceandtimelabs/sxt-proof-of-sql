@@ -1,9 +1,10 @@
 use super::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
+use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
     timestamp: DateTime<Utc>,

@@ -10,6 +10,11 @@ pub use postprocessing_step::PostprocessingStep;
 #[cfg(test)]
 pub mod test_utility;
 
+mod group_by_postprocessing;
+pub use group_by_postprocessing::GroupByPostprocessing;
+#[cfg(test)]
+mod group_by_postprocessing_test;
+
 mod order_by_postprocessing;
 pub use order_by_postprocessing::OrderByPostprocessing;
 #[cfg(test)]
