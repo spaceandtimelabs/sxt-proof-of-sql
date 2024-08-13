@@ -43,12 +43,10 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
             IndexSet::new()
         }
         Expression::Binary { left, right, .. } => {
-            let left_identifiers = get_free_identifiers_from_expr(left);
+            let mut left_identifiers = get_free_identifiers_from_expr(left);
             let right_identifiers = get_free_identifiers_from_expr(right);
+            left_identifiers.extend(right_identifiers);
             left_identifiers
-                .union(&right_identifiers)
-                .cloned()
-                .collect::<IndexSet<_>>()
         }
         Expression::Unary { expr, .. } => get_free_identifiers_from_expr(expr),
     }
@@ -60,13 +58,13 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
 /// and then label them as new columns post-aggregation and replace them with these new columns so that
 /// the post-aggregation expression tree doesn't contain any aggregation expressions and can be simply evaluated.
 fn get_aggregate_and_remainder_expressions(
-    expr: &Expression,
+    expr: Expression,
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
 ) -> Expression {
     match expr {
         Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr.clone(),
         Expression::Aggregation { op, expr } => {
-            let key = (*op, *(*expr).clone());
+            let key = (op, (*expr).clone());
             if !aggregation_expr_map.contains_key(&key) {
                 let new_col_id = format!("__col_agg_{}", aggregation_expr_map.len())
                     .parse()
@@ -79,19 +77,19 @@ fn get_aggregate_and_remainder_expressions(
         }
         Expression::Binary { op, left, right } => {
             let left_remainder =
-                get_aggregate_and_remainder_expressions(left, aggregation_expr_map);
+                get_aggregate_and_remainder_expressions(*left, aggregation_expr_map);
             let right_remainder =
-                get_aggregate_and_remainder_expressions(right, aggregation_expr_map);
+                get_aggregate_and_remainder_expressions(*right, aggregation_expr_map);
             Expression::Binary {
-                op: *op,
+                op,
                 left: Box::new(left_remainder),
                 right: Box::new(right_remainder),
             }
         }
         Expression::Unary { op, expr } => {
-            let remainder = get_aggregate_and_remainder_expressions(expr, aggregation_expr_map);
+            let remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
             Expression::Unary {
-                op: *op,
+                op,
                 expr: Box::new(remainder),
             }
         }
@@ -100,7 +98,7 @@ fn get_aggregate_and_remainder_expressions(
 
 /// Given an `AliasedResultExpr`, check if it is legitimate and if so grab the relevant aggregation expression
 fn check_and_get_aggregation_and_remainder(
-    expr: &AliasedResultExpr,
+    expr: AliasedResultExpr,
     group_by_identifiers: &[Identifier],
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
 ) -> PostprocessingResult<AliasedResultExpr> {
@@ -115,7 +113,7 @@ fn check_and_get_aggregation_and_remainder(
         ));
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
-        let remainder = get_aggregate_and_remainder_expressions(&expr.expr, aggregation_expr_map);
+        let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
         Ok(AliasedResultExpr {
             alias: expr.alias,
             expr: Box::new(remainder),
@@ -139,7 +137,7 @@ impl GroupByPostprocessing {
             IndexMap::new();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
         let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
-            .iter()
+            .into_iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
                 check_and_get_aggregation_and_remainder(
                     aliased_expr,
@@ -252,7 +250,7 @@ mod tests {
         // SUM(a) + b
         let expr = add(sum(col("a")), col("b"));
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(&expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
             ident("__col_agg_0")
@@ -263,7 +261,7 @@ mod tests {
         // SUM(a) + SUM(b)
         let expr = add(sum(col("a")), sum(col("b")));
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(&expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Sum, *col("a"))],
             ident("__col_agg_0")
@@ -284,7 +282,7 @@ mod tests {
             col("c"),
         );
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(&expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Max, *add(col("a"), lit(1)))],
             ident("__col_agg_2")
@@ -308,7 +306,7 @@ mod tests {
             lit(1),
         );
         let remainder_expr =
-            get_aggregate_and_remainder_expressions(&expr, &mut aggregation_expr_map);
+            get_aggregate_and_remainder_expressions(*expr, &mut aggregation_expr_map);
         assert_eq!(
             aggregation_expr_map[&(AggregationOperator::Count, *mul(lit(2), col("a")))],
             ident("__col_agg_4")
