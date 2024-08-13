@@ -139,6 +139,7 @@ type DeferredG1 = deferred_msm::DeferredMSM<G1Affine, F>;
 type DeferredG2 = deferred_msm::DeferredMSM<G2Affine, F>;
 
 mod offset_to_bytes;
+mod pack_scalars;
 mod pairings;
 mod transpose;
 
