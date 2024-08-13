@@ -2,7 +2,8 @@ use crate::{
     base::{
         commitment::InnerProductProof,
         database::{
-            owned_table_utility::*, Column, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+            owned_table_utility::*, Column, LiteralValue, OwnedTable, OwnedTableTestAccessor,
+            TestAccessor,
         },
         math::decimal::scale_scalar,
         scalar::{Curve25519Scalar, Scalar},
@@ -16,11 +17,80 @@ use crate::{
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use itertools::{multizip, MultiUnzip};
+use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+
+#[test]
+fn we_can_compare_columns_with_small_timestamp_values_gte() {
+    let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(
+        "a",
+        PoSQLTimeUnit::Second,
+        PoSQLTimeZone::Utc,
+        vec![-1, 0, 1],
+    )]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a"], &accessor),
+        tab(t),
+        gte(
+            column(t, "a", &accessor),
+            ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::Utc,
+                1,
+            )),
+        ),
+    );
+
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([timestamptz(
+        "a",
+        PoSQLTimeUnit::Second,
+        PoSQLTimeZone::Utc,
+        vec![1],
+    )]);
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_compare_columns_with_small_timestamp_values_lte() {
+    let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(
+        "a",
+        PoSQLTimeUnit::Second,
+        PoSQLTimeZone::Utc,
+        vec![-1, 0, 1],
+    )]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a"], &accessor),
+        tab(t),
+        lte(
+            column(t, "a", &accessor),
+            ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                PoSQLTimeUnit::Nanosecond,
+                PoSQLTimeZone::Utc,
+                1,
+            )),
+        ),
+    );
+
+    let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&ast, &accessor, &());
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([timestamptz(
+        "a",
+        PoSQLTimeUnit::Second,
+        PoSQLTimeZone::Utc,
+        vec![-1, 0],
+    )]);
+    assert_eq!(res, expected_res);
+}
 
 #[test]
 fn we_can_compare_a_constant_column() {
@@ -145,6 +215,36 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
         varchar("d", ["abc"]),
         decimal75("e", 38, 0, [scalar_pos]),
         decimal75("f", 38, 38, [scalar_neg]),
+    ]);
+    assert_eq!(res, expected_res);
+}
+
+#[test]
+fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
+    let scalar_pos = scale_scalar(Curve25519Scalar::ONE, 38).unwrap() - Curve25519Scalar::ONE;
+    let scalar_neg = -scalar_pos;
+    let data: OwnedTable<Curve25519Scalar> = owned_table([
+        bigint("a", [123, 25]),
+        bigint("b", [55, -53]),
+        varchar("d", ["abc", "de"]),
+        decimal75("e", 38, 0, [scalar_pos, scalar_neg]),
+        decimal75("f", 38, 38, [scalar_neg, scalar_pos]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
+    let ast = dense_filter(
+        cols_expr_plan(t, &["a", "d", "e", "f"], &accessor),
+        tab(t),
+        gte(column(t, "f", &accessor), const_bigint(0_i64)),
+    );
+    let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
+    exercise_verification(&verifiable_res, &ast, &accessor, t);
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    let expected_res = owned_table([
+        bigint("a", [25]),
+        varchar("d", ["de"]),
+        decimal75("e", 38, 0, [scalar_neg]),
+        decimal75("f", 38, 38, [scalar_pos]),
     ]);
     assert_eq!(res, expected_res);
 }
