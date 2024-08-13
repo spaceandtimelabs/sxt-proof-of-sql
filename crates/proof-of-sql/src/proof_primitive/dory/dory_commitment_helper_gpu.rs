@@ -10,27 +10,27 @@ use tracing::{span, Level};
 fn modify_commits(
     commits: &[G1Affine],
     committable_columns: &[CommittableColumn],
-    num_of_full_commits: usize,
-    num_of_sub_commits_per_full_commit: usize,
+    num_full_commits: usize,
+    num_sub_commits_per_full_commit: usize,
 ) -> Vec<G1Affine> {
-    let num_of_signed_sub_commits = num_of_full_commits * num_of_sub_commits_per_full_commit;
+    // Currently, the packed_scalars doubles the number of commits to deal with
+    // signed sub-commits. Commit i is offset by commit at i + num_sub_commits_per_full_commit.
+    // Spit the commits into signed sub-commits and offset sub-commits.
+    let num_signed_sub_commits = num_full_commits * num_sub_commits_per_full_commit;
+    let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_signed_sub_commits);
 
-    let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_of_signed_sub_commits);
-
-    // Currently, the packed_scalars doubles the number of commits
-    // to deal with signed sub commits. Commit i is offset by commit i + num_of_sub_commits_per_full_commit.
+    // Ensure the packed_scalars were split correctly
     if signed_sub_commits.len() != offset_sub_commits.len() {
         return vec![];
     }
 
+    // Add the offset sub-commits multiplied by the min value to the signed sub-commits
     signed_sub_commits
         .par_iter()
         .zip(offset_sub_commits.par_iter())
         .enumerate()
         .map(|(index, (first, second))| {
-            let min = pack_scalars::get_min_as_fr(
-                &committable_columns[index / num_of_sub_commits_per_full_commit],
-            );
+            let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_sub_commits_per_full_commit]);
             let modified_second = second.mul(min).into_affine();
             *first + modified_second
         })
@@ -52,62 +52,68 @@ fn compute_dory_commitments_packed_impl(
         return vec![];
     }
 
-    let num_of_full_commits = committable_columns.len();
-    let num_of_generators = 1 << setup.sigma();
+    let num_columns = 1 << setup.sigma();
+    let num_full_commits = committable_columns.len();
 
-    // Scale the offset to avoid adding columns of zero to the packed scalar
-    // if the offset is larger than the number of generators.
-    let gamma_2_offset = offset / num_of_generators;
-    let offset = offset % num_of_generators;
+    // If the offset is larger than the number of columns, we compute an
+    // offset for the gamma_2 table to avoid finding sub-commits of zero.
+    let gamma_2_offset = offset / num_columns;
+    let offset = offset % num_columns;
 
-    let num_of_commits_in_a_full_commit =
-        pack_scalars::get_num_of_commits(committable_columns, offset, num_of_generators);
-
-    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
-        [gamma_2_offset..gamma_2_offset + num_of_commits_in_a_full_commit];
-
-    let (full_bit_table, packed_scalars) = pack_scalars::get_bit_table_and_scalars_for_packed_msm(
+    // Get the number of sub-commits per full commit
+    let num_sub_commits_per_full_commit = pack_scalars::get_num_of_sub_commits_per_full_commit(
         committable_columns,
         offset,
-        num_of_generators,
-        num_of_commits_in_a_full_commit,
+        num_columns,
+    );
+
+    // Get the bit table and packed scalars for the packed msm
+    let (bit_table, packed_scalars) = pack_scalars::get_bit_table_and_scalars_for_packed_msm(
+        committable_columns,
+        offset,
+        num_columns,
+        num_sub_commits_per_full_commit,
     );
 
     let mut sub_commits_from_blitzar =
-        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); full_bit_table.len()];
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); bit_table.len()];
 
-    if !full_bit_table.is_empty() {
+    // Compute packed msm
+    if !bit_table.is_empty() {
         setup.prover_setup().blitzar_packed_msm(
             &mut sub_commits_from_blitzar,
-            &full_bit_table,
+            &bit_table,
             packed_scalars.as_slice(),
         );
     }
 
-    let sub_commits: Vec<G1Affine> = sub_commits_from_blitzar
+    // Convert the sub-commits to G1Affine
+    let all_sub_commits: Vec<G1Affine> = sub_commits_from_blitzar
         .par_iter()
         .map(Into::into)
         .collect();
 
+    // Modify the signed sub-commits by adding the offset
     let modified_sub_commits = modify_commits(
-        &sub_commits,
+        &all_sub_commits,
         committable_columns,
-        num_of_full_commits,
-        num_of_commits_in_a_full_commit,
+        num_full_commits,
+        num_sub_commits_per_full_commit,
     );
 
+    let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
+        [gamma_2_offset..gamma_2_offset + num_sub_commits_per_full_commit];
+
+    // Compute the Dory commitments using multi pairing of sub-commits
     let span = span!(Level::INFO, "multi_pairing").entered();
-    let dc: Vec<DoryCommitment> = (0..num_of_full_commits)
+    let dc: Vec<DoryCommitment> = (0..num_full_commits)
         .into_par_iter()
         .map(|i| {
-            let idx = i * num_of_commits_in_a_full_commit;
-            let sub_commits_of_full_commit: Vec<G1Affine> =
-                modified_sub_commits[idx..idx + num_of_commits_in_a_full_commit].to_vec();
+            let idx = i * num_sub_commits_per_full_commit;
+            let sub_commits: Vec<G1Affine> =
+                modified_sub_commits[idx..idx + num_sub_commits_per_full_commit].to_vec();
 
-            DoryCommitment(pairings::multi_pairing(
-                sub_commits_of_full_commit,
-                gamma_2_slice,
-            ))
+            DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice))
         })
         .collect::<Vec<_>>();
     span.exit();

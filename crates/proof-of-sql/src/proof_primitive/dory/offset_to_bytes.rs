@@ -3,17 +3,12 @@ use zerocopy::AsBytes;
 
 pub trait OffsetToBytes {
     const IS_SIGNED: bool;
-    fn byte_size() -> usize;
     fn min_as_fr() -> Fr;
     fn offset_to_bytes(&self) -> Vec<u8>;
 }
 
 impl OffsetToBytes for u8 {
     const IS_SIGNED: bool = false;
-
-    fn byte_size() -> usize {
-        std::mem::size_of::<u8>()
-    }
 
     fn min_as_fr() -> Fr {
         Fr::from(0)
@@ -26,10 +21,6 @@ impl OffsetToBytes for u8 {
 
 impl OffsetToBytes for i16 {
     const IS_SIGNED: bool = true;
-
-    fn byte_size() -> usize {
-        std::mem::size_of::<i16>()
-    }
 
     fn min_as_fr() -> Fr {
         Fr::from(i16::MIN)
@@ -44,10 +35,6 @@ impl OffsetToBytes for i16 {
 impl OffsetToBytes for i32 {
     const IS_SIGNED: bool = true;
 
-    fn byte_size() -> usize {
-        std::mem::size_of::<i32>()
-    }
-
     fn min_as_fr() -> Fr {
         Fr::from(i32::MIN)
     }
@@ -60,10 +47,6 @@ impl OffsetToBytes for i32 {
 
 impl OffsetToBytes for i64 {
     const IS_SIGNED: bool = true;
-
-    fn byte_size() -> usize {
-        std::mem::size_of::<i64>()
-    }
 
     fn min_as_fr() -> Fr {
         Fr::from(i64::MIN)
@@ -78,10 +61,6 @@ impl OffsetToBytes for i64 {
 impl OffsetToBytes for i128 {
     const IS_SIGNED: bool = true;
 
-    fn byte_size() -> usize {
-        std::mem::size_of::<i128>()
-    }
-
     fn min_as_fr() -> Fr {
         Fr::from(i128::MIN)
     }
@@ -95,10 +74,6 @@ impl OffsetToBytes for i128 {
 impl OffsetToBytes for bool {
     const IS_SIGNED: bool = false;
 
-    fn byte_size() -> usize {
-        std::mem::size_of::<bool>()
-    }
-
     fn min_as_fr() -> Fr {
         Fr::from(false)
     }
@@ -110,10 +85,6 @@ impl OffsetToBytes for bool {
 
 impl OffsetToBytes for u64 {
     const IS_SIGNED: bool = false;
-
-    fn byte_size() -> usize {
-        std::mem::size_of::<u64>()
-    }
 
     fn min_as_fr() -> Fr {
         Fr::from(0)
@@ -127,10 +98,6 @@ impl OffsetToBytes for u64 {
 
 impl OffsetToBytes for [u64; 4] {
     const IS_SIGNED: bool = false;
-
-    fn byte_size() -> usize {
-        std::mem::size_of::<[u64; 4]>()
-    }
 
     fn min_as_fr() -> Fr {
         Fr::from(0)
