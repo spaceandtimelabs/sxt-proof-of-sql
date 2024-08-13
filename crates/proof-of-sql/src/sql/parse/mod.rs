@@ -30,5 +30,5 @@ pub(crate) use provable_expr_plan_builder::ProvableExprPlanBuilder;
 
 mod where_expr_builder;
 pub(crate) use where_expr_builder::WhereExprBuilder;
-#[cfg(all(test, feature = "blitzar"))]
+#[cfg(test)]
 mod where_expr_builder_tests;
