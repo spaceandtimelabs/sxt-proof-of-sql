@@ -1,6 +1,6 @@
 //! This module contains conversion of intermediate AST to provable AST and a non-provable component if necessary.
 mod error;
-mod where_expr_builder_tests;
+
 pub use error::ConversionError;
 pub(crate) use error::ConversionResult;
 
@@ -30,3 +30,5 @@ pub(crate) use provable_expr_plan_builder::ProvableExprPlanBuilder;
 
 mod where_expr_builder;
 pub(crate) use where_expr_builder::WhereExprBuilder;
+#[cfg(all(test, feature = "blitzar"))]
+mod where_expr_builder_tests;

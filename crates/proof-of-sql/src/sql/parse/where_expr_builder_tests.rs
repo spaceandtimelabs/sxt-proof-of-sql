@@ -1,4 +1,3 @@
-#[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use crate::{
         base::{
@@ -13,10 +12,10 @@ mod tests {
     use curve25519_dalek::RistrettoPoint;
     use indexmap::{indexmap, IndexMap};
     use proof_of_sql_parser::{
-        intermediate_ast::{BinaryOperator, Expression, Literal},
+        intermediate_ast::Expression,
         intermediate_decimal::IntermediateDecimal,
         posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
-        utility::{col, equal, lit},
+        utility::*,
         Identifier, SelectStatement,
     };
     use std::str::FromStr;
@@ -28,78 +27,63 @@ mod tests {
     }
 
     fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
+        let tab_ref = "sxt.sxt_tab".parse().unwrap();
         let mut column_mapping = IndexMap::new();
         // Setup column mapping
         column_mapping.insert(
-            Identifier::try_new("boolean_column").unwrap(),
-            ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("boolean_column").unwrap(),
-                ColumnType::Boolean,
-            ),
+            ident("boolean_column"),
+            ColumnRef::new(tab_ref, ident("boolean_column"), ColumnType::Boolean),
         );
         column_mapping.insert(
-            Identifier::try_new("decimal_column").unwrap(),
+            ident("decimal_column"),
             ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("decimal_column").unwrap(),
+                tab_ref,
+                ident("decimal_column"),
                 ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("int128_column").unwrap(),
-            ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("int128_column").unwrap(),
-                ColumnType::Int128,
-            ),
+            ident("int128_column"),
+            ColumnRef::new(tab_ref, ident("int128_column"), ColumnType::Int128),
         );
         column_mapping.insert(
-            Identifier::try_new("bigint_column").unwrap(),
-            ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("bigint_column").unwrap(),
-                ColumnType::BigInt,
-            ),
+            ident("bigint_column"),
+            ColumnRef::new(tab_ref, ident("bigint_column"), ColumnType::BigInt),
         );
 
         column_mapping.insert(
-            Identifier::try_new("varchar_column").unwrap(),
-            ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("varchar_column").unwrap(),
-                ColumnType::VarChar,
-            ),
+            ident("varchar_column"),
+            ColumnRef::new(tab_ref, ident("varchar_column"), ColumnType::VarChar),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp_second_column").unwrap(),
+            ident("timestamp_second_column"),
             ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_second_column").unwrap(),
+                tab_ref,
+                ident("timestamp_second_column"),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp_millisecond_column").unwrap(),
+            ident("timestamp_millisecond_column"),
             ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_millisecond_column").unwrap(),
+                tab_ref,
+                ident("timestamp_millisecond_column"),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Millisecond, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp_microsecond_column").unwrap(),
+            ident("timestamp_microsecond_column"),
             ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_microsecond_column").unwrap(),
+                tab_ref,
+                ident("timestamp_microsecond_column"),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Microsecond, PoSQLTimeZone::Utc),
             ),
         );
         column_mapping.insert(
-            Identifier::try_new("timestamp_nanosecond_column").unwrap(),
+            ident("timestamp_nanosecond_column"),
             ColumnRef::new(
-                "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("timestamp_nanosecond_column").unwrap(),
+                tab_ref,
+                ident("timestamp_nanosecond_column"),
                 ColumnType::TimestampTZ(PoSQLTimeUnit::Nanosecond, PoSQLTimeZone::Utc),
             ),
         );
@@ -110,59 +94,36 @@ mod tests {
     fn we_can_directly_check_whether_boolean_column_is_true() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_boolean = Expression::Column(Identifier::try_new("boolean_column").unwrap());
-        assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_boolean)))
-            .is_ok());
+        let expr_boolean = col("boolean_column");
+        assert!(builder.build::<RistrettoPoint>(Some(expr_boolean)).is_ok());
     }
 
     #[test]
     fn we_can_directly_check_whether_boolean_literal_is_true() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_boolean = Expression::Literal(Literal::Boolean(false));
-        assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_boolean)))
-            .is_ok());
+        let expr_boolean = lit(false);
+        assert!(builder.build::<RistrettoPoint>(Some(expr_boolean)).is_ok());
     }
 
     #[test]
     fn we_can_directly_check_nested_eq() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_nested = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("boolean_column").unwrap(),
-            )),
-            right: Box::new(Expression::Binary {
-                op: BinaryOperator::Equal,
-                left: Box::new(Expression::Column(
-                    Identifier::try_new("bigint_column").unwrap(),
-                )),
-                right: Box::new(Expression::Column(
-                    Identifier::try_new("int128_column").unwrap(),
-                )),
-            }),
-        };
-        assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_nested)))
-            .is_ok());
+        let expr_nested = equal(
+            col("boolean_column"),
+            equal(col("bigint_column"), col("int128_column")),
+        );
+        assert!(builder.build::<RistrettoPoint>(Some(expr_nested)).is_ok());
     }
 
     #[test]
     fn we_can_directly_check_whether_boolean_columns_eq_boolean() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_boolean_to_boolean = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("boolean_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Boolean(false))),
-        };
+        let expr_boolean_to_boolean = equal(col("boolean_column"), lit(false));
         assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_boolean_to_boolean)))
+            .build::<RistrettoPoint>(Some(expr_boolean_to_boolean))
             .is_ok());
     }
 
@@ -170,15 +131,9 @@ mod tests {
     fn we_can_directly_check_whether_integer_columns_eq_integer() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_integer_to_integer = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("int128_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Int128(12345))),
-        };
+        let expr_integer_to_integer = equal(col("int128_column"), lit(12345_i128));
         assert!(builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
+            .build::<RistrettoPoint>(Some(expr_integer_to_integer))
             .is_ok());
     }
 
@@ -186,22 +141,15 @@ mod tests {
     fn we_can_directly_check_whether_bigint_columns_ge_int128() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_integer_to_integer = Expression::Binary {
-            op: BinaryOperator::GreaterThanOrEqual,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("bigint_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Int128(-12345))),
-        };
+        let expr_integer_to_integer = ge(col("bigint_column"), lit(-12345_i128));
         let actual = builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
+            .build::<RistrettoPoint>(Some(expr_integer_to_integer))
             .unwrap()
             .unwrap();
-        println!("{:?}", actual);
         let expected = ProvableExprPlan::try_new_inequality(
             ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("bigint_column").unwrap(),
+                ident("bigint_column"),
                 ColumnType::BigInt,
             ))),
             ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
@@ -215,21 +163,15 @@ mod tests {
     fn we_can_directly_check_whether_bigint_columns_le_int128() {
         let column_mapping = get_column_mappings_for_testing();
         let builder = WhereExprBuilder::new(&column_mapping);
-        let expr_integer_to_integer = Expression::Binary {
-            op: BinaryOperator::LessThanOrEqual,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("bigint_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Int128(-12345))),
-        };
+        let expr_integer_to_integer = le(col("bigint_column"), lit(-12345_i128));
         let actual = builder
-            .build::<RistrettoPoint>(Some(Box::new(expr_integer_to_integer)))
+            .build::<RistrettoPoint>(Some(expr_integer_to_integer))
             .unwrap()
             .unwrap();
         let expected = ProvableExprPlan::try_new_inequality(
             ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
                 "sxt.sxt_tab".parse().unwrap(),
-                Identifier::try_new("bigint_column").unwrap(),
+                ident("bigint_column"),
                 ColumnType::BigInt,
             ))),
             ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
@@ -243,17 +185,8 @@ mod tests {
     fn we_can_directly_check_whether_varchar_columns_eq_varchar() {
         let column_mapping = get_column_mappings_for_testing();
         // VarChar column with VarChar literal
-        let expr_varchar_to_varchar = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("varchar_column").unwrap(),
-            )), // Ensure this column is defined in column_mapping
-            right: Box::new(Expression::Literal(Literal::VarChar(
-                "test_string".to_string(),
-            ))),
-        };
-
-        run_test_case(&column_mapping, expr_varchar_to_varchar);
+        let expr_varchar_to_varchar = equal(col("varchar_column"), lit("test_string"));
+        run_test_case(&column_mapping, *expr_varchar_to_varchar);
     }
 
     #[test]
@@ -261,14 +194,8 @@ mod tests {
         let column_mapping = get_column_mappings_for_testing();
 
         // Non-decimal column with integer literal
-        let expr_integer_to_integer = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("int128_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Int128(12345))),
-        };
-        run_test_case(&column_mapping, expr_integer_to_integer);
+        let expr_integer_to_integer = equal(col("bigint_column"), lit(12345_i64));
+        run_test_case(&column_mapping, *expr_integer_to_integer);
     }
 
     #[test]
@@ -276,14 +203,8 @@ mod tests {
         let column_mapping = get_column_mappings_for_testing();
 
         // Decimal column with integer literal that can be appropriately scaled
-        let expr_integer_to_decimal = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("decimal_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Int128(12345))),
-        };
-        run_test_case(&column_mapping, expr_integer_to_decimal);
+        let expr_integer_to_decimal = equal(col("decimal_column"), lit(12345_i128));
+        run_test_case(&column_mapping, *expr_integer_to_decimal);
     }
 
     #[test]
@@ -291,16 +212,11 @@ mod tests {
         let column_mapping = get_column_mappings_for_testing();
 
         // Decimal column with matching scale decimal literal
-        let expr_decimal = Expression::Binary {
-            op: BinaryOperator::Equal,
-            left: Box::new(Expression::Column(
-                Identifier::try_new("decimal_column").unwrap(),
-            )),
-            right: Box::new(Expression::Literal(Literal::Decimal(
-                IntermediateDecimal::try_from("123.45").unwrap(),
-            ))),
-        };
-        run_test_case(&column_mapping, expr_decimal);
+        let expr_decimal = equal(
+            col("decimal_column"),
+            lit(IntermediateDecimal::try_from("123.45").unwrap()),
+        );
+        run_test_case(&column_mapping, *expr_decimal);
     }
 
     #[test]
@@ -346,8 +262,8 @@ mod tests {
 
         let builder = WhereExprBuilder::new(&column_mapping);
 
-        let expr_missing = Expression::Column(Identifier::try_new("not_a_column").unwrap());
-        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_missing)));
+        let expr_missing = col("not_a_column");
+        let res = builder.build::<RistrettoPoint>(Some(expr_missing));
         assert!(matches!(
             res,
             Result::Err(ConversionError::MissingColumnWithoutTable(_))
@@ -360,8 +276,8 @@ mod tests {
 
         let builder = WhereExprBuilder::new(&column_mapping);
 
-        let expr_non_boolean = Expression::Column(Identifier::try_new("varchar_column").unwrap());
-        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_non_boolean)));
+        let expr_non_boolean = col("varchar_column");
+        let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
         assert!(matches!(
             res,
             Result::Err(ConversionError::NonbooleanWhereClause(_))
@@ -374,8 +290,8 @@ mod tests {
 
         let builder = WhereExprBuilder::new(&column_mapping);
 
-        let expr_non_boolean = Expression::Literal(Literal::Int128(123));
-        let res = builder.build::<RistrettoPoint>(Some(Box::new(expr_non_boolean)));
+        let expr_non_boolean = lit(123_i128);
+        let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
         assert!(matches!(
             res,
             Result::Err(ConversionError::NonbooleanWhereClause(_))
