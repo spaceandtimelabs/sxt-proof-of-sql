@@ -11,20 +11,12 @@ use crate::{
 use curve25519_dalek::RistrettoPoint;
 use indexmap::{indexmap, IndexMap};
 use proof_of_sql_parser::{
-    intermediate_ast::Expression,
     intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
     Identifier, SelectStatement,
 };
 use std::str::FromStr;
-
-#[inline]
-fn run_test_case(column_mapping: &IndexMap<Identifier, ColumnRef>, expr: Expression) {
-    let builder = WhereExprBuilder::new(column_mapping);
-    let result = builder.build::<RistrettoPoint>(Some(Box::new(expr)));
-    assert!(result.is_ok(), "Test case should succeed without panic.");
-}
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
@@ -185,83 +177,86 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
 fn we_can_directly_check_whether_varchar_columns_eq_varchar() {
     let column_mapping = get_column_mappings_for_testing();
     // VarChar column with VarChar literal
-    let expr_varchar_to_varchar = equal(col("varchar_column"), lit("test_string"));
-    run_test_case(&column_mapping, *expr_varchar_to_varchar);
+    let expr = equal(col("varchar_column"), lit("test_string"));
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 }
 
 #[test]
 fn we_can_check_non_decimal_columns_eq_integer_literals() {
     let column_mapping = get_column_mappings_for_testing();
-
     // Non-decimal column with integer literal
-    let expr_integer_to_integer = equal(col("bigint_column"), lit(12345_i64));
-    run_test_case(&column_mapping, *expr_integer_to_integer);
+    let expr = equal(col("bigint_column"), lit(12345_i64));
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 }
 
 #[test]
 fn we_can_check_scaled_integers_eq_correctly() {
     let column_mapping = get_column_mappings_for_testing();
-
     // Decimal column with integer literal that can be appropriately scaled
-    let expr_integer_to_decimal = equal(col("decimal_column"), lit(12345_i128));
-    run_test_case(&column_mapping, *expr_integer_to_decimal);
+    let expr = equal(col("decimal_column"), lit(12345_i128));
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 }
 
 #[test]
 fn we_can_check_exact_scale_and_precision_eq() {
     let column_mapping = get_column_mappings_for_testing();
-
     // Decimal column with matching scale decimal literal
-    let expr_decimal = equal(
+    let expr = equal(
         col("decimal_column"),
         lit(IntermediateDecimal::try_from("123.45").unwrap()),
     );
-    run_test_case(&column_mapping, *expr_decimal);
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 }
 
 #[test]
 fn we_can_check_varying_precision_eq_for_timestamp() {
     let column_mapping = get_column_mappings_for_testing();
 
-    run_test_case(
-        &column_mapping,
-        *equal(
-            col("timestamp_nanosecond_column"),
-            lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456789Z").unwrap()),
-        ),
+    let expr = equal(
+        col("timestamp_nanosecond_column"),
+        lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456789Z").unwrap()),
     );
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 
-    run_test_case(
-        &column_mapping,
-        *equal(
-            col("timestamp_microsecond_column"),
-            lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456Z").unwrap()),
-        ),
+    let expr = equal(
+        col("timestamp_microsecond_column"),
+        lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123456Z").unwrap()),
     );
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 
-    run_test_case(
-        &column_mapping,
-        *equal(
-            col("timestamp_millisecond_column"),
-            lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
-        ),
+    let expr = equal(
+        col("timestamp_millisecond_column"),
+        lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00.123Z").unwrap()),
     );
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 
-    run_test_case(
-        &column_mapping,
-        *equal(
-            col("timestamp_second_column"),
-            lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
-        ),
+    let expr = equal(
+        col("timestamp_second_column"),
+        lit(PoSQLTimestamp::try_from("1970-01-01T00:00:00Z").unwrap()),
     );
+    let builder = WhereExprBuilder::new(&column_mapping);
+    let result = builder.build::<RistrettoPoint>(Some(expr));
+    assert!(result.is_ok());
 }
 
 #[test]
 fn we_can_not_have_missing_column_as_where_clause() {
     let column_mapping = get_column_mappings_for_testing();
-
     let builder = WhereExprBuilder::new(&column_mapping);
-
     let expr_missing = col("not_a_column");
     let res = builder.build::<RistrettoPoint>(Some(expr_missing));
     assert!(matches!(
