@@ -19,6 +19,7 @@ use proof_of_sql_parser::{
 };
 use std::str::FromStr;
 
+#[inline]
 fn run_test_case(column_mapping: &IndexMap<Identifier, ColumnRef>, expr: Expression) {
     let builder = WhereExprBuilder::new(column_mapping);
     let result = builder.build::<RistrettoPoint>(Some(Box::new(expr)));
