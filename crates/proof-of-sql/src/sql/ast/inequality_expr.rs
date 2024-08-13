@@ -97,7 +97,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, rhs_scale, false)
+            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, lhs_scale, false)
                 .expect("Failed to scale and subtract")
         };
 
