@@ -1,5 +1,10 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
 
+/// Construct an identifier from a str
+pub fn ident(name: &str) -> Identifier {
+    name.parse().unwrap()
+}
+
 /// Construct a new boxed `Expression` A == B
 pub fn equal(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     Box::new(Expression::Binary {
@@ -109,6 +114,38 @@ pub fn lit<L: Into<Literal>>(literal: L) -> Box<Expression> {
     Box::new(Expression::Literal(literal.into()))
 }
 
+/// Compute the sum of an expression
+pub fn sum(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Aggregation {
+        op: AggregationOperator::Sum,
+        expr,
+    })
+}
+
+/// Compute the minimum of an expression
+pub fn min(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Aggregation {
+        op: AggregationOperator::Min,
+        expr,
+    })
+}
+
+/// Compute the maximum of an expression
+pub fn max(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Aggregation {
+        op: AggregationOperator::Max,
+        expr,
+    })
+}
+
+/// Count the amount of non-null entries of expression
+pub fn count(expr: Box<Expression>) -> Box<Expression> {
+    Box::new(Expression::Aggregation {
+        op: AggregationOperator::Count,
+        expr,
+    })
+}
+
 /// An expression with an alias i.e. EXPR AS ALIAS
 pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
     AliasedResultExpr {
@@ -138,10 +175,7 @@ pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
 /// Compute the minimum of an expression and give it an alias i.e. SELECT MIN(EXPR) AS ALIAS
 pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: Box::new(Expression::Aggregation {
-            op: AggregationOperator::Min,
-            expr,
-        }),
+        expr: min(expr),
         alias: alias.parse().unwrap(),
     })
 }
@@ -149,11 +183,7 @@ pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
 /// Compute the maximum of an expression and give it an alias i.e. SELECT MAX(EXPR) AS ALIAS
 pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: Expression::Aggregation {
-            op: AggregationOperator::Max,
-            expr,
-        }
-        .into(),
+        expr: max(expr),
         alias: alias.parse().unwrap(),
     })
 }
@@ -161,23 +191,15 @@ pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
 /// Compute the sum of an expression and give it an alias i.e. SELECT SUM(EXPR) AS ALIAS
 pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: Expression::Aggregation {
-            op: AggregationOperator::Sum,
-            expr,
-        }
-        .into(),
+        expr: sum(expr),
         alias: alias.parse().unwrap(),
     })
 }
 
-/// Count an expression and give it an alias i.e. SELECT COUNT(EXPR) AS ALIAS
+/// Count the amount of non-null entries of expression and give it an alias i.e. SELECT COUNT(EXPR) AS ALIAS
 pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
-        expr: Expression::Aggregation {
-            op: AggregationOperator::Count,
-            expr,
-        }
-        .into(),
+        expr: count(expr),
         alias: alias.parse().unwrap(),
     })
 }

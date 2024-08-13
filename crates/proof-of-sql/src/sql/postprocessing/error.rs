@@ -1,3 +1,4 @@
+use proof_of_sql_parser::Identifier;
 use thiserror::Error;
 
 /// Errors in postprocessing
@@ -15,6 +16,12 @@ pub enum PostprocessingError {
     /// Errors in constructing `OwnedTable`
     #[error(transparent)]
     OwnedTableError(#[from] crate::base::database::OwnedTableError),
+    /// GROUP BY clause references a column not in a group by expression outside aggregate functions
+    #[error("Invalid group by: column '{0}' must not appear outside aggregate functions or `GROUP BY` clause.")]
+    IdentifierNotInAggregationOperatorOrGroupByClause(Identifier),
+    /// Nested aggregation in `GROUP BY` clause
+    #[error("Nested aggregation in `GROUP BY` clause: {0}")]
+    NestedAggregationInGroupByClause(String),
 }
 
 /// Result type for postprocessing
