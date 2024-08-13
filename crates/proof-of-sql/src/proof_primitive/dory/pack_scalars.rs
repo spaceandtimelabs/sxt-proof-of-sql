@@ -1,7 +1,10 @@
-use super::F;
+use super::{G1Affine, F};
 use crate::{
     base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
+use ark_ec::CurveGroup;
+use ark_std::ops::Mul;
+use rayon::prelude::*;
 
 const BYTE_SIZE: usize = 8;
 
@@ -111,6 +114,46 @@ pub fn get_num_of_sub_commits_per_full_commit(
     (max_column_length + num_columns - 1) / num_columns
 }
 
+/// Modifies the signed sub-commits by adding the offset to the sub-commits.
+///
+/// # Arguments
+///
+/// * `commits` - A reference to the signed sub-commits.
+/// * `committable_columns` - A reference to the committable columns.
+/// * `num_full_commits` - The number of full commits.
+/// * `num_sub_commits_per_full_commit` - The number of sub commits needed for each full commit for the packed_msm function.
+#[tracing::instrument(name = "pack_scalars::modify_commits (gpu)", level = "debug", skip_all)]
+pub fn modify_commits(
+    commits: &[G1Affine],
+    committable_columns: &[CommittableColumn],
+    num_full_commits: usize,
+    num_sub_commits_per_full_commit: usize,
+) -> Vec<G1Affine> {
+    // Currently, the packed_scalars doubles the number of commits to deal with
+    // signed sub-commits. Commit i is offset by commit at i + num_sub_commits_per_full_commit.
+    // Spit the commits into signed sub-commits and offset sub-commits.
+    let num_signed_sub_commits = num_full_commits * num_sub_commits_per_full_commit;
+    let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_signed_sub_commits);
+
+    // Ensure the packed_scalars were split correctly
+    if signed_sub_commits.len() != offset_sub_commits.len() {
+        return vec![];
+    }
+
+    // Add the offset sub-commits multiplied by the min value to the signed sub-commits
+    signed_sub_commits
+        .par_iter()
+        .zip(offset_sub_commits.par_iter())
+        .enumerate()
+        .map(|(index, (first, second))| {
+            let min = get_min_as_fr(&committable_columns[index / num_sub_commits_per_full_commit]);
+            let modified_second = second.mul(min).into_affine();
+            *first + modified_second
+        })
+        .map(|point| point.into_affine())
+        .collect::<Vec<_>>()
+}
+
 /// Packs bits of a committable column into the packed scalars array.
 /// Will offset signed values by the minimum of the data type.
 ///
@@ -208,7 +251,7 @@ fn pack_offset_bit<T: OffsetToBytes>(
 ///                             1, 128, 0,   0, 4, 128, 7, 128, 1, 0, 1, 1]);
 /// ```
 #[tracing::instrument(
-    name = "get_bit_table_and_scalars_for_packed_msm (gpu)",
+    name = "pack_scalars::get_bit_table_and_scalars_for_packed_msm (gpu)",
     level = "debug",
     skip_all
 )]

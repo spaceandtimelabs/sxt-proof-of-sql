@@ -1,42 +1,8 @@
 use super::{pack_scalars, pairings, DoryCommitment, DoryProverPublicSetup, G1Affine};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::CurveGroup;
-use ark_std::ops::Mul;
 use blitzar::compute::ElementP2;
 use rayon::prelude::*;
 use tracing::{span, Level};
-
-#[tracing::instrument(name = "modify_commits (gpu)", level = "debug", skip_all)]
-fn modify_commits(
-    commits: &[G1Affine],
-    committable_columns: &[CommittableColumn],
-    num_full_commits: usize,
-    num_sub_commits_per_full_commit: usize,
-) -> Vec<G1Affine> {
-    // Currently, the packed_scalars doubles the number of commits to deal with
-    // signed sub-commits. Commit i is offset by commit at i + num_sub_commits_per_full_commit.
-    // Spit the commits into signed sub-commits and offset sub-commits.
-    let num_signed_sub_commits = num_full_commits * num_sub_commits_per_full_commit;
-    let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_signed_sub_commits);
-
-    // Ensure the packed_scalars were split correctly
-    if signed_sub_commits.len() != offset_sub_commits.len() {
-        return vec![];
-    }
-
-    // Add the offset sub-commits multiplied by the min value to the signed sub-commits
-    signed_sub_commits
-        .par_iter()
-        .zip(offset_sub_commits.par_iter())
-        .enumerate()
-        .map(|(index, (first, second))| {
-            let min = pack_scalars::get_min_as_fr(&committable_columns[index / num_sub_commits_per_full_commit]);
-            let modified_second = second.mul(min).into_affine();
-            *first + modified_second
-        })
-        .map(|point| point.into_affine())
-        .collect::<Vec<_>>()
-}
 
 #[tracing::instrument(
     name = "compute_dory_commitments_packed_impl (gpu)",
@@ -94,7 +60,7 @@ fn compute_dory_commitments_packed_impl(
         .collect();
 
     // Modify the signed sub-commits by adding the offset
-    let modified_sub_commits = modify_commits(
+    let modified_sub_commits = pack_scalars::modify_commits(
         &all_sub_commits,
         committable_columns,
         num_full_commits,
