@@ -1,28 +1,29 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, RecordBatchTestAccessor, TableRef, TestAccessor},
-    record_batch,
+    base::database::{ColumnType, TableRef, TestSchemaAccessor},
     sql::{
         ast::{test_utility::*, ProofPlan},
         parse::QueryExpr,
         transform::test_utility::{col as pc, *},
     },
 };
-use arrow::record_batch::RecordBatch;
 use curve25519_dalek::RistrettoPoint;
+use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
-use proof_of_sql_parser::{intermediate_ast::OrderByDirection::*, sql::SelectStatementParser};
+use proof_of_sql_parser::{
+    intermediate_ast::OrderByDirection::*, sql::SelectStatementParser, Identifier,
+};
 
 fn query_to_provable_ast(
     table: TableRef,
     query: &str,
-    accessor: &RecordBatchTestAccessor,
+    accessor: &TestSchemaAccessor,
 ) -> QueryExpr<RistrettoPoint> {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
 
-fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &RecordBatchTestAccessor) {
+fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSchemaAccessor) {
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     assert!(
         QueryExpr::<RistrettoPoint>::try_new(intermediate_ast, table.schema_id(), accessor)
@@ -31,33 +32,29 @@ fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &Record
 }
 
 #[cfg(test)]
-pub fn record_batch_to_accessor(
+pub fn schema_accessor_from_table_ref_with_schema(
     table: TableRef,
-    data: RecordBatch,
-    offset: usize,
-) -> RecordBatchTestAccessor {
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(table, data, offset);
-    accessor
+    schema: IndexMap<Identifier, ColumnType>,
+) -> TestSchemaAccessor {
+    TestSchemaAccessor::new(indexmap! {table => schema})
 }
 
-fn get_test_accessor() -> (TableRef, RecordBatchTestAccessor) {
+fn get_test_accessor() -> (TableRef, TestSchemaAccessor) {
     let table = "sxt.t".parse().unwrap();
-    let data = record_batch!(
-        "s" => ["abc", ],
-        "i" => [1_i64, ],
-        "d" => [2_i128, ],
-
-        "s0" => ["abc", ],
-        "i0" => [1_i64, ],
-        "d0" => [2_i128, ],
-
-        "s1" => ["abc", ],
-        "i1" => [1_i64, ],
-        "d1" => [2_i128, ],
+    let accessor = schema_accessor_from_table_ref_with_schema(
+        table,
+        indexmap! {
+            "s".parse().unwrap() => ColumnType::VarChar,
+            "i".parse().unwrap() => ColumnType::BigInt,
+            "d".parse().unwrap() => ColumnType::Int128,
+            "s0".parse().unwrap() => ColumnType::VarChar,
+            "i0".parse().unwrap() => ColumnType::BigInt,
+            "d0".parse().unwrap() => ColumnType::Int128,
+            "s1".parse().unwrap() => ColumnType::VarChar,
+            "i1".parse().unwrap() => ColumnType::BigInt,
+            "d1".parse().unwrap() => ColumnType::Int128,
+        },
     );
-    let mut accessor = RecordBatchTestAccessor::new_empty();
-    accessor.add_table(table, data, 0);
     (table, accessor)
 }
 
@@ -138,12 +135,11 @@ macro_rules! expected_query {
 #[test]
 fn we_can_convert_an_ast_with_one_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
@@ -160,12 +156,11 @@ fn we_can_convert_an_ast_with_one_column() {
 #[test]
 fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i128]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::Int128,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
@@ -182,12 +177,11 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
 #[test]
 fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => ["abc"]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
     let expected_ast = QueryExpr::new(
@@ -204,13 +198,12 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
 #[test]
 fn we_cannot_convert_an_ast_with_duplicate_aliases() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64],
-            "b" => [4_i64]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     invalid_query_to_provable_ast(
         t,
@@ -229,12 +222,11 @@ fn we_cannot_convert_an_ast_with_duplicate_aliases() {
 #[test]
 fn we_dont_have_duplicate_filter_result_expressions() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -255,14 +247,13 @@ fn we_dont_have_duplicate_filter_result_expressions() {
 #[test]
 fn we_can_convert_an_ast_with_two_columns() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
     let expected_ast = QueryExpr::new(
@@ -279,14 +270,13 @@ fn we_can_convert_an_ast_with_two_columns() {
 #[test]
 fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -313,13 +303,12 @@ fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
 #[test]
 fn we_can_parse_all_result_columns_with_select_star() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => [5_i64, 6],
-            "a" => [3_i64, 2],
-        ),
-        0_usize,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
@@ -336,13 +325,12 @@ fn we_can_parse_all_result_columns_with_select_star() {
 #[test]
 fn we_can_convert_an_ast_with_one_positive_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
     let expected_ast = QueryExpr::new(
@@ -359,13 +347,12 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
 #[test]
 fn we_can_convert_an_ast_with_one_not_equals_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
     let expected_ast = QueryExpr::new(
@@ -382,13 +369,12 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
 #[test]
 fn we_can_convert_an_ast_with_one_negative_cond() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
     let expected_ast = QueryExpr::new(
@@ -405,14 +391,13 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
 #[test]
 fn we_can_convert_an_ast_with_cond_and() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -436,14 +421,13 @@ fn we_can_convert_an_ast_with_cond_and() {
 #[test]
 fn we_can_convert_an_ast_with_cond_or() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -470,14 +454,13 @@ fn we_can_convert_an_ast_with_cond_or() {
 #[test]
 fn we_can_convert_an_ast_with_conds_or_not() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -501,15 +484,14 @@ fn we_can_convert_an_ast_with_conds_or_not() {
 #[test]
 fn we_can_convert_an_ast_with_conds_not_and_or() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-            "c" => Vec::<i64>::new(),
-            "f" => Vec::<i64>::new(),
-        ),
-        0_usize,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "c".parse().unwrap() => ColumnType::BigInt,
+            "f".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -545,12 +527,11 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
 #[test]
 fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -574,12 +555,11 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
 #[test]
 fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -603,13 +583,12 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
 #[test]
 fn we_can_convert_an_ast_using_an_aliased_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => Vec::<i64>::new(),
-            "b" => Vec::<i64>::new(),
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -636,12 +615,11 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
 #[test]
 fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => [3_i64],
-        ),
-        0,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
 }
@@ -649,12 +627,11 @@ fn we_cannot_convert_an_ast_with_a_nonexistent_column() {
 #[test]
 fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => ["abc"],
-        ),
-        0,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     invalid_query_to_provable_ast(t, "select * from sxt_tab where b = 123", &accessor);
 }
@@ -662,12 +639,11 @@ fn we_cannot_convert_an_ast_with_a_column_type_different_than_equal_literal() {
 #[test]
 fn we_can_convert_an_ast_with_a_schema() {
     let t = "eth.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
@@ -684,12 +660,11 @@ fn we_can_convert_an_ast_with_a_schema() {
 #[test]
 fn we_can_convert_an_ast_without_any_dense_filter() {
     let t = "eth.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [3_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -718,13 +693,12 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
 #[test]
 fn we_can_parse_order_by_with_a_single_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => [5_i64, 6],
-            "a" => [3_i64, 2],
-        ),
-        0_usize,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
     let expected_ast = QueryExpr::new(
@@ -744,13 +718,12 @@ fn we_can_parse_order_by_with_a_single_column() {
 #[test]
 fn we_can_parse_order_by_with_multiple_columns() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => [5_i64, 6, -7],
-            "a" => [3_i64, 2, 3],
-        ),
-        0_usize,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -778,13 +751,12 @@ fn we_can_parse_order_by_with_multiple_columns() {
 fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_name_equals_column_a_also_renamed(
 ) {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [5_i64, 6],
-            "name" => ["abc", "ed"],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -811,12 +783,11 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
 #[test]
 fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [5_i64, 6],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     invalid_query_to_provable_ast(
         t,
@@ -828,13 +799,12 @@ fn we_cannot_parse_order_by_referencing_a_column_name_instead_of_an_alias() {
 #[test]
 fn we_cannot_parse_order_by_referencing_invalid_aliased_expressions() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "b" => [5_i64, 6],
-            "a" => [3_i64, 2],
-        ),
-        0,
+        indexmap! {
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     // Note: While this operation is acceptable with PostgreSQL, we do not currently support it.
     invalid_query_to_provable_ast(t, "select a from sxt_tab order by b desc", &accessor);
@@ -846,26 +816,23 @@ fn we_cannot_parse_order_by_referencing_invalid_aliased_expressions() {
 #[test]
 fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_different_columns() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [5_i64, 6],
-            "name" => ["abc", "ed"],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     invalid_query_to_provable_ast(
         t,
         "select salary as s, name as s from sxt_tab order by s desc",
         &accessor,
     );
-
     invalid_query_to_provable_ast(
         t,
         "select salary as name, name from sxt_tab order by name desc",
         &accessor,
     );
-
     // Note: While this is not ambiguous with PostgreSQL,
     // it currently is with our code because there is
     // no way to differentiate between the two columns
@@ -875,7 +842,6 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
         "select salary as name, name from sxt_tab order by salary desc",
         &accessor,
     );
-
     // Note: This is not ambiguous with PostgreSQL either,
     // but it is with our code for the reasons mentioned above.
     invalid_query_to_provable_ast(
@@ -889,15 +855,13 @@ fn we_cannot_parse_order_by_referencing_an_alias_name_associated_with_two_differ
 fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_once_and_with_different_alias_name(
 ) {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [5_i64, 6],
-            "name" => ["abc", "ed"],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "name".parse().unwrap() => ColumnType::VarChar,
+        },
     );
-
     for order_by in ["s", "d"] {
         let ast = query_to_provable_ast(
             t,
@@ -934,14 +898,12 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
 #[test]
 fn we_can_parse_a_query_having_a_simple_limit_clause() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -957,14 +919,12 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
 #[test]
 fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -980,14 +940,12 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
 #[test]
 fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -1003,14 +961,12 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
 #[test]
 fn we_can_parse_a_query_having_a_negative_offset_clause() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -1026,14 +982,12 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
 #[test]
 fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
         dense_filter(
@@ -1053,15 +1007,13 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
 fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_where_expr_and_order_by(
 ) {
     let t = "sxt.sxt_tab".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [5_i64],
-            "boolean" => [true],
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "boolean".parse().unwrap() => ColumnType::Boolean,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select a, boolean and a >= 4 as res from sxt_tab where a = -3 order by a desc limit 55 offset 3",
@@ -1097,15 +1049,13 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
 #[test]
 fn we_can_do_provable_group_by() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64, 7, 2],
-            "department" => [5_i64, 5, 2],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select department, sum(salary) as total_salary, count(*) as num_employee from employees group by department",
@@ -1131,15 +1081,13 @@ fn we_can_do_provable_group_by() {
 #[test]
 fn we_can_do_provable_group_by_without_sum() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64, 7, 2],
-            "department" => [5_i64, 5, 2],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select department, count(*) as num_employee from employees group by department",
@@ -1164,16 +1112,14 @@ fn we_can_do_provable_group_by_without_sum() {
 #[test]
 fn we_can_do_provable_group_by_with_two_group_by_columns() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "state" => ["CA", "CA", "NY", "NY", "CA", "CA", "NY"],
-            "salary" => [4_i64, 7, 2, 3, 4, 5, 7],
-            "department" => [5_i64, 5, 2, 5, 2, 5, 2],
-        ),
-        0,
+        indexmap! {
+            "state".parse().unwrap() => ColumnType::VarChar,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select state, department, sum(salary) as total_salary, count(*) as num_employee from employees group by state, department",
@@ -1200,16 +1146,14 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
 #[test]
 fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "tax" => [1_i64, 2, 1, 1, 1, 1, 2],
-            "salary" => [4_i64, 7, 2, 3, 4, 5, 7],
-            "department" => [5_i64, 5, 2, 5, 2, 5, 2],
-        ),
-        0,
+        indexmap! {
+            "tax".parse().unwrap() => ColumnType::BigInt,
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select department, sum(salary) as total_salary, sum(tax) as total_tax, count(*) as num_employee from employees where tax <= 1 group by department",
@@ -1242,15 +1186,13 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
 #[test]
 fn we_can_group_by_without_using_aggregate_functions() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     let ast = query_to_provable_ast(
         t,
         "select department, true as is_remote from employees group by department",
@@ -1304,13 +1246,12 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
 #[test]
 fn we_cannot_parse_non_aggregated_or_non_group_by_columns_in_the_select_clause() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     invalid_query_to_provable_ast(
         t,
@@ -1322,13 +1263,12 @@ fn we_cannot_parse_non_aggregated_or_non_group_by_columns_in_the_select_clause()
 #[test]
 fn alias_references_are_not_allowed_in_the_group_by() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     invalid_query_to_provable_ast(
         t,
@@ -1345,21 +1285,18 @@ fn alias_references_are_not_allowed_in_the_group_by() {
 #[test]
 fn order_by_cannot_reference_an_invalid_group_by_column() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     invalid_query_to_provable_ast(
         t,
         "select department as d from sxt.employees group by department order by department",
         &accessor,
     );
-
     invalid_query_to_provable_ast(
         t,
         "select department, min(salary) from sxt.employees group by department order by salary",
@@ -1370,15 +1307,13 @@ fn order_by_cannot_reference_an_invalid_group_by_column() {
 #[test]
 fn group_by_column_cannot_be_a_column_result_alias() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+        },
     );
-
     invalid_query_to_provable_ast(
         t,
         "select min(salary) as min_sal from sxt.employees group by min_sal",
@@ -1405,14 +1340,13 @@ fn we_can_have_aggregate_functions_without_a_group_by_clause() {
 #[test]
 fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_expression() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1439,14 +1373,13 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
 #[test]
 fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1477,14 +1410,13 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
 #[test]
 fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1511,16 +1443,14 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
 #[test]
 fn aggregate_result_columns_cannot_reference_invalid_columns() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => ["abc"]
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::VarChar,
+        },
     );
-
     invalid_query_to_provable_ast(
         t,
         "select department, max(non_existent) from sxt.employees group by department",
@@ -1531,14 +1461,13 @@ fn aggregate_result_columns_cannot_reference_invalid_columns() {
 #[test]
 fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_with_group_by() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "salary" => [4_i64],
-            "department" => [5_i64],
-            "bonus" => [-7_i64]
-        ),
-        0,
+        indexmap! {
+            "salary".parse().unwrap() => ColumnType::BigInt,
+            "department".parse().unwrap() => ColumnType::BigInt,
+            "bonus".parse().unwrap() => ColumnType::VarChar,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1590,15 +1519,14 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
 #[test]
 fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_expr() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "a" => [4_i64],
-            "f" => [5_i128],
-            "b" => [-7_i64],
-            "h" => [123_i128]
-        ),
-        0,
+        indexmap! {
+            "a".parse().unwrap() => ColumnType::BigInt,
+            "f".parse().unwrap() => ColumnType::Int128,
+            "b".parse().unwrap() => ColumnType::BigInt,
+            "h".parse().unwrap() => ColumnType::Int128,
+        },
     );
     // TODO: add `a / b as a_div_b` result expr once polars properly
     // supports decimal division without panicking in production
@@ -1644,15 +1572,14 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
 fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_precedence_in_the_result_expr(
 ) {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "c" => [4_i64],
-            "f" => [5_i64],
-            "g" => [-7_i64],
-            "h" => [123_i64]
-        ),
-        0,
+        indexmap! {
+            "c".parse().unwrap() => ColumnType::BigInt,
+            "f".parse().unwrap() => ColumnType::BigInt,
+            "g".parse().unwrap() => ColumnType::BigInt,
+            "h".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1703,15 +1630,14 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
 #[test]
 fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
     let t = "sxt.employees".parse().unwrap();
-    let accessor = record_batch_to_accessor(
+    let accessor = schema_accessor_from_table_ref_with_schema(
         t,
-        record_batch!(
-            "c" => [4_i64],
-            "f" => [5_i64],
-            "g" => [5_i64],
-            "k" => [5_i64],
-        ),
-        0,
+        indexmap! {
+            "c".parse().unwrap() => ColumnType::BigInt,
+            "f".parse().unwrap() => ColumnType::BigInt,
+            "g".parse().unwrap() => ColumnType::BigInt,
+            "k".parse().unwrap() => ColumnType::BigInt,
+        },
     );
     let ast = query_to_provable_ast(
         t,
@@ -1909,8 +1835,7 @@ fn count_aggregation_always_have_integer_type() {
 
 #[test]
 fn select_wildcard_is_valid_with_group_by_exprs() {
-    let (t, accessor) = get_test_accessor();
-    let columns = accessor.get_column_names(t);
+    let columns = ["s", "i", "d", "s0", "i0", "d0", "s1", "i1", "d1"];
     let ast = query!(
         select: ["*"],
         group: columns.clone()
@@ -1967,20 +1892,16 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
 
 /// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
 fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
-    let schema_accessor = record_batch_to_accessor(
+    let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
-        record_batch!(
-                "bigint_column" => [5_i64],
-                "varchar_column" => ["example"],
-                "int128_column" => [10_i128],
-        ),
-        0,
+        indexmap! {
+            "bigint_column".parse().unwrap() => ColumnType::BigInt,
+            "varchar_column".parse().unwrap() => ColumnType::VarChar,
+            "int128_column".parse().unwrap() => ColumnType::Int128,
+        },
     );
-
     let default_schema = "test".parse().unwrap();
-
     let select_statement = SelectStatementParser::new().parse(sql_text).unwrap();
-
     QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
 }
 
@@ -2030,15 +1951,11 @@ fn query_expr_with_order_and_limits_can_serialize_to_and_from_flex_buffers() {
 #[test]
 fn we_can_serialize_list_of_filters_from_query_expr() {
     let query_expr = query_expr_for_test_table("select * from table");
-
     let filter_exprs = vec![query_expr.proof_expr()];
-
     let serialized = flexbuffers::to_vec(&filter_exprs).unwrap();
-
     let deserialized: Vec<ProofPlan<RistrettoPoint>> =
         flexbuffers::from_slice(serialized.as_slice()).unwrap();
     let deserialized_as_ref: Vec<&ProofPlan<RistrettoPoint>> = deserialized.iter().collect();
-
     assert_eq!(filter_exprs.len(), deserialized_as_ref.len());
     assert_eq!(filter_exprs[0], deserialized_as_ref[0]);
 }
