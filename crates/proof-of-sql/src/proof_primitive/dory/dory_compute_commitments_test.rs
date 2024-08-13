@@ -439,7 +439,8 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
 }
 
 #[test]
-fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_fewer_rows_than_columns() {
+fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_fewer_rows_than_columns(
+) {
     let public_parameters = PublicParameters::rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -552,7 +553,6 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
         + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(2);
     assert_eq!(res[0].0, expected);
 
-    
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-3)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-2)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(2)
@@ -566,23 +566,23 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
         + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(5)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(6);
     assert_eq!(res[2].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-7)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-6)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(6)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(7);
     assert_eq!(res[3].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-9)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-8)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(8)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(9);
     assert_eq!(res[4].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(true)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(true);
     assert_eq!(res[5].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(10)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(11)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(12)
@@ -604,7 +604,8 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
 }
 
 #[test]
-fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_signed_values() {
+fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_signed_values(
+) {
     let public_parameters = PublicParameters::rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
@@ -641,7 +642,6 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
         + Pairing::pairing(Gamma_1[0], Gamma_2[2]) * F::from(2);
     assert_eq!(res[0].0, expected);
 
-    
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-3)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-2)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(2)
@@ -655,23 +655,23 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
         + Pairing::pairing(Gamma_1[0], Gamma_2[2]) * F::from(5)
         + Pairing::pairing(Gamma_1[1], Gamma_2[2]) * F::from(6);
     assert_eq!(res[2].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-7)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-6)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(6)
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(7);
     assert_eq!(res[3].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-9)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-8)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(8)
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(9);
     assert_eq!(res[4].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(true)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(true);
     assert_eq!(res[5].0, expected);
-    
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(10)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(11)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(12)
