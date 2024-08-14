@@ -242,14 +242,11 @@ pub fn get_bit_table_and_scalars_for_packed_msm(
     let bit_table_full_commits = get_output_bit_table(committable_columns);
 
     // Repeat the bit table to account for the appropriate number of sub commitments per full commit.
-    let bit_table_sub_commits =
-        repeat_bit_table(&bit_table_full_commits, num_sub_commits_per_full_commit);
-    let bit_table_sub_commits_sum = bit_table_sub_commits.iter().sum::<u32>() as usize;
+    let mut bit_table = repeat_bit_table(&bit_table_full_commits, num_sub_commits_per_full_commit);
+    let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
 
     // Double the bit table to handle handle the BYTE_SIZE offsets.
-    let mut bit_table = Vec::with_capacity(bit_table_sub_commits.len() * 2);
-    bit_table.extend_from_slice(&bit_table_sub_commits);
-    bit_table.extend(std::iter::repeat(BYTE_SIZE as u32).take(bit_table_sub_commits.len()));
+    bit_table.extend(std::iter::repeat(BYTE_SIZE as u32).take(bit_table.len()));
     let bit_table_sum_in_bytes = bit_table.iter().sum::<u32>() as usize / BYTE_SIZE;
 
     // Create the packed_scalar vector.
