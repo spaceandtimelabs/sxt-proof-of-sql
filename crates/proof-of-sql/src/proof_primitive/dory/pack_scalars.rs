@@ -28,7 +28,7 @@ fn output_bit_table<'a>(
 /// # Arguments
 ///
 /// * `committable_columns` - A reference to the committable columns.
-fn get_max_committable_column_length(committable_columns: &[CommittableColumn]) -> usize {
+fn max_committable_column_length(committable_columns: &[CommittableColumn]) -> usize {
     committable_columns
         .iter()
         .map(|column| column.len())
@@ -74,13 +74,13 @@ fn repeat_bit_table(bit_table: impl Iterator<Item = u32>, num_sub_commits: usize
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of generators used for msm.
-pub fn get_num_of_sub_commits_per_full_commit(
+pub fn num_of_sub_commits_per_full_commit(
     committable_columns: &[CommittableColumn],
     offset: usize,
     num_columns: usize,
 ) -> usize {
     // Committable columns may be different sizes, get the max size and add offset.
-    let max_column_length = get_max_committable_column_length(committable_columns) + offset;
+    let max_column_length = max_committable_column_length(committable_columns) + offset;
 
     // Number of scalar vectors that the size of the generators n.
     // Each scalar will be used to call the packed_msm function.
@@ -211,9 +211,9 @@ fn pack_offset_bit<T: OffsetToBytes>(
 /// let offset = 1;
 /// let num_columns = 3;
 ///
-/// let num_sub_commits_per_full_commit = get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+/// let num_sub_commits_per_full_commit = num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
 ///
-/// let (bit_table, packed_scalars) = get_bit_table_and_scalars_for_packed_msm(
+/// let (bit_table, packed_scalars) = bit_table_and_scalars_for_packed_msm(
 ///     &committable_columns,
 ///     offset,
 ///     num_columns,
@@ -228,11 +228,11 @@ fn pack_offset_bit<T: OffsetToBytes>(
 ///                             1, 128, 0,   0, 4, 128, 7, 128, 1, 0, 1, 1]);
 /// ```
 #[tracing::instrument(
-    name = "pack_scalars::get_bit_table_and_scalars_for_packed_msm (gpu)",
+    name = "pack_scalars::bit_table_and_scalars_for_packed_msm (gpu)",
     level = "debug",
     skip_all
 )]
-pub fn get_bit_table_and_scalars_for_packed_msm(
+pub fn bit_table_and_scalars_for_packed_msm(
     committable_columns: &[CommittableColumn],
     offset: usize,
     num_columns: usize,
@@ -434,7 +434,7 @@ mod tests {
             CommittableColumn::Scalar(vec![[1, 2, 3, 4]]),
         ];
 
-        let max_column_length = get_max_committable_column_length(&committable_columns);
+        let max_column_length = max_committable_column_length(&committable_columns);
         assert_eq!(max_column_length, 2);
     }
 
@@ -456,7 +456,7 @@ mod tests {
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]),
         ];
 
-        let max_column_length = get_max_committable_column_length(&committable_columns);
+        let max_column_length = max_committable_column_length(&committable_columns);
         assert_eq!(max_column_length, 6);
     }
 
@@ -545,7 +545,7 @@ mod tests {
         let offset = 0;
         let num_columns = 1 << 2;
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 1);
     }
 
@@ -559,7 +559,7 @@ mod tests {
         let offset = 5;
         let num_columns = 1 << 2;
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
     }
 
@@ -576,7 +576,7 @@ mod tests {
         let offset = 0;
         let num_columns = 1 << 2;
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 5);
     }
 
@@ -593,7 +593,7 @@ mod tests {
         let offset = 1;
         let num_columns = 1 << 2;
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 6);
     }
 
@@ -615,10 +615,10 @@ mod tests {
         let offset = 0;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 5);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -659,10 +659,10 @@ mod tests {
         let offset = 5;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 3);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -690,7 +690,7 @@ mod tests {
         let committable_columns = [];
 
         let (bit_table, packed_scalar) =
-            get_bit_table_and_scalars_for_packed_msm(&committable_columns, 0, 1, 0);
+            bit_table_and_scalars_for_packed_msm(&committable_columns, 0, 1, 0);
 
         assert!(bit_table.is_empty());
         assert!(packed_scalar.is_empty());
@@ -707,10 +707,10 @@ mod tests {
         let num_columns = 1 << 1;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 1);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -739,10 +739,10 @@ mod tests {
         let num_columns = 1 << 0;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -771,10 +771,10 @@ mod tests {
         let num_columns = 1 << 1;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -804,10 +804,10 @@ mod tests {
         let num_columns = 1 << 0;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 3);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,
@@ -837,10 +837,10 @@ mod tests {
         let num_columns = 3;
 
         let num_sub_commits_per_full_commit =
-            get_num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
+            num_of_sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = get_bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
             &committable_columns,
             offset,
             num_columns,

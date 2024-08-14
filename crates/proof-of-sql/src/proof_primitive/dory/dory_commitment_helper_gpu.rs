@@ -26,14 +26,11 @@ fn compute_dory_commitments_packed_impl(
     let offset = offset % num_columns;
 
     // Get the number of sub-commits per full commit
-    let num_sub_commits_per_full_commit = pack_scalars::get_num_of_sub_commits_per_full_commit(
-        committable_columns,
-        offset,
-        num_columns,
-    );
+    let num_sub_commits_per_full_commit =
+        pack_scalars::num_of_sub_commits_per_full_commit(committable_columns, offset, num_columns);
 
     // Get the bit table and packed scalars for the packed msm
-    let (bit_table, packed_scalars) = pack_scalars::get_bit_table_and_scalars_for_packed_msm(
+    let (bit_table, packed_scalars) = pack_scalars::bit_table_and_scalars_for_packed_msm(
         committable_columns,
         offset,
         num_columns,
