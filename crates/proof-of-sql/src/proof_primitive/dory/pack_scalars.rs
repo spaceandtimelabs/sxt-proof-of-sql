@@ -15,11 +15,12 @@ const BYTE_SIZE: usize = 8;
 /// # Arguments
 ///
 /// * `committable_columns` - A reference to the committable columns.
-fn get_output_bit_table(committable_columns: &[CommittableColumn]) -> Vec<u32> {
+fn output_bit_table<'a>(
+    committable_columns: &'a [CommittableColumn],
+) -> impl Iterator<Item = u32> + 'a {
     committable_columns
         .iter()
         .map(|column| column.column_type().bit_size())
-        .collect()
 }
 
 /// Returns the size of the largest committable column.
@@ -60,10 +61,9 @@ const fn min_as_f(column_type: ColumnType) -> F {
 ///
 /// * `bit_table` - A reference to the bit table.
 /// * `num_sub_commits` - The number of sub commits.
-fn repeat_bit_table(bit_table: &[u32], num_sub_commits: usize) -> Vec<u32> {
+fn repeat_bit_table(bit_table: impl Iterator<Item = u32>, num_sub_commits: usize) -> Vec<u32> {
     bit_table
-        .iter()
-        .flat_map(|&value| itertools::repeat_n(value, num_sub_commits))
+        .flat_map(|value| itertools::repeat_n(value, num_sub_commits))
         .collect()
 }
 
@@ -239,10 +239,10 @@ pub fn get_bit_table_and_scalars_for_packed_msm(
     num_sub_commits_per_full_commit: usize,
 ) -> (Vec<u32>, Vec<u8>) {
     // Get a bit table that represented each of the committable columns bit size.
-    let bit_table_full_commits = get_output_bit_table(committable_columns);
+    let bit_table_full_commits = output_bit_table(committable_columns);
 
     // Repeat the bit table to account for the appropriate number of sub commitments per full commit.
-    let mut bit_table = repeat_bit_table(&bit_table_full_commits, num_sub_commits_per_full_commit);
+    let mut bit_table = repeat_bit_table(bit_table_full_commits, num_sub_commits_per_full_commit);
     let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
 
     // Double the bit table to handle handle the BYTE_SIZE offsets.
@@ -478,7 +478,7 @@ mod tests {
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]),
         ];
 
-        let bit_table = get_output_bit_table(&committable_columns);
+        let bit_table: Vec<u32> = output_bit_table(&committable_columns).collect();
         let expected = [16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
         assert_eq!(bit_table, expected);
     }
@@ -501,8 +501,8 @@ mod tests {
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]),
         ];
 
-        let bit_table = get_output_bit_table(&committable_columns);
-        let repeated_bit_table = repeat_bit_table(&bit_table, 3);
+        let bit_table = output_bit_table(&committable_columns);
+        let repeated_bit_table = repeat_bit_table(bit_table, 3);
         let expected_bit_table = [
             16,
             16,
