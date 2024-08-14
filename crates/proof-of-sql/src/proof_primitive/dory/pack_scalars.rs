@@ -55,19 +55,23 @@ const fn min_as_f(column_type: ColumnType) -> F {
 }
 
 /// Returns a repeated bit table vector that duplicated the
-/// bit table for each element by the num_sub_commits.
+/// bit table for each element by the num_matrix_commitment_columns.
 ///
 /// # Arguments
 ///
-/// * `bit_table` - A reference to the bit table.
-/// * `num_sub_commits` - The number of sub commits.
-fn repeat_bit_table(bit_table: impl Iterator<Item = u32>, num_sub_commits: usize) -> Vec<u32> {
+/// * `bit_table` - A iterable bit table.
+/// * `num_matrix_commitment_columns` - The number of matrix commitment columns needed for each full commit.
+fn repeat_bit_table(
+    bit_table: impl Iterator<Item = u32>,
+    num_matrix_commitment_columns: usize,
+) -> Vec<u32> {
     bit_table
-        .flat_map(|value| itertools::repeat_n(value, num_sub_commits))
+        .flat_map(|value| itertools::repeat_n(value, num_matrix_commitment_columns))
         .collect()
 }
 
-/// Returns the number of commits needed for the packed_msm function.
+/// Returns the number of commits needed for each full
+/// commitment in the packed_msm function.
 ///
 /// # Arguments
 ///
@@ -87,13 +91,14 @@ pub fn num_matrix_commitment_columns(
     (max_column_length + num_columns - 1) / num_columns
 }
 
-/// Modifies the signed sub-commits by adding the offset to the sub-commits.
+/// Modifies the signed matrix commitment columns by adding the offset to the matrix commitment columns.
 ///
 /// # Arguments
 ///
 /// * `commits` - A reference to the signed sub-commits.
 /// * `committable_columns` - A reference to the committable columns.
-/// * `num_matrix_commitment_columns` - The number of matrix commitment colums needed for each full commit for the packed_msm function.
+/// * `num_matrix_commitment_columns` - The number of matrix commitment columns needed
+///                                     for each full commit for the packed_msm function.
 #[tracing::instrument(name = "pack_scalars::modify_commits (gpu)", level = "debug", skip_all)]
 pub fn modify_commits(
     commits: &[G1Affine],
@@ -198,7 +203,8 @@ fn pack_offset_bit<T: OffsetToBytes>(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
-/// * `num_matrix_commitment_columns` - The number of matrix commitment columns needed for each full commit for the packed_msm function.
+/// * `num_matrix_commitment_columns` - The number of matrix commitment columns needed for
+///                                     each full commit for the packed_msm function.
 ///
 /// # Example
 ///
