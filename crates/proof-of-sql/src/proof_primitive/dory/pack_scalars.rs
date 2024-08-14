@@ -93,15 +93,19 @@ pub fn get_num_of_sub_commits_per_full_commit(
 ///
 /// * `commits` - A reference to the signed sub-commits.
 /// * `committable_columns` - A reference to the committable columns.
-/// * `num_full_commits` - The number of full commits.
 /// * `num_sub_commits_per_full_commit` - The number of sub commits needed for each full commit for the packed_msm function.
 #[tracing::instrument(name = "pack_scalars::modify_commits (gpu)", level = "debug", skip_all)]
 pub fn modify_commits(
     commits: &[G1Affine],
     committable_columns: &[CommittableColumn],
-    num_full_commits: usize,
     num_sub_commits_per_full_commit: usize,
 ) -> Vec<G1Affine> {
+    let num_full_commits = committable_columns.len();
+    assert_eq!(
+        2 * num_full_commits * num_sub_commits_per_full_commit,
+        commits.len()
+    );
+
     // Currently, the packed_scalars doubles the number of commits to deal with
     // signed sub-commits. Commit i is offset by commit at i + num_sub_commits_per_full_commit.
     // Spit the commits into signed sub-commits and offset sub-commits.
@@ -109,9 +113,7 @@ pub fn modify_commits(
     let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_signed_sub_commits);
 
     // Ensure the packed_scalars were split correctly
-    if signed_sub_commits.len() != offset_sub_commits.len() {
-        return vec![];
-    }
+    assert_eq!(signed_sub_commits.len(), offset_sub_commits.len());
 
     // Add the offset sub-commits multiplied by the min value to the signed sub-commits
     signed_sub_commits
@@ -864,13 +866,5 @@ mod tests {
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
-    }
-
-    #[test]
-    fn jake() {
-        println!("i64 min: {:?}", i64::MIN);
-        println!("i16 min: {:?}", i16::MIN);
-        println!("i32 min: {:?}", i32::MIN);
-        println!("i128 min: {:?}", i128::MIN);
     }
 }

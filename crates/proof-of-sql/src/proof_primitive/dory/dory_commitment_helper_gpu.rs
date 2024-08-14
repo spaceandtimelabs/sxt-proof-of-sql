@@ -63,7 +63,6 @@ fn compute_dory_commitments_packed_impl(
     let modified_sub_commits = pack_scalars::modify_commits(
         &all_sub_commits,
         committable_columns,
-        num_full_commits,
         num_sub_commits_per_full_commit,
     );
 
