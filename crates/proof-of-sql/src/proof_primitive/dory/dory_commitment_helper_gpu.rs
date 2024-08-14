@@ -19,7 +19,6 @@ fn compute_dory_commitments_packed_impl(
     }
 
     let num_columns = 1 << setup.sigma();
-    let num_full_commits = committable_columns.len();
 
     // If the offset is larger than the number of columns, we compute an
     // offset for the gamma_2 table to avoid finding sub-commits of zero.
@@ -71,16 +70,10 @@ fn compute_dory_commitments_packed_impl(
 
     // Compute the Dory commitments using multi pairing of sub-commits
     let span = span!(Level::INFO, "multi_pairing").entered();
-    let dc: Vec<DoryCommitment> = (0..num_full_commits)
-        .into_par_iter()
-        .map(|i| {
-            let idx = i * num_sub_commits_per_full_commit;
-            let sub_commits: Vec<G1Affine> =
-                modified_sub_commits[idx..idx + num_sub_commits_per_full_commit].to_vec();
-
-            DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice))
-        })
-        .collect::<Vec<_>>();
+    let dc = modified_sub_commits
+        .par_chunks_exact(num_sub_commits_per_full_commit)
+        .map(|sub_commits| DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice)))
+        .collect();
     span.exit();
 
     dc
