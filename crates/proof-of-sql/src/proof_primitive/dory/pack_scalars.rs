@@ -13,7 +13,7 @@ const BYTE_SIZE: usize = 8;
 /// # Arguments
 ///
 /// * `committable_columns` - A reference to the committable columns.
-pub fn get_output_bit_table(committable_columns: &[CommittableColumn]) -> Vec<u32> {
+fn get_output_bit_table(committable_columns: &[CommittableColumn]) -> Vec<u32> {
     committable_columns
         .iter()
         .map(|column| column.column_type().bit_size())
