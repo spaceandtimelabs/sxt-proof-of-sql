@@ -8,34 +8,6 @@ use rayon::prelude::*;
 
 const BYTE_SIZE: usize = 8;
 
-/// Returns the byte size of a committable column.
-///
-/// # Arguments
-///
-/// * `column` - A reference to the committable column.
-fn get_byte_size(column: &CommittableColumn) -> usize {
-    match column {
-        CommittableColumn::SmallInt(_) => std::mem::size_of::<i16>(),
-        CommittableColumn::Int(_) => std::mem::size_of::<i32>(),
-        CommittableColumn::BigInt(_) => std::mem::size_of::<i64>(),
-        CommittableColumn::Int128(_) => std::mem::size_of::<i128>(),
-        CommittableColumn::Decimal75(_, _, _) => std::mem::size_of::<[u64; 4]>(),
-        CommittableColumn::Scalar(_) => std::mem::size_of::<[u64; 4]>(),
-        CommittableColumn::VarChar(_) => std::mem::size_of::<[u64; 4]>(),
-        CommittableColumn::Boolean(_) => std::mem::size_of::<bool>(),
-        CommittableColumn::TimestampTZ(_, _, _) => std::mem::size_of::<i64>(),
-    }
-}
-
-/// Returns the bit size of a committable column.
-///
-/// # Arguments
-///
-/// * `column` - A reference to the committable column.
-fn get_bit_size(column: &CommittableColumn) -> usize {
-    get_byte_size(column) * BYTE_SIZE
-}
-
 /// Returns a bit table vector related to each of the committable columns data size.
 ///
 /// # Arguments
@@ -44,7 +16,7 @@ fn get_bit_size(column: &CommittableColumn) -> usize {
 pub fn get_output_bit_table(committable_columns: &[CommittableColumn]) -> Vec<u32> {
     committable_columns
         .iter()
-        .map(|column| get_bit_size(column) as u32)
+        .map(|column| column.column_type().bit_size())
         .collect()
 }
 
@@ -298,7 +270,7 @@ pub fn get_bit_table_and_scalars_for_packed_msm(
                 bit_table_sub_commits_sum + i * BYTE_SIZE * num_sub_commits_per_full_commit;
 
             // Get the byte size of the column of data.
-            let byte_size = get_byte_size(&committable_columns[i]);
+            let byte_size = committable_columns[i].column_type().byte_size();
 
             // Pack the signed bits and offset bits into the packed_scalars array.
             match column {
@@ -452,39 +424,6 @@ mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-
-    #[test]
-    fn we_can_get_correct_data_sizes() {
-        let committable_columns = [
-            CommittableColumn::SmallInt(&[1, 2, 3]),
-            CommittableColumn::Int(&[1, 2, 3]),
-            CommittableColumn::BigInt(&[1, 2, 3]),
-            CommittableColumn::Int128(&[1, 2, 3]),
-            CommittableColumn::Decimal75(
-                Precision::new(1).unwrap(),
-                0,
-                vec![[1, 2, 3, 4], [5, 6, 7, 8]],
-            ),
-            CommittableColumn::Scalar(vec![[1, 2, 3, 4], [5, 6, 7, 8]]),
-            CommittableColumn::VarChar(vec![[1, 2, 3, 4], [5, 6, 7, 8]]),
-            CommittableColumn::Boolean(&[true, false, true]),
-            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]),
-        ];
-
-        let expected_bit_sizes = [16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
-        let expected_byte_size = expected_bit_sizes
-            .iter()
-            .map(|&x| x / BYTE_SIZE)
-            .collect::<Vec<usize>>();
-
-        for (i, column) in committable_columns.iter().enumerate() {
-            let bit_size = get_bit_size(column);
-            let byte_size = get_byte_size(column);
-
-            assert_eq!(bit_size, expected_bit_sizes[i]);
-            assert_eq!(byte_size, expected_byte_size[i]);
-        }
-    }
 
     #[test]
     fn we_can_get_max_committable_column_length_of_the_same_type() {

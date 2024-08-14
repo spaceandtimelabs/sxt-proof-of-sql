@@ -348,6 +348,23 @@ impl ColumnType {
             },
         }
     }
+
+    /// Returns the byte size of the column type.
+    pub fn byte_size(&self) -> usize {
+        match self {
+            Self::Boolean => std::mem::size_of::<bool>(),
+            Self::SmallInt => std::mem::size_of::<i16>(),
+            Self::Int => std::mem::size_of::<i32>(),
+            Self::BigInt | Self::TimestampTZ(_, _) => std::mem::size_of::<i64>(),
+            Self::Int128 => std::mem::size_of::<i128>(),
+            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => std::mem::size_of::<[u64; 4]>(),
+        }
+    }
+
+    /// Returns the bit size of the column type.
+    pub fn bit_size(&self) -> u32 {
+        self.byte_size() as u32 * 8
+    }
 }
 
 /// Convert ColumnType values to some arrow DataType
@@ -919,5 +936,60 @@ mod tests {
         );
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
+    }
+
+    #[test]
+    fn we_can_get_the_data_size_of_a_column() {
+        let column = Column::<DoryScalar>::Boolean(&[true, false, true]);
+        assert_eq!(column.column_type().byte_size(), 1);
+        assert_eq!(column.column_type().bit_size(), 8);
+
+        let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3, 4]);
+        assert_eq!(column.column_type().byte_size(), 2);
+        assert_eq!(column.column_type().bit_size(), 16);
+
+        let column = Column::<Curve25519Scalar>::Int(&[1, 2, 3]);
+        assert_eq!(column.column_type().byte_size(), 4);
+        assert_eq!(column.column_type().bit_size(), 32);
+
+        let column = Column::<Curve25519Scalar>::BigInt(&[1]);
+        assert_eq!(column.column_type().byte_size(), 8);
+        assert_eq!(column.column_type().bit_size(), 64);
+
+        let column = Column::<DoryScalar>::Int128(&[1, 2]);
+        assert_eq!(column.column_type().byte_size(), 16);
+        assert_eq!(column.column_type().bit_size(), 128);
+
+        let scals = [
+            Curve25519Scalar::from(1),
+            Curve25519Scalar::from(2),
+            Curve25519Scalar::from(3),
+        ];
+
+        let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scals));
+        assert_eq!(column.column_type().byte_size(), 32);
+        assert_eq!(column.column_type().bit_size(), 256);
+
+        let column = Column::Scalar(&scals);
+        assert_eq!(column.column_type().byte_size(), 32);
+        assert_eq!(column.column_type().bit_size(), 256);
+
+        let precision = 10;
+        let scale = 2;
+        let decimal_data = [
+            Curve25519Scalar::from(1),
+            Curve25519Scalar::from(2),
+            Curve25519Scalar::from(3),
+        ];
+
+        let precision = Precision::new(precision).unwrap();
+        let column = Column::Decimal75(precision, scale, &decimal_data);
+        assert_eq!(column.column_type().byte_size(), 32);
+        assert_eq!(column.column_type().bit_size(), 256);
+
+        let column: Column<'_, DoryScalar> =
+            Column::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1, 2, 3]);
+        assert_eq!(column.column_type().byte_size(), 8);
+        assert_eq!(column.column_type().bit_size(), 64);
     }
 }
