@@ -1,8 +1,10 @@
 use super::{G1Affine, F};
 use crate::{
-    base::commitment::CommittableColumn, proof_primitive::dory::offset_to_bytes::OffsetToBytes,
+    base::{commitment::CommittableColumn, database::ColumnType},
+    proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
 use ark_ec::CurveGroup;
+use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use rayon::prelude::*;
 
@@ -33,22 +35,21 @@ fn get_max_committable_column_length(committable_columns: &[CommittableColumn]) 
         .unwrap_or(0)
 }
 
-/// Returns the minimum value of a column as an Fr.
+/// Returns the minimum value of a column as F.
 ///
 /// # Arguments
 ///
-/// * `column` - A reference to the committable column.
-pub fn get_min_as_fr(column: &CommittableColumn) -> F {
-    match column {
-        CommittableColumn::SmallInt(_) => i16::min_as_fr(),
-        CommittableColumn::Int(_) => i32::min_as_fr(),
-        CommittableColumn::BigInt(_) => i64::min_as_fr(),
-        CommittableColumn::Int128(_) => i128::min_as_fr(),
-        CommittableColumn::Decimal75(_, _, _) => <[u64; 4]>::min_as_fr(),
-        CommittableColumn::Scalar(_) => <[u64; 4]>::min_as_fr(),
-        CommittableColumn::VarChar(_) => <[u64; 4]>::min_as_fr(),
-        CommittableColumn::Boolean(_) => <[u64; 4]>::min_as_fr(),
-        CommittableColumn::TimestampTZ(_, _, _) => i64::min_as_fr(),
+/// * `column_type` - The type of a committable column.
+const fn min_as_f(column_type: ColumnType) -> F {
+    match column_type {
+        ColumnType::SmallInt => MontFp!("-32768"),
+        ColumnType::Int => MontFp!("-2147483648"),
+        ColumnType::BigInt | ColumnType::TimestampTZ(_, _) => MontFp!("-9223372036854775808"),
+        ColumnType::Int128 => MontFp!("-170141183460469231731687303715884105728"),
+        ColumnType::Decimal75(_, _)
+        | ColumnType::Scalar
+        | ColumnType::VarChar
+        | ColumnType::Boolean => MontFp!("0"),
     }
 }
 
@@ -118,7 +119,9 @@ pub fn modify_commits(
         .zip(offset_sub_commits.par_iter())
         .enumerate()
         .map(|(index, (first, second))| {
-            let min = get_min_as_fr(&committable_columns[index / num_sub_commits_per_full_commit]);
+            let min = min_as_f(
+                committable_columns[index / num_sub_commits_per_full_commit].column_type(),
+            );
             let modified_second = second.mul(min).into_affine();
             *first + modified_second
         })
@@ -861,5 +864,13 @@ mod tests {
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
+    }
+
+    #[test]
+    fn jake() {
+        println!("i64 min: {:?}", i64::MIN);
+        println!("i16 min: {:?}", i16::MIN);
+        println!("i32 min: {:?}", i32::MIN);
+        println!("i128 min: {:?}", i128::MIN);
     }
 }
