@@ -25,16 +25,16 @@ fn compute_dory_commitments_packed_impl(
     let gamma_2_offset = offset / num_columns;
     let offset = offset % num_columns;
 
-    // Get the number of sub-commits per full commit
-    let num_sub_commits_per_full_commit =
-        pack_scalars::num_of_sub_commits_per_full_commit(committable_columns, offset, num_columns);
+    // Get the number of sub-commits for each full commit
+    let num_matrix_commitment_columns =
+        pack_scalars::num_matrix_commitment_columns(committable_columns, offset, num_columns);
 
     // Get the bit table and packed scalars for the packed msm
     let (bit_table, packed_scalars) = pack_scalars::bit_table_and_scalars_for_packed_msm(
         committable_columns,
         offset,
         num_columns,
-        num_sub_commits_per_full_commit,
+        num_matrix_commitment_columns,
     );
 
     let mut sub_commits_from_blitzar =
@@ -59,16 +59,16 @@ fn compute_dory_commitments_packed_impl(
     let modified_sub_commits = pack_scalars::modify_commits(
         &all_sub_commits,
         committable_columns,
-        num_sub_commits_per_full_commit,
+        num_matrix_commitment_columns,
     );
 
     let gamma_2_slice = &setup.prover_setup().Gamma_2.last().unwrap()
-        [gamma_2_offset..gamma_2_offset + num_sub_commits_per_full_commit];
+        [gamma_2_offset..gamma_2_offset + num_matrix_commitment_columns];
 
     // Compute the Dory commitments using multi pairing of sub-commits
     let span = span!(Level::INFO, "multi_pairing").entered();
     let dc = modified_sub_commits
-        .par_chunks_exact(num_sub_commits_per_full_commit)
+        .par_chunks_exact(num_matrix_commitment_columns)
         .map(|sub_commits| DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice)))
         .collect();
     span.exit();
