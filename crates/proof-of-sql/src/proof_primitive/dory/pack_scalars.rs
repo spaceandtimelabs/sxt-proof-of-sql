@@ -60,10 +60,10 @@ const fn min_as_f(column_type: ColumnType) -> F {
 ///
 /// * `bit_table` - A reference to the bit table.
 /// * `num_sub_commits` - The number of sub commits.
-fn get_repeated_bit_table(bit_table: &[u32], num_sub_commits: usize) -> Vec<u32> {
+fn repeat_bit_table(bit_table: &[u32], num_sub_commits: usize) -> Vec<u32> {
     bit_table
         .iter()
-        .flat_map(|&value| std::iter::repeat(value).take(num_sub_commits))
+        .flat_map(|&value| itertools::repeat_n(value, num_sub_commits))
         .collect()
 }
 
@@ -241,7 +241,7 @@ pub fn get_bit_table_and_scalars_for_packed_msm(
 
     // Repeat the bit table to account for the appropriate number of sub commitments per full commit.
     let bit_table_sub_commits =
-        get_repeated_bit_table(&bit_table_full_commits, num_sub_commits_per_full_commit);
+        repeat_bit_table(&bit_table_full_commits, num_sub_commits_per_full_commit);
     let bit_table_sub_commits_sum = bit_table_sub_commits.iter().sum::<u32>() as usize;
 
     // Double the bit table to handle handle the BYTE_SIZE offsets.
@@ -503,7 +503,7 @@ mod tests {
         ];
 
         let bit_table = get_output_bit_table(&committable_columns);
-        let repeated_bit_table = get_repeated_bit_table(&bit_table, 3);
+        let repeated_bit_table = repeat_bit_table(&bit_table, 3);
         let expected_bit_table = [
             16,
             16,
