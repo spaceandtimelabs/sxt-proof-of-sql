@@ -21,7 +21,7 @@ ark-ff = { workspace = true }
 ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
-arrow = { workspace = true }
+arrow = { workspace = true, optional = true }
 bit-iter = { workspace = true }
 bigdecimal = { workspace = true }
 blake3 = { workspace = true }
@@ -63,8 +63,12 @@ tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
 flexbuffers = { workspace = true }
 
+[package.metadata.cargo-udeps.ignore]
+development = ["arrow-csv"]
+
 [features]
 default = ["blitzar"]
+arrow = ["dep:arrow", "proof-of-sql-parser/arrow"]
 test = ["dep:rand"]
 
 [lints]
@@ -76,7 +80,7 @@ required-features = [ "blitzar", "test" ]
 
 [[example]]
 name = "posql_db"
-required-features = [ "blitzar" ]
+required-features = [ "arrow", "blitzar" ]
 
 [[bench]]
 name = "criterion_benches"

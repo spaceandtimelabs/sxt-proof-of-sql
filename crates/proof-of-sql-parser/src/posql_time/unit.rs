@@ -1,4 +1,5 @@
 use super::PoSQLTimestampError;
+#[cfg(feature = "arrow")]
 use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
@@ -29,6 +30,7 @@ impl TryFrom<&str> for PoSQLTimeUnit {
     }
 }
 
+#[cfg(feature = "arrow")]
 impl From<PoSQLTimeUnit> for ArrowTimeUnit {
     fn from(unit: PoSQLTimeUnit) -> Self {
         match unit {
@@ -40,6 +42,7 @@ impl From<PoSQLTimeUnit> for ArrowTimeUnit {
     }
 }
 
+#[cfg(feature = "arrow")]
 impl From<ArrowTimeUnit> for PoSQLTimeUnit {
     fn from(unit: ArrowTimeUnit) -> Self {
         match unit {

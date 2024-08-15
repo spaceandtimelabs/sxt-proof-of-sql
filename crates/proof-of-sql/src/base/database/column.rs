@@ -3,6 +3,7 @@ use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::{
@@ -350,6 +351,7 @@ impl ColumnType {
 }
 
 /// Convert ColumnType values to some arrow DataType
+#[cfg(feature = "arrow")]
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
@@ -372,6 +374,7 @@ impl From<&ColumnType> for DataType {
 }
 
 /// Convert arrow DataType values to some ColumnType
+#[cfg(feature = "arrow")]
 impl TryFrom<DataType> for ColumnType {
     type Error = String;
 
@@ -482,6 +485,7 @@ impl ColumnField {
 }
 
 /// Convert ColumnField values to arrow Field
+#[cfg(feature = "arrow")]
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
         Field::new(

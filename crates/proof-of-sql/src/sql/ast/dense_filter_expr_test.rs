@@ -16,13 +16,11 @@ use crate::{
         },
     },
 };
-use arrow::datatypes::{Field, Schema};
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{Identifier, ResourceId};
-use std::sync::Arc;
 
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
@@ -60,19 +58,13 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         .unwrap(),
     );
 
-    let column_fields: Vec<Field> = provable_ast
-        .get_column_result_fields()
-        .iter()
-        .map(|v| v.into())
-        .collect();
-    let schema = Arc::new(Schema::new(column_fields));
-
+    let column_fields: Vec<ColumnField> = provable_ast.get_column_result_fields();
     assert_eq!(
-        schema,
-        Arc::new(Schema::new(vec![
-            Field::new("a", (&ColumnType::BigInt).into(), false,),
-            Field::new("b", (&ColumnType::BigInt).into(), false,)
-        ]))
+        column_fields,
+        vec![
+            ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),
+            ColumnField::new("b".parse().unwrap(), ColumnType::BigInt)
+        ]
     );
 }
 

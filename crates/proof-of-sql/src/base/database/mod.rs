@@ -21,15 +21,19 @@ pub use literal_value::LiteralValue;
 mod table_ref;
 pub use table_ref::TableRef;
 
+#[cfg(feature = "arrow")]
 mod arrow_array_to_column_conversion;
+#[cfg(feature = "arrow")]
 pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
+#[cfg(feature = "arrow")]
 mod record_batch_utility;
+#[cfg(feature = "arrow")]
 pub use record_batch_utility::ToArrow;
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(all(test, feature = "arrow, test"))]
 mod test_accessor_utility;
-#[cfg(any(test, feature = "test"))]
+#[cfg(all(test, feature = "arrow, test"))]
 pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
 
 mod owned_column;
@@ -54,9 +58,11 @@ mod expression_evaluation_error;
 mod expression_evaluation_test;
 pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
 
+#[cfg(feature = "arrow")]
 mod owned_and_arrow_conversions;
+#[cfg(feature = "arrow")]
 pub use owned_and_arrow_conversions::OwnedArrowConversionError;
-#[cfg(test)]
+#[cfg(all(test, feature = "arrow"))]
 mod owned_and_arrow_conversions_test;
 
 #[cfg(any(test, feature = "test"))]
@@ -78,6 +84,7 @@ pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
 /// Contains traits for scalar <-> i256 conversions
+#[cfg(feature = "arrow")]
 pub mod scalar_and_i256_conversions;
 
 pub(crate) mod filter_util;
