@@ -15,7 +15,6 @@ doctest = true
 test = true
 
 [dependencies]
-arrow = { workspace = true, optional = true }
 arrayvec = { workspace = true, features = ["serde"] }
 bigdecimal = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
@@ -24,7 +23,6 @@ serde = { workspace = true, features = ["serde_derive"] }
 thiserror = { workspace = true }
 
 [features]
-arrow = ["dep:arrow"]
 default = []
 
 [build-dependencies]

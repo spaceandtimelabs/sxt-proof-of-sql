@@ -30,30 +30,6 @@ impl TryFrom<&str> for PoSQLTimeUnit {
     }
 }
 
-#[cfg(feature = "arrow")]
-impl From<PoSQLTimeUnit> for ArrowTimeUnit {
-    fn from(unit: PoSQLTimeUnit) -> Self {
-        match unit {
-            PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
-            PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
-            PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
-            PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
-        }
-    }
-}
-
-#[cfg(feature = "arrow")]
-impl From<ArrowTimeUnit> for PoSQLTimeUnit {
-    fn from(unit: ArrowTimeUnit) -> Self {
-        match unit {
-            ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
-            ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
-            ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
-            ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
-        }
-    }
-}
-
 impl fmt::Display for PoSQLTimeUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

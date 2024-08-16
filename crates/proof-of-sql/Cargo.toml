@@ -67,8 +67,8 @@ flexbuffers = { workspace = true }
 development = ["arrow-csv"]
 
 [features]
-default = ["blitzar"]
-arrow = ["dep:arrow", "proof-of-sql-parser/arrow"]
+default = ["arrow", "blitzar"]
+arrow = ["dep:arrow"]
 test = ["dep:rand"]
 
 [lints]

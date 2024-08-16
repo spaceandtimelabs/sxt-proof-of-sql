@@ -365,10 +365,16 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(timeunit, timezone) => DataType::Timestamp(
-                ArrowTimeUnit::from(*timeunit),
-                Some(Arc::from(timezone.to_string())),
-            ),
+            ColumnType::TimestampTZ(timeunit, timezone) => {
+                let arrow_timezone = Some(Arc::from(timezone.to_string()));
+                let arrow_timeunit = match timeunit {
+                    PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
+                    PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
+                    PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
+                    PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
+                };
+                DataType::Timestamp(arrow_timeunit, arrow_timezone)
+            }
         }
     }
 }
@@ -388,10 +394,18 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Decimal256(precision, scale) if precision <= 75 => {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
-            DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
-                PoSQLTimeUnit::from(time_unit),
-                PoSQLTimeZone::try_from(&timezone_option)?,
-            )),
+            DataType::Timestamp(time_unit, timezone_option) => {
+                let posql_time_unit = match time_unit {
+                    ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
+                    ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
+                    ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
+                    ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+                };
+                Ok(ColumnType::TimestampTZ(
+                    posql_time_unit,
+                    PoSQLTimeZone::try_from(&timezone_option)?,
+                ))
+            }
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
