@@ -95,27 +95,27 @@ pub fn num_matrix_commitment_columns(
 ///
 /// # Arguments
 ///
-/// * `commits` - A reference to the signed sub-commits.
+/// * `sub_commits` - A reference to the signed sub-commits.
 /// * `committable_columns` - A reference to the committable columns.
 /// * `num_matrix_commitment_columns` - The number of matrix commitment columns needed
 ///                                     for each full commit for the packed_msm function.
 #[tracing::instrument(name = "pack_scalars::modify_commits (gpu)", level = "debug", skip_all)]
 pub fn modify_commits(
-    commits: &[G1Affine],
+    sub_commits: &[G1Affine],
     committable_columns: &[CommittableColumn],
     num_matrix_commitment_columns: usize,
 ) -> Vec<G1Affine> {
     let num_full_commits = committable_columns.len();
     assert_eq!(
         2 * num_full_commits * num_matrix_commitment_columns,
-        commits.len()
+        sub_commits.len()
     );
 
-    // Currently, the packed_scalars doubles the number of commits to deal with
-    // signed sub-commits. Commit i is offset by commit at i + num_matrix_commitment_columns.
-    // Spit the commits into signed sub-commits and offset sub-commits.
+    // Currently, the packed_scalars doubles the number of sub-commits to deal with
+    // signed sub-commits. Sub-commit i is offset by the sub-commit at i + num_matrix_commitment_columns.
+    // Spit the sub-commits into signed sub-commits and offset sub-commits.
     let num_signed_sub_commits = num_full_commits * num_matrix_commitment_columns;
-    let (signed_sub_commits, offset_sub_commits) = commits.split_at(num_signed_sub_commits);
+    let (signed_sub_commits, offset_sub_commits) = sub_commits.split_at(num_signed_sub_commits);
 
     // Ensure the packed_scalars were split correctly
     assert_eq!(signed_sub_commits.len(), offset_sub_commits.len());
