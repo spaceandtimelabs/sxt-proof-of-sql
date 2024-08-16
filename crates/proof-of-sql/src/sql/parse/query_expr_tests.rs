@@ -102,6 +102,22 @@ macro_rules! query {
 }
 
 #[test]
+fn we_can_convert_an_ast_without_tables() {
+    let t = "sxt.sxt_tab".parse().unwrap();
+    let accessor = TestSchemaAccessor::new(IndexMap::new());
+    let ast = query_to_provable_ast(t, "select 'there is no table';", &accessor);
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["a"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![],
+    );
+    assert_eq!(ast, expected_ast);
+}
+
+#[test]
 fn we_can_convert_an_ast_with_one_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(

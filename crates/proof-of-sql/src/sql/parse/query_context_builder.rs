@@ -34,13 +34,16 @@ impl<'a> QueryContextBuilder<'a> {
         table_expr: Vec<Box<TableExpression>>,
         default_schema: Identifier,
     ) -> Self {
-        assert_eq!(table_expr.len(), 1);
-        match *table_expr[0] {
-            TableExpression::Named { table, schema } => {
-                self.context.set_table_ref(TableRef::new(ResourceId::new(
-                    schema.unwrap_or(default_schema),
-                    table,
-                )));
+        let num_tables = table_expr.len();
+        assert!(num_tables <= 1);
+        if num_tables > 0 {
+            match *table_expr[0] {
+                TableExpression::Named { table, schema } => {
+                    self.context.set_table_ref(Ok(TableRef::new(ResourceId::new(
+                        schema.unwrap_or(default_schema),
+                        table,
+                    ))));
+                }
             }
         }
         self
@@ -102,10 +105,9 @@ impl<'a> QueryContextBuilder<'a> {
 // Private interface
 impl<'a> QueryContextBuilder<'a> {
     fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
-        let table_ref = self.context.get_table_ref();
-        let columns = self.schema_accessor.lookup_schema(*table_ref);
-        assert!(!columns.is_empty(), "At least one column must exist");
-        columns
+        self.context.get_table_ref()
+            .map(|table_ref| self.schema_accessor.lookup_schema(*table_ref))
+            .unwrap_or_else(|_| vec![])
     }
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
@@ -226,13 +228,16 @@ impl<'a> QueryContextBuilder<'a> {
     }
 
     fn visit_column_identifier(&mut self, column_name: Identifier) -> ConversionResult<ColumnType> {
-        let table_ref = self.context.get_table_ref();
-        let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
-
+        let opt_table_ref = self.context.get_table_ref();
+        if opt_table_ref.is_none() {
+            return Err(ConversionError::MissingColumnWithoutTable(Box::new(column_name)));
+        }
+        let column_type = self.schema_accessor.lookup_column(*opt_table_ref, column_name);
+        let table_ref = opt_table_ref.unwrap();
         let column_type = column_type.ok_or_else(|| {
             ConversionError::MissingColumn(Box::new(column_name), Box::new(table_ref.resource_id()))
         })?;
-
+    
         let column = ColumnRef::new(*table_ref, column_name, column_type);
 
         self.context.push_column_ref(column_name, column);

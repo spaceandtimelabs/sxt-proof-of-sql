@@ -33,15 +33,13 @@ pub struct QueryContext {
 }
 
 impl QueryContext {
-    pub fn set_table_ref(&mut self, table: TableRef) {
-        assert!(self.table.is_none());
-        self.table = Some(table);
+    pub fn set_table_ref(&mut self, table: Option<TableRef>) {
+        self.table = table;
     }
 
-    pub fn get_table_ref(&self) -> &TableRef {
+    pub fn get_table_ref(&self) -> &Option<TableRef> {
         self.table
             .as_ref()
-            .expect("Table should already have been set")
     }
 
     pub fn set_where_expr(&mut self, where_expr: Option<Box<Expression>>) {
