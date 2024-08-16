@@ -25,7 +25,7 @@ pub(crate) use provable_result_column::ProvableResultColumn;
 
 mod provable_query_result;
 pub use provable_query_result::ProvableQueryResult;
-#[cfg(test)]
+#[cfg(all(test, feature = "arrow"))]
 mod provable_query_result_test;
 
 mod sumcheck_mle_evaluations;

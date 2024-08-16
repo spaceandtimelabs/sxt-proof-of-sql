@@ -7,6 +7,7 @@ use crate::{
     },
     sql::proof::{Indexes, ResultBuilder, SumcheckSubpolynomialType},
 };
+#[cfg(feature = "arrow")]
 use arrow::{
     array::Int64Array,
     datatypes::{Field, Schema},
@@ -123,6 +124,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     assert_eq!(eval, expected_eval);
 }
 
+#[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);

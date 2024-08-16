@@ -3,6 +3,7 @@ use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::{
@@ -350,6 +351,7 @@ impl ColumnType {
 }
 
 /// Convert ColumnType values to some arrow DataType
+#[cfg(feature = "arrow")]
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
@@ -363,15 +365,22 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(timeunit, timezone) => DataType::Timestamp(
-                ArrowTimeUnit::from(*timeunit),
-                Some(Arc::from(timezone.to_string())),
-            ),
+            ColumnType::TimestampTZ(timeunit, timezone) => {
+                let arrow_timezone = Some(Arc::from(timezone.to_string()));
+                let arrow_timeunit = match timeunit {
+                    PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
+                    PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
+                    PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
+                    PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
+                };
+                DataType::Timestamp(arrow_timeunit, arrow_timezone)
+            }
         }
     }
 }
 
 /// Convert arrow DataType values to some ColumnType
+#[cfg(feature = "arrow")]
 impl TryFrom<DataType> for ColumnType {
     type Error = String;
 
@@ -385,10 +394,18 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Decimal256(precision, scale) if precision <= 75 => {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
-            DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
-                PoSQLTimeUnit::from(time_unit),
-                PoSQLTimeZone::try_from(&timezone_option)?,
-            )),
+            DataType::Timestamp(time_unit, timezone_option) => {
+                let posql_time_unit = match time_unit {
+                    ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
+                    ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
+                    ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
+                    ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+                };
+                Ok(ColumnType::TimestampTZ(
+                    posql_time_unit,
+                    PoSQLTimeZone::try_from(&timezone_option)?,
+                ))
+            }
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
@@ -482,6 +499,7 @@ impl ColumnField {
 }
 
 /// Convert ColumnField values to arrow Field
+#[cfg(feature = "arrow")]
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
         Field::new(

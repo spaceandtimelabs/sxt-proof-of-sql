@@ -3,6 +3,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::{error::ArrowError, record_batch::RecordBatch};
 use thiserror::Error;
 
@@ -48,12 +49,13 @@ pub struct QueryData<S: Scalar> {
 }
 
 impl<S: Scalar> QueryData<S> {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "arrow"))]
     pub fn into_record_batch(self) -> RecordBatch {
         self.try_into().unwrap()
     }
 }
 
+#[cfg(feature = "arrow")]
 impl<S: Scalar> TryFrom<QueryData<S>> for RecordBatch {
     type Error = ArrowError;
 

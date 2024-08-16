@@ -2,13 +2,13 @@ use super::{
     committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
     ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
 };
+#[cfg(feature = "arrow")]
+use crate::base::database::{ArrayRefExt, ArrowArrayToColumnConversionError};
 use crate::base::{
-    database::{
-        ArrayRefExt, ArrowArrayToColumnConversionError, Column, ColumnField, CommitmentAccessor,
-        OwnedTable, TableRef,
-    },
+    database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use proof_of_sql_parser::{Identifier, ParseError};
@@ -63,6 +63,7 @@ pub enum TableCommitmentArithmeticError {
 }
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
+#[cfg(feature = "arrow")]
 #[derive(Debug, Error)]
 pub enum RecordBatchToColumnsError {
     /// Error converting from arrow array
@@ -74,6 +75,7 @@ pub enum RecordBatchToColumnsError {
 }
 
 /// Errors that can occur when attempting to append a record batch to a [`TableCommitment`].
+#[cfg(feature = "arrow")]
 #[derive(Debug, Error)]
 pub enum AppendRecordBatchTableCommitmentError {
     /// During commitment operation, metadata indicates that operand tables cannot be the same.
@@ -354,6 +356,7 @@ impl<C: Commitment> TableCommitment<C> {
     /// The row offset is assumed to be the end of the [`TableCommitment`]'s current range.
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
+    #[cfg(feature = "arrow")]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
@@ -380,6 +383,7 @@ impl<C: Commitment> TableCommitment<C> {
         }
     }
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`].
+    #[cfg(feature = "arrow")]
     pub fn try_from_record_batch(
         batch: &RecordBatch,
         setup: &C::PublicSetup<'_>,
@@ -388,6 +392,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
+    #[cfg(feature = "arrow")]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,
         offset: usize,
@@ -411,6 +416,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 }
 
+#[cfg(feature = "arrow")]
 fn batch_to_columns<'a, S: Scalar + 'a>(
     batch: &'a RecordBatch,
     alloc: &'a Bump,
@@ -446,7 +452,7 @@ fn num_rows_of_columns<'a>(
     Ok(num_rows)
 }
 
-#[cfg(all(test, feature = "blitzar"))]
+#[cfg(all(test, feature = "arrow, blitzar"))]
 mod tests {
     use super::*;
     use crate::{

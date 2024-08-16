@@ -1,5 +1,4 @@
 use super::PoSQLTimestampError;
-use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
@@ -25,28 +24,6 @@ impl TryFrom<&str> for PoSQLTimeUnit {
             "6" => Ok(PoSQLTimeUnit::Microsecond),
             "9" => Ok(PoSQLTimeUnit::Nanosecond),
             _ => Err(PoSQLTimestampError::UnsupportedPrecision(value.into())),
-        }
-    }
-}
-
-impl From<PoSQLTimeUnit> for ArrowTimeUnit {
-    fn from(unit: PoSQLTimeUnit) -> Self {
-        match unit {
-            PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
-            PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
-            PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
-            PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
-        }
-    }
-}
-
-impl From<ArrowTimeUnit> for PoSQLTimeUnit {
-    fn from(unit: ArrowTimeUnit) -> Self {
-        match unit {
-            ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
-            ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
-            ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
-            ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
         }
     }
 }
