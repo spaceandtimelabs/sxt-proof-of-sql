@@ -24,11 +24,6 @@ pub use table_ref::TableRef;
 mod arrow_array_to_column_conversion;
 pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};
 
-mod record_batch_dataframe_conversion;
-pub(crate) use record_batch_dataframe_conversion::{
-    dataframe_to_record_batch, record_batch_to_dataframe,
-};
-
 mod record_batch_utility;
 pub use record_batch_utility::ToArrow;
 
