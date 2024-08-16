@@ -4,14 +4,20 @@ use crate::{
     sql::{
         ast::{test_utility::*, ProofPlan},
         parse::QueryExpr,
-        transform::test_utility::{col as pc, *},
+        postprocessing::{test_utility::*, PostprocessingError},
     },
 };
 use curve25519_dalek::RistrettoPoint;
 use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use proof_of_sql_parser::{
-    intermediate_ast::OrderByDirection::*, sql::SelectStatementParser, Identifier,
+    intermediate_ast::OrderByDirection::*,
+    sql::SelectStatementParser,
+    utility::{
+        add as padd, aliased_expr, col, count, count_all, lit, max, min, mul as pmul, sub as psub,
+        sum,
+    },
+    Identifier,
 };
 
 fn query_to_provable_ast(
@@ -95,43 +101,6 @@ macro_rules! query {
     }};
 }
 
-macro_rules! expected_query {
-    (select: [cols = $result_columns:expr, exprs = $result_exprs:expr] $(, filter: $filter:expr)? $(, group: $group_by:expr)? $(, order: [by = $order_by:expr, dirs = $order_dirs:expr])? $(,)?) => {{
-        let (t, accessor) = get_test_accessor();
-        let mut result_vec = Vec::new();
-
-        macro_rules! groupby_macro {
-            (,$agg:expr) => {
-                result_vec.push(select(&$result_exprs.to_vec()));
-            };
-            ($by:expr, $agg:expr) => {
-                result_vec.push(groupby($by, $agg));
-                result_vec.push(select(&$result_exprs.into_iter().map(|expr| {
-                    pc(&expr.alias)
-                }).collect::<Vec<_>>()));
-            };
-        }
-        groupby_macro!($($group_by)?, $result_exprs);
-
-        macro_rules! orderby_macro {
-            (,) => {};
-            ($order:expr, $dirs:expr) => {
-                assert_eq!($order.len(), $dirs.len());
-                result_vec.push(orders(&$order.to_vec(), &$dirs.to_vec()));
-            };
-        }
-        orderby_macro!($($order_by)?, $($order_dirs)?);
-
-        macro_rules! filter_macro {
-            () => {dense_filter(cols_expr_plan(t, &$result_columns, &accessor), tab(t), const_bool(true))};
-            ($expr:expr) => { dense_filter(cols_expr_plan(t, &$result_columns, &accessor), tab(t), $expr) };
-        }
-        let filter = filter_macro!($($filter)?);
-
-        QueryExpr::new(filter, composite_result(result_vec))
-    }};
-}
-
 #[test]
 fn we_can_convert_an_ast_with_one_column() {
     let t = "sxt.sxt_tab".parse().unwrap();
@@ -148,7 +117,7 @@ fn we_can_convert_an_ast_with_one_column() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -169,7 +138,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3_i64)),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -190,7 +159,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
             tab(t),
             equal(column(t, "a", &accessor), const_varchar("abc")),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -239,7 +208,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        result(&[("b", "b"), ("c", "c")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -262,7 +231,7 @@ fn we_can_convert_an_ast_with_two_columns() {
             tab(t),
             equal(column(t, "c", &accessor), const_bigint(123)),
         ),
-        result(&[("a", "a"), ("b", "b")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -295,7 +264,7 @@ fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
                 ),
             ),
         ),
-        result(&[("a", "a"), ("b", "b")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -317,7 +286,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        result(&[("b", "b"), ("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -339,7 +308,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
             tab(t),
             equal(column(t, "b", &accessor), const_bigint(4)),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -361,7 +330,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
             tab(t),
             not(equal(column(t, "b", &accessor), const_bigint(4))),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -383,7 +352,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
             tab(t),
             lte(column(t, "b", &accessor), const_bigint(-4)),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -413,7 +382,7 @@ fn we_can_convert_an_ast_with_cond_and() {
                 lte(column(t, "c", &accessor), const_bigint(-2)),
             ),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -446,7 +415,7 @@ fn we_can_convert_an_ast_with_cond_or() {
                 equal(column(t, "c", &accessor), const_bigint(-2)),
             ),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -476,7 +445,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
                 not(gte(column(t, "c", &accessor), const_bigint(-2))),
             ),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -519,7 +488,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
                 equal(column(t, "b", &accessor), const_bigint(3)),
             )),
         ),
-        result(&[("a", "a"), ("boolean", "boolean")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -547,7 +516,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MIN)),
         ),
-        result(&[("a", "a"), ("b", "b")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -575,7 +544,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
             tab(t),
             equal(column(t, "a", &accessor), const_int128(i128::MAX)),
         ),
-        result(&[("a", "a"), ("ma", "ma")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -607,7 +576,7 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
             tab(t),
             gte(column(t, "b", &accessor), const_bigint(4)),
         ),
-        result(&[("b_rename", "b_rename"), ("boolean", "boolean")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -652,7 +621,7 @@ fn we_can_convert_an_ast_with_a_schema() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        result(&[("a", "a")]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -675,7 +644,7 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
             tab(t),
             const_bool(true),
         ),
-        result(&[("a", "a"), ("b", "b")]),
+        vec![],
     );
     let queries = [
         "select *, 3 as b from eth.sxt_tab",
@@ -707,10 +676,7 @@ fn we_can_parse_order_by_with_a_single_column() {
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
         ),
-        composite_result(vec![
-            select(&[pc("b").alias("b"), pc("a").alias("a")]),
-            orders(&["b"], &[Asc]),
-        ]),
+        vec![orders(&["b"], &[Asc])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -739,10 +705,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
                 add(column(t, "b", &accessor), const_bigint(3)),
             ),
         ),
-        composite_result(vec![
-            select(&[pc("a").alias("a"), pc("b").alias("b")]),
-            orders(&["b", "a"], &[Desc, Asc]),
-        ]),
+        vec![orders(&["b", "a"], &[Desc, Asc])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -772,10 +735,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
             tab(t),
             equal(column(t, "salary", &accessor), const_bigint(5)),
         ),
-        composite_result(vec![
-            select(&[pc("s").alias("s"), pc("salary").alias("salary")]),
-            orders(&["salary"], &[Desc]),
-        ]),
+        vec![orders(&["salary"], &[Desc])],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -878,14 +838,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
                 tab(t),
                 const_bool(true),
             ),
-            composite_result(vec![
-                select(&[
-                    pc("s").alias("s"),
-                    pc("name").alias("name"),
-                    pc("d").alias("d"),
-                ]),
-                orders(&[order_by], &[Asc]),
-            ]),
+            vec![orders(&[order_by], &[Asc])],
         );
         assert_eq!(ast, expected_ast);
     }
@@ -911,13 +864,13 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(3, 0)]),
+        vec![slice(Some(3), Some(0))],
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
-fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
+fn slice_is_still_applied_when_limit_is_u64_max_and_offset_is_zero() {
     let t = "sxt.sxt_tab".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
@@ -932,7 +885,7 @@ fn no_slice_is_applied_when_limit_is_u64_max_and_offset_is_zero() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[pc("a").alias("a")])]),
+        vec![slice(Some(u64::MAX), Some(0))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -953,7 +906,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, 7)]),
+        vec![slice(Some(u64::MAX), Some(7))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -974,7 +927,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(u64::MAX, -7)]),
+        vec![slice(Some(u64::MAX), Some(-7))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -995,7 +948,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[pc("a").alias("a")]), slice(55, 3)]),
+        vec![slice(Some(55), Some(3))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1034,11 +987,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(-3)),
         ),
-        composite_result(vec![
-            select(&[pc("a").alias("a"), pc("res").alias("res")]),
-            orders(&["a"], &[Desc]),
-            slice(55, 3),
-        ]),
+        vec![orders(&["a"], &[Desc]), slice(Some(55), Some(3))],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1069,11 +1018,7 @@ fn we_can_do_provable_group_by() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[
-            pc("department").alias("department"),
-            pc("total_salary").alias("total_salary"),
-            pc("num_employee").alias("num_employee"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1101,10 +1046,7 @@ fn we_can_do_provable_group_by_without_sum() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[
-            pc("department").alias("department"),
-            pc("num_employee").alias("num_employee"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1133,12 +1075,7 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[
-            pc("state").alias("state"),
-            pc("department").alias("department"),
-            pc("total_salary").alias("total_salary"),
-            pc("num_employee").alias("num_employee"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1170,12 +1107,7 @@ fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
             tab(t),
             lte(column(t, "tax", &accessor), const_bigint(1)),
         ),
-        composite_result(vec![select(&[
-            pc("department").alias("department"),
-            pc("total_salary").alias("total_salary"),
-            pc("total_tax").alias("total_tax"),
-            pc("num_employee").alias("num_employee"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1200,23 +1132,23 @@ fn we_can_group_by_without_using_aggregate_functions() {
     );
     let expected_ast = QueryExpr::new(
         dense_filter(
-            vec![
-                aliased_plan(const_bool(true), "is_remote"),
-                col_expr_plan(t, "department", &accessor),
-            ],
+            vec![col_expr_plan(t, "department", &accessor)],
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("department")],
-                vec![
-                    pc("department").first().alias("department"),
-                    pc("is_remote").alias("is_remote"),
+        vec![
+            group_by_postprocessing(
+                &["department"],
+                &[
+                    aliased_expr(col("department"), "department"),
+                    aliased_expr(lit(true), "is_remote"),
                 ],
             ),
-            select(&[pc("department"), pc("is_remote")]),
-        ]),
+            select_expr(&[
+                aliased_expr(col("department"), "department"),
+                aliased_expr(lit(true), "is_remote"),
+            ]),
+        ],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1228,17 +1160,28 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
         group: ["i0", "i1"],
         order: ["max_sal"]
     );
-    let expected_query = expected_query!(
-        select: [
-            cols = ["i", "i0", "i1"],
-            exprs = [
-                pc("i").max().alias("max_sal"),
-                pc("i0").first().alias("d"),
-                pc("i0").count().alias("__count__"),
-            ]
+    let (t, accessor) = get_test_accessor();
+    let expected_query = QueryExpr::new(
+        dense_filter(
+            vec![
+                col_expr_plan(t, "i", &accessor),
+                col_expr_plan(t, "i0", &accessor),
+                col_expr_plan(t, "i1", &accessor),
+            ],
+            tab(t),
+            const_bool(true),
+        ),
+        vec![
+            group_by_postprocessing(
+                &["i0", "i1"],
+                &[
+                    aliased_expr(max(col("i")), "max_sal"),
+                    aliased_expr(col("i0"), "d"),
+                    aliased_expr(count(col("i0")), "__count__"),
+                ],
+            ),
+            orders(&["max_sal"], &[Asc]),
         ],
-        group: [pc("i0"), pc("i1")],
-        order: [by = ["max_sal"], dirs = [Asc]]
     );
     assert_eq!(query, expected_query);
 }
@@ -1326,13 +1269,10 @@ fn we_can_have_aggregate_functions_without_a_group_by_clause() {
     let ast = query!(
         select: ["count(s)"],
     );
-    let expected_ast = expected_query!(
-        select: [
-            cols = ["s"],
-            exprs = [
-                pc("s").count().alias("__count__"),
-            ]
-        ]
+    let (t, _accessor) = get_test_accessor();
+    let expected_ast = QueryExpr::new(
+        group_by(vec![], vec![], "__count__", tab(t), const_bool(true)),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1359,13 +1299,10 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("department")],
-                vec![pc("bonus").count().alias("department")],
-            ),
-            select(&[pc("department")]),
-        ]),
+        vec![group_by_postprocessing(
+            &["department"],
+            &[aliased_expr(count(col("bonus")), "department")],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1392,17 +1329,14 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("department")],
-                vec![
-                    pc("department").first().alias("department"),
-                    pc("bonus").count().alias("__count__"),
-                    pc("department").count().alias("dep"),
-                ],
-            ),
-            select(&[pc("department"), pc("__count__"), pc("dep")]),
-        ]),
+        vec![group_by_postprocessing(
+            &["department"],
+            &[
+                aliased_expr(col("department"), "department"),
+                aliased_expr(count(col("bonus")), "__count__"),
+                aliased_expr(count(col("department")), "dep"),
+            ],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1429,13 +1363,10 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
             tab(t),
             equal(column(t, "salary", &accessor), const_bigint(4)),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("department")],
-                vec![pc("department").count().alias("__count__")],
-            ),
-            select(&[pc("__count__")]),
-        ]),
+        vec![group_by_postprocessing(
+            &["department"],
+            &[aliased_expr(count_all(), "__count__")],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1480,38 +1411,40 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("department")],
-                vec![
-                    pc("department").first().alias("d1"),
-                    pc("department").first().alias("d2"),
-                ],
-            ),
-            select(&[pc("d1"), pc("d2")]),
-        ]),
+        vec![group_by_postprocessing(
+            &["department"],
+            &[
+                aliased_expr(col("department"), "d1"),
+                aliased_expr(col("department"), "d2"),
+            ],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
+    let (t, accessor) = get_test_accessor();
     let ast = query!(
         select: ["i d1", "max(i1)", "i d2", "sum(i0) sum_bonus", "count(s) count_s"],
         group: ["i", "i0", "i"]
     );
-    let expected_ast = expected_query!(
-        select: [
-            cols = ["i", "i0", "i1", "s"],
-            exprs = [
-                pc("i").first().alias("d1"),
-                pc("i1").max().alias("__max__"),
-                pc("i").first().alias("d2"),
-                pc("i0").sum().alias("sum_bonus"),
-                pc("s").count().alias("count_s"),
-            ]
-        ],
-        group: [pc("i"), pc("i0"), pc("i")]
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["i", "i0", "i1", "s"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![group_by_postprocessing(
+            &["i", "i0", "i"],
+            &[
+                aliased_expr(col("i"), "d1"),
+                aliased_expr(max(col("i1")), "__max__"),
+                aliased_expr(col("i"), "d2"),
+                aliased_expr(sum(col("i0")), "sum_bonus"),
+                aliased_expr(count(col("s")), "count_s"),
+            ],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1555,15 +1488,7 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[
-            pc("__expr__").alias("__expr__"),
-            pc("f2").alias("f2"),
-            pc("col").alias("col"),
-            pc("af").alias("af"),
-            // TODO: add `a / b as a_div_b` result expr once polars properly
-            // supports decimal division without panicking in production
-            // (pc("a") / pc("b")).alias("a_div_b"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1619,10 +1544,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![select(&[
-            pc("__expr__").alias("__expr__"),
-            pc("d").alias("d"),
-        ])]),
+        vec![],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1650,50 +1572,58 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
             tab(t),
             const_bool(true),
         ),
-        composite_result(vec![
-            groupby(
-                vec![pc("c")],
-                vec![
-                    pc("c").first().alias("c"),
-                    ((2_i64.to_lit() * pc("f") + pc("c") - (-7_i64).to_lit()).sum()).alias("d"),
-                ],
-            ),
-            select(&[pc("c"), pc("d")]),
-        ]),
+        vec![group_by_postprocessing(
+            &["c"],
+            &[
+                aliased_expr(col("c"), "c"),
+                aliased_expr(
+                    sum(psub(padd(pmul(lit(2), col("f")), col("c")), lit(-7))),
+                    "d",
+                ),
+            ],
+        )],
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn we_cannot_use_non_grouped_columns_outside_agg() {
-    assert_eq!(
+    assert!(matches!(
         query!(select: ["i"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::PostprocessingError(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
+        )
+    ));
+    assert!(matches!(
         query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::PostprocessingError(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
+        )
+    ));
+    assert!(matches!(
         query!(select: ["min(i) + i"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::PostprocessingError(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
+        )
+    ));
+    assert!(matches!(
         query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::PostprocessingError(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
+        )
+    ));
+    assert!(matches!(
         query!(select: ["2 * i", "min(i)"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::InvalidGroupByColumnRef(_)
+    ));
+    assert!(matches!(
         query!(select: ["sum(i)", "i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
-    assert_eq!(
+        ConversionError::InvalidGroupByColumnRef(_)
+    ));
+    assert!(matches!(
         query!(select: ["max(i) + 2 * i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef("i".to_string())
-    );
+        ConversionError::InvalidGroupByColumnRef(_)
+    ));
 }
 
 #[test]
@@ -1757,78 +1687,147 @@ fn varchar_column_is_not_allowed_within_numeric_aggregations() {
 
 #[test]
 fn group_by_with_bigint_column_is_valid() {
+    let (t, accessor) = get_test_accessor();
     let query = query!(select: ["i"], group: ["i"]);
-    let expected_query = expected_query!(
-        select: [cols = ["i"], exprs = [pc("i").first().alias("i")]], group: [pc("i")]
+    let expected_query = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["i"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![group_by_postprocessing(
+            &["i"],
+            &[aliased_expr(col("i"), "i")],
+        )],
     );
     assert_eq!(query, expected_query);
 }
 
 #[test]
 fn group_by_with_decimal_column_is_valid() {
+    let (t, accessor) = get_test_accessor();
     let query = query!(select: ["d"], group: ["d"]);
-    let expected_query = expected_query!(
-        select: [cols = ["d"], exprs = [pc("d").first().alias("d")]], group: [pc("d")]
+    let expected_query = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["d"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![group_by_postprocessing(
+            &["d"],
+            &[aliased_expr(col("d"), "d")],
+        )],
     );
     assert_eq!(query, expected_query);
 }
 
 #[test]
 fn group_by_with_varchar_column_is_valid() {
+    let (t, accessor) = get_test_accessor();
     let query = query!(select: ["s"], group: ["s"]);
-    let expected_query = expected_query!(
-        select: [cols = ["s"], exprs = [pc("s").first().alias("s")]], group: [pc("s")]
+    let expected_query = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["s"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![group_by_postprocessing(
+            &["s"],
+            &[aliased_expr(col("s"), "s")],
+        )],
     );
     assert_eq!(query, expected_query);
 }
 
 #[test]
 fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
+    let (t, accessor) = get_test_accessor();
     let query = query!(
         select: ["2 * i + sum(i) - i1"],
         group: ["i", "i1"]
     );
-    let expected_query = expected_query!(
-        select: [
-            cols = ["i", "i1"],
-            exprs = [(lit_i64(2) * (pc("i").first()) + pc("i").sum() - pc("i1").first()).alias("__expr__")]
+    let expected_query = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["i", "i1"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![
+            group_by_postprocessing(
+                &["i", "i1"],
+                &[aliased_expr(
+                    psub(padd(pmul(lit(2), col("i")), sum(col("i"))), col("i1")),
+                    "__expr__",
+                )],
+            ),
+            select_expr(&[aliased_expr(
+                psub(padd(pmul(lit(2), col("i")), col("__col_agg_0")), col("i1")),
+                "__expr__",
+            )]),
         ],
-        group: [pc("i"), pc("i1")]
     );
     assert_eq!(query, expected_query);
 }
 
 #[test]
 fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
+    let (t, accessor) = get_test_accessor();
     let ast = query!(
         select: ["7 + max(i) as max_i", "min(i + 777 * d) * -5 as min_d"],
     );
-    let expected_ast = expected_query!(
-        select: [
-            cols = ["d", "i"],
-            exprs = [
-                (lit_i64(7) + pc("i").max()).alias("max_i"),
-                ((pc("i") + 777_i64.to_lit() * pc("d")).min() * (-5_i64).to_lit()).alias("min_d"),
-            ]
-        ]
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["d", "i"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![
+            group_by_postprocessing(
+                &[],
+                &[
+                    aliased_expr(padd(lit(7), max(col("i"))), "max_i"),
+                    aliased_expr(
+                        pmul(min(padd(col("i"), pmul(lit(777), col("d")))), lit(-5)),
+                        "min_d",
+                    ),
+                ],
+            ),
+            select_expr(&[
+                aliased_expr(padd(lit(7), col("__col_agg_0")), "max_i"),
+                aliased_expr(pmul(col("__col_agg_1"), lit(-5)), "min_d"),
+            ]),
+        ],
     );
     assert_eq!(ast, expected_ast);
 }
 
 #[test]
 fn count_aggregation_always_have_integer_type() {
+    let (t, accessor) = get_test_accessor();
     let ast = query!(
         select: ["7 + count(s) as cs", "count(i) * -5 as ci", "count(d)"]
     );
-    let expected_ast = expected_query!(
-        select: [
-            cols = ["d", "i", "s"],
-            exprs = [
-                (7_i64.to_lit() + pc("s").count()).alias("cs"),
-                (pc("i").count() * (-5_i64).to_lit()).alias("ci"),
-                pc("d").count().alias("__count__"),
-            ]
-        ]
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            cols_expr_plan(t, &["d", "i", "s"], &accessor),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![
+            group_by_postprocessing(
+                &[],
+                &[
+                    aliased_expr(padd(lit(7), count(col("s"))), "cs"),
+                    aliased_expr(pmul(count(col("i")), lit(-5)), "ci"),
+                    aliased_expr(count(col("d")), "__count__"),
+                ],
+            ),
+            select_expr(&[
+                aliased_expr(padd(lit(7), col("__col_agg_0")), "cs"),
+                aliased_expr(pmul(col("__col_agg_1"), lit(-5)), "ci"),
+                aliased_expr(col("__col_agg_2"), "__count__"),
+            ]),
+        ],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1836,16 +1835,26 @@ fn count_aggregation_always_have_integer_type() {
 #[test]
 fn select_wildcard_is_valid_with_group_by_exprs() {
     let columns = ["s", "i", "d", "s0", "i0", "d0", "s1", "i1", "d1"];
+    let sorted_columns = columns.iter().sorted().collect::<Vec<_>>();
+    let aliased_exprs = columns
+        .iter()
+        .map(|c| aliased_expr(col(c), c))
+        .collect::<Vec<_>>();
+    let (t, accessor) = get_test_accessor();
     let ast = query!(
         select: ["*"],
         group: columns.clone()
     );
-    let expected_ast = expected_query!(
-        select: [
-            cols = columns.clone().into_iter().sorted().collect::<Vec<_>>(),
-            exprs = columns.iter().map(|c| pc(c).first().alias(c))
-        ],
-        group: columns.iter().map(|c| pc(c))
+    let expected_ast = QueryExpr::new(
+        dense_filter(
+            sorted_columns
+                .iter()
+                .map(|c| col_expr_plan(t, c, &accessor))
+                .collect(),
+            tab(t),
+            const_bool(true),
+        ),
+        vec![group_by_postprocessing(&columns, &aliased_exprs)],
     );
     assert_eq!(ast, expected_ast);
 }
@@ -1864,27 +1873,36 @@ fn nested_aggregations_are_not_supported() {
 #[test]
 fn select_group_and_order_by_preserve_the_column_order_reference() {
     const N: usize = 4;
+    let (t, accessor) = get_test_accessor();
     let base_cols: [&str; N] = ["i", "i0", "i1", "s"]; // sorted because of `select: [cols = ... ]`
     let base_ordering = [Asc, Desc, Asc, Desc];
     for (idx, perm_cols) in base_cols.into_iter().permutations(N).unique().enumerate() {
+        let perm_col_plans = perm_cols
+            .iter()
+            .sorted()
+            .map(|c| col_expr_plan(t, c, &accessor))
+            .collect();
+        let aliased_perm_cols = perm_cols
+            .iter()
+            .map(|c| aliased_expr(col(c), c))
+            .collect::<Vec<_>>();
         let group_cols = perm_cols.clone().into_iter().cycle().skip(1).take(N);
+        let group_cols_vec = group_cols.clone().collect::<Vec<_>>();
         let order_cols = perm_cols.clone().into_iter().cycle().skip(2).take(N);
+        let order_cols_vec = order_cols.clone().collect::<Vec<_>>();
         let ordering = base_ordering.into_iter().cycle().skip(idx).take(N);
+        let ordering_vec = ordering.clone().collect::<Vec<_>>();
         let query = query!(
             select: perm_cols,
             group: group_cols.clone(),
             order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
         );
-        let expected_query = expected_query!(
-            select: [
-                cols = base_cols.clone(),
-                exprs = perm_cols.iter().map(|c| pc(c).first().alias(c))
+        let expected_query = QueryExpr::new(
+            dense_filter(perm_col_plans, tab(t), const_bool(true)),
+            vec![
+                group_by_postprocessing(&group_cols_vec, &aliased_perm_cols),
+                orders(&order_cols_vec, &ordering_vec),
             ],
-            group: group_cols.map(pc),
-            order: [
-                by = order_cols.clone().collect::<Vec<_>>(),
-                dirs = ordering.clone().collect::<Vec<_>>()
-            ]
         );
         assert_eq!(query, expected_query);
     }

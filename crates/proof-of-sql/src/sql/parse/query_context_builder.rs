@@ -13,7 +13,6 @@ use proof_of_sql_parser::{
     },
     Identifier, ResourceId,
 };
-use std::ops::Deref;
 
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
@@ -117,20 +116,17 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(())
     }
 
-    fn visit_aliased_expr(&mut self, mut aliased_expr: AliasedResultExpr) -> ConversionResult<()> {
-        self.visit_expr(aliased_expr.expr.as_mut())?;
+    fn visit_aliased_expr(&mut self, aliased_expr: AliasedResultExpr) -> ConversionResult<()> {
+        self.visit_expr(&aliased_expr.expr)?;
         self.context.push_aliased_result_expr(aliased_expr)?;
         Ok(())
     }
 
     /// Visits the expression and returns its data type.
-    ///
-    /// This function accepts the expression as a mutable reference because certain expressions
-    /// require replacement, such as `count(*)` being replaced with `count(some_column)`.
-    fn visit_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
+    fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => self.visit_wildcard_expr(expr),
-            Expression::Literal(literal) => self.visit_literal(literal.deref()),
+            Expression::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
+            Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Column(_) => self.visit_column_expr(expr),
             Expression::Unary { op, expr } => self.visit_unary_expr(op, expr),
             Expression::Binary { op, left, right } => self.visit_binary_expr(op, left, right),
@@ -138,35 +134,11 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    //TODO: Actually support multicolumn expressions
-    fn visit_wildcard_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
-        let (col_name, col_type) = match self.context.get_any_result_column_ref() {
-            Some((name, col_type)) => (name, col_type),
-            None => self.lookup_schema().into_iter().next().unwrap(),
-        };
-
-        // Replace `count(*)` with `count(col_name)` to overcome limitations in Polars.
-        *expr = Expression::Column(col_name);
-
-        // Visit the column to ensure its inclusion in the result column set.
-        self.visit_column_expr(expr)?;
-
-        // Return the column type
-        Ok(col_type)
-    }
-
-    fn visit_column_expr(&mut self, expr: &mut Expression) -> ConversionResult<ColumnType> {
+    fn visit_column_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         let identifier = match expr {
             Expression::Column(identifier) => *identifier,
             _ => panic!("Must be a column expression"),
         };
-
-        // When using `group by` clauses, result columns outside aggregation
-        // need to be remapped to an aggregation function. This prevents Polars
-        // from returning lists when the expected result is single elements.
-        if self.context.is_in_group_by_exprs(&identifier)? {
-            *expr = *Expression::Column(identifier).first();
-        }
 
         self.visit_column_identifier(identifier)
     }
@@ -174,8 +146,8 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_binary_expr(
         &mut self,
         op: &BinaryOperator,
-        left: &mut Expression,
-        right: &mut Expression,
+        left: &Expression,
+        right: &Expression,
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
@@ -196,7 +168,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_unary_expr(
         &mut self,
         op: &UnaryOperator,
-        expr: &mut Expression,
+        expr: &Expression,
     ) -> ConversionResult<ColumnType> {
         match op {
             UnaryOperator::Not => {
@@ -215,7 +187,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_agg_expr(
         &mut self,
         op: &AggregationOperator,
-        expr: &mut Expression,
+        expr: &Expression,
     ) -> ConversionResult<ColumnType> {
         self.context.set_in_agg_scope(true)?;
 

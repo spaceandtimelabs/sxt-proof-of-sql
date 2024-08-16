@@ -3,9 +3,10 @@ use super::{
     SelectPostprocessing, SlicePostprocessing,
 };
 use crate::base::{database::OwnedTable, scalar::Scalar};
+use serde::{Deserialize, Serialize};
 
 /// An enum for nodes that can apply postprocessing to a `OwnedTable`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum OwnedTablePostprocessing {
     /// Slice the `OwnedTable` with the given `SlicePostprocessing`.
     Slice(SlicePostprocessing),

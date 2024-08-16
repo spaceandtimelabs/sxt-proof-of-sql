@@ -8,7 +8,6 @@ use crate::{
         OwnedTablePostprocessing, PostprocessingError,
     },
 };
-use indexmap::indexmap;
 use proof_of_sql_parser::{
     intermediate_ast::AggregationOperator, intermediate_decimal::IntermediateDecimal, utility::*,
 };
@@ -52,16 +51,83 @@ fn we_can_make_group_by_postprocessing() {
         ]
     );
     assert_eq!(
-        res.aggregation_expr_map(),
-        &indexmap! {
-            (AggregationOperator::Sum, *col("a")) => ident("__col_agg_0"),
-            (AggregationOperator::Sum, *add(col("b"), col("a"))) => ident("__col_agg_1"),
-        }
+        res.aggregation_exprs(),
+        &[
+            (AggregationOperator::Sum, *col("a"), ident("__col_agg_0")),
+            (
+                AggregationOperator::Sum,
+                *add(col("b"), col("a")),
+                ident("__col_agg_1")
+            ),
+        ]
     );
 }
 
 #[test]
 fn we_can_do_simple_group_bys() {
+    // SELECT 1 as cons FROM tab
+    let table: OwnedTable<Curve25519Scalar> = owned_table([
+        int128("a", [1_i128, 2, 3, 4]),
+        bigint("b", [5_i64, 6, 7, 8]),
+        smallint("c", [9_i16, 10, 11, 12]),
+        varchar("d", ["Space", "and", "Time", "rocks"]),
+    ]);
+    let postprocessing: [OwnedTablePostprocessing; 1] = [group_by_postprocessing(
+        &[],
+        &[aliased_expr(lit(1), "cons")],
+    )];
+    let expected_table = owned_table([bigint("cons", [1_i64])]);
+    let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
+    assert_eq!(actual_table, expected_table);
+
+    // SELECT 1 as cons FROM tab group by a
+    let table: OwnedTable<Curve25519Scalar> = owned_table([
+        int128("a", [1_i128, 2, 3, 4]),
+        bigint("b", [5_i64, 6, 7, 8]),
+        smallint("c", [9_i16, 10, 11, 12]),
+        varchar("d", ["Space", "and", "Time", "rocks"]),
+    ]);
+    let postprocessing: [OwnedTablePostprocessing; 1] = [group_by_postprocessing(
+        &["a"],
+        &[aliased_expr(lit(1), "cons")],
+    )];
+    let expected_table = owned_table([bigint("cons", [1_i64; 4])]);
+    let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
+    assert_eq!(actual_table, expected_table);
+
+    // SELECT a, true as truth FROM tab GROUP BY a
+    let table: OwnedTable<Curve25519Scalar> = owned_table([
+        int128("a", [1_i128, 1, 2, 2]),
+        bigint("b", [5_i64, 6, 7, 8]),
+        smallint("c", [9_i16, 10, 11, 12]),
+        varchar("d", ["Space", "and", "Time", "rocks"]),
+    ]);
+    let postprocessing: [OwnedTablePostprocessing; 1] = [group_by_postprocessing(
+        &["a"],
+        &[
+            aliased_expr(col("a"), "a"),
+            aliased_expr(lit(true), "truth"),
+        ],
+    )];
+    let expected_table = owned_table([int128("a", [1_i128, 2]), boolean("truth", [true; 2])]);
+    let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
+    assert_eq!(actual_table, expected_table);
+
+    // SELECT a as cons FROM tab GROUP BY a
+    let table: OwnedTable<Curve25519Scalar> = owned_table([
+        int128("a", [1_i128, 2, 3, 4]),
+        bigint("b", [5_i64, 6, 7, 8]),
+        smallint("c", [9_i16, 10, 11, 12]),
+        varchar("d", ["Space", "and", "Time", "rocks"]),
+    ]);
+    let postprocessing: [OwnedTablePostprocessing; 1] = [group_by_postprocessing(
+        &["a"],
+        &[aliased_expr(col("a"), "cons")],
+    )];
+    let expected_table = owned_table([int128("cons", [1_i64, 2, 3, 4])]);
+    let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
+    assert_eq!(actual_table, expected_table);
+
     // SELECT MAX(a) as max_a, MIN(b) as min_b, SUM(c) as sum_c, COUNT(d) as count_d FROM tab
     let table: OwnedTable<Curve25519Scalar> = owned_table([
         int128("a", [1_i128, 2, 3, 4]),
