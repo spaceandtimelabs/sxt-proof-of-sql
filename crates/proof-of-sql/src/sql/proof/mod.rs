@@ -24,7 +24,7 @@ mod provable_result_column;
 pub(crate) use provable_result_column::ProvableResultColumn;
 
 mod provable_query_result;
-pub(crate) use provable_query_result::ProvableQueryResult;
+pub use provable_query_result::ProvableQueryResult;
 #[cfg(test)]
 mod provable_query_result_test;
 
@@ -41,9 +41,6 @@ pub use proof_exprs::ProofExpr;
 pub(crate) use proof_exprs::{HonestProver, ProverEvaluate, ProverHonestyMarker};
 
 mod query_proof;
-#[cfg(not(feature = "test"))]
-pub(crate) use query_proof::QueryProof;
-#[cfg(feature = "test")]
 pub use query_proof::QueryProof;
 #[cfg(all(test, feature = "blitzar"))]
 mod query_proof_test;
