@@ -1,6 +1,4 @@
 use super::PoSQLTimestampError;
-#[cfg(feature = "arrow")]
-use arrow::datatypes::TimeUnit as ArrowTimeUnit;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
