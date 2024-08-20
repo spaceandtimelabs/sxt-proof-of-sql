@@ -6,8 +6,6 @@
 //! cargo bench --features "test" --bench bench_append_rows
 //! ```
 #![allow(missing_docs)]
-use std::ops::Deref;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use proof_of_sql::{
     base::{
@@ -27,6 +25,7 @@ use proof_of_sql::{
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
+use std::ops::Deref;
 
 // append 10 rows to 10 cols in 1 table in 11.382 ms
 // append 10 rows to 10 cols * 100 tables = 1.1382 seconds
