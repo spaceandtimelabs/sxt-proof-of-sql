@@ -15,11 +15,13 @@
 //! ```
 use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
+use ark_std::rand;
 use core::ops::Deref;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
+use rand::Rng;
 
 /// Creates an OwnedTable from a list of (Identifier, OwnedColumn) pairs.
 /// This is a convenience wrapper around OwnedTable::try_from_iter primarily for use in tests and
@@ -230,4 +232,98 @@ pub fn timestamptz<S: Scalar>(
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
+}
+
+/// Generates a random OwnedTable with a specified number of columns
+pub fn generate_random_owned_table<S: Scalar>(
+    num_columns: usize,
+    num_rows: usize,
+) -> OwnedTable<S> {
+    let mut rng = rand::thread_rng();
+    let column_types = [
+        "bigint",
+        "boolean",
+        "int128",
+        "scalar",
+        "varchar",
+        "decimal75",
+        "smallint",
+        "int",
+        "timestamptz",
+    ];
+
+    let mut columns = Vec::new();
+
+    for _ in 0..num_columns {
+        let column_type = column_types[rng.gen_range(0..column_types.len())];
+        let identifier = format!("column_{}", rng.gen::<u32>());
+
+        match column_type {
+            "bigint" => columns.push(bigint(identifier.deref(), vec![rng.gen::<i64>(); num_rows])),
+            "boolean" => columns.push(boolean(
+                identifier.deref(),
+                generate_random_boolean_vector(num_rows),
+            )),
+            "int128" => columns.push(int128(
+                identifier.deref(),
+                vec![rng.gen::<i128>(); num_rows],
+            )),
+            "scalar" => columns.push(scalar(
+                identifier.deref(),
+                vec![generate_random_u64_array(); num_rows],
+            )),
+            "varchar" => columns.push(varchar(identifier.deref(), gen_rnd_str(num_rows))),
+            "decimal75" => columns.push(decimal75(
+                identifier.deref(),
+                12,
+                2,
+                vec![generate_random_u64_array(); num_rows],
+            )),
+            "smallint" => columns.push(smallint(
+                identifier.deref(),
+                vec![rng.gen::<i16>(); num_rows],
+            )),
+            "int" => columns.push(int(identifier.deref(), vec![rng.gen::<i32>(); num_rows])),
+            "timestamptz" => columns.push(timestamptz(
+                identifier.deref(),
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                vec![rng.gen::<i64>(); num_rows],
+            )),
+            _ => unreachable!(),
+        }
+    }
+
+    owned_table(columns)
+}
+
+/// Generates a random vec of varchar
+fn gen_rnd_str(array_size: usize) -> Vec<String> {
+    let mut rng = rand::thread_rng();
+
+    // Create a vector to hold the owned Strings
+    let mut string_vec: Vec<String> = Vec::with_capacity(array_size);
+
+    for _ in 0..array_size {
+        // Generate a random string of a fixed length (e.g., 10 characters)
+        let random_string: String = (0..10)
+            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
+            .collect();
+
+        string_vec.push(random_string);
+    }
+
+    string_vec
+}
+
+/// Generates a random [u64; 4]
+pub fn generate_random_u64_array() -> [u64; 4] {
+    let mut rng = rand::thread_rng();
+    [rng.gen(), rng.gen(), rng.gen(), rng.gen()]
+}
+
+/// Generates a random vec of true/false
+pub fn generate_random_boolean_vector(size: usize) -> Vec<bool> {
+    let mut rng = rand::thread_rng();
+    (0..size).map(|_| rng.gen()).collect()
 }
