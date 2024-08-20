@@ -50,6 +50,7 @@ pub use owned_table::OwnedTable;
 pub(crate) use owned_table::OwnedTableError;
 #[cfg(test)]
 mod owned_table_test;
+
 pub mod owned_table_utility;
 
 pub(crate) mod expression_evaluation;
