@@ -93,6 +93,11 @@ harness = false
 required-features = [ "blitzar" ]
 
 [[bench]]
+name = "bench_append_rows"
+harness = false
+required-features = [ "test" ]
+
+[[bench]]
 name = "jaeger_benches"
 harness = false
 required-features = [ "blitzar" ]
