@@ -221,6 +221,85 @@ impl<'a, S: Scalar> Column<'a, S> {
                 .collect::<Vec<_>>(),
         }
     }
+
+    /// Concatenate multiple columns of the same type into a single column
+    pub(crate) fn try_concat(columns: &[&Self], alloc: &'a Bump) -> Self {
+        if columns.is_empty() {
+            panic!("Cannot concatenate no columns");
+        }
+        let column_type = columns[0].column_type();
+        let len = columns.iter().map(|col| col.len()).sum();
+        // Check for type mismatch
+        columns
+            .iter()
+            .all(|col| col.column_type() == column_type)
+            .then_some(())
+            .expect("Type mismatch in columns to concatenate");
+        match column_type {
+            ColumnType::Boolean => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_boolean().unwrap());
+                }
+                Column::Boolean(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::SmallInt => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_smallint().unwrap());
+                }
+                Column::SmallInt(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::Int => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_int().unwrap());
+                }
+                Column::Int(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::BigInt => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_bigint().unwrap());
+                }
+                Column::BigInt(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::Int128 => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_int128().unwrap());
+                }
+                Column::Int128(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::Scalar => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_scalar().unwrap());
+                }
+                Column::Scalar(alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::Decimal75(precision, scale) => {
+                let mut result = Vec::with_capacity(len);
+                for col in columns {
+                    result.extend_from_slice(col.as_decimal75().unwrap());
+                }
+                Column::Decimal75(precision, scale, alloc.alloc_slice_fill_copy(len, &result))
+            }
+            ColumnType::VarChar => {
+                let mut result = Vec::with_capacity(len);
+                let mut scalars = Vec::with_capacity(len);
+                for col in columns {
+                    let (strings, scals) = col.as_varchar().unwrap();
+                    result.extend_from_slice(strings);
+                    scalars.extend_from_slice(scals);
+                }
+                Column::VarChar((
+                    alloc.alloc_slice_fill_copy(len, &result),
+                    alloc.alloc_slice_fill_copy(len, &scalars),
+                ))
+            }
+        }
+    }
 }
 
 /// Represents the supported data types of a column in an in-memory,
