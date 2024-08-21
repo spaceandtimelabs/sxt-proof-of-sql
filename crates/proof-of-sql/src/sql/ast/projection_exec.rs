@@ -8,7 +8,7 @@ use crate::{
         proof::ProofError,
     },
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
+        CountBuilder, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
         VerificationBuilder,
     },
 };
@@ -22,12 +22,12 @@ use serde::{Deserialize, Serialize};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct ProjectionExpr<C: Commitment> {
+pub struct ProjectionExec<C: Commitment> {
     pub(super) aliased_results: Vec<AliasedProvableExprPlan<C>>,
     pub(super) table: TableExpr,
 }
 
-impl<C: Commitment> ProjectionExpr<C> {
+impl<C: Commitment> ProjectionExec<C> {
     /// Creates a new projection expression.
     pub fn new(aliased_results: Vec<AliasedProvableExprPlan<C>>, table: TableExpr) -> Self {
         Self {
@@ -37,7 +37,7 @@ impl<C: Commitment> ProjectionExpr<C> {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for ProjectionExpr<C> {
+impl<C: Commitment> ProofExecutionPlan<C> for ProjectionExec<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -91,8 +91,8 @@ impl<C: Commitment> ProofExpr<C> for ProjectionExpr<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExpr<C> {
-    #[tracing::instrument(name = "ProjectionExpr::result_evaluate", level = "debug", skip_all)]
+impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
+    #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -110,7 +110,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExpr<C> {
         }
     }
 
-    #[tracing::instrument(name = "ProjectionExpr::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "ProjectionExec::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

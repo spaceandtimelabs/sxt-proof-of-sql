@@ -4,13 +4,13 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
     },
-    sql::ast::{AliasedProvableExprPlan, DenseFilterExpr, ProvableExprPlan, TableExpr},
+    sql::ast::{AliasedProvableExprPlan, DenseFilterExec, ProvableExprPlan, TableExpr},
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
-pub struct FilterExprBuilder<C: Commitment> {
+pub struct FilterExecBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<ProvableExprPlan<C>>,
     filter_result_expr_list: Vec<AliasedProvableExprPlan<C>>,
@@ -18,7 +18,7 @@ pub struct FilterExprBuilder<C: Commitment> {
 }
 
 // Public interface
-impl<C: Commitment> FilterExprBuilder<C> {
+impl<C: Commitment> FilterExecBuilder<C> {
     pub fn new(column_mapping: IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
@@ -68,8 +68,8 @@ impl<C: Commitment> FilterExprBuilder<C> {
         self
     }
 
-    pub fn build(self) -> DenseFilterExpr<C> {
-        DenseFilterExpr::new(
+    pub fn build(self) -> DenseFilterExec<C> {
+        DenseFilterExec::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr

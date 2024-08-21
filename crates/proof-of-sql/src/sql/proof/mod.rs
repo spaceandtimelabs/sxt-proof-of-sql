@@ -36,9 +36,9 @@ mod sumcheck_mle_evaluations_test;
 mod sumcheck_random_scalars;
 pub(crate) use sumcheck_random_scalars::SumcheckRandomScalars;
 
-mod proof_exprs;
-pub use proof_exprs::ProofExpr;
-pub(crate) use proof_exprs::{HonestProver, ProverEvaluate, ProverHonestyMarker};
+mod proof_execution_plan;
+pub use proof_execution_plan::ProofExecutionPlan;
+pub(crate) use proof_execution_plan::{HonestProver, ProverEvaluate, ProverHonestyMarker};
 
 mod query_proof;
 pub use query_proof::QueryProof;

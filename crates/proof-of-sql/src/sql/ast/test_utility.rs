@@ -1,6 +1,6 @@
 use super::{
-    AliasedProvableExprPlan, ColumnExpr, DenseFilterExpr, FilterExpr, FilterResultExpr,
-    GroupByExpr, ProjectionExpr, ProofPlan, ProvableExprPlan, TableExpr,
+    AliasedProvableExprPlan, ColumnExpr, DenseFilterExec, FilterExec, FilterResultExpr,
+    GroupByExec, ProjectionExec, ProofPlan, ProvableExprPlan, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -154,7 +154,7 @@ pub fn filter<C: Commitment>(
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
-    ProofPlan::Filter(FilterExpr::new(results, table, where_clause))
+    ProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
 pub fn aliased_plan<C: Commitment>(
@@ -235,7 +235,7 @@ pub fn projection<C: Commitment>(
     results: Vec<AliasedProvableExprPlan<C>>,
     table: TableExpr,
 ) -> ProofPlan<C> {
-    ProofPlan::Projection(ProjectionExpr::new(results, table))
+    ProofPlan::Projection(ProjectionExec::new(results, table))
 }
 
 pub fn dense_filter<C: Commitment>(
@@ -243,7 +243,7 @@ pub fn dense_filter<C: Commitment>(
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
-    ProofPlan::DenseFilter(DenseFilterExpr::new(results, table, where_clause))
+    ProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
 }
 
 pub fn sum_expr<C: Commitment>(
@@ -263,7 +263,7 @@ pub fn group_by<C: Commitment>(
     table: TableExpr,
     where_clause: ProvableExprPlan<C>,
 ) -> ProofPlan<C> {
-    ProofPlan::GroupBy(GroupByExpr::new(
+    ProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
         count_alias.parse().unwrap(),
