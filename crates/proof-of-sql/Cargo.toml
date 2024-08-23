@@ -40,7 +40,7 @@ num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
-rand = { workspace = true, optional = true }
+rand = { workspace = true, default-features = false, optional = true }
 rayon = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
@@ -55,8 +55,8 @@ clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
-rand = { workspace = true }
-rand_core = { workspace = true }
+rand = { workspace = true, default-features = false }
+rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
