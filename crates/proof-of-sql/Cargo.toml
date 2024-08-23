@@ -30,7 +30,7 @@ bumpalo = { workspace = true, features = ["collections"] }
 bytemuck = { workspace = true }
 byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
-chrono = {workspace = true, features = ["serde"]}
+chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 itertools = { workspace = true }
