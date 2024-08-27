@@ -39,6 +39,7 @@ impl Default for RandomTestAccessorDescriptor {
 }
 
 /// Generate a DataFrame with random data
+#[allow(dead_code)]
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,
     cols: &[(&str, ColumnType)],

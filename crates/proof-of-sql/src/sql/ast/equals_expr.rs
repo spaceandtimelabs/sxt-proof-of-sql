@@ -10,8 +10,8 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -84,7 +84,7 @@ impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
         Ok(verifier_evaluate_equals_zero(builder, res))
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

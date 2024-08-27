@@ -1,5 +1,6 @@
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use indexmap::IndexMap;
 use proof_of_sql::base::{
     database::{
         ArrayRefExt, Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor,
@@ -8,7 +9,6 @@ use proof_of_sql::base::{
     scalar::Scalar,
 };
 use proof_of_sql_parser::Identifier;
-use std::collections::HashMap;
 
 #[derive(Default)]
 /// An implementation of a data accessor that uses a record batch as the underlying data source.
@@ -16,7 +16,7 @@ use std::collections::HashMap;
 /// This type implements the `DataAccessor`, `MetadataAccessor`, and `SchemaAccessor` traits.
 pub struct RecordBatchAccessor {
     alloc: Bump,
-    tables: HashMap<TableRef, RecordBatch>,
+    tables: IndexMap<TableRef, RecordBatch>,
 }
 impl RecordBatchAccessor {
     /// Inserts a new table into the accessor.

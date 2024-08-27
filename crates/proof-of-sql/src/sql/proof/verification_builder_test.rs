@@ -21,7 +21,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
         Vec::new(),
     );
     assert_eq!(builder.sumcheck_evaluation(), Curve25519Scalar::zero());
-    assert_eq!(builder.pre_result_commitments(), &[]);
+    assert_eq!(builder.pcs_proof_commitments(), &[]);
     assert_eq!(builder.inner_product_multipliers(), &[]);
 }
 
@@ -53,15 +53,15 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
 }
 
 #[test]
-fn we_build_up_the_folded_pre_result_commitment() {
-    let pre_result_evaluations = [
+fn we_build_up_the_folded_pcs_proof_commitment() {
+    let pcs_proof_evaluations = [
         Curve25519Scalar::from(123u64),
         Curve25519Scalar::from(456u64),
     ];
     let mle_evaluations = SumcheckMleEvaluations {
         table_length: 1,
         num_sumcheck_variables: 1,
-        pre_result_evaluations: &pre_result_evaluations,
+        pcs_proof_evaluations: &pcs_proof_evaluations,
         ..Default::default()
     };
     let mut rng = OsRng;
@@ -85,17 +85,17 @@ fn we_build_up_the_folded_pre_result_commitment() {
     assert_eq!(eval, Curve25519Scalar::from(123u64));
     let eval = builder.consume_intermediate_mle();
     assert_eq!(eval, Curve25519Scalar::from(456u64));
-    assert_eq!(builder.pre_result_commitments(), &[commit1, commit2]);
+    assert_eq!(builder.pcs_proof_commitments(), &[commit1, commit2]);
     assert_eq!(
         builder.inner_product_multipliers(),
         &[inner_product_multipliers[0], inner_product_multipliers[1]]
     );
-    let expected_folded_pre_result_eval = inner_product_multipliers[0]
+    let expected_folded_pcs_proof_evaluation = inner_product_multipliers[0]
         * Curve25519Scalar::from(123u64)
         + inner_product_multipliers[1] * Curve25519Scalar::from(456u64);
     assert_eq!(
-        builder.folded_pre_result_evaluation(),
-        expected_folded_pre_result_eval
+        builder.folded_pcs_proof_evaluation(),
+        expected_folded_pcs_proof_evaluation
     );
 }
 

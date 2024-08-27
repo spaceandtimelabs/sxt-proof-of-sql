@@ -73,6 +73,8 @@ jobs:
         run: cargo test --all-features
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
+      - name: Dry run cargo test (proof-of-sql) (arrow feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
       - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
       - name: Dry run cargo test (proof-of-sql) (no features)

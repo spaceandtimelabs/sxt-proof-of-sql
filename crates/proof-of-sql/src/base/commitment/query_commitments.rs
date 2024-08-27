@@ -1,10 +1,10 @@
-use super::{TableCommitment, VecCommitmentExt};
+use super::{Commitment, TableCommitment};
 use crate::base::database::{
     ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
     TableRef,
 };
+use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
-use std::collections::HashMap;
 
 /// The commitments for all of the tables in a query.
 ///
@@ -12,33 +12,28 @@ use std::collections::HashMap;
 /// - [`MetadataAccessor`]
 /// - [`CommitmentAccessor`]
 /// - [`SchemaAccessor`]
-pub type QueryCommitments<C> = HashMap<TableRef, TableCommitment<C>>;
+pub type QueryCommitments<C> = IndexMap<TableRef, TableCommitment<C>>;
 
 /// A trait for extending the functionality of the [`QueryCommitments`] alias.
 pub trait QueryCommitmentsExt<C>
 where
-    Vec<C>: VecCommitmentExt,
-    Decompressed<C>: Into<C>,
+    C: Commitment,
 {
     /// Create a new `QueryCommitments` from a collection of columns and an accessor.
     fn from_accessor_with_max_bounds(
         columns: impl IntoIterator<Item = ColumnRef>,
-        accessor: &(impl CommitmentAccessor<Decompressed<C>> + SchemaAccessor),
+        accessor: &(impl CommitmentAccessor<C> + SchemaAccessor),
     ) -> Self;
 }
 
-impl<C> QueryCommitmentsExt<C> for QueryCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-    Decompressed<C>: Into<C>,
-{
+impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     fn from_accessor_with_max_bounds(
         columns: impl IntoIterator<Item = ColumnRef>,
-        accessor: &(impl CommitmentAccessor<Decompressed<C>> + SchemaAccessor),
+        accessor: &(impl CommitmentAccessor<C> + SchemaAccessor),
     ) -> Self {
         columns
             .into_iter()
-            .fold(HashMap::<_, Vec<_>>::new(), |mut table_columns, column| {
+            .fold(IndexMap::<_, Vec<_>>::new(), |mut table_columns, column| {
                 table_columns
                     .entry(column.table_ref())
                     .or_default()
@@ -65,10 +60,7 @@ where
     }
 }
 
-impl<C> MetadataAccessor for QueryCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
     fn get_length(&self, table_ref: crate::base::database::TableRef) -> usize {
         let table_commitment = self.get(&table_ref).unwrap();
 
@@ -82,14 +74,8 @@ where
     }
 }
 
-/// Private convenience alias.
-type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
-
-impl<C> CommitmentAccessor<Decompressed<C>> for QueryCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
-    fn get_commitment(&self, column: ColumnRef) -> Decompressed<C> {
+impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
+    fn get_commitment(&self, column: ColumnRef) -> C {
         let table_commitment = self.get(&column.table_ref()).unwrap();
 
         table_commitment
@@ -99,10 +85,7 @@ where
     }
 }
 
-impl<C> SchemaAccessor for QueryCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     fn lookup_column(
         &self,
         table_ref: crate::base::database::TableRef,

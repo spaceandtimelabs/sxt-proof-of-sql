@@ -5,6 +5,7 @@
 ***/
 
 use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp, Identifier};
+use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -74,7 +75,7 @@ pub enum TableExpression {
 }
 
 /// Binary operators for simple expressions
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum BinaryOperator {
     /// Numeric addition
     Add,
@@ -105,14 +106,14 @@ pub enum BinaryOperator {
 }
 
 /// Possible unary operators for simple expressions
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum UnaryOperator {
     /// Logical inversion
     Not,
 }
 
 // Aggregation operators
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
 /// Aggregation operators
 pub enum AggregationOperator {
     /// Maximum
@@ -140,7 +141,7 @@ impl std::fmt::Display for AggregationOperator {
 }
 
 /// Boolean Expressions
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Expression {
     /// Literal
     Literal(Literal),
@@ -316,7 +317,7 @@ pub struct Slice {
 }
 
 /// Literal values
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Literal {
     /// Boolean Literal
     Boolean(bool),

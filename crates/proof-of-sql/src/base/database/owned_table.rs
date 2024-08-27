@@ -5,7 +5,7 @@ use proof_of_sql_parser::Identifier;
 use thiserror::Error;
 
 /// An error that occurs when working with tables.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum OwnedTableError {
     /// The columns have different lengths.
     #[error("Columns have different lengths")]
@@ -66,37 +66,6 @@ impl<S: Scalar> OwnedTable<S> {
     /// Returns the columns of this table as an Iterator
     pub fn column_names(&self) -> impl Iterator<Item = &Identifier> {
         self.table.keys()
-    }
-
-    /// Applies a filter to this table via polars, returning a new table. This is useful for testing that a filter is executed correctly.
-    #[cfg(test)]
-    pub fn apply_polars_filter(
-        &self,
-        results: &[&str],
-        predicate: polars::prelude::Expr,
-    ) -> OwnedTable<S> {
-        OwnedTable::try_from(
-            super::dataframe_to_record_batch(
-                polars::prelude::IntoLazy::lazy(
-                    super::record_batch_to_dataframe(
-                        arrow::record_batch::RecordBatch::try_from(self.clone()).unwrap(),
-                    )
-                    .unwrap(),
-                )
-                .filter(predicate)
-                .select(
-                    results
-                        .iter()
-                        .map(|v| polars::prelude::col(v))
-                        .collect::<Vec<_>>()
-                        .as_slice(),
-                )
-                .collect()
-                .unwrap(),
-            )
-            .unwrap(),
-        )
-        .unwrap()
     }
 }
 

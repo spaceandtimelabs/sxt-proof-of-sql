@@ -1,8 +1,9 @@
-use super::{LiteralValue, TableRef};
+use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
 use proof_of_sql_parser::{
@@ -122,6 +123,33 @@ impl<'a, S: Scalar> Column<'a, S> {
                 alloc.alloc_slice_fill_with(length, |_| alloc.alloc_str(string) as &str),
                 alloc.alloc_slice_fill_copy(length, *scalar),
             )),
+        }
+    }
+
+    /// Convert an `OwnedColumn` to a `Column`
+    pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
+        match owned_column {
+            OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
+            OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
+            OwnedColumn::Int(col) => Column::Int(col.as_slice()),
+            OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
+            OwnedColumn::Int128(col) => Column::Int128(col.as_slice()),
+            OwnedColumn::Decimal75(precision, scale, col) => {
+                Column::Decimal75(*precision, *scale, col.as_slice())
+            }
+            OwnedColumn::Scalar(col) => Column::Scalar(col.as_slice()),
+            OwnedColumn::VarChar(col) => {
+                let scalars = col.iter().map(S::from).collect::<Vec<_>>();
+                let strs = col
+                    .iter()
+                    .map(|s| s.as_str() as &'a str)
+                    .collect::<Vec<_>>();
+                Column::VarChar((
+                    alloc.alloc_slice_clone(strs.as_slice()),
+                    alloc.alloc_slice_copy(scalars.as_slice()),
+                ))
+            }
+            OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
         }
     }
 
@@ -303,20 +331,27 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            _ => None,
+            Self::Boolean | Self::VarChar => None,
         }
     }
     /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
     pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
-            Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
-            _ => None,
+            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
+            Self::Boolean | Self::VarChar => None,
+            Self::TimestampTZ(tu, _) => match tu {
+                PoSQLTimeUnit::Second => Some(0),
+                PoSQLTimeUnit::Millisecond => Some(3),
+                PoSQLTimeUnit::Microsecond => Some(6),
+                PoSQLTimeUnit::Nanosecond => Some(9),
+            },
         }
     }
 }
 
 /// Convert ColumnType values to some arrow DataType
+#[cfg(feature = "arrow")]
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
@@ -330,15 +365,22 @@ impl From<&ColumnType> for DataType {
             }
             ColumnType::VarChar => DataType::Utf8,
             ColumnType::Scalar => unimplemented!("Cannot convert Scalar type to arrow type"),
-            ColumnType::TimestampTZ(timeunit, timezone) => DataType::Timestamp(
-                ArrowTimeUnit::from(*timeunit),
-                Some(Arc::from(timezone.to_string())),
-            ),
+            ColumnType::TimestampTZ(timeunit, timezone) => {
+                let arrow_timezone = Some(Arc::from(timezone.to_string()));
+                let arrow_timeunit = match timeunit {
+                    PoSQLTimeUnit::Second => ArrowTimeUnit::Second,
+                    PoSQLTimeUnit::Millisecond => ArrowTimeUnit::Millisecond,
+                    PoSQLTimeUnit::Microsecond => ArrowTimeUnit::Microsecond,
+                    PoSQLTimeUnit::Nanosecond => ArrowTimeUnit::Nanosecond,
+                };
+                DataType::Timestamp(arrow_timeunit, arrow_timezone)
+            }
         }
     }
 }
 
 /// Convert arrow DataType values to some ColumnType
+#[cfg(feature = "arrow")]
 impl TryFrom<DataType> for ColumnType {
     type Error = String;
 
@@ -352,10 +394,18 @@ impl TryFrom<DataType> for ColumnType {
             DataType::Decimal256(precision, scale) if precision <= 75 => {
                 Ok(ColumnType::Decimal75(Precision::new(precision)?, scale))
             }
-            DataType::Timestamp(time_unit, timezone_option) => Ok(ColumnType::TimestampTZ(
-                PoSQLTimeUnit::from(time_unit),
-                PoSQLTimeZone::try_from(&timezone_option)?,
-            )),
+            DataType::Timestamp(time_unit, timezone_option) => {
+                let posql_time_unit = match time_unit {
+                    ArrowTimeUnit::Second => PoSQLTimeUnit::Second,
+                    ArrowTimeUnit::Millisecond => PoSQLTimeUnit::Millisecond,
+                    ArrowTimeUnit::Microsecond => PoSQLTimeUnit::Microsecond,
+                    ArrowTimeUnit::Nanosecond => PoSQLTimeUnit::Nanosecond,
+                };
+                Ok(ColumnType::TimestampTZ(
+                    posql_time_unit,
+                    PoSQLTimeZone::try_from(&timezone_option)?,
+                ))
+            }
             DataType::Utf8 => Ok(ColumnType::VarChar),
             _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
         }
@@ -449,6 +499,7 @@ impl ColumnField {
 }
 
 /// Convert ColumnField values to arrow Field
+#[cfg(feature = "arrow")]
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
         Field::new(
@@ -820,5 +871,53 @@ mod tests {
         let column: Column<'_, Curve25519Scalar> = Column::Decimal75(precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
+    }
+
+    #[test]
+    fn we_can_convert_owned_columns_to_columns_round_trip() {
+        let alloc = Bump::new();
+        // Integers
+        let owned_col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::Int128(&[1, 2, 3, 4, 5]));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Booleans
+        let owned_col: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::Boolean(vec![true, false, true, false, true]);
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::Boolean(&[true, false, true, false, true]));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Strings
+        let strs = [
+            "Space and Time",
+            "Tér és Idő",
+            "Пространство и время",
+            "Spațiu și Timp",
+            "Spazju u Ħin",
+        ];
+        let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
+        let owned_col =
+            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>());
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(col, Column::VarChar((&strs, &scalars)));
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
+
+        // Decimals
+        let scalars: Vec<Curve25519Scalar> =
+            [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
+        let owned_col: OwnedColumn<Curve25519Scalar> =
+            OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars.clone());
+        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        assert_eq!(
+            col,
+            Column::Decimal75(Precision::new(75).unwrap(), 127, &scalars)
+        );
+        let new_owned_col = (&col).into();
+        assert_eq!(owned_col, new_owned_col);
     }
 }

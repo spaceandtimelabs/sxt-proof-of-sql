@@ -1,14 +1,14 @@
 use super::{
     committable_column::CommittableColumn, AppendColumnCommitmentsError, ColumnCommitments,
-    ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers, VecCommitmentExt,
+    ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
 };
+#[cfg(feature = "arrow")]
+use crate::base::database::{ArrayRefExt, ArrowArrayToColumnConversionError};
 use crate::base::{
-    database::{
-        ArrayRefExt, ArrowArrayToColumnConversionError, Column, ColumnField, CommitmentAccessor,
-        OwnedTable, TableRef,
-    },
+    database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
     scalar::Scalar,
 };
+#[cfg(feature = "arrow")]
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use proof_of_sql_parser::{Identifier, ParseError};
@@ -63,6 +63,7 @@ pub enum TableCommitmentArithmeticError {
 }
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
+#[cfg(feature = "arrow")]
 #[derive(Debug, Error)]
 pub enum RecordBatchToColumnsError {
     /// Error converting from arrow array
@@ -74,6 +75,7 @@ pub enum RecordBatchToColumnsError {
 }
 
 /// Errors that can occur when attempting to append a record batch to a [`TableCommitment`].
+#[cfg(feature = "arrow")]
 #[derive(Debug, Error)]
 pub enum AppendRecordBatchTableCommitmentError {
     /// During commitment operation, metadata indicates that operand tables cannot be the same.
@@ -90,29 +92,19 @@ pub enum AppendRecordBatchTableCommitmentError {
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TableCommitment<C>
 where
-    Vec<C>: VecCommitmentExt,
+    C: Commitment,
 {
     column_commitments: ColumnCommitments<C>,
     range: Range<usize>,
 }
 
-/// Private convenience alias.
-type Setup<'a, C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup<'a>;
-type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
-
-impl<C> TableCommitment<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
-    pub fn from_accessor_with_max_bounds<A: CommitmentAccessor<Decompressed<C>>>(
+    pub fn from_accessor_with_max_bounds(
         table_ref: TableRef,
         columns: &[ColumnField],
-        accessor: &A,
-    ) -> Self
-    where
-        Decompressed<C>: Into<C>,
-    {
+        accessor: &impl CommitmentAccessor<C>,
+    ) -> Self {
         let length = accessor.get_length(table_ref);
         let offset = accessor.get_offset(table_ref);
         Self::try_new(
@@ -170,7 +162,7 @@ where
     pub fn try_from_columns_with_offset<'a, COL>(
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<TableCommitment<C>, TableCommitmentFromColumnsError>
     where
         COL: Into<CommittableColumn<'a>>,
@@ -199,7 +191,7 @@ where
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> TableCommitment<C>
     where
         S: Scalar,
@@ -216,7 +208,7 @@ where
     pub fn try_append_rows<'a, COL>(
         &mut self,
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), AppendTableCommitmentError>
     where
         COL: Into<CommittableColumn<'a>>,
@@ -246,7 +238,7 @@ where
     pub fn append_owned_table<S>(
         &mut self,
         owned_table: &OwnedTable<S>,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), ColumnCommitmentsMismatch>
     where
         S: Scalar,
@@ -271,7 +263,7 @@ where
     pub fn try_extend_columns<'a, COL>(
         &mut self,
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), TableCommitmentFromColumnsError>
     where
         COL: Into<CommittableColumn<'a>>,
@@ -364,13 +356,14 @@ where
     /// The row offset is assumed to be the end of the [`TableCommitment`]'s current range.
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
+    #[cfg(feature = "arrow")]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), AppendRecordBatchTableCommitmentError> {
         match self.try_append_rows(
-            batch_to_columns::<<Decompressed<C> as Commitment>::Scalar>(batch, &Bump::new())?
+            batch_to_columns::<C::Scalar>(batch, &Bump::new())?
                 .iter()
                 .map(|(a, b)| (a, b)),
             setup,
@@ -390,21 +383,23 @@ where
         }
     }
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`].
+    #[cfg(feature = "arrow")]
     pub fn try_from_record_batch(
         batch: &RecordBatch,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<TableCommitment<C>, RecordBatchToColumnsError> {
         Self::try_from_record_batch_with_offset(batch, 0, setup)
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
+    #[cfg(feature = "arrow")]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<TableCommitment<C>, RecordBatchToColumnsError> {
         match Self::try_from_columns_with_offset(
-            batch_to_columns::<<Decompressed<C> as Commitment>::Scalar>(batch, &Bump::new())?
+            batch_to_columns::<C::Scalar>(batch, &Bump::new())?
                 .iter()
                 .map(|(a, b)| (a, b)),
             offset,
@@ -421,6 +416,7 @@ where
     }
 }
 
+#[cfg(feature = "arrow")]
 fn batch_to_columns<'a, S: Scalar + 'a>(
     batch: &'a RecordBatch,
     alloc: &'a Bump,
@@ -456,7 +452,7 @@ fn num_rows_of_columns<'a>(
     Ok(num_rows)
 }
 
-#[cfg(all(test, feature = "blitzar"))]
+#[cfg(all(test, feature = "arrow, blitzar"))]
 mod tests {
     use super::*;
     use crate::{

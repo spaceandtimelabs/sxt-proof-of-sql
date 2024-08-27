@@ -7,7 +7,8 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use std::{collections::HashSet, fmt::Debug};
+use indexmap::IndexSet;
+use std::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a `Column`
 pub trait ProvableExpr<C: Commitment>: Debug + Send + Sync {
@@ -45,8 +46,8 @@ pub trait ProvableExpr<C: Commitment>: Debug + Send + Sync {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError>;
 
-    /// Insert in the HashSet `columns` all the column
+    /// Insert in the IndexSet `columns` all the column
     /// references in the BoolExpr or forwards the call to some
     /// subsequent bool_expr
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>);
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>);
 }

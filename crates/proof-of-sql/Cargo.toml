@@ -21,7 +21,7 @@ ark-ff = { workspace = true }
 ark-poly = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
-arrow = { workspace = true }
+arrow = { workspace = true, optional = true }
 bit-iter = { workspace = true }
 bigdecimal = { workspace = true }
 blake3 = { workspace = true }
@@ -32,15 +32,12 @@ byte-slice-cast = { workspace = true }
 curve25519-dalek = { workspace = true, features = ["serde"] }
 chrono = {workspace = true, features = ["serde"]}
 derive_more = { workspace = true }
-dyn_partial_eq = { workspace = true }
-hashbrown = { workspace = true }
-indexmap = { workspace = true }
+indexmap = { workspace = true, features = ["serde"] }
 itertools = { workspace = true }
 lazy_static = { workspace = true }
 merlin = { workspace = true }
 num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
-polars = { workspace = true, features = ["lazy", "bigidx", "dtype-decimal", "serde-lazy"] }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, optional = true }
@@ -49,7 +46,6 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
-typetag = { workspace = true }
 zerocopy = { workspace = true }
 
 [dev_dependencies]
@@ -59,7 +55,6 @@ clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
-polars = { workspace = true, features = ["lazy"] }
 rand = { workspace = true }
 rand_core = { workspace = true }
 serde_json = { workspace = true }
@@ -68,8 +63,12 @@ tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
 flexbuffers = { workspace = true }
 
+[package.metadata.cargo-udeps.ignore]
+development = ["arrow-csv"]
+
 [features]
-default = ["blitzar"]
+default = ["arrow", "blitzar"]
+arrow = ["dep:arrow"]
 test = ["dep:rand"]
 
 [lints]
@@ -81,7 +80,7 @@ required-features = [ "blitzar", "test" ]
 
 [[example]]
 name = "posql_db"
-required-features = [ "blitzar" ]
+required-features = [ "arrow", "blitzar" ]
 
 [[bench]]
 name = "criterion_benches"

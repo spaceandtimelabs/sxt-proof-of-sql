@@ -14,8 +14,8 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -82,8 +82,8 @@ impl<C: Commitment> ProofExpr<C> for ProjectionExpr<C> {
             .collect()
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
-        let mut columns = HashSet::new();
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        let mut columns = IndexSet::new();
         self.aliased_results.iter().for_each(|aliased_expr| {
             aliased_expr.expr.get_column_references(&mut columns);
         });

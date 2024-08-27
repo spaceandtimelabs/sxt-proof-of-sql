@@ -1,6 +1,6 @@
 use super::{
-    ProofCounts, ProofExpr, ProvableQueryResult, ProvableResultColumn, QueryProof, TestQueryExpr,
-    VerifiableQueryResult,
+    verifiable_query_result_test::EmptyTestQueryExpr, ProofExpr, ProvableQueryResult,
+    ProvableResultColumn, QueryProof, VerifiableQueryResult,
 };
 use crate::{
     base::{
@@ -35,9 +35,9 @@ pub fn exercise_verification(
     let proof = res.proof.as_ref().unwrap();
 
     // try changing MLE evaluations
-    for i in 0..proof.pre_result_mle_evaluations.len() {
+    for i in 0..proof.pcs_proof_evaluations.len() {
         let mut res_p = res.clone();
-        res_p.proof.as_mut().unwrap().pre_result_mle_evaluations[i] += Curve25519Scalar::one();
+        res_p.proof.as_mut().unwrap().pcs_proof_evaluations[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
 
@@ -82,12 +82,8 @@ fn tamper_no_result(
 
     // add a proof
     let mut res_p = res.clone();
-    let counts = ProofCounts {
-        ..Default::default()
-    };
-    let expr_p = TestQueryExpr {
-        table_length: 1,
-        counts,
+    let expr_p = EmptyTestQueryExpr {
+        length: 1,
         ..Default::default()
     };
     let accessor_p = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());

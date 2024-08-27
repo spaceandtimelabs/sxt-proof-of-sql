@@ -1,11 +1,11 @@
 use super::{
     committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
-    ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, VecCommitmentExt,
+    ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
 use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use thiserror::Error;
 
 /// Cannot create commitments with duplicate identifier.
@@ -28,40 +28,23 @@ pub enum AppendColumnCommitmentsError {
 ///
 /// These columns do not need to belong to the same table, and can have differing lengths.
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ColumnCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+pub struct ColumnCommitments<C> {
     commitments: Vec<C>,
     column_metadata: ColumnCommitmentMetadataMap,
 }
 
-/// Private convenience aliases.
-type Decompressed<C> = <Vec<C> as VecCommitmentExt>::DecompressedCommitment;
-type Setup<'a, C> = <Vec<C> as VecCommitmentExt>::CommitmentPublicSetup<'a>;
-
-impl<C> ColumnCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C: Commitment> ColumnCommitments<C> {
     /// Create a new [`ColumnCommitments`] for a table from a commitment accessor.
     pub fn from_accessor_with_max_bounds(
         table: TableRef,
         columns: &[ColumnField],
-        accessor: &impl CommitmentAccessor<Decompressed<C>>,
-    ) -> Self
-    where
-        Decompressed<C>: Into<C>,
-    {
+        accessor: &impl CommitmentAccessor<C>,
+    ) -> Self {
         let column_metadata =
             ColumnCommitmentMetadataMap::from_column_fields_with_max_bounds(columns);
         let commitments = columns
             .iter()
-            .map(|c| {
-                accessor
-                    .get_commitment(ColumnRef::new(table, c.name(), c.data_type()))
-                    .into()
-            })
+            .map(|c| accessor.get_commitment(ColumnRef::new(table, c.name(), c.data_type())))
             .collect();
         ColumnCommitments {
             commitments,
@@ -95,10 +78,10 @@ where
     }
 
     /// Returns the commitment with the given identifier.
-    pub fn get_commitment(&self, identifier: &Identifier) -> Option<Decompressed<C>> {
+    pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
         self.column_metadata
             .get_index_of(identifier)
-            .map(|index| self.commitments.get_decompressed_commitment(index).unwrap())
+            .map(|index| self.commitments[index])
     }
 
     /// Returns the metadata for the commitment with the given identifier.
@@ -115,13 +98,13 @@ where
     pub fn try_from_columns_with_offset<'a, COL>(
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<ColumnCommitments<C>, DuplicateIdentifiers>
     where
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers
-        let mut unique_identifiers = HashSet::new();
+        let mut unique_identifiers = IndexSet::new();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
@@ -165,13 +148,13 @@ where
         &mut self,
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), AppendColumnCommitmentsError>
     where
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers.
-        let mut unique_identifiers = HashSet::new();
+        let mut unique_identifiers = IndexSet::new();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
@@ -210,7 +193,7 @@ where
         &mut self,
         columns: impl IntoIterator<Item = (&'a Identifier, COL)>,
         offset: usize,
-        setup: &Setup<C>,
+        setup: &C::PublicSetup<'_>,
     ) -> Result<(), DuplicateIdentifiers>
     where
         COL: Into<CommittableColumn<'a>>,
@@ -235,7 +218,7 @@ where
 
         // this constructor will check for duplicates among the new columns
         let new_column_commitments =
-            ColumnCommitments::try_from_columns_with_offset(unique_columns, offset, setup)?;
+            ColumnCommitments::<C>::try_from_columns_with_offset(unique_columns, offset, setup)?;
 
         self.commitments.extend(new_column_commitments.commitments);
         self.column_metadata
@@ -291,10 +274,7 @@ pub type IntoIter<C> = std::iter::Map<
     fn(((Identifier, ColumnCommitmentMetadata), C)) -> (Identifier, ColumnCommitmentMetadata, C),
 >;
 
-impl<C> IntoIterator for ColumnCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C> IntoIterator for ColumnCommitments<C> {
     type Item = (Identifier, ColumnCommitmentMetadata, C);
     type IntoIter = IntoIter<C>;
     fn into_iter(self) -> Self::IntoIter {
@@ -316,10 +296,7 @@ pub type Iter<'a, C> = std::iter::Map<
     ) -> (&'a Identifier, &'a ColumnCommitmentMetadata, &'a C),
 >;
 
-impl<'a, C> IntoIterator for &'a ColumnCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<'a, C> IntoIterator for &'a ColumnCommitments<C> {
     type Item = (&'a Identifier, &'a ColumnCommitmentMetadata, &'a C);
     type IntoIter = Iter<'a, C>;
     fn into_iter(self) -> Self::IntoIter {
@@ -330,10 +307,7 @@ where
     }
 }
 
-impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommitments<C>
-where
-    Vec<C>: VecCommitmentExt,
-{
+impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommitments<C> {
     fn from_iter<T: IntoIterator<Item = (Identifier, ColumnCommitmentMetadata, C)>>(
         iter: T,
     ) -> Self {

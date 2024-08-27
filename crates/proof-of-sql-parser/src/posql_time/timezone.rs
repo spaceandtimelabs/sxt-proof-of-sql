@@ -104,7 +104,7 @@ mod timezone_offset_tests {
         let input = "2023-06-26T12:34:56Z";
         let expected_timezone = timezone::PoSQLTimeZone::Utc;
         let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
+        assert_eq!(result.timezone(), expected_timezone);
     }
 
     #[test]
@@ -112,7 +112,7 @@ mod timezone_offset_tests {
         let input = "2023-06-26T12:34:56+03:30";
         let expected_timezone = timezone::PoSQLTimeZone::from_offset(12600); // 3 hours and 30 minutes in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
+        assert_eq!(result.timezone(), expected_timezone);
     }
 
     #[test]
@@ -120,7 +120,7 @@ mod timezone_offset_tests {
         let input = "2023-06-26T12:34:56-04:00";
         let expected_timezone = timezone::PoSQLTimeZone::from_offset(-14400); // -4 hours in seconds
         let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
+        assert_eq!(result.timezone(), expected_timezone);
     }
 
     #[test]
@@ -128,6 +128,6 @@ mod timezone_offset_tests {
         let input = "2023-06-26T12:34:56+00:00";
         let expected_timezone = timezone::PoSQLTimeZone::Utc; // Zero offset defaults to UTC
         let result = PoSQLTimestamp::try_from(input).unwrap();
-        assert_eq!(result.timezone, expected_timezone);
+        assert_eq!(result.timezone(), expected_timezone);
     }
 }

@@ -10,29 +10,30 @@ use crate::{
         parse::ConversionError::DecimalConversionError,
     },
 };
+use indexmap::IndexMap;
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
+    posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
     Identifier,
 };
-use std::collections::HashMap;
 
 /// Builder that enables building a `proofs::sql::ast::ProvableExprPlan` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct ProvableExprPlanBuilder<'a> {
-    column_mapping: &'a HashMap<Identifier, ColumnRef>,
+    column_mapping: &'a IndexMap<Identifier, ColumnRef>,
     in_agg_scope: bool,
 }
 
 impl<'a> ProvableExprPlanBuilder<'a> {
     /// Creates a new `ProvableExprPlanBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: false,
         }
     }
     /// Creates a new `ProvableExprPlanBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a HashMap<Identifier, ColumnRef>) -> Self {
+    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: true,
@@ -100,9 +101,27 @@ impl ProvableExprPlanBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(its) => Ok(ProvableExprPlan::new_literal(
-                LiteralValue::TimeStampTZ(its.timeunit, its.timezone, its.timestamp.timestamp()),
-            )),
+            Literal::Timestamp(its) => {
+                let timestamp = match its.timeunit() {
+                    PoSQLTimeUnit::Nanosecond => {
+                        its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
+                                PoSQLTimestampError::UnsupportedPrecision("Timestamp out of range: 
+                                Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
+                                and 2262-04-11T23:47:16.854775807.".to_owned()
+                            )
+                        })?
+                    }
+                    PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
+                    PoSQLTimeUnit::Millisecond => its.timestamp().timestamp_millis(),
+                    PoSQLTimeUnit::Second => its.timestamp().timestamp(),
+                };
+
+                Ok(ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+                    its.timeunit(),
+                    its.timezone(),
+                    timestamp,
+                )))
+            }
         }
     }
 

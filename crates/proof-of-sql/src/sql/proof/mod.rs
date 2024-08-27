@@ -24,8 +24,8 @@ mod provable_result_column;
 pub(crate) use provable_result_column::ProvableResultColumn;
 
 mod provable_query_result;
-pub(crate) use provable_query_result::ProvableQueryResult;
-#[cfg(test)]
+pub use provable_query_result::ProvableQueryResult;
+#[cfg(all(test, feature = "arrow"))]
 mod provable_query_result_test;
 
 mod sumcheck_mle_evaluations;
@@ -41,11 +41,6 @@ pub use proof_exprs::ProofExpr;
 pub(crate) use proof_exprs::{HonestProver, ProverEvaluate, ProverHonestyMarker};
 
 mod query_proof;
-#[cfg(test)]
-pub(crate) use query_proof::make_transcript;
-#[cfg(not(feature = "test"))]
-pub(crate) use query_proof::QueryProof;
-#[cfg(feature = "test")]
 pub use query_proof::QueryProof;
 #[cfg(all(test, feature = "blitzar"))]
 mod query_proof_test;
@@ -67,11 +62,6 @@ mod verifiable_query_result_test;
 mod verifiable_query_result_test_utility;
 #[cfg(all(test, feature = "blitzar"))]
 pub(crate) use verifiable_query_result_test_utility::exercise_verification;
-
-#[cfg(test)]
-mod test_query_expr;
-#[cfg(test)]
-pub(crate) use test_query_expr::TestQueryExpr;
 
 mod result_element_serialization;
 pub(crate) use result_element_serialization::{

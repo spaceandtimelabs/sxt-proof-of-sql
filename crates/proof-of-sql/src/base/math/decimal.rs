@@ -187,17 +187,20 @@ pub(crate) fn try_into_to_scalar<S: Scalar>(
 /// Scale scalar by the given scale factor. Negative scaling is not allowed.
 /// Note that we do not check for overflow.
 pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> DecimalResult<S> {
-    if scale < 0 {
-        return Err(DecimalError::RoundingError(
+    match scale {
+        0 => Ok(s),
+        _ if scale < 0 => Err(DecimalError::RoundingError(
             "Scale factor must be non-negative".to_string(),
-        ));
+        )),
+        _ => {
+            let ten = S::from(10);
+            let mut res = s;
+            for _ in 0..scale {
+                res *= ten;
+            }
+            Ok(res)
+        }
     }
-    let ten = S::from(10);
-    let mut res = s;
-    for _ in 0..scale {
-        res *= ten;
-    }
-    Ok(res)
 }
 
 #[cfg(test)]

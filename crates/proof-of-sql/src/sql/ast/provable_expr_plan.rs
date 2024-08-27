@@ -14,9 +14,10 @@ use crate::{
     },
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, fmt::Debug};
+use std::fmt::Debug;
 
 /// Enum of AST column expression types that implement `ProvableExpr`. Is itself a `ProvableExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -328,7 +329,7 @@ impl<C: Commitment> ProvableExpr<C> for ProvableExprPlan<C> {
         }
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         match self {
             ProvableExprPlan::Column(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)

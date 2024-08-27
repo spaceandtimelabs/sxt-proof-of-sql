@@ -13,8 +13,8 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable AST expression for an inequality expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -22,12 +22,20 @@ pub struct InequalityExpr<C: Commitment> {
     lhs: Box<ProvableExprPlan<C>>,
     rhs: Box<ProvableExprPlan<C>>,
     is_lte: bool,
+    #[cfg(test)]
+    pub(crate) treat_column_of_zeros_as_negative: bool,
 }
 
 impl<C: Commitment> InequalityExpr<C> {
     /// Create a new less than or equal expression
     pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>, is_lte: bool) -> Self {
-        Self { lhs, rhs, is_lte }
+        Self {
+            lhs,
+            rhs,
+            is_lte,
+            #[cfg(test)]
+            treat_column_of_zeros_as_negative: false,
+        }
     }
 }
 
@@ -60,7 +68,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, lhs_scale, rhs_scale, false)
+            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, lhs_scale, false)
                 .expect("Failed to scale and subtract")
         };
 
@@ -89,7 +97,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
             scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
                 .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, lhs_scale, rhs_scale, false)
+            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, lhs_scale, false)
                 .expect("Failed to scale and subtract")
         };
 
@@ -97,7 +105,13 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         let equals_zero = prover_evaluate_equals_zero(builder, alloc, diff);
 
         // sign(diff) == -1
-        let sign = prover_evaluate_sign(builder, alloc, diff);
+        let sign = prover_evaluate_sign(
+            builder,
+            alloc,
+            diff,
+            #[cfg(test)]
+            self.treat_column_of_zeros_as_negative,
+        );
 
         // (diff == 0) || (sign(diff) == -1)
         Column::Boolean(prover_evaluate_or(builder, alloc, equals_zero, sign))
@@ -129,7 +143,7 @@ impl<C: Commitment> ProvableExpr<C> for InequalityExpr<C> {
         Ok(verifier_evaluate_or(builder, &equals_zero, &sign))
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

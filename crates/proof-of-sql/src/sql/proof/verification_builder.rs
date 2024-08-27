@@ -11,10 +11,10 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     inner_product_multipliers: &'a [C::Scalar],
     sumcheck_evaluation: C::Scalar,
     bit_distributions: &'a [BitDistribution],
-    pre_result_commitments: Vec<C>,
-    folded_pre_result_evaluation: C::Scalar,
+    pcs_proof_commitments: Vec<C>,
+    folded_pcs_proof_evaluation: C::Scalar,
     consumed_result_mles: usize,
-    consumed_pre_result_mles: usize,
+    consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
     /// The challenges used in creation of the constraints in the proof.
@@ -39,7 +39,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     ) -> Self {
         assert_eq!(
             inner_product_multipliers.len(),
-            mle_evaluations.pre_result_evaluations.len()
+            mle_evaluations.pcs_proof_evaluations.len()
         );
         Self {
             mle_evaluations,
@@ -49,10 +49,10 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             subpolynomial_multipliers,
             inner_product_multipliers,
             sumcheck_evaluation: C::Scalar::zero(),
-            pre_result_commitments: Vec::with_capacity(inner_product_multipliers.len()),
-            folded_pre_result_evaluation: C::Scalar::zero(),
+            pcs_proof_commitments: Vec::with_capacity(inner_product_multipliers.len()),
+            folded_pcs_proof_evaluation: C::Scalar::zero(),
             consumed_result_mles: 0,
-            consumed_pre_result_mles: 0,
+            consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
             post_result_challenges,
@@ -71,12 +71,12 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     ///
     /// An anchored MLE is an MLE where the verifier has access to the commitment
     pub fn consume_anchored_mle(&mut self, commitment: C) -> C::Scalar {
-        let index = self.consumed_pre_result_mles;
+        let index = self.consumed_pcs_proof_mles;
         let multiplier = self.inner_product_multipliers[index];
-        self.pre_result_commitments.push(commitment);
-        self.consumed_pre_result_mles += 1;
-        let res = self.mle_evaluations.pre_result_evaluations[index];
-        self.folded_pre_result_evaluation += multiplier * res;
+        self.pcs_proof_commitments.push(commitment);
+        self.consumed_pcs_proof_mles += 1;
+        let res = self.mle_evaluations.pcs_proof_evaluations[index];
+        self.folded_pcs_proof_evaluation += multiplier * res;
         res
     }
 
@@ -119,9 +119,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     /// Get the commitments of pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn pre_result_commitments(&self) -> &[C] {
+    pub fn pcs_proof_commitments(&self) -> &[C] {
         assert!(self.completed());
-        &self.pre_result_commitments
+        &self.pcs_proof_commitments
     }
     /// Get folding factors for the pre-result commitments
     pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
@@ -131,9 +131,9 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
 
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
-    pub fn folded_pre_result_evaluation(&self) -> C::Scalar {
+    pub fn folded_pcs_proof_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
-        self.folded_pre_result_evaluation
+        self.folded_pcs_proof_evaluation
     }
 
     /// Check that the verification builder is completely built up
@@ -141,7 +141,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.bit_distributions.is_empty()
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
             && self.consumed_intermediate_mles == self.intermediate_commitments.len()
-            && self.consumed_pre_result_mles == self.mle_evaluations.pre_result_evaluations.len()
+            && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
             && self.consumed_result_mles == self.mle_evaluations.result_evaluations.len()
             && self.post_result_challenges.is_empty()
     }

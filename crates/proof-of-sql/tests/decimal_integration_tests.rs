@@ -3,6 +3,7 @@
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar as S};
+use proof_of_sql::sql::postprocessing::apply_postprocessing_steps;
 
 #[cfg(feature = "blitzar")]
 fn run_query(
@@ -38,12 +39,8 @@ fn run_query(
         .verify(query.proof_expr(), &accessor, &())
         .unwrap()
         .table;
-    let owned_table_result: OwnedTable<_> = query
-        .result()
-        .transform_results(owned_table_result.try_into().unwrap())
-        .unwrap()
-        .try_into()
-        .unwrap();
+    let owned_table_result: OwnedTable<_> =
+        apply_postprocessing_steps(owned_table_result, query.postprocessing()).unwrap();
 
     // Adjust expected result based on the precision and scale provided
     let expected_result = owned_table::<S>([

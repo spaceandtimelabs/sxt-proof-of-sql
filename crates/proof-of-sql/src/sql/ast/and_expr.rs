@@ -8,9 +8,9 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable logical AND expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -104,7 +104,7 @@ impl<C: Commitment> ProvableExpr<C> for AndExpr<C> {
         Ok(lhs_and_rhs)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

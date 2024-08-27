@@ -1,12 +1,14 @@
 use super::{
-    aggregate_columns, fold_columns, fold_vals,
-    group_by_util::{compare_indexes_by_owned_columns, AggregatedColumns},
-    AliasedProvableExprPlan, ColumnExpr, ProvableExpr, ProvableExprPlan, TableExpr,
+    fold_columns, fold_vals, AliasedProvableExprPlan, ColumnExpr, ProvableExpr, ProvableExprPlan,
+    TableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{
+            group_by_util::{
+                aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
+            },
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
             MetadataAccessor, OwnedTable,
         },
@@ -21,10 +23,10 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
+use indexmap::IndexSet;
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -181,8 +183,8 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
             .collect()
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
-        let mut columns = HashSet::new();
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        let mut columns = IndexSet::new();
 
         for col in self.group_by_exprs.iter() {
             columns.insert(col.get_column_reference());
@@ -230,7 +232,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
             count_column,
-        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, selection)
+            ..
+        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
@@ -276,7 +279,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
             count_column,
-        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, selection)
+            ..
+        } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
 
         let alpha = builder.consume_post_result_challenge();

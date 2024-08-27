@@ -6,20 +6,20 @@ use crate::{
     },
     sql::ast::{AliasedProvableExprPlan, DenseFilterExpr, ProvableExprPlan, TableExpr},
 };
+use indexmap::IndexMap;
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
-use std::collections::HashMap;
 
 pub struct FilterExprBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<ProvableExprPlan<C>>,
     filter_result_expr_list: Vec<AliasedProvableExprPlan<C>>,
-    column_mapping: HashMap<Identifier, ColumnRef>,
+    column_mapping: IndexMap<Identifier, ColumnRef>,
 }
 
 // Public interface
 impl<C: Commitment> FilterExprBuilder<C> {
-    pub fn new(column_mapping: HashMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
             table_expr: None,
             where_expr: None,

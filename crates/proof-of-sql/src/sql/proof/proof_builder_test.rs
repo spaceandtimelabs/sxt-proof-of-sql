@@ -7,6 +7,7 @@ use crate::{
     },
     sql::proof::{Indexes, ResultBuilder, SumcheckSubpolynomialType},
 };
+#[cfg(feature = "arrow")]
 use arrow::{
     array::Int64Array,
     datatypes::{Field, Schema},
@@ -47,7 +48,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
 }
 
 #[test]
-fn we_can_evaluate_pre_result_mles() {
+fn we_can_evaluate_pcs_proof_mles() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
@@ -57,7 +58,7 @@ fn we_can_evaluate_pre_result_mles() {
         Curve25519Scalar::from(100u64),
         Curve25519Scalar::from(10u64),
     ];
-    let evals = builder.evaluate_pre_result_mles(&evaluation_vec);
+    let evals = builder.evaluate_pcs_proof_mles(&evaluation_vec);
     let expected_evals = [
         Curve25519Scalar::from(120u64),
         Curve25519Scalar::from(1200u64),
@@ -123,6 +124,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     assert_eq!(eval, expected_eval);
 }
 
+#[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);
@@ -159,14 +161,14 @@ fn we_can_form_the_provable_query_result() {
 }
 
 #[test]
-fn we_can_fold_pre_result_mles() {
+fn we_can_fold_pcs_proof_mles() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
     let mut builder = ProofBuilder::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let multipliers = [Curve25519Scalar::from(100u64), Curve25519Scalar::from(2u64)];
-    let z = builder.fold_pre_result_mles(&multipliers);
+    let z = builder.fold_pcs_proof_mles(&multipliers);
     let expected_z = [
         Curve25519Scalar::from(120u64),
         Curve25519Scalar::from(240u64),

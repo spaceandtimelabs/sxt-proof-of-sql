@@ -1,18 +1,18 @@
 use crate::{
     base::{
         commitment::Commitment,
-        database::{ColumnRef, ColumnType, LiteralValue, TableRef},
+        database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
         ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
         parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
+use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,
 };
-use std::collections::{HashMap, HashSet};
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -26,9 +26,9 @@ pub struct QueryContext {
     order_by_exprs: Vec<OrderBy>,
     group_by_exprs: Vec<Identifier>,
     where_expr: Option<Box<Expression>>,
-    result_column_set: HashSet<Identifier>,
+    result_column_set: IndexSet<Identifier>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: HashMap<Identifier, ColumnRef>,
+    column_mapping: IndexMap<Identifier, ColumnRef>,
     first_result_col_out_agg_scope: Option<Identifier>,
 }
 
@@ -91,6 +91,10 @@ impl QueryContext {
         self.in_agg_scope
     }
 
+    pub(crate) fn has_agg(&self) -> bool {
+        self.agg_counter > 0 || !self.group_by_exprs.is_empty()
+    }
+
     pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
         self.push_result_column_ref(column);
@@ -128,18 +132,6 @@ impl QueryContext {
 
     pub fn set_order_by_exprs(&mut self, order_by_exprs: Vec<OrderBy>) {
         self.order_by_exprs = order_by_exprs;
-    }
-
-    pub fn get_any_result_column_ref(&self) -> Option<(Identifier, ColumnType)> {
-        // For tests to work we need to make it deterministic by sorting the columns
-        // In the long run we simply need to let * be *
-        // and get rid of this workaround altogether
-        let mut columns = self.result_column_set.iter().collect::<Vec<_>>();
-        columns.sort();
-        columns.first().map(|c| {
-            let column = self.column_mapping[c];
-            (column.column_id(), *column.column_type())
-        })
     }
 
     pub fn is_in_group_by_exprs(&self, column: &Identifier) -> ConversionResult<bool> {
@@ -207,11 +199,11 @@ impl QueryContext {
         &self.group_by_exprs
     }
 
-    pub fn get_result_column_set(&self) -> HashSet<Identifier> {
+    pub fn get_result_column_set(&self) -> IndexSet<Identifier> {
         self.result_column_set.clone()
     }
 
-    pub fn get_column_mapping(&self) -> HashMap<Identifier, ColumnRef> {
+    pub fn get_column_mapping(&self) -> IndexMap<Identifier, ColumnRef> {
         self.column_mapping.clone()
     }
 }
@@ -263,18 +255,8 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
             .iter()
             .zip(res_group_by_columns.iter())
             .all(|(ident, res)| {
-                //TODO: This is due to a workaround related to polars
-                //Need to remove it when possible (PROOF-850)
-                if let Expression::Aggregation {
-                    op: AggregationOperator::First,
-                    expr,
-                } = (*res.expr).clone()
-                {
-                    if let Expression::Column(res_ident) = *expr {
-                        res_ident == *ident
-                    } else {
-                        false
-                    }
+                if let Expression::Column(res_ident) = *res.expr {
+                    res_ident == *ident
                 } else {
                     false
                 }
@@ -305,16 +287,13 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];
-        let count_column_compliant = if let Expression::Aggregation {
-            op: AggregationOperator::Count,
-            expr,
-        } = (*count_column.expr).clone()
-        {
-            //TODO: This is due to a workaround related to polars
-            matches!(*expr, Expression::Column(_))
-        } else {
-            false
-        };
+        let count_column_compliant = matches!(
+            *count_column.expr,
+            Expression::Aggregation {
+                op: AggregationOperator::Count,
+                ..
+            }
+        );
 
         if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
             return Ok(None);

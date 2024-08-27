@@ -1,13 +1,12 @@
 use super::{
-    dense_filter_util::{fold_columns, fold_vals},
-    filter_columns, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
+    fold_columns, fold_vals, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
 };
 use crate::{
     base::{
         commitment::Commitment,
         database::{
-            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
+            filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
+            DataAccessor, MetadataAccessor, OwnedTable,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -19,10 +18,10 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use core::iter::repeat_with;
+use core::{iter::repeat_with, marker::PhantomData};
+use indexmap::IndexSet;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, marker::PhantomData};
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -129,8 +128,8 @@ where
             .collect()
     }
 
-    fn get_column_references(&self) -> HashSet<ColumnRef> {
-        let mut columns = HashSet::new();
+    fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        let mut columns = IndexSet::new();
 
         for aliased_expr in self.aliased_results.iter() {
             aliased_expr.expr.get_column_references(&mut columns);

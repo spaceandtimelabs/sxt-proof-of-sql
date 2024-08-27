@@ -1,18 +1,19 @@
-use super::{
-    add_subtract_columns, scale_and_add_subtract_eval, try_add_subtract_column_types, ProvableExpr,
-    ProvableExprPlan,
-};
+use super::{add_subtract_columns, scale_and_add_subtract_eval, ProvableExpr, ProvableExprPlan};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{
+            try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
+            DataAccessor,
+        },
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
+use indexmap::IndexSet;
+use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Provable numerical `+` / `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -45,7 +46,12 @@ impl<C: Commitment> ProvableExpr<C> for AddSubtractExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type())
+        let operator = if self.is_subtract {
+            BinaryOperator::Subtract
+        } else {
+            BinaryOperator::Add
+        };
+        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type(), operator)
             .expect("Failed to add/subtract column types")
     }
 
@@ -106,7 +112,7 @@ impl<C: Commitment> ProvableExpr<C> for AddSubtractExpr<C> {
         Ok(res)
     }
 
-    fn get_column_references(&self, columns: &mut HashSet<ColumnRef>) {
+    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         self.lhs.get_column_references(columns);
         self.rhs.get_column_references(columns);
     }

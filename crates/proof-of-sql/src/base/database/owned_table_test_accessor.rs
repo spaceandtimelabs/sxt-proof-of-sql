@@ -101,9 +101,7 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     fn get_commitment(&self, column: ColumnRef) -> CP::Commitment {
         let (table, offset) = self.tables.get(&column.table_ref()).unwrap();
         let owned_column = table.inner_table().get(&column.column_id()).unwrap();
-        Vec::from_columns_with_offset([owned_column], *offset, self.setup.as_ref().unwrap())
-            .to_decompressed()
-            .unwrap()[0]
+        Vec::from_columns_with_offset([owned_column], *offset, self.setup.as_ref().unwrap())[0]
     }
 }
 impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {

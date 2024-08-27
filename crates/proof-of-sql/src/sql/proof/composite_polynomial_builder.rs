@@ -3,9 +3,10 @@ use crate::base::{
     scalar::Scalar,
     slice_ops,
 };
+use indexmap::IndexMap;
 use num_traits::{One, Zero};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
-use std::{collections::HashMap, ffi::c_void, rc::Rc};
+use std::{ffi::c_void, rc::Rc};
 
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder<S: Scalar> {
@@ -14,7 +15,7 @@ pub struct CompositePolynomialBuilder<S: Scalar> {
     fr_multiplicands_rest: Vec<(S, Vec<Rc<Vec<S>>>)>,
     zerosum_multiplicands: Vec<(S, Vec<Rc<Vec<S>>>)>,
     fr: Rc<Vec<S>>,
-    mles: HashMap<*const c_void, Rc<Vec<S>>>,
+    mles: IndexMap<*const c_void, Rc<Vec<S>>>,
 }
 
 impl<S: Scalar> CompositePolynomialBuilder<S> {
@@ -26,7 +27,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             fr_multiplicands_rest: vec![],
             zerosum_multiplicands: vec![],
             fr: fr.to_sumcheck_term(num_sumcheck_variables),
-            mles: HashMap::new(),
+            mles: IndexMap::new(),
         }
     }
 
