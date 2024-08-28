@@ -4,7 +4,7 @@ use crate::{
         database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
-        ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExpr, ProvableExprPlan, TableExpr},
+        ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExec, ProvableExprPlan, TableExpr},
         parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
     },
 };
@@ -208,14 +208,14 @@ impl QueryContext {
     }
 }
 
-/// Converts a `QueryContext` into a `Option<GroupByExpr>`.
+/// Converts a `QueryContext` into a `Option<GroupByExec>`.
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong
-impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
+impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
     type Error = ConversionError;
 
-    fn try_from(value: &QueryContext) -> Result<Option<GroupByExpr<C>>, Self::Error> {
+    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<C>>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true)));
@@ -298,7 +298,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExpr<C>> {
         if !group_by_compliance || sum_expr.is_none() || !count_column_compliant {
             return Ok(None);
         }
-        Ok(Some(GroupByExpr::new(
+        Ok(Some(GroupByExec::new(
             group_by_exprs,
             sum_expr.expect("the none case was just checked"),
             count_column.alias,

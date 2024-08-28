@@ -9,7 +9,7 @@ use crate::{
         proof::ProofError,
     },
     sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
+        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate,
         ProverHonestyMarker, ResultBuilder, VerificationBuilder,
     },
 };
@@ -23,14 +23,14 @@ use serde::{Deserialize, Serialize};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExpr<C: Commitment, H: ProverHonestyMarker> {
+pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExpr<C, H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     /// Creates a new filter expression.
     pub fn new(
         results: Vec<FilterResultExpr>,
@@ -51,9 +51,9 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExpr<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofExpr<C> for OstensibleFilterExpr<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofExecutionPlan<C> for OstensibleFilterExec<C, H>
 where
-    OstensibleFilterExpr<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -109,9 +109,9 @@ where
     }
 }
 
-pub type FilterExpr<C> = OstensibleFilterExpr<C, HonestProver>;
-impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
-    #[tracing::instrument(name = "FilterExpr::result_evaluate", level = "debug", skip_all)]
+pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
+impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+    #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -141,7 +141,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExpr<C> {
         }
     }
 
-    #[tracing::instrument(name = "FilterExpr::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

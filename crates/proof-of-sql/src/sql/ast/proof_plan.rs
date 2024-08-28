@@ -1,7 +1,7 @@
-use super::{DenseFilterExpr, FilterExpr, GroupByExpr, ProjectionExpr};
+use super::{DenseFilterExec, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::commitment::Commitment,
-    sql::proof::{ProofExpr, ProverEvaluate},
+    sql::proof::{ProofExecutionPlan, ProverEvaluate},
 };
 use serde::{Deserialize, Serialize};
 
@@ -12,12 +12,12 @@ pub enum ProofPlan<C: Commitment> {
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table>
     /// ```
-    Projection(ProjectionExpr<C>),
+    Projection(ProjectionExec<C>),
     /// Provable expressions for queries of the form, where the result is sent in a sparse form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
-    Filter(FilterExpr<C>),
+    Filter(FilterExec<C>),
     /// Provable expressions for queries of the form
     /// ```ignore
     ///     SELECT <group_by_expr1>, ..., <group_by_exprM>,
@@ -27,15 +27,15 @@ pub enum ProofPlan<C: Commitment> {
     ///     WHERE <where_clause>
     ///     GROUP BY <group_by_expr1>, ..., <group_by_exprM>
     /// ```
-    GroupBy(GroupByExpr<C>),
+    GroupBy(GroupByExec<C>),
     /// Provable expressions for queries of the form, where the result is sent in a dense form
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
-    DenseFilter(DenseFilterExpr<C>),
+    DenseFilter(DenseFilterExec<C>),
 }
 
-impl<C: Commitment> ProofExpr<C> for ProofPlan<C> {
+impl<C: Commitment> ProofExecutionPlan<C> for ProofPlan<C> {
     fn count(
         &self,
         builder: &mut crate::sql::proof::CountBuilder,

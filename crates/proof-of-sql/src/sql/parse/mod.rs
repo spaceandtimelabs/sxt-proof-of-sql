@@ -13,8 +13,8 @@ mod query_expr_tests;
 mod query_expr;
 pub use query_expr::QueryExpr;
 
-mod filter_expr_builder;
-pub(crate) use filter_expr_builder::FilterExprBuilder;
+mod filter_exec_builder;
+pub(crate) use filter_exec_builder::FilterExecBuilder;
 
 pub(crate) mod query_context;
 pub(crate) use query_context::QueryContext;

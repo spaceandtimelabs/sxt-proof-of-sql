@@ -1,4 +1,4 @@
-//! Contains the utility functions for the `GroupByExpr` node.
+//! Contains the utility functions for the `GroupByExec` node.
 
 use crate::base::{
     database::{filter_util::filter_column_by_index, Column, OwnedColumn},

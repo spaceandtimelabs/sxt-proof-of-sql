@@ -17,7 +17,7 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
+        CountBuilder, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
         SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
@@ -40,7 +40,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GroupByExpr<C: Commitment> {
+pub struct GroupByExec<C: Commitment> {
     pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
     pub(super) sum_expr: Vec<AliasedProvableExprPlan<C>>,
     pub(super) count_alias: Identifier,
@@ -48,7 +48,7 @@ pub struct GroupByExpr<C: Commitment> {
     pub(super) where_clause: ProvableExprPlan<C>,
 }
 
-impl<C: Commitment> GroupByExpr<C> {
+impl<C: Commitment> GroupByExec<C> {
     /// Creates a new group_by expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
@@ -67,7 +67,7 @@ impl<C: Commitment> GroupByExpr<C> {
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
+impl<C: Commitment> ProofExecutionPlan<C> for GroupByExec<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -164,7 +164,7 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
                     ))?;
                 }
             }
-            None => todo!("GroupByExpr currently only supported at top level of query plan."),
+            None => todo!("GroupByExec currently only supported at top level of query plan."),
         }
         Ok(())
     }
@@ -199,8 +199,8 @@ impl<C: Commitment> ProofExpr<C> for GroupByExpr<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
-    #[tracing::instrument(name = "GroupByExpr::result_evaluate", level = "debug", skip_all)]
+impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
+    #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -248,7 +248,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExpr<C> {
         builder.request_post_result_challenges(2);
     }
 
-    #[tracing::instrument(name = "GroupByExpr::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "GroupByExec::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

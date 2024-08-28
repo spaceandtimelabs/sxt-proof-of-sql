@@ -13,7 +13,7 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExpr, ProverEvaluate,
+        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate,
         ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
@@ -28,16 +28,16 @@ use serde::{Deserialize, Serialize};
 ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
 /// ```
 ///
-/// This differs from the [`FilterExpr`] in that the result is not a sparse table.
+/// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleDenseFilterExpr<C: Commitment, H: ProverHonestyMarker> {
+pub struct OstensibleDenseFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedProvableExprPlan<C>>,
     pub(super) table: TableExpr,
     pub(super) where_clause: ProvableExprPlan<C>,
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExec<C, H> {
     /// Creates a new dense_filter expression.
     pub fn new(
         aliased_results: Vec<AliasedProvableExprPlan<C>>,
@@ -53,9 +53,10 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExpr<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofExpr<C> for OstensibleDenseFilterExpr<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofExecutionPlan<C>
+    for OstensibleDenseFilterExec<C, H>
 where
-    OstensibleDenseFilterExpr<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleDenseFilterExec<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -142,10 +143,10 @@ where
 }
 
 /// Alias for a dense filter expression with a honest prover.
-pub type DenseFilterExpr<C> = OstensibleDenseFilterExpr<C, HonestProver>;
+pub type DenseFilterExec<C> = OstensibleDenseFilterExec<C, HonestProver>;
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
-    #[tracing::instrument(name = "DenseFilterExpr::result_evaluate", level = "debug", skip_all)]
+impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
+    #[tracing::instrument(name = "DenseFilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -177,7 +178,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExpr<C> {
         builder.request_post_result_challenges(2);
     }
 
-    #[tracing::instrument(name = "DenseFilterExpr::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "DenseFilterExec::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

@@ -1,8 +1,8 @@
-use super::{EnrichedExpr, FilterExprBuilder, QueryContextBuilder};
+use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
-        ast::{GroupByExpr, ProofPlan},
+        ast::{GroupByExec, ProofPlan},
         parse::ConversionResult,
         postprocessing::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
@@ -81,7 +81,7 @@ impl<C: Commitment> QueryExpr<C> {
             ));
         }
         if context.has_agg() {
-            if let Some(group_by_expr) = Option::<GroupByExpr<C>>::try_from(&context)? {
+            if let Some(group_by_expr) = Option::<GroupByExec<C>>::try_from(&context)? {
                 Ok(Self {
                     proof_expr: ProofPlan::GroupBy(group_by_expr),
                     postprocessing,
@@ -94,7 +94,7 @@ impl<C: Commitment> QueryExpr<C> {
                         provable_expr_plan: None,
                     })
                     .collect::<Vec<_>>();
-                let filter = FilterExprBuilder::new(context.get_column_mapping())
+                let filter = FilterExecBuilder::new(context.get_column_mapping())
                     .add_table_expr(*context.get_table_ref())
                     .add_where_expr(context.get_where_expr().clone())?
                     .add_result_columns(&raw_enriched_exprs)
@@ -136,7 +136,7 @@ impl<C: Commitment> QueryExpr<C> {
                 .iter()
                 .map(|enriched_expr| enriched_expr.residue_expression.clone())
                 .collect::<Vec<_>>();
-            let filter = FilterExprBuilder::new(context.get_column_mapping())
+            let filter = FilterExecBuilder::new(context.get_column_mapping())
                 .add_table_expr(*context.get_table_ref())
                 .add_where_expr(context.get_where_expr().clone())?
                 .add_result_columns(&enriched_exprs)

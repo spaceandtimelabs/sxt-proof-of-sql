@@ -10,11 +10,12 @@ use crate::{
     proof_primitive::dory::DoryCommitment,
     sql::{
         ast::{
-            test_utility::*, ColumnExpr, FilterExpr, FilterResultExpr, LiteralExpr,
+            test_utility::*, ColumnExpr, FilterExec, FilterResultExpr, LiteralExpr,
             ProvableExprPlan, TableExpr,
         },
         proof::{
-            exercise_verification, ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
+            exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
+            VerifiableQueryResult,
         },
     },
 };
@@ -27,7 +28,7 @@ use proof_of_sql_parser::{Identifier, ResourceId};
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let provable_ast = FilterExpr::<RistrettoPoint>::new(
+    let provable_ast = FilterExec::<RistrettoPoint>::new(
         vec![
             FilterResultExpr::new(ColumnRef::new(
                 table_ref,
@@ -64,7 +65,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let provable_ast = FilterExpr::new(
+    let provable_ast = FilterExec::new(
         vec![
             FilterResultExpr::new(ColumnRef::new(
                 table_ref,

@@ -9,10 +9,11 @@ use crate::{
     },
     sql::{
         ast::{
-            test_utility::*, ColumnExpr, DenseFilterExpr, LiteralExpr, ProvableExprPlan, TableExpr,
+            test_utility::*, ColumnExpr, DenseFilterExec, LiteralExpr, ProvableExprPlan, TableExpr,
         },
         proof::{
-            exercise_verification, ProofExpr, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
+            exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
+            VerifiableQueryResult,
         },
     },
 };
@@ -27,7 +28,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
-    let provable_ast = DenseFilterExpr::<RistrettoPoint>::new(
+    let provable_ast = DenseFilterExec::<RistrettoPoint>::new(
         vec![
             aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
@@ -73,7 +74,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
-    let provable_ast = DenseFilterExpr::new(
+    let provable_ast = DenseFilterExec::new(
         vec![
             aliased_plan(
                 ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(

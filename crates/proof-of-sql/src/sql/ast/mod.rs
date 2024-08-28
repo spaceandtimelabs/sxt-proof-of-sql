@@ -18,14 +18,14 @@ use multiply_expr::MultiplyExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod multiply_expr_test;
 
-mod filter_expr;
-pub(crate) use filter_expr::FilterExpr;
+mod filter_exec;
+pub(crate) use filter_exec::FilterExec;
 #[cfg(test)]
-pub(crate) use filter_expr::OstensibleFilterExpr;
+pub(crate) use filter_exec::OstensibleFilterExec;
 #[cfg(all(test, feature = "blitzar"))]
-mod filter_expr_test;
+mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]
-mod filter_expr_test_dishonest_prover;
+mod filter_exec_test_dishonest_prover;
 
 mod bitwise_verification;
 use bitwise_verification::*;
@@ -40,10 +40,10 @@ pub(crate) use provable_expr::ProvableExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod provable_expr_test;
 
-mod projection_expr;
-pub(crate) use projection_expr::ProjectionExpr;
+mod projection_exec;
+pub(crate) use projection_exec::ProjectionExec;
 #[cfg(all(test, feature = "blitzar"))]
-mod projection_expr_test;
+mod projection_exec_test;
 
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;
@@ -99,25 +99,25 @@ pub(crate) use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
 
-mod dense_filter_expr;
-pub(crate) use dense_filter_expr::DenseFilterExpr;
+mod dense_filter_exec;
+pub(crate) use dense_filter_exec::DenseFilterExec;
 #[cfg(test)]
-pub(crate) use dense_filter_expr::OstensibleDenseFilterExpr;
+pub(crate) use dense_filter_exec::OstensibleDenseFilterExec;
 #[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_expr_test;
+mod dense_filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_expr_test_dishonest_prover;
+mod dense_filter_exec_test_dishonest_prover;
 
 mod fold_util;
 pub(crate) use fold_util::{fold_columns, fold_vals};
 #[cfg(test)]
 mod fold_util_test;
 
-mod group_by_expr;
-pub(crate) use group_by_expr::GroupByExpr;
+mod group_by_exec;
+pub(crate) use group_by_exec::GroupByExec;
 
 #[cfg(all(test, feature = "blitzar"))]
-mod group_by_expr_test;
+mod group_by_exec_test;
 
 mod proof_plan;
 pub use proof_plan::ProofPlan;

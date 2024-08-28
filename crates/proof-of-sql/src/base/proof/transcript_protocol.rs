@@ -149,7 +149,7 @@ pub enum MessageLabel {
     /// Represents challenges posted after result computation.
     PostResultChallenges,
     /// Represents a SQL query
-    ProofExpr,
+    ProofExecutionPlan,
     /// Represents the length of a table.
     TableLength,
     /// Represents an offset for a generator.
@@ -179,7 +179,7 @@ impl MessageLabel {
             MessageLabel::DoryMessage => b"dorymessage v1",
             MessageLabel::DoryChallenge => b"dorychallenge v1",
             MessageLabel::PostResultChallenges => b"postresultchallenges v1",
-            MessageLabel::ProofExpr => b"proofexpr v1",
+            MessageLabel::ProofExecutionPlan => b"proofexec v1",
             MessageLabel::TableLength => b"tablelength v1",
             MessageLabel::GeneratorOffset => b"generatoroffset v1",
         }

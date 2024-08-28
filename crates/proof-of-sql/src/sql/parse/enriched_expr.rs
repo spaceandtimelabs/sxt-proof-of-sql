@@ -31,7 +31,7 @@ impl<C: Commitment> EnrichedExpr<C> {
         column_mapping: IndexMap<Identifier, ColumnRef>,
     ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
-        // Re-enable aggregations when we add `GroupByExpr` generalizations.
+        // Re-enable aggregations when we add `GroupByExec` generalizations.
         let res_provable_expr_plan =
             ProvableExprPlanBuilder::new_agg(&column_mapping).build(&expression.expr);
         match res_provable_expr_plan {

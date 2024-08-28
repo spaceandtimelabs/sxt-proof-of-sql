@@ -90,7 +90,7 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
 ///
 /// This accessor should be implemented by both the prover and verifier
 /// and then used by the Proof of SQL code to convert an IntermediateAst
-/// into a ProofExpr.
+/// into a ProofExecutionPlan.
 pub trait SchemaAccessor {
     /// Lookup the column's data type in the specified table
     ///

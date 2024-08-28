@@ -1,4 +1,4 @@
-use super::{OstensibleFilterExpr, ProvableExpr};
+use super::{OstensibleFilterExec, ProvableExpr};
 use crate::{
     base::{
         database::{owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor},
@@ -20,11 +20,11 @@ use curve25519_dalek::RistrettoPoint;
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestFilterExpr = OstensibleFilterExpr<RistrettoPoint, Dishonest>;
+type DishonestFilterExec = OstensibleFilterExec<RistrettoPoint, Dishonest>;
 
-impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
+impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec {
     #[tracing::instrument(
-        name = "DishonestFilterExpr::result_evaluate",
+        name = "DishonestFilterExec::result_evaluate",
         level = "debug",
         skip_all
     )]
@@ -54,7 +54,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExpr {
     }
 
     #[tracing::instrument(
-        name = "DishonestFilterExpr::prover_evaluate",
+        name = "DishonestFilterExec::prover_evaluate",
         level = "debug",
         skip_all
     )]
@@ -87,7 +87,7 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let where_clause = equal(column(t, "a", &accessor), const_int128(5_i128));
-    let ast = DishonestFilterExpr::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
+    let ast = DishonestFilterExec::new(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let verifiable_res: VerifiableQueryResult<InnerProductProof> =
         VerifiableQueryResult::new(&ast, &accessor, &());
     assert!(matches!(
