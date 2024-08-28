@@ -40,6 +40,8 @@ pub enum CommittableColumn<'a> {
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Borrowed u8 column for range-check words, mapped to `u64`.
+    RangeCheckWord(&'a [u8]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -55,6 +57,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::TimestampTZ(_, _, col) => col.len(),
+            CommittableColumn::RangeCheckWord(col) => col.len(),
         }
     }
 
@@ -83,6 +86,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::RangeCheckWord(_) => unimplemented!(),
         }
     }
 }
@@ -141,6 +145,12 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     }
 }
 
+impl<'a> From<&'a [u8]> for CommittableColumn<'a> {
+    fn from(value: &'a [u8]) -> Self {
+        CommittableColumn::RangeCheckWord(value)
+    }
+}
+
 impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
     fn from(value: &'a [i16]) -> Self {
         CommittableColumn::SmallInt(value)
@@ -187,6 +197,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
+            CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
         }
     }
 }

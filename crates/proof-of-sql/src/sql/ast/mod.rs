@@ -121,3 +121,9 @@ mod group_by_expr_test;
 
 mod proof_plan;
 pub use proof_plan::ProofPlan;
+
+/// Allow dead code until node is used for inequality
+#[allow(dead_code)]
+mod range_check;
+#[cfg(test)]
+mod range_check_test_expr;
