@@ -5,7 +5,7 @@ use arrow::{
         StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
-    datatypes::{i256, DataType, Field, Schema},
+    datatypes::{i256, DataType, Field, Schema, TimeUnit},
     record_batch::RecordBatch,
 };
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
@@ -121,7 +121,15 @@ pub fn make_random_test_accessor_data(
             ColumnType::TimestampTZ(tu, tz) => {
                 column_fields.push(Field::new(
                     *col_name,
-                    DataType::Timestamp((*tu).into(), Some(Arc::from(tz.to_string()))),
+                    DataType::Timestamp(
+                        match tu {
+                            PoSQLTimeUnit::Second => TimeUnit::Second,
+                            PoSQLTimeUnit::Millisecond => TimeUnit::Millisecond,
+                            PoSQLTimeUnit::Microsecond => TimeUnit::Microsecond,
+                            PoSQLTimeUnit::Nanosecond => TimeUnit::Nanosecond,
+                        },
+                        Some(Arc::from(tz.to_string())),
+                    ),
                     false,
                 ));
                 // Create the correct timestamp array based on the time unit
