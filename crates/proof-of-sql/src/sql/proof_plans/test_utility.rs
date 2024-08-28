@@ -1,4 +1,4 @@
-use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec};
+use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec, SliceExec};
 use crate::{
     base::commitment::Commitment,
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
@@ -33,4 +33,12 @@ pub fn group_by<C: Commitment>(
         table,
         where_clause,
     ))
+}
+
+pub fn slice_exec<C: Commitment>(
+    input: DynProofPlan<C>,
+    skip: usize,
+    fetch: Option<usize>,
+) -> DynProofPlan<C> {
+    DynProofPlan::Slice(SliceExec::new(Box::new(input), skip, fetch))
 }
