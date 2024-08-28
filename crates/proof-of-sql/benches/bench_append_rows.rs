@@ -42,7 +42,7 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     c.bench_function("append_rows_to_table_commitment", |b| {
-        let initial_columns: OwnedTable<DoryScalar> = generate_random_owned_table(10, 1000);
+        let initial_columns: OwnedTable<DoryScalar> = generate_random_owned_table(cols, rows);
 
         let table_commitment = TableCommitment::<DoryCommitment>::try_from_columns_with_offset(
             initial_columns.inner_table(),
