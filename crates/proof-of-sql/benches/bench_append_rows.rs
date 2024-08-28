@@ -27,39 +27,17 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
 use std::ops::Deref;
 
-// append 10 rows to 10 cols in 1 table in 11.382 ms
-// append 10 rows to 10 cols * 100 tables = 1.1382 seconds
-
-fn bench_append_rows_10x10(c: &mut Criterion) {
-    let public_parameters = PublicParameters::rand(10, &mut test_rng());
-    let prover_setup = ProverSetup::from(&public_parameters);
-    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
-    c.bench_function("append_rows_to_table_commitment", |b| {
-        let initial_columns: OwnedTable<DoryScalar> = generate_random_owned_table(10, 10);
-
-        let table_commitment = TableCommitment::<DoryCommitment>::try_from_columns_with_offset(
-            initial_columns.inner_table(),
-            0,
-            &dory_prover_setup,
-        )
-        .unwrap();
-
-        let append_columns: OwnedTable<DoryScalar> = initial_columns;
-
-        b.iter(|| {
-            let mut local_commitment = table_commitment.clone();
-            local_commitment
-                .try_append_rows(
-                    black_box(append_columns.inner_table()),
-                    &black_box(dory_prover_setup),
-                )
-                .unwrap();
-        });
-    });
-}
-
-// append 1000 rows to 10 cols in 1 table in 652ms
-fn bench_append_rows_10x1000(c: &mut Criterion) {
+/// Bench dory performance when appending rows to a table. This includes the computation of
+/// commitments. Chose the number of columns to randomly generate across supported PoSQL
+/// data types, and choose the number of rows to append at a time.
+///
+/// ```text
+/// Most recent benches on 13th Gen Intel® Core™ i9-13900H × 20 with 32gb of RAM:
+/// append 10 rows to 10 cols in 1 table = 11.382 ms
+/// append 10 rows to 10 cols in 100 tables = 1.1382 seconds
+/// append 1000 rows to 10 cols in 1 table = 652ms
+/// ```
+fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     let public_parameters = PublicParameters::rand(10, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -86,9 +64,6 @@ fn bench_append_rows_10x1000(c: &mut Criterion) {
         });
     });
 }
-
-criterion_group!(benches, bench_append_rows_10x10, bench_append_rows_10x1000);
-criterion_main!(benches);
 
 /// Generates a random OwnedTable with a specified number of columns
 pub fn generate_random_owned_table<S: Scalar>(
@@ -183,3 +158,13 @@ fn generate_random_boolean_vector(size: usize) -> Vec<bool> {
     let mut rng = rand::thread_rng();
     (0..size).map(|_| rng.gen()).collect()
 }
+
+fn bench_append_rows_10x10(c: &mut Criterion) {
+    bench_append_rows(c, 10, 10);
+}
+
+fn bench_append_rows_10x1000(c: &mut Criterion) {
+    bench_append_rows(c, 10, 1000);
+}
+criterion_group!(benches, bench_append_rows_10x10, bench_append_rows_10x1000);
+criterion_main!(benches);
