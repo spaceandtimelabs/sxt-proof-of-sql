@@ -31,9 +31,9 @@ mod record_batch_utility;
 #[cfg(feature = "arrow")]
 pub use record_batch_utility::ToArrow;
 
-#[cfg(all(test, feature = "arrow, test"))]
+#[cfg(all(test, feature = "arrow", feature = "test"))]
 mod test_accessor_utility;
-#[cfg(all(test, feature = "arrow, test"))]
+#[cfg(all(test, feature = "arrow", feature = "test"))]
 pub use test_accessor_utility::{make_random_test_accessor_data, RandomTestAccessorDescriptor};
 
 mod owned_column;

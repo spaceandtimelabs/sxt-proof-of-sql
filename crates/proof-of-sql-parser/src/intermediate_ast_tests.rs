@@ -495,14 +495,14 @@ fn we_can_parse_a_query_with_three_logical_not_and_or_filter_expressions() {
 
 #[test]
 fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal() {
-    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i128::MIN.to_string())
+    let ast = ("select a from sxt_tab where b = ".to_owned() + &i128::MIN.to_string())
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal(col("b"), lit(std::i128::MIN)),
+            equal(col("b"), lit(i128::MIN)),
             vec![],
         ),
         vec![],
@@ -517,7 +517,7 @@ fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal(col("b"), lit(std::i128::MIN)),
+            equal(col("b"), lit(i128::MIN)),
             vec![],
         ),
         vec![],
@@ -530,7 +530,7 @@ fn we_can_parse_a_query_with_the_minimum_i128_value_as_the_equal_filter_literal(
 fn we_cannot_parse_a_query_with_the_literals_overflowing() {
     // note: see the minus sign in front of the literal, causing the overflow
     assert!(
-        ("select a from sxt_tab where b = -".to_owned() + &std::i128::MIN.to_string())
+        ("select a from sxt_tab where b = -".to_owned() + &i128::MIN.to_string())
             .parse::<SelectStatement>()
             .is_err()
     );
@@ -538,14 +538,14 @@ fn we_cannot_parse_a_query_with_the_literals_overflowing() {
 
 #[test]
 fn we_can_parse_a_query_with_the_maximum_i128_value_as_the_equal_filter_literal() {
-    let ast = ("select a from sxt_tab where b = ".to_owned() + &std::i128::MAX.to_string())
+    let ast = ("select a from sxt_tab where b = ".to_owned() + &i128::MAX.to_string())
         .parse::<SelectStatement>()
         .unwrap();
     let expected_ast = select(
         query(
             cols_res(&["a"]),
             tab(None, "sxt_tab"),
-            equal(col("b"), lit(std::i128::MAX)),
+            equal(col("b"), lit(i128::MAX)),
             vec![],
         ),
         vec![],

@@ -452,7 +452,7 @@ fn num_rows_of_columns<'a>(
     Ok(num_rows)
 }
 
-#[cfg(all(test, feature = "arrow, blitzar"))]
+#[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;
     use crate::{
