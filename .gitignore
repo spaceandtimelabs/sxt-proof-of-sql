@@ -60,3 +60,7 @@ temp-bench-results
 *.pdf
 # ignore proofs stuff
 metastore_db
+
+# forge test files
+out
+/cache/

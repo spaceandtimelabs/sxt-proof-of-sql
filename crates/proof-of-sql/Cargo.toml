@@ -49,15 +49,19 @@ tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
 
 [dev_dependencies]
+alloy-primitives = { workspace = true }
+alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
 blitzar = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
+forge-script = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
 rand = { workspace = true, default-features = false }
 rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }

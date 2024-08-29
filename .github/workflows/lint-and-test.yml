@@ -137,3 +137,27 @@ jobs:
           cargo install cargo-udeps --locked
       - name: Run cargo udeps
         run: cargo +nightly udeps --all-targets
+
+  foundrycheck: # Modified from the foundry book: https://book.getfoundry.sh/config/continuous-integration
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run tests
+        run: forge test -vvv
+
+  solhint:
+    name: solhint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install solhint
+        run: npm install -g solhint
+      - name: Run tests
+        run: solhint '**/*.sol' -w 0
