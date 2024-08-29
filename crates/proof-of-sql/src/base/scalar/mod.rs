@@ -68,6 +68,8 @@ pub trait Scalar:
     + core::convert::From<i64>
     + core::convert::From<i32>
     + core::convert::From<i16>
+    + core::convert::From<u8>
+    + core::convert::From<u32>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
     + TryFrom<BigInt, Error = ScalarConversionError>

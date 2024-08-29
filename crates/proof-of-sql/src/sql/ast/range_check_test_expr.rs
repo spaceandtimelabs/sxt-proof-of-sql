@@ -1,4 +1,4 @@
-use super::range_check::{prover_evaluate_range_check, verifier_evaluate_range_check};
+use super::range_check::verifier_evaluate_range_check;
 use crate::{
     base::{
         commitment::Commitment,
@@ -40,9 +40,9 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
         let a = accessor.get_column(self.column);
 
         let scalar_vector = a.clone().to_scalar_with_scaling(0);
-        let scalar_values = alloc.alloc_slice_copy(&scalar_vector);
+        let _scalar_values = alloc.alloc_slice_copy(&scalar_vector);
 
-        prover_evaluate_range_check(builder, scalar_values);
+        // prover_evaluate_range_check(builder, scalar_values);
 
         // // a * a - a = 0
         // builder.produce_sumcheck_subpolynomial(

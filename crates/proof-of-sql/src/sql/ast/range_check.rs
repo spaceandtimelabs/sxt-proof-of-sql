@@ -2,28 +2,31 @@ use crate::{
     base::{commitment::Commitment, proof::ProofError, scalar::Scalar},
     sql::proof::{ProofBuilder, VerificationBuilder},
 };
+use ark_std::rand;
+use core::hash::Hash;
+use std::iter::Sum;
 
 /// Evaluates the range check of scalar values by converting each scalar into
-/// a byte array and processing it through a proof builder. This function
+/// a word array and processing it through a proof builder. This function
 /// targets zero-copy commitment computation when converting from [Scalar] to
 /// word-sized targets.
 ///
 /// # Safety
-/// This function converts scalar values (`Scalar`) to byte slices.
+/// This function converts scalar values (`Scalar`) to word slices.
 /// ensures that:
-/// - The data alignment of `u64` (from which the byte slices are derived) is
+/// - The data alignment of `u64` (from which the word slices are derived) is
 ///   sufficient for `u8`, ensuring proper memory alignment and access safety.
-/// - Only the first 31 bytes of each `u64` array are accessed, aligning with the
-///   cryptographic goal to prove that these bytes are within a specific numerical
+/// - Only the first 31 words of each `u64` array are accessed, aligning with the
+///   cryptographic goal to prove that these words are within a specific numerical
 ///   range, namely [0, (p - 1)/2] or [0, 2^248 - 1].
 /// - The `expr` slice must live at least as long as `'a` to ensure that references
 ///   to the data remain valid throughout the function's execution.
-pub fn prover_evaluate_range_check<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+pub fn prover_evaluate_range_check<'a, S: Scalar + Hash>(
+    _builder: &mut ProofBuilder<'a, S>,
     scalars: &'a [S],
 ) {
-    // Convert scalars to byte slices
-    let byte_refs: Vec<&'a [u8]> = scalars
+    // Convert scalars to word slices where each byte is converted into a scalar of type `S`
+    let word_refs: Vec<Vec<S>> = scalars
         .iter()
         .map(|s| unsafe {
             let scalar_array: [u64; 4] = (*s).into();
@@ -31,112 +34,150 @@ pub fn prover_evaluate_range_check<'a, S: Scalar>(
                 scalar_array.as_ptr() as *const u8,
                 scalar_array.len() * std::mem::size_of::<u64>(),
             );
+            // Now convert each byte to `S`
+            scalar_bytes.iter().map(|&b| S::from(b)).collect()
+        })
+        .collect();
+
+    // Convert scalars to word slices where each byte is converted into a scalar of type `S`,
+    // and then invert each scalar, mapping `None` to `S::ZERO`.
+    let _inverted_word_refs: Vec<Vec<S>> = scalars
+        .iter()
+        .map(|s| unsafe {
+            // Convert scalar `s` into an array of u64
+            let scalar_array: [u64; 4] = (*s).into();
+            // Convert the array of u64 into a slice of bytes
+            let scalar_bytes: &[u8] = std::slice::from_raw_parts(
+                scalar_array.as_ptr() as *const u8,
+                scalar_array.len() * std::mem::size_of::<u64>(),
+            );
+            // Convert each byte to `S` and then attempt to invert it
             scalar_bytes
+                .iter()
+                .map(|&b| S::from(b).inv().unwrap_or(S::ZERO))
+                .collect()
         })
         .collect();
 
     // always non-degenerate so no need to worry about division by zero
-    let alpha: u8 = 17;
+    let alpha: S = S::rand(&mut rand::thread_rng());
+
     // create position labels from 0 to the length of scalars
-    let n: Vec<u64> = (0..scalars.len() as u64).collect();
+    let n: Vec<S> = (0..scalars.len() as u32).map(|i| S::from(i)).collect();
 
-    // collect the results of calculating 1 / (count[i] + alpha)
-    let inverse_count_plus_alpha: Vec<f64> =
-        n.iter().map(|&n| 1.0 / (n as f64 + alpha as f64)).collect();
+    // collect the results of calculating 1 / (n[i] + alpha)
+    let inverse_n_plus_alpha: Vec<S> = n
+        .iter()
+        .map(|&n| match (n + alpha).inv() {
+            None => S::ZERO,
+            Some(inverse) => inverse,
+        })
+        .collect();
 
-    // Get the total count of each byte occurance per row
-    let counts = get_count_byte_occurances(scalars, &byte_refs);
-    // Calculate (byte  + alpha) * inverse_byte_plus_alpha_rows[i] - 1 = 0
-    let inverse_count_times_count_plus_alpha_constraints =
-        inverse_n_times_n_plus_alpha_constraints(scalars, &inverse_count_plus_alpha, alpha);
+    // A really lousy way to get the total count of each word occurance per row
+    let counts = count_words_naive(&word_refs);
 
-    // For each byte in a row, calculate 1 / (byte + alpha)
-    let inverse_byte_plus_alpha_rows = get_inverse_bytes_plus_alpha_rows(&byte_refs, alpha);
+    // Calculate (word  + alpha) * inverse_word_plus_alpha_rows[i] - 1 = 0
+    let _inverse_count_times_count_plus_alpha_constraints =
+        inverse_n_times_n_plus_alpha_constraints(scalars, &inverse_n_plus_alpha, alpha);
 
-    // Calculate (byte  + alpha) * inverse_byte_plus_alpha_rows[i] - 1 = 0
-    let inverse_byte_plus_alpha_constraints =
-        get_inverse_byte_plus_alpha_constraints(byte_refs, &inverse_byte_plus_alpha_rows, alpha);
+    // For each word in a row, calculate 1 / (word + alpha)
+    let inverse_word_plus_alpha_rows = get_inverse_words_plus_alpha_rows(&word_refs, alpha);
 
-    // Calculate (byte[i] + byte[1] + byte[2] ... + byte[n]) - (count * 1 / (count + alpha))
-    let get_byte_row_sum_minus_counts_times_n_inv_constraints =
-        get_byte_row_sum_minus_counts_times_n_inv(
-            inverse_byte_plus_alpha_rows,
-            counts,
-            inverse_count_plus_alpha,
+    // Calculate (word  + alpha) * inverse_word_plus_alpha_rows[i] - 1 = 0
+    let _inverse_word_plus_alpha_constraints =
+        get_inverse_word_plus_alpha_constraints(&word_refs, &inverse_word_plus_alpha_rows, alpha);
+
+    // Calculate (word[i] + word[1] + word[2] ... + word[n]) - (count * 1 / (count + alpha))
+    let _get_word_row_sum_minus_counts_times_n_inv_constraints =
+        get_word_row_sum_minus_counts_times_n_inv(
+            &inverse_word_plus_alpha_rows,
+            &counts,
+            &inverse_n_plus_alpha,
         );
 }
 
-fn get_byte_row_sum_minus_counts_times_n_inv(
-    inverse_byte_plus_alpha_rows: Vec<Vec<f64>>,
-    counts: Vec<u64>,
-    inverse_n: Vec<f64>,
-) -> f64 {
-    inverse_byte_plus_alpha_rows
+// A really awful way of counting how many times each word appears in the total decomposition
+// across all scalars
+fn count_words_naive<S: PartialEq + Clone + From<u32>>(word_refs: &Vec<Vec<S>>) -> Vec<S> {
+    let mut counts: Vec<S> = Vec::new();
+
+    for row in word_refs {
+        for word in row {
+            // Count how many times `word` appears in all rows
+            let mut count = 0;
+            for check_row in word_refs {
+                for check_item in check_row {
+                    if word == check_item {
+                        count += 1;
+                    }
+                }
+            }
+            counts.push(S::from(count)); // Convert count to S and push it
+        }
+    }
+
+    counts
+}
+fn get_word_row_sum_minus_counts_times_n_inv<S: Scalar + Sum + Clone>(
+    inverse_word_plus_alpha_rows: &[Vec<S>],
+    counts: &[S],
+    inverse_n: &[S],
+) -> S {
+    inverse_word_plus_alpha_rows
         .iter()
         .enumerate()
         .map(|(i, row)| {
-            let row_sum: f64 = row.iter().sum(); // Sum of all bytes in the row
-            let adjustment: f64 = counts[i] as f64 * inverse_n[i];
-            row_sum - adjustment // Compute the constraint for this row
+            let row_sum: S = row.iter().cloned().sum(); // Sum of all words in the row
+            let constraint: S = counts[i] * inverse_n[i];
+            row_sum - constraint // Compute the constraint for this row
         })
-        .sum() // Sum all computed constraints into a single f64
+        .sum() // Sum all computed constraints into a single scalar
 }
 
-fn inverse_n_times_n_plus_alpha_constraints<'a, S: Scalar>(
+fn inverse_n_times_n_plus_alpha_constraints<S: Scalar>(
     expr: &[S],
-    inverse_n: &Vec<f64>,
-    alpha: u8,
-) -> Vec<f64> {
+    inverse_n: &[S],
+    alpha: S,
+) -> Vec<S> {
     (0..expr.len() as u64)
         .zip(inverse_n.iter())
-        .map(|(i, &transformed)| transformed * ((i + alpha as u64) as f64) - 1.0)
+        .map(|(i, &transformed)| transformed * (S::from(i as u32) + alpha) - S::ONE)
         .collect()
 }
 
-fn get_inverse_byte_plus_alpha_constraints(
-    byte_refs: Vec<&[u8]>,
-    inverse_byte_plus_alpha_rows: &[Vec<f64>],
-    alpha: u8,
-) -> Vec<Vec<f64>> {
-    byte_refs
+fn get_inverse_word_plus_alpha_constraints<S: Scalar>(
+    word_refs: &[Vec<S>],
+    inverse_word_plus_alpha_rows: &[Vec<S>],
+    alpha: S,
+) -> Vec<Vec<S>> {
+    word_refs
         .iter()
-        .zip(inverse_byte_plus_alpha_rows.iter())
-        .map(|(byte_row, transformed_row)| {
-            byte_row
+        .zip(inverse_word_plus_alpha_rows.iter())
+        .map(|(word_row, transformed_row)| {
+            word_row
                 .iter()
                 .zip(transformed_row)
-                .map(|(&byte, &transformed)| transformed * ((byte + alpha) as f64) - 1.0)
-                .collect::<Vec<f64>>()
+                .map(|(&word, &transformed)| transformed * (word + alpha) - S::ONE)
+                .collect::<Vec<S>>()
         })
         .collect()
 }
 
-fn get_inverse_bytes_plus_alpha_rows(byte_refs: &[&[u8]], alpha: u8) -> Vec<Vec<f64>> {
-    let inverse_byte_plus_alpha_rows: Vec<Vec<f64>> = byte_refs
+fn get_inverse_words_plus_alpha_rows<S: Scalar>(word_refs: &[Vec<S>], alpha: S) -> Vec<Vec<S>> {
+    let inverse_word_plus_alpha_rows: Vec<Vec<S>> = word_refs
         .iter()
         .map(|slice| {
             slice
                 .iter()
-                .map(|&byte| 1.0 / ((byte as f64) + (alpha as f64)))
+                .map(|&word| match (word + alpha).inv() {
+                    None => S::ZERO,
+                    Some(inverse) => inverse,
+                })
                 .collect()
         })
         .collect();
-    inverse_byte_plus_alpha_rows
-}
-
-fn get_count_byte_occurances<'a, S: Scalar>(expr: &[S], byte_refs: &[&[u8]]) -> Vec<u64> {
-    // Initialize the byte count vector with zeros
-    let mut counts: Vec<u64> = vec![0; expr.len()];
-
-    // Count occurrences of each byte value corresponding to the position labels
-    for &bytes in byte_refs {
-        for &byte in bytes {
-            if (byte as usize) < counts.len() {
-                counts[byte as usize] += 1;
-            }
-        }
-    }
-    counts
+    inverse_word_plus_alpha_rows
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches
