@@ -12,7 +12,7 @@ library TestScript {
         if (x != 1234) revert DummyError();
     }
 
-    function rustTestWeCanDecodeCustomStruct(bytes memory x) public pure {
+    function rustTestWeCanAcceptCustomStructAsEncodedBytes(bytes memory x) public pure {
         (CustomStruct memory y) = abi.decode(x, (CustomStruct)); // solhint-disable-line no-unused-vars
         if (y.value != 1234) revert DummyError();
     }

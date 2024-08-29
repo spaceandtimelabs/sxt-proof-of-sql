@@ -32,7 +32,7 @@ async fn we_can_pass_custom_struct_into_solidity_from_rust() {
     };
     ScriptArgs {
         path: "./src/tests/TestScript.t.sol".to_string(),
-        sig: "rustTestWeCanDecodeCustomStruct".to_string(),
+        sig: "rustTestWeCanAcceptCustomStructAsEncodedBytes".to_string(),
         args: vec![Bytes::from(arg.abi_encode()).to_string()],
         ..Default::default()
     }
