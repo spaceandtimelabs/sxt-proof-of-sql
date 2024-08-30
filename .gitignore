@@ -63,4 +63,4 @@ metastore_db
 
 # forge test files
 out
-/cache/
+cache
