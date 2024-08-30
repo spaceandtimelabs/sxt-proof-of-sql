@@ -13,3 +13,7 @@ mod transcript;
 pub use transcript::Transcript;
 
 mod transcript_core;
+
+mod keccak256_transcript;
+#[allow(unused_imports)]
+pub use keccak256_transcript::Keccak256Transcript;
