@@ -8,3 +8,8 @@ mod transcript_protocol;
 #[cfg(test)]
 mod transcript_protocol_test;
 pub use transcript_protocol::{MessageLabel, TranscriptProtocol};
+
+mod transcript;
+pub use transcript::Transcript;
+
+mod transcript_core;
