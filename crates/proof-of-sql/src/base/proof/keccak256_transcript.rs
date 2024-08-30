@@ -36,3 +36,20 @@ impl TranscriptCore for Keccak256Transcript {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{super::transcript_core::test_util::*, Keccak256Transcript};
+    #[test]
+    fn we_get_equivalent_challenges_with_equivalent_keccak256_transcripts() {
+        we_get_equivalent_challenges_with_equivalent_transcripts::<Keccak256Transcript>()
+    }
+    #[test]
+    fn we_get_different_challenges_with_different_keccak256_transcripts() {
+        we_get_different_challenges_with_different_transcripts::<Keccak256Transcript>()
+    }
+    #[test]
+    fn we_get_different_nontrivial_consecutive_challenges_from_keccak256_transcript() {
+        we_get_different_nontrivial_consecutive_challenges_from_transcript::<Keccak256Transcript>()
+    }
+}

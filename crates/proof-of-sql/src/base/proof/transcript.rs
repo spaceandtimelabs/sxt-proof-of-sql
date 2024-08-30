@@ -6,6 +6,7 @@ use zerocopy::{AsBytes, FromBytes};
 /// This trait contains several method for adding prover messages and computing verifier challenges.
 ///
 /// Implementation note: this is intended to be implemented via [super::transcript_core::TranscriptCore] rather than directly.
+#[allow(dead_code)]
 pub trait Transcript {
     /// Creates a new transcript
     fn new() -> Self;

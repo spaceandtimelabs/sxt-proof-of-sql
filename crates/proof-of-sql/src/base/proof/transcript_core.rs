@@ -52,3 +52,52 @@ impl<T: TranscriptCore> Transcript for T {
         self.raw_challenge()
     }
 }
+
+#[cfg(test)]
+pub(super) mod test_util {
+    use super::TranscriptCore;
+    pub fn we_get_equivalent_challenges_with_equivalent_transcripts<T: TranscriptCore>() {
+        let mut transcript1: T = TranscriptCore::new();
+        transcript1.raw_append(b"message");
+
+        let mut transcript2: T = TranscriptCore::new();
+        transcript2.raw_append(b"message");
+
+        assert_eq!(
+            transcript1.raw_challenge(),
+            transcript2.raw_challenge(),
+            "challenges do not match when transcripts are the same"
+        );
+    }
+    pub fn we_get_different_challenges_with_different_transcripts<T: TranscriptCore>() {
+        let mut transcript1: T = TranscriptCore::new();
+        transcript1.raw_append(b"message1");
+
+        let mut transcript2: T = TranscriptCore::new();
+        transcript2.raw_append(b"message2");
+
+        assert_ne!(
+            transcript1.raw_challenge(),
+            transcript2.raw_challenge(),
+            "challenges match even though transcripts are different"
+        );
+    }
+    pub fn we_get_different_nontrivial_consecutive_challenges_from_transcript<T: TranscriptCore>() {
+        let mut transcript: T = TranscriptCore::new();
+        let challenge1 = transcript.raw_challenge();
+        let challenge2 = transcript.raw_challenge();
+
+        assert_ne!(
+            challenge1, [0; 32],
+            "first challenge in transcript is trivial"
+        );
+        assert_ne!(
+            challenge2, [0; 32],
+            "second challenge in transcript is trivial"
+        );
+        assert_ne!(
+            challenge1, challenge2,
+            "consequtive challenges match even though transcripts are different"
+        );
+    }
+}
