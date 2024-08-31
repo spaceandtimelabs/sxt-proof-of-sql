@@ -8,25 +8,36 @@ use proof_of_sql::{
         },
     },
     proof_primitive::dory::{
-        DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
-        ProverSetup, PublicParameters, VerifierSetup,
+        DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
+        VerifierSetup,
     },
     sql::{
-        parse::QueryExpr,
-        proof::QueryProof,
+        parse::QueryExpr, proof::ProofExecutionPlan, proof::ProvableQueryResult, proof::QueryProof,
     },
 };
-use proof_of_sql::sql::proof::ProofExecutionPlan;
+use std::env;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::PathBuf;
+use std::process::ExitCode;
 
-fn main() -> std::io::Result<()> {
+struct VerifierInputs {
+    query: String,
+    schema: String,
+    query_commitments: QueryCommitments<DoryCommitment>,
+    proof: QueryProof<DoryEvaluationProof>,
+    serialized_result: ProvableQueryResult,
+    verifier_setup: VerifierSetup,
+    sigma: usize,
+}
+
+fn generate_verifier_inputs() -> VerifierInputs {
+    // Generate verifier parameters with hardcoded values
     let public_parameters = PublicParameters::rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let sigma = 3;
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, sigma);
-    let _dory_verifier_setup = DoryVerifierPublicSetup::new(&verifier_setup, sigma);
 
     let mut accessor =
         OwnedTableTestAccessor::<DoryEvaluationProof>::new_empty_with_setup(dory_prover_setup);
@@ -48,45 +59,86 @@ fn main() -> std::io::Result<()> {
         &accessor,
     );
 
-    // Save parameters to files
-    let query = "SELECT * FROM table WHERE b = 1";
-    let schema = "sxt";
+    VerifierInputs {
+        query: "SELECT * FROM table WHERE b = 1".into(),
+        schema: "sxt".into(),
+        query_commitments,
+        proof,
+        serialized_result,
+        verifier_setup,
+        sigma,
+    }
+}
 
-    {
-        let mut file = File::create("param_query.txt")?;
-        file.write_all(query.as_bytes())?;
-    }
-    {
-        let mut file = File::create("param_schema.txt")?;
-        file.write_all(schema.as_bytes())?;
-    }
-    {
-        let mut file = File::create("param_sigma.txt")?;
-        file.write_all(format!("{sigma}").as_bytes())?;
-    }
+fn create_folder(path: &str) -> std::io::Result<()> {
+    std::fs::create_dir_all(path)?;
+    Ok(())
+}
 
+fn save_inputs(inputs: VerifierInputs, out_dir: &str) -> std::io::Result<()> {
     // Serialize complex parameters
-    let query_commitments_enc = bincode::serialize(&query_commitments).unwrap();
-    let proof_enc = bincode::serialize(&proof).unwrap();
-    let serialized_result_enc = bincode::serialize(&serialized_result).unwrap();
-    let verifier_setup_enc = bincode::serialize(&verifier_setup).unwrap();
+    let query_commitments_enc = bincode::serialize(&inputs.query_commitments).unwrap();
+    let proof_enc = bincode::serialize(&inputs.proof).unwrap();
+    let serialized_result_enc = bincode::serialize(&inputs.serialized_result).unwrap();
+    let verifier_setup_enc = bincode::serialize(&inputs.verifier_setup).unwrap();
 
+    // Save text parameters to text files
     {
-        let mut file = File::create("param_query_commitments.bin")?;
+        let mut file = File::create(PathBuf::from(out_dir).join("param_query.txt"))?;
+        file.write_all(inputs.query.as_bytes())?;
+    }
+    {
+        let mut file = File::create(PathBuf::from(out_dir).join("param_schema.txt"))?;
+        file.write_all(inputs.schema.as_bytes())?;
+    }
+    {
+        let mut file = File::create(PathBuf::from(out_dir).join("param_sigma.txt"))?;
+        file.write_all(format!("{}", inputs.sigma).as_bytes())?;
+    }
+
+    // Save serialized parameters to binary files
+    {
+        let mut file = File::create(PathBuf::from(out_dir).join("param_query_commitments.bin"))?;
         file.write_all(&query_commitments_enc)?;
     }
     {
-        let mut file = File::create("param_proof.bin")?;
+        let mut file = File::create(PathBuf::from(out_dir).join("param_proof.bin"))?;
         file.write_all(&proof_enc)?;
     }
     {
-        let mut file = File::create("param_serialized_result.bin")?;
+        let mut file = File::create(PathBuf::from(out_dir).join("param_serialized_result.bin"))?;
         file.write_all(&serialized_result_enc)?;
     }
     {
-        let mut file = File::create("param_verifier_setup.bin")?;
+        let mut file = File::create(PathBuf::from(out_dir).join("param_verifier_setup.bin"))?;
         file.write_all(&verifier_setup_enc)?;
     }
 
     Ok(())
+}
+
+fn main() -> ExitCode {
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        eprintln!("One argument expected: output folder name");
+        return ExitCode::from(1);
+    }
+    let output_folder = &args[1];
+
+    // Create a folder where the result will be saved
+    if let Err(e) = create_folder(output_folder) {
+        eprintln!("Error creating the '{}' folder: {}", output_folder, e);
+        return ExitCode::from(2);
+    }
+
+    // Generate the inputs for the verifier function
+    let verifier_inputs = generate_verifier_inputs();
+
+    // Save the inputs to files
+    if let Err(e) = save_inputs(verifier_inputs, output_folder) {
+        eprintln!("Error writing files: {}", e);
+        return ExitCode::from(2);
+    }
+
+    ExitCode::from(0)
 }

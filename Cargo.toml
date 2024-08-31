@@ -61,27 +61,8 @@ tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 tracing = { version = "0.1.36" }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }
-wasm-bindgen = { version = "=0.2.93" }
+wasm-bindgen = { version = "0.2.93" }
 zerocopy = { version = "0.7.34" }
 
 [workspace.lints.rust]
 missing_docs = "warn"
-
-#[profile.release.package.verifier-wasm]
-[profile.release-wasm]
-inherits = "release"
-# Consider these optimizations for Wasm:
-# - `opt-level = "s"` or `opt-level = "z"` result in small size and maybe also good performance
-# - `lto = true` may or may not improve the size or performance
-# - `strip = true` may be useful to strip debugging symbols, although wasm-pack does it as well
-opt-level = "z"
-# https://docs.arbitrum.io/stylus/how-tos/optimizing-binaries
-#codegen-units = 1        # prefer efficiency to compile time
-#panic = "abort"          # use simple panics
-#opt-level = "z"          # optimize for size ("s" may also work)
-#strip = true             # remove debug info
-#lto = true               # link time optimization
-#debug = false            # no debug data
-#rpath = false            # no run-time search path
-#debug-assertions = false # prune debug assertions
-#incremental = false      # no incremental builds

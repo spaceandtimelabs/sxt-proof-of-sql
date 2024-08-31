@@ -131,11 +131,10 @@ pub fn verify(
         &dory_verifier_setup,
     );
 
+    console_log!("Wasm verifier result: {:?}", res);
+
     match res {
-        Some(owned_table_result) => {
-            console_log!("Result: {:?}", owned_table_result);
-            EXIT_STATUS_VERIFICATION_SUCCESS
-        }
+        Some(_owned_table_result) => EXIT_STATUS_VERIFICATION_SUCCESS,
         None => EXIT_STATUS_VERIFICATION_FAIL,
     }
 }
