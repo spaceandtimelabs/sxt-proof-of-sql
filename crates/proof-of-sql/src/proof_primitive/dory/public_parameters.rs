@@ -20,7 +20,6 @@ pub struct PublicParameters {
 }
 
 impl PublicParameters {
-    #[cfg(any(test, feature = "test"))]
     /// Generate random public parameters for testing purposes.
     pub fn rand<R>(max_nu: usize, rng: &mut R) -> Self
     where

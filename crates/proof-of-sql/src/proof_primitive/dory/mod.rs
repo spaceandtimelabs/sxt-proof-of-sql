@@ -21,11 +21,9 @@ use ark_bls12_381::{Fr as F, G1Affine, G1Projective, G2Affine, G2Projective};
 /// The pairing output of the BLS12-381 curve.
 type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 
-#[cfg(any(test, feature = "test"))]
 mod rand_util;
 #[cfg(test)]
 use rand_util::rand_F_tensors;
-#[cfg(any(test, feature = "test"))]
 use rand_util::rand_G_vecs;
 #[cfg(any(test, feature = "test"))]
 pub use rand_util::test_rng;

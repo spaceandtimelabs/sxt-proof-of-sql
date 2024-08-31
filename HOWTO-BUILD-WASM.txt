@@ -1,0 +1,32 @@
+# Build Wasm
+
+## Install Prerequisites
+rustup target add wasm32-unknown-unknown
+# bindgen version must match Cargo.lock
+cargo install --force wasm-bindgen-cli --version 0.2.93
+cargo install --force wasm-opt
+
+## Build Wasm
+cargo build -p verifier-wasm --profile=release-wasm --no-default-features --target wasm32-unknown-unknown
+wasm-bindgen --target deno --no-typescript ./target/wasm32-unknown-unknown/release-wasm/verifier_wasm.wasm --out-dir ./verifier-wasm-artifacts
+mv ./verifier-wasm-artifacts/verifier_wasm_bg.wasm ./verifier-wasm-artifacts/verifier_wasm_bg.orig.wasm
+wasm-opt ./verifier-wasm-artifacts/verifier_wasm_bg.orig.wasm -o ./verifier-wasm-artifacts/verifier_wasm_bg.wasm -O
+rm ./verifier-wasm-artifacts/verifier_wasm_bg.orig.wasm
+
+(Using wasm-pack would simplify the build. But wasm-pack doesn't support custom build profiles.
+cargo install wasm-pack
+wasm-pack build --release --target deno --no-typescript)
+
+## (Optional) Check the Size of the Wasm
+du -h verifier-wasm-artifacts/*.wasm
+
+# Test Wasm
+
+## Install Prerequisites
+curl -fsSL https://deno.land/install.sh | sh
+
+## Generate Test Inputs
+cargo run -p verifier-wasm-tester
+
+## Run the Wasm, the JS function should print "Verification SUCCESS"
+deno run --allow-read crates/verifier-wasm-tester/js/run_verifier_wasm.js

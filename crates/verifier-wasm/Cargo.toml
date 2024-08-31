@@ -1,0 +1,19 @@
+[package]
+name = "verifier-wasm"
+version = { workspace = true }
+edition = { workspace = true }
+repository = { workspace = true }
+description = "Dory verifier that can be built into Wasm"
+exclude = { workspace = true }
+license-file = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ark-std = { workspace = true }
+bincode = { workspace = true }
+getrandom = { workspace = true }
+proof-of-sql = { path = "../proof-of-sql", default-features = false }
+wasm-bindgen = { workspace = true }
