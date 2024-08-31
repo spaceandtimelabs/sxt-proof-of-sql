@@ -3,10 +3,10 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::polynomial::interpolate::*;
-use crate::base::scalar::Curve25519Scalar;
+use super::interpolate::*;
+use crate::base::scalar::{Curve25519Scalar, Curve25519Scalar as S};
 use ark_std::UniformRand;
-use num_traits::Zero;
+use num_traits::{Inv, Zero};
 
 #[test]
 fn test_interpolate_uni_poly_for_random_polynomials() {
@@ -92,4 +92,71 @@ fn interpolate_uni_poly_gives_correct_value_for_known_evaluation() {
             evaluations[i]
         );
     }
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_empty_input() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[] as &[S]),
+        vec![]
+    );
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_degree_0() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[S::from(2)]),
+        vec![S::from(2)]
+    );
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_degree_1() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[S::from(2), S::from(3)]),
+        vec![S::from(1), S::from(2)]
+    );
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_degree_2() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[S::from(2), S::from(3), S::from(5)]),
+        vec![
+            S::from(1) * S::from(2).inv().unwrap(),
+            S::from(1) * S::from(2).inv().unwrap(),
+            S::from(2)
+        ]
+    );
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_degree_3() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[
+            S::from(2),
+            S::from(3),
+            S::from(5),
+            S::from(7)
+        ]),
+        vec![
+            S::from(-1) * S::from(6).inv().unwrap(),
+            S::from(1),
+            S::from(1) * S::from(6).inv().unwrap(),
+            S::from(2)
+        ]
+    );
+}
+
+#[test]
+fn we_can_interpolate_evaluations_to_reverse_coefficients_with_degree_3_degenerate_evals() {
+    assert_eq!(
+        interpolate_evaluations_to_reverse_coefficients(&[
+            S::from(1),
+            S::from(3),
+            S::from(5),
+            S::from(7)
+        ]),
+        vec![S::from(0), S::from(0), S::from(2), S::from(1)]
+    );
 }
