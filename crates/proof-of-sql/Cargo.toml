@@ -48,7 +48,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
 
-[dev_dependencies]
+[dev-dependencies]
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
