@@ -9,7 +9,7 @@ use crate::{
     },
     sql::{
         ast::{
-            test_utility::*, ColumnExpr, DenseFilterExec, LiteralExpr, ProvableExprPlan, TableExpr,
+            test_utility::*, ColumnExpr, DenseFilterExec, LiteralExpr, DynProofExpr, TableExpr,
         },
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
@@ -31,7 +31,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let provable_ast = DenseFilterExec::<RistrettoPoint>::new(
         vec![
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
@@ -39,7 +39,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 "a",
             ),
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     b,
                     ColumnType::BigInt,
@@ -48,13 +48,13 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             ),
         ],
         TableExpr { table_ref },
-        ProvableExprPlan::try_new_equals(
-            ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+        DynProofExpr::try_new_equals(
+            DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                 table_ref,
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt,
             ))),
-            ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
+            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
         )
         .unwrap(),
     );
@@ -77,7 +77,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let provable_ast = DenseFilterExec::new(
         vec![
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
@@ -85,7 +85,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 "a",
             ),
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     f,
                     ColumnType::BigInt,
@@ -96,32 +96,32 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         TableExpr { table_ref },
         not::<RistrettoPoint>(and(
             or(
-                ProvableExprPlan::try_new_equals(
-                    ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::try_new_equals(
+                    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ))),
-                    ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
+                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
                 )
                 .unwrap(),
-                ProvableExprPlan::try_new_equals(
-                    ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::try_new_equals(
+                    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ))),
-                    ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
+                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
                 )
                 .unwrap(),
             ),
-            ProvableExprPlan::try_new_equals(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+            DynProofExpr::try_new_equals(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ))),
-                ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
+                DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
             )
             .unwrap(),
         )),
@@ -185,7 +185,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
     let expr = dense_filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
@@ -230,7 +230,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
     let expr = dense_filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
@@ -276,7 +276,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = dense_filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
@@ -303,7 +303,7 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = dense_filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),

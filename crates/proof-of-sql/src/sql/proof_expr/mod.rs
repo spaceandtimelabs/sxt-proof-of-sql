@@ -1,6 +1,6 @@
 //! This module proves provable expressions.
-mod aliased_provable_expr_plan;
-pub(crate) use aliased_provable_expr_plan::AliasedProvableExprPlan;
+mod aliased_dyn_proof_expr;
+pub(crate) use aliased_dyn_proof_expr::AliasedDynProofExpr;
 
 mod filter_result_expr;
 pub(crate) use filter_result_expr::FilterResultExpr;
@@ -32,8 +32,8 @@ use bitwise_verification::*;
 #[cfg(test)]
 mod bitwise_verification_test;
 
-mod provable_expr_plan;
-pub(crate) use provable_expr_plan::ProvableExprPlan;
+mod dyn_proof_expr;
+pub(crate) use dyn_proof_expr::DynProofExpr;
 
 mod provable_expr;
 pub(crate) use provable_expr::ProvableExpr;

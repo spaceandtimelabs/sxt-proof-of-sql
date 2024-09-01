@@ -4,7 +4,7 @@ use crate::{
         math::decimal::Precision,
     },
     sql::{
-        ast::{ColumnExpr, LiteralExpr, ProvableExprPlan},
+        ast::{ColumnExpr, LiteralExpr, DynProofExpr},
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
     },
 };
@@ -138,13 +138,13 @@ fn we_can_directly_check_whether_bigint_columns_ge_int128() {
         .build::<RistrettoPoint>(Some(expr_integer_to_integer))
         .unwrap()
         .unwrap();
-    let expected = ProvableExprPlan::try_new_inequality(
-        ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+    let expected = DynProofExpr::try_new_inequality(
+        DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
             ColumnType::BigInt,
         ))),
-        ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         false,
     )
     .unwrap();
@@ -160,13 +160,13 @@ fn we_can_directly_check_whether_bigint_columns_le_int128() {
         .build::<RistrettoPoint>(Some(expr_integer_to_integer))
         .unwrap()
         .unwrap();
-    let expected = ProvableExprPlan::try_new_inequality(
-        ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+    let expected = DynProofExpr::try_new_inequality(
+        DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
             "sxt.sxt_tab".parse().unwrap(),
             ident("bigint_column"),
             ColumnType::BigInt,
         ))),
-        ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
+        DynProofExpr::Literal(LiteralExpr::new(LiteralValue::Int128(-12345))),
         true,
     )
     .unwrap();

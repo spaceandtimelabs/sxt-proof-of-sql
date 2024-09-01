@@ -5,7 +5,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, ProofPlan, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProofPlan, ProvableExpr, DynProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
     },
@@ -74,7 +74,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
-        ProvableExprPlan::try_new_multiply(
+        DynProofExpr::try_new_multiply(
             column(t, "a", &accessor),
             const_bigint::<RistrettoPoint>(1)
         ),
@@ -328,7 +328,7 @@ fn we_can_compute_the_correct_output_of_a_multiply_expr_using_result_evaluate() 
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let arithmetic_expr: ProvableExprPlan<RistrettoPoint> = multiply(
+    let arithmetic_expr: DynProofExpr<RistrettoPoint> = multiply(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_decimal75(2, 1, 15)),
     );

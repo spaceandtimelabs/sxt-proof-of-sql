@@ -1,4 +1,4 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, ProvableExpr, ProvableExprPlan};
+use super::{add_subtract_columns, scale_and_add_subtract_eval, ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -18,16 +18,16 @@ use serde::{Deserialize, Serialize};
 /// Provable numerical `+` / `-` expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AddSubtractExpr<C: Commitment> {
-    lhs: Box<ProvableExprPlan<C>>,
-    rhs: Box<ProvableExprPlan<C>>,
+    lhs: Box<DynProofExpr<C>>,
+    rhs: Box<DynProofExpr<C>>,
     is_subtract: bool,
 }
 
 impl<C: Commitment> AddSubtractExpr<C> {
     /// Create numerical `+` / `-` expression
     pub fn new(
-        lhs: Box<ProvableExprPlan<C>>,
-        rhs: Box<ProvableExprPlan<C>>,
+        lhs: Box<DynProofExpr<C>>,
+        rhs: Box<DynProofExpr<C>>,
         is_subtract: bool,
     ) -> Self {
         Self {

@@ -11,7 +11,7 @@ use crate::{
     sql::{
         ast::{
             test_utility::*, ColumnExpr, FilterExec, FilterResultExpr, LiteralExpr,
-            ProvableExprPlan, TableExpr,
+            DynProofExpr, TableExpr,
         },
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
@@ -42,13 +42,13 @@ fn we_can_correctly_fetch_the_query_result_schema() {
             )),
         ],
         TableExpr { table_ref },
-        ProvableExprPlan::try_new_equals(
-            ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+        DynProofExpr::try_new_equals(
+            DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                 table_ref,
                 Identifier::try_new("c").unwrap(),
                 ColumnType::BigInt,
             ))),
-            ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
+            DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(123))),
         )
         .unwrap(),
     );
@@ -81,32 +81,32 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
         TableExpr { table_ref },
         not(and(
             or(
-                ProvableExprPlan::<DoryCommitment>::try_new_equals(
-                    ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::<DoryCommitment>::try_new_equals(
+                    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("f").unwrap(),
                         ColumnType::BigInt,
                     ))),
-                    ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
+                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
                 )
                 .unwrap(),
-                ProvableExprPlan::<DoryCommitment>::try_new_equals(
-                    ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::<DoryCommitment>::try_new_equals(
+                    DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("c").unwrap(),
                         ColumnType::BigInt,
                     ))),
-                    ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
+                    DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(-2))),
                 )
                 .unwrap(),
             ),
-            ProvableExprPlan::<DoryCommitment>::try_new_equals(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+            DynProofExpr::<DoryCommitment>::try_new_equals(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     Identifier::try_new("b").unwrap(),
                     ColumnType::BigInt,
                 ))),
-                ProvableExprPlan::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
+                DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(3))),
             )
             .unwrap(),
         )),
@@ -170,7 +170,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),
@@ -215,7 +215,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),
@@ -260,7 +260,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_result(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
@@ -287,7 +287,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let where_clause: ProvableExprPlan<RistrettoPoint> =
+    let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(
         cols_result(t, &["b", "c", "d", "e"], &accessor),

@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, ProvableExpr, ProvableExprPlan};
+use super::{scale_and_add_subtract_eval, scale_and_subtract, ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -16,13 +16,13 @@ use serde::{Deserialize, Serialize};
 /// Provable AST expression for an equals expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EqualsExpr<C: Commitment> {
-    lhs: Box<ProvableExprPlan<C>>,
-    rhs: Box<ProvableExprPlan<C>>,
+    lhs: Box<DynProofExpr<C>>,
+    rhs: Box<DynProofExpr<C>>,
 }
 
 impl<C: Commitment> EqualsExpr<C> {
     /// Create a new equals expression
-    pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
         Self { lhs, rhs }
     }
 }

@@ -1,4 +1,4 @@
-use super::{ProvableExpr, ProvableExprPlan};
+use super::{ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -21,13 +21,13 @@ use serde::{Deserialize, Serialize};
 /// Provable numerical * expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiplyExpr<C: Commitment> {
-    lhs: Box<ProvableExprPlan<C>>,
-    rhs: Box<ProvableExprPlan<C>>,
+    lhs: Box<DynProofExpr<C>>,
+    rhs: Box<DynProofExpr<C>>,
 }
 
 impl<C: Commitment> MultiplyExpr<C> {
     /// Create numerical `*` expression
-    pub fn new(lhs: Box<ProvableExprPlan<C>>, rhs: Box<ProvableExprPlan<C>>) -> Self {
+    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>) -> Self {
         Self { lhs, rhs }
     }
 }

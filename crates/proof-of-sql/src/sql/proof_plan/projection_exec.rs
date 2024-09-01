@@ -1,4 +1,4 @@
-use super::{AliasedProvableExprPlan, ProvableExpr, TableExpr};
+use super::{AliasedDynProofExpr, ProvableExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -23,13 +23,13 @@ use serde::{Deserialize, Serialize};
 /// ```
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ProjectionExec<C: Commitment> {
-    pub(super) aliased_results: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
 }
 
 impl<C: Commitment> ProjectionExec<C> {
     /// Creates a new projection expression.
-    pub fn new(aliased_results: Vec<AliasedProvableExprPlan<C>>, table: TableExpr) -> Self {
+    pub fn new(aliased_results: Vec<AliasedDynProofExpr<C>>, table: TableExpr) -> Self {
         Self {
             aliased_results,
             table,

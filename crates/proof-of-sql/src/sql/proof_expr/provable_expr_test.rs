@@ -1,4 +1,4 @@
-use super::{test_utility::*, ProvableExpr, ProvableExprPlan};
+use super::{test_utility::*, ProvableExpr, DynProofExpr};
 use crate::base::{
     commitment::InnerProductProof,
     database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
@@ -28,7 +28,7 @@ fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluat
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
     // (a <= 5 || b == "g") && c != 3
-    let bool_expr: ProvableExprPlan<RistrettoPoint> = and(
+    let bool_expr: DynProofExpr<RistrettoPoint> = and(
         or(
             lte(column(t, "a", &accessor), const_bigint(5)),
             equal(column(t, "b", &accessor), const_varchar("g")),

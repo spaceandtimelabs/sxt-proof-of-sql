@@ -5,7 +5,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, ProofPlan, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProofPlan, ProvableExpr, DynProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
     },
@@ -105,7 +105,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
-        ProvableExprPlan::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
+        DynProofExpr::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
         Err(ConversionError::DataTypeMismatch(..))
     ));
 }
@@ -311,7 +311,7 @@ fn we_can_compute_the_correct_output_of_an_add_subtract_expr_using_result_evalua
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let add_subtract_expr: ProvableExprPlan<RistrettoPoint> = add(
+    let add_subtract_expr: DynProofExpr<RistrettoPoint> = add(
         column(t, "b", &accessor),
         subtract(column(t, "a", &accessor), const_bigint(1)),
     );

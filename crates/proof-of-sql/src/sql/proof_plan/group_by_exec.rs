@@ -1,5 +1,5 @@
 use super::{
-    fold_columns, fold_vals, AliasedProvableExprPlan, ColumnExpr, ProvableExpr, ProvableExprPlan,
+    fold_columns, fold_vals, AliasedDynProofExpr, ColumnExpr, ProvableExpr, DynProofExpr,
     TableExpr,
 };
 use crate::{
@@ -42,20 +42,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct GroupByExec<C: Commitment> {
     pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
-    pub(super) sum_expr: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) sum_expr: Vec<AliasedDynProofExpr<C>>,
     pub(super) count_alias: Identifier,
     pub(super) table: TableExpr,
-    pub(super) where_clause: ProvableExprPlan<C>,
+    pub(super) where_clause: DynProofExpr<C>,
 }
 
 impl<C: Commitment> GroupByExec<C> {
     /// Creates a new group_by expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
-        sum_expr: Vec<AliasedProvableExprPlan<C>>,
+        sum_expr: Vec<AliasedDynProofExpr<C>>,
         count_alias: Identifier,
         table: TableExpr,
-        where_clause: ProvableExprPlan<C>,
+        where_clause: DynProofExpr<C>,
     ) -> Self {
         Self {
             group_by_exprs,

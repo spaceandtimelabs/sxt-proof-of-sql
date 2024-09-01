@@ -1,6 +1,6 @@
 use super::{
-    AliasedProvableExprPlan, ColumnExpr, DenseFilterExec, FilterExec, FilterResultExpr,
-    GroupByExec, ProjectionExec, ProofPlan, ProvableExprPlan, TableExpr,
+    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, FilterExec, FilterResultExpr,
+    GroupByExec, ProjectionExec, ProofPlan, DynProofExpr, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -26,42 +26,42 @@ pub fn cols_result(
 pub fn filter<C: Commitment>(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
-    where_clause: ProvableExprPlan<C>,
+    where_clause: DynProofExpr<C>,
 ) -> ProofPlan<C> {
     ProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
 pub fn projection<C: Commitment>(
-    results: Vec<AliasedProvableExprPlan<C>>,
+    results: Vec<AliasedDynProofExpr<C>>,
     table: TableExpr,
 ) -> ProofPlan<C> {
     ProofPlan::Projection(ProjectionExec::new(results, table))
 }
 
 pub fn dense_filter<C: Commitment>(
-    results: Vec<AliasedProvableExprPlan<C>>,
+    results: Vec<AliasedDynProofExpr<C>>,
     table: TableExpr,
-    where_clause: ProvableExprPlan<C>,
+    where_clause: DynProofExpr<C>,
 ) -> ProofPlan<C> {
     ProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
 }
 
 pub fn sum_expr<C: Commitment>(
-    expr: ProvableExprPlan<C>,
+    expr: DynProofExpr<C>,
     alias: &str,
-) -> AliasedProvableExprPlan<C> {
-    AliasedProvableExprPlan {
-        expr: ProvableExprPlan::new_aggregate(AggregationOperator::Sum, expr),
+) -> AliasedDynProofExpr<C> {
+    AliasedDynProofExpr {
+        expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
         alias: alias.parse().unwrap(),
     }
 }
 
 pub fn group_by<C: Commitment>(
     group_by_exprs: Vec<ColumnExpr<C>>,
-    sum_expr: Vec<AliasedProvableExprPlan<C>>,
+    sum_expr: Vec<AliasedDynProofExpr<C>>,
     count_alias: &str,
     table: TableExpr,
-    where_clause: ProvableExprPlan<C>,
+    where_clause: DynProofExpr<C>,
 ) -> ProofPlan<C> {
     ProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,

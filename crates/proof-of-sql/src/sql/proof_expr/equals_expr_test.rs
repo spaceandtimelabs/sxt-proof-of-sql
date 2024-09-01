@@ -5,7 +5,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProvableExpr, DynProofExpr},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
@@ -406,7 +406,7 @@ fn we_can_compute_the_correct_output_of_an_equals_expr_using_result_evaluate() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let equals_expr: ProvableExprPlan<RistrettoPoint> = equal(
+    let equals_expr: DynProofExpr<RistrettoPoint> = equal(
         column(t, "e", &accessor),
         const_scalar(Curve25519Scalar::ZERO),
     );

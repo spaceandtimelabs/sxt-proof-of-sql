@@ -1,4 +1,4 @@
-use super::{provable_expr_plan::ProvableExprPlan, FilterResultExpr, ProvableExpr, TableExpr};
+use super::{dyn_proof_expr::DynProofExpr, FilterResultExpr, ProvableExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: ProvableExprPlan<C>,
+    pub(super) where_clause: DynProofExpr<C>,
     phantom: PhantomData<H>,
 }
 
@@ -35,7 +35,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     pub fn new(
         results: Vec<FilterResultExpr>,
         table: TableExpr,
-        where_clause: ProvableExprPlan<C>,
+        where_clause: DynProofExpr<C>,
     ) -> Self {
         Self {
             results,

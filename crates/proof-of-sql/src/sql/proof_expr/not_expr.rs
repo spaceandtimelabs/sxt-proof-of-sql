@@ -1,4 +1,4 @@
-use super::{ProvableExpr, ProvableExprPlan};
+use super::{ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -14,12 +14,12 @@ use serde::{Deserialize, Serialize};
 /// Provable logical NOT expression
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NotExpr<C: Commitment> {
-    expr: Box<ProvableExprPlan<C>>,
+    expr: Box<DynProofExpr<C>>,
 }
 
 impl<C: Commitment> NotExpr<C> {
     /// Create logical NOT expression
-    pub fn new(expr: Box<ProvableExprPlan<C>>) -> Self {
+    pub fn new(expr: Box<DynProofExpr<C>>) -> Self {
         Self { expr }
     }
 }

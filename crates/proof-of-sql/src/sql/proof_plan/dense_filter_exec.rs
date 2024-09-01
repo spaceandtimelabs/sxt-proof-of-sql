@@ -1,5 +1,5 @@
 use super::{
-    fold_columns, fold_vals, AliasedProvableExprPlan, ProvableExpr, ProvableExprPlan, TableExpr,
+    fold_columns, fold_vals, AliasedDynProofExpr, ProvableExpr, DynProofExpr, TableExpr,
 };
 use crate::{
     base::{
@@ -31,18 +31,18 @@ use serde::{Deserialize, Serialize};
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct OstensibleDenseFilterExec<C: Commitment, H: ProverHonestyMarker> {
-    pub(super) aliased_results: Vec<AliasedProvableExprPlan<C>>,
+    pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: ProvableExprPlan<C>,
+    pub(super) where_clause: DynProofExpr<C>,
     phantom: PhantomData<H>,
 }
 
 impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExec<C, H> {
     /// Creates a new dense_filter expression.
     pub fn new(
-        aliased_results: Vec<AliasedProvableExprPlan<C>>,
+        aliased_results: Vec<AliasedDynProofExpr<C>>,
         table: TableExpr,
-        where_clause: ProvableExprPlan<C>,
+        where_clause: DynProofExpr<C>,
     ) -> Self {
         Self {
             aliased_results,

@@ -9,7 +9,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{test_utility::*, ProofPlan, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProofPlan, ProvableExpr, DynProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
     },
@@ -39,7 +39,7 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
         tab(t),
         gte(
             column(t, "a", &accessor),
-            ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+            DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 1,
@@ -73,7 +73,7 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
         tab(t),
         lte(
             column(t, "a", &accessor),
-            ProvableExprPlan::new_literal(LiteralValue::TimeStampTZ(
+            DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
                 1,
@@ -298,7 +298,7 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
-        ProvableExprPlan::try_new_inequality(
+        DynProofExpr::try_new_inequality(
             column(t, "e", &accessor),
             const_scalar::<RistrettoPoint, Curve25519Scalar>(Curve25519Scalar::ONE),
             false
@@ -487,7 +487,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
         lte(column(t, "a", &accessor), const_bigint(0)),
     );
     if let ProofPlan::Filter(filter) = &mut ast {
-        if let ProvableExprPlan::Inequality(lte) = &mut filter.where_clause {
+        if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
             lte.treat_column_of_zeros_as_negative = true
         }
     }
@@ -565,7 +565,7 @@ fn we_can_compute_the_correct_output_of_a_lte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let lhs_expr: ProvableExprPlan<RistrettoPoint> = column(t, "a", &accessor);
+    let lhs_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
     let rhs_expr = column(t, "b", &accessor);
     let lte_expr = lte(lhs_expr, rhs_expr);
     let alloc = Bump::new();
@@ -580,7 +580,7 @@ fn we_can_compute_the_correct_output_of_a_gte_inequality_expr_using_result_evalu
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let col_expr: ProvableExprPlan<RistrettoPoint> = column(t, "a", &accessor);
+    let col_expr: DynProofExpr<RistrettoPoint> = column(t, "a", &accessor);
     let lit_expr = const_bigint(1);
     let gte_expr = gte(col_expr, lit_expr);
     let alloc = Bump::new();

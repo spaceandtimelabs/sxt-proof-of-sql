@@ -4,7 +4,7 @@ use crate::{
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
     },
     sql::{
-        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProvableExpr, DynProofExpr},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
@@ -116,7 +116,7 @@ fn we_can_compute_the_correct_output_of_a_not_expr_using_result_evaluate() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     let t = "sxt.t".parse().unwrap();
     accessor.add_table(t, data, 0);
-    let not_expr: ProvableExprPlan<RistrettoPoint> =
+    let not_expr: DynProofExpr<RistrettoPoint> =
         not(equal(column(t, "b", &accessor), const_int128(1)));
     let alloc = Bump::new();
     let res = not_expr.result_evaluate(2, &alloc, &accessor);

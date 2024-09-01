@@ -1,4 +1,4 @@
-use super::{ProvableExpr, ProvableExprPlan};
+use super::{ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -18,12 +18,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AggregateExpr<C: Commitment> {
     op: AggregationOperator,
-    expr: Box<ProvableExprPlan<C>>,
+    expr: Box<DynProofExpr<C>>,
 }
 
 impl<C: Commitment> AggregateExpr<C> {
     /// Create a new aggregate expression
-    pub fn new(op: AggregationOperator, expr: Box<ProvableExprPlan<C>>) -> Self {
+    pub fn new(op: AggregationOperator, expr: Box<DynProofExpr<C>>) -> Self {
         Self { op, expr }
     }
 }

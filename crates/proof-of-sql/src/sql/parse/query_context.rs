@@ -4,8 +4,8 @@ use crate::{
         database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
-        ast::{AliasedProvableExprPlan, ColumnExpr, GroupByExec, ProvableExprPlan, TableExpr},
-        parse::{ConversionError, ConversionResult, ProvableExprPlanBuilder, WhereExprBuilder},
+        ast::{AliasedDynProofExpr, ColumnExpr, GroupByExec, DynProofExpr, TableExpr},
+        parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
     },
 };
 use indexmap::{IndexMap, IndexSet};
@@ -218,7 +218,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
     fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<C>>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
-            .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true)));
+            .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
             ConversionError::InvalidExpression("QueryContext has no table_ref".to_owned()),
         )?;
@@ -271,19 +271,19 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                     ..
                 } = (*res.expr).clone()
                 {
-                    let res_provable_expr_plan =
-                        ProvableExprPlanBuilder::new(&value.column_mapping).build(&res.expr);
-                    res_provable_expr_plan
+                    let res_dyn_proof_expr =
+                        DynProofExprBuilder::new(&value.column_mapping).build(&res.expr);
+                    res_dyn_proof_expr
                         .ok()
-                        .map(|provable_expr_plan| AliasedProvableExprPlan {
+                        .map(|dyn_proof_expr| AliasedDynProofExpr {
                             alias: res.alias,
-                            expr: provable_expr_plan,
+                            expr: dyn_proof_expr,
                         })
                 } else {
                     None
                 }
             })
-            .collect::<Option<Vec<AliasedProvableExprPlan<C>>>>();
+            .collect::<Option<Vec<AliasedDynProofExpr<C>>>>();
 
         // Check count(*)
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];

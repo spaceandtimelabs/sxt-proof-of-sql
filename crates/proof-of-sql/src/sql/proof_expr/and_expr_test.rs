@@ -4,7 +4,7 @@ use crate::{
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
-        ast::{test_utility::*, ProvableExpr, ProvableExprPlan},
+        ast::{test_utility::*, ProvableExpr, DynProofExpr},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };
@@ -154,7 +154,7 @@ fn we_can_compute_the_correct_output_of_an_and_expr_using_result_evaluate() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let and_expr: ProvableExprPlan<RistrettoPoint> = and(
+    let and_expr: DynProofExpr<RistrettoPoint> = and(
         equal(column(t, "b", &accessor), const_int128(1)),
         equal(column(t, "d", &accessor), const_varchar("t")),
     );

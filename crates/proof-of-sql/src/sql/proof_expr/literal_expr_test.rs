@@ -1,4 +1,4 @@
-use super::{ProvableExpr, ProvableExprPlan};
+use super::{ProvableExpr, DynProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,
@@ -121,7 +121,7 @@ fn we_can_compute_the_correct_output_of_a_literal_expr_using_result_evaluate() {
     let data = owned_table([bigint("a", [123_i64, 456, 789, 1011])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let literal_expr: ProvableExprPlan<RistrettoPoint> = const_bool(true);
+    let literal_expr: DynProofExpr<RistrettoPoint> = const_bool(true);
     let alloc = Bump::new();
     let res = literal_expr.result_evaluate(4, &alloc, &accessor);
     let expected_res = Column::Boolean(&[true, true, true, true]);

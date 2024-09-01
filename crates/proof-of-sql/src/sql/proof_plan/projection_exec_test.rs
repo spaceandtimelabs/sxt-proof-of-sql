@@ -9,7 +9,7 @@ use crate::{
     },
     sql::{
         ast::{
-            test_utility::*, ColumnExpr, ProjectionExec, ProofPlan, ProvableExprPlan, TableExpr,
+            test_utility::*, ColumnExpr, ProjectionExec, ProofPlan, DynProofExpr, TableExpr,
         },
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
@@ -31,7 +31,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let provable_ast = ProjectionExec::<RistrettoPoint>::new(
         vec![
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
@@ -39,7 +39,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
                 "a",
             ),
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     b,
                     ColumnType::BigInt,
@@ -67,7 +67,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let provable_ast = ProjectionExec::<RistrettoPoint>::new(
         vec![
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     a,
                     ColumnType::BigInt,
@@ -75,7 +75,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 "a",
             ),
             aliased_plan(
-                ProvableExprPlan::Column(ColumnExpr::new(ColumnRef::new(
+                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     f,
                     ColumnType::BigInt,

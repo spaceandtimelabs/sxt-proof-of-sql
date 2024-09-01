@@ -91,7 +91,7 @@ impl<C: Commitment> QueryExpr<C> {
                     .iter()
                     .map(|aliased_expr| EnrichedExpr {
                         residue_expression: aliased_expr.clone(),
-                        provable_expr_plan: None,
+                        dyn_proof_expr: None,
                     })
                     .collect::<Vec<_>>();
                 let filter = FilterExecBuilder::new(context.get_column_mapping())
