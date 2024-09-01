@@ -319,16 +319,10 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
             DynProofExpr::Not(expr) => ProofExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Literal(expr) => ProofExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Equals(expr) => ProofExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Inequality(expr) => {
-                ProofExpr::<C>::get_column_references(expr, columns)
-            }
-            DynProofExpr::AddSubtract(expr) => {
-                ProofExpr::<C>::get_column_references(expr, columns)
-            }
+            DynProofExpr::Inequality(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::AddSubtract(expr) => ProofExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Multiply(expr) => ProofExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Aggregate(expr) => {
-                ProofExpr::<C>::get_column_references(expr, columns)
-            }
+            DynProofExpr::Aggregate(expr) => ProofExpr::<C>::get_column_references(expr, columns),
         }
     }
 }

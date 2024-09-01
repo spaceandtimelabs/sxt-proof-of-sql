@@ -2,7 +2,7 @@ use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
-        ast::{GroupByExec, ProofPlan},
+        ast::{DynProofPlan, GroupByExec},
         parse::ConversionResult,
         postprocessing::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
@@ -16,9 +16,9 @@ use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.
-/// It consists of a `ProofPlan` for provable components and a vector of `OwnedTablePostprocessing` for the rest.
+/// It consists of a `DynProofPlan` for provable components and a vector of `OwnedTablePostprocessing` for the rest.
 pub struct QueryExpr<C: Commitment> {
-    proof_expr: ProofPlan<C>,
+    proof_expr: DynProofPlan<C>,
     postprocessing: Vec<OwnedTablePostprocessing>,
 }
 
@@ -35,8 +35,8 @@ impl<C: Commitment> fmt::Debug for QueryExpr<C> {
 }
 
 impl<C: Commitment> QueryExpr<C> {
-    /// Creates a new `QueryExpr` with the given `ProofPlan` and `OwnedTablePostprocessing`.
-    pub fn new(proof_expr: ProofPlan<C>, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
+    /// Creates a new `QueryExpr` with the given `DynProofPlan` and `OwnedTablePostprocessing`.
+    pub fn new(proof_expr: DynProofPlan<C>, postprocessing: Vec<OwnedTablePostprocessing>) -> Self {
         Self {
             proof_expr,
             postprocessing,
@@ -83,7 +83,7 @@ impl<C: Commitment> QueryExpr<C> {
         if context.has_agg() {
             if let Some(group_by_expr) = Option::<GroupByExec<C>>::try_from(&context)? {
                 Ok(Self {
-                    proof_expr: ProofPlan::GroupBy(group_by_expr),
+                    proof_expr: DynProofPlan::GroupBy(group_by_expr),
                     postprocessing,
                 })
             } else {
@@ -121,7 +121,7 @@ impl<C: Commitment> QueryExpr<C> {
                     );
                 }
                 Ok(Self {
-                    proof_expr: ProofPlan::DenseFilter(filter),
+                    proof_expr: DynProofPlan::DenseFilter(filter),
                     postprocessing,
                 })
             }
@@ -152,14 +152,14 @@ impl<C: Commitment> QueryExpr<C> {
                 );
             }
             Ok(Self {
-                proof_expr: ProofPlan::DenseFilter(filter),
+                proof_expr: DynProofPlan::DenseFilter(filter),
                 postprocessing,
             })
         }
     }
 
     /// Immutable access to this query's provable filter expression.
-    pub fn proof_expr(&self) -> &ProofPlan<C> {
+    pub fn proof_expr(&self) -> &DynProofPlan<C> {
         &self.proof_expr
     }
 

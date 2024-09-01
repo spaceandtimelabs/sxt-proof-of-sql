@@ -2,7 +2,7 @@ use super::ConversionError;
 use crate::{
     base::database::{ColumnType, TableRef, TestSchemaAccessor},
     sql::{
-        ast::{test_utility::*, ProofPlan},
+        ast::{test_utility::*, DynProofPlan},
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
     },
@@ -1971,9 +1971,9 @@ fn we_can_serialize_list_of_filters_from_query_expr() {
     let query_expr = query_expr_for_test_table("select * from table");
     let filter_execs = vec![query_expr.proof_expr()];
     let serialized = flexbuffers::to_vec(&filter_execs).unwrap();
-    let deserialized: Vec<ProofPlan<RistrettoPoint>> =
+    let deserialized: Vec<DynProofPlan<RistrettoPoint>> =
         flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    let deserialized_as_ref: Vec<&ProofPlan<RistrettoPoint>> = deserialized.iter().collect();
+    let deserialized_as_ref: Vec<&DynProofPlan<RistrettoPoint>> = deserialized.iter().collect();
     assert_eq!(filter_execs.len(), deserialized_as_ref.len());
     assert_eq!(filter_execs[0], deserialized_as_ref[0]);
 }

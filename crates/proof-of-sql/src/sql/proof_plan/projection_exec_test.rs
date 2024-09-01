@@ -8,7 +8,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, ColumnExpr, DynProofExpr, ProjectionExec, ProofPlan, TableExpr},
+        ast::{test_utility::*, ColumnExpr, DynProofExpr, DynProofPlan, ProjectionExec, TableExpr},
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
             VerifiableQueryResult,
@@ -161,7 +161,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: ProofPlan<RistrettoPoint> =
+    let expr: DynProofPlan<RistrettoPoint> =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(0);
@@ -201,7 +201,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: ProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
+    let expr: DynProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
     expr.result_evaluate(&mut builder, &alloc, &accessor);
@@ -226,7 +226,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr: ProofPlan<RistrettoPoint> = projection(
+    let expr: DynProofPlan<RistrettoPoint> = projection(
         vec![
             aliased_plan(add(column(t, "b", &accessor), const_bigint(1)), "b"),
             aliased_plan(

@@ -5,7 +5,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, ProofPlan, ProofExpr},
+        ast::{test_utility::*, DynProofExpr, DynProofPlan, ProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
     },
@@ -92,7 +92,7 @@ fn result_expr_can_overflow() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: ProofPlan<RistrettoPoint> = dense_filter(
+    let ast: DynProofPlan<RistrettoPoint> = dense_filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -117,7 +117,7 @@ fn overflow_in_nonselected_rows_doesnt_error_out() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: ProofPlan<RistrettoPoint> = dense_filter(
+    let ast: DynProofPlan<RistrettoPoint> = dense_filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -142,7 +142,7 @@ fn overflow_in_where_clause_doesnt_error_out() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: ProofPlan<RistrettoPoint> = dense_filter(
+    let ast: DynProofPlan<RistrettoPoint> = dense_filter(
         cols_expr_plan(t, &["a", "b"], &accessor),
         tab(t),
         gte(
@@ -167,7 +167,7 @@ fn result_expr_can_overflow_more() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: ProofPlan<RistrettoPoint> = dense_filter(
+    let ast: DynProofPlan<RistrettoPoint> = dense_filter(
         vec![aliased_plan(
             multiply(column(t, "a", &accessor), column(t, "b", &accessor)),
             "c",
@@ -199,7 +199,7 @@ fn where_clause_can_wrap_around() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast: ProofPlan<RistrettoPoint> = dense_filter(
+    let ast: DynProofPlan<RistrettoPoint> = dense_filter(
         cols_expr_plan(t, &["a", "b", "c", "d", "e", "res"], &accessor),
         tab(t),
         equal(

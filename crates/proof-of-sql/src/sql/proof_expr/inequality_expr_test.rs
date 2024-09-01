@@ -9,7 +9,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, ProofPlan, ProofExpr},
+        ast::{test_utility::*, DynProofExpr, DynProofPlan, ProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
     },
@@ -486,7 +486,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
     );
-    if let ProofPlan::Filter(filter) = &mut ast {
+    if let DynProofPlan::Filter(filter) = &mut ast {
         if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
             lte.treat_column_of_zeros_as_negative = true
         }

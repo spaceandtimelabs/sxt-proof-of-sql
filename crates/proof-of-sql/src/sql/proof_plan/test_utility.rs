@@ -1,6 +1,6 @@
 use super::{
-    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, DynProofExpr, FilterExec, FilterResultExpr,
-    GroupByExec, ProjectionExec, ProofPlan, TableExpr,
+    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, DynProofExpr, DynProofPlan, FilterExec,
+    FilterResultExpr, GroupByExec, ProjectionExec, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -27,23 +27,23 @@ pub fn filter<C: Commitment>(
     results: Vec<FilterResultExpr>,
     table: TableExpr,
     where_clause: DynProofExpr<C>,
-) -> ProofPlan<C> {
-    ProofPlan::Filter(FilterExec::new(results, table, where_clause))
+) -> DynProofPlan<C> {
+    DynProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
 pub fn projection<C: Commitment>(
     results: Vec<AliasedDynProofExpr<C>>,
     table: TableExpr,
-) -> ProofPlan<C> {
-    ProofPlan::Projection(ProjectionExec::new(results, table))
+) -> DynProofPlan<C> {
+    DynProofPlan::Projection(ProjectionExec::new(results, table))
 }
 
 pub fn dense_filter<C: Commitment>(
     results: Vec<AliasedDynProofExpr<C>>,
     table: TableExpr,
     where_clause: DynProofExpr<C>,
-) -> ProofPlan<C> {
-    ProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
+) -> DynProofPlan<C> {
+    DynProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
 }
 
 pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
@@ -59,8 +59,8 @@ pub fn group_by<C: Commitment>(
     count_alias: &str,
     table: TableExpr,
     where_clause: DynProofExpr<C>,
-) -> ProofPlan<C> {
-    ProofPlan::GroupBy(GroupByExec::new(
+) -> DynProofPlan<C> {
+    DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
         count_alias.parse().unwrap(),
