@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProvableExpr};
+use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::InnerProductProof,

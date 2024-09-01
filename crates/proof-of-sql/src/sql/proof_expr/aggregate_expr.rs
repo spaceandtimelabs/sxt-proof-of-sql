@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProvableExpr};
+use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -28,7 +28,7 @@ impl<C: Commitment> AggregateExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for AggregateExpr<C> {
+impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.expr.count(builder)
     }

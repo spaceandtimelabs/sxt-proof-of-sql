@@ -1,4 +1,4 @@
-use super::{AliasedDynProofExpr, ProvableExpr, TableExpr};
+use super::{AliasedDynProofExpr, ProofExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,

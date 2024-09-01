@@ -1,4 +1,4 @@
-use super::{fold_columns, fold_vals, AliasedDynProofExpr, DynProofExpr, ProvableExpr, TableExpr};
+use super::{fold_columns, fold_vals, AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,

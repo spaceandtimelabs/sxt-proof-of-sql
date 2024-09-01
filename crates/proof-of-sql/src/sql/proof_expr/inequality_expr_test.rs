@@ -9,7 +9,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, ProofPlan, ProvableExpr},
+        ast::{test_utility::*, DynProofExpr, ProofPlan, ProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
     },

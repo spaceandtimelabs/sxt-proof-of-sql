@@ -1,4 +1,4 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProvableExpr};
+use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -34,7 +34,7 @@ impl<C: Commitment> AddSubtractExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for AddSubtractExpr<C> {
+impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;

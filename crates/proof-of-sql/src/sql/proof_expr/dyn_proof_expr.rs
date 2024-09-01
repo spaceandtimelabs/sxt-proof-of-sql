@@ -1,6 +1,6 @@
 use super::{
     AddSubtractExpr, AggregateExpr, AndExpr, ColumnExpr, EqualsExpr, InequalityExpr, LiteralExpr,
-    MultiplyExpr, NotExpr, OrExpr, ProvableExpr,
+    MultiplyExpr, NotExpr, OrExpr, ProofExpr,
 };
 use crate::{
     base::{
@@ -19,7 +19,7 @@ use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator}
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-/// Enum of AST column expression types that implement `ProvableExpr`. Is itself a `ProvableExpr`.
+/// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DynProofExpr<C: Commitment> {
     /// Column
@@ -179,19 +179,19 @@ impl<C: Commitment> DynProofExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
+impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         match self {
-            DynProofExpr::Column(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::And(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Or(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Not(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Literal(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Equals(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Inequality(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::AddSubtract(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Multiply(expr) => ProvableExpr::<C>::count(expr, builder),
-            DynProofExpr::Aggregate(expr) => ProvableExpr::<C>::count(expr, builder),
+            DynProofExpr::Column(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::And(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Or(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Not(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Literal(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Equals(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Inequality(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::AddSubtract(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Multiply(expr) => ProofExpr::<C>::count(expr, builder),
+            DynProofExpr::Aggregate(expr) => ProofExpr::<C>::count(expr, builder),
         }
     }
 
@@ -201,7 +201,7 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
             DynProofExpr::AddSubtract(expr) => expr.data_type(),
             DynProofExpr::Multiply(expr) => expr.data_type(),
             DynProofExpr::Aggregate(expr) => expr.data_type(),
-            DynProofExpr::Literal(expr) => ProvableExpr::<C>::data_type(expr),
+            DynProofExpr::Literal(expr) => ProofExpr::<C>::data_type(expr),
             DynProofExpr::And(_)
             | DynProofExpr::Or(_)
             | DynProofExpr::Not(_)
@@ -218,34 +218,34 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
     ) -> Column<'a, C::Scalar> {
         match self {
             DynProofExpr::Column(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::And(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Or(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Not(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Literal(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Equals(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Inequality(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::AddSubtract(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Multiply(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
             DynProofExpr::Aggregate(expr) => {
-                ProvableExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
+                ProofExpr::<C>::result_evaluate(expr, table_length, alloc, accessor)
             }
         }
     }
@@ -258,34 +258,34 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
     ) -> Column<'a, C::Scalar> {
         match self {
             DynProofExpr::Column(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::And(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Or(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Not(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Literal(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Equals(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Inequality(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::AddSubtract(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Multiply(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
             DynProofExpr::Aggregate(expr) => {
-                ProvableExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
+                ProofExpr::<C>::prover_evaluate(expr, builder, alloc, accessor)
             }
         }
     }
@@ -297,7 +297,7 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
     ) -> Result<C::Scalar, ProofError> {
         match self {
             DynProofExpr::Column(expr) => {
-                ProvableExpr::<C>::verifier_evaluate(expr, builder, accessor)
+                ProofExpr::<C>::verifier_evaluate(expr, builder, accessor)
             }
             DynProofExpr::And(expr) => expr.verifier_evaluate(builder, accessor),
             DynProofExpr::Or(expr) => expr.verifier_evaluate(builder, accessor),
@@ -313,21 +313,21 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         match self {
-            DynProofExpr::Column(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::And(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Or(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Not(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Literal(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Equals(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Column(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::And(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Or(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Not(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Literal(expr) => ProofExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Equals(expr) => ProofExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Inequality(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
+                ProofExpr::<C>::get_column_references(expr, columns)
             }
             DynProofExpr::AddSubtract(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
+                ProofExpr::<C>::get_column_references(expr, columns)
             }
-            DynProofExpr::Multiply(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Multiply(expr) => ProofExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Aggregate(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
+                ProofExpr::<C>::get_column_references(expr, columns)
             }
         }
     }

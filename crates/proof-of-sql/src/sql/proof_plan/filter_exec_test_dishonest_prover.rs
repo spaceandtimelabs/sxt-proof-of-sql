@@ -1,4 +1,4 @@
-use super::{OstensibleFilterExec, ProvableExpr};
+use super::{OstensibleFilterExec, ProofExpr};
 use crate::{
     base::{
         database::{owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor},

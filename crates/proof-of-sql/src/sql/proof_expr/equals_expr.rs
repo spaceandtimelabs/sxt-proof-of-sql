@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProvableExpr};
+use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -27,7 +27,7 @@ impl<C: Commitment> EqualsExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for EqualsExpr<C> {
+impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;

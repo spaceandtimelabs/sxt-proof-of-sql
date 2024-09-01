@@ -1,4 +1,4 @@
-use super::{test_utility::*, DynProofExpr, ProvableExpr};
+use super::{test_utility::*, DynProofExpr, ProofExpr};
 use crate::base::{
     commitment::InnerProductProof,
     database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},

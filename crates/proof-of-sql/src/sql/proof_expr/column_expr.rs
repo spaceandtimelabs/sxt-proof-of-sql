@@ -1,4 +1,4 @@
-use super::ProvableExpr;
+use super::ProofExpr;
 use crate::{
     base::{
         commitment::Commitment,
@@ -46,7 +46,7 @@ impl<C: Commitment> ColumnExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for ColumnExpr<C> {
+impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// Count the number of proof terms needed by this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);

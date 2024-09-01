@@ -11,7 +11,7 @@ use indexmap::IndexSet;
 use std::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a `Column`
-pub trait ProvableExpr<C: Commitment>: Debug + Send + Sync {
+pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
     /// Count the number of proof terms needed for this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError>;
 

@@ -5,7 +5,7 @@ use crate::{
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, ProvableExpr},
+        ast::{test_utility::*, DynProofExpr, ProofExpr},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };

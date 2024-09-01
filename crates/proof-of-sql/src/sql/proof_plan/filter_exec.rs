@@ -1,4 +1,4 @@
-use super::{dyn_proof_expr::DynProofExpr, FilterResultExpr, ProvableExpr, TableExpr};
+use super::{dyn_proof_expr::DynProofExpr, FilterResultExpr, ProofExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,

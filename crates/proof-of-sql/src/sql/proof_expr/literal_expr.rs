@@ -1,4 +1,4 @@
-use super::ProvableExpr;
+use super::ProofExpr;
 use crate::{
     base::{
         commitment::Commitment,
@@ -35,7 +35,7 @@ impl<S: Scalar> LiteralExpr<S> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for LiteralExpr<C::Scalar> {
+impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
     fn count(&self, _builder: &mut CountBuilder) -> Result<(), ProofError> {
         Ok(())
     }

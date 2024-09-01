@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProvableExpr};
+use super::{DynProofExpr, ProofExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -32,7 +32,7 @@ impl<C: Commitment> MultiplyExpr<C> {
     }
 }
 
-impl<C: Commitment> ProvableExpr<C> for MultiplyExpr<C> {
+impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;

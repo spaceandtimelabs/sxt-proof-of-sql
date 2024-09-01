@@ -1,5 +1,5 @@
 use super::{
-    fold_columns, fold_vals, AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProvableExpr, TableExpr,
+    fold_columns, fold_vals, AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr,
 };
 use crate::{
     base::{

@@ -23,10 +23,10 @@ mod bitwise_verification_test;
 mod dyn_proof_expr;
 pub(crate) use dyn_proof_expr::DynProofExpr;
 
-mod provable_expr;
-pub(crate) use provable_expr::ProvableExpr;
+mod proof_expr;
+pub(crate) use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
-mod provable_expr_test;
+mod proof_expr_test;
 
 mod literal_expr;
 pub(crate) use literal_expr::LiteralExpr;

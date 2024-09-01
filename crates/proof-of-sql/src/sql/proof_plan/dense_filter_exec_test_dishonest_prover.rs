@@ -1,4 +1,4 @@
-use super::{dense_filter_exec::prove_filter, OstensibleDenseFilterExec, ProvableExpr};
+use super::{dense_filter_exec::prove_filter, OstensibleDenseFilterExec, ProofExpr};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
