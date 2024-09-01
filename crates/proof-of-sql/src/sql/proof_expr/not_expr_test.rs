@@ -4,8 +4,9 @@ use crate::{
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor, TestAccessor},
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, ProofExpr},
         proof::{exercise_verification, VerifiableQueryResult},
+        proof_expr::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_plan::test_utility::*,
     },
 };
 use bumpalo::Bump;

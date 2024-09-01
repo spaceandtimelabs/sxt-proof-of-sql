@@ -5,9 +5,10 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, DynProofExpr, DynProofPlan, ProofExpr},
         parse::ConversionError,
         proof::{exercise_verification, QueryError, VerifiableQueryResult},
+        proof_expr::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_plan::{test_utility::*, DynProofPlan},
     },
 };
 use bumpalo::Bump;

@@ -1,12 +1,9 @@
-use super::{count_sign, prover_evaluate_sign, verifier_evaluate_sign};
+use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
-    sql::{
-        ast::result_evaluate_sign,
-        proof::{
-            CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-            VerificationBuilder,
-        },
+    sql::proof::{
+        CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+        VerificationBuilder,
     },
 };
 use bumpalo::Bump;

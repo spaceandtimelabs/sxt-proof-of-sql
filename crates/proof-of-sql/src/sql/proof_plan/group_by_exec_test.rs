@@ -5,7 +5,10 @@ use crate::{
         database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
         scalar::Curve25519Scalar,
     },
-    sql::proof::{exercise_verification, VerifiableQueryResult},
+    sql::{
+        proof::{exercise_verification, VerifiableQueryResult},
+        proof_expr::test_utility::*,
+    },
 };
 
 /// select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a

@@ -1,4 +1,3 @@
-use super::{AliasedDynProofExpr, ProofExpr, TableExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -7,9 +6,12 @@ use crate::{
         },
         proof::ProofError,
     },
-    sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
-        VerificationBuilder,
+    sql::{
+        proof::{
+            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            VerificationBuilder,
+        },
+        proof_expr::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;

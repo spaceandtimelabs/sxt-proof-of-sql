@@ -1,10 +1,12 @@
 use super::{
-    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, DynProofExpr, DynProofPlan, FilterExec,
-    FilterResultExpr, GroupByExec, ProjectionExec, TableExpr,
+    DenseFilterExec, DynProofPlan, FilterExec, FilterResultExpr, GroupByExec, ProjectionExec,
 };
-use crate::base::{
-    commitment::Commitment,
-    database::{SchemaAccessor, TableRef},
+use crate::{
+    base::{
+        commitment::Commitment,
+        database::{SchemaAccessor, TableRef},
+    },
+    sql::proof_expr::{test_utility::*, AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 

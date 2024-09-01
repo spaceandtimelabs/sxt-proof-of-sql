@@ -1,4 +1,4 @@
-use super::{dyn_proof_expr::DynProofExpr, FilterResultExpr, ProofExpr, TableExpr};
+use super::FilterResultExpr;
 use crate::{
     base::{
         commitment::Commitment,
@@ -8,9 +8,12 @@ use crate::{
         },
         proof::ProofError,
     },
-    sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, VerificationBuilder,
+    sql::{
+        proof::{
+            CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
+            ProverHonestyMarker, ResultBuilder, VerificationBuilder,
+        },
+        proof_expr::{DynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;
@@ -26,7 +29,7 @@ use serde::{Deserialize, Serialize};
 pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) results: Vec<FilterResultExpr>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: DynProofExpr<C>,
+    pub(crate) where_clause: DynProofExpr<C>,
     phantom: PhantomData<H>,
 }
 

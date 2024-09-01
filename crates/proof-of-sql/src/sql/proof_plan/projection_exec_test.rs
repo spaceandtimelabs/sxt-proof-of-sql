@@ -1,3 +1,4 @@
+use super::{test_utility::*, DynProofPlan, ProjectionExec};
 use crate::{
     base::{
         database::{
@@ -8,10 +9,10 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{test_utility::*, ColumnExpr, DynProofExpr, DynProofPlan, ProjectionExec, TableExpr},
         proof::{
             exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
         },
+        proof_expr::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
     },
 };
 use blitzar::proof::InnerProductProof;

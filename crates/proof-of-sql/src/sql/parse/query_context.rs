@@ -4,8 +4,9 @@ use crate::{
         database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
-        ast::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, GroupByExec, TableExpr},
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
+        proof_expr::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+        proof_plan::GroupByExec,
     },
 };
 use indexmap::{IndexMap, IndexSet};

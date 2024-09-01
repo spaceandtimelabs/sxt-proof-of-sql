@@ -1,4 +1,4 @@
-use super::{dense_filter_exec::prove_filter, OstensibleDenseFilterExec, ProofExpr};
+use super::{dense_filter_exec::prove_filter, OstensibleDenseFilterExec};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
@@ -7,12 +7,15 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        // Making this explicit to ensure that we don't accidentally use the
-        // sparse filter for these tests
-        ast::test_utility::{cols_expr_plan, column, const_int128, equal, tab},
         proof::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
+        },
+        // Making this explicit to ensure that we don't accidentally use the
+        // sparse filter for these tests
+        proof_expr::{
+            test_utility::{cols_expr_plan, column, const_int128, equal, tab},
+            ProofExpr,
         },
     },
 };

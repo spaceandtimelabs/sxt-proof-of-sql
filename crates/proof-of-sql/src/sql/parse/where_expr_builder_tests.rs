@@ -4,8 +4,8 @@ use crate::{
         math::decimal::Precision,
     },
     sql::{
-        ast::{ColumnExpr, DynProofExpr, LiteralExpr},
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
+        proof_expr::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
 use curve25519_dalek::RistrettoPoint;

@@ -4,7 +4,10 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
     },
-    sql::ast::{AliasedDynProofExpr, DenseFilterExec, DynProofExpr, TableExpr},
+    sql::{
+        proof_expr::{AliasedDynProofExpr, DynProofExpr, TableExpr},
+        proof_plan::DenseFilterExec,
+    },
 };
 use indexmap::IndexMap;
 use itertools::Itertools;

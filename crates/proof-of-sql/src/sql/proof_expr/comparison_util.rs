@@ -4,13 +4,7 @@ use crate::{
         math::decimal::{DecimalError, Precision},
         scalar::Scalar,
     },
-    sql::{
-        ast::comparison_util::DecimalError::InvalidPrecision,
-        parse::{
-            type_check_binary_operation, ConversionError, ConversionError::DecimalConversionError,
-            ConversionResult,
-        },
-    },
+    sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
@@ -78,7 +72,9 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            DecimalConversionError(InvalidPrecision(max_precision_value.to_string()))
+            ConversionError::DecimalConversionError(DecimalError::InvalidPrecision(
+                max_precision_value.to_string(),
+            ))
         })?;
     }
     unchecked_subtract_impl(

@@ -2,9 +2,10 @@ use super::ConversionError;
 use crate::{
     base::database::{ColumnType, TableRef, TestSchemaAccessor},
     sql::{
-        ast::{test_utility::*, DynProofPlan},
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
+        proof_expr::test_utility::*,
+        proof_plan::{test_utility::*, DynProofPlan},
     },
 };
 use curve25519_dalek::RistrettoPoint;

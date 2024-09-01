@@ -9,8 +9,8 @@ use crate::{
         proof::ProofError,
     },
     sql::{
-        ast::multiply_columns,
         proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        proof_expr::multiply_columns,
     },
 };
 use bumpalo::Bump;

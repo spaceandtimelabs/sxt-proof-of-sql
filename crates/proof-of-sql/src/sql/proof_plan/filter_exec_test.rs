@@ -1,3 +1,4 @@
+use super::{test_utility::*, FilterExec, FilterResultExpr};
 use crate::{
     base::{
         database::{
@@ -9,13 +10,10 @@ use crate::{
     },
     proof_primitive::dory::DoryCommitment,
     sql::{
-        ast::{
-            test_utility::*, ColumnExpr, DynProofExpr, FilterExec, FilterResultExpr, LiteralExpr,
-            TableExpr,
-        },
         proof::{
             exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
         },
+        proof_expr::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
     },
 };
 use blitzar::proof::InnerProductProof;

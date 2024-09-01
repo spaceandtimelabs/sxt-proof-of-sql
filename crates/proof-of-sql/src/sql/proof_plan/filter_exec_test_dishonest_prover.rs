@@ -1,4 +1,4 @@
-use super::{OstensibleFilterExec, ProofExpr};
+use super::{test_utility::*, OstensibleFilterExec};
 use crate::{
     base::{
         database::{owned_table_utility::*, Column, DataAccessor, OwnedTableTestAccessor},
@@ -6,11 +6,11 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::test_utility::*,
         proof::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
+        proof_expr::{test_utility::*, ProofExpr},
     },
 };
 use blitzar::proof::InnerProductProof;

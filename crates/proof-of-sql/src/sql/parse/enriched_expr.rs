@@ -1,7 +1,7 @@
 use super::DynProofExprBuilder;
 use crate::{
     base::{commitment::Commitment, database::ColumnRef},
-    sql::ast::DynProofExpr,
+    sql::proof_expr::DynProofExpr,
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{

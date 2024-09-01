@@ -2,12 +2,12 @@ use super::{EnrichedExpr, FilterExecBuilder, QueryContextBuilder};
 use crate::{
     base::{commitment::Commitment, database::SchemaAccessor},
     sql::{
-        ast::{DynProofPlan, GroupByExec},
         parse::ConversionResult,
         postprocessing::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
             SelectPostprocessing, SlicePostprocessing,
         },
+        proof_plan::{DynProofPlan, GroupByExec},
     },
 };
 use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};

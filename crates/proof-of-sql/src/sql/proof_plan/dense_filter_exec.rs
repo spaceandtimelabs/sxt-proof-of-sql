@@ -1,4 +1,4 @@
-use super::{fold_columns, fold_vals, AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr};
+use super::{fold_columns, fold_vals};
 use crate::{
     base::{
         commitment::Commitment,
@@ -10,9 +10,12 @@ use crate::{
         scalar::Scalar,
         slice_ops,
     },
-    sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
-        ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+    sql::{
+        proof::{
+            CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
+            ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+        },
+        proof_expr::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;
