@@ -4,7 +4,7 @@ use crate::{
         database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
-        ast::{AliasedDynProofExpr, ColumnExpr, GroupByExec, DynProofExpr, TableExpr},
+        ast::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, GroupByExec, TableExpr},
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
     },
 };

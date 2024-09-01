@@ -10,8 +10,8 @@ use crate::{
     proof_primitive::dory::DoryCommitment,
     sql::{
         ast::{
-            test_utility::*, ColumnExpr, FilterExec, FilterResultExpr, LiteralExpr,
-            DynProofExpr, TableExpr,
+            test_utility::*, ColumnExpr, DynProofExpr, FilterExec, FilterResultExpr, LiteralExpr,
+            TableExpr,
         },
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,

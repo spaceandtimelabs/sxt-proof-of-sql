@@ -4,7 +4,7 @@ use crate::{
         math::decimal::Precision,
     },
     sql::{
-        ast::{ColumnExpr, LiteralExpr, DynProofExpr},
+        ast::{ColumnExpr, DynProofExpr, LiteralExpr},
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
     },
 };

@@ -1,4 +1,4 @@
-use super::{ProvableExpr, DynProofExpr};
+use super::{DynProofExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::Commitment,

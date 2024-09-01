@@ -4,7 +4,7 @@ use crate::{
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
-        ast::{test_utility::*, ProvableExpr, DynProofExpr},
+        ast::{test_utility::*, DynProofExpr, ProvableExpr},
         proof::{exercise_verification, VerifiableQueryResult},
     },
 };

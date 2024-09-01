@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType},
     },
-    sql::ast::{ProvableExpr, DynProofExpr},
+    sql::ast::{DynProofExpr, ProvableExpr},
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};

@@ -2,7 +2,7 @@ use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
     scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
-    verifier_evaluate_or, verifier_evaluate_sign, ProvableExpr, DynProofExpr,
+    verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProvableExpr,
 };
 use crate::{
     base::{

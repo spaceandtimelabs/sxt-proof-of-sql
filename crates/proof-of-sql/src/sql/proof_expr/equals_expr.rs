@@ -1,4 +1,4 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, ProvableExpr, DynProofExpr};
+use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::Commitment,

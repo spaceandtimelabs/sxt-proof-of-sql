@@ -1,6 +1,6 @@
 use super::{
-    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, FilterExec, FilterResultExpr,
-    GroupByExec, ProjectionExec, ProofPlan, DynProofExpr, TableExpr,
+    AliasedDynProofExpr, ColumnExpr, DenseFilterExec, DynProofExpr, FilterExec, FilterResultExpr,
+    GroupByExec, ProjectionExec, ProofPlan, TableExpr,
 };
 use crate::base::{
     commitment::Commitment,
@@ -46,10 +46,7 @@ pub fn dense_filter<C: Commitment>(
     ProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
 }
 
-pub fn sum_expr<C: Commitment>(
-    expr: DynProofExpr<C>,
-    alias: &str,
-) -> AliasedDynProofExpr<C> {
+pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
         alias: alias.parse().unwrap(),

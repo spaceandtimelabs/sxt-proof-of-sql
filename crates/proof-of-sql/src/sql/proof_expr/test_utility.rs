@@ -1,6 +1,4 @@
-use super::{
-    AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr,
-};
+use super::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr};
 use crate::base::{
     commitment::Commitment,
     database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
@@ -23,24 +21,15 @@ pub fn column<C: Commitment>(
     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
 }
 
-pub fn equal<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn equal<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_equals(left, right).unwrap()
 }
 
-pub fn lte<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn lte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_inequality(left, right, true).unwrap()
 }
 
-pub fn gte<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn gte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_inequality(left, right, false).unwrap()
 }
 
@@ -48,38 +37,23 @@ pub fn not<C: Commitment>(expr: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_not(expr).unwrap()
 }
 
-pub fn and<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn and<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_and(left, right).unwrap()
 }
 
-pub fn or<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn or<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_or(left, right).unwrap()
 }
 
-pub fn add<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn add<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_add(left, right).unwrap()
 }
 
-pub fn subtract<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn subtract<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_subtract(left, right).unwrap()
 }
 
-pub fn multiply<C: Commitment>(
-    left: DynProofExpr<C>,
-    right: DynProofExpr<C>,
-) -> DynProofExpr<C> {
+pub fn multiply<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
     DynProofExpr::try_new_multiply(left, right).unwrap()
 }
 
@@ -132,10 +106,7 @@ pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
-pub fn aliased_plan<C: Commitment>(
-    expr: DynProofExpr<C>,
-    alias: &str,
-) -> AliasedDynProofExpr<C> {
+pub fn aliased_plan<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr,
         alias: alias.parse().unwrap(),

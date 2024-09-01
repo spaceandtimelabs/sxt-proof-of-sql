@@ -8,9 +8,7 @@ use crate::{
         scalar::Curve25519Scalar,
     },
     sql::{
-        ast::{
-            test_utility::*, ColumnExpr, DenseFilterExec, LiteralExpr, DynProofExpr, TableExpr,
-        },
+        ast::{test_utility::*, ColumnExpr, DenseFilterExec, DynProofExpr, LiteralExpr, TableExpr},
         proof::{
             exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
             VerifiableQueryResult,

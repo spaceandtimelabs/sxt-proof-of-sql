@@ -49,19 +49,13 @@ impl<C: Commitment> DynProofExpr<C> {
         Self::Column(ColumnExpr::new(column_ref))
     }
     /// Create logical AND expression
-    pub fn try_new_and(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_and(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         lhs.check_data_type(ColumnType::Boolean)?;
         rhs.check_data_type(ColumnType::Boolean)?;
         Ok(Self::And(AndExpr::new(Box::new(lhs), Box::new(rhs))))
     }
     /// Create logical OR expression
-    pub fn try_new_or(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_or(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         lhs.check_data_type(ColumnType::Boolean)?;
         rhs.check_data_type(ColumnType::Boolean)?;
         Ok(Self::Or(OrExpr::new(Box::new(lhs), Box::new(rhs))))
@@ -76,10 +70,7 @@ impl<C: Commitment> DynProofExpr<C> {
         Self::Literal(LiteralExpr::new(value))
     }
     /// Create a new equals expression
-    pub fn try_new_equals(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_equals(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Equal) {
@@ -118,10 +109,7 @@ impl<C: Commitment> DynProofExpr<C> {
     }
 
     /// Create a new add expression
-    pub fn try_new_add(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_add(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Add) {
@@ -139,10 +127,7 @@ impl<C: Commitment> DynProofExpr<C> {
     }
 
     /// Create a new subtract expression
-    pub fn try_new_subtract(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_subtract(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Subtract) {
@@ -160,10 +145,7 @@ impl<C: Commitment> DynProofExpr<C> {
     }
 
     /// Create a new multiply expression
-    pub fn try_new_multiply(
-        lhs: DynProofExpr<C>,
-        rhs: DynProofExpr<C>,
-    ) -> ConversionResult<Self> {
+    pub fn try_new_multiply(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Multiply) {
@@ -331,27 +313,19 @@ impl<C: Commitment> ProvableExpr<C> for DynProofExpr<C> {
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         match self {
-            DynProofExpr::Column(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
-            }
+            DynProofExpr::Column(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::And(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Or(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Not(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
-            DynProofExpr::Literal(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
-            }
-            DynProofExpr::Equals(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
-            }
+            DynProofExpr::Literal(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
+            DynProofExpr::Equals(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Inequality(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
             DynProofExpr::AddSubtract(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }
-            DynProofExpr::Multiply(expr) => {
-                ProvableExpr::<C>::get_column_references(expr, columns)
-            }
+            DynProofExpr::Multiply(expr) => ProvableExpr::<C>::get_column_references(expr, columns),
             DynProofExpr::Aggregate(expr) => {
                 ProvableExpr::<C>::get_column_references(expr, columns)
             }

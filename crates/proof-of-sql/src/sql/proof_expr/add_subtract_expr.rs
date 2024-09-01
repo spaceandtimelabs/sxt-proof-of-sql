@@ -1,4 +1,4 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, ProvableExpr, DynProofExpr};
+use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProvableExpr};
 use crate::{
     base::{
         commitment::Commitment,
@@ -25,11 +25,7 @@ pub struct AddSubtractExpr<C: Commitment> {
 
 impl<C: Commitment> AddSubtractExpr<C> {
     /// Create numerical `+` / `-` expression
-    pub fn new(
-        lhs: Box<DynProofExpr<C>>,
-        rhs: Box<DynProofExpr<C>>,
-        is_subtract: bool,
-    ) -> Self {
+    pub fn new(lhs: Box<DynProofExpr<C>>, rhs: Box<DynProofExpr<C>>, is_subtract: bool) -> Self {
         Self {
             lhs,
             rhs,

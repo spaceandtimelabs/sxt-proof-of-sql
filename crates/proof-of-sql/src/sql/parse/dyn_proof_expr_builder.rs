@@ -6,7 +6,7 @@ use crate::{
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
     },
     sql::{
-        ast::{ColumnExpr, ProvableExpr, DynProofExpr},
+        ast::{ColumnExpr, DynProofExpr, ProvableExpr},
         parse::ConversionError::DecimalConversionError,
     },
 };
