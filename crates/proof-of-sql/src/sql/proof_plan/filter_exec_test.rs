@@ -14,8 +14,7 @@ use crate::{
             TableExpr,
         },
         proof::{
-            exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
-            VerifiableQueryResult,
+            exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
         },
     },
 };

@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofExecutionPlan, ProverEvaluate, VerifiableQueryResult,
+    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
     VerificationBuilder,
 };
 use crate::{
@@ -40,7 +40,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     ) {
     }
 }
-impl<C: Commitment> ProofExecutionPlan<C> for EmptyTestQueryExpr {
+impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     fn count(
         &self,
         builder: &mut CountBuilder,

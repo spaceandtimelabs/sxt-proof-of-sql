@@ -1,7 +1,7 @@
 use super::{DenseFilterExec, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::commitment::Commitment,
-    sql::proof::{ProofExecutionPlan, ProverEvaluate},
+    sql::proof::{ProofPlan, ProverEvaluate},
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +35,7 @@ pub enum DynProofPlan<C: Commitment> {
     DenseFilter(DenseFilterExec<C>),
 }
 
-impl<C: Commitment> ProofExecutionPlan<C> for DynProofPlan<C> {
+impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     fn count(
         &self,
         builder: &mut crate::sql::proof::CountBuilder,

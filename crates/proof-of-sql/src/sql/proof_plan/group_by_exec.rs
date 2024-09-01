@@ -16,7 +16,7 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
+        CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
         SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
@@ -66,7 +66,7 @@ impl<C: Commitment> GroupByExec<C> {
     }
 }
 
-impl<C: Commitment> ProofExecutionPlan<C> for GroupByExec<C> {
+impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,

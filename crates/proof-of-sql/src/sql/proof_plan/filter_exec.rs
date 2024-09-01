@@ -9,7 +9,7 @@ use crate::{
         proof::ProofError,
     },
     sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate,
+        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
         ProverHonestyMarker, ResultBuilder, VerificationBuilder,
     },
 };
@@ -51,7 +51,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofExecutionPlan<C> for OstensibleFilterExec<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
 where
     OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
 {

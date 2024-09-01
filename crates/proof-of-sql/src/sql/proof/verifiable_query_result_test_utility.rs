@@ -1,5 +1,5 @@
 use super::{
-    verifiable_query_result_test::EmptyTestQueryExpr, ProofExecutionPlan, ProvableQueryResult,
+    verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult,
     ProvableResultColumn, QueryProof, VerifiableQueryResult,
 };
 use crate::{
@@ -20,7 +20,7 @@ use serde::Serialize;
 /// It's useful as a tool for testing proof code.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofExecutionPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
@@ -71,7 +71,7 @@ pub fn exercise_verification(
 
 fn tamper_no_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofExecutionPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // add a result
@@ -94,7 +94,7 @@ fn tamper_no_result(
 
 fn tamper_empty_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofExecutionPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     // try to add a result
@@ -106,7 +106,7 @@ fn tamper_empty_result(
 
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofExecutionPlan<RistrettoPoint> + Serialize),
+    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
     accessor: &impl CommitmentAccessor<RistrettoPoint>,
 ) {
     if res.provable_result.is_none() {

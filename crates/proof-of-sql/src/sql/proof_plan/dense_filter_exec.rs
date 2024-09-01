@@ -11,7 +11,7 @@ use crate::{
         slice_ops,
     },
     sql::proof::{
-        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate,
+        CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
         ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
     },
 };
@@ -51,8 +51,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofExecutionPlan<C>
-    for OstensibleDenseFilterExec<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleDenseFilterExec<C, H>
 where
     OstensibleDenseFilterExec<C, H>: ProverEvaluate<C::Scalar>,
 {

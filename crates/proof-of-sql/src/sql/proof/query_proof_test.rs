@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofExecutionPlan, ProverEvaluate, QueryProof, VerificationBuilder,
+    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
 };
 use crate::{
     base::{
@@ -21,14 +21,14 @@ use serde::Serialize;
 /// Type to allow us to prove and verify an artificial polynomial where we prove
 /// that every entry in the result is zero
 #[derive(Debug, Serialize)]
-struct TrivialTestProofExecutionPlan {
+struct TrivialTestProofPlan {
     length: usize,
     offset: usize,
     column_fill_value: i64,
     evaluation: i64,
     anchored_mle_count: usize,
 }
-impl Default for TrivialTestProofExecutionPlan {
+impl Default for TrivialTestProofPlan {
     fn default() -> Self {
         Self {
             length: 2,
@@ -39,7 +39,7 @@ impl Default for TrivialTestProofExecutionPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofExecutionPlan {
+impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -65,7 +65,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofExecutionPlan {
         );
     }
 }
-impl<C: Commitment> ProofExecutionPlan<C> for TrivialTestProofExecutionPlan {
+impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -102,7 +102,7 @@ impl<C: Commitment> ProofExecutionPlan<C> for TrivialTestProofExecutionPlan {
 }
 
 fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: usize) {
-    let expr = TrivialTestProofExecutionPlan {
+    let expr = TrivialTestProofPlan {
         length: n,
         offset: offset_generators,
         ..Default::default()
@@ -135,7 +135,7 @@ fn we_can_verify_a_trivial_query_proof_with_a_non_zero_offset() {
 #[test]
 fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
     // set up a proof for an artificial polynomial that doesn't sum to zero
-    let expr = TrivialTestProofExecutionPlan {
+    let expr = TrivialTestProofPlan {
         column_fill_value: 123,
         ..Default::default()
     };
@@ -148,7 +148,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
 fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
     // set up a proof for an artificial polynomial and specify an evaluation that won't
     // match the evaluation from sumcheck
-    let expr = TrivialTestProofExecutionPlan {
+    let expr = TrivialTestProofPlan {
         evaluation: 123,
         ..Default::default()
     };
@@ -161,7 +161,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
 fn veriy_fails_if_result_mle_evaluation_fails() {
     // prove and try to verify an artificial polynomial where we prove
     // that every entry in the result is zero
-    let expr = TrivialTestProofExecutionPlan {
+    let expr = TrivialTestProofPlan {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
@@ -179,7 +179,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
 fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
-    let expr = TrivialTestProofExecutionPlan {
+    let expr = TrivialTestProofPlan {
         anchored_mle_count: 1,
         ..Default::default()
     };
@@ -192,11 +192,11 @@ fn verify_fails_if_counts_dont_match() {
 ///     res_i = x_i * x_i
 /// where the commitment for x is known
 #[derive(Debug, Serialize)]
-struct SquareTestProofExecutionPlan {
+struct SquareTestProofPlan {
     res: [i64; 2],
     anchored_commit_multiplier: i64,
 }
-impl Default for SquareTestProofExecutionPlan {
+impl Default for SquareTestProofPlan {
     fn default() -> Self {
         Self {
             res: [9, 25],
@@ -204,7 +204,7 @@ impl Default for SquareTestProofExecutionPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for SquareTestProofExecutionPlan {
+impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -237,7 +237,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofExecutionPlan {
         );
     }
 }
-impl<C: Commitment> ProofExecutionPlan<C> for SquareTestProofExecutionPlan {
+impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -285,7 +285,7 @@ fn verify_a_proof_with_an_anchored_commitment_and_given_offset(offset_generators
     // prove and verify an artificial query where
     //     res_i = x_i * x_i
     // where the commitment for x is known
-    let expr = SquareTestProofExecutionPlan {
+    let expr = SquareTestProofPlan {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
@@ -330,7 +330,7 @@ fn verify_fails_if_the_result_doesnt_satisfy_an_anchored_equation() {
     // where the commitment for x is known and
     //     res_i != x_i * x_i
     // for some i
-    let expr = SquareTestProofExecutionPlan {
+    let expr = SquareTestProofPlan {
         res: [9, 26],
         ..Default::default()
     };
@@ -349,7 +349,7 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
     // prove and verify an artificial query where
     //     res_i = x_i * x_i
     // where the commitment for x is known
-    let expr = SquareTestProofExecutionPlan {
+    let expr = SquareTestProofPlan {
         anchored_commit_multiplier: 2,
         ..Default::default()
     };
@@ -368,11 +368,11 @@ fn verify_fails_if_the_anchored_commitment_doesnt_match() {
 //     res_i = z_i * z_i
 // where the commitment for x is known
 #[derive(Debug, Serialize)]
-struct DoubleSquareTestProofExecutionPlan {
+struct DoubleSquareTestProofPlan {
     res: [i64; 2],
     z: [i64; 2],
 }
-impl Default for DoubleSquareTestProofExecutionPlan {
+impl Default for DoubleSquareTestProofPlan {
     fn default() -> Self {
         Self {
             res: [81, 625],
@@ -380,7 +380,7 @@ impl Default for DoubleSquareTestProofExecutionPlan {
         }
     }
 }
-impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofExecutionPlan {
+impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -426,7 +426,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofExecutionPlan {
         );
     }
 }
-impl<C: Commitment> ProofExecutionPlan<C> for DoubleSquareTestProofExecutionPlan {
+impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -482,7 +482,7 @@ fn verify_a_proof_with_an_intermediate_commitment_and_given_offset(offset_genera
     //     z_i = x_i * x_i
     //     res_i = z_i * z_i
     // where the commitment for x is known
-    let expr = DoubleSquareTestProofExecutionPlan {
+    let expr = DoubleSquareTestProofPlan {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
@@ -526,7 +526,7 @@ fn verify_fails_if_an_intermediate_commitment_doesnt_match() {
     //     z_i = x_i * x_i
     //     res_i = z_i * z_i
     // where the commitment for x is known
-    let expr = DoubleSquareTestProofExecutionPlan {
+    let expr = DoubleSquareTestProofPlan {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
@@ -548,7 +548,7 @@ fn verify_fails_if_an_intermediate_equation_isnt_satified() {
     // where the commitment for x is known and
     //     z_i != x_i * x_i
     // for some i
-    let expr = DoubleSquareTestProofExecutionPlan {
+    let expr = DoubleSquareTestProofPlan {
         ..Default::default()
     };
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
@@ -569,7 +569,7 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
     // where the commitment for x is known and
     //     res_i != z_i * z_i
     // for some i
-    let expr = DoubleSquareTestProofExecutionPlan {
+    let expr = DoubleSquareTestProofPlan {
         res: [81, 624],
         ..Default::default()
     };
@@ -584,8 +584,8 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
 }
 
 #[derive(Debug, Serialize)]
-struct ChallengeTestProofExecutionPlan {}
-impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofExecutionPlan {
+struct ChallengeTestProofPlan {}
+impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -621,7 +621,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofExecutionPlan {
         );
     }
 }
-impl<C: Commitment> ProofExecutionPlan<C> for ChallengeTestProofExecutionPlan {
+impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -673,7 +673,7 @@ fn verify_a_proof_with_a_post_result_challenge_and_given_offset(offset_generator
     //     alpha * res_i = alpha * x_i * x_i
     // where the commitment for x is known and alpha depends on res
     // additionally, we will have a second challenge beta, that is unused
-    let expr = ChallengeTestProofExecutionPlan {};
+    let expr = ChallengeTestProofPlan {};
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
         "sxt.test".parse().unwrap(),
         owned_table([bigint("x", [3, 5])]),

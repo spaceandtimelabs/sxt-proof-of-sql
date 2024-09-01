@@ -8,7 +8,7 @@ use crate::{
         proof::ProofError,
     },
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
+        CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
         VerificationBuilder,
     },
 };
@@ -37,7 +37,7 @@ impl<C: Commitment> ProjectionExec<C> {
     }
 }
 
-impl<C: Commitment> ProofExecutionPlan<C> for ProjectionExec<C> {
+impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,

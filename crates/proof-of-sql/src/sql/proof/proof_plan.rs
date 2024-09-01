@@ -12,9 +12,7 @@ use indexmap::IndexSet;
 use std::fmt::Debug;
 
 /// Provable nodes in the provable AST.
-pub trait ProofExecutionPlan<C: Commitment>:
-    Debug + Send + Sync + ProverEvaluate<C::Scalar>
-{
+pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
     /// Count terms used within the Query's proof
     fn count(
         &self,
@@ -71,12 +69,12 @@ pub trait ProverEvaluate<S: Scalar> {
     );
 }
 
-/// Marker used as a trait bound for generic [`ProofExecutionPlan`] types to indicate the honesty of their implementation.
+/// Marker used as a trait bound for generic [`ProofPlan`] types to indicate the honesty of their implementation.
 ///
 /// This allows us to define alternative prover implementations that misbehave, and test that the verifier rejects their results.
 pub trait ProverHonestyMarker: Debug + Send + Sync + PartialEq + 'static {}
 
-/// [`ProverHonestyMarker`] for generic [`ProofExecutionPlan`] types whose implementation is canonical/honest.
+/// [`ProverHonestyMarker`] for generic [`ProofPlan`] types whose implementation is canonical/honest.
 #[derive(Debug, PartialEq)]
 pub struct HonestProver;
 impl ProverHonestyMarker for HonestProver {}

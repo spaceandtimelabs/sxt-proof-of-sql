@@ -1,4 +1,4 @@
-use super::{ProofExecutionPlan, ProvableQueryResult, QueryData, QueryProof, QueryResult};
+use super::{ProofPlan, ProvableQueryResult, QueryData, QueryProof, QueryResult};
 use crate::base::{
     commitment::CommitmentEvaluationProof,
     database::{
@@ -79,7 +79,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// This function both computes the result of a query and constructs a proof of the results
     /// validity.
     pub fn new(
-        expr: &(impl ProofExecutionPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> Self {
@@ -110,7 +110,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExecutionPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {

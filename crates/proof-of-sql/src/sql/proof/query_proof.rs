@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofCounts, ProofExecutionPlan, ProvableQueryResult, QueryResult,
+    CountBuilder, ProofBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
     SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
@@ -43,7 +43,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     /// Create a new `QueryProof`.
     #[tracing::instrument(name = "QueryProof::new", level = "debug", skip_all)]
     pub fn new(
-        expr: &(impl ProofExecutionPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
@@ -141,7 +141,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     /// Verify a `QueryProof`. Note: This does NOT transform the result!
     pub fn verify(
         &self,
-        expr: &(impl ProofExecutionPlan<CP::Commitment> + Serialize),
+        expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
@@ -302,7 +302,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 ///
 /// # Arguments
 ///
-/// * `expr` - A reference to an object that implements `ProofExecutionPlan` and `Serialize`.
+/// * `expr` - A reference to an object that implements `ProofPlan` and `Serialize`.
 ///   This is the proof expression which is part of the proof.
 ///
 /// * `result` - A reference to a `ProvableQueryResult`, which is the result
@@ -317,14 +317,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// of all the operations and data involved in creating a proof.
 /// ```
 fn make_transcript<C: Commitment>(
-    expr: &(impl ProofExecutionPlan<C> + Serialize),
+    expr: &(impl ProofPlan<C> + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
     generator_offset: usize,
 ) -> merlin::Transcript {
     let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
     transcript.append_auto(MessageLabel::QueryResultData, result);
-    transcript.append_auto(MessageLabel::ProofExecutionPlan, expr);
+    transcript.append_auto(MessageLabel::ProofPlan, expr);
     transcript.append_auto(MessageLabel::TableLength, &table_length);
     transcript.append_auto(MessageLabel::GeneratorOffset, &generator_offset);
     transcript

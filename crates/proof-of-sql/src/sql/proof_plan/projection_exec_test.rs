@@ -10,8 +10,7 @@ use crate::{
     sql::{
         ast::{test_utility::*, ColumnExpr, DynProofExpr, DynProofPlan, ProjectionExec, TableExpr},
         proof::{
-            exercise_verification, ProofExecutionPlan, ProverEvaluate, ResultBuilder,
-            VerifiableQueryResult,
+            exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
         },
     },
 };
