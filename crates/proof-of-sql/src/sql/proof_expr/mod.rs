@@ -1,4 +1,4 @@
-//! This module proves provable ASTs.
+//! This module proves provable expressions.
 mod aliased_provable_expr_plan;
 pub(crate) use aliased_provable_expr_plan::AliasedProvableExprPlan;
 
