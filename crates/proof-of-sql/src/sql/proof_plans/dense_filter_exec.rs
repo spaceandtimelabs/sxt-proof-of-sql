@@ -15,7 +15,7 @@ use crate::{
             CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
             ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
         },
-        proof_expr::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;

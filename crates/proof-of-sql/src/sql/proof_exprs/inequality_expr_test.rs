@@ -11,8 +11,8 @@ use crate::{
     sql::{
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_expr::{test_utility::*, DynProofExpr, ProofExpr},
-        proof_plan::{test_utility::*, DynProofPlan},
+        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_plans::{test_utility::*, DynProofPlan},
     },
 };
 use bumpalo::Bump;

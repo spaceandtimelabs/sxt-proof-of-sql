@@ -13,7 +13,7 @@ use crate::{
         },
         // Making this explicit to ensure that we don't accidentally use the
         // sparse filter for these tests
-        proof_expr::{
+        proof_exprs::{
             test_utility::{cols_expr_plan, column, const_int128, equal, tab},
             ProofExpr,
         },

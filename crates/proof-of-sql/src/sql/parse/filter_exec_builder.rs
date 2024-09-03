@@ -5,8 +5,8 @@ use crate::{
         database::{ColumnRef, LiteralValue, TableRef},
     },
     sql::{
-        proof_expr::{AliasedDynProofExpr, DynProofExpr, TableExpr},
-        proof_plan::DenseFilterExec,
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
+        proof_plans::DenseFilterExec,
     },
 };
 use indexmap::IndexMap;

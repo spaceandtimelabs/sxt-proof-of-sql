@@ -4,8 +4,8 @@ use crate::{
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
-        proof_expr::test_utility::*,
-        proof_plan::{test_utility::*, DynProofPlan},
+        proof_exprs::test_utility::*,
+        proof_plans::{test_utility::*, DynProofPlan},
     },
 };
 use curve25519_dalek::RistrettoPoint;

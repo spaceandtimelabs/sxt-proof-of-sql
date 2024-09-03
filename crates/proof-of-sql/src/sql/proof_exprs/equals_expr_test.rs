@@ -6,8 +6,8 @@ use crate::{
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_expr::{test_utility::*, DynProofExpr, ProofExpr},
-        proof_plan::test_utility::*,
+        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;

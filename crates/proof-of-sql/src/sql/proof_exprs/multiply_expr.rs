@@ -10,7 +10,7 @@ use crate::{
     },
     sql::{
         proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
-        proof_expr::multiply_columns,
+        proof_exprs::multiply_columns,
     },
 };
 use bumpalo::Bump;

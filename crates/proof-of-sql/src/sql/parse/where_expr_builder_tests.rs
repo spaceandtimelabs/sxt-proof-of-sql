@@ -5,7 +5,7 @@ use crate::{
     },
     sql::{
         parse::{ConversionError, QueryExpr, WhereExprBuilder},
-        proof_expr::{ColumnExpr, DynProofExpr, LiteralExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
 use curve25519_dalek::RistrettoPoint;

@@ -7,7 +7,7 @@ use crate::{
             GroupByPostprocessing, OrderByPostprocessing, OwnedTablePostprocessing,
             SelectPostprocessing, SlicePostprocessing,
         },
-        proof_plan::{DynProofPlan, GroupByExec},
+        proof_plans::{DynProofPlan, GroupByExec},
     },
 };
 use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};

@@ -2,5 +2,5 @@
 pub mod parse;
 pub mod postprocessing;
 pub mod proof;
-pub mod proof_expr;
-pub mod proof_plan;
+pub mod proof_exprs;
+pub mod proof_plans;

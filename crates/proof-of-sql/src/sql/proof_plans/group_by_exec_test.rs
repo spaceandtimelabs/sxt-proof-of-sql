@@ -7,7 +7,7 @@ use crate::{
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_expr::test_utility::*,
+        proof_exprs::test_utility::*,
     },
 };
 

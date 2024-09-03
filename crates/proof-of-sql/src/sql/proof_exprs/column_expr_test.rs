@@ -5,8 +5,8 @@ use crate::{
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_expr::test_utility::*,
-        proof_plan::test_utility::*,
+        proof_exprs::test_utility::*,
+        proof_plans::test_utility::*,
     },
 };
 

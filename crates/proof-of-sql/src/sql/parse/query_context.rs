@@ -5,8 +5,8 @@ use crate::{
     },
     sql::{
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
-        proof_expr::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
-        proof_plan::GroupByExec,
+        proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+        proof_plans::GroupByExec,
     },
 };
 use indexmap::{IndexMap, IndexSet};

@@ -11,7 +11,7 @@ use crate::{
             CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
             VerificationBuilder,
         },
-        proof_expr::{AliasedDynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;

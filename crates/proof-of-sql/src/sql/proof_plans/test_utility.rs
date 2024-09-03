@@ -6,7 +6,7 @@ use crate::{
         commitment::Commitment,
         database::{SchemaAccessor, TableRef},
     },
-    sql::proof_expr::{test_utility::*, AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
+    sql::proof_exprs::{test_utility::*, AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 

@@ -4,12 +4,12 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType},
     },
-    sql::proof_expr::{DynProofExpr, ProofExpr},
+    sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
-/// Builder that enables building a `proof_of_sql::sql::proof_expr::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
+/// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
 /// intended to be used as the where clause in a filter expression or group by expression.
 pub struct WhereExprBuilder<'a> {
     builder: DynProofExprBuilder<'a>,
@@ -21,7 +21,7 @@ impl<'a> WhereExprBuilder<'a> {
             builder: DynProofExprBuilder::new(column_mapping),
         }
     }
-    /// Builds a `proof_of_sql::sql::proof_expr::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
+    /// Builds a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
     pub fn build<C: Commitment>(
         self,

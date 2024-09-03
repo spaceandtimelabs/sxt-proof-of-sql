@@ -10,7 +10,7 @@ use crate::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
-        proof_expr::{test_utility::*, ProofExpr},
+        proof_exprs::{test_utility::*, ProofExpr},
     },
 };
 use blitzar::proof::InnerProductProof;

@@ -179,7 +179,7 @@ impl MessageLabel {
             MessageLabel::DoryMessage => b"dorymessage v1",
             MessageLabel::DoryChallenge => b"dorychallenge v1",
             MessageLabel::PostResultChallenges => b"postresultchallenges v1",
-            MessageLabel::ProofPlan => b"proofexec v1",
+            MessageLabel::ProofPlan => b"proofplan v1",
             MessageLabel::TableLength => b"tablelength v1",
             MessageLabel::GeneratorOffset => b"generatoroffset v1",
         }

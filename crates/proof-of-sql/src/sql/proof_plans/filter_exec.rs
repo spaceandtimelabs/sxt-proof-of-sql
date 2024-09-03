@@ -13,7 +13,7 @@ use crate::{
             CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
             ProverHonestyMarker, ResultBuilder, VerificationBuilder,
         },
-        proof_expr::{DynProofExpr, ProofExpr, TableExpr},
+        proof_exprs::{DynProofExpr, ProofExpr, TableExpr},
     },
 };
 use bumpalo::Bump;

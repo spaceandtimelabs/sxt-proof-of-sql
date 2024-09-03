@@ -1,4 +1,4 @@
-use super::{test_utility::*, DenseFilterExec};
+use super::{test_utility::*, FilterExec, FilterResultExpr};
 use crate::{
     base::{
         database::{
@@ -8,11 +8,12 @@ use crate::{
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
+    proof_primitive::dory::DoryCommitment,
     sql::{
         proof::{
             exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
         },
-        proof_expr::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
+        proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
     },
 };
 use blitzar::proof::InnerProductProof;
@@ -24,26 +25,18 @@ use proof_of_sql_parser::{Identifier, ResourceId};
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let a = Identifier::try_new("a").unwrap();
-    let b = Identifier::try_new("b").unwrap();
-    let provable_ast = DenseFilterExec::<RistrettoPoint>::new(
+    let provable_ast = FilterExec::<RistrettoPoint>::new(
         vec![
-            aliased_plan(
-                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
-                    a,
-                    ColumnType::BigInt,
-                ))),
-                "a",
-            ),
-            aliased_plan(
-                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
-                    b,
-                    ColumnType::BigInt,
-                ))),
-                "b",
-            ),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            )),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
+                Identifier::try_new("b").unwrap(),
+                ColumnType::BigInt,
+            )),
         ],
         TableExpr { table_ref },
         DynProofExpr::try_new_equals(
@@ -56,7 +49,6 @@ fn we_can_correctly_fetch_the_query_result_schema() {
         )
         .unwrap(),
     );
-
     let column_fields: Vec<ColumnField> = provable_ast.get_column_result_fields();
     assert_eq!(
         column_fields,
@@ -70,31 +62,23 @@ fn we_can_correctly_fetch_the_query_result_schema() {
 #[test]
 fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
-    let a = Identifier::try_new("a").unwrap();
-    let f = Identifier::try_new("f").unwrap();
-    let provable_ast = DenseFilterExec::new(
+    let provable_ast = FilterExec::new(
         vec![
-            aliased_plan(
-                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
-                    a,
-                    ColumnType::BigInt,
-                ))),
-                "a",
-            ),
-            aliased_plan(
-                DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
-                    table_ref,
-                    f,
-                    ColumnType::BigInt,
-                ))),
-                "f",
-            ),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
+                Identifier::try_new("a").unwrap(),
+                ColumnType::BigInt,
+            )),
+            FilterResultExpr::new(ColumnRef::new(
+                table_ref,
+                Identifier::try_new("f").unwrap(),
+                ColumnType::BigInt,
+            )),
         ],
         TableExpr { table_ref },
-        not::<RistrettoPoint>(and(
+        not(and(
             or(
-                DynProofExpr::try_new_equals(
+                DynProofExpr::<DoryCommitment>::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("f").unwrap(),
@@ -103,7 +87,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                     DynProofExpr::Literal(LiteralExpr::new(LiteralValue::BigInt(45))),
                 )
                 .unwrap(),
-                DynProofExpr::try_new_equals(
+                DynProofExpr::<DoryCommitment>::try_new_equals(
                     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                         table_ref,
                         Identifier::try_new("c").unwrap(),
@@ -113,7 +97,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
                 )
                 .unwrap(),
             ),
-            DynProofExpr::try_new_equals(
+            DynProofExpr::<DoryCommitment>::try_new_equals(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
                     table_ref,
                     Identifier::try_new("b").unwrap(),
@@ -155,15 +139,15 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 }
 
 #[test]
-fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
+fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
     let data = owned_table([
         bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
         bigint("b", [1_i64, 2, 3, 4, 5]),
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let where_clause = equal(column(t, "a", &accessor), const_int128(5_i128));
-    let ast = dense_filter(cols_expr_plan(t, &["b"], &accessor), tab(t), where_clause);
+    let where_clause = equal(column(t, "a", &accessor), const_int128(5));
+    let ast = filter(cols_result(t, &["b"], &accessor), tab(t), where_clause);
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
@@ -172,7 +156,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [0; 0]),
         bigint("b", [0; 0]),
@@ -185,8 +169,8 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
-    let expr = dense_filter(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
+    let expr = filter(
+        cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -217,7 +201,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -230,8 +214,8 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
-    let expr = dense_filter(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
+    let expr = filter(
+        cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -262,8 +246,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
 }
 
 #[test]
-fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_using_result_evaluate()
-{
+fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -276,7 +259,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
-    let expr = dense_filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
+    let expr = filter(cols_result(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
     expr.result_evaluate(&mut builder, &alloc, &accessor);
@@ -290,7 +273,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
 }
 
 #[test]
-fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate() {
+fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -303,8 +286,8 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
-    let expr = dense_filter(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
+    let expr = filter(
+        cols_result(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
     );
@@ -330,104 +313,6 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
         varchar("d", ["3", "5"]),
         decimal75("e", 1, 0, [3, 5]),
     ]);
-    assert_eq!(res, expected);
-}
 
-#[test]
-fn we_can_prove_a_dense_filter_on_an_empty_table() {
-    let data = owned_table([
-        bigint("a", [101; 0]),
-        bigint("b", [3; 0]),
-        int128("c", [3; 0]),
-        varchar("d", ["3"; 0]),
-        scalar("e", [3; 0]),
-    ]);
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let expr = dense_filter(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-        tab(t),
-        equal(column(t, "a", &accessor), const_int128(106)),
-    );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table([
-        bigint("b", [3; 0]),
-        int128("c", [3; 0]),
-        varchar("d", ["3"; 0]),
-        scalar("e", [3; 0]),
-    ]);
-    assert_eq!(res, expected);
-}
-
-#[test]
-fn we_can_prove_a_dense_filter_with_empty_results() {
-    let data = owned_table([
-        bigint("a", [101, 104, 105, 102, 105]),
-        bigint("b", [1, 2, 3, 4, 5]),
-        int128("c", [1, 2, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
-    ]);
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let expr = dense_filter(
-        cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
-        tab(t),
-        equal(column(t, "a", &accessor), const_int128(106)),
-    );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table([
-        bigint("b", [3; 0]),
-        int128("c", [3; 0]),
-        varchar("d", ["3"; 0]),
-        scalar("e", [3; 0]),
-    ]);
-    assert_eq!(res, expected);
-}
-
-#[test]
-fn we_can_prove_a_dense_filter() {
-    let data = owned_table([
-        bigint("a", [101, 104, 105, 102, 105]),
-        bigint("b", [1, 2, 3, 4, 7]),
-        int128("c", [1, 3, 3, 4, 5]),
-        varchar("d", ["1", "2", "3", "4", "5"]),
-        scalar("e", [1, 2, 3, 4, 5]),
-    ]);
-    let t = "sxt.t".parse().unwrap();
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    accessor.add_table(t, data, 0);
-    let expr = dense_filter(
-        vec![
-            col_expr_plan(t, "b", &accessor),
-            col_expr_plan(t, "c", &accessor),
-            col_expr_plan(t, "d", &accessor),
-            col_expr_plan(t, "e", &accessor),
-            aliased_plan(const_int128(105), "const"),
-            aliased_plan(
-                equal(column(t, "b", &accessor), column(t, "c", &accessor)),
-                "bool",
-            ),
-        ],
-        tab(t),
-        equal(column(t, "a", &accessor), const_int128(105)),
-    );
-    let res = VerifiableQueryResult::new(&expr, &accessor, &());
-    exercise_verification(&res, &expr, &accessor, t);
-    let res = res.verify(&expr, &accessor, &()).unwrap().table;
-    let expected = owned_table([
-        bigint("b", [3, 7]),
-        int128("c", [3, 5]),
-        varchar("d", ["3", "5"]),
-        scalar("e", [3, 5]),
-        int128("const", [105, 105]),
-        boolean("bool", [true, false]),
-    ]);
     assert_eq!(res, expected);
 }

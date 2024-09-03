@@ -7,7 +7,7 @@ use crate::{
     },
     sql::{
         parse::ConversionError::DecimalConversionError,
-        proof_expr::{ColumnExpr, DynProofExpr, ProofExpr},
+        proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
 use indexmap::IndexMap;
@@ -17,7 +17,7 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
-/// Builder that enables building a `proofs::sql::proof_expr::DynProofExpr` from
+/// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expression`.
 pub struct DynProofExprBuilder<'a> {
     column_mapping: &'a IndexMap<Identifier, ColumnRef>,
@@ -39,7 +39,7 @@ impl<'a> DynProofExprBuilder<'a> {
             in_agg_scope: true,
         }
     }
-    /// Builds a `proofs::sql::proof_expr::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
+    /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
     pub fn build<C: Commitment>(
         &self,
         expr: &Expression,
