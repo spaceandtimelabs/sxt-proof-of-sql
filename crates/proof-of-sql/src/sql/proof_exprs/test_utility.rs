@@ -4,6 +4,7 @@ use crate::base::{
     database::{ColumnRef, LiteralValue, SchemaAccessor, TableRef},
     math::decimal::Precision,
 };
+use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
     let name = name.parse().unwrap();
@@ -175,4 +176,11 @@ pub fn cols_expr<C: Commitment>(
         .iter()
         .map(|name| col_expr(tab, name, accessor))
         .collect()
+}
+
+pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
+    AliasedDynProofExpr {
+        expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
+        alias: alias.parse().unwrap(),
+    }
 }

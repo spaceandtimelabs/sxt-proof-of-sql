@@ -8,7 +8,6 @@ use crate::{
     },
     sql::proof_exprs::{test_utility::*, AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
 };
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 
 pub fn col_result(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> FilterResultExpr {
     FilterResultExpr::new(col_ref(tab, name, accessor))
@@ -46,13 +45,6 @@ pub fn dense_filter<C: Commitment>(
     where_clause: DynProofExpr<C>,
 ) -> DynProofPlan<C> {
     DynProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
-}
-
-pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
-    AliasedDynProofExpr {
-        expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
-        alias: alias.parse().unwrap(),
-    }
 }
 
 pub fn group_by<C: Commitment>(
