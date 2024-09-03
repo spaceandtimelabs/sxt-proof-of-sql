@@ -54,6 +54,7 @@ rayon = { version = "1.5" }
 serde = { version = "1" }
 serde_json = { version = "1" }
 thiserror = { version = "1" }
+tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 tokio = { version = "1.39.3" }
 tracing = { version = "0.1.36" }
 tracing-opentelemetry = { version = "0.22.0" }

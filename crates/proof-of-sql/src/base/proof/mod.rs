@@ -8,3 +8,14 @@ mod transcript_protocol;
 #[cfg(test)]
 mod transcript_protocol_test;
 pub use transcript_protocol::{MessageLabel, TranscriptProtocol};
+
+mod transcript;
+pub use transcript::Transcript;
+
+mod transcript_core;
+#[cfg(test)]
+mod transcript_core_test;
+
+mod keccak256_transcript;
+#[allow(unused_imports)]
+pub use keccak256_transcript::Keccak256Transcript;
