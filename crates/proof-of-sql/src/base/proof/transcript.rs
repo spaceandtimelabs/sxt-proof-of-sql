@@ -13,7 +13,10 @@ pub trait Transcript {
     /// Appends the provided messages by appending the reversed raw bytes (i.e. assuming the message is bigendian)
     fn extend_as_be<M: FromBytes + AsBytes>(&mut self, messages: impl IntoIterator<Item = M>);
     /// Appends the provided messages by appending the raw bytes (i.e. assuming the message is littleendian)
-    fn extend_as_le<'a, M: AsBytes + 'a>(&mut self, messages: impl IntoIterator<Item = &'a M>);
+    fn extend_as_le_from_refs<'a, M: AsBytes + 'a>(
+        &mut self,
+        messages: impl IntoIterator<Item = &'a M>,
+    );
     /// Appends the provided scalars by appending the reversed raw bytes of the canonical value of the scalar (i.e. bigendian form)
     fn extend_scalars_as_be<'a, S: Scalar + 'a>(
         &mut self,
