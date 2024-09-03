@@ -4,7 +4,10 @@ use crate::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
     },
-    sql::ast::{AliasedProvableExprPlan, DenseFilterExec, ProvableExprPlan, TableExpr},
+    sql::{
+        proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
+        proof_plans::DenseFilterExec,
+    },
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -12,8 +15,8 @@ use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
 pub struct FilterExecBuilder<C: Commitment> {
     table_expr: Option<TableExpr>,
-    where_expr: Option<ProvableExprPlan<C>>,
-    filter_result_expr_list: Vec<AliasedProvableExprPlan<C>>,
+    where_expr: Option<DynProofExpr<C>>,
+    filter_result_expr_list: Vec<AliasedDynProofExpr<C>>,
     column_mapping: IndexMap<Identifier, ColumnRef>,
 }
 
@@ -46,8 +49,8 @@ impl<C: Commitment> FilterExecBuilder<C> {
         // If at least one column is non-provable, add all columns from the column mapping to the filter result expression list
         let mut has_nonprovable_column = false;
         for enriched_expr in columns {
-            if let Some(plan) = &enriched_expr.provable_expr_plan {
-                self.filter_result_expr_list.push(AliasedProvableExprPlan {
+            if let Some(plan) = &enriched_expr.dyn_proof_expr {
+                self.filter_result_expr_list.push(AliasedDynProofExpr {
                     expr: plan.clone(),
                     alias: enriched_expr.residue_expression.alias,
                 });
@@ -59,8 +62,8 @@ impl<C: Commitment> FilterExecBuilder<C> {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {
                 let column_ref = self.column_mapping.get(alias).unwrap();
-                self.filter_result_expr_list.push(AliasedProvableExprPlan {
-                    expr: ProvableExprPlan::new_column(*column_ref),
+                self.filter_result_expr_list.push(AliasedDynProofExpr {
+                    expr: DynProofExpr::new_column(*column_ref),
                     alias: *alias,
                 });
             }
@@ -73,7 +76,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr
-                .unwrap_or_else(|| ProvableExprPlan::new_literal(LiteralValue::Boolean(true))),
+                .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true))),
         )
     }
 }

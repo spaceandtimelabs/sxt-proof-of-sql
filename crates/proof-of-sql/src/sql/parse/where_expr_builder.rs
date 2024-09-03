@@ -1,32 +1,32 @@
-use super::{ConversionError, ProvableExprPlanBuilder};
+use super::{ConversionError, DynProofExprBuilder};
 use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType},
     },
-    sql::ast::{ProvableExpr, ProvableExprPlan},
+    sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
 use indexmap::IndexMap;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
-/// Builder that enables building a `proof_of_sql::sql::ast::ProvableExprPlan` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
+/// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
 /// intended to be used as the where clause in a filter expression or group by expression.
 pub struct WhereExprBuilder<'a> {
-    builder: ProvableExprPlanBuilder<'a>,
+    builder: DynProofExprBuilder<'a>,
 }
 impl<'a> WhereExprBuilder<'a> {
     /// Creates a new `WhereExprBuilder` with the given column mapping.
     pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
         Self {
-            builder: ProvableExprPlanBuilder::new(column_mapping),
+            builder: DynProofExprBuilder::new(column_mapping),
         }
     }
-    /// Builds a `proof_of_sql::sql::ast::ProvableExprPlan` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
+    /// Builds a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
     /// intended to be used as the where clause in a filter expression or group by expression.
     pub fn build<C: Commitment>(
         self,
         where_expr: Option<Box<Expression>>,
-    ) -> Result<Option<ProvableExprPlan<C>>, ConversionError> {
+    ) -> Result<Option<DynProofExpr<C>>, ConversionError> {
         where_expr
             .map(|where_expr| {
                 let expr_plan = self.builder.build(&where_expr)?;
