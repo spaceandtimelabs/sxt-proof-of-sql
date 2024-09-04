@@ -1,10 +1,10 @@
-use core::cmp::PartialEq;
 /**
  * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
-use core::ops::{AddAssign, Mul, MulAssign, SubAssign};
+use core::ops::{Add, AddAssign, Mul, MulAssign, SubAssign};
+use core::{cmp::PartialEq, iter::Product};
 use num_traits::{Inv, One, Zero};
 
 /// Interpolate a uni-variate degree-`polynomial.len()-1` polynomial and evaluate this
@@ -66,4 +66,51 @@ where
         x_minus_i -= F::one();
     }
     sum * product
+}
+
+/// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
+/// The output of this function is the vector of coefficients of f, leading coefficient first.
+/// That is, `f(x) = evals[j]*x^(d-j)``.
+#[allow(dead_code)]
+pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
+where
+    S: Zero
+        + Copy
+        + From<i32>
+        + Mul<Output = S>
+        + Add<Output = S>
+        + Inv<Output = Option<S>>
+        + Product,
+{
+    let n = evals.len().max(1) - 1;
+    evals
+        .iter()
+        .enumerate()
+        .map(|(idx, &eval_i)| {
+            let i = idx as i32;
+            let mut scaled_lagrange_basis = vec![S::zero(); n + 1];
+            // First compute the constant factor of this lagrange basis polynomial:
+            scaled_lagrange_basis[0] = (i - n as i32..0)
+                .chain(1..=i)
+                .map(S::from)
+                .product::<S>()
+                .inv()
+                .unwrap()
+                * eval_i;
+            // Then multiply by the appropriate linear terms:
+            // for j in 0..=n if j != i {
+            for neg_j in (-(n as i32)..-i).chain(1 - i..=0).map(S::from) {
+                for k in (0..n).rev() {
+                    scaled_lagrange_basis[k + 1] =
+                        scaled_lagrange_basis[k + 1] + neg_j * scaled_lagrange_basis[k];
+                }
+            }
+            scaled_lagrange_basis
+        })
+        // Finally, sum up all the resulting polynomials
+        .reduce(|mut acc, b| {
+            acc.iter_mut().zip(b).for_each(|(a, b)| *a = *a + b);
+            acc
+        })
+        .unwrap_or(vec![])
 }
