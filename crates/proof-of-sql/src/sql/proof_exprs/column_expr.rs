@@ -1,8 +1,8 @@
-use super::ProofExpr;
+use super::{ProofExpr, ProofExprResult};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
@@ -65,10 +65,10 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         table_length: usize,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
+    ) -> ProofExprResult<'a, C::Scalar> {
         let column = accessor.get_column(self.column_ref);
         assert_eq!(column.len(), table_length);
-        column
+        ProofExprResult::new(column, vec![])
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the column expression and
@@ -77,11 +77,10 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         _alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let column = accessor.get_column(self.column_ref);
-        builder.produce_anchored_mle(column.clone());
-        column
+        _accessor: &'a dyn DataAccessor<C::Scalar>,
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        builder.produce_anchored_mle(result.result.clone());
     }
 
     /// Evaluate the column expression at the sumcheck's random point,

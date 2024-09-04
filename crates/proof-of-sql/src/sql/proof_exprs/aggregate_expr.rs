@@ -1,8 +1,8 @@
-use super::{DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, ProofExprResult};
 use crate::{
     base::{
         commitment::Commitment,
-        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        database::{ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
@@ -47,8 +47,8 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        self.expr.result_evaluate(table_length, alloc, accessor)
+    ) -> ProofExprResult<'a, C::Scalar> {
+        ProofExprResult::new(self.expr.result_evaluate(table_length, accessor), vec![])
     }
 
     #[tracing::instrument(name = "AggregateExpr::prover_evaluate", level = "debug", skip_all)]
@@ -56,9 +56,11 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        self.expr.prover_evaluate(builder, alloc, accessor)
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 1);
+        self.expr
+            .prover_evaluate(builder, alloc, result.children[0]);
     }
 
     fn verifier_evaluate(

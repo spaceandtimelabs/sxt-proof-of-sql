@@ -1,4 +1,6 @@
-use super::{scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr};
+use super::{
+    scale_and_add_subtract_eval, scale_and_subtract, DynProofExpr, ProofExpr, ProofExprResult,
+};
 use crate::{
     base::{
         commitment::Commitment,
@@ -45,14 +47,24 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let lhs_result = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_result = self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
-        let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
-            .expect("Failed to scale and subtract");
-        Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res))
+        let res = scale_and_subtract(
+            alloc,
+            lhs_result.result,
+            rhs_result.result,
+            lhs_scale,
+            rhs_scale,
+            true,
+        )
+        .expect("Failed to scale and subtract");
+        ProofExprResult::new(
+            Column::Boolean(result_evaluate_equals_zero(table_length, alloc, res)),
+            vec![lhs_result, rhs_result],
+        )
     }
 
     #[tracing::instrument(name = "EqualsExpr::prover_evaluate", level = "debug", skip_all)]
@@ -60,15 +72,20 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 2);
+        let lhs_result = result.children[0].result.clone();
+        let rhs_result = result.children[1].result.clone();
+        self.lhs.prover_evaluate(builder, alloc, lhs_result);
+        self.rhs.prover_evaluate(builder, alloc, rhs_result);
+        let lhs_column: Column<'a, C::Scalar> = lhs_result.result.clone();
+        let rhs_column: Column<'a, C::Scalar> = rhs_result.result.clone();
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let res = scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, true)
             .expect("Failed to scale and subtract");
-        Column::Boolean(prover_evaluate_equals_zero(builder, alloc, res))
+        prover_evaluate_equals_zero(builder, alloc, res);
     }
 
     fn verifier_evaluate(

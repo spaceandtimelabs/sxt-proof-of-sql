@@ -161,6 +161,14 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of scalars if it is a scalar column. Otherwise, returns None.
+    pub(crate) fn as_scalars(&self) -> Option<&'a [S]> {
+        match self {
+            Self::Scalar(col) => Some(col),
+            _ => None,
+        }
+    }
+
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None

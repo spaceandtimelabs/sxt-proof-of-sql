@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, ProofExprResult};
 use crate::{
     base::{
         commitment::Commitment,
@@ -44,14 +44,17 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let lhs_result: ProofExprResult<'a, C::Scalar> =
             self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
+        let rhs_result: ProofExprResult<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
-        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
-        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs))
+        let lhs = lhs_result.result.as_boolean().expect("lhs is not boolean");
+        let rhs = rhs_result.result.as_boolean().expect("rhs is not boolean");
+        ProofExprResult::new(
+            Column::Boolean(result_evaluate_or(table_length, alloc, lhs, rhs)),
+            vec![lhs_result, rhs_result],
+        )
     }
 
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
@@ -59,13 +62,36 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
-        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
-        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(prover_evaluate_or(builder, alloc, lhs, rhs))
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 2);
+        let lhs_result = result.children[0].result.clone();
+        let rhs_result = result.children[1].result.clone();
+        self.lhs.prover_evaluate(builder, alloc, lhs_result);
+        self.rhs.prover_evaluate(builder, alloc, rhs_result);
+        let lhs_column: Column<'a, C::Scalar> = lhs_result.result.clone();
+        let rhs_column: Column<'a, C::Scalar> = rhs_result.result.clone();
+        let lhs = result.children[0]
+            .result
+            .as_boolean()
+            .expect("lhs is not boolean");
+        let rhs = result.children[1]
+            .result
+            .as_boolean()
+            .expect("rhs is not boolean");
+
+        // lhs_and_rhs
+        let lhs_and_rhs: &[_] = alloc.alloc_slice_fill_with(n, |i| lhs[i] && rhs[i]);
+        builder.produce_intermediate_mle(lhs_and_rhs);
+
+        // subpolynomial: lhs_and_rhs - lhs * rhs
+        builder.produce_sumcheck_subpolynomial(
+            SumcheckSubpolynomialType::Identity,
+            vec![
+                (S::one(), vec![Box::new(lhs_and_rhs)]),
+                (-S::one(), vec![Box::new(lhs), Box::new(rhs)]),
+            ],
+        );
     }
 
     fn verifier_evaluate(

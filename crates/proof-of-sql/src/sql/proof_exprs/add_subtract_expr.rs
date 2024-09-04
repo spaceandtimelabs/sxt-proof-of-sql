@@ -1,4 +1,6 @@
-use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use super::{
+    add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr, ProofExprResult,
+};
 use crate::{
     base::{
         commitment::Commitment,
@@ -56,19 +58,20 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let lhs_result: ProofExprResult<'a, C::Scalar> =
             self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
+        let rhs_result: ProofExprResult<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
-        Column::Scalar(add_subtract_columns(
-            lhs_column,
-            rhs_column,
+        let self_column = Column::Scalar(add_subtract_columns(
+            lhs_result.result,
+            rhs_result.result,
             self.lhs.data_type().scale().unwrap_or(0),
             self.rhs.data_type().scale().unwrap_or(0),
             alloc,
             self.is_subtract,
-        ))
+        ));
+        ProofExprResult::new(self_column, vec![lhs_result, rhs_result])
     }
 
     #[tracing::instrument(
@@ -80,18 +83,11 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
-        Column::Scalar(add_subtract_columns(
-            lhs_column,
-            rhs_column,
-            self.lhs.data_type().scale().unwrap_or(0),
-            self.rhs.data_type().scale().unwrap_or(0),
-            alloc,
-            self.is_subtract,
-        ))
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 2);
+        self.lhs.prover_evaluate(builder, alloc, result.children[0]);
+        self.rhs.prover_evaluate(builder, alloc, result.children[1]);
     }
 
     fn verifier_evaluate(
