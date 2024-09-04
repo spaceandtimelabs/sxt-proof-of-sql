@@ -4,6 +4,9 @@ pub(crate) use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod proof_expr_test;
 
+mod proof_expr_result;
+pub(crate) use proof_expr_result::ProofExprResult;
+
 mod aliased_dyn_proof_expr;
 pub(crate) use aliased_dyn_proof_expr::AliasedDynProofExpr;
 
