@@ -1,15 +1,30 @@
-use super::{G1Affine, F};
+use super::{G1Affine, G1Projective, F};
 use crate::{
     base::{commitment::CommittableColumn, database::ColumnType},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
-use ark_bls12_381::G1Projective;
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use rayon::prelude::*;
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
+
+/// Returns the number of sub commitments needed for
+/// each full commitment in the packed_msm function.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `num_matrix_commitment_columns` - The number of generators used for msm.
+pub fn num_sub_commits(
+    column: &CommittableColumn,
+    offset: usize,
+    num_matrix_commitment_columns: usize,
+) -> usize {
+    (column.len() + offset + num_matrix_commitment_columns - 1) / num_matrix_commitment_columns
+}
 
 /// Returns a bit table vector related to each of the committable columns data size.
 ///
@@ -29,26 +44,10 @@ fn output_bit_table(
             let bit_size = column.column_type().bit_size();
             itertools::repeat_n(
                 bit_size,
-                num_sub_commits_update(column, offset, num_matrix_commitment_columns),
+                num_sub_commits(column, offset, num_matrix_commitment_columns),
             )
         })
         .collect()
-}
-
-/// Returns the number of sub commitments needed for
-/// each full commitment in the packed_msm function.
-///
-/// # Arguments
-///
-/// * `committable_columns` - A reference to the committable columns.
-/// * `offset` - The offset to the data.
-/// * `num_matrix_commitment_columns` - The number of generators used for msm.
-pub fn num_sub_commits_update(
-    column: &CommittableColumn,
-    offset: usize,
-    num_matrix_commitment_columns: usize,
-) -> usize {
-    (column.len() + offset + num_matrix_commitment_columns - 1) / num_matrix_commitment_columns
 }
 
 /// Returns the minimum value of a column as F.
@@ -66,20 +65,6 @@ const fn min_as_f(column_type: ColumnType) -> F {
         | ColumnType::Scalar
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
-    }
-}
-
-const fn is_signed(column_type: ColumnType) -> bool {
-    match column_type {
-        ColumnType::SmallInt
-        | ColumnType::Int
-        | ColumnType::BigInt
-        | ColumnType::Int128
-        | ColumnType::TimestampTZ(_, _) => true,
-        ColumnType::Decimal75(_, _)
-        | ColumnType::Scalar
-        | ColumnType::VarChar
-        | ColumnType::Boolean => false,
     }
 }
 
@@ -152,8 +137,8 @@ pub fn modify_commits(
 
     let mut k = 0;
     for (i, column) in committable_columns.iter().enumerate() {
-        let num_sub_commits = num_sub_commits_update(column, offset, num_matrix_commitment_columns);
-        if is_signed(column.column_type()) {
+        let num_sub_commits = num_sub_commits(column, offset, num_matrix_commitment_columns);
+        if column.column_type().is_signed() {
             let min = min_as_f(column.column_type());
             let offset_sub_commit_first = offset_sub_commits[0].mul(min);
             let offset_sub_commit_middle = offset_sub_commits[1].mul(min);
@@ -220,6 +205,13 @@ fn pack_offset_bit(
     });
 }
 
+/// Returns an offset vector to support signed values.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `num_columns` - The number of columns in a matrix commitment.
 fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -236,7 +228,7 @@ fn offset_column(
 
     let has_at_least_one_signed_column = committable_columns
         .par_iter()
-        .any(|column| is_signed(column.column_type()));
+        .any(|column| column.column_type().is_signed());
 
     if has_at_least_one_signed_column {
         // Set the offset and the column of all ones in a single loop
@@ -249,7 +241,7 @@ fn offset_column(
 
         // Set the remaining columns
         for (j, column) in committable_columns.iter().enumerate() {
-            if is_signed(column.column_type()) {
+            if column.column_type().is_signed() {
                 let column_len = column.len();
                 let first_value = if (offset + column_len) <= num_columns {
                     offset
@@ -347,7 +339,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                 .take(num_sub_commits_completed)
                 .sum::<u32>() as usize;
 
-            num_sub_commits_completed += num_sub_commits_update(column, offset, num_columns);
+            num_sub_commits_completed += num_sub_commits(column, offset, num_columns);
 
             // Get the byte size of the column of data.
             let byte_size = committable_columns[i].column_type().byte_size();
@@ -601,7 +593,7 @@ mod tests {
         let expected: Vec<usize> = vec![1, 2, 3, 4, 5, 4, 3, 2, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
-                num_sub_commits_update(
+                num_sub_commits(
                     &committable_columns[i],
                     offset,
                     num_matrix_commitment_columns,
@@ -641,7 +633,7 @@ mod tests {
         let expected: Vec<usize> = vec![3, 4, 5, 6, 7, 6, 5, 4, 3];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
-                num_sub_commits_update(
+                num_sub_commits(
                     &committable_columns[i],
                     offset,
                     num_matrix_commitment_columns,
@@ -681,7 +673,7 @@ mod tests {
         let expected: Vec<usize> = vec![1, 1, 1, 1, 2, 1, 1, 1, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
-                num_sub_commits_update(
+                num_sub_commits(
                     &committable_columns[i],
                     offset,
                     num_matrix_commitment_columns,
@@ -721,7 +713,7 @@ mod tests {
         let expected: Vec<usize> = vec![1, 1, 1, 2, 2, 2, 1, 1, 1];
         let num_sub_commits: Vec<usize> = (0..committable_columns.len())
             .map(|i| {
-                num_sub_commits_update(
+                num_sub_commits(
                     &committable_columns[i],
                     offset,
                     num_matrix_commitment_columns,
