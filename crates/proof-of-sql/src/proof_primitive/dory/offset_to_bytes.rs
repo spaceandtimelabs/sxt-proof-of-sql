@@ -1,59 +1,55 @@
-use zerocopy::AsBytes;
-
-pub trait OffsetToBytes {
-    fn offset_to_bytes(&self) -> Vec<u8>;
+pub trait OffsetToBytes<const LEN: usize> {
+    fn offset_to_bytes(&self) -> [u8; LEN];
 }
 
-impl OffsetToBytes for u8 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
-        vec![*self]
+impl OffsetToBytes<1> for u8 {
+    fn offset_to_bytes(&self) -> [u8; 1] {
+        [*self]
     }
 }
 
-impl OffsetToBytes for i16 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
+impl OffsetToBytes<2> for i16 {
+    fn offset_to_bytes(&self) -> [u8; 2] {
         let shifted = self.wrapping_sub(i16::MIN);
-        shifted.to_le_bytes().to_vec()
+        shifted.to_le_bytes()
     }
 }
 
-impl OffsetToBytes for i32 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
+impl OffsetToBytes<4> for i32 {
+    fn offset_to_bytes(&self) -> [u8; 4] {
         let shifted = self.wrapping_sub(i32::MIN);
-        shifted.to_le_bytes().to_vec()
+        shifted.to_le_bytes()
     }
 }
 
-impl OffsetToBytes for i64 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
+impl OffsetToBytes<8> for i64 {
+    fn offset_to_bytes(&self) -> [u8; 8] {
         let shifted = self.wrapping_sub(i64::MIN);
-        shifted.to_le_bytes().to_vec()
+        shifted.to_le_bytes()
     }
 }
 
-impl OffsetToBytes for i128 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
+impl OffsetToBytes<16> for i128 {
+    fn offset_to_bytes(&self) -> [u8; 16] {
         let shifted = self.wrapping_sub(i128::MIN);
-        shifted.to_le_bytes().to_vec()
+        shifted.to_le_bytes()
     }
 }
 
-impl OffsetToBytes for bool {
-    fn offset_to_bytes(&self) -> Vec<u8> {
-        vec![*self as u8]
+impl OffsetToBytes<1> for bool {
+    fn offset_to_bytes(&self) -> [u8; 1] {
+        [*self as u8]
     }
 }
 
-impl OffsetToBytes for u64 {
-    fn offset_to_bytes(&self) -> Vec<u8> {
-        let bytes = self.to_le_bytes();
-        bytes.to_vec()
+impl OffsetToBytes<8> for u64 {
+    fn offset_to_bytes(&self) -> [u8; 8] {
+        self.to_le_bytes()
     }
 }
 
-impl OffsetToBytes for [u64; 4] {
-    fn offset_to_bytes(&self) -> Vec<u8> {
-        let slice = self.as_bytes();
-        slice.to_vec()
+impl OffsetToBytes<32> for [u64; 4] {
+    fn offset_to_bytes(&self) -> [u8; 32] {
+        bytemuck::cast(*self)
     }
 }

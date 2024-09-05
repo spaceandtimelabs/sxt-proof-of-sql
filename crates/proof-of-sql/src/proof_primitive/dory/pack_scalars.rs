@@ -148,7 +148,7 @@ pub fn modify_commits(
 /// * `current_byte_size` - The current byte size of the column.
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
-fn pack_bit<T: OffsetToBytes>(
+fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     column: &[T],
     packed_scalars: &mut [u8],
     current_bit_table_sum: usize,
@@ -179,7 +179,7 @@ fn pack_bit<T: OffsetToBytes>(
 /// * `offset` - The offset to the data.
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
-fn pack_offset_bit<T: OffsetToBytes>(
+fn pack_offset_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     column: &[T],
     packed_scalars: &mut [u8],
     current_bit_table_sum: usize,

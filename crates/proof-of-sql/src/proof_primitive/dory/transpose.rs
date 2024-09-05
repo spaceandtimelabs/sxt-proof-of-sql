@@ -1,7 +1,7 @@
 use crate::proof_primitive::dory::offset_to_bytes::OffsetToBytes;
 
 #[tracing::instrument(name = "transpose_for_fixed_msm (gpu)", level = "debug", skip_all)]
-pub fn transpose_for_fixed_msm<T: OffsetToBytes>(
+pub fn transpose_for_fixed_msm<const LEN: usize, T: OffsetToBytes<LEN>>(
     column: &[T],
     offset: usize,
     rows: usize,
