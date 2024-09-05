@@ -18,7 +18,6 @@ const OFFSET_SIZE: usize = 2;
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
-#[tracing::instrument(name = "pack_scalars::num_sub_commits", level = "debug", skip_all)]
 pub fn num_sub_commits(
     column: &CommittableColumn,
     offset: usize,
@@ -34,7 +33,6 @@ pub fn num_sub_commits(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
-#[tracing::instrument(name = "pack_scalars::output_bit_table", level = "debug", skip_all)]
 fn output_bit_table(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -68,39 +66,6 @@ const fn min_as_f(column_type: ColumnType) -> F {
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
     }
-}
-
-/// Packs bits of a committable column into the packed scalars array.
-/// Will offset signed values by the minimum of the data type.
-///
-/// # Arguments
-///
-/// * `column` - A reference to the committable column to be packed.
-/// * `packed_scalars` - A mutable reference to the array where the packed scalars will be stored.
-/// * `current_bit_table_sum` - The current sum of the bit table up to the current sub commit.
-/// * `offset` - The offset to the data.
-/// * `current_byte_size` - The current byte size of the column.
-/// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
-/// * `num_columns` - The number of columns in a matrix commitment.
-#[tracing::instrument(name = "pack_scalars::pack_bit", level = "debug", skip_all)]
-fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
-    column: &[T],
-    packed_scalars: &mut [u8],
-    current_bit_table_sum: usize,
-    offset: usize,
-    current_byte_size: usize,
-    bit_table_sum_in_bytes: usize,
-    num_columns: usize,
-) {
-    let byte_offset = current_bit_table_sum / BYTE_SIZE;
-    column.iter().enumerate().for_each(|(i, value)| {
-        let row_offset = ((i + offset) % num_columns) * bit_table_sum_in_bytes;
-        let col_offset = current_byte_size * ((i + offset) / num_columns);
-        let offset_idx = row_offset + col_offset + byte_offset;
-
-        packed_scalars[offset_idx..offset_idx + current_byte_size]
-            .copy_from_slice(&value.offset_to_bytes()[..]);
-    });
 }
 
 /// Modifies the signed matrix commitment columns by adding the offset to the matrix commitment columns.
@@ -180,6 +145,39 @@ pub fn modify_commits(
     modifed_commits.into_iter().map(Into::into).collect()
 }
 
+/// Packs bits of a committable column into the packed scalars array.
+/// Will offset signed values by the minimum of the data type.
+///
+/// # Arguments
+///
+/// * `column` - A reference to the committable column to be packed.
+/// * `packed_scalars` - A mutable reference to the array where the packed scalars will be stored.
+/// * `current_bit_table_sum` - The current sum of the bit table up to the current sub commit.
+/// * `offset` - The offset to the data.
+/// * `current_byte_size` - The current byte size of the column.
+/// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
+/// * `num_columns` - The number of columns in a matrix commitment.
+#[tracing::instrument(name = "pack_scalars::pack_bit", level = "debug", skip_all)]
+fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
+    column: &[T],
+    packed_scalars: &mut [u8],
+    current_bit_table_sum: usize,
+    offset: usize,
+    current_byte_size: usize,
+    bit_table_sum_in_bytes: usize,
+    num_columns: usize,
+) {
+    let byte_offset = current_bit_table_sum / BYTE_SIZE;
+    column.iter().enumerate().for_each(|(i, value)| {
+        let row_offset = ((i + offset) % num_columns) * bit_table_sum_in_bytes;
+        let col_offset = current_byte_size * ((i + offset) / num_columns);
+        let offset_idx = row_offset + col_offset + byte_offset;
+
+        packed_scalars[offset_idx..offset_idx + current_byte_size]
+            .copy_from_slice(&value.offset_to_bytes()[..]);
+    });
+}
+
 /// Packs the offset bits of a committable column into the packed scalars at the end of the array.
 /// The offsets are 8-bit values used to handle the signed values.
 ///
@@ -192,8 +190,8 @@ pub fn modify_commits(
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
 #[tracing::instrument(name = "pack_scalars::pack_offset_bit", level = "debug", skip_all)]
-fn pack_offset_bit(
-    offset_column: &[u8],
+fn pack_offset_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
+    offset_column: &[T],
     packed_scalars: &mut [u8],
     current_bit_table_sum: usize,
     bit_table_sum_in_bytes: usize,
@@ -205,7 +203,7 @@ fn pack_offset_bit(
         let col_offset = i / num_columns;
         let offset_idx = row_offset + col_offset + byte_offset;
 
-        packed_scalars[offset_idx] = *value;
+        packed_scalars[offset_idx..offset_idx + 1].copy_from_slice(&value.offset_to_bytes()[..]);
     });
 }
 
