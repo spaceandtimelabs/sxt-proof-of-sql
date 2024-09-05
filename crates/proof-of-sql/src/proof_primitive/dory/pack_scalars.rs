@@ -167,13 +167,11 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     bit_table_sum_in_bytes: usize,
     num_columns: usize,
 ) {
-    let nc: f32 = 1.0 / num_columns as f32;
     let byte_offset = current_bit_table_sum / BYTE_SIZE;
-
     column.iter().enumerate().for_each(|(i, value)| {
         let idx = i + offset;
         let row_offset = (idx % num_columns) * bit_table_sum_in_bytes;
-        let col_offset = current_byte_size * (idx as f32 * nc) as usize;
+        let col_offset = current_byte_size * (idx / num_columns);
         let offset_idx = row_offset + col_offset + byte_offset;
 
         packed_scalars[offset_idx..offset_idx + current_byte_size]
