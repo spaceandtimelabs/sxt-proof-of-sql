@@ -156,7 +156,6 @@ pub fn modify_commits(
 /// * `current_byte_size` - The current byte size of the column.
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
-#[tracing::instrument(name = "pack_scalars::pack_bit", level = "debug", skip_all)]
 fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     column: &[T],
     packed_scalars: &mut [u8],
@@ -185,7 +184,6 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
-#[tracing::instrument(name = "pack_scalars::offset_column", level = "debug", skip_all)]
 fn offset_column<'a>(
     committable_columns: &[CommittableColumn],
     offset: usize,
