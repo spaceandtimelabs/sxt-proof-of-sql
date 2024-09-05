@@ -6,6 +6,7 @@ use crate::{
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use rayon::prelude::*;
+use tracing::{span, Level};
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
@@ -173,8 +174,10 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
         let col_offset = current_byte_size * ((i + offset) / num_columns);
         let offset_idx = row_offset + col_offset + byte_offset;
 
+        let span = span!(Level::INFO, "offset_to_bytes").entered();
         packed_scalars[offset_idx..offset_idx + current_byte_size]
             .copy_from_slice(&value.offset_to_bytes()[..]);
+        span.exit();
     });
 }
 
