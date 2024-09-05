@@ -18,6 +18,7 @@ const OFFSET_SIZE: usize = 2;
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
+#[tracing::instrument(name = "pack_scalars::num_sub_commits", level = "debug", skip_all)]
 pub fn num_sub_commits(
     column: &CommittableColumn,
     offset: usize,
@@ -33,6 +34,7 @@ pub fn num_sub_commits(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
+#[tracing::instrument(name = "pack_scalars::output_bit_table", level = "debug", skip_all)]
 fn output_bit_table(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -80,6 +82,7 @@ const fn min_as_f(column_type: ColumnType) -> F {
 /// * `current_byte_size` - The current byte size of the column.
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
+#[tracing::instrument(name = "pack_scalars::pack_bit", level = "debug", skip_all)]
 fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     column: &[T],
     packed_scalars: &mut [u8],
@@ -188,6 +191,7 @@ pub fn modify_commits(
 /// * `offset` - The offset to the data.
 /// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
 /// * `num_columns` - The number of columns in a matrix commitment.
+#[tracing::instrument(name = "pack_scalars::pack_offset_bit", level = "debug", skip_all)]
 fn pack_offset_bit(
     offset_column: &[u8],
     packed_scalars: &mut [u8],
@@ -212,6 +216,7 @@ fn pack_offset_bit(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
+#[tracing::instrument(name = "pack_scalars::offset_column", level = "debug", skip_all)]
 fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -271,30 +276,6 @@ fn offset_column(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
-///
-/// # Example
-///
-/// ```ignore
-/// let committable_columns = [
-///     CommittableColumn::SmallInt(&[0, 1, 2]),
-///     CommittableColumn::SmallInt(&[3, 4, 5, 6, 7]),
-/// ];
-/// let offset = 1;
-/// let num_columns = 3;
-///
-/// let (bit_table, packed_scalars) = bit_table_and_scalars_for_packed_msm(
-///     &committable_columns,
-///     offset,
-///     num_columns,
-/// );
-///
-/// assert_eq!(num_of_commits, 2);
-/// assert_eq!(bit_table, [16, 16, 16, 16, 8, 8, 8, 8]);
-/// assert_eq!(packed_scalars.len(), 36); // num_columns * bit_table_sum / BYTE_SIZE
-/// assert_eq!(packed_scalars, [0,   0, 2, 128, 0,   0, 5, 128, 0, 1, 0, 1,
-///                             0, 128, 0,   0, 3, 128, 6, 128, 1, 0, 1, 1,
-///                             1, 128, 0,   0, 4, 128, 7, 128, 1, 0, 1, 1]);
-/// ```
 #[tracing::instrument(
     name = "pack_scalars::bit_table_and_scalars_for_packed_msm",
     level = "debug",
