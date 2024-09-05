@@ -837,11 +837,11 @@ mod tests {
             bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
 
         let expected_packed_scalar = [
-            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 2, 0, 0, 0, 0, 0, 0, 128, 4,
-            0, 0, 0, 0, 0, 0, 128, 1, 1,
+            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0,
+            128, 4, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1,
         ];
 
-        let expected_bit_table = [64, 64, 8, 8, 8];
+        let expected_bit_table = [64, 64, 8, 8, 8, 8];
 
         assert_eq!(bit_table, expected_bit_table);
         assert_eq!(packed_scalar, expected_packed_scalar);
