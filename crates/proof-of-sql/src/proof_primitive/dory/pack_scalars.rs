@@ -6,7 +6,6 @@ use crate::{
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use rayon::prelude::*;
-use tracing::{span, Level};
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
@@ -168,16 +167,17 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     bit_table_sum_in_bytes: usize,
     num_columns: usize,
 ) {
+    let nc: f32 = 1.0 / num_columns as f32;
     let byte_offset = current_bit_table_sum / BYTE_SIZE;
+
     column.iter().enumerate().for_each(|(i, value)| {
-        let row_offset = ((i + offset) % num_columns) * bit_table_sum_in_bytes;
-        let col_offset = current_byte_size * ((i + offset) / num_columns);
+        let idx = i + offset;
+        let row_offset = (idx % num_columns) * bit_table_sum_in_bytes;
+        let col_offset = current_byte_size * (idx as f32 * nc) as usize;
         let offset_idx = row_offset + col_offset + byte_offset;
 
-        let span = span!(Level::INFO, "offset_to_bytes").entered();
         packed_scalars[offset_idx..offset_idx + current_byte_size]
             .copy_from_slice(&value.offset_to_bytes()[..]);
-        span.exit();
     });
 }
 
@@ -204,7 +204,7 @@ fn offset_column(
     let mut offset_column = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
 
     let has_at_least_one_signed_column = committable_columns
-        .par_iter()
+        .iter()
         .any(|column| column.column_type().is_signed());
 
     if has_at_least_one_signed_column {
