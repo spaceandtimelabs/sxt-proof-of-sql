@@ -71,7 +71,7 @@ fn compute_dory_commitments_packed_impl(
 
 
         let span = span!(Level::INFO, "multi_pairing_OLD").entered();
-        let _dc_OLD = modified_sub_commits_OLD
+        let _dc_OLD: Vec<DoryCommitment> = modified_sub_commits_OLD
             .par_chunks_exact(num_sub_commits_per_full_commit_OLD)
             .map(|sub_commits| DoryCommitment(pairings::multi_pairing(sub_commits, gamma_2_slice)))
             .collect();
