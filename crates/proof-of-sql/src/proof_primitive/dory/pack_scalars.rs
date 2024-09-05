@@ -3,12 +3,14 @@ use crate::{
     base::{commitment::CommittableColumn, database::ColumnType},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
+use ark_bls12_381::G1Projective;
 use ark_ec::CurveGroup;
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use rayon::prelude::*;
 
 const BYTE_SIZE: usize = 8;
+const OFFSET_SIZE: usize = 2;
 
 /// Returns a bit table vector related to each of the committable columns data size.
 ///
@@ -21,6 +23,44 @@ fn output_bit_table<'a>(
     committable_columns
         .iter()
         .map(|column| column.column_type().bit_size())
+}
+
+/// Returns a bit table vector related to each of the committable columns data size.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+fn output_bit_table_update(
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    num_matrix_commitment_columns: usize,
+) -> Vec<u32> {
+    committable_columns
+        .iter()
+        .flat_map(|column| {
+            let bit_size = column.column_type().bit_size();
+            itertools::repeat_n(
+                bit_size,
+                num_sub_commits_update(column, offset, num_matrix_commitment_columns),
+            )
+        })
+        .collect()
+}
+
+/// Returns the number of sub commitments needed for
+/// each full commitment in the packed_msm function.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `num_matrix_commitment_columns` - The number of generators used for msm.
+pub fn num_sub_commits_update(
+    column: &CommittableColumn,
+    offset: usize,
+    num_matrix_commitment_columns: usize,
+) -> usize {
+    (column.len() + offset + num_matrix_commitment_columns - 1) / num_matrix_commitment_columns
 }
 
 /// Returns the size of the largest committable column.
@@ -51,6 +91,20 @@ const fn min_as_f(column_type: ColumnType) -> F {
         | ColumnType::Scalar
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
+    }
+}
+
+const fn is_signed(column_type: ColumnType) -> bool {
+    match column_type {
+        ColumnType::SmallInt
+        | ColumnType::Int
+        | ColumnType::BigInt
+        | ColumnType::Int128
+        | ColumnType::TimestampTZ(_, _) => true,
+        ColumnType::Decimal75(_, _)
+        | ColumnType::Scalar
+        | ColumnType::VarChar
+        | ColumnType::Boolean => false,
     }
 }
 
@@ -99,8 +153,8 @@ pub fn sub_commits_per_full_commit(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `num_sub_commits_per_full_commit` - The number of sub-commits needed for
 ///                                       each full commit for the packed_msm function.
-#[tracing::instrument(name = "pack_scalars::modify_commits (gpu)", level = "debug", skip_all)]
-pub fn modify_commits(
+#[tracing::instrument(name = "pack_scalars::modify_commits_OLD", level = "debug", skip_all)]
+pub fn modify_commits_OLD(
     sub_commits: &[G1Affine],
     committable_columns: &[CommittableColumn],
     num_sub_commits_per_full_commit: usize,
@@ -122,8 +176,8 @@ pub fn modify_commits(
 
     // Add the offset sub-commits multiplied by the min value to the signed sub-commits
     signed_sub_commits
-        .par_iter()
-        .zip(offset_sub_commits.par_iter())
+        .iter()
+        .zip(offset_sub_commits.iter())
         .enumerate()
         .map(|(index, (first, second))| {
             let min = min_as_f(
@@ -234,11 +288,11 @@ fn pack_offset_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 ///                             1, 128, 0,   0, 4, 128, 7, 128, 1, 0, 1, 1]);
 /// ```
 #[tracing::instrument(
-    name = "pack_scalars::bit_table_and_scalars_for_packed_msm (gpu)",
+    name = "pack_scalars::bit_table_and_scalars_for_packed_msm_OLD",
     level = "debug",
     skip_all
 )]
-pub fn bit_table_and_scalars_for_packed_msm(
+pub fn bit_table_and_scalars_for_packed_msm_OLD(
     committable_columns: &[CommittableColumn],
     offset: usize,
     num_columns: usize,
@@ -292,7 +346,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
-                    pack_offset_bit(
+                    pack_offset_bit_old(
                         column,
                         &mut packed_scalars,
                         bit_table_offset_sum,
@@ -311,7 +365,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
-                    pack_offset_bit(
+                    pack_offset_bit_old(
                         column,
                         &mut packed_scalars,
                         bit_table_offset_sum,
@@ -330,7 +384,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
-                    pack_offset_bit(
+                    pack_offset_bit_old(
                         column,
                         &mut packed_scalars,
                         bit_table_offset_sum,
@@ -349,7 +403,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
-                    pack_offset_bit(
+                    pack_offset_bit_old(
                         column,
                         &mut packed_scalars,
                         bit_table_offset_sum,
@@ -368,11 +422,362 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
-                    pack_offset_bit(
+                    pack_offset_bit_old(
                         column,
                         &mut packed_scalars,
                         bit_table_offset_sum,
                         offset,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::Boolean(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::Decimal75(_, _, column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::Scalar(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::VarChar(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+            }
+        });
+
+    (bit_table, packed_scalars)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/// Modifies the signed matrix commitment columns by adding the offset to the matrix commitment columns.
+///
+/// # Arguments
+///
+/// * `sub_commits` - A reference to the signed sub-commits.
+/// * `bit_table` - A reference to the bit table used by the packed_msm function.
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `num_matrix_commitment_columns` - The number of sub-commits needed for
+///                                     each full commit for the packed_msm function.
+#[tracing::instrument(name = "pack_scalars::modify_commits", level = "debug", skip_all)]
+pub fn modify_commits(
+    sub_commits: &[G1Affine],
+    bit_table: &[u32],
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    num_matrix_commitment_columns: usize,
+) -> Vec<G1Affine> {
+    // Set parameters
+    let num_offset_commits = OFFSET_SIZE + committable_columns.len();
+    let num_sub_commits_in_full_commit = bit_table.len() - num_offset_commits;
+    assert_eq!(
+        num_sub_commits_in_full_commit + num_offset_commits,
+        sub_commits.len()
+    );
+
+    // Spit the sub-commits and offset commits.
+    let (signed_sub_commits, offset_sub_commits) =
+        sub_commits.split_at(num_sub_commits_in_full_commit);
+    assert_eq!(signed_sub_commits.len(), num_sub_commits_in_full_commit);
+    assert_eq!(offset_sub_commits.len(), num_offset_commits);
+
+    let mut modifed_commits: Vec<G1Projective> =
+        vec![G1Projective::default(); signed_sub_commits.len()];
+
+    let mut k = 0;
+    for (i, column) in committable_columns.iter().enumerate() {
+        let num_sub_commits = num_sub_commits_update(column, offset, num_matrix_commitment_columns);
+        if is_signed(column.column_type()) {
+            let min = min_as_f(column.column_type());
+            let offset_sub_commit_first = offset_sub_commits[0].mul(min);
+            let offset_sub_commit_middle = offset_sub_commits[1].mul(min);
+            let offset_sub_commit_last = offset_sub_commits[OFFSET_SIZE + i].mul(min);
+
+            match num_sub_commits {
+                1 => {
+                    modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_last;
+                    k += 1;
+                }
+                2 => {
+                    modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_first;
+                    k += 1;
+                    modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_last;
+                    k += 1;
+                }
+                _ => {
+                    modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_first;
+                    k += 1;
+                    (1..num_sub_commits - 1).for_each(|_| {
+                        modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_middle;
+                        k += 1;
+                    });
+                    modifed_commits[k] = signed_sub_commits[k] + offset_sub_commit_last;
+                    k += 1;
+                }
+            }
+        } else {
+            (0..num_sub_commits).for_each(|_| {
+                modifed_commits[k] = signed_sub_commits[k].into();
+                k += 1;
+            });
+        }
+    }
+
+    modifed_commits.into_iter().map(Into::into).collect()
+}
+
+fn pack_offset_bit(
+    column: &[u8],
+    packed_scalars: &mut [u8],
+    current_bit_table_sum: usize,
+    bit_table_sum_in_bytes: usize,
+    num_columns: usize,
+) {
+    let byte_offset = current_bit_table_sum / BYTE_SIZE;
+    column.iter().enumerate().for_each(|(i, value)| {
+        let row_offset = (i % num_columns) * bit_table_sum_in_bytes;
+        let col_offset = i / num_columns;
+        let offset_idx = row_offset + col_offset + byte_offset;
+
+        packed_scalars[offset_idx] = *value;
+    });
+}
+
+fn offset_column(
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    num_columns: usize,
+) -> Vec<u8> {
+    assert!(
+        offset < num_columns,
+        "offset {} must be less than the number of columns {}",
+        offset,
+        num_columns
+    );
+
+    let mut offset_column = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+
+    let has_at_least_one_signed_column = committable_columns
+        .par_iter()
+        .any(|column| is_signed(column.column_type()));
+
+    if has_at_least_one_signed_column {
+        // Set the offset and the column of all ones in a single loop
+        (0..num_columns).for_each(|i| {
+            if i >= offset {
+                offset_column[i] = 1_u8;
+            }
+            offset_column[num_columns + i] = 1_u8;
+        });
+
+        // Set the remaining columns
+        for (j, column) in committable_columns.iter().enumerate() {
+            if is_signed(column.column_type()) {
+                let column_len = column.len();
+                let first_value = if (offset + column_len) <= num_columns {
+                    offset
+                } else {
+                    0
+                };
+                let last_value = if (offset + column_len) % num_columns == 0 {
+                    num_columns
+                } else {
+                    (offset + column_len) % num_columns
+                };
+
+                (first_value..last_value).for_each(|i| {
+                    offset_column[((2 + j) * num_columns) + i] = 1_u8;
+                });
+            }
+        }
+    }
+
+    offset_column
+}
+
+#[tracing::instrument(
+    name = "pack_scalars::bit_table_and_scalars_for_packed_msm",
+    level = "debug",
+    skip_all
+)]
+pub fn bit_table_and_scalars_for_packed_msm(
+    committable_columns: &[CommittableColumn],
+    offset: usize,
+    num_columns: usize,
+) -> (Vec<u32>, Vec<u8>) {
+    // Get the bit table to account for the appropriate number of sub commitments per full commit.
+    let mut bit_table = output_bit_table_update(committable_columns, offset, num_columns);
+    let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
+
+    // Add offsets to the bit table.
+    bit_table
+        .extend(std::iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
+    let bit_table_sum_in_bytes = bit_table.iter().sum::<u32>() as usize / BYTE_SIZE;
+
+    // Create the packed_scalar vector.
+    let mut packed_scalars = vec![0_u8; bit_table_sum_in_bytes * num_columns];
+
+    // Pack the offsets into the packed_scalars array.
+    let offset_column = offset_column(committable_columns, offset, num_columns);
+    pack_offset_bit(
+        &offset_column,
+        &mut packed_scalars,
+        bit_table_sub_commits_sum,
+        bit_table_sum_in_bytes,
+        num_columns,
+    );
+
+    // For each committable column, pack the data into the packed_scalar array.
+    let mut num_sub_commits_completed = 0;
+    committable_columns
+        .iter()
+        .enumerate()
+        .for_each(|(i, column)| {
+            // Get the running sum of the bit table for the signed values.
+            let current_bit_table_sum = bit_table
+                .iter()
+                .take(num_sub_commits_completed)
+                .sum::<u32>() as usize;
+
+            num_sub_commits_completed += num_sub_commits_update(column, offset, num_columns);
+
+            // Get the byte size of the column of data.
+            let byte_size = committable_columns[i].column_type().byte_size();
+
+            // Pack the signed bits and offset bits into the packed_scalars array.
+            match column {
+                CommittableColumn::SmallInt(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::Int(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::BigInt(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::Int128(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
+                CommittableColumn::TimestampTZ(_, _, column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -487,6 +892,201 @@ mod tests {
         let bit_table: Vec<u32> = output_bit_table(&committable_columns).collect();
         let expected = [16, 32, 64, 128, 64 * 4, 64 * 4, 64 * 4, 8, 64];
         assert_eq!(bit_table, expected);
+    }
+
+    #[test]
+    fn we_can_get_a_bit_table_update() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1]),
+            CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::BigInt(&[1, 2, 3]),
+            CommittableColumn::Int128(&[1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1]),
+        ];
+
+        let offset = 0;
+        let num_matrix_commitment_columns = 1;
+        let bit_table: Vec<u32> =
+            output_bit_table_update(&committable_columns, offset, num_matrix_commitment_columns);
+        let expected = [
+            16, 32, 32, 64, 64, 64, 128, 128, 128, 128, 256, 256, 256, 256, 256, 256, 256, 256,
+            256, 256, 256, 256, 8, 8, 64,
+        ];
+        assert_eq!(bit_table, expected);
+    }
+
+    #[test]
+    fn we_can_get_the_num_of_sub_commits_with_more_rows_than_cols_update() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1]),
+            CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::BigInt(&[1, 2, 3]),
+            CommittableColumn::Int128(&[1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1]),
+        ];
+
+        let offset = 0;
+        let num_matrix_commitment_columns = 1;
+        let expected: Vec<usize> = vec![1, 2, 3, 4, 5, 4, 3, 2, 1];
+        let num_sub_commits: Vec<usize> = (0..committable_columns.len())
+            .map(|i| {
+                num_sub_commits_update(
+                    &committable_columns[i],
+                    offset,
+                    num_matrix_commitment_columns,
+                )
+            })
+            .collect();
+
+        assert_eq!(num_sub_commits, expected);
+    }
+
+    #[test]
+    fn we_can_get_the_num_of_sub_commits_offset_with_more_rows_than_cols_update() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1]),
+            CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::BigInt(&[1, 2, 3]),
+            CommittableColumn::Int128(&[1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1]),
+        ];
+
+        let offset = 2;
+        let num_matrix_commitment_columns = 1;
+        let expected: Vec<usize> = vec![3, 4, 5, 6, 7, 6, 5, 4, 3];
+        let num_sub_commits: Vec<usize> = (0..committable_columns.len())
+            .map(|i| {
+                num_sub_commits_update(
+                    &committable_columns[i],
+                    offset,
+                    num_matrix_commitment_columns,
+                )
+            })
+            .collect();
+
+        assert_eq!(num_sub_commits, expected);
+    }
+
+    #[test]
+    fn we_can_get_the_num_of_sub_commits_with_less_rows_than_cols_update() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1]),
+            CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::BigInt(&[1, 2, 3]),
+            CommittableColumn::Int128(&[1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1]),
+        ];
+
+        let offset = 0;
+        let num_matrix_commitment_columns = 4;
+        let expected: Vec<usize> = vec![1, 1, 1, 1, 2, 1, 1, 1, 1];
+        let num_sub_commits: Vec<usize> = (0..committable_columns.len())
+            .map(|i| {
+                num_sub_commits_update(
+                    &committable_columns[i],
+                    offset,
+                    num_matrix_commitment_columns,
+                )
+            })
+            .collect();
+
+        assert_eq!(num_sub_commits, expected);
+    }
+
+    #[test]
+    fn we_can_get_the_num_of_sub_commits_offset_with_less_rows_than_cols_update() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1]),
+            CommittableColumn::Int(&[1, 2]),
+            CommittableColumn::BigInt(&[1, 2, 3]),
+            CommittableColumn::Int128(&[1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[1]),
+        ];
+
+        let offset = 1;
+        let num_matrix_commitment_columns = 4;
+        let expected: Vec<usize> = vec![1, 1, 1, 2, 2, 2, 1, 1, 1];
+        let num_sub_commits: Vec<usize> = (0..committable_columns.len())
+            .map(|i| {
+                num_sub_commits_update(
+                    &committable_columns[i],
+                    offset,
+                    num_matrix_commitment_columns,
+                )
+            })
+            .collect();
+
+        assert_eq!(num_sub_commits, expected);
     }
 
     #[test]
@@ -624,7 +1224,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 5);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -668,7 +1268,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 3);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -696,7 +1296,7 @@ mod tests {
         let committable_columns = [];
 
         let (bit_table, packed_scalar) =
-            bit_table_and_scalars_for_packed_msm(&committable_columns, 0, 1, 0);
+            bit_table_and_scalars_for_packed_msm_OLD(&committable_columns, 0, 1, 0);
 
         assert!(bit_table.is_empty());
         assert!(packed_scalar.is_empty());
@@ -716,7 +1316,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 1);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -735,6 +1335,182 @@ mod tests {
     }
 
     #[test]
+    fn we_can_pack_scalars_with_one_full_row_update() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[1, 2]),
+            CommittableColumn::BigInt(&[3, 4]),
+        ];
+
+        let offset = 0;
+        let num_columns = 1 << 1;
+
+        let (bit_table, packed_scalar) =
+            bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
+
+        let expected_packed_scalar = [
+            1, 0, 0, 0, 0, 0, 0, 128, 3, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1, 2, 0, 0, 0, 0, 0, 0,
+            128, 4, 0, 0, 0, 0, 0, 0, 128, 1, 1, 1, 1,
+        ];
+
+        let expected_bit_table = [64, 64, 8, 8, 8, 8];
+
+        assert_eq!(bit_table, expected_bit_table);
+        assert_eq!(packed_scalar, expected_packed_scalar);
+    }
+
+    #[test]
+    fn we_can_pack_scalars_with_offset_one_full_row_update() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[1, 2]),
+            CommittableColumn::BigInt(&[3, 4]),
+        ];
+
+        let offset = 1;
+        let num_columns = 1 << 1;
+
+        let (bit_table, packed_scalar) =
+            bit_table_and_scalars_for_packed_msm(&committable_columns, offset, num_columns);
+
+        let expected_packed_scalar = [
+            0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0,
+            0, 0, 0, 128, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
+            0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+        ];
+
+        let expected_bit_table = [64, 64, 64, 64, 8, 8, 8, 8];
+
+        assert_eq!(bit_table, expected_bit_table);
+        assert_eq!(packed_scalar, expected_packed_scalar);
+    }
+
+    #[test]
+    fn we_can_get_simple_offset_columns() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[1, 2]),
+            CommittableColumn::BigInt(&[3, 4]),
+        ];
+
+        // No offset
+        let offset = 0;
+        let num_columns = 1 << 1;
+
+        let expected: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
+
+        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+
+        assert_eq!(offset_columns, expected);
+
+        // Offset
+        let offset = 1;
+        let num_columns = 1 << 1;
+
+        let expected: Vec<u8> = vec![0, 1, 1, 1, 1, 0, 1, 0];
+
+        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+
+        assert_eq!(offset_columns, expected);
+
+        // One column
+        let offset = 0;
+        let num_columns = 1;
+
+        let expected: Vec<u8> = vec![1, 1, 1, 1];
+
+        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+
+        assert_eq!(offset_columns, expected);
+    }
+
+    #[test]
+    #[should_panic(expected = "offset 1 must be less than the number of columns 1")]
+    fn we_can_panic_when_offset_is_not_less_than_num_of_columns_when_getting_offsets() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[1, 2]),
+            CommittableColumn::BigInt(&[3, 4]),
+        ];
+
+        let offset = 1;
+        let num_columns = 1;
+        let _ = offset_column(&committable_columns, offset, num_columns);
+    }
+
+    #[test]
+    fn we_can_get_complex_offset_columns() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1, 2, 3, 4, 5]),
+            CommittableColumn::Int(&[1, 2, 3, 4, 5, 6]),
+            CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
+            CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false, true, false, true]),
+            CommittableColumn::TimestampTZ(
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &[1, 2, 3, 4, 5],
+            ),
+        ];
+
+        let offset = 0;
+        let num_columns = 1 << 2;
+        let offset_column: Vec<u8> = offset_column(&committable_columns, offset, num_columns);
+        let expected: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+        ];
+        assert_eq!(offset_column, expected);
+    }
+
+    #[test]
+    fn we_can_get_complex_offset_columns_with_offset() {
+        let committable_columns = [
+            CommittableColumn::SmallInt(&[1, 2, 3, 4, 5]),
+            CommittableColumn::Int(&[1, 2, 3, 4, 5, 6]),
+            CommittableColumn::BigInt(&[1, 2, 3, 4, 5, 6, 7]),
+            CommittableColumn::Int128(&[1, 2, 3, 4, 5, 6, 7, 8]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0], [4, 0, 0, 0]]),
+            CommittableColumn::VarChar(vec![[1, 0, 0, 0], [2, 0, 0, 0], [3, 0, 0, 0]]),
+            CommittableColumn::Boolean(&[true, false, true, false, true]),
+            CommittableColumn::TimestampTZ(
+                PoSQLTimeUnit::Second,
+                PoSQLTimeZone::Utc,
+                &[1, 2, 3, 4, 5],
+            ),
+        ];
+
+        let offset = 3;
+        let num_columns = 1 << 2;
+        let offset_column: Vec<u8> = offset_column(&committable_columns, offset, num_columns);
+        let expected: Vec<u8> = vec![
+            0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+        ];
+        assert_eq!(offset_column, expected);
+    }
+
+    #[test]
     fn we_can_pack_scalars_with_more_than_one_row() {
         let committable_columns = [
             CommittableColumn::BigInt(&[1, 2]),
@@ -748,7 +1524,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -780,7 +1556,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -813,7 +1589,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 3);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
@@ -846,7 +1622,7 @@ mod tests {
             sub_commits_per_full_commit(&committable_columns, offset, num_columns);
         assert_eq!(num_sub_commits_per_full_commit, 2);
 
-        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm(
+        let (bit_table, packed_scalar) = bit_table_and_scalars_for_packed_msm_OLD(
             &committable_columns,
             offset,
             num_columns,
