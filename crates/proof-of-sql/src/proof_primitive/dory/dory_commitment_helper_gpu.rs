@@ -60,7 +60,7 @@ fn compute_dory_commitments_packed_impl(
 
     // All columns are not guaranteed to have the same number of sub-commits
     let num_sub_commits_per_full_commit: Vec<usize> = committable_columns
-        .par_iter()
+        .iter()
         .map(|column| pack_scalars::num_sub_commits(column, offset, num_columns))
         .collect();
 

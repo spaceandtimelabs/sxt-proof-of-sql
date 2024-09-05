@@ -187,19 +187,18 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
 #[tracing::instrument(name = "pack_scalars::offset_column", level = "debug", skip_all)]
-fn offset_column(
+fn offset_column<'a>(
     committable_columns: &[CommittableColumn],
     offset: usize,
     num_columns: usize,
-) -> Vec<u8> {
+    buffer: &'a mut [u8],
+) -> &'a [u8] {
     assert!(
         offset < num_columns,
         "offset {} must be less than the number of columns {}",
         offset,
         num_columns
     );
-
-    let mut offset_column = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
 
     let has_at_least_one_signed_column = committable_columns
         .iter()
@@ -209,9 +208,9 @@ fn offset_column(
         // Set the offset and the column of all ones in a single loop
         (0..num_columns).for_each(|i| {
             if i >= offset {
-                offset_column[i] = 1_u8;
+                buffer[i] = 1_u8;
             }
-            offset_column[num_columns + i] = 1_u8;
+            buffer[num_columns + i] = 1_u8;
         });
 
         // Set the remaining columns
@@ -230,13 +229,13 @@ fn offset_column(
                 };
 
                 (first_value..last_value).for_each(|i| {
-                    offset_column[((2 + j) * num_columns) + i] = 1_u8;
+                    buffer[((2 + j) * num_columns) + i] = 1_u8;
                 });
             }
         }
     }
 
-    offset_column
+    &buffer[..]
 }
 
 /// Returns the bit table and packed scalar array to be used in Blitzar's packed_msm function.
@@ -269,9 +268,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
     let mut packed_scalars = vec![0_u8; bit_table_sum_in_bytes * num_columns];
 
     // Pack the offsets, used to handed signed values, into the packed_scalars array.
-    let offset_column = offset_column(committable_columns, offset, num_columns);
+    let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
     pack_bit(
-        &offset_column,
+        offset_column(committable_columns, offset, num_columns, &mut buffer),
         &mut packed_scalars,
         bit_table_sub_commits_sum,
         0,
@@ -280,32 +279,42 @@ pub fn bit_table_and_scalars_for_packed_msm(
         num_columns,
     );
 
-    // For each committable column, pack the data into the packed_scalar array.
+    // Pre compute the cumulative bit sum table
+    let total_num_sub_commits: usize = committable_columns
+        .iter()
+        .map(|column| num_sub_commits(column, offset, num_columns))
+        .sum();
+
+    let mut cumulative_bit_sum_table = Vec::with_capacity(total_num_sub_commits);
+    let mut running_sum = 0;
     let mut num_sub_commits_completed = 0;
+
+    for column in committable_columns {
+        cumulative_bit_sum_table.push(running_sum);
+        let sub_commits = num_sub_commits(column, offset, num_columns);
+        running_sum += bit_table
+            .iter()
+            .skip(num_sub_commits_completed)
+            .take(sub_commits)
+            .sum::<u32>() as usize;
+        num_sub_commits_completed += sub_commits;
+    }
+
+    // For each committable column, pack the data into the packed_scalar array.
+    //let mut num_sub_commits_completed = 0;
     committable_columns
         .iter()
         .enumerate()
         .for_each(|(i, column)| {
-            // Get the running sum of the bit table for the signed values.
-            let current_bit_table_sum = bit_table
-                .iter()
-                .take(num_sub_commits_completed)
-                .sum::<u32>() as usize;
-
-            num_sub_commits_completed += num_sub_commits(column, offset, num_columns);
-
-            // Get the byte size of the column of data.
-            let byte_size = committable_columns[i].column_type().byte_size();
-
             // Pack the signed bits and offset bits into the packed_scalars array.
             match column {
                 CommittableColumn::SmallInt(column) => {
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -314,9 +323,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -325,9 +334,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -336,9 +345,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -347,9 +356,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -358,9 +367,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -369,9 +378,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -380,9 +389,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -391,9 +400,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     pack_bit(
                         column,
                         &mut packed_scalars,
-                        current_bit_table_sum,
+                        cumulative_bit_sum_table[i],
                         offset,
-                        byte_size,
+                        committable_columns[i].column_type().byte_size(),
                         bit_table_sum_in_bytes,
                         num_columns,
                     );
@@ -948,7 +957,8 @@ mod tests {
 
         let expected: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
 
-        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let offset_columns = offset_column(&committable_columns, offset, num_columns, &mut buffer);
 
         assert_eq!(offset_columns, expected);
 
@@ -958,7 +968,8 @@ mod tests {
 
         let expected: Vec<u8> = vec![0, 1, 1, 1, 1, 0, 1, 0];
 
-        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let offset_columns = offset_column(&committable_columns, offset, num_columns, &mut buffer);
 
         assert_eq!(offset_columns, expected);
 
@@ -968,7 +979,8 @@ mod tests {
 
         let expected: Vec<u8> = vec![1, 1, 1, 1];
 
-        let offset_columns = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let offset_columns = offset_column(&committable_columns, offset, num_columns, &mut buffer);
 
         assert_eq!(offset_columns, expected);
     }
@@ -983,7 +995,8 @@ mod tests {
 
         let offset = 1;
         let num_columns = 1;
-        let _ = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let _ = offset_column(&committable_columns, offset, num_columns, &mut buffer);
     }
 
     #[test]
@@ -1016,12 +1029,13 @@ mod tests {
 
         let offset = 0;
         let num_columns = 1 << 2;
-        let offset_column: Vec<u8> = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let offset_columns = offset_column(&committable_columns, offset, num_columns, &mut buffer);
         let expected: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
         ];
-        assert_eq!(offset_column, expected);
+        assert_eq!(offset_columns, expected);
     }
 
     #[test]
@@ -1054,12 +1068,13 @@ mod tests {
 
         let offset = 3;
         let num_columns = 1 << 2;
-        let offset_column: Vec<u8> = offset_column(&committable_columns, offset, num_columns);
+        let mut buffer = vec![0_u8; (OFFSET_SIZE + committable_columns.len()) * num_columns];
+        let offset_columns = offset_column(&committable_columns, offset, num_columns, &mut buffer);
         let expected: Vec<u8> = vec![
             0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
         ];
-        assert_eq!(offset_column, expected);
+        assert_eq!(offset_columns, expected);
     }
 
     /*
