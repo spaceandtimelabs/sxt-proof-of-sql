@@ -178,35 +178,6 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
     });
 }
 
-/// Packs the offset bits of a committable column into the packed scalars at the end of the array.
-/// The offsets are 8-bit values used to handle the signed values.
-///
-/// # Arguments
-///
-/// * `offset_column` -  A reference to the offset column, should be 0 or 1.
-/// * `packed_scalars` - A mutable reference to the array where the packed scalars will be stored.
-/// * `current_bit_table_sum` - The current sum of the bit table up to the current column.
-/// * `offset` - The offset to the data.
-/// * `bit_table_sum_in_bytes` - The full bit table size in bytes.
-/// * `num_columns` - The number of columns in a matrix commitment.
-#[tracing::instrument(name = "pack_scalars::pack_offset_bit", level = "debug", skip_all)]
-fn pack_offset_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
-    offset_column: &[T],
-    packed_scalars: &mut [u8],
-    current_bit_table_sum: usize,
-    bit_table_sum_in_bytes: usize,
-    num_columns: usize,
-) {
-    let byte_offset = current_bit_table_sum / BYTE_SIZE;
-    offset_column.iter().enumerate().for_each(|(i, value)| {
-        let row_offset = (i % num_columns) * bit_table_sum_in_bytes;
-        let col_offset = i / num_columns;
-        let offset_idx = row_offset + col_offset + byte_offset;
-
-        packed_scalars[offset_idx..offset_idx + 1].copy_from_slice(&value.offset_to_bytes()[..]);
-    });
-}
-
 /// Returns an offset vector to support signed values.
 ///
 /// # Arguments
@@ -298,10 +269,12 @@ pub fn bit_table_and_scalars_for_packed_msm(
 
     // Pack the offsets, used to handed signed values, into the packed_scalars array.
     let offset_column = offset_column(committable_columns, offset, num_columns);
-    pack_offset_bit(
+    pack_bit(
         &offset_column,
         &mut packed_scalars,
         bit_table_sub_commits_sum,
+        0,
+        1,
         bit_table_sum_in_bytes,
         num_columns,
     );
