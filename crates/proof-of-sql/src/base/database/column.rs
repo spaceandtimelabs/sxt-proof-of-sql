@@ -369,15 +369,10 @@ impl ColumnType {
     /// Returns if the column type supports signed values.
     pub const fn is_signed(&self) -> bool {
         match self {
-            Self::SmallInt
-            | Self::Int
-            | Self::BigInt
-            | Self::Int128
-            | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _)
-            | Self::Scalar
-            | Self::VarChar
-            | Self::Boolean => false,
+            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
+                true
+            }
+            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
         }
     }
 }
