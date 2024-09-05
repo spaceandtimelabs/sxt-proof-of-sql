@@ -184,11 +184,11 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `committable_columns` - A reference to the committable columns.
 /// * `offset` - The offset to the data.
 /// * `num_columns` - The number of columns in a matrix commitment.
-fn offset_column<'a>(
+fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,
     num_columns: usize,
-    buffer: &'a mut [u8],
+    buffer: &mut [u8],
 ) {
     assert!(
         offset < num_columns,
