@@ -1,4 +1,4 @@
-use super::{scalar_conversion_to_int, Scalar, ScalarConversionError};
+use super::{Scalar, ScalarConversionError};
 use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -365,4 +365,166 @@ impl super::Scalar for Curve25519Scalar {
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
 
-scalar_conversion_to_int!(Curve25519Scalar);
+impl<T> TryFrom<MontScalar<T>> for bool where T: MontConfig<4>, MontScalar<T> : Scalar{
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i8",
+                value
+            )));
+        }
+        let val: i128 = sign * abs[0] as i128;
+        match val {
+            0 => Ok(false),
+            1 => Ok(true),
+            _ => Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in a bool",
+                value
+            ))),
+        }
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for i8 where T: MontConfig<4>, MontScalar<T> : Scalar {
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i8",
+                value
+            )));
+        }
+        let val: i128 = sign * abs[0] as i128;
+        val.try_into().map_err(|_| {
+            ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i8",
+                value
+            ))
+        })
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for i16 where T: MontConfig<4>, MontScalar<T> : Scalar {
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i16",
+                value
+            )));
+        }
+        let val: i128 = sign * abs[0] as i128;
+        val.try_into().map_err(|_| {
+            ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i16",
+                value
+            ))
+        })
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for i32 where T: MontConfig<4>, MontScalar<T> : Scalar {
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i32",
+                value
+            )));
+        }
+        let val: i128 = sign * abs[0] as i128;
+        val.try_into().map_err(|_| {
+            ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i32",
+                value
+            ))
+        })
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for i64 where T: MontConfig<4>, MontScalar<T> : Scalar {
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i64",
+                value
+            )));
+        }
+        let val: i128 = sign * abs[0] as i128;
+        val.try_into().map_err(|_| {
+            ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i64",
+                value
+            ))
+        })
+    }
+}
+
+impl<T> TryFrom<MontScalar<T>> for i128 where T: MontConfig<4>, MontScalar<T> : Scalar {
+    type Error = ScalarConversionError;
+    fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
+        let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
+            (-1, (-value).into())
+        } else {
+            (1, value.into())
+        };
+        if abs[2] != 0 || abs[3] != 0 {
+            return Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i128",
+                value
+            )));
+        }
+        let val: u128 = (abs[1] as u128) << 64 | (abs[0] as u128);
+        match (sign, val) {
+            (1, v) if v <= i128::MAX as u128 => Ok(v as i128),
+            (-1, v) if v <= i128::MAX as u128 => Ok(-(v as i128)),
+            (-1, v) if v == i128::MAX as u128 + 1 => Ok(i128::MIN),
+            _ => Err(ScalarConversionError::Overflow(format!(
+                "{} is too large to fit in an i128",
+                value
+            ))),
+        }
+    }
+}
+
+impl<T> From<MontScalar<T>> for BigInt where T: MontConfig<4>, MontScalar<T> : Scalar {
+    fn from(value: MontScalar<T>) -> Self {
+        // Since we wrap around in finite fields anything greater than the max signed value is negative
+        let is_negative = value > <MontScalar<T>>::MAX_SIGNED;
+        let sign = if is_negative {
+            num_bigint::Sign::Minus
+        } else {
+            num_bigint::Sign::Plus
+        };
+        let value_abs: [u64; 4] = (if is_negative { -value } else { value }).into();
+        let bits: &[u8] = bytemuck::cast_slice(&value_abs);
+        BigInt::from_bytes_le(sign, &bits)
+    }
+}
