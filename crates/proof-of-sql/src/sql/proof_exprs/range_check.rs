@@ -25,7 +25,7 @@ use bumpalo::Bump;
 /// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 30 of Scalar 2 |  
 /// ```
 /// After constructing this matrix, each byte column is used to produce an intermediate MLE.
-pub fn result_evaluate_range_check<'a, S: Scalar + 'a>(
+pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     scalars: &mut [S],
     alloc: &'a Bump,
@@ -111,18 +111,6 @@ pub fn result_evaluate_range_check<'a, S: Scalar + 'a>(
         alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap() + alpha);
     slice_ops::batch_inversion(&mut inverted_word_values[..]);
     builder.produce_anchored_mle(inverted_word_values as &[S]);
-
-    // // word * (alpha + word) - 1 = 0
-    // builder.produce_sumcheck_subpolynomial(
-    //     SumcheckSubpolynomialType::Identity,
-    //     vec![
-    //         (
-    //             S::one(),
-    //             vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
-    //         ),
-    //         (-S::one(), vec![]),
-    //     ],
-    // );
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches
@@ -145,27 +133,5 @@ pub fn verifier_evaluate_range_check<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     expr_eval: C::Scalar,
 ) -> Result<(), ProofError> {
-    let mut word_columns_evals: Vec<C::Scalar> = Vec::with_capacity(31);
-    for _ in 0..31 {
-        let mle = builder.consume_intermediate_mle();
-        word_columns_evals.push(mle);
-    }
-
-    let base: C::Scalar = C::Scalar::from(256);
-    let mut accumulated = word_columns_evals[0];
-
-    for eval in word_columns_evals.iter() {
-        accumulated = accumulated * base + *eval;
-    }
-
-    dbg!(expr_eval);
-    dbg!(accumulated);
-
-    if expr_eval == accumulated {
-        Ok(())
-    } else {
-        Err(ProofError::VerificationError(
-            "Computed polynomial does not match the evaluation expression.",
-        ))
-    }
+    unimplemented!("Fill this method when when ready to add verification")
 }

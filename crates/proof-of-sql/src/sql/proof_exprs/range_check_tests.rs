@@ -1,4 +1,4 @@
-use super::{range_check::result_evaluate_range_check, ProofExpr};
+use super::range_check::prover_evaluate_range_check;
 use crate::{
     base::{
         commitment::Commitment,
@@ -65,8 +65,8 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
-        _accessor: &'a dyn DataAccessor<S>,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<S>,
     ) {
         // result builder needs ability to produce intermediate MLE
         builder.request_post_result_challenges(1);
@@ -82,50 +82,10 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
         let a = accessor.get_column(self.column);
 
         let scalar_values = alloc.alloc_slice_copy(&a.to_scalar_with_scaling(0));
-        result_evaluate_range_check(builder, scalar_values, alloc);
+        prover_evaluate_range_check(builder, scalar_values, alloc);
 
         // TODO: enable this
         // prover_evaluate_range_check(builder, scalar_values);
-    }
-}
-
-impl<C: Commitment> ProofExpr<C> for RangeCheckTestExpr {
-    fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
-        todo!()
-    }
-
-    fn data_type(&self) -> crate::base::database::ColumnType {
-        todo!()
-    }
-
-    fn result_evaluate<'a>(
-        &self,
-        table_length: usize,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<<C as Commitment>::Scalar>,
-    ) -> crate::base::database::Column<'a, <C as Commitment>::Scalar> {
-        todo!()
-    }
-
-    fn prover_evaluate<'a>(
-        &self,
-        builder: &mut ProofBuilder<'a, <C as Commitment>::Scalar>,
-        alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<<C as Commitment>::Scalar>,
-    ) -> crate::base::database::Column<'a, <C as Commitment>::Scalar> {
-        todo!()
-    }
-
-    fn verifier_evaluate(
-        &self,
-        builder: &mut VerificationBuilder<C>,
-        accessor: &dyn CommitmentAccessor<C>,
-    ) -> Result<<C as Commitment>::Scalar, ProofError> {
-        todo!()
-    }
-
-    fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        todo!()
     }
 }
 
