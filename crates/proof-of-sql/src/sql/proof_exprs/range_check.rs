@@ -135,3 +135,49 @@ pub fn verifier_evaluate_range_check<C: Commitment>(
 ) -> Result<(), ProofError> {
     unimplemented!("Fill this method when when ready to add verification")
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::base::{
+        scalar::{Curve25519Scalar as S, Scalar},
+        slice_ops,
+    };
+    use bytemuck;
+
+    #[test]
+    fn test_scalar_transformation_and_inversion() {
+        // Define a test scalar
+        let scalar = S::from(u64::MAX);
+
+        // Convert the scalar into an array of u64
+        let scalar_array: [u64; 4] = scalar.into();
+
+        // Convert the u64 array into a byte array
+        let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array);
+
+        // Assert the bytes are correct (as per previous tests)
+        let expected_bytes = [
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // bytes of scalar
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // padding zeros
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+        assert_eq!(
+            scalar_bytes, expected_bytes,
+            "The byte transformation did not match the expected output."
+        );
+
+        // Set up for batch inversion
+        let mut scalars = [scalar]; // Array containing the scalar to invert
+        slice_ops::batch_inversion(&mut scalars);
+
+        // After batch inversion, check the scalar to ensure it was modified
+        let inverted_scalar = scalars[0];
+
+        // Multiplication of the original scalar and its inverse
+        let result = scalar * inverted_scalar;
+
+        // Check if scalar * inverse - 1 is zero
+        assert_eq!(result - S::ONE, S::ZERO);
+    }
+}
