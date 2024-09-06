@@ -5,7 +5,6 @@ use crate::{
 };
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
-use rayon::prelude::*;
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
@@ -141,7 +140,7 @@ pub fn modify_commits(
         }
     }
 
-    modifed_commits.into_par_iter().map(Into::into).collect()
+    modifed_commits.into_iter().map(Into::into).collect()
 }
 
 /// Packs bits of a committable column into the packed scalars array.
