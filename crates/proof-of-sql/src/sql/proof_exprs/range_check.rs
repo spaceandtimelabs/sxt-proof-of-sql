@@ -42,37 +42,6 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     // TODO: this should equal the length of the column of scalars
     let byte_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
-    // Iterate through scalars and fill columns
-    for (i, scalar) in scalars.iter().enumerate() {
-        // Convert scalar into an array of u64, then into byte-sized words
-        let scalar_array: [u64; 4] = (*scalar).into();
-        let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array); // Safer casting using bytemuck
-
-        // Populate columns and update byte counts
-        for (col, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
-            col[i] = byte;
-
-            // Update the byte count in the corresponding position
-            byte_counts[byte as usize] += 1; // Increment the count of the byte value
-        }
-    }
-
-    // Allocate and initialize byte_values to represent each possible byte as a scalar directly
-    let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
-
-    // 1. Produce an MLE over each column of words
-    for column in words {
-        builder.produce_intermediate_mle(column as &[_]);
-    }
-
-    // 2. Produce the anchored MLE that the verifier has access to, consisting
-    // of all possible word values. These serve as values to lookup
-    // in the lookup table
-    builder.produce_anchored_mle(byte_values as &[_]);
-
-    // 3. Next produce an MLE over the counts of each word value
-    builder.produce_intermediate_mle(byte_counts as &[_]);
-
     // Get the alpha challenge from the verifier
     let alpha = builder.consume_post_result_challenge();
 
@@ -80,17 +49,27 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
         .collect();
 
-    // Iterate through the inverted scalars and fill columns
-    for (i, s) in scalars.iter().enumerate() {
-        let s_array: [u64; 4] = (*s).into();
-        let words = bytemuck::cast_slice::<u64, u8>(&s_array);
-        let inverted_words: Vec<S> = words
+    // Iterate through scalars and fill columns
+    for (i, scalar) in scalars.iter().enumerate() {
+        // Convert scalar into an array of u64, then into byte-sized words
+        let scalar_array: [u64; 4] = (*scalar).into();
+        let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array); // Safer casting using bytemuck
+
+        let inverted_words: Vec<S> = scalar_bytes
             .iter()
             .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
             .collect();
+
         // Allocate and initialize row for each inverted scalar processing
         let inverted_words_plus_alpha: &mut [S] =
             alloc.alloc_slice_fill_with(inverted_words.len(), |_| S::zero());
+
+        // Populate columns and update byte counts
+        for (col, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
+            col[i] = byte;
+            // Update the byte count in the corresponding position
+            byte_counts[byte as usize] += 1; // Increment the count of the byte value
+        }
 
         for ((col, &inverted_word), row_entry) in inverted_word_columns
             .iter_mut()
@@ -104,6 +83,22 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         }
         builder.produce_intermediate_mle(&*inverted_words_plus_alpha);
     }
+
+    // 1. Produce an MLE over each column of words
+    for word_column in words {
+        builder.produce_intermediate_mle(word_column as &[_]);
+    }
+
+    // Allocate and initialize byte_values to represent each possible byte as a scalar directly
+    let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
+
+    // 2. Produce the anchored MLE that the verifier has access to, consisting
+    // of all possible word values. These serve as values to lookup
+    // in the lookup table
+    builder.produce_anchored_mle(byte_values as &[_]);
+
+    // 3. Next produce an MLE over the counts of each word value
+    builder.produce_intermediate_mle(byte_counts as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
     let inverted_word_values: &mut [S] =
