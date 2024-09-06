@@ -32,7 +32,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
 ) {
     // Create 31 columns, each will collect the corresponding byte from all scalars.
     // 31 because a scalar will only ever have 248 bits of data set.
-    let mut columns: Vec<&mut [u8]> = (0..31)
+    let mut words: Vec<&mut [u8]> = (0..31)
         .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
         .collect();
 
@@ -40,7 +40,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     // The vector has 256 elements padded with zeros to match the length of the word columns
     // and are each initialized to the zero element of `S`.
     // TODO: this should equal the length of the column of scalars
-    let byte_counts: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::zero());
+    let byte_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
     // Iterate through scalars and fill columns
     for (i, scalar) in scalars.iter().enumerate() {
@@ -49,68 +49,67 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array); // Safer casting using bytemuck
 
         // Populate columns and update byte counts
-        for (col, &byte) in columns.iter_mut().zip(scalar_bytes.iter()) {
+        for (col, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
             col[i] = byte;
 
             // Update the byte count in the corresponding position
-            byte_counts[byte as usize] += S::one(); // Increment the count of the byte value
+            byte_counts[byte as usize] += 1; // Increment the count of the byte value
         }
     }
 
     // Allocate and initialize byte_values to represent each possible byte as a scalar directly
-    let byte_values: &mut [S] =
-        alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap());
+    let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
 
     // 1. Produce an MLE over each column of words
-    for column in columns {
-        builder.produce_intermediate_mle(column as &[u8]);
+    for column in words {
+        builder.produce_intermediate_mle(column as &[_]);
     }
 
     // 2. Produce the anchored MLE that the verifier has access to, consisting
     // of all possible word values. These serve as values to lookup
     // in the lookup table
-    builder.produce_anchored_mle(byte_values as &[S]);
+    builder.produce_anchored_mle(byte_values as &[_]);
 
     // 3. Next produce an MLE over the counts of each word value
-    builder.produce_intermediate_mle(byte_counts as &[S]);
-
-    // Invert the scalars, and get the inverted words.
-    // This modifies the column in place.
-    slice_ops::batch_inversion(&mut scalars[..]);
-    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
-        .collect();
+    builder.produce_intermediate_mle(byte_counts as &[_]);
 
     // Get the alpha challenge from the verifier
     let alpha = builder.consume_post_result_challenge();
 
-    // Iterate through the inverted scalars and fill columns
-    for (i, inverted_scalar) in scalars.iter().enumerate() {
-        let inverted_scalar_array: [u64; 4] = (*inverted_scalar).into();
-        let inverted_scalar_words = bytemuck::cast_slice::<u64, u8>(&inverted_scalar_array);
+    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
+        .collect();
 
+    // Iterate through the inverted scalars and fill columns
+    for (i, s) in scalars.iter().enumerate() {
+        let s_array: [u64; 4] = (*s).into();
+        let words = bytemuck::cast_slice::<u64, u8>(&s_array);
+        let inverted_words: Vec<S> = words
+            .iter()
+            .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
+            .collect();
         // Allocate and initialize row for each inverted scalar processing
-        let row: &mut [S] = alloc.alloc_slice_fill_with(inverted_scalar_words.len(), |_| S::zero());
+        let inverted_words_plus_alpha: &mut [S] =
+            alloc.alloc_slice_fill_with(inverted_words.len(), |_| S::zero());
 
         for ((col, &inverted_word), row_entry) in inverted_word_columns
             .iter_mut()
-            .zip(inverted_scalar_words.iter())
-            .zip(row.iter_mut())
+            .zip(inverted_words.iter())
+            .zip(inverted_words_plus_alpha.iter_mut())
         {
             // Convert a word into a scalar so that we can perform arithmetic on it
-            let value =
-                S::try_from(inverted_word.into()).expect("u8 will always fit in scalar") + alpha;
+            let value = (inverted_word + alpha).inv().unwrap_or(S::ZERO);
             col[i] = value;
             *row_entry = value;
         }
-        builder.produce_intermediate_mle(&*row);
+        builder.produce_intermediate_mle(&*inverted_words_plus_alpha);
     }
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
     let inverted_word_values: &mut [S] =
         alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap() + alpha);
     slice_ops::batch_inversion(&mut inverted_word_values[..]);
-    builder.produce_anchored_mle(inverted_word_values as &[S]);
+    builder.produce_intermediate_mle(inverted_word_values as &[S]);
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches
