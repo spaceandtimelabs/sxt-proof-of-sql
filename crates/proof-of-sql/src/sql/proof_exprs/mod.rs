@@ -1,5 +1,6 @@
 //! This module proves provable expressions.
 mod proof_expr;
+
 pub(crate) use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod proof_expr_test;
@@ -81,3 +82,10 @@ mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
+
+#[allow(dead_code, unused_variables)]
+mod range_check;
+
+#[cfg(test)]
+#[allow(dead_code, unused_variables)]
+mod range_check_tests;

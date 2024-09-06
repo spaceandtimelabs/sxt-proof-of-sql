@@ -421,6 +421,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
                         num_columns,
                     );
                 }
+                CommittableColumn::RangeCheckWord(column) => {
+                    pack_bit(
+                        column,
+                        &mut packed_scalars,
+                        current_bit_table_sum,
+                        offset,
+                        byte_size,
+                        bit_table_sum_in_bytes,
+                        num_columns,
+                    );
+                }
             }
         });
 
