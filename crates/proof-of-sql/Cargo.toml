@@ -88,9 +88,14 @@ name = "posql_db"
 required-features = [ "arrow", "blitzar" ]
 
 [[bench]]
-name = "criterion_benches"
+name = "posql_benches"
 harness = false
 required-features = [ "blitzar" ]
+
+[[bench]]
+name = "bench_append_rows"
+harness = false
+required-features = [ "test" ]
 
 [[bench]]
 name = "jaeger_benches"
