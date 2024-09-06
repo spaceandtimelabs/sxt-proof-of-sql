@@ -76,6 +76,10 @@ pub enum ConversionError {
     #[error(transparent)]
     PostprocessingError(#[from] crate::sql::postprocessing::PostprocessingError),
 
+    /// UNION ALL must have schema consistency
+    #[error("Schema mismatch in UNION ALL: {0}")]
+    SchemaMismatch(String),
+
     #[error("Query not provable because: {0}")]
     /// Query requires unprovable feature
     Unprovable(String),

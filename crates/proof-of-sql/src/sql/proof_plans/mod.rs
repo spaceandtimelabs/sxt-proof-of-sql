@@ -39,5 +39,8 @@ pub(crate) use group_by_exec::GroupByExec;
 #[cfg(all(test, feature = "blitzar"))]
 mod group_by_exec_test;
 
+mod union_exec;
+pub(crate) use union_exec::UnionExec;
+
 mod dyn_proof_plan;
 pub use dyn_proof_plan::DynProofPlan;
