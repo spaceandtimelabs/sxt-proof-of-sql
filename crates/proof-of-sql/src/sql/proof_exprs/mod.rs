@@ -1,6 +1,5 @@
 //! This module proves provable expressions.
 mod proof_expr;
-
 pub(crate) use proof_expr::ProofExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod proof_expr_test;
