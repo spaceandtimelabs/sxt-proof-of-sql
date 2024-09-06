@@ -33,10 +33,7 @@ fn get_logarithmic_derivative<'a, S: Scalar + 'a>(
     // Iterate over each column
     for (i, byte_column) in byte_columns.iter().enumerate() {
         // Convert bytes to field elements and add alpha
-        let mut terms_to_invert: Vec<S> = byte_column
-            .iter()
-            .map(|&w| S::try_from(w.into()).unwrap() + alpha)
-            .collect();
+        let mut terms_to_invert: Vec<S> = byte_column.iter().map(|w| S::from(w) + alpha).collect();
 
         // Invert all the terms in the column at once
         slice_ops::batch_inversion(&mut terms_to_invert);
