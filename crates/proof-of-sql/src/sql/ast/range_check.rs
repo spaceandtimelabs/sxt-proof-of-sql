@@ -1,183 +1,128 @@
 use crate::{
-    base::{commitment::Commitment, proof::ProofError, scalar::Scalar},
+    base::{commitment::Commitment, proof::ProofError, scalar::Scalar, slice_ops},
     sql::proof::{ProofBuilder, VerificationBuilder},
 };
-use ark_std::rand;
-use core::hash::Hash;
-use std::iter::Sum;
+use bumpalo::Bump;
 
-/// Evaluates the range check of scalar values by converting each scalar into
-/// a word array and processing it through a proof builder. This function
-/// targets zero-copy commitment computation when converting from [Scalar] to
-/// word-sized targets.
+/// Decomposes a column of scalars into a matrix of words, so that each word column can be
+/// used to produce an intermediate MLE. Produces intermediate MLEs for:
+/// * each column of words
+/// * the count of how many times each word occurs
 ///
-/// # Safety
-/// This function converts scalar values (`Scalar`) to word slices.
-/// ensures that:
-/// - The data alignment of `u64` (from which the word slices are derived) is
-///   sufficient for `u8`, ensuring proper memory alignment and access safety.
-/// - Only the first 31 words of each `u64` array are accessed, aligning with the
-///   cryptographic goal to prove that these words are within a specific numerical
-///   range, namely [0, (p - 1)/2] or [0, 2^248 - 1].
-/// - The `expr` slice must live at least as long as `'a` to ensure that references
-///   to the data remain valid throughout the function's execution.
-pub fn prover_evaluate_range_check<'a, S: Scalar + Hash>(
-    _builder: &mut ProofBuilder<'a, S>,
-    scalars: &'a [S],
+/// And anchored MLEs for:
+/// * all possible byte values
+///
+/// ## Word-sized decomposition:
+///
+/// Each row represents the byte decomposition of a scalar, and each column contains the bytes from
+/// the same byte position across all scalars:
+///
+/// ```text
+/// | Column 0           | Column 1           | Column 2           | ... | Column 30           |  
+/// |--------------------|--------------------|--------------------|-----|---------------------|  
+/// | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 30 of Scalar 0 |  
+/// | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 30 of Scalar 1 |  
+/// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 30 of Scalar 2 |  
+/// ```
+/// After constructing this matrix, each byte column is used to produce an intermediate MLE.
+pub fn result_evaluate_range_check<'a, S: Scalar + 'a>(
+    builder: &mut ProofBuilder<'a, S>,
+    scalars: &mut [S],
+    alloc: &'a Bump,
 ) {
-    // Convert scalars to word slices where each byte is converted into a scalar of type `S`
-    let word_refs: Vec<Vec<S>> = scalars
-        .iter()
-        .map(|s| unsafe {
-            let scalar_array: [u64; 4] = (*s).into();
-            let scalar_bytes: &[u8] = std::slice::from_raw_parts(
-                scalar_array.as_ptr() as *const u8,
-                scalar_array.len() * std::mem::size_of::<u64>(),
-            );
-            // Now convert each byte to `S`
-            scalar_bytes.iter().map(|&b| S::from(b)).collect()
-        })
+    // Create 31 columns, each will collect the corresponding byte from all scalars.
+    // 31 because a scalar will only ever have 248 bits of data set.
+    let mut columns: Vec<&mut [u8]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
         .collect();
 
-    // Convert scalars to word slices where each byte is converted into a scalar of type `S`,
-    // and then invert each scalar, mapping `None` to `S::ZERO`.
-    let _inverted_word_refs: Vec<Vec<S>> = scalars
-        .iter()
-        .map(|s| unsafe {
-            // Convert scalar `s` into an array of u64
-            let scalar_array: [u64; 4] = (*s).into();
-            // Convert the array of u64 into a slice of bytes
-            let scalar_bytes: &[u8] = std::slice::from_raw_parts(
-                scalar_array.as_ptr() as *const u8,
-                scalar_array.len() * std::mem::size_of::<u64>(),
-            );
-            // Convert each byte to `S` and then attempt to invert it
-            scalar_bytes
-                .iter()
-                .map(|&b| S::from(b).inv().unwrap_or(S::ZERO))
-                .collect()
-        })
-        .collect();
+    // Initialize a vector to count occurrences of each byte (0-255) using field elements `S`.
+    // The vector has 256 elements padded with zeros to match the length of the word columns
+    // and are each initialized to the zero element of `S`.
+    // TODO: this should equal the length of the column of scalars
+    let byte_counts: &mut [S] = alloc.alloc_slice_fill_with(256, |_| S::zero());
 
-    // always non-degenerate so no need to worry about division by zero
-    let alpha: S = S::rand(&mut rand::thread_rng());
+    // Iterate through scalars and fill columns
+    for (i, scalar) in scalars.iter().enumerate() {
+        // Convert scalar into an array of u64, then into byte-sized words
+        let scalar_array: [u64; 4] = (*scalar).into();
+        let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array); // Safer casting using bytemuck
 
-    // create position labels from 0 to the length of scalars
-    let n: Vec<S> = (0..scalars.len() as u32).map(|i| S::from(i)).collect();
+        // Populate columns and update byte counts
+        for (col, &byte) in columns.iter_mut().zip(scalar_bytes.iter()) {
+            col[i] = byte;
 
-    // collect the results of calculating 1 / (n[i] + alpha)
-    let inverse_n_plus_alpha: Vec<S> = n
-        .iter()
-        .map(|&n| match (n + alpha).inv() {
-            None => S::ZERO,
-            Some(inverse) => inverse,
-        })
-        .collect();
-
-    // A really lousy way to get the total count of each word occurance per row
-    let counts = count_words_naive(&word_refs);
-
-    // Calculate (word  + alpha) * inverse_word_plus_alpha_rows[i] - 1 = 0
-    let _inverse_count_times_count_plus_alpha_constraints =
-        inverse_n_times_n_plus_alpha_constraints(scalars, &inverse_n_plus_alpha, alpha);
-
-    // For each word in a row, calculate 1 / (word + alpha)
-    let inverse_word_plus_alpha_rows = get_inverse_words_plus_alpha_rows(&word_refs, alpha);
-
-    // Calculate (word  + alpha) * inverse_word_plus_alpha_rows[i] - 1 = 0
-    let _inverse_word_plus_alpha_constraints =
-        get_inverse_word_plus_alpha_constraints(&word_refs, &inverse_word_plus_alpha_rows, alpha);
-
-    // Calculate (word[i] + word[1] + word[2] ... + word[n]) - (count * 1 / (count + alpha))
-    let _get_word_row_sum_minus_counts_times_n_inv_constraints =
-        get_word_row_sum_minus_counts_times_n_inv(
-            &inverse_word_plus_alpha_rows,
-            &counts,
-            &inverse_n_plus_alpha,
-        );
-}
-
-// A really awful way of counting how many times each word appears in the total decomposition
-// across all scalars
-fn count_words_naive<S: PartialEq + Clone + From<u32>>(word_refs: &Vec<Vec<S>>) -> Vec<S> {
-    let mut counts: Vec<S> = Vec::new();
-
-    for row in word_refs {
-        for word in row {
-            // Count how many times `word` appears in all rows
-            let mut count = 0;
-            for check_row in word_refs {
-                for check_item in check_row {
-                    if word == check_item {
-                        count += 1;
-                    }
-                }
-            }
-            counts.push(S::from(count)); // Convert count to S and push it
+            // Update the byte count in the corresponding position
+            byte_counts[byte as usize] += S::one(); // Increment the count of the byte value
         }
     }
 
-    counts
-}
-fn get_word_row_sum_minus_counts_times_n_inv<S: Scalar + Sum + Clone>(
-    inverse_word_plus_alpha_rows: &[Vec<S>],
-    counts: &[S],
-    inverse_n: &[S],
-) -> S {
-    inverse_word_plus_alpha_rows
-        .iter()
-        .enumerate()
-        .map(|(i, row)| {
-            let row_sum: S = row.iter().cloned().sum(); // Sum of all words in the row
-            let constraint: S = counts[i] * inverse_n[i];
-            row_sum - constraint // Compute the constraint for this row
-        })
-        .sum() // Sum all computed constraints into a single scalar
-}
+    // Allocate and initialize byte_values to represent each possible byte as a scalar directly
+    let byte_values: &mut [S] =
+        alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap());
 
-fn inverse_n_times_n_plus_alpha_constraints<S: Scalar>(
-    expr: &[S],
-    inverse_n: &[S],
-    alpha: S,
-) -> Vec<S> {
-    (0..expr.len() as u64)
-        .zip(inverse_n.iter())
-        .map(|(i, &transformed)| transformed * (S::from(i as u32) + alpha) - S::ONE)
-        .collect()
-}
+    // 1. Produce an MLE over each column of words
+    for column in columns {
+        builder.produce_intermediate_mle(column as &[u8]);
+    }
 
-fn get_inverse_word_plus_alpha_constraints<S: Scalar>(
-    word_refs: &[Vec<S>],
-    inverse_word_plus_alpha_rows: &[Vec<S>],
-    alpha: S,
-) -> Vec<Vec<S>> {
-    word_refs
-        .iter()
-        .zip(inverse_word_plus_alpha_rows.iter())
-        .map(|(word_row, transformed_row)| {
-            word_row
-                .iter()
-                .zip(transformed_row)
-                .map(|(&word, &transformed)| transformed * (word + alpha) - S::ONE)
-                .collect::<Vec<S>>()
-        })
-        .collect()
-}
+    // 2. Produce the anchored MLE that the verifier has access to, consisting
+    // of all possible word values. These serve as values to lookup
+    // in the lookup table
+    builder.produce_anchored_mle(byte_values as &[S]);
 
-fn get_inverse_words_plus_alpha_rows<S: Scalar>(word_refs: &[Vec<S>], alpha: S) -> Vec<Vec<S>> {
-    let inverse_word_plus_alpha_rows: Vec<Vec<S>> = word_refs
-        .iter()
-        .map(|slice| {
-            slice
-                .iter()
-                .map(|&word| match (word + alpha).inv() {
-                    None => S::ZERO,
-                    Some(inverse) => inverse,
-                })
-                .collect()
-        })
+    // 3. Next produce an MLE over the counts of each word value
+    builder.produce_intermediate_mle(byte_counts as &[S]);
+
+    // Invert the scalars, and get the inverted words.
+    // This modifies the column in place.
+    slice_ops::batch_inversion(&mut scalars[..]);
+    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
         .collect();
-    inverse_word_plus_alpha_rows
+
+    // Get the alpha challenge from the verifier
+    let alpha = builder.consume_post_result_challenge();
+
+    // Iterate through the inverted scalars and fill columns
+    for (i, inverted_scalar) in scalars.iter().enumerate() {
+        let inverted_scalar_array: [u64; 4] = (*inverted_scalar).into();
+        let inverted_scalar_words = bytemuck::cast_slice::<u64, u8>(&inverted_scalar_array);
+
+        // Allocate and initialize row for each inverted scalar processing
+        let row: &mut [S] = alloc.alloc_slice_fill_with(inverted_scalar_words.len(), |_| S::zero());
+
+        for ((col, &inverted_word), row_entry) in inverted_word_columns
+            .iter_mut()
+            .zip(inverted_scalar_words.iter())
+            .zip(row.iter_mut())
+        {
+            // Convert a word into a scalar so that we can perform arithmetic on it
+            let value =
+                S::try_from(inverted_word.into()).expect("u8 will always fit in scalar") + alpha;
+            col[i] = value;
+            *row_entry = value;
+        }
+        builder.produce_intermediate_mle(&*row);
+    }
+
+    // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
+    let inverted_word_values: &mut [S] =
+        alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap() + alpha);
+    slice_ops::batch_inversion(&mut inverted_word_values[..]);
+    builder.produce_anchored_mle(inverted_word_values as &[S]);
+
+    // // word * (alpha + word) - 1 = 0
+    // builder.produce_sumcheck_subpolynomial(
+    //     SumcheckSubpolynomialType::Identity,
+    //     vec![
+    //         (
+    //             S::one(),
+    //             vec![Box::new(g_in_star as &[_]), Box::new(g_in_fold as &[_])],
+    //         ),
+    //         (-S::one(), vec![]),
+    //     ],
+    // );
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches

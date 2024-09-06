@@ -1,4 +1,4 @@
-use super::range_check::verifier_evaluate_range_check;
+use super::range_check::{result_evaluate_range_check, verifier_evaluate_range_check};
 use crate::{
     base::{
         commitment::Commitment,
@@ -9,8 +9,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder,
-        SumcheckSubpolynomialType, VerificationBuilder,
+        CountBuilder, ProofBuilder, ProofExpr, ProverEvaluate, ResultBuilder, VerificationBuilder,
     },
 };
 use bumpalo::Bump;
@@ -23,14 +22,23 @@ pub struct RangeCheckTestExpr {
 }
 
 impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
+    // should be named prover round 1
+    // 1st round of prover
+    // This produces the challenge alpha for the prover, however for now
+    // this happens here because ```ProofBuilder``` at current does not have
+    // the ability to produce a result challenge. TODO: add suport for this
+    // in proof builder.
     fn result_evaluate<'a>(
         &self,
-        _builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder<'a>,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) {
+        // result builder needs ability to produce intermediate MLE
+        builder.request_post_result_challenges(1);
     }
 
+    // second round
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, S>,
@@ -39,28 +47,12 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
     ) {
         let a = accessor.get_column(self.column);
 
-        let scalar_vector = a.clone().to_scalar_with_scaling(0);
-        let _scalar_values = alloc.alloc_slice_copy(&scalar_vector);
+        // If this is changed in place correctly, then we should be able to
+        // pass it on without having to invert it again.
+        let scalar_values = alloc.alloc_slice_copy(&a.to_scalar_with_scaling(0));
+        result_evaluate_range_check(builder, scalar_values, alloc);
 
         // prover_evaluate_range_check(builder, scalar_values);
-
-        // // a * a - a = 0
-        // builder.produce_sumcheck_subpolynomial(
-        //     SumcheckSubpolynomialType::Identity,
-        //     vec![
-        //         (S::one(), vec![Box::new(a.clone()), Box::new(a.clone())]),
-        //         (-S::one(), vec![Box::new(a.clone())]),
-        //     ],
-        // );
-
-        // S = s mod 256 * ((s / 256) mod 256) * ((s / 256^2) mod 256) * ((s / 256^3) mod 256)
-        builder.produce_sumcheck_subpolynomial(
-            SumcheckSubpolynomialType::Identity,
-            vec![
-                (S::one(), vec![Box::new(a.clone()), Box::new(a.clone())]),
-                (-S::one(), vec![Box::new(a.clone())]),
-            ],
-        );
     }
 }
 
@@ -78,6 +70,7 @@ impl<C: Commitment> ProofExpr<C> for RangeCheckTestExpr {
         IndexSet::from([self.column])
     }
 
+    // refactor this to the range check and call that
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -117,10 +110,7 @@ mod tests {
     fn we_can_verify_that_every_value_in_colum_is_binary() {
         let data = owned_table([bigint(
             "a",
-            [
-                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                1, 1, 1, 1,
-            ],
+            [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007],
         )]);
         let t = "sxt.t".parse().unwrap();
         let column = ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt);

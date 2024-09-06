@@ -287,6 +287,16 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     }
 
     fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
+        dbg!(result.num_columns() == counts.result_columns);
+
+        dbg!(self.commitments.len());
+        dbg!(counts.intermediate_mles);
+        dbg!(self.commitments.len() == counts.intermediate_mles);
+
+        dbg!(self.pcs_proof_evaluations.len());
+        dbg!(counts.intermediate_mles + counts.anchored_mles);
+        dbg!(self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles);
+
         result.num_columns() == counts.result_columns
             && self.commitments.len() == counts.intermediate_mles
             && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
