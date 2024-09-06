@@ -3,7 +3,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable,
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            OwnedTable,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -67,9 +68,10 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) {
+    ) -> Vec<Column<'a, S>> {
         // result builder needs ability to produce intermediate MLE
         builder.request_post_result_challenges(1);
+        todo!()
     }
 
     // second round
@@ -78,7 +80,7 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    ) {
+    ) -> Vec<Column<'a, S>> {
         let a = accessor.get_column(self.column);
 
         let scalar_values = alloc.alloc_slice_copy(&a.to_scalar_with_scaling(0));
@@ -86,6 +88,7 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
 
         // TODO: enable this
         // prover_evaluate_range_check(builder, scalar_values);
+        todo!()
     }
 }
 
