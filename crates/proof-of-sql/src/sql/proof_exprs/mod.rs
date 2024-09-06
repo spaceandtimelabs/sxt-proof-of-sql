@@ -81,3 +81,6 @@ mod column_expr;
 pub(crate) use column_expr::ColumnExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod column_expr_test;
+
+#[allow(dead_code, unused_variables)]
+mod range_check;
