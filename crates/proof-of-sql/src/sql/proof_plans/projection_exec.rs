@@ -2,7 +2,8 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{
-            ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable,
+            Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+            OwnedTable,
         },
         proof::ProofError,
     },
@@ -100,16 +101,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
             aliased_expr
                 .expr
                 .result_evaluate(builder.table_length(), alloc, accessor)
         }));
         builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
-        for col in columns {
-            builder.produce_result_column(col);
+        for col in &columns {
+            builder.produce_result_column(col.clone());
         }
+        columns
     }
 
     #[tracing::instrument(name = "ProjectionExec::prover_evaluate", level = "debug", skip_all)]
@@ -119,9 +121,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
-        self.aliased_results.iter().for_each(|aliased_expr| {
-            aliased_expr.expr.prover_evaluate(builder, alloc, accessor);
-        });
+    ) -> Vec<Column<'a, C::Scalar>> {
+        Vec::from_iter(
+            self.aliased_results
+                .iter()
+                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
+        )
     }
 }
