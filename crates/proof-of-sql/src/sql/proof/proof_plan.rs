@@ -2,7 +2,8 @@ use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
 use crate::base::{
     commitment::Commitment,
     database::{
-        ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedTable,
+        Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
+        OwnedTable,
     },
     proof::ProofError,
     scalar::Scalar,
@@ -53,7 +54,7 @@ pub trait ProverEvaluate<S: Scalar> {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    );
+    ) -> Vec<Column<'a, S>>;
 
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
@@ -66,7 +67,7 @@ pub trait ProverEvaluate<S: Scalar> {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
-    );
+    ) -> Vec<Column<'a, S>>;
 }
 
 /// Marker used as a trait bound for generic [`ProofPlan`] types to indicate the honesty of their implementation.

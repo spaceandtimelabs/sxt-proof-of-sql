@@ -33,7 +33,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
+    ) -> Vec<Column<'a, Curve25519Scalar>> {
         // evaluate where clause
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
@@ -51,6 +51,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec {
             .collect();
         indexes[0] += 1;
         builder.set_result_indexes(Indexes::Sparse(indexes));
+        Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.result_evaluate(builder, accessor)),
+        )
     }
 
     #[tracing::instrument(
@@ -63,7 +68,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec {
         builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
+    ) -> Vec<Column<'a, Curve25519Scalar>> {
         // evaluate where clause
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -72,9 +77,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec {
             .expect("selection is not boolean");
 
         // evaluate result columns
-        for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, accessor, selection);
-        }
+        Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.prover_evaluate(builder, alloc, accessor, selection)),
+        )
     }
 }
 

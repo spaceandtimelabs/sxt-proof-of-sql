@@ -152,7 +152,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -172,10 +172,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         // 4. set filtered_columns
-        for col in filtered_columns {
-            builder.produce_result_column(col);
+        for col in &filtered_columns {
+            builder.produce_result_column(col.clone());
         }
         builder.request_post_result_challenges(2);
+        filtered_columns
     }
 
     #[tracing::instrument(name = "DenseFilterExec::prover_evaluate", level = "debug", skip_all)]
@@ -185,7 +186,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -215,6 +216,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
             &filtered_columns,
             result_len,
         );
+        filtered_columns
     }
 }
 
