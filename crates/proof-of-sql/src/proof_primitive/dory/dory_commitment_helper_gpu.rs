@@ -49,7 +49,7 @@ fn compute_dory_commitments_packed_impl(
 
     // Convert the sub-commits to G1Affine.
     let all_sub_commits: Vec<G1Affine> = sub_commits_from_blitzar
-        .par_iter()
+        .iter()
         .map(Into::into)
         .collect();
 
