@@ -365,7 +365,11 @@ impl super::Scalar for Curve25519Scalar {
     const TWO: Self = Self(ark_ff::MontFp!("2"));
 }
 
-impl<T> TryFrom<MontScalar<T>> for bool where T: MontConfig<4>, MontScalar<T> : Scalar{
+impl<T> TryFrom<MontScalar<T>> for bool
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -391,7 +395,11 @@ impl<T> TryFrom<MontScalar<T>> for bool where T: MontConfig<4>, MontScalar<T> : 
     }
 }
 
-impl<T> TryFrom<MontScalar<T>> for i8 where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> TryFrom<MontScalar<T>> for i8
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -407,15 +415,16 @@ impl<T> TryFrom<MontScalar<T>> for i8 where T: MontConfig<4>, MontScalar<T> : Sc
         }
         let val: i128 = sign * abs[0] as i128;
         val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i8",
-                value
-            ))
+            ScalarConversionError::Overflow(format!("{} is too large to fit in an i8", value))
         })
     }
 }
 
-impl<T> TryFrom<MontScalar<T>> for i16 where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> TryFrom<MontScalar<T>> for i16
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -431,15 +440,16 @@ impl<T> TryFrom<MontScalar<T>> for i16 where T: MontConfig<4>, MontScalar<T> : S
         }
         let val: i128 = sign * abs[0] as i128;
         val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i16",
-                value
-            ))
+            ScalarConversionError::Overflow(format!("{} is too large to fit in an i16", value))
         })
     }
 }
 
-impl<T> TryFrom<MontScalar<T>> for i32 where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> TryFrom<MontScalar<T>> for i32
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -455,15 +465,16 @@ impl<T> TryFrom<MontScalar<T>> for i32 where T: MontConfig<4>, MontScalar<T> : S
         }
         let val: i128 = sign * abs[0] as i128;
         val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i32",
-                value
-            ))
+            ScalarConversionError::Overflow(format!("{} is too large to fit in an i32", value))
         })
     }
 }
 
-impl<T> TryFrom<MontScalar<T>> for i64 where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> TryFrom<MontScalar<T>> for i64
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -479,15 +490,16 @@ impl<T> TryFrom<MontScalar<T>> for i64 where T: MontConfig<4>, MontScalar<T> : S
         }
         let val: i128 = sign * abs[0] as i128;
         val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i64",
-                value
-            ))
+            ScalarConversionError::Overflow(format!("{} is too large to fit in an i64", value))
         })
     }
 }
 
-impl<T> TryFrom<MontScalar<T>> for i128 where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> TryFrom<MontScalar<T>> for i128
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     type Error = ScalarConversionError;
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
@@ -514,7 +526,11 @@ impl<T> TryFrom<MontScalar<T>> for i128 where T: MontConfig<4>, MontScalar<T> : 
     }
 }
 
-impl<T> From<MontScalar<T>> for BigInt where T: MontConfig<4>, MontScalar<T> : Scalar {
+impl<T> From<MontScalar<T>> for BigInt
+where
+    T: MontConfig<4>,
+    MontScalar<T>: Scalar,
+{
     fn from(value: MontScalar<T>) -> Self {
         // Since we wrap around in finite fields anything greater than the max signed value is negative
         let is_negative = value > <MontScalar<T>>::MAX_SIGNED;
@@ -525,6 +541,6 @@ impl<T> From<MontScalar<T>> for BigInt where T: MontConfig<4>, MontScalar<T> : S
         };
         let value_abs: [u64; 4] = (if is_negative { -value } else { value }).into();
         let bits: &[u8] = bytemuck::cast_slice(&value_abs);
-        BigInt::from_bytes_le(sign, &bits)
+        BigInt::from_bytes_le(sign, bits)
     }
 }
