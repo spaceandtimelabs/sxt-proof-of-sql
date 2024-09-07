@@ -92,20 +92,28 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         let scalar_array: [u64; 4] = (*scalar).into();
         let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
 
-        // Populate the rows of the words table with decomposition of scalar
+        // Populate the rows of the words table with decomposition of scalar:
+        //
+        // | Column i           | Column i+1             | Column i+2            | ... | Column_||word||     |
+        // |--------------------|------------------------|-----------------------|-----|---------------------|
+        // | Byte i of Scalar i | Byte 1+1 of Scalar i+1 | Byte 1+2 of Scalar i+2| ... | Byte n of Scalar n  |
         for (row, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
             row[i] = byte;
             byte_counts[byte as usize] += 1; // Also count how many times we see this word
         }
 
         // Convert each word to scalar so we can perform requisite arithmetic on it
-        let words_as_row: Vec<S> = scalar_bytes
+        let inverted_words: Vec<S> = scalar_bytes
             .iter()
             .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
             .collect();
 
-        // For each element in a row, add alpha to it, and assign to inverted_word_columns
-        for (j, &word_scalar) in words_as_row.iter().enumerate() {
+        // For each element in a row, add alpha to it, and assign to inverted_word_columns:
+        //
+        // | Column i            | Column i+1            | Column i+2            | ... | Column_||word||     |
+        // |---------------------|-----------------------|-----------------------|-----|---------------------|
+        // | 1/(word[i] + alpha) | 1/(word[i+1] + alpha) | 1/(word[i+2] + alpha) | ... | 1/(word[n] + alpha) |
+        for (j, &word_scalar) in inverted_words.iter().enumerate() {
             // Add the verifier challenge to the word, then invert the sum in the scalar field
             let value: S = (word_scalar + alpha).inv().unwrap_or(S::ZERO);
             inverted_word_columns[j][i] = value; // j is column index, i is row index
@@ -122,15 +130,16 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         builder.produce_intermediate_mle(inverted_word_column as &[_]);
     }
 
-    // Allocate and initialize byte_values to represent each possible byte as a scalar directly
+    // Allocate and initialize byte_values to represent the range of possible word values
+    // from 0 to 255.
     let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
 
     // Produce the anchored MLE that the verifier has access to, consisting
-    // of all possible word values. These serve as values to lookup
-    // in the lookup table
+    // of all possible word values. These serve as lookups
+    // in the table
     builder.produce_anchored_mle(byte_values as &[_]);
 
-    // 3. Next produce an MLE over the counts of each word value
+    // Next produce an MLE over the counts of each word value
     builder.produce_intermediate_mle(byte_counts as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
