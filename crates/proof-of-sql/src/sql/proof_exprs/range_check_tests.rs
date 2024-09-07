@@ -104,10 +104,7 @@ mod tests {
             scalar::Curve25519Scalar,
         },
         sql::{
-            proof::{
-                ProofBuilder, ProverEvaluate, ResultBuilder, SumcheckMleEvaluations,
-                SumcheckRandomScalars,
-            },
+            proof::{ProofBuilder, ProverEvaluate, ResultBuilder},
             proof_exprs::range_check_tests::RangeCheckTestExpr,
         },
     };
@@ -133,19 +130,6 @@ mod tests {
 
             let mut proof_builder = ProofBuilder::new(2, 1, vec![Curve25519Scalar::from(123)]);
             let prover_res = expr.prover_evaluate(&mut proof_builder, &alloc, &accessor);
-
-            let scalars = [Curve25519Scalar::from(123)];
-            let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, 8, 2);
-            let evaluation_point = [Curve25519Scalar::from(123)];
-            let sumcheck_evaluations = SumcheckMleEvaluations::new(
-                8,
-                &evaluation_point,
-                &sumcheck_random_scalars,
-                &[],
-                &[],
-                &Default::default(),
-            );
-            let one_eval = sumcheck_evaluations.one_evaluation;
         }
     }
 }
