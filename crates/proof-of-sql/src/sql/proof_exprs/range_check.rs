@@ -5,7 +5,7 @@ use crate::{
 use bumpalo::Bump;
 
 /// Decomposes a column of scalars into a matrix of words, so that each word column can be
-/// used to produce an intermediate MLE. Produces intermediate MLEs for:
+/// used to produce an intermediate multi-linear extension. Produces intermediate MLEs for:
 /// * each column of words
 /// * the count of how many times each word occurs
 ///
@@ -62,6 +62,10 @@ use bumpalo::Bump;
 ///
 /// This new matrix of logarithmic derivatives, and the original word decomposition, are
 /// sufficient to establish constraints for verification.
+///
+/// ## Bottlenecks
+/// * batch inversion, we should try to do as few of these as possible
+/// * single-threaded evaluation; we can likely apply rayon or similar here
 pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     scalars: &mut [S],
@@ -69,7 +73,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
 ) {
     // Create 31 columns, each will collect the corresponding byte from all scalars.
     // 31 because a scalar will only ever have 248 bits of data set.
-    let mut words: Vec<&mut [u8]> = (0..31)
+    let mut word_columns: Vec<&mut [u8]> = (0..31)
         .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
         .collect();
 
@@ -93,11 +97,12 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
 
         // Populate the rows of the words table with decomposition of scalar:
+        // word_columns:
         //
         // | Column i           | Column i+1             | Column i+2            | ... | Column_||word||     |
         // |--------------------|------------------------|-----------------------|-----|---------------------|
         // | Byte i of Scalar i | Byte 1+1 of Scalar i+1 | Byte 1+2 of Scalar i+2| ... | Byte n of Scalar n  |
-        for (row, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
+        for (row, &byte) in word_columns.iter_mut().zip(scalar_bytes.iter()) {
             row[i] = byte;
             byte_counts[byte as usize] += 1; // Also count how many times we see this word
         }
@@ -109,6 +114,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
             .collect();
 
         // For each element in a row, add alpha to it, and assign to inverted_word_columns:
+        // inverted_word_columns:
         //
         // | Column i            | Column i+1            | Column i+2            | ... | Column_||word||     |
         // |---------------------|-----------------------|-----------------------|-----|---------------------|
@@ -121,7 +127,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     }
 
     // Produce an MLE over each column of words
-    for word_column in words {
+    for word_column in word_columns {
         builder.produce_intermediate_mle(word_column as &[_]);
     }
 
