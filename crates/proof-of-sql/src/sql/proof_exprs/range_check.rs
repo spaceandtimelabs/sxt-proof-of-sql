@@ -15,16 +15,53 @@ use bumpalo::Bump;
 /// ## Word-sized decomposition:
 ///
 /// Each row represents the byte decomposition of a scalar, and each column contains the bytes from
-/// the same byte position across all scalars:
+/// the same byte position across all scalars. First, we produce this word-wise decomposition:
 ///
 /// ```text
-/// | Column 0           | Column 1           | Column 2           | ... | Column 30           |  
+/// | Column 0           | Column 1           | Column 2           | ... | Column 31           |  
 /// |--------------------|--------------------|--------------------|-----|---------------------|  
-/// | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 30 of Scalar 0 |  
-/// | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 30 of Scalar 1 |  
-/// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 30 of Scalar 2 |  
+/// | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 31 of Scalar 0 |  
+/// | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 31 of Scalar 1 |  
+/// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 31 of Scalar 2 |  
 /// ```
-/// After constructing this matrix, each byte column is used to produce an intermediate MLE.
+///
+/// The next step is to compute intermediate MLEs over the word columns:
+///
+/// ```text
+/// | Column 0           | Column 1           | Column 2           | ... | Column 31           |
+/// |--------------------|--------------------|--------------------|-----|---------------------|
+/// | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 31 of Scalar 0 |
+/// | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 31 of Scalar 1 |
+/// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 31 of Scalar 2 |
+/// --------------------------------------------------------------------------------------------
+///          |                   |                    |                          |            
+///          v                   v                    v                          v          
+///   intermediate MLE    intermediate MLE     intermediate MLE           intermediate MLE     
+/// ```
+///
+/// A column containing every single possible value the word can take is established and
+/// populated. An anchored MLE is produced over this column, since the verifier knows range
+/// of the words. A column containing the counts of all of word occurrences in the decomposition
+/// matrix is established, and an intermediate MLE over this column is produced.
+///
+/// Then, the challenge from the verifier is added to each word, and this sum is inverted. The
+/// columns, now containing the logarithmic derivative of (alpha + word), form a new
+/// matrix. The MLEs over the columns in this new matrix are computed:
+///
+/// ```text
+/// | Column 0             | Column 1             | Column 2             | . | Column 31             |
+/// |----------------------|----------------------|----------------------|---|-----------------------|
+/// | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+/// | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+/// | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+/// --------------------------------------------------------------------------------------------------
+///            |                     |                      |                              |            
+///            v                     v                      v                              v          
+///     intermediate MLE      intermediate MLE       intermediate MLE               intermediate MLE     
+/// ```
+///
+/// This new matrix of logarithmic derivatives, and the original word decomposition, are
+/// sufficient to establish constraints for verification.
 pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     scalars: &mut [S],
@@ -36,63 +73,59 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
         .collect();
 
-    // Initialize a vector to count occurrences of each byte (0-255) using field elements `S`.
+    // Allocate space for the eventual inverted word columns
+    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
+        .collect();
+
+    // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
-    // and are each initialized to the zero element of `S`.
     // TODO: this should equal the length of the column of scalars
     let byte_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
 
     // Get the alpha challenge from the verifier
     let alpha = builder.consume_post_result_challenge();
 
-    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
-        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
-        .collect();
-
     // Iterate through scalars and fill columns
     for (i, scalar) in scalars.iter().enumerate() {
-        // Convert scalar into an array of u64, then into byte-sized words
+        // Convert scalar into an array of u64, then break into words
         let scalar_array: [u64; 4] = (*scalar).into();
-        let scalar_bytes = bytemuck::cast_slice::<u64, u8>(&scalar_array); // Safer casting using bytemuck
+        let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
 
-        let inverted_words: Vec<S> = scalar_bytes
+        // Populate the rows of the words table with decomposition of scalar
+        for (row, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
+            row[i] = byte;
+            byte_counts[byte as usize] += 1; // Also count how many times we see this word
+        }
+
+        // Convert each word to scalar so we can perform requisite arithmetic on it
+        let words_as_row: Vec<S> = scalar_bytes
             .iter()
             .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
             .collect();
 
-        // Allocate and initialize row for each inverted scalar processing
-        let inverted_words_plus_alpha: &mut [S] =
-            alloc.alloc_slice_fill_with(inverted_words.len(), |_| S::zero());
-
-        // Populate columns and update byte counts
-        for (col, &byte) in words.iter_mut().zip(scalar_bytes.iter()) {
-            col[i] = byte;
-            // Update the byte count in the corresponding position
-            byte_counts[byte as usize] += 1; // Increment the count of the byte value
+        // For each element in a row, add alpha to it, and assign to inverted_word_columns
+        for (j, &word_scalar) in words_as_row.iter().enumerate() {
+            // Add the verifier challenge to the word, then invert the sum in the scalar field
+            let value: S = (word_scalar + alpha).inv().unwrap_or(S::ZERO);
+            inverted_word_columns[j][i] = value; // j is column index, i is row index
         }
-
-        for ((col, &inverted_word), row_entry) in inverted_word_columns
-            .iter_mut()
-            .zip(inverted_words.iter())
-            .zip(inverted_words_plus_alpha.iter_mut())
-        {
-            // Convert a word into a scalar so that we can perform arithmetic on it
-            let value = (inverted_word + alpha).inv().unwrap_or(S::ZERO);
-            col[i] = value;
-            *row_entry = value;
-        }
-        builder.produce_intermediate_mle(&*inverted_words_plus_alpha);
     }
 
-    // 1. Produce an MLE over each column of words
+    // Produce an MLE over each column of words
     for word_column in words {
         builder.produce_intermediate_mle(word_column as &[_]);
+    }
+
+    // Produce an MLE over each (word + alpha)^-1 column
+    for inverted_word_column in inverted_word_columns {
+        builder.produce_intermediate_mle(inverted_word_column as &[_]);
     }
 
     // Allocate and initialize byte_values to represent each possible byte as a scalar directly
     let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
 
-    // 2. Produce the anchored MLE that the verifier has access to, consisting
+    // Produce the anchored MLE that the verifier has access to, consisting
     // of all possible word values. These serve as values to lookup
     // in the lookup table
     builder.produce_anchored_mle(byte_values as &[_]);
@@ -101,10 +134,11 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     builder.produce_intermediate_mle(byte_counts as &[_]);
 
     // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
-    let inverted_word_values: &mut [S] =
-        alloc.alloc_slice_fill_with(256, |i| S::try_from(i.into()).unwrap() + alpha);
+    let inverted_word_values: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
+        S::try_from(i.into()).expect("word value will always fit into S") + alpha
+    });
     slice_ops::batch_inversion(&mut inverted_word_values[..]);
-    builder.produce_intermediate_mle(inverted_word_values as &[S]);
+    builder.produce_intermediate_mle(inverted_word_values as &[_]);
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches
