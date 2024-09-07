@@ -119,10 +119,13 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         // | Column i            | Column i+1            | Column i+2            | ... | Column_||word||     |
         // |---------------------|-----------------------|-----------------------|-----|---------------------|
         // | 1/(word[i] + alpha) | 1/(word[i+1] + alpha) | 1/(word[i+2] + alpha) | ... | 1/(word[n] + alpha) |
-        for (j, &word_scalar) in inverted_words.iter().enumerate() {
-            // Add the verifier challenge to the word, then invert the sum in the scalar field
-            let value: S = (word_scalar + alpha).inv().unwrap_or(S::ZERO);
-            inverted_word_columns[j][i] = value; // j is column index, i is row index
+        for ((j, word_scalar), column) in inverted_words
+            .iter()
+            .enumerate()
+            .zip(inverted_word_columns.iter_mut())
+        {
+            let value: S = (*word_scalar + alpha).inv().unwrap_or(S::ZERO);
+            column[i] = value; // j is column index, i is the row index specific to this iteration of scalars
         }
     }
 
