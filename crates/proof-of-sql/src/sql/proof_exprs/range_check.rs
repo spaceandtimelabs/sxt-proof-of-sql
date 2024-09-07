@@ -15,17 +15,8 @@ use bumpalo::Bump;
 /// ## Word-sized decomposition:
 ///
 /// Each row represents the byte decomposition of a scalar, and each column contains the bytes from
-/// the same byte position across all scalars. First, we produce this word-wise decomposition:
-///
-/// ```text
-/// | Column 0           | Column 1           | Column 2           | ... | Column 31           |  
-/// |--------------------|--------------------|--------------------|-----|---------------------|  
-/// | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 31 of Scalar 0 |  
-/// | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 31 of Scalar 1 |  
-/// | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 31 of Scalar 2 |  
-/// ```
-///
-/// The next step is to compute intermediate MLEs over the word columns:
+/// the same byte position across all scalars. First, we produce this word-wise decomposition,
+/// as well as computing intermediate MLEs over the word columns:
 ///
 /// ```text
 /// | Column 0           | Column 1           | Column 2           | ... | Column 31           |
@@ -40,7 +31,7 @@ use bumpalo::Bump;
 /// ```
 ///
 /// A column containing every single possible value the word can take is established and
-/// populated. An anchored MLE is produced over this column, since the verifier knows range
+/// populated. An anchored MLE is produced over this column, since the verifier knows the range
 /// of the words. A column containing the counts of all of word occurrences in the decomposition
 /// matrix is established, and an intermediate MLE over this column is produced.
 ///

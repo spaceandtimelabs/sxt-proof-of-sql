@@ -28,7 +28,11 @@ impl<C: Commitment> ProofPlan<C> for RangeCheckTestExpr {
         builder: &mut CountBuilder,
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        todo!()
+        builder.count_intermediate_mles(62); //31 * 2
+
+        // builder.count_subpolynomials(3);
+        builder.count_degree(3);
+        Ok(())
     }
 
     fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
@@ -71,7 +75,7 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
     ) -> Vec<Column<'a, S>> {
         // result builder needs ability to produce intermediate MLE
         builder.request_post_result_challenges(1);
-        todo!()
+        vec![]
     }
 
     // second round
@@ -85,50 +89,63 @@ impl<S: Scalar> ProverEvaluate<S> for RangeCheckTestExpr {
 
         let scalar_values = alloc.alloc_slice_copy(&a.to_scalar_with_scaling(0));
         prover_evaluate_range_check(builder, scalar_values, alloc);
-
-        // TODO: enable this
-        // prover_evaluate_range_check(builder, scalar_values);
-        todo!()
+        vec![]
     }
 }
 
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use crate::{
-        base::database::{
-            owned_table_utility::{bigint, owned_table},
-            ColumnRef, ColumnType, OwnedTableTestAccessor,
+        base::{
+            database::{
+                owned_table_utility::{bigint, owned_table},
+                ColumnRef, ColumnType, OwnedTableTestAccessor,
+            },
+            scalar::Curve25519Scalar,
         },
-        sql::{proof::VerifiableQueryResult, proof_exprs::range_check_tests::RangeCheckTestExpr},
+        sql::{
+            proof::{
+                ProofBuilder, ProverEvaluate, ResultBuilder, SumcheckMleEvaluations,
+                SumcheckRandomScalars,
+            },
+            proof_exprs::range_check_tests::RangeCheckTestExpr,
+        },
     };
     use blitzar::proof::InnerProductProof;
+    use bumpalo::Bump;
 
-    #[should_panic]
     #[test]
-    fn we_can_verify_that_every_value_in_colum_is_binary() {
+    fn we_can_compute_correct_mles_over_decomposed_scalars() {
         let data = owned_table([bigint(
             "a",
             [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007],
         )]);
         let t = "sxt.t".parse().unwrap();
         let column = ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt);
+        let alloc = Bump::new();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-        let expr = RangeCheckTestExpr { column };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-        let res = verifiable_res.verify(&expr, &accessor, &()).unwrap().table;
-        let expected_res = owned_table([]);
-        assert_eq!(res, expected_res);
-    }
 
-    #[should_panic]
-    #[test]
-    fn we_cannot_verify_an_invalid_that_every_value_in_colum_is_binary() {
-        let data = owned_table([bigint("a", [1, 0, 1, 3, 1])]);
-        let t = "sxt.t".parse().unwrap();
-        let column = ColumnRef::new(t, "a".parse().unwrap(), ColumnType::BigInt);
-        let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-        let expr = RangeCheckTestExpr { column };
-        let verifiable_res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
-        assert!(verifiable_res.verify(&expr, &accessor, &()).is_err());
+        {
+            let expr = RangeCheckTestExpr { column };
+
+            let mut res_builder = ResultBuilder::new(8);
+            let result_res = expr.result_evaluate(&mut res_builder, &alloc, &accessor);
+
+            let mut proof_builder = ProofBuilder::new(2, 1, vec![Curve25519Scalar::from(123)]);
+            let prover_res = expr.prover_evaluate(&mut proof_builder, &alloc, &accessor);
+
+            let scalars = [Curve25519Scalar::from(123)];
+            let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, 8, 2);
+            let evaluation_point = [Curve25519Scalar::from(123)];
+            let sumcheck_evaluations = SumcheckMleEvaluations::new(
+                8,
+                &evaluation_point,
+                &sumcheck_random_scalars,
+                &[],
+                &[],
+                &Default::default(),
+            );
+            let one_eval = sumcheck_evaluations.one_evaluation;
+        }
     }
 }
