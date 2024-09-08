@@ -66,8 +66,8 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         _builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<(), ProofError> {
-        Ok(())
+    ) -> Result<Vec<C::Scalar>, ProofError> {
+        Ok(vec![C::Scalar::ZERO])
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

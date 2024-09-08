@@ -83,12 +83,13 @@ where
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
-        for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, accessor, &selection_eval);
-        }
-        Ok(())
+        Ok(self
+            .results
+            .iter()
+            .map(|expr| expr.verifier_evaluate(builder, accessor, &selection_eval))
+            .collect())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
