@@ -126,7 +126,7 @@ impl<C: Commitment> QueryExpr<C> {
                 })
             }
         } else {
-            // No group by, so we need to do a dense filter.
+            // No group by, so we need to do a filter.
             let column_mapping = context.get_column_mapping();
             let enriched_exprs = result_aliased_exprs
                 .iter()

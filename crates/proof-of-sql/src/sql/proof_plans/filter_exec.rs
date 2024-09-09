@@ -142,7 +142,7 @@ where
     }
 }
 
-/// Alias for a dense filter expression with a honest prover.
+/// Alias for a filter expression with a honest prover.
 pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
