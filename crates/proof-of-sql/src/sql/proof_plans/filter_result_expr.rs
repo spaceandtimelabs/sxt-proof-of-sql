@@ -89,7 +89,7 @@ impl FilterResultExpr {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         selection_eval: &C::Scalar,
-    ) {
+    ) -> C::Scalar {
         let col_commit = accessor.get_commitment(self.column_ref);
 
         let result_eval = builder.consume_result_mle();
@@ -98,6 +98,7 @@ impl FilterResultExpr {
         let poly_eval =
             builder.mle_evaluations.random_evaluation * (result_eval - col_eval * *selection_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&poly_eval);
+        result_eval
     }
 }
 

@@ -91,10 +91,10 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         assert_eq!(builder.consume_result_mle(), C::Scalar::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(&C::Scalar::from(self.evaluation));
-        Ok(())
+        Ok(vec![C::Scalar::ZERO])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -266,7 +266,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         let res_eval = builder.consume_result_mle();
         let x_commit = C::Scalar::from(self.anchored_commit_multiplier)
             * accessor.get_commitment(ColumnRef::new(
@@ -277,7 +277,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         let x_eval = builder.consume_anchored_mle(x_commit);
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-        Ok(())
+        Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -459,7 +459,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         let x_commit = accessor.get_commitment(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
@@ -476,7 +476,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         // poly2
         let eval = builder.mle_evaluations.random_evaluation * (res_eval - z_eval * z_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-        Ok(())
+        Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
@@ -656,7 +656,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         let res_eval = builder.consume_result_mle();
@@ -669,7 +669,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         let eval = builder.mle_evaluations.random_evaluation
             * (alpha * res_eval - alpha * x_eval * x_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&eval);
-        Ok(())
+        Ok(vec![res_eval])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]

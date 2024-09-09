@@ -67,15 +67,14 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         self.aliased_results
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        let _columns_evals = Vec::from_iter(
+        Ok(Vec::from_iter(
             repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        );
-        Ok(())
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

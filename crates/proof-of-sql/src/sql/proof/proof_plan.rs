@@ -38,7 +38,7 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError>;
+    ) -> Result<Vec<C::Scalar>, ProofError>;
 
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;

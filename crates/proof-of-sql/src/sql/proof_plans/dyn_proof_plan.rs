@@ -73,7 +73,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::VerificationBuilder<C>,
         accessor: &dyn crate::base::database::CommitmentAccessor<C>,
         result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
-    ) -> Result<(), crate::base::proof::ProofError> {
+    ) -> Result<Vec<C::Scalar>, crate::base::proof::ProofError> {
         match self {
             DynProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
             DynProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),

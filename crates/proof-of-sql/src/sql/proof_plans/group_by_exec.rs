@@ -104,7 +104,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         // 1. selection
         let where_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -141,8 +141,8 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             beta,
             (group_by_evals, aggregate_evals, where_eval),
             (
-                group_by_result_columns_evals,
-                sum_result_columns_evals,
+                group_by_result_columns_evals.clone(),
+                sum_result_columns_evals.clone(),
                 count_column_eval,
             ),
         )?;
@@ -166,7 +166,13 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             }
             None => todo!("GroupByExec currently only supported at top level of query plan."),
         }
-        Ok(())
+
+        Ok(Vec::from_iter(
+            group_by_result_columns_evals
+                .into_iter()
+                .chain(sum_result_columns_evals)
+                .chain(std::iter::once(count_column_eval)),
+        ))
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
