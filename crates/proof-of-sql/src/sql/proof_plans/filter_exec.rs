@@ -31,15 +31,15 @@ use serde::{Deserialize, Serialize};
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleDenseFilterExec<C: Commitment, H: ProverHonestyMarker> {
+pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
     pub(crate) where_clause: DynProofExpr<C>,
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExec<C, H> {
-    /// Creates a new dense_filter expression.
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
+    /// Creates a new filter expression.
     pub fn new(
         aliased_results: Vec<AliasedDynProofExpr<C>>,
         table: TableExpr,
@@ -54,9 +54,9 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleDenseFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleDenseFilterExec<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
 where
-    OstensibleDenseFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -143,10 +143,10 @@ where
 }
 
 /// Alias for a dense filter expression with a honest prover.
-pub type DenseFilterExec<C> = OstensibleDenseFilterExec<C, HonestProver>;
+pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
-    #[tracing::instrument(name = "DenseFilterExec::result_evaluate", level = "debug", skip_all)]
+impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+    #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder<'a>,
@@ -179,7 +179,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         filtered_columns
     }
 
-    #[tracing::instrument(name = "DenseFilterExec::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,

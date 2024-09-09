@@ -121,7 +121,7 @@ impl<C: Commitment> QueryExpr<C> {
                     );
                 }
                 Ok(Self {
-                    proof_expr: DynProofPlan::DenseFilter(filter),
+                    proof_expr: DynProofPlan::Filter(filter),
                     postprocessing,
                 })
             }
@@ -152,7 +152,7 @@ impl<C: Commitment> QueryExpr<C> {
                 );
             }
             Ok(Self {
-                proof_expr: DynProofPlan::DenseFilter(filter),
+                proof_expr: DynProofPlan::Filter(filter),
                 postprocessing,
             })
         }

@@ -1,4 +1,4 @@
-use super::{dense_filter_exec::prove_filter, OstensibleDenseFilterExec};
+use super::{filter_exec::prove_filter, OstensibleFilterExec};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
@@ -27,11 +27,11 @@ use num_traits::One;
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestDenseFilterExec<C> = OstensibleDenseFilterExec<C, Dishonest>;
+type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
 
-impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoint> {
+impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     #[tracing::instrument(
-        name = "DishonestDenseFilterExec::result_evaluate",
+        name = "DishonestFilterExec::result_evaluate",
         level = "debug",
         skip_all
     )]
@@ -68,7 +68,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoin
     }
 
     #[tracing::instrument(
-        name = "DishonestDenseFilterExec::prover_evaluate",
+        name = "DishonestFilterExec::prover_evaluate",
         level = "debug",
         skip_all
     )]
@@ -132,7 +132,7 @@ fn tamper_column<'a>(
 }
 
 #[test]
-fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
+fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let data = owned_table([
         bigint("a", [101, 104, 105, 102, 105]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -143,7 +143,7 @@ fn we_fail_to_verify_a_basic_dense_filter_with_a_dishonest_prover() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr = DishonestDenseFilterExec::new(
+    let expr = DishonestFilterExec::new(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), const_int128(105_i128)),

@@ -6,7 +6,7 @@ use crate::{
     },
     sql::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
-        proof_plans::DenseFilterExec,
+        proof_plans::FilterExec,
     },
 };
 use indexmap::IndexMap;
@@ -71,8 +71,8 @@ impl<C: Commitment> FilterExecBuilder<C> {
         self
     }
 
-    pub fn build(self) -> DenseFilterExec<C> {
-        DenseFilterExec::new(
+    pub fn build(self) -> FilterExec<C> {
+        FilterExec::new(
             self.filter_result_expr_list,
             self.table_expr.expect("Table expr is required"),
             self.where_expr

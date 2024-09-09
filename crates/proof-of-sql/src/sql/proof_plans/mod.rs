@@ -7,14 +7,14 @@ mod projection_exec_test;
 #[cfg(test)]
 pub(crate) mod test_utility;
 
-mod dense_filter_exec;
-pub(crate) use dense_filter_exec::DenseFilterExec;
+mod filter_exec;
+pub(crate) use filter_exec::FilterExec;
 #[cfg(test)]
-pub(crate) use dense_filter_exec::OstensibleDenseFilterExec;
+pub(crate) use filter_exec::OstensibleFilterExec;
 #[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_exec_test;
+mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_exec_test_dishonest_prover;
+mod filter_exec_test_dishonest_prover;
 
 mod fold_util;
 pub(crate) use fold_util::{fold_columns, fold_vals};

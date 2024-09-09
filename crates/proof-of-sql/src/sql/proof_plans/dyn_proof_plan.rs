@@ -1,4 +1,4 @@
-use super::{DenseFilterExec, GroupByExec, ProjectionExec};
+use super::{FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::{commitment::Commitment, database::Column},
     sql::proof::{ProofPlan, ProverEvaluate},
@@ -27,7 +27,7 @@ pub enum DynProofPlan<C: Commitment> {
     /// ```ignore
     ///     SELECT <result_expr1>, ..., <result_exprN> FROM <table> WHERE <where_clause>
     /// ```
-    DenseFilter(DenseFilterExec<C>),
+    Filter(FilterExec<C>),
 }
 
 impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
@@ -39,7 +39,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.count(builder, accessor),
             DynProofPlan::GroupBy(expr) => expr.count(builder, accessor),
-            DynProofPlan::DenseFilter(expr) => expr.count(builder, accessor),
+            DynProofPlan::Filter(expr) => expr.count(builder, accessor),
         }
     }
 
@@ -47,7 +47,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_length(accessor),
             DynProofPlan::GroupBy(expr) => expr.get_length(accessor),
-            DynProofPlan::DenseFilter(expr) => expr.get_length(accessor),
+            DynProofPlan::Filter(expr) => expr.get_length(accessor),
         }
     }
 
@@ -55,7 +55,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_offset(accessor),
             DynProofPlan::GroupBy(expr) => expr.get_offset(accessor),
-            DynProofPlan::DenseFilter(expr) => expr.get_offset(accessor),
+            DynProofPlan::Filter(expr) => expr.get_offset(accessor),
         }
     }
 
@@ -69,7 +69,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
             DynProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor, result),
-            DynProofPlan::DenseFilter(expr) => expr.verifier_evaluate(builder, accessor, result),
+            DynProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),
         }
     }
 
@@ -77,7 +77,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_column_result_fields(),
             DynProofPlan::GroupBy(expr) => expr.get_column_result_fields(),
-            DynProofPlan::DenseFilter(expr) => expr.get_column_result_fields(),
+            DynProofPlan::Filter(expr) => expr.get_column_result_fields(),
         }
     }
 
@@ -85,7 +85,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_column_references(),
             DynProofPlan::GroupBy(expr) => expr.get_column_references(),
-            DynProofPlan::DenseFilter(expr) => expr.get_column_references(),
+            DynProofPlan::Filter(expr) => expr.get_column_references(),
         }
     }
 }
@@ -101,7 +101,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.result_evaluate(builder, alloc, accessor),
             DynProofPlan::GroupBy(expr) => expr.result_evaluate(builder, alloc, accessor),
-            DynProofPlan::DenseFilter(expr) => expr.result_evaluate(builder, alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
         }
     }
 
@@ -115,7 +115,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         match self {
             DynProofPlan::Projection(expr) => expr.prover_evaluate(builder, alloc, accessor),
             DynProofPlan::GroupBy(expr) => expr.prover_evaluate(builder, alloc, accessor),
-            DynProofPlan::DenseFilter(expr) => expr.prover_evaluate(builder, alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),
         }
     }
 }

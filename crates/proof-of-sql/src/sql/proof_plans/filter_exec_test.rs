@@ -1,4 +1,4 @@
-use super::{test_utility::*, DenseFilterExec};
+use super::{test_utility::*, FilterExec};
 use crate::{
     base::{
         database::{
@@ -26,7 +26,7 @@ fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let b = Identifier::try_new("b").unwrap();
-    let provable_ast = DenseFilterExec::<RistrettoPoint>::new(
+    let provable_ast = FilterExec::<RistrettoPoint>::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -72,7 +72,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());
     let a = Identifier::try_new("a").unwrap();
     let f = Identifier::try_new("f").unwrap();
-    let provable_ast = DenseFilterExec::new(
+    let provable_ast = FilterExec::new(
         vec![
             aliased_plan(
                 DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(
@@ -155,7 +155,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 }
 
 #[test]
-fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
+fn we_can_prove_and_get_the_correct_result_from_a_basic_filter() {
     let data = owned_table([
         bigint("a", [1_i64, 4_i64, 5_i64, 2_i64, 5_i64]),
         bigint("b", [1_i64, 2, 3, 4, 5]),
@@ -163,7 +163,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let where_clause = equal(column(t, "a", &accessor), const_int128(5_i128));
-    let ast = dense_filter(cols_expr_plan(t, &["b"], &accessor), tab(t), where_clause);
+    let ast = filter(cols_expr_plan(t, &["b"], &accessor), tab(t), where_clause);
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
     exercise_verification(&verifiable_res, &ast, &accessor, t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
@@ -172,7 +172,7 @@ fn we_can_prove_and_get_the_correct_result_from_a_basic_dense_filter() {
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [0; 0]),
         bigint("b", [0; 0]),
@@ -185,7 +185,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
-    let expr = dense_filter(
+    let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
@@ -217,7 +217,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_on_an_empty_table_using_
 }
 
 #[test]
-fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() {
+fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -230,7 +230,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(999));
-    let expr = dense_filter(
+    let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
@@ -262,8 +262,7 @@ fn we_can_get_an_empty_result_from_a_basic_dense_filter_using_result_evaluate() 
 }
 
 #[test]
-fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_using_result_evaluate()
-{
+fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -276,7 +275,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
-    let expr = dense_filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
+    let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
     expr.result_evaluate(&mut builder, &alloc, &accessor);
@@ -290,7 +289,7 @@ fn we_can_get_no_columns_from_a_basic_dense_filter_with_no_selected_columns_usin
 }
 
 #[test]
-fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate() {
+fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
     let data = owned_table([
         bigint("a", [1, 4, 5, 2, 5]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -303,7 +302,7 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
     accessor.add_table(t, data, 0);
     let where_clause: DynProofExpr<RistrettoPoint> =
         equal(column(t, "a", &accessor), const_int128(5));
-    let expr = dense_filter(
+    let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         where_clause,
@@ -334,7 +333,7 @@ fn we_can_get_the_correct_result_from_a_basic_dense_filter_using_result_evaluate
 }
 
 #[test]
-fn we_can_prove_a_dense_filter_on_an_empty_table() {
+fn we_can_prove_a_filter_on_an_empty_table() {
     let data = owned_table([
         bigint("a", [101; 0]),
         bigint("b", [3; 0]),
@@ -345,7 +344,7 @@ fn we_can_prove_a_dense_filter_on_an_empty_table() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr = dense_filter(
+    let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), const_int128(106)),
@@ -363,7 +362,7 @@ fn we_can_prove_a_dense_filter_on_an_empty_table() {
 }
 
 #[test]
-fn we_can_prove_a_dense_filter_with_empty_results() {
+fn we_can_prove_a_filter_with_empty_results() {
     let data = owned_table([
         bigint("a", [101, 104, 105, 102, 105]),
         bigint("b", [1, 2, 3, 4, 5]),
@@ -374,7 +373,7 @@ fn we_can_prove_a_dense_filter_with_empty_results() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr = dense_filter(
+    let expr = filter(
         cols_expr_plan(t, &["b", "c", "d", "e"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), const_int128(106)),
@@ -392,7 +391,7 @@ fn we_can_prove_a_dense_filter_with_empty_results() {
 }
 
 #[test]
-fn we_can_prove_a_dense_filter() {
+fn we_can_prove_a_filter() {
     let data = owned_table([
         bigint("a", [101, 104, 105, 102, 105]),
         bigint("b", [1, 2, 3, 4, 7]),
@@ -403,7 +402,7 @@ fn we_can_prove_a_dense_filter() {
     let t = "sxt.t".parse().unwrap();
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(t, data, 0);
-    let expr = dense_filter(
+    let expr = filter(
         vec![
             col_expr_plan(t, "b", &accessor),
             col_expr_plan(t, "c", &accessor),

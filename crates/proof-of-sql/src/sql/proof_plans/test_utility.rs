@@ -1,4 +1,4 @@
-use super::{DenseFilterExec, DynProofPlan, GroupByExec, ProjectionExec};
+use super::{DynProofPlan, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::commitment::Commitment,
     sql::proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, TableExpr},
@@ -11,12 +11,12 @@ pub fn projection<C: Commitment>(
     DynProofPlan::Projection(ProjectionExec::new(results, table))
 }
 
-pub fn dense_filter<C: Commitment>(
+pub fn filter<C: Commitment>(
     results: Vec<AliasedDynProofExpr<C>>,
     table: TableExpr,
     where_clause: DynProofExpr<C>,
 ) -> DynProofPlan<C> {
-    DynProofPlan::DenseFilter(DenseFilterExec::new(results, table, where_clause))
+    DynProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
 pub fn group_by<C: Commitment>(

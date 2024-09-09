@@ -35,7 +35,7 @@ fn we_can_compare_columns_with_small_timestamp_values_gte() {
     )]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a"], &accessor),
         tab(t),
         gte(
@@ -69,7 +69,7 @@ fn we_can_compare_columns_with_small_timestamp_values_lte() {
     )]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a"], &accessor),
         tab(t),
         lte(
@@ -98,7 +98,7 @@ fn we_can_compare_a_constant_column() {
     let data = owned_table([bigint("a", [123_i64, 123, 123]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(5)),
@@ -115,7 +115,7 @@ fn we_can_compare_a_varying_column_with_constant_sign() {
     let data = owned_table([bigint("a", [123_i64, 567, 8]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(5)),
@@ -138,7 +138,7 @@ fn we_can_compare_columns_with_extreme_values() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["bigint_b"], &accessor),
         tab(t),
         lte(
@@ -174,7 +174,7 @@ fn we_can_compare_columns_with_small_decimal_values_without_scale() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d", "e"], &accessor),
         tab(t),
         lte(column(t, "e", &accessor), const_bigint(0_i64)),
@@ -203,7 +203,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_scale() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d", "e", "f"], &accessor),
         tab(t),
         lte(column(t, "f", &accessor), const_bigint(0_i64)),
@@ -233,7 +233,7 @@ fn we_can_compare_columns_with_small_decimal_values_with_differing_scale_gte() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d", "e", "f"], &accessor),
         tab(t),
         gte(column(t, "f", &accessor), const_bigint(0_i64)),
@@ -266,7 +266,7 @@ fn we_can_compare_columns_returning_extreme_decimal_values() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d", "e"], &accessor),
         tab(t),
         lte(column(t, "b", &accessor), const_bigint(0_i64)),
@@ -313,7 +313,7 @@ fn we_can_compare_two_columns() {
     let data = owned_table([bigint("a", [1_i64, 5, 8]), bigint("b", [1_i64, 7, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), column(t, "b", &accessor)),
@@ -333,7 +333,7 @@ fn we_can_compare_a_varying_column_with_constant_absolute_value() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
@@ -353,7 +353,7 @@ fn we_can_compare_a_constant_column_of_negative_columns() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(5)),
@@ -373,7 +373,7 @@ fn we_can_compare_a_varying_column_with_negative_only_signs() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(5)),
@@ -390,7 +390,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs() {
     let data = owned_table([bigint("a", [-1_i64, 9, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(1)),
@@ -407,7 +407,7 @@ fn we_can_compare_column_with_greater_than_or_equal() {
     let data = owned_table([bigint("a", [-1_i64, 9, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         gte(column(t, "a", &accessor), const_bigint(1)),
@@ -428,7 +428,7 @@ fn we_can_run_nested_comparison() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         equal(
@@ -448,7 +448,7 @@ fn we_can_compare_a_column_with_varying_absolute_values_and_signs_and_a_constant
     let data = owned_table([bigint("a", [-2_i64, 3, 2]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
@@ -465,7 +465,7 @@ fn we_can_compare_a_constant_column_of_zeros() {
     let data = owned_table([bigint("a", [0_i64, 0, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
@@ -482,12 +482,12 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     let data = owned_table([bigint("a", [0_i64, 0, 0]), bigint("b", [1_i64, 2, 3])]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let mut ast = dense_filter(
+    let mut ast = filter(
         cols_expr_plan(t, &["b"], &accessor),
         tab(t),
         lte(column(t, "a", &accessor), const_bigint(0)),
     );
-    if let DynProofPlan::DenseFilter(filter) = &mut ast {
+    if let DynProofPlan::Filter(filter) = &mut ast {
         if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
             lte.treat_column_of_zeros_as_negative = true
         }
@@ -524,7 +524,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             offset,
             (),
         );
-        let ast = dense_filter(
+        let ast = filter(
             cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             lte(column(t, "a", &accessor), const_bigint(filter_val)),
