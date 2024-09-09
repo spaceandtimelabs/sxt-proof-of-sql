@@ -1,16 +1,4 @@
 //! This module proves provable execution plans.
-mod filter_result_expr;
-pub(crate) use filter_result_expr::FilterResultExpr;
-
-mod filter_exec;
-pub(crate) use filter_exec::FilterExec;
-#[cfg(test)]
-pub(crate) use filter_exec::OstensibleFilterExec;
-#[cfg(all(test, feature = "blitzar"))]
-mod filter_exec_test;
-#[cfg(all(test, feature = "blitzar"))]
-mod filter_exec_test_dishonest_prover;
-
 mod projection_exec;
 pub(crate) use projection_exec::ProjectionExec;
 #[cfg(all(test, feature = "blitzar"))]

@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 pub struct OstensibleDenseFilterExec<C: Commitment, H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
-    pub(super) where_clause: DynProofExpr<C>,
+    pub(crate) where_clause: DynProofExpr<C>,
     phantom: PhantomData<H>,
 }
 
