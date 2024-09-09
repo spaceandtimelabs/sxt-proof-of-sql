@@ -14,8 +14,8 @@ fn we_can_aggregate_empty_columns() {
     let column_b = Column::VarChar((&[], &[]));
     let column_c = Column::Int128(&[]);
     let column_d = Column::Scalar(&[]);
-    let group_by = &[column_a.clone(), column_b.clone()];
-    let sum_columns = &[column_c.clone(), column_d.clone()];
+    let group_by = &[column_a, column_b];
+    let sum_columns = &[column_c, column_d];
     let selection = &[];
     let alloc = Bump::new();
     let aggregate_result = aggregate_columns(&alloc, group_by, sum_columns, &[], &[], selection)
@@ -37,9 +37,9 @@ fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
     let column_c = Column::Int128(slice_c);
     let column_d = Column::Scalar(&scals_d);
     let group_by = &[];
-    let sum_columns = &[column_c.clone(), column_d.clone()];
-    let max_columns = &[column_c.clone(), column_d.clone()];
-    let min_columns = &[column_c.clone(), column_d.clone()];
+    let sum_columns = &[column_c, column_d];
+    let max_columns = &[column_c, column_d];
+    let min_columns = &[column_c, column_d];
     let alloc = Bump::new();
     let aggregate_result = aggregate_columns(
         &alloc,
@@ -73,9 +73,9 @@ fn we_can_aggregate_columns_with_empty_group_by() {
     let column_c = Column::Int128(slice_c);
     let column_d = Column::Scalar(&scals_d);
     let group_by = &[];
-    let sum_columns = &[column_c.clone(), column_d.clone()];
-    let max_columns = &[column_c.clone(), column_d.clone()];
-    let min_columns = &[column_c.clone(), column_d.clone()];
+    let sum_columns = &[column_c, column_d];
+    let max_columns = &[column_c, column_d];
+    let min_columns = &[column_c, column_d];
     let alloc = Bump::new();
     let aggregate_result = aggregate_columns(
         &alloc,
@@ -128,10 +128,10 @@ fn we_can_aggregate_columns() {
     let column_b = Column::VarChar((slice_b, &scals_b));
     let column_c = Column::Int128(slice_c);
     let column_d = Column::Scalar(&scals_d);
-    let group_by = &[column_a.clone(), column_b.clone()];
-    let sum_columns = &[column_c.clone(), column_d.clone()];
-    let max_columns = &[column_c.clone(), column_d.clone()];
-    let min_columns = &[column_c.clone(), column_d.clone()];
+    let group_by = &[column_a, column_b];
+    let sum_columns = &[column_c, column_d];
+    let max_columns = &[column_c, column_d];
+    let min_columns = &[column_c, column_d];
     let alloc = Bump::new();
     let aggregate_result = aggregate_columns(
         &alloc,
@@ -233,19 +233,19 @@ fn we_can_compare_indexes_by_columns_for_bigint_columns() {
     let column_b = Column::BigInt::<DoryScalar>(slice_b);
     let column_c = Column::BigInt::<DoryScalar>(slice_c);
 
-    let columns = &[column_a.clone()];
+    let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Equal);
     assert_eq!(compare_indexes_by_columns(columns, 2, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 0), Ordering::Less);
-    let columns = &[column_a.clone(), column_b.clone()];
+    let columns = &[column_a, column_b];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 2, 7), Ordering::Equal);
-    let columns = &[column_a.clone(), column_b.clone(), column_c.clone()];
+    let columns = &[column_a, column_b, column_c];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
@@ -263,19 +263,19 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
 
-    let columns = &[column_a.clone()];
+    let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Equal);
     assert_eq!(compare_indexes_by_columns(columns, 2, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 0), Ordering::Less);
-    let columns = &[column_a.clone(), column_b.clone()];
+    let columns = &[column_a, column_b];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 2, 7), Ordering::Equal);
-    let columns = &[column_a.clone(), column_b.clone(), column_c.clone()];
+    let columns = &[column_a, column_b, column_c];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
@@ -373,19 +373,19 @@ fn we_can_compare_indexes_by_columns_for_scalar_columns() {
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
 
-    let columns = &[column_a.clone()];
+    let columns = &[column_a];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Equal);
     assert_eq!(compare_indexes_by_columns(columns, 2, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 0), Ordering::Less);
-    let columns = &[column_a.clone(), column_b.clone()];
+    let columns = &[column_a, column_b];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 3, 4), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 2, 7), Ordering::Equal);
-    let columns = &[column_a.clone(), column_b.clone(), column_c.clone()];
+    let columns = &[column_a, column_b, column_c];
     assert_eq!(compare_indexes_by_columns(columns, 0, 1), Ordering::Greater);
     assert_eq!(compare_indexes_by_columns(columns, 1, 2), Ordering::Less);
     assert_eq!(compare_indexes_by_columns(columns, 2, 3), Ordering::Less);

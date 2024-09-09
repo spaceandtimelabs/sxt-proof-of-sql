@@ -108,7 +108,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         }));
         builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
         for col in &columns {
-            builder.produce_result_column(col.clone());
+            builder.produce_result_column(*col);
         }
         columns
     }
