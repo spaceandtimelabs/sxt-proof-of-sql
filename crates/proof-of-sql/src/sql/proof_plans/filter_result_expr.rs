@@ -50,8 +50,10 @@ impl FilterResultExpr {
         &self,
         builder: &mut ResultBuilder<'a>,
         accessor: &'a dyn DataAccessor<S>,
-    ) {
-        builder.produce_result_column(accessor.get_column(self.column_ref));
+    ) -> Column<'a, S> {
+        let col = accessor.get_column(self.column_ref);
+        builder.produce_result_column(col.clone());
+        col
     }
 
     /// Given the selected rows (as a slice of booleans), evaluate the filter result expression and
@@ -62,7 +64,7 @@ impl FilterResultExpr {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
         selection: &'a [bool],
-    ) {
+    ) -> Column<'a, S> {
         match accessor.get_column(self.column_ref) {
             Column::Boolean(col) => prover_evaluate_impl(builder, alloc, selection, col),
             Column::SmallInt(col) => prover_evaluate_impl(builder, alloc, selection, col),
@@ -77,6 +79,7 @@ impl FilterResultExpr {
             Column::VarChar((_, scals)) => prover_evaluate_impl(builder, alloc, selection, scals),
             Column::TimestampTZ(_, _, col) => prover_evaluate_impl(builder, alloc, selection, col),
         };
+        accessor.get_column(self.column_ref)
     }
 
     /// Given the evaluation of the selected row's multilinear extension at sumcheck's random point,
@@ -86,7 +89,7 @@ impl FilterResultExpr {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         selection_eval: &C::Scalar,
-    ) {
+    ) -> C::Scalar {
         let col_commit = accessor.get_commitment(self.column_ref);
 
         let result_eval = builder.consume_result_mle();
@@ -95,6 +98,7 @@ impl FilterResultExpr {
         let poly_eval =
             builder.mle_evaluations.random_evaluation * (result_eval - col_eval * *selection_eval);
         builder.produce_sumcheck_subpolynomial_evaluation(&poly_eval);
+        result_eval
     }
 }
 

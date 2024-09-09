@@ -40,7 +40,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoin
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
+    ) -> Vec<Column<'a, Curve25519Scalar>> {
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
@@ -60,10 +60,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoin
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         // 4. set filtered_columns
-        for col in filtered_columns {
-            builder.produce_result_column(col);
+        for col in &filtered_columns {
+            builder.produce_result_column(col.clone());
         }
         builder.request_post_result_challenges(2);
+        filtered_columns
     }
 
     #[tracing::instrument(
@@ -77,7 +78,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoin
         builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
-    ) {
+    ) -> Vec<Column<'a, Curve25519Scalar>> {
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -107,6 +108,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestDenseFilterExec<RistrettoPoin
             &filtered_columns,
             result_len,
         );
+        filtered_columns
     }
 }
 

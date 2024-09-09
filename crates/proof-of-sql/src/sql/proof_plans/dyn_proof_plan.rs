@@ -1,6 +1,6 @@
 use super::{DenseFilterExec, FilterExec, GroupByExec, ProjectionExec};
 use crate::{
-    base::commitment::Commitment,
+    base::{commitment::Commitment, database::Column},
     sql::proof::{ProofPlan, ProverEvaluate},
 };
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::VerificationBuilder<C>,
         accessor: &dyn crate::base::database::CommitmentAccessor<C>,
         result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
-    ) -> Result<(), crate::base::proof::ProofError> {
+    ) -> Result<Vec<C::Scalar>, crate::base::proof::ProofError> {
         match self {
             DynProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
             DynProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),
@@ -108,7 +108,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::ResultBuilder<'a>,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         match self {
             DynProofPlan::Projection(expr) => expr.result_evaluate(builder, alloc, accessor),
             DynProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
@@ -123,7 +123,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::ProofBuilder<'a, C::Scalar>,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         match self {
             DynProofPlan::Projection(expr) => expr.prover_evaluate(builder, alloc, accessor),
             DynProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),

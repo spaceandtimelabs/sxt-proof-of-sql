@@ -89,7 +89,7 @@ where
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
@@ -152,7 +152,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -172,10 +172,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         // 4. set filtered_columns
-        for col in filtered_columns {
-            builder.produce_result_column(col);
+        for col in &filtered_columns {
+            builder.produce_result_column(col.clone());
         }
         builder.request_post_result_challenges(2);
+        filtered_columns
     }
 
     #[tracing::instrument(name = "DenseFilterExec::prover_evaluate", level = "debug", skip_all)]
@@ -185,7 +186,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
@@ -215,6 +216,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DenseFilterExec<C> {
             &filtered_columns,
             result_len,
         );
+        filtered_columns
     }
 }
 
@@ -225,7 +227,7 @@ fn verify_filter<C: Commitment>(
     c_evals: Vec<C::Scalar>,
     s_eval: C::Scalar,
     d_evals: Vec<C::Scalar>,
-) -> Result<(), ProofError> {
+) -> Result<Vec<C::Scalar>, ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
     let rand_eval = builder.mle_evaluations.random_evaluation;
 
@@ -252,7 +254,7 @@ fn verify_filter<C: Commitment>(
         &(rand_eval * (d_bar_fold_eval * d_star_eval - chi_eval)),
     );
 
-    Ok(())
+    Ok(c_evals)
 }
 
 #[allow(clippy::too_many_arguments)]

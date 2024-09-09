@@ -7,8 +7,8 @@ use crate::{
         commitment::{Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
-            ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable, TestAccessor, UnimplementedTestAccessor,
+            Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
+            MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
         },
         proof::ProofError,
         scalar::Scalar,
@@ -28,16 +28,22 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     fn result_evaluate<'a>(
         &self,
         _builder: &mut ResultBuilder<'a>,
-        _alloc: &'a Bump,
+        alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) {
+    ) -> Vec<Column<'a, S>> {
+        let zeros = vec![0; self.length];
+        let res: &[_] = alloc.alloc_slice_copy(&zeros);
+        vec![Column::BigInt(res); self.columns]
     }
     fn prover_evaluate<'a>(
         &self,
         _builder: &mut ProofBuilder<'a, S>,
-        _alloc: &'a Bump,
+        alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
-    ) {
+    ) -> Vec<Column<'a, S>> {
+        let zeros = vec![0; self.length];
+        let res: &[_] = alloc.alloc_slice_copy(&zeros);
+        vec![Column::BigInt(res); self.columns]
     }
 }
 impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
@@ -60,8 +66,8 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         _builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<(), ProofError> {
-        Ok(())
+    ) -> Result<Vec<C::Scalar>, ProofError> {
+        Ok(vec![C::Scalar::ZERO])
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {

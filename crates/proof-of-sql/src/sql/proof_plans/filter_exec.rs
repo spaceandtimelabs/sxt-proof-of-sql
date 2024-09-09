@@ -83,12 +83,13 @@ where
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<C::Scalar>, ProofError> {
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
-        for expr in self.results.iter() {
-            expr.verifier_evaluate(builder, accessor, &selection_eval);
-        }
-        Ok(())
+        Ok(self
+            .results
+            .iter()
+            .map(|expr| expr.verifier_evaluate(builder, accessor, &selection_eval))
+            .collect())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -120,7 +121,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         builder: &mut ResultBuilder<'a>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // evaluate where clause
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -139,9 +140,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         builder.set_result_indexes(Indexes::Sparse(indexes));
 
         // evaluate result columns
-        for expr in self.results.iter() {
-            expr.result_evaluate(builder, accessor);
-        }
+        Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.result_evaluate(builder, accessor)),
+        )
     }
 
     #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
@@ -150,15 +153,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) {
+    ) -> Vec<Column<'a, C::Scalar>> {
         // evaluate where clause
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause.prover_evaluate(builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
-        for expr in self.results.iter() {
-            expr.prover_evaluate(builder, alloc, accessor, selection);
-        }
+        Vec::from_iter(
+            self.results
+                .iter()
+                .map(|expr| expr.prover_evaluate(builder, alloc, accessor, selection)),
+        )
     }
 }

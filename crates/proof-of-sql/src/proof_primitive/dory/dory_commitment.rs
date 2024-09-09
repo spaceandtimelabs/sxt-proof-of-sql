@@ -26,18 +26,16 @@ use super::{DoryProverPublicSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
-    scalar::{scalar_conversion_to_int, MontScalar, Scalar, ScalarConversionError},
+    scalar::{MontScalar, Scalar},
 };
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
-use num_bigint::BigInt;
 use num_traits::One;
 
 /// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
 pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
-scalar_conversion_to_int!(DoryScalar);
 
 impl Scalar for DoryScalar {
     const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
