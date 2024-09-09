@@ -1,4 +1,4 @@
-use super::{DynProofExpr, ProofExpr};
+use super::{DynProofExpr, ProofExpr, ProofExprResult};
 use crate::{
     base::{
         commitment::Commitment,
@@ -39,11 +39,17 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let expr_column: Column<'a, C::Scalar> =
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let expr_result: ProofExprResult<'a, C::Scalar> =
             self.expr.result_evaluate(table_length, alloc, accessor);
-        let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        let expr = expr_result
+            .result
+            .as_boolean()
+            .expect("expr is not boolean");
+        ProofExprResult::new(
+            Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i])),
+            vec![expr_result],
+        )
     }
 
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
@@ -51,12 +57,11 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let expr_column: Column<'a, C::Scalar> =
-            self.expr.prover_evaluate(builder, alloc, accessor);
-        let expr = expr_column.as_boolean().expect("expr is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(expr.len(), |i| !expr[i]))
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 1);
+        self.expr
+            .prover_evaluate(builder, alloc, result.children[0]);
     }
 
     fn verifier_evaluate(

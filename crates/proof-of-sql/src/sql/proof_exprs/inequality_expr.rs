@@ -2,7 +2,7 @@ use super::{
     count_equals_zero, count_or, count_sign, prover_evaluate_equals_zero, prover_evaluate_or,
     prover_evaluate_sign, result_evaluate_equals_zero, result_evaluate_or, result_evaluate_sign,
     scale_and_add_subtract_eval, scale_and_subtract, verifier_evaluate_equals_zero,
-    verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr,
+    verifier_evaluate_or, verifier_evaluate_sign, DynProofExpr, ProofExpr, ProofExprResult,
 };
 use crate::{
     base::{
@@ -43,8 +43,8 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         self.lhs.count(builder)?;
         self.rhs.count(builder)?;
-        count_equals_zero(builder);
         count_sign(builder)?;
+        count_equals_zero(builder);
         count_or(builder);
         Ok(())
     }
@@ -59,17 +59,31 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column = self.rhs.result_evaluate(table_length, alloc, accessor);
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let lhs_result = self.lhs.result_evaluate(table_length, alloc, accessor);
+        let rhs_result = self.rhs.result_evaluate(table_length, alloc, accessor);
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lte {
-            scale_and_subtract(alloc, lhs_column, rhs_column, lhs_scale, rhs_scale, false)
-                .expect("Failed to scale and subtract")
+            scale_and_subtract(
+                alloc,
+                lhs_result.result,
+                rhs_result.result,
+                lhs_scale,
+                rhs_scale,
+                false,
+            )
+            .expect("Failed to scale and subtract")
         } else {
-            scale_and_subtract(alloc, rhs_column, lhs_column, rhs_scale, lhs_scale, false)
-                .expect("Failed to scale and subtract")
+            scale_and_subtract(
+                alloc,
+                rhs_result.result,
+                lhs_result.result,
+                rhs_scale,
+                lhs_scale,
+                false,
+            )
+            .expect("Failed to scale and subtract")
         };
 
         // diff == 0
@@ -79,7 +93,10 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         let sign = result_evaluate_sign(table_length, alloc, diff);
 
         // (diff == 0) || (sign(diff) == -1)
-        Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign))
+        ProofExprResult::new(
+            Column::Boolean(result_evaluate_or(table_length, alloc, equals_zero, sign)),
+            vec![lhs_result, rhs_result],
+        )
     }
 
     #[tracing::instrument(name = "InequalityExpr::prover_evaluate", level = "debug", skip_all)]
@@ -87,10 +104,15 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column = self.rhs.prover_evaluate(builder, alloc, accessor);
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 2);
+        let lhs_result = result.children[0].result.clone();
+        let rhs_result = result.children[1].result.clone();
+        self.lhs.prover_evaluate(builder, alloc, lhs_result);
+        self.rhs.prover_evaluate(builder, alloc, rhs_result);
+        let lhs_column: Column<'a, C::Scalar> = lhs_result.result.clone();
+        let rhs_column: Column<'a, C::Scalar> = rhs_result.result.clone();
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
         let rhs_scale = self.rhs.data_type().scale().unwrap_or(0);
         let diff = if self.is_lte {

@@ -1,3 +1,4 @@
+use super::ProofExprResult;
 use crate::{
     base::{
         commitment::Commitment,
@@ -26,7 +27,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar>;
+    ) -> ProofExprResult<'a, C::Scalar>;
 
     /// Evaluate the expression, add components needed to prove it, and return thet resulting column
     /// of values
@@ -34,8 +35,8 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar>;
+        result: &ProofExprResult<'a, C::Scalar>,
+    );
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to

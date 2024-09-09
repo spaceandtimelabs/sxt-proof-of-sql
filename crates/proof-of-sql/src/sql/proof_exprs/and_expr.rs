@@ -46,14 +46,16 @@ impl<C: Commitment> ProofExpr<C> for AndExpr<C> {
         table_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> =
+    ) -> ProofExprResult<'a, C::Scalar> {
+        let lhs_result: ProofExprResult<'a, C::Scalar> =
             self.lhs.result_evaluate(table_length, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> =
+        let rhs_result: ProofExprResult<'a, C::Scalar> =
             self.rhs.result_evaluate(table_length, alloc, accessor);
-        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
-        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        Column::Boolean(alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]))
+        let lhs = lhs_result.result.as_boolean().expect("lhs is not boolean");
+        let rhs = rhs_result.result.as_boolean().expect("rhs is not boolean");
+        let self_column =
+            Column::Boolean(alloc.alloc_slice_fill_with(table_length, |i| lhs[i] && rhs[i]));
+        ProofExprResult::new(self_column, vec![lhs_result, rhs_result])
     }
 
     #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]
@@ -61,18 +63,22 @@ impl<C: Commitment> ProofExpr<C> for AndExpr<C> {
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
-        let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
-        let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
-        let n = lhs.len();
-        assert_eq!(n, rhs.len());
+        result: &ProofExprResult<'a, C::Scalar>,
+    ) {
+        assert_eq!(result.children.len(), 2);
+        let lhs_result = result.children[0].result.clone();
+        let rhs_result = result.children[1].result.clone();
+        self.lhs.prover_evaluate(builder, alloc, lhs_result);
+        self.rhs.prover_evaluate(builder, alloc, rhs_result);
+        let lhs_column: Column<'a, C::Scalar> = lhs_result.result.clone();
+        let rhs_column: Column<'a, C::Scalar> = rhs_result.result.clone();
+        let lhs_and_rhs = result
+            .result
+            .clone()
+            .as_boolean()
+            .expect("lhs_and_rhs is not boolean");
 
-        // lhs_and_rhs
-        let lhs_and_rhs: &[bool] = alloc.alloc_slice_fill_with(n, |i| lhs[i] && rhs[i]);
-        builder.produce_intermediate_mle(lhs_and_rhs);
+        builder.produce_intermediate_mle(&lhs_and_rhs);
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
         builder.produce_sumcheck_subpolynomial(

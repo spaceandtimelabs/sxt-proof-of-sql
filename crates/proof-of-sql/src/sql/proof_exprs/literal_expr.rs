@@ -1,4 +1,4 @@
-use super::ProofExpr;
+use super::{ProofExpr, ProofExprResult};
 use crate::{
     base::{
         commitment::Commitment,
@@ -50,19 +50,21 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
         table_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        Column::from_literal_with_length(&self.value, table_length, alloc)
+    ) -> ProofExprResult<'a, C::Scalar> {
+        ProofExprResult::new(
+            Column::from_literal_with_length(&self.value, table_length, alloc),
+            vec![],
+        )
     }
 
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
-        alloc: &'a Bump,
+        _builder: &mut ProofBuilder<'a, C::Scalar>,
+        _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
-    ) -> Column<'a, C::Scalar> {
-        let table_length = builder.table_length();
-        Column::from_literal_with_length(&self.value, table_length, alloc)
+        _result: &ProofExprResult<'a, C::Scalar>,
+    ) {
     }
 
     fn verifier_evaluate(
