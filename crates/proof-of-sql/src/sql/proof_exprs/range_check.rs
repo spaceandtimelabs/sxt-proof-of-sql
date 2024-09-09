@@ -73,54 +73,13 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
         .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
         .collect();
 
-    // Initialize a vector to count occurrences of each byte (0-255).
-    // The vector has 256 elements padded with zeros to match the length of the word columns
-    // The size is the larger of 256 or the number of scalars.
-    let byte_counts: &mut [i64] =
-        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |_| 0);
-
-    // Get the alpha challenge from the verifier
-    let alpha = builder.consume_post_result_challenge();
-
-    // Iterate through scalars and fill columns
-    for (i, scalar) in scalars.iter().enumerate() {
-        // Convert scalar into an array of u64, then break into words
-        let scalar_array: [u64; 4] = (*scalar).into();
-        let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
-
-        // Populate the rows of the words table with decomposition of scalar:
-        // word_columns:
-        //
-        // | Column i           | Column i+1             | Column i+2            | ... | Column_||word||     |
-        // |--------------------|------------------------|-----------------------|-----|---------------------|
-        // | Byte i of Scalar i | Byte 1+1 of Scalar i+1 | Byte 1+2 of Scalar i+2| ... | Byte n of Scalar n  |
-        for (row, &byte) in word_columns.iter_mut().zip(scalar_bytes.iter()) {
-            row[i] = byte;
-            byte_counts[byte as usize] += 1; // Also count how many times we see this word
-        }
-
-        // Convert each word to scalar so we can perform requisite arithmetic on it
-        let inverted_words: Vec<S> = scalar_bytes
-            .iter()
-            .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
-            .collect();
-
-        // For each element in a row, add alpha to it, and assign to inverted_word_columns:
-        // inverted_word_columns:
-        //
-        // | Column i            | Column i+1            | Column i+2            | ... | Column_||word||     |
-        // |---------------------|-----------------------|-----------------------|-----|---------------------|
-        // | 1/(word[i] + alpha) | 1/(word[i+1] + alpha) | 1/(word[i+2] + alpha) | ... | 1/(word[n] + alpha) |
-        for ((j, word_scalar), column) in inverted_words
-            .iter()
-            .enumerate()
-            .zip(inverted_word_columns.iter_mut())
-        {
-            // Produce the log derivative of word + alpha. Every non-zero field element has an inverse.
-            let value: S = (*word_scalar + alpha).inv().unwrap_or(S::ZERO);
-            column[i] = value; // j is column index, i is the row index specific to this iteration of scalars
-        }
-    }
+    let (byte_counts, alpha) = fun_name(
+        alloc,
+        scalars,
+        &mut word_columns,
+        builder,
+        &mut inverted_word_columns,
+    );
 
     // Produce an MLE over each column of words
     for word_column in word_columns {
@@ -152,6 +111,71 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
     });
     slice_ops::batch_inversion(&mut inverted_word_values[..]);
     builder.produce_intermediate_mle(inverted_word_values as &[_]);
+}
+
+fn fun_name<'a, S: Scalar + 'a>(
+    alloc: &'a Bump,
+    scalars: &mut [S],
+    word_columns: &mut Vec<&mut [u8]>,
+    builder: &mut ProofBuilder<'a, S>,
+    inverted_word_columns: &mut Vec<&mut [S]>,
+) -> (&'a mut [i64], S) {
+    // Initialize a vector to count occurrences of each byte (0-255).
+    // The vector has 256 elements padded with zeros to match the length of the word columns
+    // The size is the larger of 256 or the number of scalars.
+    let byte_counts: &mut [i64] =
+        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |_| 0);
+
+    // Iterate through scalars and fill columns
+    for (i, scalar) in scalars.iter().enumerate() {
+        // Convert scalar into an array of u64, then break into words
+        let scalar_array: [u64; 4] = (*scalar).into();
+        let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
+
+        // Populate the rows of the words table with decomposition of scalar:
+        // word_columns:
+        //
+        // | Column i           | Column i+1             | Column i+2            | ... | Column_||word||     |
+        // |--------------------|------------------------|-----------------------|-----|---------------------|
+        // | Byte i of Scalar i | Byte 1+1 of Scalar i+1 | Byte 1+2 of Scalar i+2| ... | Byte n of Scalar n  |
+        for (row, &byte) in word_columns.iter_mut().zip(scalar_bytes.iter()) {
+            row[i] = byte;
+            byte_counts[byte as usize] += 1; // Also count how many times we see this word
+        }
+    }
+
+    // Get the alpha challenge from the verifier
+    let alpha = builder.consume_post_result_challenge();
+
+    // Iterate through scalars and fill columns
+    for (i, scalar) in scalars.iter().enumerate() {
+        // Convert scalar into an array of u64, then break into words
+        let scalar_array: [u64; 4] = (*scalar).into();
+        let scalar_bytes = &bytemuck::cast_slice::<u64, u8>(&scalar_array)[..31]; // Limit to 31 bytes
+
+        // Convert each word to scalar so we can perform requisite arithmetic on it
+        let inverted_words: Vec<S> = scalar_bytes
+            .iter()
+            .map(|w| S::try_from((*w).into()).expect("u8 always fits in S"))
+            .collect();
+
+        // For each element in a row, add alpha to it, and assign to inverted_word_columns:
+        // inverted_word_columns:
+        //
+        // | Column i            | Column i+1            | Column i+2            | ... | Column_||word||     |
+        // |---------------------|-----------------------|-----------------------|-----|---------------------|
+        // | 1/(word[i] + alpha) | 1/(word[i+1] + alpha) | 1/(word[i+2] + alpha) | ... | 1/(word[n] + alpha) |
+        for ((j, word_scalar), column) in inverted_words
+            .iter()
+            .enumerate()
+            .zip(inverted_word_columns.iter_mut())
+        {
+            // Produce the log derivative of word + alpha. Every non-zero field element has an inverse.
+            let value: S = (*word_scalar + alpha).inv().unwrap_or(S::ZERO);
+            column[i] = value; // j is column index, i is the row index specific to this iteration of scalars
+        }
+    }
+    (byte_counts, alpha)
 }
 
 /// Evaluates a polynomial at a specified point to verify if the result matches
