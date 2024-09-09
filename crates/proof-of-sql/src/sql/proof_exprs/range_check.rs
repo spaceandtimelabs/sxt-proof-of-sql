@@ -75,8 +75,9 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
 
     // Initialize a vector to count occurrences of each byte (0-255).
     // The vector has 256 elements padded with zeros to match the length of the word columns
-    // TODO: this should equal the length of the column of scalars
-    let byte_counts: &mut [i64] = alloc.alloc_slice_fill_with(256, |_| 0);
+    // The size is the larger of 256 or the number of scalars.
+    let byte_counts: &mut [i64] =
+        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |_| 0);
 
     // Get the alpha challenge from the verifier
     let alpha = builder.consume_post_result_challenge();
@@ -115,6 +116,7 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
             .enumerate()
             .zip(inverted_word_columns.iter_mut())
         {
+            // Produce the log derivative of word + alpha. Every non-zero field element has an inverse.
             let value: S = (*word_scalar + alpha).inv().unwrap_or(S::ZERO);
             column[i] = value; // j is column index, i is the row index specific to this iteration of scalars
         }
@@ -132,7 +134,9 @@ pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
 
     // Allocate and initialize byte_values to represent the range of possible word values
     // from 0 to 255.
-    let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
+    // let byte_values: &mut [u8] = alloc.alloc_slice_fill_with(256, |i| i as u8);
+    let byte_values: &mut [u8] =
+        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |i| i as u8);
 
     // Produce the anchored MLE that the verifier has access to, consisting
     // of all possible word values. These serve as lookups
