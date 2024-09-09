@@ -48,7 +48,7 @@ impl<C: Commitment> ProofPlan<C> for RangeCheckTestExpr {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
-    ) -> Result<(), ProofError> {
+    ) -> Result<Vec<<C as Commitment>::Scalar>, ProofError> {
         todo!()
     }
 
