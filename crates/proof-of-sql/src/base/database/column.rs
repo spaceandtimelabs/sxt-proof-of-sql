@@ -365,6 +365,16 @@ impl ColumnType {
     pub fn bit_size(&self) -> u32 {
         self.byte_size() as u32 * 8
     }
+
+    /// Returns if the column type supports signed values.
+    pub const fn is_signed(&self) -> bool {
+        match self {
+            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
+                true
+            }
+            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+        }
+    }
 }
 
 /// Convert ColumnType values to some arrow DataType
