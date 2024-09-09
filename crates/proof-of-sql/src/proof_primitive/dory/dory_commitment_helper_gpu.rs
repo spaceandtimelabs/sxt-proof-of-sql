@@ -21,7 +21,7 @@ fn compute_dory_commitments_packed_impl(
 
     // Set the parameters.
     let num_columns = 1 << setup.sigma();
-    let gamma_2 = setup.prover_setup().Gamma_2.clone();
+    let gamma_2 = &setup.prover_setup().Gamma_2;
 
     // If the offset is larger than the number of columns, we compute an
     // offset for the gamma_2 table to avoid performing msm on all zeros.
