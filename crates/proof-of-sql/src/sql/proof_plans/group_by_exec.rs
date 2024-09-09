@@ -245,7 +245,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
         // 4. set filtered_columns
         for col in &group_by_result_columns {
-            builder.produce_result_column(col.clone());
+            builder.produce_result_column(*col);
         }
         for col in &sum_result_columns {
             builder.produce_result_column(*col);

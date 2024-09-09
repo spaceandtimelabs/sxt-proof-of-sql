@@ -69,9 +69,9 @@ fn get_aggregate_and_remainder_expressions(
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
 ) -> Expression {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr.clone(),
+        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr,
         Expression::Aggregation { op, expr } => {
-            let key = (op, (*expr).clone());
+            let key = (op, (*expr));
             if !aggregation_expr_map.contains_key(&key) {
                 let new_col_id = format!("__col_agg_{}", aggregation_expr_map.len())
                     .parse()

@@ -80,7 +80,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
         let column = accessor.get_column(self.column_ref);
-        builder.produce_anchored_mle(column.clone());
+        builder.produce_anchored_mle(column);
         column
     }
 

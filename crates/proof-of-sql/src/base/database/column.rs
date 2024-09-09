@@ -20,7 +20,7 @@ use std::sync::Arc;
 /// Note: The types here should correspond to native SQL database types.
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[non_exhaustive]
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
@@ -179,7 +179,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 
     /// Convert a column to a vector of Scalar values with scaling
-    pub(crate) fn to_scalar_with_scaling(&self, scale: i8) -> Vec<S> {
+    pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
             Self::Boolean(col) => col

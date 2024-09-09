@@ -52,7 +52,7 @@ impl FilterResultExpr {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Column<'a, S> {
         let col = accessor.get_column(self.column_ref);
-        builder.produce_result_column(col.clone());
+        builder.produce_result_column(col);
         col
     }
 

@@ -62,82 +62,82 @@ impl<S: Scalar> OwnedColumn<S> {
                 rhs.len(),
             ));
         }
-        match (self, rhs.clone()) {
-            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+        match (self, rhs) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::SmallInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
-            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::Int(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
             (Self::BigInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
-            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::BigInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int128(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_eq_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
-            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -145,7 +145,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -153,7 +153,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -161,7 +161,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -170,14 +170,14 @@ impl<S: Scalar> OwnedColumn<S> {
             (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(eq_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
-            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
-            (Self::VarChar(lhs), Self::VarChar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, &rhs))),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
+            (Self::VarChar(lhs), Self::VarChar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
                 todo!("Implement equality check for TimeStampTZ")
             }
@@ -197,82 +197,82 @@ impl<S: Scalar> OwnedColumn<S> {
                 rhs.len(),
             ));
         }
-        match (self, rhs.clone()) {
-            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+        match (self, rhs) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::SmallInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
-            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::Int(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
             (Self::BigInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
-            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::BigInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_le_with_casting(lhs, rhs)))
             }
             (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int128(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(rhs, lhs)))
             }
-            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -280,7 +280,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -288,7 +288,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -296,7 +296,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -305,13 +305,13 @@ impl<S: Scalar> OwnedColumn<S> {
             (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
-            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_le(lhs, &rhs))),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
                 todo!("Implement inequality check for TimeStampTZ")
             }
@@ -331,82 +331,82 @@ impl<S: Scalar> OwnedColumn<S> {
                 rhs.len(),
             ));
         }
-        match (self, rhs.clone()) {
-            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+        match (self, rhs) {
+            (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::SmallInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
-            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::Int(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::Int(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::BigInt(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
             (Self::BigInt(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
-            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::BigInt(lhs), Self::BigInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::BigInt(lhs), Self::Int128(rhs)) => {
-                Ok(Self::Boolean(slice_ge_with_casting(lhs, &rhs)))
+                Ok(Self::Boolean(slice_ge_with_casting(lhs, rhs)))
             }
             (Self::BigInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Int128(lhs), Self::SmallInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::Int(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
             (Self::Int128(lhs), Self::BigInt(rhs)) => {
-                Ok(Self::Boolean(slice_le_with_casting(&rhs, lhs)))
+                Ok(Self::Boolean(slice_le_with_casting(rhs, lhs)))
             }
-            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Int128(lhs), Self::Int128(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::Int128(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
             (Self::Decimal75(_, _, lhs_values), Self::SmallInt(rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -414,7 +414,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int(rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -422,7 +422,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::BigInt(rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -430,7 +430,7 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Decimal75(_, _, lhs_values), Self::Int128(rhs_values)) => {
                 Ok(Self::Boolean(le_decimal_columns(
-                    &rhs_values,
+                    rhs_values,
                     lhs_values,
                     rhs.column_type(),
                     self.column_type(),
@@ -439,13 +439,13 @@ impl<S: Scalar> OwnedColumn<S> {
             (Self::Decimal75(_, _, lhs_values), Self::Decimal75(_, _, rhs_values)) => {
                 Ok(Self::Boolean(ge_decimal_columns(
                     lhs_values,
-                    &rhs_values,
+                    rhs_values,
                     self.column_type(),
                     rhs.column_type(),
                 )))
             }
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
-            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_ge(lhs, &rhs))),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
+            (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
                 todo!("Implement inequality check for TimeStampTZ")
             }
