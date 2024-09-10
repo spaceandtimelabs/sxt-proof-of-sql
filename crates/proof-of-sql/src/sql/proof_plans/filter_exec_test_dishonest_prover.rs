@@ -8,7 +8,7 @@ use crate::{
     },
     sql::{
         proof::{
-            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
         // Making this explicit to ensure that we don't accidentally use the
@@ -57,9 +57,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        // 4. set filtered_columns
+        // 3. set filtered_columns
         for col in &filtered_columns {
             builder.produce_result_column(*col);
         }

@@ -15,7 +15,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -241,9 +241,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             ..
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
-        // 4. set filtered_columns
+        // 3. set filtered_columns
         for col in &group_by_result_columns {
             builder.produce_result_column(*col);
         }

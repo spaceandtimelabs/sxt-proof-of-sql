@@ -5,7 +5,7 @@ use crate::{
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
-    sql::proof::{Indexes, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{ResultBuilder, SumcheckSubpolynomialType},
 };
 #[cfg(feature = "arrow")]
 use arrow::{
@@ -127,11 +127,9 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 #[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
-    let result_indexes = Indexes::Sparse(vec![1, 2]);
     let col1 = [10_i64, 11, 12];
     let col2 = [-2_i64, -3, -4];
     let mut builder = ResultBuilder::new(3);
-    builder.set_result_indexes(result_indexes);
     builder.produce_result_column(col1);
     builder.produce_result_column(col2);
 

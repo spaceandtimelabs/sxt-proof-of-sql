@@ -12,7 +12,7 @@ use crate::{
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},
         proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
-        proof_plans::{test_utility::*, DynProofPlan},
+        proof_plans::test_utility::*,
     },
 };
 use bumpalo::Bump;

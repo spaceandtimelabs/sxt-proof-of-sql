@@ -9,7 +9,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
             VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
@@ -106,7 +106,6 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
                 .expr
                 .result_evaluate(builder.table_length(), alloc, accessor)
         }));
-        builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
         for col in &columns {
             builder.produce_result_column(*col);
         }

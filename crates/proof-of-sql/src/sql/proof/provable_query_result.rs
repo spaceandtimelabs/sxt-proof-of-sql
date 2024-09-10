@@ -1,6 +1,4 @@
-use super::{
-    decode_and_convert, decode_multiple_elements, Indexes, ProvableResultColumn, QueryError,
-};
+use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
 use crate::base::{
     database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
     polynomial::compute_evaluation_vector,
@@ -14,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
-    indexes: Indexes,
+    table_length: usize,
     data: Vec<u8>,
 }
 
@@ -22,16 +20,6 @@ impl ProvableQueryResult {
     /// The number of columns in the result
     pub fn num_columns(&self) -> usize {
         self.num_columns as usize
-    }
-    /// The indexes in the result.
-    pub fn indexes(&self) -> &Indexes {
-        &self.indexes
-    }
-    /// A mutable reference to a the indexes in the result. Because the struct is deserialized from untrusted data, it
-    /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
-    #[cfg(test)]
-    pub fn indexes_mut(&mut self) -> &mut Indexes {
-        &mut self.indexes
     }
     /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -47,31 +35,24 @@ impl ProvableQueryResult {
     }
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
-    pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
-        Self {
-            num_columns,
-            indexes,
-            data,
-        }
+    pub fn new_from_raw_data(num_columns: u64, data: Vec<u8>) -> Self {
+        Self { num_columns, data }
     }
 
     /// Form intermediate query result from index rows and result columns
-    pub fn new<'a>(
-        indexes: &'a Indexes,
-        columns: &'a [Box<dyn ProvableResultColumn + 'a>],
-    ) -> Self {
+    pub fn new<'a>(table_length: usize, columns: &'a [Box<dyn ProvableResultColumn + 'a>]) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
-            sz += col.num_bytes(indexes);
+            sz += col.num_bytes();
         }
         let mut data = vec![0u8; sz];
         let mut sz = 0;
         for col in columns.iter() {
-            sz += col.write(&mut data[sz..], indexes);
+            sz += col.write(&mut data[sz..]);
         }
         ProvableQueryResult {
             num_columns: columns.len() as u64,
-            indexes: indexes.clone(),
+            table_length,
             data,
         }
     }
@@ -86,17 +67,7 @@ impl ProvableQueryResult {
     ) -> Result<Vec<S>, QueryError> {
         assert_eq!(self.num_columns as usize, column_result_fields.len());
 
-        if !self.indexes.valid(table_length) {
-            return Err(QueryError::InvalidIndexes);
-        }
-
-        let evaluation_vec_len = self
-            .indexes
-            .iter()
-            .max()
-            .map(|max| max as usize + 1)
-            .unwrap_or(0);
-        let mut evaluation_vec = vec![Zero::zero(); evaluation_vec_len];
+        let mut evaluation_vec = vec![Zero::zero(); table_length];
         compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
 
         let mut offset: usize = 0;
@@ -104,7 +75,7 @@ impl ProvableQueryResult {
 
         for field in column_result_fields {
             let mut val = S::zero();
-            for index in self.indexes.iter() {
+            for index in 0..table_length {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
                     ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
@@ -140,56 +111,62 @@ impl ProvableQueryResult {
         column_result_fields: &[ColumnField],
     ) -> Result<OwnedTable<S>, QueryError> {
         assert_eq!(column_result_fields.len(), self.num_columns());
-
-        let n = self.indexes.len();
         let mut offset: usize = 0;
-
         let owned_table = OwnedTable::try_new(
             column_result_fields
                 .iter()
                 .map(|field| match field.data_type() {
                     ColumnType::Boolean => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Boolean(col)))
                     }
                     ColumnType::SmallInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::SmallInt(col)))
                     }
                     ColumnType::Int => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Int(col)))
                     }
                     ColumnType::BigInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::BigInt(col)))
                     }
                     ColumnType::Int128 => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Int128(col)))
                     }
                     ColumnType::VarChar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::VarChar(col)))
                     }
                     ColumnType::Scalar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Scalar(col)))
                     }
                     ColumnType::Decimal75(precision, scale) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
                     }
                     ColumnType::TimestampTZ(tu, tz) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        let (col, num_read) =
+                            decode_multiple_elements(&self.data[offset..], self.table_length)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
                     }

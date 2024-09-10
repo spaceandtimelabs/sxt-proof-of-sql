@@ -237,7 +237,6 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
             &result_evaluations,
-            result.indexes(),
         );
         let mut builder = VerificationBuilder::new(
             generator_offset,

@@ -12,7 +12,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
+            CountBuilder, HonestProver, ProofBuilder, ProofPlan, ProverEvaluate,
             ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -99,12 +99,7 @@ where
                 .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
                 .collect::<Result<Vec<_>, _>>()?,
         );
-        // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
-        // 4. filtered_columns
+        // 3. filtered_columns
         let filtered_columns_evals = Vec::from_iter(
             repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
         );
@@ -168,10 +163,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
                 .result_evaluate(builder.table_length(), alloc, accessor)
         }));
         // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        // 4. set filtered_columns
+        let (filtered_columns, _result_len) = filter_columns(alloc, &columns, selection);
+        // 3. set filtered_columns
         for col in &filtered_columns {
             builder.produce_result_column(*col);
         }
@@ -230,11 +223,6 @@ fn verify_filter<C: Commitment>(
 ) -> Result<Vec<C::Scalar>, ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
     let rand_eval = builder.mle_evaluations.random_evaluation;
-
-    let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
-        Some(eval) => eval,
-        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
-    };
 
     let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
     let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);

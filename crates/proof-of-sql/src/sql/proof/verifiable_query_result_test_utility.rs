@@ -2,12 +2,9 @@ use super::{
     verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult,
     ProvableResultColumn, QueryProof, VerifiableQueryResult,
 };
-use crate::{
-    base::{
-        database::{CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
-    },
-    sql::proof::Indexes,
+use crate::base::{
+    database::{CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
+    scalar::{compute_commitment_for_testing, Curve25519Scalar},
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
@@ -77,7 +74,7 @@ fn tamper_no_result(
     // add a result
     let mut res_p = res.clone();
     let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
-    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols));
+    res_p.provable_result = Some(ProvableQueryResult::new(0, &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // add a proof
@@ -92,18 +89,6 @@ fn tamper_no_result(
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }
 
-fn tamper_empty_result(
-    res: &VerifiableQueryResult<InnerProductProof>,
-    expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
-    accessor: &impl CommitmentAccessor<RistrettoPoint>,
-) {
-    // try to add a result
-    let mut res_p = res.clone();
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([123_i64])];
-    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![0]), &cols));
-    assert!(res_p.verify(expr, accessor, &()).is_err());
-}
-
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
@@ -114,23 +99,6 @@ fn tamper_result(
         return;
     }
     let provable_res = res.provable_result.as_ref().unwrap();
-    if provable_res.indexes().is_empty() {
-        tamper_empty_result(res, expr, accessor);
-        return;
-    }
-
-    // try to change an index
-    let mut res_p = res.clone();
-    let mut provable_res_p = provable_res.clone();
-    match provable_res_p.indexes_mut() {
-        Indexes::Sparse(indexes) => indexes[0] += 1,
-        Indexes::Dense(range) => {
-            range.start += 1;
-            range.end += 1;
-        }
-    }
-    res_p.provable_result = Some(provable_res_p);
-    assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // try to change data
     let mut res_p = res.clone();

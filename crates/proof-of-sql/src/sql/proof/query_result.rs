@@ -21,9 +21,6 @@ pub enum QueryError {
     /// Decoding errors other than overflow and invalid string.
     #[error("Miscellaneous decoding error")]
     MiscellaneousDecodingError,
-    /// Indexes are invalid.
-    #[error("Invalid indexes")]
-    InvalidIndexes,
     /// Miscellaneous evaluation error.
     #[error("Miscellaneous evaluation error")]
     MiscellaneousEvaluationError,

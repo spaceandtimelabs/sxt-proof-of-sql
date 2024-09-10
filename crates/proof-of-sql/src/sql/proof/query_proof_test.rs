@@ -13,7 +13,7 @@ use crate::{
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
-    sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
 use indexmap::IndexSet;
@@ -48,8 +48,6 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
         builder.produce_result_column(col as &[_]);
         vec![Column::BigInt(col)]
     }
@@ -169,12 +167,6 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     };
     let accessor = UnimplementedTestAccessor::new_empty();
     let (proof, mut result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    match result.indexes_mut() {
-        Indexes::Sparse(ref mut indexes) => {
-            indexes.pop();
-        }
-        _ => panic!("unexpected indexes type"),
-    }
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
@@ -214,7 +206,6 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         builder.produce_result_column(self.res);
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
@@ -393,7 +384,6 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         builder.produce_result_column(self.res);
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
@@ -601,7 +591,6 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         builder.produce_result_column([9, 25]);
         builder.request_post_result_challenges(2);
         vec![Column::BigInt(&[9, 25])]
