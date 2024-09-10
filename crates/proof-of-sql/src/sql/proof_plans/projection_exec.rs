@@ -97,7 +97,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -107,9 +107,6 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
                 .result_evaluate(builder.table_length(), alloc, accessor)
         }));
         builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
-        for col in &columns {
-            builder.produce_result_column(*col);
-        }
         columns
     }
 

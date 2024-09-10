@@ -27,7 +27,7 @@ pub(super) struct EmptyTestQueryExpr {
 impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     fn result_evaluate<'a>(
         &self,
-        _builder: &mut ResultBuilder<'a>,
+        _builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

@@ -209,7 +209,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -243,15 +243,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             .expect("columns should be aggregatable");
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
-        // 4. set filtered_columns
-        for col in &group_by_result_columns {
-            builder.produce_result_column(*col);
-        }
-        for col in &sum_result_columns {
-            builder.produce_result_column(*col);
-        }
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        builder.produce_result_column(count_column);
         builder.request_post_result_challenges(2);
         Vec::from_iter(
             group_by_result_columns

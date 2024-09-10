@@ -149,7 +149,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -171,10 +171,6 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
         builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        // 4. set filtered_columns
-        for col in &filtered_columns {
-            builder.produce_result_column(*col);
-        }
         builder.request_post_result_challenges(2);
         filtered_columns
     }
