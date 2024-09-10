@@ -43,14 +43,13 @@ impl Default for TrivialTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
         let indexes = Indexes::Sparse(vec![0u64]);
         builder.set_result_indexes(indexes);
-        builder.produce_result_column(col as &[_]);
         vec![Column::BigInt(col)]
     }
 
@@ -210,12 +209,11 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
-        builder.produce_result_column(self.res);
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
@@ -389,12 +387,11 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
-        builder.produce_result_column(self.res);
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
@@ -597,12 +594,11 @@ struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
-        builder.produce_result_column([9, 25]);
         builder.request_post_result_challenges(2);
         vec![Column::BigInt(&[9, 25])]
     }

@@ -1,10 +1,10 @@
 use super::{
-    verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult,
-    ProvableResultColumn, QueryProof, VerifiableQueryResult,
+    verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult, QueryProof,
+    VerifiableQueryResult,
 };
 use crate::{
     base::{
-        database::{CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
+        database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
         scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::Indexes,
@@ -76,7 +76,7 @@ fn tamper_no_result(
 ) {
     // add a result
     let mut res_p = res.clone();
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
+    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
@@ -99,7 +99,7 @@ fn tamper_empty_result(
 ) {
     // try to add a result
     let mut res_p = res.clone();
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([123_i64])];
+    let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[123_i64])];
     res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![0]), &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }

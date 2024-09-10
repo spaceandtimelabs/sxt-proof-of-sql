@@ -54,8 +54,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let alloc = Bump::new();
         let mut result_builder = ResultBuilder::new(table_length);
-        expr.result_evaluate(&mut result_builder, &alloc, accessor);
-        let provable_result = result_builder.make_provable_query_result();
+        let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
+        let provable_result =
+            ProvableQueryResult::new(&result_builder.result_index_vector, &result_cols);
 
         // construct a transcript for the proof
         let mut transcript: Transcript =

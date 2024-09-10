@@ -10,7 +10,8 @@ use crate::{
     },
     sql::{
         proof::{
-            exercise_verification, ProofPlan, ProverEvaluate, ResultBuilder, VerifiableQueryResult,
+            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate, ResultBuilder,
+            VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, TableExpr},
     },
@@ -165,7 +166,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(0);
-    expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -175,10 +176,10 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res = builder
-        .make_provable_query_result()
-        .to_owned_table(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+            .to_owned_table(fields)
+            .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -204,12 +205,12 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     let expr: DynProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
-    expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[];
-    let res = builder
-        .make_provable_query_result()
-        .to_owned_table::<Curve25519Scalar>(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+            .to_owned_table(fields)
+            .unwrap();
     let expected = OwnedTable::try_new(IndexMap::new()).unwrap();
     assert_eq!(res, expected);
 }
@@ -240,7 +241,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
     );
     let alloc = Bump::new();
     let mut builder = ResultBuilder::new(5);
-    expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("prod".parse().unwrap(), ColumnType::Int128),
@@ -250,10 +251,10 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res = builder
-        .make_provable_query_result()
-        .to_owned_table(fields)
-        .unwrap();
+    let res: OwnedTable<Curve25519Scalar> =
+        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+            .to_owned_table(fields)
+            .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [2, 3, 4, 5, 6]),
         int128("prod", [1, 4, 9, 16, 25]),

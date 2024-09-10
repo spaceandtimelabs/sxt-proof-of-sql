@@ -51,7 +51,7 @@ pub trait ProverEvaluate<S: Scalar> {
     /// Evaluate the query and modify `ResultBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder<'a>,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;

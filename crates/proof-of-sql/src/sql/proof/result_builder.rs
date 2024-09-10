@@ -1,10 +1,9 @@
-use super::{Indexes, ProvableQueryResult, ProvableResultColumn};
+use super::Indexes;
 
 /// Track the result created by a query
-pub struct ResultBuilder<'a> {
+pub struct ResultBuilder {
     table_length: usize,
-    result_index_vector: Indexes,
-    result_columns: Vec<Box<dyn ProvableResultColumn + 'a>>,
+    pub(crate) result_index_vector: Indexes,
 
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -13,13 +12,12 @@ pub struct ResultBuilder<'a> {
     num_post_result_challenges: usize,
 }
 
-impl<'a> ResultBuilder<'a> {
+impl ResultBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
     pub fn new(table_length: usize) -> Self {
         Self {
             table_length,
             result_index_vector: Indexes::default(),
-            result_columns: Vec::new(),
             num_post_result_challenges: 0,
         }
     }
@@ -32,16 +30,6 @@ impl<'a> ResultBuilder<'a> {
     /// Set the indexes of the rows select in the result
     pub fn set_result_indexes(&mut self, result_index: Indexes) {
         self.result_index_vector = result_index;
-    }
-
-    /// Produce an intermediate result column that will be sent to the verifier.
-    pub fn produce_result_column(&mut self, col: impl ProvableResultColumn + 'a) {
-        self.result_columns.push(Box::new(col));
-    }
-
-    /// Construct the intermediate query result to be sent to the verifier.
-    pub fn make_provable_query_result(&self) -> ProvableQueryResult {
-        ProvableQueryResult::new(&self.result_index_vector, &self.result_columns)
     }
 
     /// The number of challenges used in the proof.
