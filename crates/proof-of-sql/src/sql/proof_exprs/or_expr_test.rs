@@ -27,7 +27,7 @@ fn we_can_prove_a_simple_or_query() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         or(
@@ -51,7 +51,7 @@ fn we_can_prove_a_simple_or_query_with_variable_integer_types() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         or(
@@ -76,7 +76,7 @@ fn we_can_prove_an_or_query_where_both_lhs_and_rhs_are_true() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         or(
@@ -122,7 +122,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             offset,
             (),
         );
-        let ast = dense_filter(
+        let ast = filter(
             cols_expr_plan(t, &["a", "d"], &accessor),
             tab(t),
             or(

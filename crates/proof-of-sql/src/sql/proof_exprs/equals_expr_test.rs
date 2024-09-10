@@ -29,7 +29,7 @@ fn we_can_prove_an_equality_query_with_no_rows() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(0_i64)),
@@ -51,7 +51,7 @@ fn we_can_prove_another_equality_query_with_no_rows() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), column(t, "b", &accessor)),
@@ -74,7 +74,7 @@ fn we_can_prove_a_nested_equality_query_with_no_rows() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["b", "c", "e"], &accessor),
         tab(t),
         equal(
@@ -103,7 +103,7 @@ fn we_can_prove_an_equality_query_with_a_single_selected_row() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["d", "a"], &accessor),
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(0_i64)),
@@ -125,7 +125,7 @@ fn we_can_prove_another_equality_query_with_a_single_selected_row() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["d", "a"], &accessor),
         tab(t),
         equal(column(t, "a", &accessor), column(t, "b", &accessor)),
@@ -147,7 +147,7 @@ fn we_can_prove_an_equality_query_with_a_single_non_selected_row() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d", "e"], &accessor),
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(0_i64)),
@@ -183,7 +183,7 @@ fn we_can_prove_an_equality_query_with_multiple_rows() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "c", "e"], &accessor),
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(0_i64)),
@@ -220,7 +220,7 @@ fn we_can_prove_a_nested_equality_query_with_multiple_rows() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "c", "e"], &accessor),
         tab(t),
         equal(
@@ -260,7 +260,7 @@ fn we_can_prove_an_equality_query_with_a_nonzero_comparison() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "c", "e"], &accessor),
         tab(t),
         equal(column(t, "b", &accessor), const_bigint(123_i64)),
@@ -298,7 +298,7 @@ fn we_can_prove_an_equality_query_with_a_string_comparison() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "b", "e"], &accessor),
         tab(t),
         equal(column(t, "c", &accessor), const_varchar("ghi")),
@@ -344,7 +344,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             offset,
             (),
         );
-        let ast = dense_filter(
+        let ast = filter(
             cols_expr_plan(t, &["a", "d"], &accessor),
             tab(t),
             equal(

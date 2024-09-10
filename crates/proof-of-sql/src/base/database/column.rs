@@ -20,7 +20,7 @@ use std::sync::Arc;
 /// Note: The types here should correspond to native SQL database types.
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[non_exhaustive]
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
@@ -179,7 +179,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 
     /// Convert a column to a vector of Scalar values with scaling
-    pub(crate) fn to_scalar_with_scaling(&self, scale: i8) -> Vec<S> {
+    pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
             Self::Boolean(col) => col
@@ -364,6 +364,16 @@ impl ColumnType {
     /// Returns the bit size of the column type.
     pub fn bit_size(&self) -> u32 {
         self.byte_size() as u32 * 8
+    }
+
+    /// Returns if the column type supports signed values.
+    pub const fn is_signed(&self) -> bool {
+        match self {
+            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
+                true
+            }
+            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+        }
     }
 }
 

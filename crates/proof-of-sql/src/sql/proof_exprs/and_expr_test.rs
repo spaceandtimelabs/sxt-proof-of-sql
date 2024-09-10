@@ -28,7 +28,7 @@ fn we_can_prove_a_simple_and_query() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         and(
@@ -53,7 +53,7 @@ fn we_can_prove_a_simple_and_query_with_128_bits() {
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
-    let ast = dense_filter(
+    let ast = filter(
         cols_expr_plan(t, &["a", "d"], &accessor),
         tab(t),
         and(
@@ -99,7 +99,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             offset,
             (),
         );
-        let ast = dense_filter(
+        let ast = filter(
             cols_expr_plan(t, &["a", "d"], &accessor),
             tab(t),
             and(

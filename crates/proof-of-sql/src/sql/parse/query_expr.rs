@@ -121,12 +121,12 @@ impl<C: Commitment> QueryExpr<C> {
                     );
                 }
                 Ok(Self {
-                    proof_expr: DynProofPlan::DenseFilter(filter),
+                    proof_expr: DynProofPlan::Filter(filter),
                     postprocessing,
                 })
             }
         } else {
-            // No group by, so we need to do a dense filter.
+            // No group by, so we need to do a filter.
             let column_mapping = context.get_column_mapping();
             let enriched_exprs = result_aliased_exprs
                 .iter()
@@ -152,7 +152,7 @@ impl<C: Commitment> QueryExpr<C> {
                 );
             }
             Ok(Self {
-                proof_expr: DynProofPlan::DenseFilter(filter),
+                proof_expr: DynProofPlan::Filter(filter),
                 postprocessing,
             })
         }

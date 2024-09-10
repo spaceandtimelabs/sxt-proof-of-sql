@@ -232,12 +232,12 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
             ColumnType::BigInt,
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        builder.produce_anchored_mle(x.clone());
+        builder.produce_anchored_mle(x);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
                 (S::ONE, vec![Box::new(res)]),
-                (-S::ONE, vec![Box::new(x.clone()), Box::new(x)]),
+                (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
         vec![Column::BigInt(res)]
@@ -412,7 +412,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         let z: &[_] = alloc.alloc_slice_copy(&self.z);
-        builder.produce_anchored_mle(x.clone());
+        builder.produce_anchored_mle(x);
         builder.produce_intermediate_mle(z);
 
         // poly1
@@ -420,7 +420,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
             SumcheckSubpolynomialType::Identity,
             vec![
                 (S::ONE, vec![Box::new(z)]),
-                (-S::ONE, vec![Box::new(x.clone()), Box::new(x)]),
+                (-S::ONE, vec![Box::new(x), Box::new(x)]),
             ],
         );
 
@@ -621,12 +621,12 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         let res: &[_] = alloc.alloc_slice_copy(&[9, 25]);
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
-        builder.produce_anchored_mle(x.clone());
+        builder.produce_anchored_mle(x);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
                 (alpha, vec![Box::new(res)]),
-                (-alpha, vec![Box::new(x.clone()), Box::new(x)]),
+                (-alpha, vec![Box::new(x), Box::new(x)]),
             ],
         );
         vec![Column::BigInt(&[9, 25])]

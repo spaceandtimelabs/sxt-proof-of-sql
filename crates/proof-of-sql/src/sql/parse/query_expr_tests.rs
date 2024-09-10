@@ -113,7 +113,7 @@ fn we_can_convert_an_ast_with_one_column() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
@@ -134,7 +134,7 @@ fn we_can_convert_an_ast_with_one_column_and_i128_data() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3_i64)),
@@ -155,7 +155,7 @@ fn we_can_convert_an_ast_with_one_column_and_a_filter_by_a_string_literal() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where a = 'abc'", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_varchar("abc")),
@@ -204,7 +204,7 @@ fn we_dont_have_duplicate_filter_result_expressions() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             aliased_cols_expr_plan(t, &[("a", "b"), ("a", "c")], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
@@ -227,7 +227,7 @@ fn we_can_convert_an_ast_with_two_columns() {
     );
     let ast = query_to_provable_ast(t, "select a,  b from sxt_tab where c = 123", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             equal(column(t, "c", &accessor), const_bigint(123)),
@@ -254,7 +254,7 @@ fn we_can_convert_an_ast_with_two_columns_and_arithmetic() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             equal(
@@ -282,7 +282,7 @@ fn we_can_parse_all_result_columns_with_select_star() {
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["b", "a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
@@ -304,7 +304,7 @@ fn we_can_convert_an_ast_with_one_positive_cond() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b = +4", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "b", &accessor), const_bigint(4)),
@@ -326,7 +326,7 @@ fn we_can_convert_an_ast_with_one_not_equals_cond() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <> +4", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             not(equal(column(t, "b", &accessor), const_bigint(4))),
@@ -348,7 +348,7 @@ fn we_can_convert_an_ast_with_one_negative_cond() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab where b <= -4", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             lte(column(t, "b", &accessor), const_bigint(-4)),
@@ -375,7 +375,7 @@ fn we_can_convert_an_ast_with_cond_and() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             and(
@@ -405,7 +405,7 @@ fn we_can_convert_an_ast_with_cond_or() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             or(
@@ -438,7 +438,7 @@ fn we_can_convert_an_ast_with_conds_or_not() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             or(
@@ -469,7 +469,7 @@ fn we_can_convert_an_ast_with_conds_not_and_or() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
                 aliased_plan(
@@ -509,7 +509,7 @@ fn we_can_convert_an_ast_with_the_min_i128_filter_value_and_const() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
                 aliased_plan(const_int128(i128::MIN), "b"),
@@ -537,7 +537,7 @@ fn we_can_convert_an_ast_with_the_max_i128_filter_value_and_const() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
                 aliased_plan(const_int128(i128::MAX), "ma"),
@@ -566,7 +566,7 @@ fn we_can_convert_an_ast_using_an_aliased_column() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 aliased_col_expr_plan(t, "a", "b_rename", &accessor),
                 aliased_plan(
@@ -617,7 +617,7 @@ fn we_can_convert_an_ast_with_a_schema() {
     );
     let ast = query_to_provable_ast(t, "select a from eth.sxt_tab where a = 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
@@ -628,7 +628,7 @@ fn we_can_convert_an_ast_with_a_schema() {
 }
 
 #[test]
-fn we_can_convert_an_ast_without_any_dense_filter() {
+fn we_can_convert_an_ast_without_any_filter() {
     let t = "eth.sxt_tab".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
@@ -637,7 +637,7 @@ fn we_can_convert_an_ast_without_any_dense_filter() {
         },
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
                 aliased_plan(const_bigint(3), "b"),
@@ -672,7 +672,7 @@ fn we_can_parse_order_by_with_a_single_column() {
     );
     let ast = query_to_provable_ast(t, "select * from sxt_tab where a = 3 order by b", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["b", "a"], &accessor),
             tab(t),
             equal(column(t, "a", &accessor), const_bigint(3)),
@@ -698,7 +698,7 @@ fn we_can_parse_order_by_with_multiple_columns() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a", "b"], &accessor),
             tab(t),
             equal(
@@ -728,7 +728,7 @@ fn we_can_parse_order_by_referencing_an_alias_associated_with_column_b_but_with_
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 aliased_col_expr_plan(t, "salary", "s", &accessor),
                 aliased_col_expr_plan(t, "name", "salary", &accessor),
@@ -830,7 +830,7 @@ fn we_can_parse_order_by_queries_with_the_same_column_name_appearing_more_than_o
             &accessor,
         );
         let expected_ast = QueryExpr::new(
-            dense_filter(
+            filter(
                 vec![
                     aliased_col_expr_plan(t, "salary", "s", &accessor),
                     col_expr_plan(t, "name", &accessor),
@@ -860,7 +860,7 @@ fn we_can_parse_a_query_having_a_simple_limit_clause() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             const_bool(true),
@@ -881,7 +881,7 @@ fn slice_is_still_applied_when_limit_is_u64_max_and_offset_is_zero() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 0", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             const_bool(true),
@@ -902,7 +902,7 @@ fn we_can_parse_a_query_having_a_simple_positive_offset_clause() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset 7", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             const_bool(true),
@@ -923,7 +923,7 @@ fn we_can_parse_a_query_having_a_negative_offset_clause() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab offset -7", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             const_bool(true),
@@ -944,7 +944,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause() {
     );
     let ast = query_to_provable_ast(t, "select a from sxt_tab limit 55 offset 3", &accessor);
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["a"], &accessor),
             tab(t),
             const_bool(true),
@@ -974,7 +974,7 @@ fn we_can_parse_a_query_having_a_simple_limit_and_offset_clause_preceded_by_wher
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "a", &accessor),
                 aliased_plan(
@@ -1082,7 +1082,7 @@ fn we_can_do_provable_group_by_with_two_group_by_columns() {
 }
 
 #[test]
-fn we_can_do_provable_group_by_with_two_sums_and_dense_filter() {
+fn we_can_do_provable_group_by_with_two_sums_and_filter() {
     let t = "sxt.employees".parse().unwrap();
     let accessor = schema_accessor_from_table_ref_with_schema(
         t,
@@ -1132,7 +1132,7 @@ fn we_can_group_by_without_using_aggregate_functions() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![col_expr_plan(t, "department", &accessor)],
             tab(t),
             const_bool(true),
@@ -1163,7 +1163,7 @@ fn group_by_expressions_are_parsed_before_an_order_by_referencing_an_aggregate_a
     );
     let (t, accessor) = get_test_accessor();
     let expected_query = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 col_expr_plan(t, "i", &accessor),
                 col_expr_plan(t, "i0", &accessor),
@@ -1295,7 +1295,7 @@ fn we_can_parse_a_query_having_group_by_with_the_same_name_as_the_aggregation_ex
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["bonus", "department"], &accessor),
             tab(t),
             const_bool(true),
@@ -1325,7 +1325,7 @@ fn count_aggregate_functions_can_be_used_with_non_numeric_columns() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["bonus", "department"], &accessor),
             tab(t),
             const_bool(true),
@@ -1359,7 +1359,7 @@ fn count_all_uses_the_first_group_by_identifier_as_default_result_column() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["department", "salary"], &accessor),
             tab(t),
             equal(column(t, "salary", &accessor), const_bigint(4)),
@@ -1407,7 +1407,7 @@ fn we_can_use_the_same_result_columns_with_different_aliases_and_associate_it_wi
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["department"], &accessor),
             tab(t),
             const_bool(true),
@@ -1431,7 +1431,7 @@ fn we_can_use_multiple_group_by_clauses_with_multiple_agg_and_non_agg_exprs() {
         group: ["i", "i0", "i"]
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["i", "i0", "i1", "s"], &accessor),
             tab(t),
             const_bool(true),
@@ -1470,7 +1470,7 @@ fn we_can_parse_a_simple_add_mul_sub_div_arithmetic_expressions_in_the_result_ex
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 aliased_plan(
                     add(column(t, "a", &accessor), column(t, "b", &accessor)),
@@ -1513,7 +1513,7 @@ fn we_can_parse_multiple_arithmetic_expression_where_multiplication_has_preceden
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             vec![
                 aliased_plan(
                     multiply(
@@ -1568,7 +1568,7 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
         &accessor,
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["c", "f"], &accessor),
             tab(t),
             const_bool(true),
@@ -1691,7 +1691,7 @@ fn group_by_with_bigint_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query = query!(select: ["i"], group: ["i"]);
     let expected_query = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["i"], &accessor),
             tab(t),
             const_bool(true),
@@ -1709,7 +1709,7 @@ fn group_by_with_decimal_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query = query!(select: ["d"], group: ["d"]);
     let expected_query = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["d"], &accessor),
             tab(t),
             const_bool(true),
@@ -1727,7 +1727,7 @@ fn group_by_with_varchar_column_is_valid() {
     let (t, accessor) = get_test_accessor();
     let query = query!(select: ["s"], group: ["s"]);
     let expected_query = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["s"], &accessor),
             tab(t),
             const_bool(true),
@@ -1748,7 +1748,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_while_using_group_by() {
         group: ["i", "i1"]
     );
     let expected_query = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["i", "i1"], &accessor),
             tab(t),
             const_bool(true),
@@ -1777,7 +1777,7 @@ fn we_can_use_arithmetic_outside_agg_expressions_without_using_group_by() {
         select: ["7 + max(i) as max_i", "min(i + 777 * d) * -5 as min_d"],
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["d", "i"], &accessor),
             tab(t),
             const_bool(true),
@@ -1809,7 +1809,7 @@ fn count_aggregation_always_have_integer_type() {
         select: ["7 + count(s) as cs", "count(i) * -5 as ci", "count(d)"]
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             cols_expr_plan(t, &["d", "i", "s"], &accessor),
             tab(t),
             const_bool(true),
@@ -1847,7 +1847,7 @@ fn select_wildcard_is_valid_with_group_by_exprs() {
         group: columns.clone()
     );
     let expected_ast = QueryExpr::new(
-        dense_filter(
+        filter(
             sorted_columns
                 .iter()
                 .map(|c| col_expr_plan(t, c, &accessor))
@@ -1899,7 +1899,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
             order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
         );
         let expected_query = QueryExpr::new(
-            dense_filter(perm_col_plans, tab(t), const_bool(true)),
+            filter(perm_col_plans, tab(t), const_bool(true)),
             vec![
                 group_by_postprocessing(&group_cols_vec, &aliased_perm_cols),
                 orders(&order_cols_vec, &ordering_vec),

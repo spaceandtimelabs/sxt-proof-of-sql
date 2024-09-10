@@ -43,7 +43,7 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
         for (column, commitment) in columns.iter().zip(commitments) {
             self.columns.insert(
                 ColumnRef::new(table_ref, column.0, column.1.column_type()),
-                column.1.clone(),
+                column.1,
             );
             self.commitments.insert(
                 ColumnRef::new(table_ref, column.0, column.1.column_type()),
@@ -64,7 +64,7 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
 
 impl<C: Commitment> DataAccessor<C::Scalar> for BenchmarkAccessor<'_, C> {
     fn get_column(&self, column: ColumnRef) -> Column<C::Scalar> {
-        self.columns.get(&column).unwrap().clone()
+        *self.columns.get(&column).unwrap()
     }
 }
 impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
