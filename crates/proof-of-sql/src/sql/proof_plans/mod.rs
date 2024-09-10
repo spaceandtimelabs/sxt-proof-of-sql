@@ -1,6 +1,11 @@
 //! This module proves provable execution plans.
-mod filter_result_expr;
-pub(crate) use filter_result_expr::FilterResultExpr;
+mod projection_exec;
+pub(crate) use projection_exec::ProjectionExec;
+#[cfg(all(test, feature = "blitzar"))]
+mod projection_exec_test;
+
+#[cfg(test)]
+pub(crate) mod test_utility;
 
 mod filter_exec;
 pub(crate) use filter_exec::FilterExec;
@@ -10,23 +15,6 @@ pub(crate) use filter_exec::OstensibleFilterExec;
 mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]
 mod filter_exec_test_dishonest_prover;
-
-mod projection_exec;
-pub(crate) use projection_exec::ProjectionExec;
-#[cfg(all(test, feature = "blitzar"))]
-mod projection_exec_test;
-
-#[cfg(test)]
-pub(crate) mod test_utility;
-
-mod dense_filter_exec;
-pub(crate) use dense_filter_exec::DenseFilterExec;
-#[cfg(test)]
-pub(crate) use dense_filter_exec::OstensibleDenseFilterExec;
-#[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_exec_test;
-#[cfg(all(test, feature = "blitzar"))]
-mod dense_filter_exec_test_dishonest_prover;
 
 mod fold_util;
 pub(crate) use fold_util::{fold_columns, fold_vals};
