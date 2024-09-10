@@ -1,7 +1,7 @@
-use super::{ProvableQueryResult, ProvableResultColumn, QueryError};
+use super::{ProvableQueryResult, QueryError};
 use crate::{
     base::{
-        database::{ColumnField, ColumnType},
+        database::{Column, ColumnField, ColumnType},
         math::decimal::Precision,
         polynomial::compute_evaluation_vector,
         scalar::{Curve25519Scalar, Scalar},
@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new([0_i64; 0])];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
     let res = ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
@@ -36,8 +36,7 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
 #[test]
 fn we_can_evaluate_result_columns_as_mles() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [10, 11, -12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, -12])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -60,8 +59,7 @@ fn we_can_evaluate_result_columns_as_mles() {
 #[test]
 fn we_can_evaluate_result_columns_with_no_rows() {
     let indexes = Indexes::Sparse(vec![]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -81,9 +79,8 @@ fn we_can_evaluate_result_columns_with_no_rows() {
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values1: [i64; 3] = [10, 11, 12];
-    let values2: [i64; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
+    let cols: [Column<Curve25519Scalar>; 2] =
+        [Column::BigInt(&[10, 11, 12]), Column::BigInt(&[5, 7, 9])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -108,9 +105,8 @@ fn we_can_evaluate_multiple_result_columns_as_mles() {
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values1: [i128; 3] = [10, 11, 12];
-    let values2: [i128; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
+    let cols: [Column<Curve25519Scalar>; 2] =
+        [Column::Int128(&[10, 11, 12]), Column::Int128(&[5, 7, 9])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -135,9 +131,15 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values1: [Curve25519Scalar; 3] = [10.into(), 11.into(), 12.into()];
-    let values2: [Curve25519Scalar; 3] = [5.into(), 7.into(), 9.into()];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
+    let col0 = [10, 11, 12]
+        .iter()
+        .map(|v| Curve25519Scalar::from(*v))
+        .collect::<Vec<_>>();
+    let col1 = [5, 7, 9]
+        .iter()
+        .map(|v| Curve25519Scalar::from(*v))
+        .collect::<Vec<_>>();
+    let cols: [Column<Curve25519Scalar>; 2] = [Column::Scalar(&col0), Column::Scalar(&col1)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -162,9 +164,8 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values1: [i64; 3] = [10, 11, 12];
-    let values2: [i128; 3] = [5, 7, 9];
-    let cols: [Box<dyn ProvableResultColumn>; 2] = [Box::new(values1), Box::new(values2)];
+    let cols: [Column<Curve25519Scalar>; 2] =
+        [Column::BigInt(&[10, 11, 12]), Column::Int128(&[5, 7, 9])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -191,8 +192,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_mixed_data_types() {
 #[test]
 fn evaluation_fails_if_indexes_are_out_of_range() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     match res.indexes_mut() {
         Indexes::Sparse(indexes) => indexes[1] = 20,
@@ -215,8 +215,7 @@ fn evaluation_fails_if_indexes_are_out_of_range() {
 #[test]
 fn evaluation_fails_if_indexes_are_not_sorted() {
     let indexes = Indexes::Sparse(vec![1, 0]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -235,8 +234,7 @@ fn evaluation_fails_if_indexes_are_not_sorted() {
 #[test]
 fn evaluation_fails_if_extra_data_is_included() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     res.data_mut().push(3u8);
     let evaluation_point = [
@@ -278,8 +276,7 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 #[test]
 fn evaluation_fails_if_integer_overflow_happens() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [i32::MAX as i64 + 1_i64, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[i32::MAX as i64 + 1_i64, 11, 12])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -298,8 +295,7 @@ fn evaluation_fails_if_integer_overflow_happens() {
 #[test]
 fn evaluation_fails_if_data_is_missing() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let mut res = ProvableQueryResult::new(&indexes, &cols);
     *res.num_columns_mut() = 3;
     let evaluation_point = [
@@ -319,8 +315,7 @@ fn evaluation_fails_if_data_is_missing() {
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i64; 3] = [10, 11, 12];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)];
     let res = RecordBatch::try_from(
@@ -338,8 +333,7 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
 #[test]
 fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let values: [i128; 3] = [10, 11, i128::MAX];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::Int128(&[10, 11, i128::MAX])];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::Int128)];
     let res = RecordBatch::try_from(
@@ -370,7 +364,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
         Curve25519Scalar::MAX_SIGNED,
     ];
 
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::Scalar(&values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new(
         "a1".parse().unwrap(),
@@ -401,18 +395,22 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values1: [i64; 3] = [6, 7, i64::MAX];
     let values2: [i128; 3] = [10, 11, i128::MAX];
-    let values3 = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
+    let values3 = ["abc", "fg", "de"];
+    let scalars3 = values3
+        .iter()
+        .map(|v| Curve25519Scalar::from(*v))
+        .collect::<Vec<_>>();
     let values4 = [
         Curve25519Scalar::from(10),
         Curve25519Scalar::from(11),
         Curve25519Scalar::MAX_SIGNED,
     ];
 
-    let cols: [Box<dyn ProvableResultColumn>; 4] = [
-        Box::new(values1),
-        Box::new(values2),
-        Box::new(values3),
-        Box::new(values4),
+    let cols: [Column<Curve25519Scalar>; 4] = [
+        Column::BigInt(&values1),
+        Column::Int128(&values2),
+        Column::VarChar((&values3, &scalars3)),
+        Column::Scalar(&values4),
     ];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![
@@ -450,23 +448,4 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     )
     .unwrap();
     assert_eq!(res, expected_res);
-}
-
-#[test]
-fn we_cannot_convert_a_provable_result_with_invalid_string_data() {
-    let values = ["abc".as_bytes(), &[0xed, 0xa0, 0x80][..], "de".as_bytes()];
-    let cols: [Box<dyn ProvableResultColumn>; 1] = [Box::new(values)];
-    let column_fields = vec![ColumnField::new("a1".parse().unwrap(), ColumnType::VarChar)];
-    let indexes = Indexes::Sparse(vec![0]);
-    assert!(ProvableQueryResult::new(&indexes, &cols)
-        .to_owned_table::<Curve25519Scalar>(&column_fields)
-        .is_ok());
-    let indexes = Indexes::Sparse(vec![2]);
-    assert!(ProvableQueryResult::new(&indexes, &cols)
-        .to_owned_table::<Curve25519Scalar>(&column_fields)
-        .is_ok());
-    let indexes = Indexes::Sparse(vec![1]);
-    assert!(ProvableQueryResult::new(&indexes, &cols)
-        .to_owned_table::<Curve25519Scalar>(&column_fields)
-        .is_err());
 }

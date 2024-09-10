@@ -1,11 +1,11 @@
-use super::{ProofBuilder, SumcheckRandomScalars};
+use super::{ProofBuilder, ProvableQueryResult, SumcheckRandomScalars};
 use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::{compute_commitment_for_testing, Curve25519Scalar},
     },
-    sql::proof::{Indexes, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
 #[cfg(feature = "arrow")]
 use arrow::{
@@ -130,10 +130,7 @@ fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);
     let col1: Column<Curve25519Scalar> = Column::BigInt(&[10_i64, 11, 12]);
     let col2: Column<Curve25519Scalar> = Column::BigInt(&[-2_i64, -3, -4]);
-    let mut builder = ResultBuilder::new(3);
-    builder.set_result_indexes(result_indexes);
-
-    let res = builder.make_provable_query_result(&[col1, col2]);
+    let res = ProvableQueryResult::new(&result_indexes, &[col1, col2]);
 
     let column_fields = vec![
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),

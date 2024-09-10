@@ -2,7 +2,7 @@ use super::{
     decode_and_convert, decode_multiple_elements, Indexes, ProvableResultColumn, QueryError,
 };
 use crate::base::{
-    database::{ColumnField, ColumnType, OwnedColumn, OwnedTable},
+    database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable},
     polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
@@ -56,10 +56,7 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
-    pub fn new<'a>(
-        indexes: &'a Indexes,
-        columns: &'a [Box<dyn ProvableResultColumn + 'a>],
-    ) -> Self {
+    pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
             sz += col.num_bytes(indexes);
