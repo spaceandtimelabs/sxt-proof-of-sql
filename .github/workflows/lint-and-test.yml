@@ -73,7 +73,7 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=non-interactive
           sudo apt-get update
-          sudo apt-get install -y nvidia-driver-560  
+          sudo apt-get install -y nvidia-driver-550  
       - name: Run cargo test
         run: cargo test --all-features
       - name: Dry run cargo test (proof-of-sql) (test feature only)
