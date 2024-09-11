@@ -10,6 +10,10 @@ pub(crate) use mont_scalar::MontScalar;
 mod mont_scalar_from;
 #[cfg(test)]
 mod mont_scalar_from_test;
+/// Module for a test MontConfig
+pub mod test_config;
+/// Module for a test Scalar
+pub mod test_scalar;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]
