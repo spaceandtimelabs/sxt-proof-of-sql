@@ -33,9 +33,7 @@ jobs:
       - name: Install stable toolchain
         run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
       - name: Install Dependencies
-        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
-      - name: Install NVIDIA Driver
-        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y nvidia-driver-560        
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld     
       - name: Run cargo check (no features, exclude examples)
         run: cargo check --no-default-features
       - name: Run cargo check (default features)
@@ -70,9 +68,13 @@ jobs:
       - name: Install stable toolchain
         run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
       - name: Install Dependencies
-        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
-      - name: Install NVIDIA Driver
-        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y nvidia-driver-560
+        run: |
+          export DEBIAN_FRONTEND=non-interactive
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository ppa:graphics-drivers/ppa
+          sudo apt-get update
+          sudo apt-get install -y clang lld nvidia-driver-560
       - name: Run cargo test
         run: cargo test --all-features
       - name: Dry run cargo test (proof-of-sql) (test feature only)
