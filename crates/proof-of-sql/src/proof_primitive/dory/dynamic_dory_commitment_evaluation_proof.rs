@@ -1,16 +1,18 @@
 use super::{
-    build_vmv_prover_state, build_vmv_verifier_state, compute_T_vec_prime, compute_nu,
+    dynamic_build_vmv_state::{build_dynamic_vmv_prover_state, build_dynamic_vmv_verifier_state},
+    dynamic_dory_helper::{compute_dynamic_T_vec_prime, compute_dynamic_nu, fold_dynamic_tensors},
     eval_vmv_re_prove, eval_vmv_re_verify, extended_dory_inner_product_prove,
-    extended_dory_inner_product_verify,
-    extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, DeferredGT,
-    DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
+    extended_dory_inner_product_verify, DeferredGT, DoryMessages, DoryScalar,
+    DynamicDoryCommitment, ProverSetup, VerifierSetup, F,
 };
 use crate::base::commitment::CommitmentEvaluationProof;
 use merlin::Transcript;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
-pub type DoryEvaluationProof = DoryMessages;
+#[derive(Default, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct DynamicDoryEvaluationProof(pub(super) DoryMessages);
 
 /// The error type for the Dory PCS.
 #[derive(Error, Debug)]
@@ -26,12 +28,12 @@ pub enum DoryError {
     SmallSetup(usize, usize),
 }
 
-impl CommitmentEvaluationProof for DoryEvaluationProof {
+impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
     type Scalar = DoryScalar;
-    type Commitment = DoryCommitment;
+    type Commitment = DynamicDoryCommitment;
     type Error = DoryError;
-    type ProverPublicSetup<'a> = DoryProverPublicSetup<'a>;
-    type VerifierPublicSetup<'a> = DoryVerifierPublicSetup<'a>;
+    type ProverPublicSetup<'a> = &'a ProverSetup<'a>;
+    type VerifierPublicSetup<'a> = &'a VerifierSetup;
 
     #[tracing::instrument(name = "DoryEvaluationProof::new", level = "debug", skip_all)]
     fn new(
@@ -49,18 +51,17 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         }
         let a: &[F] = bytemuck::TransparentWrapper::peel_slice(a);
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
-        let prover_setup = setup.prover_setup();
-        let nu = compute_nu(b_point.len(), setup.sigma());
-        if nu > prover_setup.max_nu {
+        let nu = compute_dynamic_nu(b_point.len());
+        if nu > setup.max_nu {
             return Default::default(); // Note: this will always result in a verification error.
         }
-        let T_vec_prime = compute_T_vec_prime(a, setup.sigma(), nu, prover_setup);
-        let state = build_vmv_prover_state(a, b_point, T_vec_prime, setup.sigma(), nu);
+        let T_vec_prime = compute_dynamic_T_vec_prime(a, nu, setup);
+        let state = build_dynamic_vmv_prover_state(a, b_point, T_vec_prime, nu);
 
         let mut messages = Default::default();
-        let extended_state = eval_vmv_re_prove(&mut messages, transcript, state, prover_setup);
-        extended_dory_inner_product_prove(&mut messages, transcript, extended_state, prover_setup);
-        messages
+        let extended_state = eval_vmv_re_prove(&mut messages, transcript, state, setup);
+        extended_dory_inner_product_prove(&mut messages, transcript, extended_state, setup);
+        Self(messages)
     }
 
     #[tracing::instrument(
@@ -88,21 +89,20 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
             return Err(DoryError::InvalidGeneratorsOffset(generators_offset));
         }
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
-        let verifier_setup = setup.verifier_setup();
-        let mut messages = self.clone();
-        let nu = compute_nu(b_point.len(), setup.sigma());
-        if nu > verifier_setup.max_nu {
-            return Err(DoryError::SmallSetup(verifier_setup.max_nu, nu));
+        let mut messages = self.0.clone();
+        let nu = compute_dynamic_nu(b_point.len());
+        if nu > setup.max_nu {
+            return Err(DoryError::SmallSetup(setup.max_nu, nu));
         }
-        let state = build_vmv_verifier_state(product.0, b_point, a_commit, setup.sigma(), nu);
-        let extended_state = eval_vmv_re_verify(&mut messages, transcript, state, verifier_setup)
+        let state = build_dynamic_vmv_verifier_state(product.0, b_point, a_commit, nu);
+        let extended_state = eval_vmv_re_verify(&mut messages, transcript, state, setup)
             .ok_or(DoryError::VerificationError)?;
         if !extended_dory_inner_product_verify(
             &mut messages,
             transcript,
             extended_state,
-            verifier_setup,
-            extended_dory_reduce_verify_fold_s_vecs,
+            setup,
+            fold_dynamic_tensors,
         ) {
             Err(DoryError::VerificationError)?;
         }

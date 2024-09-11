@@ -1,55 +1,42 @@
-use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
+use super::{
+    dynamic_dory_structure::row_and_column_from_index, pairings, DoryScalar, DynamicDoryCommitment,
+    G1Affine, G1Projective, ProverSetup,
+};
 use crate::base::commitment::CommittableColumn;
-use ark_ec::VariableBaseMSM;
-use core::iter::once;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
-    setup: &DoryProverPublicSetup,
-) -> DoryCommitment
+    setup: &ProverSetup,
+) -> DynamicDoryCommitment
 where
     &'a T: Into<DoryScalar>,
     T: Sync,
 {
-    // Compute offsets for the matrix.
-    let num_columns = 1 << setup.sigma();
-    let first_row_offset = offset % num_columns;
-    let rows_offset = offset / num_columns;
-    let first_row_len = column.len().min(num_columns - first_row_offset);
-    let remaining_elements_len = column.len() - first_row_len;
-    let remaining_row_count = (remaining_elements_len + num_columns - 1) / num_columns;
-
-    // Break column into rows.
-    let (first_row, remaining_elements) = column.split_at(first_row_len);
-    let remaining_rows = remaining_elements.chunks(num_columns);
-
-    // Compute commitments for the rows.
-    let first_row_commit = G1Projective::msm_unchecked(
-        &setup.prover_setup().Gamma_1.last().unwrap()[first_row_offset..num_columns],
-        &Vec::from_iter(first_row.iter().map(|s| s.into().0)),
+    let Gamma_1 = setup.Gamma_1.last().unwrap();
+    let Gamma_2 = setup.Gamma_2.last().unwrap();
+    let (first_row, _) = row_and_column_from_index(offset);
+    let (last_row, _) = row_and_column_from_index(offset + column.len() - 1);
+    let row_commits = column.iter().enumerate().fold(
+        vec![G1Projective::from(G1Affine::identity()); last_row - first_row + 1],
+        |mut row_commits, (i, v)| {
+            let (row, col) = row_and_column_from_index(i + offset);
+            row_commits[row - first_row] += Gamma_1[col] * v.into().0;
+            row_commits
+        },
     );
-    let remaining_row_commits = remaining_rows.map(|row| {
-        G1Projective::msm_unchecked(
-            &setup.prover_setup().Gamma_1.last().unwrap()[..num_columns],
-            &Vec::from_iter(row.iter().map(|s| s.into().0)),
-        )
-    });
-
-    // Compute the commitment for the entire matrix.
-    DoryCommitment(pairings::multi_pairing(
-        once(first_row_commit).chain(remaining_row_commits),
-        &setup.prover_setup().Gamma_2.last().unwrap()
-            [rows_offset..(rows_offset + remaining_row_count + 1)],
+    DynamicDoryCommitment(pairings::multi_pairing(
+        row_commits,
+        &Gamma_2[first_row..=last_row],
     ))
 }
 
 fn compute_dory_commitment(
     committable_column: &CommittableColumn,
     offset: usize,
-    setup: &DoryProverPublicSetup,
-) -> DoryCommitment {
+    setup: &ProverSetup,
+) -> DynamicDoryCommitment {
     match committable_column {
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
@@ -70,11 +57,11 @@ fn compute_dory_commitment(
     }
 }
 
-pub(super) fn compute_dory_commitments(
+pub(super) fn compute_dynamic_dory_commitments(
     committable_columns: &[CommittableColumn],
     offset: usize,
-    setup: &DoryProverPublicSetup,
-) -> Vec<DoryCommitment> {
+    setup: &ProverSetup,
+) -> Vec<DynamicDoryCommitment> {
     committable_columns
         .iter()
         .map(|column| compute_dory_commitment(column, offset, setup))

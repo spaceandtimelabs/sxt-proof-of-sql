@@ -143,6 +143,15 @@ mod pack_scalars;
 mod pairings;
 mod transpose;
 
+mod dynamic_build_vmv_state;
+mod dynamic_dory_commitment_helper_cpu;
 mod dynamic_dory_helper;
 mod dynamic_dory_standard_basis_helper;
 mod dynamic_dory_structure;
+use dynamic_dory_commitment_helper_cpu::compute_dynamic_dory_commitments;
+mod dynamic_dory_commitment;
+mod dynamic_dory_commitment_evaluation_proof;
+pub use dynamic_dory_commitment::DynamicDoryCommitment;
+#[cfg(test)]
+mod dynamic_dory_commitment_evaluation_proof_test;
+pub use dynamic_dory_commitment_evaluation_proof::DynamicDoryEvaluationProof;

@@ -22,29 +22,16 @@
 //! Note: the `VecCommitmentExt` trait requires using this offset when computing commitments.
 //! This is to allow for updateability of the commitments as well as to allow for smart indexing/partitioning.
 
-use super::{DoryProverPublicSetup, GT};
+use super::{DoryScalar, ProverSetup, GT};
 use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
-    scalar::{MontScalar, Scalar},
 };
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
 use num_traits::One;
-
-/// The Dory scalar type. (alias for `MontScalar<ark_bls12_381::FrConfig>`)
-pub type DoryScalar = MontScalar<ark_bls12_381::FrConfig>;
-
-impl Scalar for DoryScalar {
-    const MAX_SIGNED: Self = Self(ark_ff::MontFp!(
-        "26217937587563095239723870254092982918845276250263818911301829349969290592256"
-    ));
-    const ZERO: Self = Self(ark_ff::MontFp!("0"));
-    const ONE: Self = Self(ark_ff::MontFp!("1"));
-    const TWO: Self = Self(ark_ff::MontFp!("2"));
-}
 
 #[derive(
     Debug,
@@ -60,32 +47,32 @@ impl Scalar for DoryScalar {
     CanonicalDeserialize,
 )]
 /// The Dory commitment type.
-pub struct DoryCommitment(pub(super) GT);
+pub struct DynamicDoryCommitment(pub(super) GT);
 
 /// The default for GT is the the additive identity, but should be the multiplicative identity.
-impl Default for DoryCommitment {
+impl Default for DynamicDoryCommitment {
     fn default() -> Self {
         Self(PairingOutput(One::one()))
     }
 }
 
 // Traits required for `DoryCommitment` to impl `Commitment`.
-impl_serde_for_ark_serde_checked!(DoryCommitment);
-impl Mul<DoryCommitment> for DoryScalar {
-    type Output = DoryCommitment;
-    fn mul(self, rhs: DoryCommitment) -> Self::Output {
-        DoryCommitment(rhs.0 * self.0)
+impl_serde_for_ark_serde_checked!(DynamicDoryCommitment);
+impl Mul<DynamicDoryCommitment> for DoryScalar {
+    type Output = DynamicDoryCommitment;
+    fn mul(self, rhs: DynamicDoryCommitment) -> Self::Output {
+        DynamicDoryCommitment(rhs.0 * self.0)
     }
 }
-impl<'a> Mul<&'a DoryCommitment> for DoryScalar {
-    type Output = DoryCommitment;
-    fn mul(self, rhs: &'a DoryCommitment) -> Self::Output {
-        DoryCommitment(rhs.0 * self.0)
+impl<'a> Mul<&'a DynamicDoryCommitment> for DoryScalar {
+    type Output = DynamicDoryCommitment;
+    fn mul(self, rhs: &'a DynamicDoryCommitment) -> Self::Output {
+        DynamicDoryCommitment(rhs.0 * self.0)
     }
 }
-impl Commitment for DoryCommitment {
+impl Commitment for DynamicDoryCommitment {
     type Scalar = DoryScalar;
-    type PublicSetup<'a> = DoryProverPublicSetup<'a>;
+    type PublicSetup<'a> = &'a ProverSetup<'a>;
 
     fn compute_commitments(
         commitments: &mut [Self],
@@ -94,7 +81,7 @@ impl Commitment for DoryCommitment {
         setup: &Self::PublicSetup<'_>,
     ) {
         assert_eq!(commitments.len(), committable_columns.len());
-        let c = super::compute_dory_commitments(committable_columns, offset, setup);
+        let c = super::compute_dynamic_dory_commitments(committable_columns, offset, setup);
         commitments.copy_from_slice(&c);
     }
 }
