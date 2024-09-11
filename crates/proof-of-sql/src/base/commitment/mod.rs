@@ -46,7 +46,7 @@ pub trait Commitment:
     + SubAssign
     + Sized
     + Default
-    + Copy
+    + Clone
     + core::ops::Neg<Output = Self>
     + Eq
     + core::ops::Sub<Output = Self>
