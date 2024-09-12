@@ -157,11 +157,11 @@ b | sum_a | c
 
 The results are shown in the graphs below for the T4 machine and the A100 machine on all three of the queries listed above. Broadly the results are:
 
-* A query against 100k rows of data can be proven in sub-second time.
+* A query against 200 thousand rows of data can be proven in sub-second time.
 * A query against 100 million rows of data can be proven in roughly a minute.
 * Verification time is roughly 20ms across the board.
 
-<p align="center"><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kT4.svg" alt="Proof Of SQL Benchmarks (200k - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kA100.svg" alt="Proof Of SQL Benchmarks (200k - A100)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks10mT4.svg" alt="Proof Of SQL Benchmarks (10m - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks100mA100.svg" alt="Proof Of SQL Benchmarks (100m - A100)" width="50%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kT4.svg" alt="Proof Of SQL Benchmarks (200k - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks200kA100.svg" alt="Proof Of SQL Benchmarks (200k - A100)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks10mT4.svg" alt="Proof Of SQL Benchmarks (10m - T4)" width="50%"/><img src="https://raw.githubusercontent.com/spaceandtimelabs/sxt-proof-of-sql/main/docs/ProofOfSQLBenchmarks10mA100.svg" alt="Proof Of SQL Benchmarks (10m - A100)" width="50%"/></p>
 
 ## Supported SQL Syntax
 
