@@ -371,11 +371,8 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
         "a1".parse().unwrap(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<TestScalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
 
@@ -423,11 +420,8 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res = RecordBatch::try_from(
-        res.to_owned_table::<TestScalar>(&column_fields)
-            .unwrap(),
-    )
-    .unwrap();
+    let res =
+        RecordBatch::try_from(res.to_owned_table::<TestScalar>(&column_fields).unwrap()).unwrap();
     let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(

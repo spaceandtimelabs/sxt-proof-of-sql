@@ -561,15 +561,16 @@ mod tests {
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
         ));
 
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_a, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_a, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
@@ -618,12 +619,13 @@ mod tests {
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
         ));
 
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            [(&column_id_a, &one_row_column)],
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                [(&column_id_a, &one_row_column)],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let extend_columns_result =
@@ -667,12 +669,13 @@ mod tests {
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            initial_columns.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let mut table_commitment_clone = table_commitment.clone();
 
         let append_columns: OwnedTable<TestScalar> = owned_table([
@@ -710,12 +713,13 @@ mod tests {
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            base_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let table_diff_type: OwnedTable<TestScalar> = owned_table([
@@ -743,12 +747,13 @@ mod tests {
 
         let column_data = OwnedColumn::<TestScalar>::BigInt(vec![1, 2, 3]);
 
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            [(&column_id_a, &column_data), (&column_id_b, &column_data)],
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                [(&column_id_a, &column_data), (&column_id_b, &column_data)],
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let append_column_result = table_commitment.try_append_rows(
@@ -780,12 +785,13 @@ mod tests {
             varchar(column_id_b, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
 
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            base_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                base_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
         let column_a_append_data = OwnedColumn::<TestScalar>::BigInt(vec![5, 6, 7]);
@@ -824,12 +830,13 @@ mod tests {
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
         ]);
-        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            initial_columns.inner_table(),
-            2,
-            &(),
-        )
-        .unwrap();
+        let mut table_commitment =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                initial_columns.inner_table(),
+                2,
+                &(),
+            )
+            .unwrap();
 
         let new_columns = owned_table::<TestScalar>([scalar(scalar_id, scalar_data)]);
         table_commitment
@@ -1009,12 +1016,13 @@ mod tests {
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
-        let table_commitment_low = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            columns_low.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let table_commitment_low =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                columns_low.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_high: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
@@ -1170,12 +1178,13 @@ mod tests {
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
-        let table_commitment_low = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
-            columns_low.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let table_commitment_low =
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
+                columns_low.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let columns_high: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),

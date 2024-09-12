@@ -1,4 +1,7 @@
-use crate::base::{commitment::{naive_commitment::NaiveCommitment, CommittableColumn}, database::OwnedColumn};
+use crate::base::{
+    commitment::{naive_commitment::NaiveCommitment, CommittableColumn},
+    database::OwnedColumn,
+};
 
 use super::{test_config::TestMontConfig, MontScalar, Scalar};
 use ark_ff::PrimeField;
@@ -45,70 +48,48 @@ impl From<&TestScalar> for curve25519_dalek::scalar::Scalar {
     }
 }
 
-impl From<&OwnedColumn<TestScalar>> for NaiveCommitment{
+impl From<&OwnedColumn<TestScalar>> for NaiveCommitment {
     fn from(value: &OwnedColumn<TestScalar>) -> Self {
-        NaiveCommitment(match value{
-            OwnedColumn::Boolean(bool_vec) => {
-                bool_vec.iter().map(|b| b.into()).collect()
-            }
+        NaiveCommitment(match value {
+            OwnedColumn::Boolean(bool_vec) => bool_vec.iter().map(|b| b.into()).collect(),
             OwnedColumn::SmallInt(small_int_vec) => {
                 small_int_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::Int(int_vec) => {
-                int_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::BigInt(big_int_vec) => {
-                big_int_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::Int128(int_128_vec) => {
-                int_128_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::Decimal75(_, _, u64_vec) => {
-                u64_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::Scalar(scalar_vec) => {
-                scalar_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::VarChar(varchar_vec) => {
-                varchar_vec.iter().map(|b| b.into()).collect()
-            },
-            OwnedColumn::TimestampTZ(_, _, i64_vec) => {
-                i64_vec.iter().map(|b| b.into()).collect()
-            },
+            }
+            OwnedColumn::Int(int_vec) => int_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::BigInt(big_int_vec) => big_int_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::Int128(int_128_vec) => int_128_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::Decimal75(_, _, u64_vec) => u64_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::Scalar(scalar_vec) => scalar_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::VarChar(varchar_vec) => varchar_vec.iter().map(|b| b.into()).collect(),
+            OwnedColumn::TimestampTZ(_, _, i64_vec) => i64_vec.iter().map(|b| b.into()).collect(),
         })
     }
 }
 
-impl<'a> From<&CommittableColumn<'a>> for Vec<TestScalar>{
+impl<'a> From<&CommittableColumn<'a>> for Vec<TestScalar> {
     fn from(value: &CommittableColumn<'a>) -> Self {
-        match value{
-            CommittableColumn::Boolean(bool_vec) => {
-                bool_vec.iter().map(|b| b.into()).collect()
-            }
+        match value {
+            CommittableColumn::Boolean(bool_vec) => bool_vec.iter().map(|b| b.into()).collect(),
             CommittableColumn::SmallInt(small_int_vec) => {
                 small_int_vec.iter().map(|b| b.into()).collect()
-            },
-            CommittableColumn::Int(int_vec) => {
-                int_vec.iter().map(|b| b.into()).collect()
-            },
+            }
+            CommittableColumn::Int(int_vec) => int_vec.iter().map(|b| b.into()).collect(),
             CommittableColumn::BigInt(big_int_vec) => {
                 big_int_vec.iter().map(|b| b.into()).collect()
-            },
+            }
             CommittableColumn::Int128(int_128_vec) => {
                 int_128_vec.iter().map(|b| b.into()).collect()
-            },
+            }
             CommittableColumn::Decimal75(_, _, u64_vec) => {
                 u64_vec.iter().map(|b| b.into()).collect()
-            },
-            CommittableColumn::Scalar(scalar_vec) => {
-                scalar_vec.iter().map(|b| b.into()).collect()
-            },
+            }
+            CommittableColumn::Scalar(scalar_vec) => scalar_vec.iter().map(|b| b.into()).collect(),
             CommittableColumn::VarChar(varchar_vec) => {
                 varchar_vec.iter().map(|b| b.into()).collect()
-            },
+            }
             CommittableColumn::TimestampTZ(_, _, i64_vec) => {
                 i64_vec.iter().map(|b| b.into()).collect()
-            },
+            }
         }
     }
 }

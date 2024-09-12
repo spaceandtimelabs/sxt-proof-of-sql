@@ -1,7 +1,6 @@
 use crate::base::commitment::commitment_evaluation_proof_test::{
+    test_commitment_evaluation_proof_with_length_1, test_random_commitment_evaluation_proof,
     test_simple_commitment_evaluation_proof,
-    test_commitment_evaluation_proof_with_length_1,
-    test_random_commitment_evaluation_proof
 };
 use blitzar::proof::InnerProductProof;
 

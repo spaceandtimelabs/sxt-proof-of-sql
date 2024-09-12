@@ -357,12 +357,13 @@ mod tests {
             scalar(scalar_id, [1000, 2000, -1000, 0]),
         ]);
 
-        let column_commitments = ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
-            owned_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let column_commitments =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         assert_eq!(column_commitments.len(), 3);
 
@@ -455,15 +456,16 @@ mod tests {
 
         let empty_column = OwnedColumn::<TestScalar>::BigInt(vec![]);
 
-        let from_columns_result = ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
-            [
-                (&duplicate_identifier_b, &empty_column),
-                (&duplicate_identifier_b, &empty_column),
-                (&unique_identifier, &empty_column),
-            ],
-            0,
-            &(),
-        );
+        let from_columns_result =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                [
+                    (&duplicate_identifier_b, &empty_column),
+                    (&duplicate_identifier_b, &empty_column),
+                    (&unique_identifier, &empty_column),
+                ],
+                0,
+                &(),
+            );
         assert!(matches!(from_columns_result, Err(DuplicateIdentifiers(_))));
 
         let mut existing_column_commitments =
@@ -523,12 +525,13 @@ mod tests {
             varchar(varchar_id, ["Lorem", "ipsum", "dolor", "sit"]),
             scalar(scalar_id, [1000, 2000, -1000, 0]),
         ]);
-        let column_commitments = ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
-            owned_table.inner_table(),
-            0,
-            &(),
-        )
-        .unwrap();
+        let column_commitments =
+            ColumnCommitments::<NaiveCommitment>::try_from_columns_with_offset(
+                owned_table.inner_table(),
+                0,
+                &(),
+            )
+            .unwrap();
 
         let expected_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(
             owned_table.inner_table().values(),

@@ -1,16 +1,22 @@
 use blitzar::compute::compute_curve25519_commitments;
 use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 
-use crate::{base::{
-    commitment::naive_commitment::NaiveCommitment,
-    scalar::test_scalar::TestScalar, slice_ops::{iter_cast, slice_cast_to_iter},
-}, proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar};
+use crate::{
+    base::{
+        commitment::naive_commitment::NaiveCommitment,
+        scalar::test_scalar::TestScalar,
+        slice_ops::{iter_cast, slice_cast_to_iter},
+    },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+};
 
 /// Compute the commitment of a sequence of values.
 ///
 /// Computing commitments in isolation like this is inefficient so
 /// this function shoud only be used for testing.
-pub fn compute_compressed_ristretto_commitment_for_testing<T: Into<Curve25519Scalar> + Clone + Sync>(
+pub fn compute_compressed_ristretto_commitment_for_testing<
+    T: Into<Curve25519Scalar> + Clone + Sync,
+>(
     vals: &[T],
     offset_generators: usize,
 ) -> RistrettoPoint {

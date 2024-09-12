@@ -119,7 +119,7 @@ mod tests {
     use super::*;
     use crate::{
         base::{
-            commitment::{naive_commitment:: NaiveCommitment, Bounds, ColumnBounds},
+            commitment::{naive_commitment::NaiveCommitment, Bounds, ColumnBounds},
             database::{
                 owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableTestAccessor,
                 TestAccessor,

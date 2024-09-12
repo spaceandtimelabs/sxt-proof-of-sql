@@ -205,7 +205,8 @@ mod tests {
 
         let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
-        let expected_commitments: Vec<NaiveCommitment> = columns.iter().map(|oc| oc.into()).collect();
+        let expected_commitments: Vec<NaiveCommitment> =
+            columns.iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -234,7 +235,10 @@ mod tests {
         let expected_commitments: Vec<NaiveCommitment> = vec![
             OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
-        ].iter().map(|oc| oc.into()).collect();
+        ]
+        .iter()
+        .map(|oc| oc.into())
+        .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -300,7 +304,10 @@ mod tests {
             OwnedColumn::VarChar(column_b.to_vec()),
             OwnedColumn::<TestScalar>::VarChar(column_c.to_vec()),
             OwnedColumn::BigInt(column_d.to_vec()),
-        ].iter().map(|oc| oc.into()).collect();
+        ]
+        .iter()
+        .map(|oc| oc.into())
+        .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -329,7 +336,10 @@ mod tests {
         let expected_commitments: Vec<NaiveCommitment> = vec![
             OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
-        ].iter().map(|oc| oc.into()).collect();
+        ]
+        .iter()
+        .map(|oc| oc.into())
+        .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -347,14 +357,16 @@ mod tests {
         let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = Vec::<Column<TestScalar>>::new();
-        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
+        let new_commitments =
+            Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec())];
-        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
+        let new_commitments =
+            Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
@@ -365,7 +377,8 @@ mod tests {
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
-        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
+        let new_commitments =
+            Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.try_add(new_commitments),
             Err(NumColumnsMismatch)
@@ -378,7 +391,7 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
         let mut front_emptied_column_a = column_a.clone();
         let mut front_emptied_column_b = column_b.clone();
-        for i in 0..3{
+        for i in 0..3 {
             front_emptied_column_a[i] = 0;
             front_emptied_column_b[i] = String::from("");
         }
@@ -402,7 +415,10 @@ mod tests {
         let expected_commitments: Vec<NaiveCommitment> = vec![
             OwnedColumn::<TestScalar>::BigInt(front_emptied_column_a.to_vec()),
             OwnedColumn::VarChar(front_emptied_column_b.to_vec()),
-        ].iter().map(|oc| oc.into()).collect();
+        ]
+        .iter()
+        .map(|oc| oc.into())
+        .collect();
 
         assert_eq!(commitments, expected_commitments);
     }

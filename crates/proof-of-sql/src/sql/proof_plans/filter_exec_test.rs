@@ -7,6 +7,7 @@ use crate::{
         },
         math::decimal::Precision,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{
             exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate, ResultBuilder,
@@ -14,7 +15,6 @@ use crate::{
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
     },
-    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;

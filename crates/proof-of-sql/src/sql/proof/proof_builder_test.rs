@@ -1,13 +1,13 @@
 use super::{ProofBuilder, ProvableQueryResult, SumcheckRandomScalars};
 use crate::{
     base::{
+        commitment::naive_commitment::NaiveCommitment,
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::{compute_commitment_for_testing, test_scalar::TestScalar},
-        commitment::naive_commitment::NaiveCommitment,
     },
-    sql::proof::{Indexes, SumcheckSubpolynomialType},
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+    sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
 #[cfg(feature = "arrow")]
 use arrow::{
@@ -26,7 +26,8 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
-    let commitments: Vec<NaiveCommitment> = builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<NaiveCommitment> =
+        builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
         [compute_commitment_for_testing(&mle2, offset_generators)]
@@ -41,7 +42,8 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
-    let commitments: Vec<NaiveCommitment> = builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<NaiveCommitment> =
+        builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
         [compute_commitment_for_testing(&mle2, offset_generators)]
