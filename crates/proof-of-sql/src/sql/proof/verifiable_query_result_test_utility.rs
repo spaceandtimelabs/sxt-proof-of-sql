@@ -25,7 +25,10 @@ pub fn exercise_verification(
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
-    assert!(res.verify(expr, accessor, &()).is_ok());
+    let verification_result = res.verify(expr, accessor, &());
+    if verification_result.is_err() {
+        panic!("Verification failed: {:?}", verification_result.err());
+    }
 
     // try changing the result
     tamper_result(res, expr, accessor);

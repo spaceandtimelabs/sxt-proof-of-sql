@@ -62,7 +62,6 @@ fn we_can_verify_a_constant_decomposition() {
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &[],
         &Default::default(),
     );
     let one_eval = sumcheck_evaluations.one_evaluation;
@@ -86,7 +85,6 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         data.len(),
         &evaluation_point,
         &sumcheck_random_scalars,
-        &[],
         &[],
         &Default::default(),
     );

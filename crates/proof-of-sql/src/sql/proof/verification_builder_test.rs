@@ -106,31 +106,6 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
 }
 
 #[test]
-fn we_can_consume_result_evaluations() {
-    let result_evaluations = [
-        Curve25519Scalar::from(123u64),
-        Curve25519Scalar::from(456u64),
-    ];
-    let mle_evaluations = SumcheckMleEvaluations {
-        table_length: 1,
-        num_sumcheck_variables: 1,
-        result_evaluations: &result_evaluations,
-        ..Default::default()
-    };
-    let mut builder = VerificationBuilder::<RistrettoPoint>::new(
-        0,
-        mle_evaluations,
-        &[][..],
-        &[][..],
-        &[][..],
-        &[][..],
-        Vec::new(),
-    );
-    assert_eq!(builder.consume_result_mle(), Curve25519Scalar::from(123u64));
-    assert_eq!(builder.consume_result_mle(), Curve25519Scalar::from(456u64));
-}
-
-#[test]
 fn we_can_consume_post_result_challenges_in_proof_builder() {
     let mut builder = VerificationBuilder::<RistrettoPoint>::new(
         0,
