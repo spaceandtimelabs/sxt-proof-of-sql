@@ -4,11 +4,16 @@
 //! cargo bench -p proof-of-sql --bench criterion_benches
 //! ```
 #![allow(missing_docs)]
-use blitzar::proof::InnerProductProof;
-use criterion::{criterion_group, criterion_main, Criterion};
+use blitzar::{compute::init_backend, proof::InnerProductProof};
+use bumpalo::Bump;
+use criterion::{criterion_group, criterion_main, AxisScale, Criterion, PlotConfiguration};
+use proof_of_sql::{
+    base::{commitment::CommitmentEvaluationProof, database::ColumnType},
+    sql::proof::VerifiableQueryResult,
+};
 
 mod scaffold;
-use scaffold::{criterion_scaffold, querys::QUERIES};
+use scaffold::{querys::QUERIES, BenchmarkAccessor, OptionalRandBound};
 
 const SIZES: &[usize] = &[
     1,
@@ -29,6 +34,45 @@ const SIZES: &[usize] = &[
     50_000_000,
     100_000_000,
 ];
+
+fn criterion_scaffold<CP: CommitmentEvaluationProof>(
+    c: &mut Criterion,
+    title: &str,
+    query: &str,
+    columns: &[(&str, ColumnType, OptionalRandBound)],
+    sizes: &[usize],
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
+) {
+    let mut group = c.benchmark_group(format!("{} - {}", title, query));
+    group.sample_size(10);
+    group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
+    init_backend();
+    let mut rng = rand::thread_rng();
+    let mut accessor = BenchmarkAccessor::default();
+    let alloc = Bump::new();
+    for &size in sizes {
+        group.throughput(criterion::Throughput::Elements(size as u64));
+        accessor.insert_table(
+            "bench.table".parse().unwrap(),
+            &scaffold::generate_random_columns(&alloc, &mut rng, columns, size),
+            prover_setup,
+        );
+        let query = proof_of_sql::sql::parse::QueryExpr::try_new(
+            query.parse().unwrap(),
+            "bench".parse().unwrap(),
+            &accessor,
+        )
+        .unwrap();
+        let result = VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup);
+        group.bench_function("Generate Proof", |b| {
+            b.iter(|| VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup))
+        });
+        group.bench_function("Verify Proof", |b| {
+            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup))
+        });
+    }
+}
 
 fn all_benches(c: &mut Criterion) {
     for (title, query, columns) in QUERIES {

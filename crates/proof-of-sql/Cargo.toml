@@ -101,3 +101,8 @@ required-features = [ "test" ]
 name = "jaeger_benches"
 harness = false
 required-features = [ "blitzar" ]
+
+[[bench]]
+name = "simple_benches"
+harness = false
+required-features = [ "blitzar" ]

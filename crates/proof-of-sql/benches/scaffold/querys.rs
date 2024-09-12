@@ -27,6 +27,18 @@ const MULTI_COLUMN_FILTER_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
     ),
     ("c", ColumnType::VarChar, None),
 ];
+const GROUP_BY_TITLE: &str = "Group By Query";
+const GROUP_BY_SQL: &str =
+    "SELECT b, SUM(a), COUNT(*) FROM table WHERE (c = 'a' OR c = 'b') AND b > 0 GROUP BY b";
+const GROUP_BY_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
+    (
+        "a",
+        ColumnType::BigInt,
+        Some(|size| (size / 10).max(10) as i64),
+    ),
+    ("b", ColumnType::BigInt, Some(|_| 3)),
+    ("c", ColumnType::VarChar, Some(|_| 2)),
+];
 const ARITHMETIC_TITLE: &str = "Arithmetic";
 const ARITHMETIC_SQL: &str = "SELECT a + b as r0, a * b - 2 as r1, c FROM table WHERE a >= b";
 const ARITHMETIC_COLUMNS: &[(&str, ColumnType, OptionalRandBound)] = &[
@@ -55,5 +67,6 @@ pub const QUERIES: &[(&str, &str, &[(&str, ColumnType, OptionalRandBound)])] = &
         MULTI_COLUMN_FILTER_SQL,
         MULTI_COLUMN_FILTER_COLUMNS,
     ),
+    (GROUP_BY_TITLE, GROUP_BY_SQL, GROUP_BY_COLUMNS),
     (ARITHMETIC_TITLE, ARITHMETIC_SQL, ARITHMETIC_COLUMNS),
 ];

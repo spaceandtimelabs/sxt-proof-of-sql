@@ -7,18 +7,55 @@
 //! ```
 //! Then, navigate to http://localhost:16686 to view the traces.
 
+use crate::scaffold::generate_random_columns;
 use blitzar::{compute::init_backend, proof::InnerProductProof};
+use bumpalo::Bump;
 #[cfg(feature = "test")]
 use proof_of_sql::proof_primitive::dory::{
     DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
     PublicParameters, VerifierSetup,
 };
-mod scaffold;
-use crate::scaffold::querys::QUERIES;
-use scaffold::jaeger_scaffold;
+use proof_of_sql::{
+    base::{commitment::CommitmentEvaluationProof, database::ColumnType},
+    sql::{
+        parse::QueryExpr, postprocessing::apply_postprocessing_steps, proof::VerifiableQueryResult,
+    },
+};
 use std::env;
 
+mod scaffold;
+use scaffold::{querys::QUERIES, BenchmarkAccessor, OptionalRandBound};
+
 const SIZE: usize = 1_000_000;
+
+#[tracing::instrument(
+    level = "debug",
+    skip(query, columns, size, prover_setup, verifier_setup)
+)]
+fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
+    title: &str,
+    query: &str,
+    columns: &[(&str, ColumnType, OptionalRandBound)],
+    size: usize,
+    prover_setup: &CP::ProverPublicSetup<'_>,
+    verifier_setup: &CP::VerifierPublicSetup<'_>,
+) {
+    let mut accessor = BenchmarkAccessor::default();
+    let mut rng = rand::thread_rng();
+    let alloc = Bump::new();
+    accessor.insert_table(
+        "bench.table".parse().unwrap(),
+        &generate_random_columns(&alloc, &mut rng, columns, size),
+        prover_setup,
+    );
+    let query =
+        QueryExpr::try_new(query.parse().unwrap(), "bench".parse().unwrap(), &accessor).unwrap();
+    let result = VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup);
+    let data = result
+        .verify(query.proof_expr(), &accessor, verifier_setup)
+        .unwrap();
+    let _table = apply_postprocessing_steps(data.table, query.postprocessing());
+}
 
 fn main() {
     init_backend();
