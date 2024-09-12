@@ -313,10 +313,11 @@ impl ColumnType {
         if !self.is_integer() || !other.is_integer() {
             return None;
         }
-        Self::from_integer_bits(std::cmp::max(
-            self.to_integer_bits().unwrap(),
-            other.to_integer_bits().unwrap(),
-        ))
+        self.to_integer_bits().and_then(|self_bits| {
+            other.to_integer_bits().and_then(|other_bits| {
+                Self::from_integer_bits(std::cmp::max(self_bits, other_bits))
+            })
+        })
     }
 
     /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
