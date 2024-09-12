@@ -95,8 +95,7 @@ impl Indexes {
                 } else if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
                     // This only happens when the indexes are tampered with.
                     None
-                }
-                {
+                } else {
                     Some(
                         compute_truncated_lagrange_basis_sum(range.end as usize, evaluation_point)
                             - compute_truncated_lagrange_basis_sum(
