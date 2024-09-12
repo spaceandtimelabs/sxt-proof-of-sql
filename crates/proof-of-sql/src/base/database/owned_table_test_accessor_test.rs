@@ -120,7 +120,7 @@ fn we_can_access_the_columns_of_a_table() {
 
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 

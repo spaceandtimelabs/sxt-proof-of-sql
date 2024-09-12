@@ -3,7 +3,7 @@ use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::{compute_compressed_ristretto_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
@@ -28,7 +28,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [compute_compressed_ristretto_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 
@@ -43,7 +43,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [compute_compressed_ristretto_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 

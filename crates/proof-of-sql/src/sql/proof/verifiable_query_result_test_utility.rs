@@ -5,7 +5,7 @@ use super::{
 use crate::{
     base::{
         database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::{compute_compressed_ristretto_commitment_for_testing, Curve25519Scalar},
     },
     sql::proof::Indexes,
 };
@@ -42,7 +42,7 @@ pub fn exercise_verification(
     }
 
     // try changing intermediate commitments
-    let commit_p = compute_commitment_for_testing(
+    let commit_p = compute_compressed_ristretto_commitment_for_testing(
         &[353453245u64, 93402346u64][..], // some arbitrary values
         0_usize,
     );
