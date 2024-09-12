@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::{test_evaluation_proof::TestEvaluationProof, Commitment, InnerProductProof},
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
@@ -110,7 +110,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    let (proof, result) = QueryProof::<TestEvaluationProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
         table,
@@ -142,7 +142,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    let (proof, result) = QueryProof::<TestEvaluationProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
@@ -155,7 +155,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    let (proof, result) = QueryProof::<TestEvaluationProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
@@ -167,7 +167,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, mut result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    let (proof, mut result) = QueryProof::<TestEvaluationProof>::new(&expr, &accessor, &());
     match result.indexes_mut() {
         Indexes::Sparse(ref mut indexes) => {
             indexes.pop();
@@ -186,7 +186,7 @@ fn verify_fails_if_counts_dont_match() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
+    let (proof, result) = QueryProof::<TestEvaluationProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
 
