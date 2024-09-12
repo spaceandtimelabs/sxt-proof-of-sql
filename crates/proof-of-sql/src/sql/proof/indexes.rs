@@ -3,7 +3,7 @@ use core::ops::Range;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Indexes of a table for use in the ProvableQueryResult
 pub enum Indexes {
     /// Sparse indexes. (i.e. explicitly specified indexes)
@@ -93,6 +93,10 @@ impl Indexes {
                 if range.is_empty() {
                     Some(Zero::zero())
                 } else {
+                    // Do not run `compute_truncated_lagrange_basis_sum` if the range is too large.
+                    if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
+                        return None;
+                    }
                     Some(
                         compute_truncated_lagrange_basis_sum(range.end as usize, evaluation_point)
                             - compute_truncated_lagrange_basis_sum(

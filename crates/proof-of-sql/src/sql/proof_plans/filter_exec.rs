@@ -67,7 +67,7 @@ where
         self.where_clause.count(builder)?;
         for aliased_expr in self.aliased_results.iter() {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(3);
@@ -107,8 +107,9 @@ where
             .ok_or(ProofError::VerificationError("invalid indexes"))?;
         // 4. filtered_columns
         let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
+            repeat_with(|| builder.consume_intermediate_mle()).take(self.aliased_results.len()),
         );
+        assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -119,8 +120,9 @@ where
             beta,
             columns_evals,
             selection_eval,
-            filtered_columns_evals,
-        )
+            filtered_columns_evals.clone(),
+        )?;
+        Ok(filtered_columns_evals)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -199,6 +201,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // 3. Produce MLEs
+        filtered_columns.iter().for_each(|column| {
+            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -224,7 +230,7 @@ fn verify_filter<C: Commitment>(
     c_evals: Vec<C::Scalar>,
     s_eval: C::Scalar,
     d_evals: Vec<C::Scalar>,
-) -> Result<Vec<C::Scalar>, ProofError> {
+) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
 
     let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
@@ -255,7 +261,7 @@ fn verify_filter<C: Commitment>(
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
-    Ok(c_evals)
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
