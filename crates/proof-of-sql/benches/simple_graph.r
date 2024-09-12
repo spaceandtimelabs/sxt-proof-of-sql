@@ -25,8 +25,8 @@ image <- ggplot(dat) +
   stat_summary(fun = "median", geom = "line") +
   stat_summary(fun = "median", geom = "point") +
   xscale + yscale +
-  scale_fill_manual(values = c("#5000bf", "#779fc6", "#CC0AAC"), guide = "none") +
-  scale_color_manual(values = c("#5000bf", "#779fc6", "#CC0AAC"), name = NULL) +
+  scale_fill_manual(values = c("#5000bf", "#779fc6", "#CC0AAC", "#C69E76"), guide = "none") +
+  scale_color_manual(values = c("#5000bf", "#779fc6", "#CC0AAC", "#C69E76"), name = NULL) +
   scale_shape_manual(values = c(21, 23), name = NULL) +
   dark_theme_minimal() + theme(panel.background = element_rect(fill = "#100217")) +
   theme(plot.title = element_text(hjust = 0.5)) +

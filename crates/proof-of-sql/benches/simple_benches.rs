@@ -1,8 +1,8 @@
 //! Benchmarking using simple timings.
 //! To run, execute the following command:
 //! ```bash
-//! cargo bench -p proof-of-sql --bench simple_benches
-//! benches/simple_graph.r
+//! cargo bench -p proof-of-sql --bench simple_benches --features=test > bench_results.csv
+//! benches/simple_graph.r "Benchmarks on ???" bench_results.csv bench_results.png log
 //! ```
 #![allow(missing_docs)]
 use blitzar::compute::{init_backend_with_config, BackendConfig};
@@ -47,7 +47,7 @@ const SIZES: &[usize] = &[
     100_000_000,
 ];
 const ITERATIONS: usize = 3;
-const MAX_SIZE: usize = 10_000;
+const MAX_SIZE: usize = 100_000_000;
 
 fn main() {
     println!("title,query_num,size,operation,time,iteration");
@@ -56,7 +56,7 @@ fn main() {
     });
     let mut rng = ark_std::test_rng();
     for &size in SIZES.iter().filter(|s| **s <= MAX_SIZE) {
-        let nu = ((size - 1).ilog2() as usize) / 2 + 1;
+        let nu = ((size.max(2) - 1).ilog2() as usize) / 2 + 1;
         let pp = PublicParameters::rand(nu, &mut rng);
         let ps = ProverSetup::from(&pp);
         let prover_setup = DoryProverPublicSetup::new(&ps, nu);
