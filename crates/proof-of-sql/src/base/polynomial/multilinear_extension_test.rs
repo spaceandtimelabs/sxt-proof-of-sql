@@ -1,10 +1,10 @@
 use super::MultilinearExtension;
-use crate::base::{database::Column, scalar::Curve25519Scalar};
+use crate::base::{database::Column, scalar::test_scalar::TestScalar};
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_i64_slice() {
     let slice: &[i64] = &[2, 3, 4, 5, 6];
-    let evaluation_vec: Vec<Curve25519Scalar> =
+    let evaluation_vec: Vec<TestScalar> =
         vec![101.into(), 102.into(), 103.into(), 104.into(), 105.into()];
     assert_eq!(
         slice.inner_product(&evaluation_vec),
@@ -17,7 +17,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_slice() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *MultilinearExtension::<Curve25519Scalar>::to_sumcheck_term(&slice, 3),
+        *MultilinearExtension::<TestScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -30,15 +30,15 @@ fn we_can_use_multilinear_extension_methods_for_i64_slice() {
         ]
     );
     assert_ne!(
-        MultilinearExtension::<Curve25519Scalar>::id(&slice),
-        MultilinearExtension::<Curve25519Scalar>::id(&&evaluation_vec)
+        MultilinearExtension::<TestScalar>::id(&slice),
+        MultilinearExtension::<TestScalar>::id(&&evaluation_vec)
     );
 }
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_column() {
     let slice = Column::BigInt(&[2, 3, 4, 5, 6]);
-    let evaluation_vec: Vec<Curve25519Scalar> =
+    let evaluation_vec: Vec<TestScalar> =
         vec![101.into(), 102.into(), 103.into(), 104.into(), 105.into()];
     assert_eq!(
         slice.inner_product(&evaluation_vec),
@@ -51,7 +51,7 @@ fn we_can_use_multilinear_extension_methods_for_column() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *MultilinearExtension::<Curve25519Scalar>::to_sumcheck_term(&slice, 3),
+        *MultilinearExtension::<TestScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -64,15 +64,15 @@ fn we_can_use_multilinear_extension_methods_for_column() {
         ]
     );
     assert_ne!(
-        MultilinearExtension::<Curve25519Scalar>::id(&slice),
-        MultilinearExtension::<Curve25519Scalar>::id(&&evaluation_vec)
+        MultilinearExtension::<TestScalar>::id(&slice),
+        MultilinearExtension::<TestScalar>::id(&&evaluation_vec)
     );
 }
 
 #[test]
 fn we_can_use_multilinear_extension_methods_for_i64_vec() {
     let slice: &Vec<i64> = &vec![2, 3, 4, 5, 6];
-    let evaluation_vec: Vec<Curve25519Scalar> =
+    let evaluation_vec: Vec<TestScalar> =
         vec![101.into(), 102.into(), 103.into(), 104.into(), 105.into()];
     assert_eq!(
         slice.inner_product(&evaluation_vec),
@@ -85,7 +85,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_vec() {
         vec![121.into(), 132.into(), 143.into(), 154.into(), 165.into()]
     );
     assert_eq!(
-        *MultilinearExtension::<Curve25519Scalar>::to_sumcheck_term(&slice, 3),
+        *MultilinearExtension::<TestScalar>::to_sumcheck_term(&slice, 3),
         vec![
             2.into(),
             3.into(),
@@ -98,7 +98,7 @@ fn we_can_use_multilinear_extension_methods_for_i64_vec() {
         ]
     );
     assert_ne!(
-        MultilinearExtension::<Curve25519Scalar>::id(&slice),
-        MultilinearExtension::<Curve25519Scalar>::id(&&evaluation_vec)
+        MultilinearExtension::<TestScalar>::id(&slice),
+        MultilinearExtension::<TestScalar>::id(&&evaluation_vec)
     );
 }

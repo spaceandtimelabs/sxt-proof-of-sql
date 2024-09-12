@@ -288,7 +288,9 @@ impl ColumnBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{
+        database::OwnedColumn, math::decimal::Precision, scalar::test_scalar::TestScalar,
+    };
     use itertools::Itertools;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
@@ -477,7 +479,7 @@ mod tests {
 
     #[test]
     fn we_can_construct_column_bounds_from_column() {
-        let varchar_column = OwnedColumn::<Curve25519Scalar>::VarChar(
+        let varchar_column = OwnedColumn::<TestScalar>::VarChar(
             ["Lorem", "ipsum", "dolor", "sit", "amet"]
                 .map(String::from)
                 .to_vec(),
@@ -486,7 +488,7 @@ mod tests {
         let varchar_column_bounds = ColumnBounds::from_column(&committable_varchar_column);
         assert_eq!(varchar_column_bounds, ColumnBounds::NoOrder);
 
-        let smallint_column = OwnedColumn::<Curve25519Scalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
+        let smallint_column = OwnedColumn::<TestScalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
         let committable_smallint_column = CommittableColumn::from(&smallint_column);
         let smallint_column_bounds = ColumnBounds::from_column(&committable_smallint_column);
         assert_eq!(
@@ -494,7 +496,7 @@ mod tests {
             ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let int_column = OwnedColumn::<Curve25519Scalar>::Int([1, 2, 3, 1, 0].to_vec());
+        let int_column = OwnedColumn::<TestScalar>::Int([1, 2, 3, 1, 0].to_vec());
         let committable_int_column = CommittableColumn::from(&int_column);
         let int_column_bounds = ColumnBounds::from_column(&committable_int_column);
         assert_eq!(
@@ -502,7 +504,7 @@ mod tests {
             ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let bigint_column = OwnedColumn::<Curve25519Scalar>::BigInt([1, 2, 3, 1, 0].to_vec());
+        let bigint_column = OwnedColumn::<TestScalar>::BigInt([1, 2, 3, 1, 0].to_vec());
         let committable_bigint_column = CommittableColumn::from(&bigint_column);
         let bigint_column_bounds = ColumnBounds::from_column(&committable_bigint_column);
         assert_eq!(
@@ -510,7 +512,7 @@ mod tests {
             ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let int128_column = OwnedColumn::<Curve25519Scalar>::Int128([1, 2, 3, 1, 0].to_vec());
+        let int128_column = OwnedColumn::<TestScalar>::Int128([1, 2, 3, 1, 0].to_vec());
         let committable_int128_column = CommittableColumn::from(&int128_column);
         let int128_column_bounds = ColumnBounds::from_column(&committable_int128_column);
         assert_eq!(
@@ -518,20 +520,20 @@ mod tests {
             ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
-        let decimal75_column = OwnedColumn::<Curve25519Scalar>::Decimal75(
+        let decimal75_column = OwnedColumn::<TestScalar>::Decimal75(
             Precision::new(1).unwrap(),
             0,
             vec![
-                -Curve25519Scalar::from([1, 0, 0, 0]),
-                Curve25519Scalar::from([2, 0, 0, 0]),
-                Curve25519Scalar::from([3, 0, 0, 0]),
+                -TestScalar::from([1, 0, 0, 0]),
+                TestScalar::from([2, 0, 0, 0]),
+                TestScalar::from([3, 0, 0, 0]),
             ],
         );
         let committable_decimal75_column = CommittableColumn::from(&decimal75_column);
         let decimal75_column_bounds = ColumnBounds::from_column(&committable_decimal75_column);
         assert_eq!(decimal75_column_bounds, ColumnBounds::NoOrder);
 
-        let timestamp_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+        let timestamp_column = OwnedColumn::<TestScalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
             vec![1_i64, 2, 3, 4],

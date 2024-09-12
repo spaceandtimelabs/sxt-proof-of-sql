@@ -4,7 +4,7 @@ use crate::{
         database::{Column, ColumnField, ColumnType},
         math::decimal::Precision,
         polynomial::compute_evaluation_vector,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
     },
     sql::proof::Indexes,
 };
@@ -359,19 +359,19 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
 fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let indexes = Indexes::Sparse(vec![0, 2]);
     let values = [
-        Curve25519Scalar::from(10),
-        Curve25519Scalar::from(11),
-        Curve25519Scalar::MAX_SIGNED,
+        TestScalar::from(10),
+        TestScalar::from(11),
+        TestScalar::MAX_SIGNED,
     ];
 
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::Scalar(&values)];
+    let cols: [Column<TestScalar>; 1] = [Column::Scalar(&values)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let column_fields = vec![ColumnField::new(
         "a1".parse().unwrap(),
         ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
     )];
     let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<TestScalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -381,7 +381,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
     let expected_res = RecordBatch::try_new(
         schema,
         vec![Arc::new(
-            Decimal256Array::from([i256::from(10), Curve25519Scalar::MAX_SIGNED.into()].to_vec())
+            Decimal256Array::from([i256::from(10), TestScalar::MAX_SIGNED.into()].to_vec())
                 .with_precision_and_scale(75, 0)
                 .unwrap(),
         )],
@@ -398,15 +398,15 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
     let values3 = ["abc", "fg", "de"];
     let scalars3 = values3
         .iter()
-        .map(|v| Curve25519Scalar::from(*v))
+        .map(|v| TestScalar::from(*v))
         .collect::<Vec<_>>();
     let values4 = [
-        Curve25519Scalar::from(10),
-        Curve25519Scalar::from(11),
-        Curve25519Scalar::MAX_SIGNED,
+        TestScalar::from(10),
+        TestScalar::from(11),
+        TestScalar::MAX_SIGNED,
     ];
 
-    let cols: [Column<Curve25519Scalar>; 4] = [
+    let cols: [Column<TestScalar>; 4] = [
         Column::BigInt(&values1),
         Column::Int128(&values2),
         Column::VarChar((&values3, &scalars3)),
@@ -423,7 +423,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
         ),
     ];
     let res = RecordBatch::try_from(
-        res.to_owned_table::<Curve25519Scalar>(&column_fields)
+        res.to_owned_table::<TestScalar>(&column_fields)
             .unwrap(),
     )
     .unwrap();
@@ -440,7 +440,7 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             ),
             Arc::new(StringArray::from(vec!["abc", "de"])),
             Arc::new(
-                Decimal256Array::from(vec![i256::from(10), Curve25519Scalar::MAX_SIGNED.into()])
+                Decimal256Array::from(vec![i256::from(10), TestScalar::MAX_SIGNED.into()])
                     .with_precision_and_scale(75, 0)
                     .unwrap(),
             ),

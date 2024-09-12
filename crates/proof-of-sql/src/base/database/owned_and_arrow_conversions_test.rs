@@ -2,7 +2,7 @@ use super::{OwnedColumn, OwnedTable};
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedArrowConversionError},
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     },
     record_batch,
 };
@@ -15,7 +15,7 @@ use indexmap::IndexMap;
 use std::sync::Arc;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
-    owned_column: OwnedColumn<Curve25519Scalar>,
+    owned_column: OwnedColumn<TestScalar>,
     array_ref: ArrayRef,
 ) {
     let ic_to_ar = ArrayRef::from(owned_column.clone());
@@ -26,19 +26,19 @@ fn we_can_convert_between_owned_column_and_array_ref_impl(
 }
 fn we_can_convert_between_boolean_owned_column_and_array_ref_impl(data: Vec<bool>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::Boolean(data.clone()),
+        OwnedColumn::<TestScalar>::Boolean(data.clone()),
         Arc::new(BooleanArray::from(data)),
     );
 }
 fn we_can_convert_between_bigint_owned_column_and_array_ref_impl(data: Vec<i64>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::BigInt(data.clone()),
+        OwnedColumn::<TestScalar>::BigInt(data.clone()),
         Arc::new(Int64Array::from(data)),
     );
 }
 fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::Int128(data.clone()),
+        OwnedColumn::<TestScalar>::Int128(data.clone()),
         Arc::new(
             Decimal128Array::from(data)
                 .with_precision_and_scale(38, 0)
@@ -48,7 +48,7 @@ fn we_can_convert_between_int128_owned_column_and_array_ref_impl(data: Vec<i128>
 }
 fn we_can_convert_between_varchar_owned_column_and_array_ref_impl(data: Vec<String>) {
     we_can_convert_between_owned_column_and_array_ref_impl(
-        OwnedColumn::<Curve25519Scalar>::VarChar(data.clone()),
+        OwnedColumn::<TestScalar>::VarChar(data.clone()),
         Arc::new(StringArray::from(data)),
     );
 }
@@ -75,13 +75,13 @@ fn we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_
 ) {
     let array_ref: ArrayRef = Arc::new(Float32Array::from(vec![0.0]));
     assert!(matches!(
-        OwnedColumn::<Curve25519Scalar>::try_from(array_ref),
+        OwnedColumn::<TestScalar>::try_from(array_ref),
         Err(OwnedArrowConversionError::UnsupportedType(_))
     ));
 }
 
 fn we_can_convert_between_owned_table_and_record_batch_impl(
-    owned_table: OwnedTable<Curve25519Scalar>,
+    owned_table: OwnedTable<TestScalar>,
     record_batch: RecordBatch,
 ) {
     let it_to_rb = RecordBatch::try_from(owned_table.clone()).unwrap();
@@ -93,7 +93,7 @@ fn we_can_convert_between_owned_table_and_record_batch_impl(
 #[test]
 fn we_can_convert_between_owned_table_and_record_batch() {
     we_can_convert_between_owned_table_and_record_batch_impl(
-        OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap(),
+        OwnedTable::<TestScalar>::try_new(IndexMap::new()).unwrap(),
         RecordBatch::new_empty(Arc::new(Schema::empty())),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(
@@ -136,7 +136,7 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
         "A" => [0_i128; 0],
     );
     assert!(matches!(
-        OwnedTable::<Curve25519Scalar>::try_from(record_batch),
+        OwnedTable::<TestScalar>::try_from(record_batch),
         Err(OwnedArrowConversionError::DuplicateIdentifiers)
     ));
 }
@@ -144,6 +144,6 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
 #[test]
 #[should_panic]
 fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
-    let owned_table = owned_table::<Curve25519Scalar>([scalar("a", [0; 0])]);
+    let owned_table = owned_table::<TestScalar>([scalar("a", [0; 0])]);
     let _ = RecordBatch::try_from(owned_table);
 }

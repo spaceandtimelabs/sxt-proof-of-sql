@@ -1,7 +1,7 @@
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,
 };
@@ -13,7 +13,7 @@ use proof_of_sql_parser::{
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
-    let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap();
+    let table = OwnedTable::<TestScalar>::try_new(IndexMap::new()).unwrap();
     assert_eq!(table.num_columns(), 0);
 }
 #[test]
@@ -121,7 +121,7 @@ fn we_can_create_an_owned_table_with_data() {
 }
 #[test]
 fn we_get_inequality_between_tables_with_differing_column_order() {
-    let owned_table_a: OwnedTable<Curve25519Scalar> = owned_table([
+    let owned_table_a: OwnedTable<TestScalar> = owned_table([
         bigint("a", [0; 0]),
         int128("b", [0; 0]),
         varchar("c", ["0"; 0]),
@@ -133,7 +133,7 @@ fn we_get_inequality_between_tables_with_differing_column_order() {
             [0; 0],
         ),
     ]);
-    let owned_table_b: OwnedTable<Curve25519Scalar> = owned_table([
+    let owned_table_b: OwnedTable<TestScalar> = owned_table([
         boolean("d", [false; 0]),
         int128("b", [0; 0]),
         bigint("a", [0; 0]),
@@ -178,7 +178,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
 #[test]
 fn we_cannot_create_an_owned_table_with_differing_column_lengths() {
     assert!(matches!(
-        OwnedTable::<Curve25519Scalar>::try_from_iter([
+        OwnedTable::<TestScalar>::try_from_iter([
             ("a".parse().unwrap(), OwnedColumn::BigInt(vec![0])),
             ("b".parse().unwrap(), OwnedColumn::BigInt(vec![])),
         ]),

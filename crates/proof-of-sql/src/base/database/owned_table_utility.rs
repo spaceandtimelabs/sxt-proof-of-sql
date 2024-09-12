@@ -3,8 +3,8 @@
 //!
 //! # Example
 //! ```
-//! use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-//! let result = owned_table::<Curve25519Scalar>([
+//! use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+//! let result = owned_table::<TestScalar>([
 //!     bigint("a", [1, 2, 3]),
 //!     boolean("b", [true, false, true]),
 //!     int128("c", [1, 2, 3]),
@@ -28,8 +28,8 @@ use proof_of_sql_parser::{
 ///
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     bigint("a", [1, 2, 3]),
 ///     boolean("b", [true, false, true]),
 ///     int128("c", [1, 2, 3]),
@@ -48,8 +48,8 @@ pub fn owned_table<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
 pub fn smallint<S: Scalar>(
@@ -66,8 +66,8 @@ pub fn smallint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
 pub fn int<S: Scalar>(
@@ -84,8 +84,8 @@ pub fn int<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
 pub fn bigint<S: Scalar>(
@@ -102,8 +102,8 @@ pub fn bigint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
@@ -121,8 +121,8 @@ pub fn boolean<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -140,8 +140,8 @@ pub fn int128<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
@@ -159,8 +159,8 @@ pub fn scalar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
@@ -178,8 +178,8 @@ pub fn varchar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
-/// let result = owned_table::<Curve25519Scalar>([
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// let result = owned_table::<TestScalar>([
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
@@ -211,12 +211,12 @@ pub fn decimal75<S: Scalar>(
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*,
-///     scalar::Curve25519Scalar,
+///     scalar::TestScalar,
 /// };
 /// use proof_of_sql_parser::{
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};
 ///
-/// let result = owned_table::<Curve25519Scalar>([
+/// let result = owned_table::<TestScalar>([
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```

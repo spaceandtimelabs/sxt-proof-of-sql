@@ -343,19 +343,19 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use crate::base::{math::decimal::Precision, scalar::test_scalar::TestScalar};
     use bumpalo::Bump;
     use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
     #[test]
     fn we_can_slice_a_column() {
-        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
         assert_eq!(col.slice(1, 4), OwnedColumn::Int128(vec![2, 3, 4]));
     }
 
     #[test]
     fn we_can_permute_a_column() {
-        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
         let permutation = Permutation::try_new(vec![1, 3, 4, 0, 2]).unwrap();
         assert_eq!(
             col.try_permute(&permutation).unwrap(),
@@ -365,19 +365,19 @@ mod test {
 
     #[test]
     fn we_can_compare_columns() {
-        let col1: OwnedColumn<Curve25519Scalar> = OwnedColumn::SmallInt(vec![1, 1, 2, 1, 1]);
-        let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
+        let col1: OwnedColumn<TestScalar> = OwnedColumn::SmallInt(vec![1, 1, 2, 1, 1]);
+        let col2: OwnedColumn<TestScalar> = OwnedColumn::VarChar(
             ["b", "b", "a", "b", "a"]
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
         );
-        let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
+        let col3: OwnedColumn<TestScalar> = OwnedColumn::Decimal75(
             Precision::new(70).unwrap(),
             20,
             [1, 2, 2, 1, 2]
                 .iter()
-                .map(|&i| Curve25519Scalar::from(i))
+                .map(|&i| TestScalar::from(i))
                 .collect(),
         );
         let order_by_pairs = vec![
@@ -411,20 +411,20 @@ mod test {
     fn we_can_convert_columns_to_owned_columns_round_trip() {
         let alloc = Bump::new();
         // Integers
-        let col: Column<'_, Curve25519Scalar> = Column::Int128(&[1, 2, 3, 4, 5]);
-        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        let col: Column<'_, TestScalar> = Column::Int128(&[1, 2, 3, 4, 5]);
+        let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(owned_col, OwnedColumn::Int128(vec![1, 2, 3, 4, 5]));
-        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
 
         // Booleans
-        let col: Column<'_, Curve25519Scalar> = Column::Boolean(&[true, false, true, false, true]);
-        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        let col: Column<'_, TestScalar> = Column::Boolean(&[true, false, true, false, true]);
+        let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(
             owned_col,
             OwnedColumn::Boolean(vec![true, false, true, false, true])
         );
-        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
 
         // Strings
@@ -436,27 +436,26 @@ mod test {
             "ቦታ እና ጊዜ",
             "სივრცე და დრო",
         ];
-        let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
-        let col: Column<'_, Curve25519Scalar> = Column::VarChar((&strs, &scalars));
-        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        let scalars = strs.iter().map(TestScalar::from).collect::<Vec<_>>();
+        let col: Column<'_, TestScalar> = Column::VarChar((&strs, &scalars));
+        let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(
             owned_col,
             OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>())
         );
-        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
 
         // Decimals
-        let scalars: Vec<Curve25519Scalar> =
-            [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
-        let col: Column<'_, Curve25519Scalar> =
+        let scalars: Vec<TestScalar> = [1, 2, 3, 4, 5].iter().map(TestScalar::from).collect();
+        let col: Column<'_, TestScalar> =
             Column::Decimal75(Precision::new(75).unwrap(), -128, &scalars);
-        let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
+        let owned_col: OwnedColumn<TestScalar> = (&col).into();
         assert_eq!(
             owned_col,
             OwnedColumn::Decimal75(Precision::new(75).unwrap(), -128, scalars.clone())
         );
-        let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let new_col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
     }
 
@@ -465,7 +464,7 @@ mod test {
         // Int
         let scalars = [1, 2, 3, 4, 5]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::Int128;
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
@@ -474,7 +473,7 @@ mod test {
         // Boolean
         let scalars = [true, false, true, false, true]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
@@ -486,7 +485,7 @@ mod test {
         // Decimal
         let scalars = [1, 2, 3, 4, 5]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), -128);
         let owned_col = OwnedColumn::try_from_scalars(&scalars, column_type).unwrap();
@@ -500,7 +499,7 @@ mod test {
     fn we_cannot_convert_scalars_to_owned_columns_if_varchar() {
         let scalars = ["a", "b", "c", "d", "e"]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::VarChar;
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
@@ -512,7 +511,7 @@ mod test {
         // Int
         let scalars = [i128::MAX, i128::MAX, i128::MAX, i128::MAX, i128::MAX]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::BigInt;
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
@@ -524,7 +523,7 @@ mod test {
         // Boolean
         let scalars = [i128::MAX, i128::MAX, i128::MAX, i128::MAX, i128::MAX]
             .iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
@@ -539,7 +538,7 @@ mod test {
         // Int
         let option_scalars = [Some(1), Some(2), Some(3), Some(4), Some(5)]
             .iter()
-            .map(|s| s.map(Curve25519Scalar::from))
+            .map(|s| s.map(TestScalar::from))
             .collect::<Vec<_>>();
         let column_type = ColumnType::Int128;
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
@@ -548,7 +547,7 @@ mod test {
         // Boolean
         let option_scalars = [Some(true), Some(false), Some(true), Some(false), Some(true)]
             .iter()
-            .map(|s| s.map(Curve25519Scalar::from))
+            .map(|s| s.map(TestScalar::from))
             .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
@@ -560,11 +559,11 @@ mod test {
         // Decimal
         let option_scalars = [Some(1), Some(2), Some(3), Some(4), Some(5)]
             .iter()
-            .map(|s| s.map(Curve25519Scalar::from))
+            .map(|s| s.map(TestScalar::from))
             .collect::<Vec<_>>();
         let scalars = [1, 2, 3, 4, 5]
             .iter()
-            .map(|&i| Curve25519Scalar::from(i))
+            .map(|&i| TestScalar::from(i))
             .collect::<Vec<_>>();
         let column_type = ColumnType::Decimal75(Precision::new(75).unwrap(), 127);
         let owned_col = OwnedColumn::try_from_option_scalars(&option_scalars, column_type).unwrap();
@@ -578,7 +577,7 @@ mod test {
     fn we_cannot_convert_option_scalars_to_owned_columns_if_varchar() {
         let option_scalars = ["a", "b", "c", "d", "e"]
             .iter()
-            .map(|s| Some(Curve25519Scalar::from(*s)))
+            .map(|s| Some(TestScalar::from(*s)))
             .collect::<Vec<_>>();
         let column_type = ColumnType::VarChar;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
@@ -596,7 +595,7 @@ mod test {
             Some(i128::MAX),
         ]
         .iter()
-        .map(|s| s.map(Curve25519Scalar::from))
+        .map(|s| s.map(TestScalar::from))
         .collect::<Vec<_>>();
         let column_type = ColumnType::BigInt;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
@@ -614,7 +613,7 @@ mod test {
             Some(i128::MAX),
         ]
         .iter()
-        .map(|s| s.map(Curve25519Scalar::from))
+        .map(|s| s.map(TestScalar::from))
         .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
@@ -629,7 +628,7 @@ mod test {
         // Int
         let option_scalars = [Some(1), Some(2), None, Some(4), Some(5)]
             .iter()
-            .map(|s| s.map(Curve25519Scalar::from))
+            .map(|s| s.map(TestScalar::from))
             .collect::<Vec<_>>();
         let column_type = ColumnType::Int128;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
@@ -638,7 +637,7 @@ mod test {
         // Boolean
         let option_scalars = [Some(true), Some(false), None, Some(false), Some(true)]
             .iter()
-            .map(|s| s.map(Curve25519Scalar::from))
+            .map(|s| s.map(TestScalar::from))
             .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
