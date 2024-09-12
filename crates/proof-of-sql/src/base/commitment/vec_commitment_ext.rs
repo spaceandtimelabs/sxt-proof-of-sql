@@ -180,17 +180,14 @@ mod tests {
     use crate::base::{
         commitment::naive_commitment::NaiveCommitment,
         database::{Column, OwnedColumn},
-        scalar::Curve25519Scalar,
         scalar::test_scalar::TestScalar,
     };
-    use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
-    use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 
     #[test]
     fn we_can_convert_from_columns() {
         // empty case
-        let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
-            &Vec::<Column<Curve25519Scalar>>::new(),
+        let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(
+            &Vec::<Column<TestScalar>>::new(),
             0,
             &(),
         );
@@ -202,28 +199,13 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
-        let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_curve25519_commitments(
-            &mut expected_commitments,
-            &[
-                Sequence::from(column_a.as_slice()),
-                Sequence::from(
-                    column_b
-                        .map(Curve25519Scalar::from)
-                        .map(<[u64; 4]>::from)
-                        .as_slice(),
-                ),
-            ],
-            0,
-        );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<NaiveCommitment> = columns.iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -234,14 +216,14 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let mut commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let mut commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
@@ -249,22 +231,10 @@ mod tests {
             .try_append_rows_with_offset(&new_columns, 3, &())
             .unwrap();
 
-        let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_curve25519_commitments(
-            &mut expected_commitments,
-            &[
-                Sequence::from(column_a.as_slice()),
-                Sequence::from(
-                    column_b
-                        .map(Curve25519Scalar::from)
-                        .map(<[u64; 4]>::from)
-                        .as_slice(),
-                ),
-            ],
-            0,
-        );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<NaiveCommitment> = vec![
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::VarChar(column_b.to_vec()),
+        ].iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -312,42 +282,25 @@ mod tests {
         let column_d = [78i64, 90, 1112];
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let mut commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let mut commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::VarChar(column_c.to_vec()),
+            OwnedColumn::<TestScalar>::VarChar(column_c.to_vec()),
             OwnedColumn::BigInt(column_d.to_vec()),
         ];
 
         commitments.extend_columns_with_offset(&new_columns, 0, &());
 
-        let mut expected_commitments = vec![CompressedRistretto::default(); 4];
-        compute_curve25519_commitments(
-            &mut expected_commitments,
-            &[
-                Sequence::from(column_a.as_slice()),
-                Sequence::from(
-                    column_b
-                        .map(Curve25519Scalar::from)
-                        .map(<[u64; 4]>::from)
-                        .as_slice(),
-                ),
-                Sequence::from(
-                    column_c
-                        .map(Curve25519Scalar::from)
-                        .map(<[u64; 4]>::from)
-                        .as_slice(),
-                ),
-                Sequence::from(column_d.as_slice()),
-            ],
-            0,
-        );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<NaiveCommitment> = vec![
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::VarChar(column_b.to_vec()),
+            OwnedColumn::<TestScalar>::VarChar(column_c.to_vec()),
+            OwnedColumn::BigInt(column_d.to_vec()),
+        ].iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -358,37 +311,25 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments_a = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let commitments_a = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
         let new_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
         ];
 
-        let commitments_b = Vec::<RistrettoPoint>::from_columns_with_offset(&new_columns, 3, &());
+        let commitments_b = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
 
         let commitments = commitments_a.try_add(commitments_b).unwrap();
 
-        let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_curve25519_commitments(
-            &mut expected_commitments,
-            &[
-                Sequence::from(column_a.as_slice()),
-                Sequence::from(
-                    column_b
-                        .map(Curve25519Scalar::from)
-                        .map(<[u64; 4]>::from)
-                        .as_slice(),
-                ),
-            ],
-            0,
-        );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<NaiveCommitment> = vec![
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::VarChar(column_b.to_vec()),
+        ].iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -435,34 +376,33 @@ mod tests {
     fn we_can_sub_commitment_collections() {
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
+        let mut front_emptied_column_a = column_a.clone();
+        let mut front_emptied_column_b = column_b.clone();
+        for i in 0..3{
+            front_emptied_column_a[i] = 0;
+            front_emptied_column_b[i] = String::from("");
+        }
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments_a = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let commitments_a = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
         let full_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ];
 
-        let commitments_b = Vec::<RistrettoPoint>::from_columns_with_offset(&full_columns, 0, &());
+        let commitments_b = Vec::<NaiveCommitment>::from_columns_with_offset(&full_columns, 0, &());
 
         let commitments = commitments_b.try_sub(commitments_a).unwrap();
 
-        let mut expected_commitments = vec![CompressedRistretto::default(); 2];
-        compute_curve25519_commitments(
-            &mut expected_commitments,
-            &[
-                Sequence::from(&column_a[3..]),
-                Sequence::from(&column_b.map(Curve25519Scalar::from).map(<[u64; 4]>::from)[3..]),
-            ],
-            3,
-        );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<NaiveCommitment> = vec![
+            OwnedColumn::<TestScalar>::BigInt(front_emptied_column_a.to_vec()),
+            OwnedColumn::VarChar(front_emptied_column_b.to_vec()),
+        ].iter().map(|oc| oc.into()).collect();
 
         assert_eq!(commitments, expected_commitments);
     }
