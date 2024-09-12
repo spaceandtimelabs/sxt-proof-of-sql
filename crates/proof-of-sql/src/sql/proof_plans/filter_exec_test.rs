@@ -6,7 +6,6 @@ use crate::{
             OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         math::decimal::Precision,
-        scalar::Curve25519Scalar,
     },
     sql::{
         proof::{
@@ -15,6 +14,7 @@ use crate::{
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar
 };
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;

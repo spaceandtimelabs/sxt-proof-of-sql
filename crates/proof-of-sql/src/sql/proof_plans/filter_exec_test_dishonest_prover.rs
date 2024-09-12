@@ -4,8 +4,8 @@ use crate::{
     base::{
         database::{filter_util::*, Column, DataAccessor, OwnedTableTestAccessor, TestAccessor},
         proof::ProofError,
-        scalar::Curve25519Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         proof::{
             Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,

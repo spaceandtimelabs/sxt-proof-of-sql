@@ -4,8 +4,9 @@ use crate::{
         database::{Column, ColumnField, ColumnType},
         math::decimal::Precision,
         polynomial::compute_evaluation_vector,
-        scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
+        scalar::{test_scalar::TestScalar, Scalar},
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::proof::Indexes,
 };
 use arrow::{

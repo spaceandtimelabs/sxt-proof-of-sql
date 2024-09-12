@@ -123,8 +123,9 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
 #[cfg(test)]
 mod tests {
 
+    use crate::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
+
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
     use rand::{
         distributions::{Distribution, Uniform},
         rngs::StdRng,

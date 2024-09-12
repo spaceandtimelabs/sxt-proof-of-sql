@@ -6,8 +6,9 @@ use crate::{
             TestAccessor,
         },
         math::decimal::scale_scalar,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::Scalar,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::{
         parse::ConversionError,
         proof::{exercise_verification, VerifiableQueryResult},

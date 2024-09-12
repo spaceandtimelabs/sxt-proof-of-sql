@@ -3,9 +3,8 @@ use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::{compute_compressed_ristretto_commitment_for_testing, Curve25519Scalar},
-    },
-    sql::proof::{Indexes, SumcheckSubpolynomialType},
+        scalar::compute_compressed_ristretto_commitment_for_testing,
+    }, proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar, sql::proof::{Indexes, SumcheckSubpolynomialType}
 };
 #[cfg(feature = "arrow")]
 use arrow::{

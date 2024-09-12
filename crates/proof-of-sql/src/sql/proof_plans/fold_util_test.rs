@@ -1,5 +1,8 @@
 use super::{fold_columns, fold_vals};
-use crate::base::{database::Column, math::decimal::Precision, scalar::Curve25519Scalar};
+use crate::{
+    base::{database::Column, math::decimal::Precision},
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+};
 use bumpalo::Bump;
 use num_traits::Zero;
 

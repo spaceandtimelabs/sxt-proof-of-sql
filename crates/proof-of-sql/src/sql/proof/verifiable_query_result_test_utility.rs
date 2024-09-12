@@ -5,8 +5,9 @@ use super::{
 use crate::{
     base::{
         database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_compressed_ristretto_commitment_for_testing, Curve25519Scalar},
+        scalar::compute_compressed_ristretto_commitment_for_testing,
     },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::proof::Indexes,
 };
 use blitzar::proof::InnerProductProof;

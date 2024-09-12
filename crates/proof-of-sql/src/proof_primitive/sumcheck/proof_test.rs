@@ -1,14 +1,16 @@
-use crate::base::{
-    polynomial::CompositePolynomial,
-    proof::{MessageLabel, TranscriptProtocol},
-    scalar::Curve25519Scalar,
-};
 /**
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 use crate::proof_primitive::sumcheck::proof::*;
+use crate::{
+    base::{
+        polynomial::CompositePolynomial,
+        proof::{MessageLabel, TranscriptProtocol},
+    },
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+};
 use ark_std::UniformRand;
 use merlin::Transcript;
 use num_traits::{One, Zero};
