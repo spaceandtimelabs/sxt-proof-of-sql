@@ -10,7 +10,7 @@ use crate::base::scalar::Scalar;
 use super::Commitment;
 
 /// This should only be used for the purpose of unit testing.
-#[derive(Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Default, Serialize, Deserialize)]
 pub struct NaiveCommitment(pub Vec<TestScalar>);
 
 impl Add for NaiveCommitment {
@@ -54,6 +54,24 @@ impl AddAssign for NaiveCommitment {
             .iter_mut()
             .zip(rhs.0)
             .for_each(|(lhs, rhs)| *lhs += rhs);
+    }
+}
+
+impl PartialEq for NaiveCommitment{
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.len() == other.0.len() {
+            self.0 == other.0
+        }
+        else if self.0.len() < other.0.len() {
+            let mut extended_self = self.0.clone();
+            extended_self.extend((self.0.len()..other.0.len()).map(|_i| TestScalar::ZERO));
+            extended_self == other.0
+        }
+        else{
+            let mut extended_other = other.0.clone();
+            extended_other.extend((other.0.len()..self.0.len()).map(|_i| TestScalar::ZERO));
+            extended_other == self.0
+        }
     }
 }
 
