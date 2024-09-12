@@ -37,12 +37,15 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     }
     fn prover_evaluate<'a>(
         &self,
-        _builder: &mut ProofBuilder<'a, S>,
+        builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
+        let _ = std::iter::repeat_with(|| builder.produce_intermediate_mle(res))
+            .take(self.columns)
+            .collect::<Vec<_>>();
         vec![Column::BigInt(res); self.columns]
     }
 }
@@ -52,7 +55,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         builder: &mut CountBuilder,
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        builder.count_result_columns(1);
+        builder.count_intermediate_mles(self.columns);
         Ok(())
     }
     fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
@@ -63,10 +66,15 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     }
     fn verifier_evaluate(
         &self,
-        _builder: &mut VerificationBuilder<C>,
+        builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
+        let _ = std::iter::repeat_with(|| {
+            assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO)
+        })
+        .take(self.columns)
+        .collect::<Vec<_>>();
         Ok(vec![C::Scalar::ZERO])
     }
 

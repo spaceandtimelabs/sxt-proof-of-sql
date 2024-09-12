@@ -33,6 +33,9 @@ pub enum QueryError {
     /// The table data was invalid. This should never happen because this should get caught by the verifier before reaching this point.
     #[error(transparent)]
     InvalidTable(#[from] OwnedTableError),
+    /// The number of columns in the table was invalid.
+    #[error("Invalid number of columns")]
+    InvalidColumnCount,
 }
 
 /// The verified results of a query along with metadata produced by verification
