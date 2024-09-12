@@ -3,8 +3,11 @@ use crate::{
     base::{
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::compute_compressed_ristretto_commitment_for_testing,
-    }, proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar, sql::proof::{Indexes, SumcheckSubpolynomialType}
+        scalar::{compute_commitment_for_testing, test_scalar::TestScalar},
+        commitment::naive_commitment::NaiveCommitment,
+    },
+    sql::proof::{Indexes, SumcheckSubpolynomialType},
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 #[cfg(feature = "arrow")]
 use arrow::{
@@ -12,7 +15,6 @@ use arrow::{
     datatypes::{Field, Schema},
     record_batch::RecordBatch,
 };
-use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
 use std::sync::Arc;
 
@@ -20,14 +22,14 @@ use std::sync::Arc;
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::<Curve25519Scalar>::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<TestScalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 0_usize;
-    let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<NaiveCommitment> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_compressed_ristretto_commitment_for_testing(&mle2, offset_generators)]
+        [compute_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 
@@ -35,14 +37,14 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
 fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let mle1 = [1, 2];
     let mle2 = [10i64, 20];
-    let mut builder = ProofBuilder::<Curve25519Scalar>::new(2, 1, Vec::new());
+    let mut builder = ProofBuilder::<TestScalar>::new(2, 1, Vec::new());
     builder.produce_anchored_mle(&mle1);
     builder.produce_intermediate_mle(&mle2[..]);
     let offset_generators = 123_usize;
-    let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
+    let commitments: Vec<NaiveCommitment> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_compressed_ristretto_commitment_for_testing(&mle2, offset_generators)]
+        [compute_commitment_for_testing(&mle2, offset_generators)]
     );
 }
 
