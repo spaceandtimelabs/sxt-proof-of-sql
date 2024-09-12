@@ -74,6 +74,40 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
     ]);
     assert_eq!(res, expected);
 }
+/// select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+#[test]
+fn we_can_prove_a_group_by_with_nothing_selected() {
+    let data = owned_table([
+        bigint("a", [1, 2, 2, 1, 2]),
+        bigint("b", [98, 98, 98, 98, 0]),
+        bigint("c", [101, 102, 103, 104, 105]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(t, data, 0);
+    let expr = group_by(
+        cols_expr(t, &["a"], &accessor),
+        vec![sum_expr(
+            add(
+                multiply(column(t, "c", &accessor), const_bigint(2)),
+                const_bigint(1),
+            ),
+            "sum_c",
+        )],
+        "__count__",
+        tab(t),
+        equal(column(t, "b", &accessor), const_int128(99)),
+    );
+    let res = VerifiableQueryResult::new(&expr, &accessor, &());
+    exercise_verification(&res, &expr, &accessor, t);
+    let res = res.verify(&expr, &accessor, &()).unwrap().table;
+    let expected = owned_table([
+        bigint("a", [0; 0]),
+        bigint("sum_c", [0; 0]),
+        bigint("__count__", [0; 0]),
+    ]);
+    assert_eq!(res, expected);
+}
 
 #[test]
 fn we_can_prove_a_complex_group_by_query_with_many_columns() {

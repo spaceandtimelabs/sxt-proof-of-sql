@@ -156,7 +156,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
                     .ok_or(ProofError::VerificationError(
                         "Result does not all correct group by columns.",
                     ))?;
-                if (0..table.num_rows() - 1)
+                if (0..table.num_rows().max(1) - 1)
                     .any(|i| compare_indexes_by_owned_columns(&cols, i, i + 1).is_ge())
                 {
                     Err(ProofError::VerificationError(
