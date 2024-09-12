@@ -457,19 +457,19 @@ mod tests {
     use super::*;
     use crate::{
         base::{
+            commitment::naive_commitment::NaiveCommitment,
             database::{owned_table_utility::*, OwnedColumn},
-            scalar::Curve25519Scalar,
+            scalar::test_scalar::TestScalar,
         },
         record_batch,
     };
-    use curve25519_dalek::RistrettoPoint;
     use indexmap::IndexMap;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
     fn we_cannot_construct_table_commitment_with_negative_range() {
         let try_new_result =
-            TableCommitment::<RistrettoPoint>::try_new(ColumnCommitments::default(), 1..0);
+            TableCommitment::<NaiveCommitment>::try_new(ColumnCommitments::default(), 1..0);
 
         assert!(matches!(try_new_result, Err(NegativeRange)));
     }
@@ -477,10 +477,9 @@ mod tests {
     #[test]
     fn we_can_construct_table_commitment_from_columns_and_identifiers() {
         // no-columns case
-        let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<Curve25519Scalar>> =
-            IndexMap::new();
+        let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<TestScalar>> = IndexMap::new();
         let empty_table_commitment =
-            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
                 &empty_columns_iter,
                 0,
                 &(),
@@ -497,7 +496,7 @@ mod tests {
         // no-rows case
         empty_columns_iter.insert("column_a".parse().unwrap(), OwnedColumn::BigInt(vec![]));
         let empty_table_commitment =
-            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
                 &empty_columns_iter,
                 1,
                 &(),
@@ -512,14 +511,14 @@ mod tests {
         assert_eq!(empty_table_commitment.num_rows(), 0);
 
         // nonempty case
-        let owned_table = owned_table::<Curve25519Scalar>([
+        let owned_table = owned_table::<TestScalar>([
             bigint("bigint_id", [1, 5, -5, 0]),
             // "int128_column" => [100i128, 200, 300, 400], TODO: enable this column once blitzar
             // supports it
             varchar("varchar_id", ["Lorem", "ipsum", "dolor", "sit"]),
             scalar("scalar_id", [1000, 2000, -1000, 0]),
         ]);
-        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             owned_table.inner_table(),
             2,
             &(),
@@ -546,9 +545,9 @@ mod tests {
         let duplicate_identifier_b = "duplicate_identifier_b".parse().unwrap();
         let unique_identifier = "unique_identifier".parse().unwrap();
 
-        let empty_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![]);
+        let empty_column = OwnedColumn::<TestScalar>::BigInt(vec![]);
 
-        let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let from_columns_result = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             [
                 (&duplicate_identifier_a, &empty_column),
                 (&unique_identifier, &empty_column),
@@ -562,7 +561,7 @@ mod tests {
             Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
         ));
 
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             [
                 (&duplicate_identifier_a, &empty_column),
                 (&unique_identifier, &empty_column),
@@ -603,10 +602,10 @@ mod tests {
         let column_id_b = "column_b".parse().unwrap();
         let column_id_c = "column_c".parse().unwrap();
 
-        let one_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1]);
-        let two_row_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1, 2]);
+        let one_row_column = OwnedColumn::<TestScalar>::BigInt(vec![1]);
+        let two_row_column = OwnedColumn::<TestScalar>::BigInt(vec![1, 2]);
 
-        let from_columns_result = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let from_columns_result = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             [
                 (&column_id_a, &one_row_column),
                 (&column_id_b, &two_row_column),
@@ -619,7 +618,7 @@ mod tests {
             Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
         ));
 
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             [(&column_id_a, &one_row_column)],
             0,
             &(),
@@ -662,13 +661,13 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let initial_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             initial_columns.inner_table(),
             0,
             &(),
@@ -676,7 +675,7 @@ mod tests {
         .unwrap();
         let mut table_commitment_clone = table_commitment.clone();
 
-        let append_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let append_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -686,7 +685,7 @@ mod tests {
             .try_append_rows(append_columns.inner_table(), &())
             .unwrap();
 
-        let total_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let total_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -707,11 +706,11 @@ mod tests {
 
     #[test]
     fn we_cannot_append_mismatched_columns_to_table_commitment() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             0,
             &(),
@@ -719,7 +718,7 @@ mod tests {
         .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["5", "6", "7", "8"]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
@@ -742,9 +741,9 @@ mod tests {
         let column_id_a = "column_a".parse().unwrap();
         let column_id_b = "column_b".parse().unwrap();
 
-        let column_data = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1, 2, 3]);
+        let column_data = OwnedColumn::<TestScalar>::BigInt(vec![1, 2, 3]);
 
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             [(&column_id_a, &column_data), (&column_id_b, &column_data)],
             0,
             &(),
@@ -776,12 +775,12 @@ mod tests {
     fn we_cannot_append_columns_of_mixed_length_to_table_commitment() {
         let column_id_a: Identifier = "column_a".parse().unwrap();
         let column_id_b: Identifier = "column_b".parse().unwrap();
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint(column_id_a, [1, 2, 3, 4]),
             varchar(column_id_b, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
 
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             0,
             &(),
@@ -789,7 +788,7 @@ mod tests {
         .unwrap();
         let column_commitments = table_commitment.column_commitments().clone();
 
-        let column_a_append_data = OwnedColumn::<Curve25519Scalar>::BigInt(vec![5, 6, 7]);
+        let column_a_append_data = OwnedColumn::<TestScalar>::BigInt(vec![5, 6, 7]);
         let column_b_append_data =
             OwnedColumn::VarChar(["amet", "consectetur"].map(String::from).to_vec());
 
@@ -821,23 +820,23 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let initial_columns: OwnedTable<Curve25519Scalar> = owned_table([
+        let initial_columns: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
         ]);
-        let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let mut table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             initial_columns.inner_table(),
             2,
             &(),
         )
         .unwrap();
 
-        let new_columns = owned_table::<Curve25519Scalar>([scalar(scalar_id, scalar_data)]);
+        let new_columns = owned_table::<TestScalar>([scalar(scalar_id, scalar_data)]);
         table_commitment
             .try_extend_columns(new_columns.inner_table(), &())
             .unwrap();
 
-        let expected_columns = owned_table::<Curve25519Scalar>([
+        let expected_columns = owned_table::<TestScalar>([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -860,20 +859,20 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_a: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_a: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
-        let table_commitment_a = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment_a = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             columns_a.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let columns_b: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_b: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -881,7 +880,7 @@ mod tests {
         let table_commitment_b =
             TableCommitment::try_from_columns_with_offset(columns_b.inner_table(), 2, &()).unwrap();
 
-        let columns_sum: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_sum: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -906,18 +905,18 @@ mod tests {
 
     #[test]
     fn we_cannot_add_mismatched_table_commitments() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["5", "6", "7", "8"]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
@@ -932,11 +931,11 @@ mod tests {
 
     #[test]
     fn we_cannot_add_noncontiguous_table_commitments() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             5,
             &(),
@@ -1005,19 +1004,19 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_low: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_low: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
-        let table_commitment_low = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment_low = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             columns_low.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let columns_high: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_high: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -1026,7 +1025,7 @@ mod tests {
             TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2, &())
                 .unwrap();
 
-        let columns_all: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_all: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -1059,18 +1058,18 @@ mod tests {
 
     #[test]
     fn we_cannot_sub_mismatched_table_commitments() {
-        let base_table: OwnedTable<Curve25519Scalar> = owned_table([
+        let base_table: OwnedTable<TestScalar> = owned_table([
             bigint("column_a", [1, 2, 3, 4]),
             varchar("column_b", ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             base_table.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let table_diff_type: OwnedTable<Curve25519Scalar> = owned_table([
+        let table_diff_type: OwnedTable<TestScalar> = owned_table([
             varchar("column_a", ["1", "2"]),
             varchar("column_b", ["Lorem", "ipsum"]),
         ]);
@@ -1094,20 +1093,20 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_minuend: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_minuend: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..].to_vec()),
             varchar(varchar_id, varchar_data[..].to_vec()),
             scalar(scalar_id, scalar_data[..].to_vec()),
         ]);
 
-        let columns_subtrahend: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_subtrahend: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
 
         let minuend_table_commitment =
-            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
                 columns_minuend.inner_table(),
                 4,
                 &(),
@@ -1166,19 +1165,19 @@ mod tests {
         let scalar_id: Identifier = "scalar_column".parse().unwrap();
         let scalar_data = [1000, 2000, 3000, -1000, 0];
 
-        let columns_low: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_low: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[..2].to_vec()),
             varchar(varchar_id, varchar_data[..2].to_vec()),
             scalar(scalar_id, scalar_data[..2].to_vec()),
         ]);
-        let table_commitment_low = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
+        let table_commitment_low = TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(
             columns_low.inner_table(),
             0,
             &(),
         )
         .unwrap();
 
-        let columns_high: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_high: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data[2..].to_vec()),
             varchar(varchar_id, varchar_data[2..].to_vec()),
             scalar(scalar_id, scalar_data[2..].to_vec()),
@@ -1187,7 +1186,7 @@ mod tests {
             TableCommitment::try_from_columns_with_offset(columns_high.inner_table(), 2, &())
                 .unwrap();
 
-        let columns_all: OwnedTable<Curve25519Scalar> = owned_table([
+        let columns_all: OwnedTable<TestScalar> = owned_table([
             bigint(bigint_id, bigint_data),
             varchar(varchar_id, varchar_data),
             scalar(scalar_id, scalar_data),
@@ -1225,20 +1224,20 @@ mod tests {
         let columns = [
             (
                 &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(&[1, 2, 3]),
+                &Column::<TestScalar>::BigInt(&[1, 2, 3]),
             ),
             (
                 &"b".parse().unwrap(),
-                &Column::<Curve25519Scalar>::VarChar((&["1", "2", "3"], &b_scals)),
+                &Column::<TestScalar>::VarChar((&["1", "2", "3"], &b_scals)),
             ),
         ];
 
         let mut expected_commitment =
-            TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(columns, 0, &())
+            TableCommitment::<NaiveCommitment>::try_from_columns_with_offset(columns, 0, &())
                 .unwrap();
 
         let mut commitment =
-            TableCommitment::<RistrettoPoint>::try_from_record_batch(&batch, &()).unwrap();
+            TableCommitment::<NaiveCommitment>::try_from_record_batch(&batch, &()).unwrap();
 
         assert_eq!(commitment, expected_commitment);
 
@@ -1252,11 +1251,11 @@ mod tests {
         let columns2 = [
             (
                 &"a".parse().unwrap(),
-                &Column::<Curve25519Scalar>::BigInt(&[4, 5, 6]),
+                &Column::<TestScalar>::BigInt(&[4, 5, 6]),
             ),
             (
                 &"b".parse().unwrap(),
-                &Column::<Curve25519Scalar>::VarChar((&["4", "5", "6"], &b_scals2)),
+                &Column::<TestScalar>::VarChar((&["4", "5", "6"], &b_scals2)),
             ),
         ];
 

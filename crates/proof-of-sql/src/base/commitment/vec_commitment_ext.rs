@@ -178,8 +178,10 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
 mod tests {
     use super::*;
     use crate::base::{
+        commitment::naive_commitment::NaiveCommitment,
         database::{Column, OwnedColumn},
         scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     };
     use blitzar::{compute::compute_curve25519_commitments, sequence::Sequence};
     use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
@@ -273,28 +275,26 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let mut commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let mut commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
-        let new_columns = Vec::<Column<Curve25519Scalar>>::new();
+        let new_columns = Vec::<Column<TestScalar>>::new();
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(
-            column_a[3..].to_vec(),
-        )];
+        let new_columns = vec![OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec())];
         assert!(matches!(
             commitments.try_append_rows_with_offset(&new_columns, 3, &()),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
@@ -399,34 +399,32 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
-        let new_columns = Vec::<Column<Curve25519Scalar>>::new();
-        let new_commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&new_columns, 3, &());
+        let new_columns = Vec::<Column<TestScalar>>::new();
+        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
         ));
 
-        let new_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(
-            column_a[3..].to_vec(),
-        )];
-        let new_commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&new_columns, 3, &());
+        let new_columns = vec![OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec())];
+        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.clone().try_add(new_commitments),
             Err(NumColumnsMismatch)
         ));
 
         let new_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[3..].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[3..].to_vec()),
             OwnedColumn::VarChar(column_b[3..].to_vec()),
             OwnedColumn::BigInt(column_a[3..].to_vec()),
         ];
-        let new_commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&new_columns, 3, &());
+        let new_commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&new_columns, 3, &());
         assert!(matches!(
             commitments.try_add(new_commitments),
             Err(NumColumnsMismatch)
@@ -475,35 +473,35 @@ mod tests {
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
 
         let columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a[..3].to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
             OwnedColumn::VarChar(column_b[..3].to_vec()),
         ];
 
-        let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(&columns, 0, &());
+        let commitments = Vec::<NaiveCommitment>::from_columns_with_offset(&columns, 0, &());
 
-        let full_columns = Vec::<Column<Curve25519Scalar>>::new();
+        let full_columns = Vec::<Column<TestScalar>>::new();
         let full_commitments =
-            Vec::<RistrettoPoint>::from_columns_with_offset(&full_columns, 0, &());
+            Vec::<NaiveCommitment>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.clone().try_sub(commitments.clone()),
             Err(NumColumnsMismatch)
         ));
 
-        let full_columns = vec![OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec())];
+        let full_columns = vec![OwnedColumn::<TestScalar>::BigInt(column_a.to_vec())];
         let full_commitments =
-            Vec::<RistrettoPoint>::from_columns_with_offset(&full_columns, 0, &());
+            Vec::<NaiveCommitment>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.try_sub(commitments.clone()),
             Err(NumColumnsMismatch)
         ));
 
         let full_columns = vec![
-            OwnedColumn::<Curve25519Scalar>::BigInt(column_a.to_vec()),
+            OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
             OwnedColumn::BigInt(column_a.to_vec()),
         ];
         let full_commitments =
-            Vec::<RistrettoPoint>::from_columns_with_offset(&full_columns, 0, &());
+            Vec::<NaiveCommitment>::from_columns_with_offset(&full_columns, 0, &());
         assert!(matches!(
             full_commitments.try_sub(commitments),
             Err(NumColumnsMismatch)
