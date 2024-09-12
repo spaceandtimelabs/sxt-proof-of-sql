@@ -74,6 +74,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         builder: &mut ProofBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+        is_top_level: bool,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
@@ -108,6 +109,12 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             &filtered_columns,
             result_len,
         );
+        // 3. Produce MLEs if not top level
+        if !is_top_level {
+            filtered_columns.iter().for_each(|column| {
+                builder.produce_intermediate_mle(column.as_scalar(alloc));
+            });
+        }
         filtered_columns
     }
 }

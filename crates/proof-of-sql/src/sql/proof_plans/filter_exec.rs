@@ -90,6 +90,7 @@ where
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
@@ -185,6 +186,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
+        is_top_level: bool,
     ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =

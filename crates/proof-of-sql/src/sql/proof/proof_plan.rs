@@ -38,6 +38,7 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         result: Option<&OwnedTable<C::Scalar>>,
+        is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError>;
 
     /// Return all the result column fields
@@ -67,6 +68,7 @@ pub trait ProverEvaluate<S: Scalar> {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
+        is_top_level: bool,
     ) -> Vec<Column<'a, S>>;
 }
 

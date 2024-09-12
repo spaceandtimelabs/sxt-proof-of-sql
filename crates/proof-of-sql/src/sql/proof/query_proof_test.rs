@@ -58,6 +58,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
+        _is_top_level: bool,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
@@ -91,6 +92,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        _is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(&C::Scalar::from(self.evaluation));
@@ -206,6 +208,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
+        _is_top_level: bool,
     ) -> Vec<Column<'a, S>> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
@@ -248,6 +251,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        _is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let x_commit = C::Scalar::from(self.anchored_commit_multiplier)
             * accessor.get_commitment(ColumnRef::new(
@@ -385,6 +389,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
+        _is_top_level: bool,
     ) -> Vec<Column<'a, S>> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
@@ -440,6 +445,7 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        _is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let x_commit = accessor.get_commitment(ColumnRef::new(
             "sxt.test".parse().unwrap(),
@@ -596,6 +602,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
+        _is_top_level: bool,
     ) -> Vec<Column<'a, S>> {
         let x = accessor.get_column(ColumnRef::new(
             "sxt.test".parse().unwrap(),
@@ -641,6 +648,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        _is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();

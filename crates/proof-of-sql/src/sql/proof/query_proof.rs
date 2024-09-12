@@ -76,7 +76,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let mut builder =
             ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
-        expr.prover_evaluate(&mut builder, &alloc, accessor);
+        expr.prover_evaluate(&mut builder, &alloc, accessor, true);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
@@ -242,6 +242,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             post_result_challenges,
         );
         let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
+<<<<<<< HEAD
         let verifier_evaluations =
             expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result))?;
         // compute the evaluation of the result MLEs
@@ -256,6 +257,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 "result evaluation check failed",
             ))?;
         }
+=======
+        expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result), true)?;
+>>>>>>> 35de9cc (refactor: add `is_top_level` to `prover_evaluate` and `verifier_evaluate` for `ProofPlan`s)
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {

@@ -40,6 +40,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         builder: &mut ProofBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
+        _is_top_level: bool,
     ) -> Vec<Column<'a, S>> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
@@ -69,6 +70,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
+        _is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let _ = std::iter::repeat_with(|| {
             assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO)

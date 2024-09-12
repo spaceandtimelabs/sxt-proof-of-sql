@@ -65,11 +65,18 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::VerificationBuilder<C>,
         accessor: &dyn crate::base::database::CommitmentAccessor<C>,
         result: Option<&crate::base::database::OwnedTable<C::Scalar>>,
+        is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, crate::base::proof::ProofError> {
         match self {
-            DynProofPlan::Projection(expr) => expr.verifier_evaluate(builder, accessor, result),
-            DynProofPlan::GroupBy(expr) => expr.verifier_evaluate(builder, accessor, result),
-            DynProofPlan::Filter(expr) => expr.verifier_evaluate(builder, accessor, result),
+            DynProofPlan::Projection(expr) => {
+                expr.verifier_evaluate(builder, accessor, result, is_top_level)
+            }
+            DynProofPlan::GroupBy(expr) => {
+                expr.verifier_evaluate(builder, accessor, result, is_top_level)
+            }
+            DynProofPlan::Filter(expr) => {
+                expr.verifier_evaluate(builder, accessor, result, is_top_level)
+            }
         }
     }
 
@@ -111,11 +118,18 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
         builder: &mut crate::sql::proof::ProofBuilder<'a, C::Scalar>,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+        is_top_level: bool,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
-            DynProofPlan::Projection(expr) => expr.prover_evaluate(builder, alloc, accessor),
-            DynProofPlan::GroupBy(expr) => expr.prover_evaluate(builder, alloc, accessor),
-            DynProofPlan::Filter(expr) => expr.prover_evaluate(builder, alloc, accessor),
+            DynProofPlan::Projection(expr) => {
+                expr.prover_evaluate(builder, alloc, accessor, is_top_level)
+            }
+            DynProofPlan::GroupBy(expr) => {
+                expr.prover_evaluate(builder, alloc, accessor, is_top_level)
+            }
+            DynProofPlan::Filter(expr) => {
+                expr.prover_evaluate(builder, alloc, accessor, is_top_level)
+            }
         }
     }
 }

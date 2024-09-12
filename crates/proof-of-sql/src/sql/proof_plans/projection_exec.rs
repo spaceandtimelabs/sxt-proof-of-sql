@@ -67,6 +67,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
+        is_top_level: bool,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         self.aliased_results
             .iter()
@@ -117,6 +118,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
+        is_top_level: bool,
     ) -> Vec<Column<'a, C::Scalar>> {
         // 1. Evaluate result expressions
         let res = Vec::from_iter(
