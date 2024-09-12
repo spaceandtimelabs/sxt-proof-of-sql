@@ -143,7 +143,7 @@ pub(super) fn fold_dynamic_standard_basis_tensors(
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::{super::dynamic_dory_structure::row_start_index, *};
 
     #[test]
@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(hi_fold, hi_fold_expected);
     }
 
-    fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
+    pub fn naive_fold(mut vec: &mut [F], fold_factors: &[F]) {
         let nu = fold_factors.len();
         assert_eq!(vec.len(), 1 << fold_factors.len());
         for i in (0..nu).rev() {

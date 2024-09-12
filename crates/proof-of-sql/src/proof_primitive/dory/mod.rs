@@ -143,5 +143,6 @@ mod pack_scalars;
 mod pairings;
 mod transpose;
 
+mod dynamic_dory_helper;
 mod dynamic_dory_standard_basis_helper;
 mod dynamic_dory_structure;
