@@ -34,7 +34,7 @@ pub enum Column<'a, S: Scalar> {
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::TestScalar]
+    ///  - the backing store maps to the type [crate::base::scalar::test_scalar::TestScalar]
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),

@@ -3,7 +3,7 @@
 //!
 //! # Example
 //! ```
-//! use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+//! use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 //! let result = owned_table::<TestScalar>([
 //!     bigint("a", [1, 2, 3]),
 //!     boolean("b", [true, false, true]),
@@ -28,7 +28,7 @@ use proof_of_sql_parser::{
 ///
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     bigint("a", [1, 2, 3]),
 ///     boolean("b", [true, false, true]),
@@ -48,7 +48,7 @@ pub fn owned_table<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
@@ -66,7 +66,7 @@ pub fn smallint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
@@ -84,7 +84,7 @@ pub fn int<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
@@ -102,7 +102,7 @@ pub fn bigint<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     boolean("a", [true, false, true]),
 /// ]);
@@ -121,7 +121,7 @@ pub fn boolean<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     int128("a", [1, 2, 3]),
 /// ]);
@@ -140,7 +140,7 @@ pub fn int128<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     scalar("a", [1, 2, 3]),
 /// ]);
@@ -159,7 +159,7 @@ pub fn scalar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
@@ -178,7 +178,7 @@ pub fn varchar<S: Scalar>(
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example
 /// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::TestScalar};
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::test_scalar::TestScalar};
 /// let result = owned_table::<TestScalar>([
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
@@ -211,7 +211,7 @@ pub fn decimal75<S: Scalar>(
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*,
-///     scalar::TestScalar,
+///     scalar::test_scalar::TestScalar,
 /// };
 /// use proof_of_sql_parser::{
 ///    posql_time::{PoSQLTimeZone, PoSQLTimeUnit}};

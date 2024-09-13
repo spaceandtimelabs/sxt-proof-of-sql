@@ -26,7 +26,7 @@ pub enum LiteralValue<S: Scalar> {
     /// i128 literals
     Int128(i128),
     /// Decimal literals with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::TestScalar]
+    ///  - the backing store maps to the type [crate::base::scalar::test_scalar::TestScalar]
     Decimal75(Precision, i8, S),
     /// Scalar literals
     Scalar(S),

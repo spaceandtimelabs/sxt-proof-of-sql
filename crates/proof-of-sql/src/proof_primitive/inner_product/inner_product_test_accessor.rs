@@ -1,7 +1,7 @@
 use super::curve_25519_scalar::Curve25519Scalar;
 use crate::base::database::{
-    Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
-    SchemaAccessor, TableRef, test_accessor::TestAccessor,
+    test_accessor::TestAccessor, Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
+    MetadataAccessor, SchemaAccessor, TableRef,
 };
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::Identifier;
