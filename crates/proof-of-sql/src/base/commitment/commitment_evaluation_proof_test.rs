@@ -1,7 +1,6 @@
 use super::CommitmentEvaluationProof;
 use crate::base::{commitment::vec_commitment_ext::VecCommitmentExt, database::Column};
 use ark_std::UniformRand;
-#[cfg(feature = "blitzar")]
 use merlin::Transcript;
 use num_traits::{One, Zero};
 
