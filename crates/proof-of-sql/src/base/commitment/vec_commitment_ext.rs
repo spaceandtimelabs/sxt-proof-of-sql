@@ -232,7 +232,7 @@ mod tests {
             .try_append_rows_with_offset(&new_columns, 3, &())
             .unwrap();
 
-        let expected_commitments: Vec<NaiveCommitment> = vec![
+        let expected_commitments: Vec<NaiveCommitment> = [
             OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ]
@@ -299,7 +299,7 @@ mod tests {
 
         commitments.extend_columns_with_offset(&new_columns, 0, &());
 
-        let expected_commitments: Vec<NaiveCommitment> = vec![
+        let expected_commitments: Vec<NaiveCommitment> = [
             OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
             OwnedColumn::<TestScalar>::VarChar(column_c.to_vec()),
@@ -333,7 +333,7 @@ mod tests {
 
         let commitments = commitments_a.try_add(commitments_b).unwrap();
 
-        let expected_commitments: Vec<NaiveCommitment> = vec![
+        let expected_commitments: Vec<NaiveCommitment> = [
             OwnedColumn::<TestScalar>::BigInt(column_a.to_vec()),
             OwnedColumn::VarChar(column_b.to_vec()),
         ]
@@ -389,12 +389,10 @@ mod tests {
     fn we_can_sub_commitment_collections() {
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
-        let mut front_emptied_column_a = column_a.clone();
-        let mut front_emptied_column_b = column_b.clone();
-        for i in 0..3 {
-            front_emptied_column_a[i] = 0;
-            front_emptied_column_b[i] = String::from("");
-        }
+        let mut front_emptied_column_a = [0, 0, 0];
+        front_emptied_column_a.copy_from_slice(&column_a[3..]);
+        let mut front_emptied_column_b = [String::from(""), String::from(""), String::from("")];
+        front_emptied_column_b.clone_from_slice(&column_b[3..]);
 
         let columns = vec![
             OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
@@ -412,7 +410,7 @@ mod tests {
 
         let commitments = commitments_b.try_sub(commitments_a).unwrap();
 
-        let expected_commitments: Vec<NaiveCommitment> = vec![
+        let expected_commitments: Vec<NaiveCommitment> = [
             OwnedColumn::<TestScalar>::BigInt(front_emptied_column_a.to_vec()),
             OwnedColumn::VarChar(front_emptied_column_b.to_vec()),
         ]

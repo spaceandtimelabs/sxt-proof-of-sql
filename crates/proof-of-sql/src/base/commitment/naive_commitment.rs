@@ -26,6 +26,7 @@ impl Add for NaiveCommitment {
 impl Sub for NaiveCommitment {
     type Output = NaiveCommitment;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn sub(self, rhs: Self) -> Self::Output {
         self + rhs.neg()
     }
@@ -59,18 +60,18 @@ impl AddAssign for NaiveCommitment {
 
 impl PartialEq for NaiveCommitment{
     fn eq(&self, other: &Self) -> bool {
-        if self.0.len() == other.0.len() {
-            self.0 == other.0
-        }
-        else if self.0.len() < other.0.len() {
-            let mut extended_self = self.0.clone();
-            extended_self.extend((self.0.len()..other.0.len()).map(|_i| TestScalar::ZERO));
-            extended_self == other.0
-        }
-        else{
-            let mut extended_other = other.0.clone();
-            extended_other.extend((other.0.len()..self.0.len()).map(|_i| TestScalar::ZERO));
-            extended_other == self.0
+        match self.0.len().cmp(&other.0.len()){
+            std::cmp::Ordering::Less => {
+                let mut extended_self = self.0.clone();
+                extended_self.extend((self.0.len()..other.0.len()).map(|_i| TestScalar::ZERO));
+                extended_self == other.0
+            },
+            std::cmp::Ordering::Equal => self.0 == other.0,
+            std::cmp::Ordering::Greater => {
+                let mut extended_other = other.0.clone();
+                extended_other.extend((other.0.len()..self.0.len()).map(|_i| TestScalar::ZERO));
+                extended_other == self.0
+            },
         }
     }
 }
