@@ -113,27 +113,51 @@ mod tests {
             // expected_word_columns[16..] is filled with 0s.
         ];
 
-        let expected_byte_counts = [
-            53, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-            0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 8,
-        ];
+        let mut expected_byte_counts_hardcoded = vec![0; 256];
+        expected_byte_counts_hardcoded[0] = 53;
+        expected_byte_counts_hardcoded[9] = 1;
+        expected_byte_counts_hardcoded[10] = 1;
+        expected_byte_counts_hardcoded[18] = 1;
+        expected_byte_counts_hardcoded[20] = 1;
+        expected_byte_counts_hardcoded[26] = 1;
+        expected_byte_counts_hardcoded[44] = 1;
+        expected_byte_counts_hardcoded[46] = 1;
+        expected_byte_counts_hardcoded[49] = 1;
+        expected_byte_counts_hardcoded[81] = 1;
+        expected_byte_counts_hardcoded[88] = 1;
+        expected_byte_counts_hardcoded[92] = 1;
+        expected_byte_counts_hardcoded[99] = 1;
+        expected_byte_counts_hardcoded[107] = 1;
+        expected_byte_counts_hardcoded[111] = 1;
+        expected_byte_counts_hardcoded[122] = 1;
+        expected_byte_counts_hardcoded[123] = 1;
+        expected_byte_counts_hardcoded[124] = 1;
+        expected_byte_counts_hardcoded[141] = 1;
+        expected_byte_counts_hardcoded[156] = 1;
+        expected_byte_counts_hardcoded[162] = 1;
+        expected_byte_counts_hardcoded[206] = 1;
+        expected_byte_counts_hardcoded[211] = 1;
+        expected_byte_counts_hardcoded[214] = 1;
+        expected_byte_counts_hardcoded[222] = 2;
+        expected_byte_counts_hardcoded[233] = 1;
+        expected_byte_counts_hardcoded[236] = 1;
+        expected_byte_counts_hardcoded[239] = 1;
+        expected_byte_counts_hardcoded[245] = 1;
+        expected_byte_counts_hardcoded[246] = 1;
+        expected_byte_counts_hardcoded[247] = 1;
+        expected_byte_counts_hardcoded[249] = 1;
+        expected_byte_counts_hardcoded[255] = 8;
 
         assert_eq!(word_columns[..16], expected_word_columns);
-        assert_eq!(byte_counts, expected_byte_counts);
+        assert_eq!(byte_counts, expected_byte_counts_hardcoded);
     }
 
     #[test]
     fn we_can_obtain_logarithmic_derivative_from_small_scalar() {
         let scalars: Vec<S> = [1, 2, 3, 255, 256, 257].iter().map(S::from).collect();
-        let mut word_columns = vec![vec![0; scalars.len()]; 31];
+        let mut word_columns: Vec<Vec<u8>> = vec![vec![0; scalars.len()]; 31];
 
+        // Manually set the decomposed words column
         word_columns[0] = [1, 2, 3, 255, 0, 1].to_vec();
         word_columns[1] = [0, 0, 0, 0, 1, 1].to_vec();
 
@@ -141,60 +165,76 @@ mod tests {
 
         let alpha = S::from(5);
 
+        // Initialize the inverted_word_columns_plus_alpha vector
         let mut inverted_word_columns_plus_alpha: Vec<Vec<S>> =
             vec![vec![S::ZERO; scalars.len()]; 31];
 
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
-        let mut inverted_word_columns_plus_alpha_as_slices: Vec<&mut [S]> =
-            inverted_word_columns_plus_alpha
-                .iter_mut()
-                .map(|col| col.as_mut_slice())
-                .collect();
-
-        get_logarithmic_derivative(
-            &word_slices,
-            alpha,
-            &mut inverted_word_columns_plus_alpha_as_slices,
-        );
-
-        let expected_column: Vec<S> = [1, 2, 3, 255, 0, 1]
-            .iter()
-            .map(|w| (S::from(*w) + alpha).inv().unwrap_or(S::ZERO))
+        let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
+            .iter_mut()
+            .map(|col| col.as_mut_slice())
             .collect();
 
-        assert_eq!(
-            inverted_word_columns_plus_alpha_as_slices[0],
-            expected_column.as_slice()
-        );
+        get_logarithmic_derivative(&word_slices, alpha, &mut word_columns_from_log_deriv);
 
-        let expected_column: Vec<S> = [0, 0, 0, 0, 1, 1]
+        let expected_data: [[u8; 6]; 31] = [
+            [1, 2, 3, 255, 0, 1],
+            [0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+        ];
+
+        // Invert the expected data and add the verifier challenge
+        let expected_columns: Vec<Vec<S>> = expected_data
             .iter()
-            .map(|w| (S::from(*w) + alpha).inv().unwrap_or(S::ZERO))
+            .map(|row| {
+                row.iter()
+                    .map(|&w| (S::from(w) + alpha).inv().unwrap_or(S::ZERO))
+                    .collect()
+            })
             .collect();
 
-        assert_eq!(
-            inverted_word_columns_plus_alpha_as_slices[1],
-            expected_column.as_slice()
-        );
-
-        // expected_word_columns[2..] is filled with 0s.
-        let expected_column: Vec<S> = [0, 0, 0, 0, 0, 0]
-            .iter()
-            .map(|w| (S::from(*w) + alpha).inv().unwrap_or(S::ZERO))
-            .collect();
-
-        assert_eq!(
-            inverted_word_columns_plus_alpha_as_slices[2],
-            expected_column.as_slice()
-        );
+        // Perform assertion for all columns at once
+        assert_eq!(word_columns_from_log_deriv, expected_columns);
     }
 
     #[test]
     fn we_can_obtain_logarithmic_derivative_from_large_scalar() {
-        // let scalars: Vec<S> = [u64::MAX, u64::MAX].iter().map(S::from).collect();
-        let scalars: Vec<S> = [0xFF, 0xFF].iter().map(S::from).collect();
-        let mut word_columns = vec![vec![0; scalars.len()]; 31];
+        let scalars: Vec<S> = [u64::MAX, u64::MAX].iter().map(S::from).collect();
 
+        let mut word_columns: Vec<Vec<u8>> = vec![vec![0; scalars.len()]; 31];
+
+        // Manually set the decomposed words column.
+        // Its helpful to think of this transposed, i.e.
+        // Scalar 1:  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  00  00  00  ...
+        // Scalar 2:  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  FF  00  00  00  ...
         word_columns[0] = [0xFF, 0xFF].to_vec();
         word_columns[1] = [0xFF, 0xFF].to_vec();
         word_columns[2] = [0xFF, 0xFF].to_vec();
@@ -212,28 +252,21 @@ mod tests {
         word_columns[14] = [0xFF, 0xFF].to_vec();
         word_columns[15] = [0xFF, 0xFF].to_vec();
 
-        let word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
-
+        // Simulate a verifier challenge, then prepare storage for
+        // 1 / (word + alpha)
         let alpha = S::from(5);
-
+        let word_slices: Vec<&mut [u8]> = word_columns.iter_mut().map(|c| &mut c[..]).collect();
         let mut inverted_word_columns_plus_alpha: Vec<Vec<S>> =
             vec![vec![S::ZERO; scalars.len()]; 31];
-
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
-        let mut inverted_word_columns_plus_alpha_as_slices: Vec<&mut [S]> =
-            inverted_word_columns_plus_alpha
-                .iter_mut()
-                .map(|col| col.as_mut_slice())
-                .collect();
+        let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
+            .iter_mut()
+            .map(|col| col.as_mut_slice())
+            .collect();
 
-        get_logarithmic_derivative(
-            &word_slices,
-            alpha,
-            &mut inverted_word_columns_plus_alpha_as_slices,
-        );
+        get_logarithmic_derivative(&word_slices, alpha, &mut word_columns_from_log_deriv);
 
-        // Expected values defined over a larger array
-        let expected_data = [
+        let expected_data: [[u8; 2]; 31] = [
             [0xFF, 0xFF],
             [0xFF, 0xFF],
             [0xFF, 0xFF],
@@ -267,7 +300,8 @@ mod tests {
             [0, 0],
         ];
 
-        // Invert the expected data
+        // Invert the expected data and add the verifier challenge, producing
+        // columns containing 1 / (word + alpha)
         let expected_columns: Vec<Vec<S>> = expected_data
             .iter()
             .map(|row| {
@@ -277,6 +311,6 @@ mod tests {
             })
             .collect();
 
-        assert_eq!(inverted_word_columns_plus_alpha_as_slices, expected_columns);
+        assert_eq!(word_columns_from_log_deriv, expected_columns);
     }
 }
