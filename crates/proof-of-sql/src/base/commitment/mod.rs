@@ -40,6 +40,14 @@ pub use table_commitment::{
 mod query_commitments;
 pub use query_commitments::{QueryCommitments, QueryCommitmentsExt};
 
+/// Module for providing a mock commitment.
+#[cfg(test)]
+pub mod naive_commitment;
+
+/// Module for providing a test commitment evaluation proof.
+#[cfg(test)]
+pub mod test_evaluation_proof;
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
