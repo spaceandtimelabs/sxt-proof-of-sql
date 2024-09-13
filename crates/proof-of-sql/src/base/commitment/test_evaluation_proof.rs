@@ -1,6 +1,5 @@
-use crate::base::scalar::test_scalar::TestScalar;
-
 use super::{naive_commitment::NaiveCommitment, CommitmentEvaluationProof};
+use crate::base::scalar::test_scalar::TestScalar;
 
 /// This should only be used for the purpose of unit testing.
 pub struct TestEvaluationProof {}

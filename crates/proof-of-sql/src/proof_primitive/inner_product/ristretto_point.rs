@@ -1,8 +1,6 @@
-use curve25519_dalek::RistrettoPoint;
-
-use crate::base::commitment::{Commitment, CommittableColumn};
-
 use super::curve_25519_scalar::Curve25519Scalar;
+use crate::base::commitment::{Commitment, CommittableColumn};
+use curve25519_dalek::RistrettoPoint;
 
 impl Commitment for RistrettoPoint {
     type Scalar = Curve25519Scalar;

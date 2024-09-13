@@ -1,6 +1,5 @@
-use crate::base::scalar::test_scalar::TestScalar;
-
 use super::*;
+use crate::base::scalar::test_scalar::TestScalar;
 
 #[test]
 fn test_inner_product() {

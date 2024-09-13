@@ -3,8 +3,10 @@
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::database::owned_table_utility::*;
-use proof_of_sql::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S;
-use proof_of_sql::sql::postprocessing::apply_postprocessing_steps;
+use proof_of_sql::{
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S,
+    sql::postprocessing::apply_postprocessing_steps,
+};
 
 #[cfg(feature = "blitzar")]
 fn run_query(
@@ -61,8 +63,10 @@ fn run_query(
 #[cfg(feature = "blitzar")]
 mod decimal_query_tests {
     use crate::run_query;
-    use proof_of_sql::base::scalar::Scalar;
-    use proof_of_sql::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S;
+    use proof_of_sql::{
+        base::scalar::Scalar,
+        proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar as S,
+    };
 
     #[test]
     fn we_can_query_decimals_exactly_matching_db_data() {

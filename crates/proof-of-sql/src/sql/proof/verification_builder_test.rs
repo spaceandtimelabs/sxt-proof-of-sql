@@ -1,6 +1,5 @@
-use crate::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
-
 use super::{SumcheckMleEvaluations, VerificationBuilder};
+use crate::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
 use rand_core::OsRng;

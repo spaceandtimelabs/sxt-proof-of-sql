@@ -12,7 +12,10 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    proof_primitive::inner_product::{curve_25519_scalar::Curve25519Scalar, inner_product_test_accessor::UnimplementedInnerProductTestAccessor},
+    proof_primitive::inner_product::{
+        curve_25519_scalar::Curve25519Scalar,
+        inner_product_test_accessor::UnimplementedInnerProductTestAccessor,
+    },
     sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;

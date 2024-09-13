@@ -1,10 +1,9 @@
-use num_bigint::BigInt;
-use num_traits::{Inv, One};
-
 use crate::{
     base::scalar::{Scalar, ScalarConversionError},
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
+use num_bigint::BigInt;
+use num_traits::{Inv, One};
 
 #[test]
 fn test_curve25519_scalar_serialization() {

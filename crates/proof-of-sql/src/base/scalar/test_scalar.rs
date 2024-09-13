@@ -1,9 +1,8 @@
+use super::{test_config::TestMontConfig, MontScalar, Scalar};
 use crate::base::{
     commitment::{naive_commitment::NaiveCommitment, CommittableColumn},
     database::OwnedColumn,
 };
-
-use super::{test_config::TestMontConfig, MontScalar, Scalar};
 use ark_ff::PrimeField;
 
 /// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.

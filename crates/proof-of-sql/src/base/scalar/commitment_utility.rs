@@ -1,6 +1,4 @@
-use blitzar::compute::compute_curve25519_commitments;
-use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
-
+use super::Scalar;
 use crate::{
     base::{
         commitment::naive_commitment::NaiveCommitment,
@@ -9,8 +7,8 @@ use crate::{
     },
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
-
-use super::Scalar;
+use blitzar::compute::compute_curve25519_commitments;
+use curve25519_dalek::{ristretto::CompressedRistretto, RistrettoPoint};
 
 /// Compute the commitment of a sequence of values.
 ///
