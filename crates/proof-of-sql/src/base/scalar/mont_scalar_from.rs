@@ -2,6 +2,7 @@ use crate::base::scalar::MontScalar;
 use ark_ff::MontConfig;
 use num_traits::Zero;
 
+/// TODO: add docs
 macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
     ($tt:ty) => {
         impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
@@ -24,6 +25,7 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
         Self::from_le_bytes_mod_order(&bytes)
     }
 }
+/// TODO: add docs
 macro_rules! impl_from_for_mont_scalar_for_string {
     ($tt:ty) => {
         impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {

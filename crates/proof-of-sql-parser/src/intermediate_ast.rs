@@ -339,6 +339,7 @@ impl From<bool> for Literal {
     }
 }
 
+/// TODO: add docs
 macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
@@ -363,6 +364,7 @@ impl From<i128> for Literal {
     }
 }
 
+/// TODO: add docs
 macro_rules! impl_string_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {

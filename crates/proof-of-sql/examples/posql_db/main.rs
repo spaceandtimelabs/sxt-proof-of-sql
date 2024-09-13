@@ -1,6 +1,9 @@
 #![doc = include_str!("README.md")]
+/// TODO: add docs
 mod commit_accessor;
+/// TODO: add docs
 mod csv_accessor;
+/// TODO: add docs
 mod record_batch_accessor;
 use arrow::{
     datatypes::{DataType, Field, Schema},
@@ -36,14 +39,18 @@ struct CliArgs {
     #[arg(short, long, default_value = ".")]
     path: String,
     #[command(subcommand)]
+    /// TODO: add docs
     command: Commands,
 }
 
 #[derive(Clone, ValueEnum, Debug)]
 #[value(rename_all = "UPPER")]
 enum CsvDataType {
+    /// TODO: add docs
     BigInt,
+    /// TODO: add docs
     VarChar,
+    /// TODO: add docs
     Decimal,
 }
 impl From<&CsvDataType> for DataType {
@@ -56,6 +63,7 @@ impl From<&CsvDataType> for DataType {
     }
 }
 
+/// TODO: add docs
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Creates a new csv for an empty table and initializes the commitment of that table.
@@ -112,6 +120,7 @@ fn start_timer(message: &str) -> Instant {
     stdout().flush().unwrap();
     Instant::now()
 }
+/// TODO: add docs
 fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }

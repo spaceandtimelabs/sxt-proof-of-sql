@@ -3,7 +3,7 @@
 //! ```bash
 //! cargo bench -p proof-of-sql --bench criterion_benches
 //! ```
-#![allow(missing_docs)]
+#![allow(missing_docs, clippy::missing_docs_in_private_items)]
 use blitzar::proof::InnerProductProof;
 use criterion::{criterion_group, criterion_main, Criterion};
 

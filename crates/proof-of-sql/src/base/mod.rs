@@ -1,9 +1,12 @@
 //! This module contains basic shared functionalities of the library.
+/// TODO: add docs
 pub(crate) mod bit;
 pub mod commitment;
 pub mod database;
+/// TODO: add docs
 pub(crate) mod encode;
 pub mod math;
+/// TODO: add docs
 pub(crate) mod polynomial;
 pub(crate) mod proof;
 pub(crate) mod ref_into;

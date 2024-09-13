@@ -15,6 +15,7 @@ mod intermediate_ast_tests;
 /// Shortcuts to construct intermediate AST nodes.
 pub mod utility;
 
+/// TODO: add docs
 pub(crate) mod select_statement;
 pub use select_statement::SelectStatement;
 
@@ -23,6 +24,7 @@ pub mod error;
 pub use error::ParseError;
 pub(crate) use error::ParseResult;
 
+/// TODO: add docs
 pub(crate) mod identifier;
 pub use identifier::Identifier;
 
@@ -30,7 +32,7 @@ pub mod resource_id;
 pub use resource_id::ResourceId;
 
 // lalrpop-generated code is not clippy-compliant
-lalrpop_mod!(#[allow(clippy::all, missing_docs)] pub sql);
+lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items)] pub sql);
 
 /// Implement Deserialize through FromStr to avoid invalid identifiers.
 #[macro_export]

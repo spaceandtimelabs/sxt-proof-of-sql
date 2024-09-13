@@ -57,6 +57,7 @@ where
     }
 }
 
+/// TODO: add docs
 macro_rules! slice_like_mle_impl {
     () => {
         fn inner_product(&self, evaluation_vec: &[S]) -> S {

@@ -13,11 +13,13 @@ use proof_of_sql::proof_primitive::dory::{
     DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
     PublicParameters, VerifierSetup,
 };
+/// TODO: add docs
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
 use scaffold::jaeger_scaffold;
 use std::env;
 
+/// TODO: add docs
 const SIZE: usize = 1_000_000;
 
 fn main() {

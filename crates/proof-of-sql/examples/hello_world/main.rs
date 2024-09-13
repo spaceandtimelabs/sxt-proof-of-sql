@@ -10,11 +10,13 @@ use std::{
     time::Instant,
 };
 
+/// TODO: add docs
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
     stdout().flush().unwrap();
     Instant::now()
 }
+/// TODO: add docs
 fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }

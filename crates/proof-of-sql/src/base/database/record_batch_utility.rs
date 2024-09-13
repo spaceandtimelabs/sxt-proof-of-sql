@@ -75,6 +75,7 @@ impl ToArrow for Vec<Time> {
     }
 }
 
+/// TODO: add docs
 macro_rules! int_to_arrow_array {
     ($tt:ty, $dtt:expr, $att:ty) => {
         impl ToArrow for Vec<$tt> {
@@ -123,6 +124,7 @@ impl ToArrow for Vec<i128> {
     }
 }
 
+/// TODO: add docs
 macro_rules! string_to_arrow_array {
     ($tt:ty, $dtt:expr, $att:ty) => {
         impl ToArrow for Vec<$tt> {

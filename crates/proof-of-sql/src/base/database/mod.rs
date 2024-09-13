@@ -43,6 +43,7 @@ pub use owned_column::OwnedColumn;
 mod owned_column_error;
 pub use owned_column_error::{OwnedColumnError, OwnedColumnResult};
 
+/// TODO: add docs
 pub(crate) mod owned_column_operation;
 
 mod owned_table;
@@ -52,6 +53,7 @@ pub(crate) use owned_table::OwnedTableError;
 mod owned_table_test;
 pub mod owned_table_utility;
 
+/// TODO: add docs
 pub(crate) mod expression_evaluation;
 mod expression_evaluation_error;
 #[cfg(test)]
@@ -87,6 +89,7 @@ mod owned_table_test_accessor_test;
 #[cfg(feature = "arrow")]
 pub mod scalar_and_i256_conversions;
 
+/// TODO: add docs
 pub(crate) mod filter_util;
 #[cfg(test)]
 mod filter_util_test;

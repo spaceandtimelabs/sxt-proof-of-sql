@@ -5,7 +5,7 @@
 //! ```bash
 //! cargo bench --features "test" --bench bench_append_rows
 //! ```
-#![allow(missing_docs)]
+#![allow(missing_docs, clippy::missing_docs_in_private_items)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use proof_of_sql::{
     base::{
