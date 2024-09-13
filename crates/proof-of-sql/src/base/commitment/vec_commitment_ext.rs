@@ -389,10 +389,8 @@ mod tests {
     fn we_can_sub_commitment_collections() {
         let column_a = [12i64, 34, 56, 78, 90];
         let column_b = ["Lorem", "ipsum", "dolor", "sit", "amet"].map(String::from);
-        let mut front_emptied_column_a = [0, 0, 0];
-        front_emptied_column_a.copy_from_slice(&column_a[3..]);
-        let mut front_emptied_column_b = [String::from(""), String::from(""), String::from("")];
-        front_emptied_column_b.clone_from_slice(&column_b[3..]);
+        let front_emptied_column_a = [0i64, 0, 0, 78, 90];
+        let front_emptied_column_b = ["", "", "", "sit", "amet"].map(String::from);
 
         let columns = vec![
             OwnedColumn::<TestScalar>::BigInt(column_a[..3].to_vec()),
