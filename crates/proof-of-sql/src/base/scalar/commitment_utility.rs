@@ -10,6 +10,8 @@ use crate::{
     proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
 };
 
+use super::Scalar;
+
 /// Compute the commitment of a sequence of values.
 ///
 /// Computing commitments in isolation like this is inefficient so
@@ -33,7 +35,10 @@ pub fn compute_compressed_ristretto_commitment_for_testing<
 /// this function shoud only be used for testing.
 pub fn compute_commitment_for_testing<T: Into<TestScalar> + Clone + Sync>(
     vals: &[T],
-    _offset_generators: usize,
+    offset_generators: usize,
 ) -> NaiveCommitment {
-    NaiveCommitment(vals.iter().map(|val| val.into()).collect())
+    let mut offset_scalars: Vec<TestScalar> = vec![TestScalar::ZERO; offset_generators];
+    let mut scalars: Vec<TestScalar> = vals.iter().map(|val| val.into()).collect();
+    offset_scalars.append(&mut scalars);
+    NaiveCommitment(offset_scalars)
 }
