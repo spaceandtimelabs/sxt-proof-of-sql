@@ -92,7 +92,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     ///
     /// An interemdiate MLE is one where the verifier doesn't have access to its commitment
     pub fn consume_intermediate_mle(&mut self) -> C::Scalar {
-        let commitment = self.intermediate_commitments[self.consumed_intermediate_mles];
+        let commitment = self.intermediate_commitments[self.consumed_intermediate_mles].clone();
         self.consumed_intermediate_mles += 1;
         self.consume_anchored_mle(commitment)
     }

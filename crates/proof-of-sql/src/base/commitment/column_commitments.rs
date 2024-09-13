@@ -81,7 +81,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
         self.column_metadata
             .get_index_of(identifier)
-            .map(|index| self.commitments[index])
+            .map(|index| self.commitments[index].clone())
     }
 
     /// Returns the metadata for the commitment with the given identifier.
