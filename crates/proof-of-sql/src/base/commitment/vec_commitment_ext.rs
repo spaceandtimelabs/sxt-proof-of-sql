@@ -70,12 +70,12 @@ pub trait VecCommitmentExt {
 }
 
 fn unsafe_add_assign<C: Commitment>(a: &mut [C], b: &[C]) {
-    a.iter_mut().zip(b).for_each(|(c_a, &ref c_b)| {
+    a.iter_mut().zip(b).for_each(|(c_a, c_b)| {
         *c_a += c_b.clone();
     });
 }
 fn unsafe_sub_assign<C: Commitment>(a: &mut [C], b: &[C]) {
-    a.iter_mut().zip(b).for_each(|(c_a, &ref c_b)| {
+    a.iter_mut().zip(b).for_each(|(c_a, c_b)| {
         *c_a -= c_b.clone();
     });
 }
