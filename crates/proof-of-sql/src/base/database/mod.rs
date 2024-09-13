@@ -65,8 +65,8 @@ pub use owned_and_arrow_conversions::OwnedArrowConversionError;
 #[cfg(all(test, feature = "arrow"))]
 mod owned_and_arrow_conversions_test;
 
-#[cfg(any(test, feature = "test"))]
-mod test_accessor;
+/// Test accessor which generically takes commitments
+pub mod test_accessor;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
