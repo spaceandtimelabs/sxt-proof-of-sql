@@ -72,10 +72,7 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=non-interactive
           sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository ppa:graphics-drivers/ppa
-          sudo apt-get update
-          sudo apt-get install -y clang lld nvidia-driver-560
+          sudo apt-get install -y clang lld
       - name: Run cargo test
         run: cargo test --all-features
       - name: Dry run cargo test (proof-of-sql) (test feature only)
