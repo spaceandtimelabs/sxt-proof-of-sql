@@ -77,7 +77,7 @@ impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
 }
 impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
-        *self.commitments.get(&column).unwrap()
+        self.commitments.get(&column).unwrap().clone()
     }
 }
 impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
