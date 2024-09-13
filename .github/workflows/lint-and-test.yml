@@ -11,6 +11,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  BLITZAR_BACKEND: cpu
 
 jobs:
   # Run cargo check (with various feature permutations)
