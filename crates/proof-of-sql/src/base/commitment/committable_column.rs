@@ -40,6 +40,9 @@ pub enum CommittableColumn<'a> {
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Borrowed byte column, mapped to `u8`. This is not a PoSQL
+    /// type, we need this to commit to words in the range check.
+    RangeCheckWord(&'a [u8]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -55,6 +58,7 @@ impl<'a> CommittableColumn<'a> {
             CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::TimestampTZ(_, _, col) => col.len(),
+            CommittableColumn::RangeCheckWord(col) => col.len(),
         }
     }
 
@@ -83,6 +87,9 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::RangeCheckWord(_) => {
+                unimplemented!("Range check words are not a column type.")
+            }
         }
     }
 }
@@ -141,6 +148,11 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     }
 }
 
+impl<'a> From<&'a [u8]> for CommittableColumn<'a> {
+    fn from(value: &'a [u8]) -> Self {
+        CommittableColumn::RangeCheckWord(value)
+    }
+}
 impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
     fn from(value: &'a [i16]) -> Self {
         CommittableColumn::SmallInt(value)
@@ -187,6 +199,7 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
+            CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
         }
     }
 }
@@ -382,6 +395,18 @@ mod tests {
         assert_eq!(bool_committable_column.len(), 3);
         assert!(!bool_committable_column.is_empty());
         assert_eq!(bool_committable_column.column_type(), ColumnType::Boolean);
+    }
+
+    #[test]
+    fn we_can_get_length_of_rangecheckword_column() {
+        // empty case
+        let bool_committable_column = CommittableColumn::RangeCheckWord(&[]);
+        assert_eq!(bool_committable_column.len(), 0);
+        assert!(bool_committable_column.is_empty());
+
+        let bool_committable_column = CommittableColumn::RangeCheckWord(&[12, 34, 56]);
+        assert_eq!(bool_committable_column.len(), 3);
+        assert!(!bool_committable_column.is_empty());
     }
 
     #[test]
@@ -680,6 +705,30 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::BigInt(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_rangecheckword_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::RangeCheckWord(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::RangeCheckWord(&values);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

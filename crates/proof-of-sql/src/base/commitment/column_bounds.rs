@@ -228,6 +228,7 @@ impl ColumnBounds {
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
             | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
+            CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
         }
     }
 
