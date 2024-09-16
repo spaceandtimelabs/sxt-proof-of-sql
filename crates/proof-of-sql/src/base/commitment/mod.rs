@@ -48,6 +48,9 @@ pub mod naive_commitment;
 #[cfg(test)]
 pub mod test_evaluation_proof;
 
+#[cfg(test)]
+mod naive_commitment_test;
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign

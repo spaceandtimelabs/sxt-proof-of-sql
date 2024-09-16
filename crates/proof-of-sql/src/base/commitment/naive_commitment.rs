@@ -26,9 +26,10 @@ impl Add for NaiveCommitment {
 impl Sub for NaiveCommitment {
     type Output = NaiveCommitment;
 
-    #[allow(clippy::suspicious_arithmetic_impl)]
     fn sub(self, rhs: Self) -> Self::Output {
-        self + rhs.neg()
+        let mut new_self = self.clone();
+        new_self.sub_assign(rhs);
+        new_self
     }
 }
 impl Neg for NaiveCommitment {
@@ -79,25 +80,25 @@ impl PartialEq for NaiveCommitment {
 impl core::ops::Mul<NaiveCommitment> for TestScalar {
     type Output = NaiveCommitment;
     fn mul(self, rhs: NaiveCommitment) -> Self::Output {
-        NaiveCommitment(rhs.0.iter().map(|s| self + *s).collect())
+        NaiveCommitment(rhs.0.iter().map(|s| self * *s).collect())
     }
 }
 impl core::ops::Mul<TestScalar> for NaiveCommitment {
     type Output = NaiveCommitment;
     fn mul(self, rhs: TestScalar) -> Self::Output {
-        NaiveCommitment(self.0.iter().map(|s| rhs + *s).collect())
+        NaiveCommitment(self.0.iter().map(|s| rhs * *s).collect())
     }
 }
 impl core::ops::Mul<&NaiveCommitment> for TestScalar {
     type Output = NaiveCommitment;
     fn mul(self, rhs: &NaiveCommitment) -> Self::Output {
-        NaiveCommitment(rhs.0.iter().map(|s| self + *s).collect())
+        NaiveCommitment(rhs.0.iter().map(|s| self * *s).collect())
     }
 }
 impl core::ops::Mul<TestScalar> for &NaiveCommitment {
     type Output = NaiveCommitment;
     fn mul(self, rhs: TestScalar) -> Self::Output {
-        NaiveCommitment(self.0.iter().map(|s| rhs + *s).collect())
+        NaiveCommitment(self.0.iter().map(|s| rhs * *s).collect())
     }
 }
 
