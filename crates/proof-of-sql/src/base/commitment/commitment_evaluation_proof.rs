@@ -1,5 +1,5 @@
 use super::Commitment;
-use crate::base::scalar::Scalar;
+use crate::base::{proof::Transcript as _, scalar::Scalar};
 #[cfg(feature = "blitzar")]
 use crate::base::{scalar::MontScalar, slice_ops};
 #[cfg(feature = "blitzar")]
@@ -101,12 +101,16 @@ impl CommitmentEvaluationProof for InnerProductProof {
         } else {
             crate::base::polynomial::compute_evaluation_vector(b, b_point);
         }
-        Self::create(
-            transcript,
-            &slice_ops::slice_cast(a),
-            &slice_ops::slice_cast(b),
-            generators_offset,
-        )
+        // The InnerProductProof from blitzar only works with the merlin Transcript.
+        // So, we wrap the call to it.
+        transcript.wrap_transcript(|transcript| {
+            Self::create(
+                transcript,
+                &slice_ops::slice_cast(a),
+                &slice_ops::slice_cast(b),
+                generators_offset,
+            )
+        })
     }
 
     fn verify_batched_proof(
@@ -128,19 +132,23 @@ impl CommitmentEvaluationProof for InnerProductProof {
         } else {
             crate::base::polynomial::compute_evaluation_vector(b, b_point);
         }
-        self.verify(
-            transcript,
-            &commit_batch
-                .iter()
-                .zip(batching_factors.iter())
-                .map(|(c, m)| *m * c)
-                .fold(Default::default(), |mut a, c| {
-                    a += c;
-                    a
-                }),
-            &product.into(),
-            &slice_ops::slice_cast(b),
-            generators_offset,
-        )
+        // The InnerProductProof from blitzar only works with the merlin Transcript.
+        // So, we wrap the call to it.
+        transcript.wrap_transcript(|transcript| {
+            self.verify(
+                transcript,
+                &commit_batch
+                    .iter()
+                    .zip(batching_factors.iter())
+                    .map(|(c, m)| *m * c)
+                    .fold(Default::default(), |mut a, c| {
+                        a += c;
+                        a
+                    }),
+                &product.into(),
+                &slice_ops::slice_cast(b),
+                generators_offset,
+            )
+        })
     }
 }

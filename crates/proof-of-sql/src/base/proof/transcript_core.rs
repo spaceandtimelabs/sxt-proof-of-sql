@@ -33,7 +33,7 @@ impl<T: TranscriptCore> Transcript for T {
             self.raw_append(bytes)
         })
     }
-    fn extend_as_le_from_refs<'a, M: AsBytes + 'a>(
+    fn extend_as_le_from_refs<'a, M: AsBytes + 'a + ?Sized>(
         &mut self,
         messages: impl IntoIterator<Item = &'a M>,
     ) {
@@ -50,7 +50,6 @@ impl<T: TranscriptCore> Transcript for T {
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
         receive_challenge_as_be::<[u64; 4]>(self).into()
     }
-    #[cfg(test)]
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()
     }

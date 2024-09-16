@@ -53,6 +53,7 @@ pub trait TranscriptProtocol {
     );
 
     /// Compute a challenge variable (which requires a label).
+    #[cfg(test)]
     fn challenge_scalar_single<U: ark_std::UniformRand + Default>(
         &mut self,
         label: MessageLabel,
@@ -120,12 +121,9 @@ pub enum MessageLabel {
     /// Represents a challenge in the computation of an inner product.
     #[cfg(test)]
     InnerProductChallenge,
-    /// Denotes a sumcheck protocol message.
-    Sumcheck,
     /// Represents a challenge in the sumcheck protocol.
+    #[cfg(test)]
     SumcheckChallenge,
-    /// Represents a round evaluation in the sumcheck protocol.
-    SumcheckRoundEvaluation,
     /// Represents a proof resulting from a query.
     QueryProof,
     /// Represents a commitment to a query.
@@ -165,9 +163,8 @@ impl MessageLabel {
             MessageLabel::InnerProduct => b"ipp v1",
             #[cfg(test)]
             MessageLabel::InnerProductChallenge => b"ippchallenge v1",
-            MessageLabel::Sumcheck => b"sumcheckproof v1",
+            #[cfg(test)]
             MessageLabel::SumcheckChallenge => b"sumcheckchallenge v1",
-            MessageLabel::SumcheckRoundEvaluation => b"sumcheckroundevaluationscalars v1",
             MessageLabel::QueryProof => b"queryproof v1",
             MessageLabel::QueryCommit => b"querycommit v1",
             MessageLabel::QueryResultData => b"queryresultdata v1",
