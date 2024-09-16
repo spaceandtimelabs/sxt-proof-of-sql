@@ -92,6 +92,7 @@ impl QueryContext {
         self.in_agg_scope
     }
 
+    /// TODO: add docs
     pub(crate) fn has_agg(&self) -> bool {
         self.agg_counter > 0 || !self.group_by_exprs.is_empty()
     }

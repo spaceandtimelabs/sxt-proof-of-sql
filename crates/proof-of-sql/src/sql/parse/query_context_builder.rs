@@ -241,6 +241,7 @@ impl<'a> QueryContextBuilder<'a> {
     }
 }
 
+/// TODO: add docs
 pub(crate) fn type_check_binary_operation(
     left_dtype: &ColumnType,
     right_dtype: &ColumnType,

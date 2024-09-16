@@ -16,6 +16,7 @@ pub use query_expr::QueryExpr;
 mod filter_exec_builder;
 pub(crate) use filter_exec_builder::FilterExecBuilder;
 
+/// TODO: add docs
 pub(crate) mod query_context;
 pub(crate) use query_context::QueryContext;
 

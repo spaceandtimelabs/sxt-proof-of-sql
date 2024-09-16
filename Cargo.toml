@@ -62,5 +62,6 @@ tracing-subscriber = { version = "0.3.0" }
 wasm-bindgen = { version = "0.2.92" }
 zerocopy = { version = "0.7.34" }
 
-[workspace.lints.rust]
-missing_docs = "warn"
+[workspace.lints]
+rust.missing_docs = "warn"
+clippy.missing_docs_in_private_items = "warn"

@@ -1,3 +1,4 @@
+/// TODO: add docs
 macro_rules! impl_serde_for_ark_serde_checked {
     ($t:ty) => {
         impl serde::Serialize for $t {
@@ -20,6 +21,7 @@ macro_rules! impl_serde_for_ark_serde_checked {
     };
 }
 
+/// TODO: add docs
 macro_rules! impl_serde_for_ark_serde_unchecked {
     ($t:ty) => {
         impl serde::Serialize for $t {

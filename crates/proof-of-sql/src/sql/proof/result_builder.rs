@@ -3,6 +3,7 @@ use super::Indexes;
 /// Track the result created by a query
 pub struct ResultBuilder {
     table_length: usize,
+    /// TODO: add docs
     pub(crate) result_index_vector: Indexes,
 
     /// The number of challenges used in the proof.
