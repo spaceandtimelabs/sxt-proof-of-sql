@@ -130,13 +130,11 @@ mod tests {
     use crate::base::{
         commitment::{column_bounds::Bounds, ColumnBounds},
         database::{owned_table_utility::*, ColumnType, OwnedTable},
-        scalar::Curve25519Scalar,
+        scalar::test_scalar::TestScalar,
     };
     use itertools::Itertools;
 
-    fn metadata_map_from_owned_table(
-        table: OwnedTable<Curve25519Scalar>,
-    ) -> ColumnCommitmentMetadataMap {
+    fn metadata_map_from_owned_table(table: OwnedTable<TestScalar>) -> ColumnCommitmentMetadataMap {
         let (identifiers, columns): (Vec<&Identifier>, Vec<CommittableColumn>) = table
             .inner_table()
             .into_iter()
@@ -153,7 +151,7 @@ mod tests {
         assert_eq!(empty_metadata_map.len(), 0);
 
         // With columns
-        let table: OwnedTable<Curve25519Scalar> = owned_table([
+        let table: OwnedTable<TestScalar> = owned_table([
             bigint("bigint_column", [1, 5, -5, 0]),
             int128("int128_column", [100, 200, 300, 400]),
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit"]),

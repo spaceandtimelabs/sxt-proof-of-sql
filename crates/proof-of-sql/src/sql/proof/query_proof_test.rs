@@ -8,10 +8,13 @@ use crate::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
             MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
-            UnimplementedTestAccessor,
         },
         proof::ProofError,
-        scalar::{Curve25519Scalar, Scalar},
+        scalar::Scalar,
+    },
+    proof_primitive::inner_product::{
+        curve_25519_scalar::Curve25519Scalar,
+        inner_product_test_accessor::UnimplementedInnerProductTestAccessor,
     },
     sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
@@ -109,7 +112,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         offset: offset_generators,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = UnimplementedInnerProductTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
@@ -141,7 +144,7 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         column_fill_value: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = UnimplementedInnerProductTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -154,7 +157,7 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         evaluation: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = UnimplementedInnerProductTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -166,7 +169,7 @@ fn veriy_fails_if_result_mle_evaluation_fails() {
     let expr = TrivialTestProofPlan {
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = UnimplementedInnerProductTestAccessor::new_empty();
     let (proof, mut result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     match result.indexes_mut() {
         Indexes::Sparse(ref mut indexes) => {
@@ -185,7 +188,7 @@ fn verify_fails_if_counts_dont_match() {
         anchored_mle_count: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = UnimplementedInnerProductTestAccessor::new_empty();
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }

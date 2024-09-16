@@ -1,5 +1,8 @@
 use super::Indexes;
-use crate::base::{polynomial::compute_evaluation_vector, scalar::Curve25519Scalar};
+use crate::{
+    base::polynomial::compute_evaluation_vector,
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
+};
 use num_traits::Zero;
 
 #[test]

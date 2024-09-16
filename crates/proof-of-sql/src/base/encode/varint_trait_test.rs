@@ -1,5 +1,5 @@
 use super::VarInt;
-use crate::base::scalar::{Curve25519Scalar, Scalar};
+use crate::base::scalar::{test_scalar::TestScalar, Scalar};
 use core::{
     fmt::Debug,
     ops::{Add, Neg},
@@ -371,19 +371,19 @@ fn we_can_encode_and_decode_small_u128_values() {
 
 #[test]
 fn we_can_encode_and_decode_small_curve25519_scalar_values() {
-    test_small_signed_values_encode_and_decode_properly::<Curve25519Scalar>(Curve25519Scalar::ONE);
+    test_small_signed_values_encode_and_decode_properly::<TestScalar>(TestScalar::ONE);
 }
 
 #[test]
 fn we_can_encode_and_decode_i128_and_curve25519_scalar_the_same() {
     let mut rng = rand::thread_rng();
-    test_encode_and_decode_types_align::<i128, Curve25519Scalar>(
+    test_encode_and_decode_types_align::<i128, TestScalar>(
         &rng.gen::<[_; 32]>(),
         &[
-            Curve25519Scalar::from(i128::MAX) + Curve25519Scalar::one(),
-            Curve25519Scalar::from(i128::MIN) - Curve25519Scalar::one(),
-            Curve25519Scalar::from(i128::MAX) * Curve25519Scalar::from(1000),
-            Curve25519Scalar::from(i128::MIN) * Curve25519Scalar::from(1000),
+            TestScalar::from(i128::MAX) + TestScalar::one(),
+            TestScalar::from(i128::MIN) - TestScalar::one(),
+            TestScalar::from(i128::MAX) * TestScalar::from(1000),
+            TestScalar::from(i128::MIN) * TestScalar::from(1000),
         ],
         100,
     );

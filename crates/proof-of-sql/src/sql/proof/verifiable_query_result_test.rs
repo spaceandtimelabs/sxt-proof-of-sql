@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     base::{
-        commitment::{Commitment, InnerProductProof},
+        commitment::{test_evaluation_proof::TestEvaluationProof, Commitment},
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
@@ -88,7 +88,7 @@ fn we_can_verify_queries_on_an_empty_table() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
+    let res = VerifiableQueryResult::<TestEvaluationProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash: _,
         table,
@@ -104,7 +104,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         ..Default::default()
     };
     let accessor = UnimplementedTestAccessor::new_empty();
-    let res = VerifiableQueryResult::<InnerProductProof> {
+    let res = VerifiableQueryResult::<TestEvaluationProof> {
         provable_result: Some(Default::default()),
         proof: None,
     };

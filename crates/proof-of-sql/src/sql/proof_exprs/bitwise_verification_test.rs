@@ -4,51 +4,45 @@ use super::{
 };
 use crate::base::{
     bit::BitDistribution,
-    scalar::Curve25519Scalar,
+    scalar::test_scalar::TestScalar,
     slice_ops::{inner_product, slice_cast},
 };
 use ark_std::UniformRand;
 use core::iter::repeat_with;
 
-fn rand_eval_vec(len: usize) -> Vec<Curve25519Scalar> {
+fn rand_eval_vec(len: usize) -> Vec<TestScalar> {
     let rng = &mut ark_std::test_rng();
-    repeat_with(|| Curve25519Scalar::rand(rng))
-        .take(len)
-        .collect()
+    repeat_with(|| TestScalar::rand(rng)).take(len).collect()
 }
 
 #[test]
 fn zero_is_within_range() {
-    let data: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(0)];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(0)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert!(is_within_acceptable_range(&dist));
 }
 
 #[test]
 fn the_sum_of_two_signed_128_bit_numbers_is_within_range() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(i128::MIN) + Curve25519Scalar::from(i128::MIN)];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(i128::MIN) + TestScalar::from(i128::MIN)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert!(is_within_acceptable_range(&dist));
 }
 
 #[test]
 fn we_reject_distributions_that_are_outside_of_maximum_range() {
-    let data: Vec<Curve25519Scalar> = vec![
-        Curve25519Scalar::from(u128::MAX)
-            + Curve25519Scalar::from(u128::MAX)
-            + Curve25519Scalar::from(u128::MAX),
+    let data: Vec<TestScalar> = vec![
+        TestScalar::from(u128::MAX) + TestScalar::from(u128::MAX) + TestScalar::from(u128::MAX),
     ];
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert!(!is_within_acceptable_range(&dist));
 }
 
 #[test]
 fn we_can_verify_the_decomposition_of_a_constant_column() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(1234), Curve25519Scalar::from(1234)];
-    let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(1234), TestScalar::from(1234)];
+    let eval_vec: Vec<TestScalar> = rand_eval_vec(data.len());
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     assert!(verify_constant_sign_decomposition(&dist, data_eval, one_eval, &[]).is_ok());
@@ -56,10 +50,9 @@ fn we_can_verify_the_decomposition_of_a_constant_column() {
 
 #[test]
 fn we_can_verify_the_decomposition_of_a_column_with_constant_sign() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(123), Curve25519Scalar::from(122)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(123), TestScalar::from(122)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     let bits = [inner_product(&slice_cast(&[1, 0]), &eval_vec)];
@@ -68,10 +61,9 @@ fn we_can_verify_the_decomposition_of_a_column_with_constant_sign() {
 
 #[test]
 fn we_can_verify_the_decomposition_of_a_constant_column_with_negative_values() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(-1234), Curve25519Scalar::from(-1234)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(-1234), TestScalar::from(-1234)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     assert!(verify_constant_sign_decomposition(&dist, data_eval, one_eval, &[]).is_ok());
@@ -79,12 +71,10 @@ fn we_can_verify_the_decomposition_of_a_constant_column_with_negative_values() {
 
 #[test]
 fn constant_verification_fails_if_the_commitment_doesnt_match() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(1234), Curve25519Scalar::from(1234)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(1234), TestScalar::from(1234)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(1235), Curve25519Scalar::from(1234)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(1235), TestScalar::from(1234)];
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     assert!(verify_constant_sign_decomposition(&dist, data_eval, one_eval, &[]).is_err());
@@ -92,12 +82,10 @@ fn constant_verification_fails_if_the_commitment_doesnt_match() {
 
 #[test]
 fn constant_verification_fails_if_the_sign_bit_doesnt_match() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(1234), Curve25519Scalar::from(1234)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(1234), TestScalar::from(1234)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(-1234), Curve25519Scalar::from(-1234)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(-1234), TestScalar::from(-1234)];
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     assert!(verify_constant_sign_decomposition(&dist, data_eval, one_eval, &[]).is_err());
@@ -105,12 +93,10 @@ fn constant_verification_fails_if_the_sign_bit_doesnt_match() {
 
 #[test]
 fn constant_verification_fails_if_a_varying_bit_doesnt_match() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(1234), Curve25519Scalar::from(1234)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(1234), TestScalar::from(1234)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(234), Curve25519Scalar::from(1234)];
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
+    let data: Vec<TestScalar> = vec![TestScalar::from(234), TestScalar::from(1234)];
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     assert!(verify_constant_sign_decomposition(&dist, data_eval, one_eval, &[]).is_err());
@@ -118,9 +104,9 @@ fn constant_verification_fails_if_a_varying_bit_doesnt_match() {
 
 #[test]
 fn we_can_verify_a_decomposition_with_only_a_varying_sign() {
-    let data: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(-1), Curve25519Scalar::from(1)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(-1), TestScalar::from(1)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     let sign_eval = inner_product(&slice_cast(&[1, 0]), &eval_vec);
@@ -129,9 +115,9 @@ fn we_can_verify_a_decomposition_with_only_a_varying_sign() {
 
 #[test]
 fn constant_abs_verification_fails_if_the_sign_and_data_dont_match() {
-    let data: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(-1), Curve25519Scalar::from(1)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(-1), TestScalar::from(1)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     let sign_eval = inner_product(&slice_cast(&[0, 1]), &eval_vec);
@@ -140,10 +126,9 @@ fn constant_abs_verification_fails_if_the_sign_and_data_dont_match() {
 
 #[test]
 fn we_can_verify_a_decomposition_with_only_a_varying_sign_and_magnitude_greater_than_one() {
-    let data: Vec<Curve25519Scalar> =
-        vec![Curve25519Scalar::from(-100), Curve25519Scalar::from(100)];
+    let data: Vec<TestScalar> = vec![TestScalar::from(-100), TestScalar::from(100)];
     let eval_vec = rand_eval_vec(data.len());
-    let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
+    let dist = BitDistribution::new::<TestScalar, _>(&data);
     let data_eval = inner_product(&data, &eval_vec);
     let one_eval = eval_vec.iter().sum();
     let sign_eval = inner_product(&slice_cast(&[1, 0]), &eval_vec);

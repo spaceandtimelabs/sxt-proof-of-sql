@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::Curve25519Scalar;
+use crate::base::scalar::test_scalar::TestScalar;
 
 #[test]
 fn test_mul_add_assign() {
@@ -29,33 +29,33 @@ fn test_mul_add_assign_uneven_panic() {
     mul_add_assign(&mut a, 10, &b);
 }
 
-/// test mul_add_assign with curve25519scalar
+/// test mul_add_assign with TestScalar
 #[test]
-fn test_mul_add_assign_curve25519scalar() {
-    let mut a = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
-    let b = vec![Curve25519Scalar::from(2u64), Curve25519Scalar::from(3u64)];
-    mul_add_assign(&mut a, Curve25519Scalar::from(10u64), &b);
+fn test_mul_add_assign_testscalar() {
+    let mut a = vec![TestScalar::from(1u64), TestScalar::from(2u64)];
+    let b = vec![TestScalar::from(2u64), TestScalar::from(3u64)];
+    mul_add_assign(&mut a, TestScalar::from(10u64), &b);
     let c = vec![
-        Curve25519Scalar::from(1u64) + Curve25519Scalar::from(10u64) * Curve25519Scalar::from(2u64),
-        Curve25519Scalar::from(2u64) + Curve25519Scalar::from(10u64) * Curve25519Scalar::from(3u64),
+        TestScalar::from(1u64) + TestScalar::from(10u64) * TestScalar::from(2u64),
+        TestScalar::from(2u64) + TestScalar::from(10u64) * TestScalar::from(3u64),
     ];
     assert_eq!(a, c);
 }
 
-/// test mul_add_assign with uneven curve25519scalars
+/// test mul_add_assign with uneven TestScalars
 #[test]
-fn test_mul_add_assign_curve25519scalar_uneven() {
+fn test_mul_add_assign_testscalar_uneven() {
     let mut a = vec![
-        Curve25519Scalar::from(1u64),
-        Curve25519Scalar::from(2u64),
-        Curve25519Scalar::from(3u64),
+        TestScalar::from(1u64),
+        TestScalar::from(2u64),
+        TestScalar::from(3u64),
     ];
-    let b = vec![Curve25519Scalar::from(2u64), Curve25519Scalar::from(3u64)];
-    mul_add_assign(&mut a, Curve25519Scalar::from(10u64), &b);
+    let b = vec![TestScalar::from(2u64), TestScalar::from(3u64)];
+    mul_add_assign(&mut a, TestScalar::from(10u64), &b);
     let c = vec![
-        Curve25519Scalar::from(1u64) + Curve25519Scalar::from(10u64) * Curve25519Scalar::from(2u64),
-        Curve25519Scalar::from(2u64) + Curve25519Scalar::from(10u64) * Curve25519Scalar::from(3u64),
-        Curve25519Scalar::from(3u64),
+        TestScalar::from(1u64) + TestScalar::from(10u64) * TestScalar::from(2u64),
+        TestScalar::from(2u64) + TestScalar::from(10u64) * TestScalar::from(3u64),
+        TestScalar::from(3u64),
     ];
     assert_eq!(a, c);
 }

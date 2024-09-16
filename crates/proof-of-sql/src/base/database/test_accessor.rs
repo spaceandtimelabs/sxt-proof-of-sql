@@ -2,8 +2,10 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor,
     SchemaAccessor, TableRef,
 };
-use crate::base::{commitment::Commitment, scalar::Curve25519Scalar};
-use curve25519_dalek::ristretto::RistrettoPoint;
+use crate::base::{
+    commitment::{naive_commitment::NaiveCommitment, Commitment},
+    scalar::test_scalar::TestScalar,
+};
 use proof_of_sql_parser::Identifier;
 
 /// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing purposes.
@@ -34,7 +36,7 @@ pub trait TestAccessor<C: Commitment>:
 #[derive(Clone, Default)]
 /// A test accessor that leaves all of the required methods except `new` `unimplemented!()`.
 pub struct UnimplementedTestAccessor;
-impl TestAccessor<RistrettoPoint> for UnimplementedTestAccessor {
+impl TestAccessor<NaiveCommitment> for UnimplementedTestAccessor {
     type Table = ();
 
     fn new_empty() -> Self {
@@ -53,13 +55,13 @@ impl TestAccessor<RistrettoPoint> for UnimplementedTestAccessor {
         unimplemented!()
     }
 }
-impl DataAccessor<Curve25519Scalar> for UnimplementedTestAccessor {
-    fn get_column(&self, _column: ColumnRef) -> Column<Curve25519Scalar> {
+impl DataAccessor<TestScalar> for UnimplementedTestAccessor {
+    fn get_column(&self, _column: ColumnRef) -> Column<TestScalar> {
         unimplemented!()
     }
 }
-impl CommitmentAccessor<RistrettoPoint> for UnimplementedTestAccessor {
-    fn get_commitment(&self, _column: ColumnRef) -> RistrettoPoint {
+impl CommitmentAccessor<NaiveCommitment> for UnimplementedTestAccessor {
+    fn get_commitment(&self, _column: ColumnRef) -> NaiveCommitment {
         unimplemented!()
     }
 }

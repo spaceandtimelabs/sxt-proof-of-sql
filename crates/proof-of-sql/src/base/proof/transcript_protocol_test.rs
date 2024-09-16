@@ -1,10 +1,10 @@
-use crate::base::{proof::transcript_protocol::*, scalar::Curve25519Scalar};
+use crate::base::{proof::transcript_protocol::*, scalar::test_scalar::TestScalar};
 use curve25519_dalek::ristretto::CompressedRistretto;
 use merlin::Transcript;
 
 #[test]
 fn test_challenge_curve25519_scalars() {
-    let zero = Curve25519Scalar::from(0u64);
+    let zero = TestScalar::from(0u64);
     let mut transcript = Transcript::new(b"multiplicationtest");
     let mut v = [zero; 3];
     transcript.challenge_scalars(&mut v, MessageLabel::SumcheckChallenge);
@@ -30,7 +30,7 @@ fn test_challenge_ark_group_elements() {
 
 #[test]
 fn we_get_different_results_with_different_transcripts() {
-    let zero = Curve25519Scalar::from(0u64);
+    let zero = TestScalar::from(0u64);
     let mut transcript = Transcript::new(b"same");
     let mut transcript2 = Transcript::new(b"different");
     let mut v = [zero; 3];
@@ -44,7 +44,7 @@ fn we_get_different_results_with_different_transcripts() {
 
 #[test]
 fn we_get_equivalent_results_with_equivalent_transcripts() {
-    let zero = Curve25519Scalar::from(0u64);
+    let zero = TestScalar::from(0u64);
     let mut transcript = Transcript::new(b"same");
     let mut transcript2 = Transcript::new(b"same");
     let mut v = [zero; 3];
@@ -63,8 +63,8 @@ fn we_can_append_ristretto_points() {
     let pts = [CompressedRistretto(bytes1), CompressedRistretto(bytes2)];
     let mut transcript1 = Transcript::new(b"ristrettotest");
     transcript1.append_auto(MessageLabel::InnerProduct, &pts[..1]);
-    let scalar1 = transcript1
-        .challenge_scalar_single::<Curve25519Scalar>(MessageLabel::InnerProductChallenge);
+    let scalar1 =
+        transcript1.challenge_scalar_single::<TestScalar>(MessageLabel::InnerProductChallenge);
 
     let mut transcript2 = Transcript::new(b"ristrettotest");
     transcript2.append_auto(MessageLabel::InnerProduct, &pts);
@@ -82,8 +82,8 @@ fn we_can_append_ark_group_elements() {
     ];
     let mut transcript1 = Transcript::new(b"arktest");
     transcript1.append_canonical_serialize(MessageLabel::InnerProduct, &pts[..1]);
-    let scalar1 = transcript1
-        .challenge_scalar_single::<Curve25519Scalar>(MessageLabel::InnerProductChallenge);
+    let scalar1 =
+        transcript1.challenge_scalar_single::<TestScalar>(MessageLabel::InnerProductChallenge);
 
     let mut transcript2 = Transcript::new(b"arktest");
     transcript2.append_canonical_serialize(MessageLabel::InnerProduct, &pts);

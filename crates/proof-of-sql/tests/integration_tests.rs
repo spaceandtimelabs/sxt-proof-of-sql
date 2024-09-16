@@ -4,10 +4,7 @@ use curve25519_dalek::RistrettoPoint;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
-    base::{
-        database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
-        scalar::Curve25519Scalar,
-    },
+    base::database::{owned_table_utility::*, OwnedTable, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
         DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
         ProverSetup, PublicParameters, VerifierSetup,
@@ -250,6 +247,8 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
+    use proof_of_sql::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
+
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
@@ -312,6 +311,8 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
+    use proof_of_sql::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
+
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "public.test_table".parse().unwrap(),
@@ -495,6 +496,8 @@ fn we_can_prove_a_complex_query_with_dory() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_minimal_group_by_query_with_curve25519() {
+    use proof_of_sql::proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar;
+
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),

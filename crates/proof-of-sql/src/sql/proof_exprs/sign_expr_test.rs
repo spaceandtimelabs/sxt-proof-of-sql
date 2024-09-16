@@ -1,6 +1,7 @@
 use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 use crate::{
-    base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
+    base::{bit::BitDistribution, polynomial::MultilinearExtension},
+    proof_primitive::inner_product::curve_25519_scalar::Curve25519Scalar,
     sql::proof::{
         CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
         VerificationBuilder,
