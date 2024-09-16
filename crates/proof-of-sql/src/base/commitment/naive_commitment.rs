@@ -142,6 +142,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::TimestampTZ(_, _, i64_vec) => {
                         i64_vec.iter().map(|b| b.into()).collect()
                     }
+                    CommittableColumn::RangeCheckWord(u8_scalar_vec) => {
+                        u8_scalar_vec.iter().map(|b| b.into()).collect()
+                    }
                 };
                 vectors.append(&mut existing_scalars);
                 vectors
