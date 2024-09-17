@@ -27,7 +27,7 @@ impl CommitmentEvaluationProof for TestEvaluationProof {
         _generators_offset: u64,
         _setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
-        unimplemented!()
+        unimplemented!("The `CommitmentEvaluationProof` methods are unimplemented for `TestEvaluationProof`. There is nothing preventing a naive implementation here. If this gets done, this type should likely be renamed as `NaiveEvaluationProof` to reflect this.")
     }
 
     fn verify_batched_proof(

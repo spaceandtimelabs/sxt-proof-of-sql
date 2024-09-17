@@ -1,9 +1,9 @@
 use super::{MontScalar, Scalar};
 use ark_ff::{Fp, MontBackend, MontConfig};
 
-/// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
+/// An implementation of `Scalar` intended for use in testing when a concrete implementation is required.
 ///
-/// Using the `Scalar` trait rather than this type is encouraged to allow for easier switching of the underlying field.
+/// Ultimately, a wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
 pub type TestScalar = MontScalar<TestMontConfig>;
 
 impl Scalar for TestScalar {

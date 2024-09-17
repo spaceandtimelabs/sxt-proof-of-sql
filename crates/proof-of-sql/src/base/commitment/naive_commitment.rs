@@ -9,7 +9,7 @@ use std::{
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
 
-/// This should only be used for the purpose of unit testing.
+/// A naive [Commitment] implementation that should only be used for the purpose of unit testing.
 #[derive(Clone, Debug, Eq, Default, Serialize, Deserialize)]
 pub struct NaiveCommitment(pub Vec<TestScalar>);
 

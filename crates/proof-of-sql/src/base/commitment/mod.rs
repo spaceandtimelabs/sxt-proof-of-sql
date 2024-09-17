@@ -77,6 +77,11 @@ pub trait Commitment:
     type PublicSetup<'a>;
 
     /// Compute the commitments for the given columns.
+    ///
+    /// The resulting commitments are written to the slice in `commitments`, which is a buffer.
+    /// `commitments` is expected to have the same length as `committable_columns` and the behavior is undefined if it does not.
+    ///
+    /// `offset` is the amount that `committable_columns` is "offset" by. Logically adding `offset` many 0s to the beginning of each of the `committable_columns`.
     fn compute_commitments(
         commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
