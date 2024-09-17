@@ -1,12 +1,171 @@
-use crate::base::{scalar::Scalar, slice_ops};
+//! Decomposes a column of scalars into a matrix of words, so that each word column can be
+//! used to produce an intermediate multi-linear extension. Produces intermediate MLEs for:
+//! * each column of words
+//! * the count of how many times each word occurs
+//!
+//! And anchored MLEs for:
+//! * all possible byte values
+//!
+//! ## Word-sized decomposition:
+//!
+//! Each row represents the byte decomposition of a scalar, and each column contains the bytes from
+//! the same byte position across all scalars. First, we produce this word-wise decomposition,
+//! as well as computing intermediate MLEs over the word columns:
+//!
+//! ```text
+//! | Column 0           | Column 1           | Column 2           | ... | Column 31           |
+//! |--------------------|--------------------|--------------------|-----|---------------------|
+//! | Byte 0 of Scalar 0 | Byte 1 of Scalar 0 | Byte 2 of Scalar 0 | ... | Byte 31 of Scalar 0 |
+//! | Byte 0 of Scalar 1 | Byte 1 of Scalar 1 | Byte 2 of Scalar 1 | ... | Byte 31 of Scalar 1 |
+//! | Byte 0 of Scalar 2 | Byte 1 of Scalar 2 | Byte 2 of Scalar 2 | ... | Byte 31 of Scalar 2 |
+//! --------------------------------------------------------------------------------------------
+//!          |                   |                    |                          |            
+//!          v                   v                    v                          v          
+//!   intermediate MLE    intermediate MLE     intermediate MLE           intermediate MLE     
+//! ```
+//!
+//! A column containing every single possible value the word can take is established and
+//! populated. An anchored MLE is produced over this column, since the verifier knows the range
+//! of the words. A column containing the counts of all of word occurrences in the decomposition
+//! matrix is established, and an intermediate MLE over this column is produced.
+//!
+//! Then, the challenge from the verifier is added to each word, and this sum is inverted. The
+//! columns, now containing the logarithmic derivative of (alpha + word), form a new
+//! matrix. The MLEs over the columns in this new matrix are computed:
+//!
+//! ```text
+//! | Column 0             | Column 1             | Column 2             | . | Column 31             |
+//! |----------------------|----------------------|----------------------|---|-----------------------|
+//! | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+//! | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+//! | 1/(Scalar 0 + alpha) | 1/(Scalar 1 + alpha) | 1/(Scalar 2 + alpha) | . | 1/(Scalar 31 + alpha) |
+//! --------------------------------------------------------------------------------------------------
+//!            |                     |                      |                              |            
+//!            v                     v                      v                              v          
+//!     intermediate MLE      intermediate MLE       intermediate MLE               intermediate MLE     
+//! ```
+//!
+//! This new matrix of logarithmic derivatives, and the original word decomposition, are
+//! sufficient to establish constraints for verification.
+//!
+//! ## Bottlenecks
+//! * batch inversion, we should try to do as few of these as possible
+//! * single-threaded evaluation; we can likely apply rayon or similar here
+
+use crate::{
+    base::{commitment::Commitment, scalar::Scalar, slice_ops},
+    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+};
+use bumpalo::Bump;
 use bytemuck::cast_slice;
+
+/// Creates word columns and produces intermediate MLEs and constraints over
+/// their requisite transformations.
+pub fn prover_evaluate_range_check<'a, S: Scalar + 'a>(
+    builder: &mut ProofBuilder<'a, S>,
+    scalars: &mut [S],
+    alloc: &'a Bump,
+) {
+    // Create 31 columns, each will collect the corresponding byte from all scalars.
+    // 31 because a scalar will only ever have 248 bits of data set.
+    let mut word_columns: Vec<&mut [u8]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| 0))
+        .collect();
+
+    // Allocate space for the eventual inverted word columns
+    let mut inverted_word_columns: Vec<&mut [S]> = (0..31)
+        .map(|_| alloc.alloc_slice_fill_with(scalars.len(), |_| S::ZERO))
+        .collect();
+
+    // Initialize a vector to count occurrences of each byte (0-255).
+    // The vector has 256 elements padded with zeros to match the length of the word columns
+    // The size is the larger of 256 or the number of scalars.
+    let byte_counts: &mut [i64] =
+        alloc.alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |_| 0);
+
+    // Store a vec of references to word slices for use following
+    // retrieval of the verifier challenge
+    let all_scalar_bytes = Vec::with_capacity(scalars.len());
+
+    decompose_scalar_to_words(scalars, &mut word_columns, byte_counts);
+
+    // Retrieve verifier challenge here, after Phase 1
+    let alpha = builder.consume_post_result_challenge();
+
+    get_logarithmic_derivative(&all_scalar_bytes, alpha, &mut inverted_word_columns);
+
+    // Produce an MLE over each column of words
+    for word_column in word_columns {
+        builder.produce_intermediate_mle(word_column as &[_]);
+    }
+
+    // Produce an MLE over each (word + alpha)^-1 column
+    for inverted_word_column in inverted_word_columns {
+        builder.produce_intermediate_mle(inverted_word_column as &[_]);
+    }
+
+    // Allocate and initialize byte_values to represent the range of possible word values
+    // from 0 to 255.
+    let word_values_plus_alpha: &mut [S] = alloc
+        .alloc_slice_fill_with(std::cmp::max(256, scalars.len()), |i| {
+            S::from(&(i as u8)) + alpha
+        });
+
+    // Next produce an MLE over the counts of each word value
+    builder.produce_intermediate_mle(byte_counts as &[_]);
+
+    // Now produce an intermediate MLE over the inverted word values + verifier challenge alpha
+    let inverted_word_values: &mut [S] = alloc.alloc_slice_fill_with(256, |i| {
+        S::try_from(i.into()).expect("word value will always fit into S") + alpha
+    });
+    slice_ops::batch_inversion(&mut inverted_word_values[..]);
+    builder.produce_intermediate_mle(inverted_word_values as &[_]);
+
+    // Phase 3: Prove
+    // (word_values + alpha) * (word_values + alpha)^(-1) - 1 = 0
+    builder.produce_sumcheck_subpolynomial(
+        SumcheckSubpolynomialType::Identity,
+        vec![
+            (
+                S::one(),
+                vec![
+                    Box::new(word_values_plus_alpha as &[_]),
+                    Box::new(inverted_word_values as &[_]),
+                ],
+            ),
+            (-S::one(), vec![]),
+        ],
+    );
+}
+
+/// Verify the prover claim
+pub fn verifier_evaluate_range_check<'a, C: Commitment + 'a>(
+    builder: &mut VerificationBuilder<'a, C>,
+) {
+    builder.consume_post_result_challenge();
+    for _ in 0..64 {
+        builder.consume_intermediate_mle();
+        let one_eval = builder.mle_evaluations.one_evaluation;
+        let res_eval = builder.consume_result_mle();
+        let eval = builder.mle_evaluations.random_evaluation * (one_eval * res_eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    }
+}
+
+/// Get a count of the intermediate MLEs, post-result challenges, and subpolynomials
+pub fn count(builder: &mut CountBuilder<'_>) {
+    builder.count_intermediate_mles(64);
+    builder.count_post_result_challenges(1);
+    builder.count_degree(2);
+    builder.count_subpolynomials(1);
+}
 
 // Decomposes a scalar to requisite words, additionally tracks the total
 // number of occurences of each word for later use in the argument.
 fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
     scalars: &mut [S],
     word_columns: &mut [&mut [u8]],
-    byte_counts: &mut [u64],
+    byte_counts: &mut [i64],
 ) {
     for (i, scalar) in scalars.iter().enumerate() {
         let scalar_array: [u64; 4] = (*scalar).into(); // Convert scalar to u64 array
