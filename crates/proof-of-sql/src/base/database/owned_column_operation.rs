@@ -4,7 +4,10 @@ use crate::base::{
     scalar::Scalar,
 };
 use core::ops::{Add, Div, Mul, Sub};
-use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
+use proof_of_sql_parser::{
+    intermediate_ast::{BinaryOperator, UnaryOperator},
+    posql_time::PoSQLTimeZone,
+};
 
 impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise NOT operation for a column
@@ -178,8 +181,41 @@ impl<S: Scalar> OwnedColumn<S> {
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::VarChar(lhs), Self::VarChar(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
-            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
-                todo!("Implement equality check for TimeStampTZ")
+            (
+                Self::TimestampTZ(lhs_unit, lhs_tz, lhs),
+                Self::TimestampTZ(rhs_unit, rhs_tz, rhs),
+            ) => {
+                if lhs.len() != rhs.len() {
+                    return Err(ColumnOperationError::DifferentColumnLength(
+                        lhs.len(),
+                        rhs.len(),
+                    ));
+                }
+
+                let lhs_normalized: Vec<i64> = lhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, lhs_tz))
+                    .collect();
+
+                let rhs_normalized: Vec<i64> = rhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, rhs_tz))
+                    .collect();
+
+                let timeunit_match = lhs_unit == rhs_unit;
+
+                let result = if !timeunit_match {
+                    slice_eq_with_casting_and_timeunit(
+                        &lhs_normalized,
+                        lhs_unit,
+                        &rhs_normalized,
+                        rhs_unit,
+                    )
+                } else {
+                    slice_eq(&lhs_normalized, &rhs_normalized)
+                };
+
+                Ok(Self::Boolean(result))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::Equal,
@@ -312,8 +348,45 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
             (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
-            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
-                todo!("Implement inequality check for TimeStampTZ")
+            (
+                Self::TimestampTZ(lhs_unit, lhs_tz, lhs),
+                Self::TimestampTZ(rhs_unit, rhs_tz, rhs),
+            ) => {
+                if lhs.len() != rhs.len() {
+                    return Err(ColumnOperationError::DifferentColumnLength(
+                        lhs.len(),
+                        rhs.len(),
+                    ));
+                }
+
+                let lhs_normalized: Vec<i64> = lhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, lhs_tz))
+                    .collect();
+
+                let rhs_normalized: Vec<i64> = rhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, rhs_tz))
+                    .collect();
+
+                let timeunit_match = lhs_unit == rhs_unit;
+
+                let result = if !timeunit_match {
+                    slice_le_with_casting_and_timeunit(
+                        &lhs_normalized,
+                        lhs_unit,
+                        &rhs_normalized,
+                        rhs_unit,
+                    )
+                } else {
+                    lhs_normalized
+                        .iter()
+                        .zip(rhs_normalized.iter())
+                        .map(|(&lhs_ts, &rhs_ts)| lhs_ts <= rhs_ts)
+                        .collect()
+                };
+
+                Ok(Self::Boolean(result))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::LessThanOrEqual,
@@ -446,8 +519,45 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
-            (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
-                todo!("Implement inequality check for TimeStampTZ")
+            (
+                Self::TimestampTZ(lhs_unit, lhs_tz, lhs),
+                Self::TimestampTZ(rhs_unit, rhs_tz, rhs),
+            ) => {
+                if lhs.len() != rhs.len() {
+                    return Err(ColumnOperationError::DifferentColumnLength(
+                        lhs.len(),
+                        rhs.len(),
+                    ));
+                }
+
+                let lhs_normalized: Vec<i64> = lhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, lhs_tz))
+                    .collect();
+
+                let rhs_normalized: Vec<i64> = rhs
+                    .iter()
+                    .map(|&ts| PoSQLTimeZone::normalize_to_utc(ts, rhs_tz))
+                    .collect();
+
+                let timeunit_match = lhs_unit == rhs_unit;
+
+                let result = if !timeunit_match {
+                    slice_ge_with_casting_and_timeunit(
+                        &lhs_normalized,
+                        lhs_unit,
+                        &rhs_normalized,
+                        rhs_unit,
+                    )
+                } else {
+                    lhs_normalized
+                        .iter()
+                        .zip(rhs_normalized.iter())
+                        .map(|(&lhs_ts, &rhs_ts)| lhs_ts >= rhs_ts)
+                        .collect()
+                };
+
+                Ok(Self::Boolean(result))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::GreaterThanOrEqual,
@@ -1046,6 +1156,7 @@ impl<S: Scalar> Div for OwnedColumn<S> {
 mod test {
     use super::*;
     use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 
     #[test]
     fn we_cannot_do_binary_operation_on_columns_with_different_lengths() {
@@ -1227,10 +1338,70 @@ mod test {
                 true, false, true
             ]))
         );
+
+        // TimestampTZ
+        let lhs_timestamps = vec![1231006505, 1231006510, 1231006520]; // Unix timestamps in seconds
+        let rhs_timestamps = vec![1231006505, 1231006510, 1231006520];
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps.clone(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            rhs_timestamps.clone(),
+        );
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, true
+            ]))
+        );
+
+        // TimestampTZ with different time zones
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps.clone(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::FixedOffset(3600), // UTC+1
+            rhs_timestamps.clone(),
+        );
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                false, false, false
+            ]))
+        );
+
+        // TimestampTZ with different precision (seconds vs milliseconds)
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps,
+        );
+        let rhs_milliseconds = vec![1231006505000, 1231006511000, 1231006520000]; // Converted to milliseconds
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Millisecond,
+            PoSQLTimeZone::Utc,
+            rhs_milliseconds,
+        );
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true // Precision mismatch should still work after adjustment
+            ]))
+        );
     }
 
     #[test]
-    fn we_can_do_le_operation_on_numeric_and_boolean_columns() {
+    fn we_can_do_le_operation_on_numeric_boolean_and_timestamp_columns() {
         // Booleans
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false]);
@@ -1283,7 +1454,7 @@ mod test {
     }
 
     #[test]
-    fn we_can_do_ge_operation_on_numeric_and_boolean_columns() {
+    fn we_can_do_ge_operation_on_numeric_boolean_and_timestamp_columns() {
         // Booleans
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, true, false]);
@@ -1331,6 +1502,66 @@ mod test {
             result,
             Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
                 true, true, false
+            ]))
+        );
+
+        // TimestampTZ
+        let lhs_timestamps = vec![1231006505, 1231006510, 1231006520]; // Unix timestamps in seconds
+        let rhs_timestamps = vec![1231006504, 1231006509, 1231006521]; // Slight difference
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps.clone(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            rhs_timestamps.clone(),
+        );
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        // TimestampTZ with different time zones
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps.clone(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::FixedOffset(3600), // UTC+1
+            rhs_timestamps.clone(),
+        );
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, true
+            ]))
+        );
+
+        // TimestampTZ with different precision (seconds vs milliseconds)
+        let lhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Second,
+            PoSQLTimeZone::Utc,
+            lhs_timestamps,
+        );
+        let rhs_milliseconds = vec![1231006505000, 1231006510000, 1231006521000]; // Converted to milliseconds
+        let rhs = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
+            PoSQLTimeUnit::Millisecond,
+            PoSQLTimeZone::Utc,
+            rhs_milliseconds,
+        );
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false // Precision mismatch should still work after adjustment
             ]))
         );
     }

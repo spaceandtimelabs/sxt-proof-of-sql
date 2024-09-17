@@ -11,7 +11,7 @@ use num_traits::{
     ops::checked::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub},
     Zero,
 };
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
+use proof_of_sql_parser::{intermediate_ast::BinaryOperator, posql_time::PoSQLTimeUnit};
 
 // For decimal type manipulation please refer to
 // https://learn.microsoft.com/en-us/sql/t-sql/data-types/precision-scale-and-length-transact-sql?view=sql-server-ver16
@@ -890,10 +890,202 @@ where
     ))
 }
 
+/// Check that slices of timestamps are equal, considering possibly different timeunits
+pub(crate) fn slice_eq_with_casting_and_timeunit(
+    lhs: &[i64],
+    lhs_unit: &PoSQLTimeUnit,
+    rhs: &[i64],
+    rhs_unit: &PoSQLTimeUnit,
+) -> Vec<bool> {
+    let lhs_adjusted: Vec<i64> = lhs
+        .iter()
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .collect();
+
+    slice_eq(&lhs_adjusted, rhs)
+}
+
+/// Check that slices of timestamps are less than or equal, considering possibly different timeunits
+pub(crate) fn slice_le_with_casting_and_timeunit(
+    lhs: &[i64],
+    lhs_unit: &PoSQLTimeUnit,
+    rhs: &[i64],
+    rhs_unit: &PoSQLTimeUnit,
+) -> Vec<bool> {
+    let lhs_adjusted: Vec<i64> = lhs
+        .iter()
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .collect();
+
+    lhs_adjusted
+        .iter()
+        .zip(rhs.iter())
+        .map(|(&lhs_ts, &rhs_ts)| lhs_ts <= rhs_ts)
+        .collect()
+}
+
+/// Check that slices of timestamps are greater than or equal, considering possibly different timeunits
+pub(crate) fn slice_ge_with_casting_and_timeunit(
+    lhs: &[i64],
+    lhs_unit: &PoSQLTimeUnit,
+    rhs: &[i64],
+    rhs_unit: &PoSQLTimeUnit,
+) -> Vec<bool> {
+    let lhs_adjusted: Vec<i64> = lhs
+        .iter()
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .collect();
+
+    lhs_adjusted
+        .iter()
+        .zip(rhs.iter())
+        .map(|(&lhs_ts, &rhs_ts)| lhs_ts >= rhs_ts)
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::base::scalar::Curve25519Scalar;
+
+    #[test]
+    fn we_can_slice_le_with_casting_and_timeunit_equal() {
+        // Both slices are equal and in seconds
+        let lhs = vec![1231006505, 1231006506, 1231006507];
+        let rhs = vec![1231006505, 1231006506, 1231006507];
+        let result = slice_le_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_ge_with_casting_and_timeunit_equal() {
+        // Both slices are equal and in seconds
+        let lhs = vec![1231006505, 1231006506, 1231006507];
+        let rhs = vec![1231006505, 1231006506, 1231006507];
+        let result = slice_ge_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_le_with_casting_and_timeunit_less_than() {
+        // LHS is less than RHS
+        let lhs = vec![1231006504, 1231006505, 1231006506];
+        let rhs = vec![1231006505, 1231006506, 1231006507];
+        let result = slice_le_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_ge_with_casting_and_timeunit_greater_than() {
+        // LHS is greater than RHS
+        let lhs = vec![1231006506, 1231006507, 1231006508];
+        let rhs = vec![1231006505, 1231006506, 1231006507];
+        let result = slice_ge_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_le_with_casting_and_timeunit_mixed_time_units() {
+        // LHS in seconds, RHS in milliseconds
+        let lhs = vec![1231006505, 1231006506, 1231006507]; // in seconds
+        let rhs = vec![1231006505000, 1231006506000, 1231006507000]; // in milliseconds
+        let result = slice_le_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Millisecond,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_ge_with_casting_and_timeunit_mixed_time_units() {
+        // LHS in seconds, RHS in milliseconds
+        let lhs = vec![1231006505, 1231006506, 1231006507]; // in seconds
+        let rhs = vec![1231006505000, 1231006506000, 1231006507000]; // in milliseconds
+        let result = slice_ge_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Millisecond,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_le_with_casting_and_timeunit_mixed_results() {
+        let lhs = vec![1231006505, 1231006508, 1231006506];
+        let rhs = vec![1231006506, 1231006507, 1231006508];
+        let result = slice_le_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, false, true]);
+    }
+
+    #[test]
+    fn we_can_slice_ge_with_casting_and_timeunit_mixed_results() {
+        // Mixed values
+        let lhs = vec![1231006506, 1231006507, 1231006508];
+        let rhs = vec![1231006505, 1231006507, 1231006508];
+        let result = slice_ge_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, vec![true, true, true]);
+    }
+
+    #[test]
+    fn we_can_slice_le_with_casting_and_timeunit_edge_case() {
+        // LHS in seconds, RHS in microseconds
+        let lhs = vec![1231006505]; // in seconds
+        let rhs = vec![1231006505000000]; // in microseconds
+        let result = slice_le_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Microsecond,
+        );
+        assert_eq!(result, vec![true]);
+    }
+
+    #[test]
+    fn we_can_slice_ge_with_casting_and_timeunit_edge_case() {
+        // LHS in seconds, RHS in microseconds
+        let lhs = vec![1231006505]; // in seconds
+        let rhs = vec![1231006505000000]; // in microseconds
+        let result = slice_ge_with_casting_and_timeunit(
+            &lhs,
+            &PoSQLTimeUnit::Second,
+            &rhs,
+            &PoSQLTimeUnit::Microsecond,
+        );
+        assert_eq!(result, vec![true]);
+    }
 
     #[test]
     fn we_can_add_numeric_types() {

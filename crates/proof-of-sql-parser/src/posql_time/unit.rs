@@ -15,6 +15,40 @@ pub enum PoSQLTimeUnit {
     Nanosecond,
 }
 
+impl PoSQLTimeUnit {
+    /// Convert the numerical unit of one timeunit to another for comparison purposes.
+    pub fn normalize_timeunit(
+        timestamp: i64,
+        from_unit: &PoSQLTimeUnit,
+        to_unit: &PoSQLTimeUnit,
+    ) -> i64 {
+        match (from_unit, to_unit) {
+            // Conversions from Seconds
+            (PoSQLTimeUnit::Second, PoSQLTimeUnit::Millisecond) => timestamp * 1000,
+            (PoSQLTimeUnit::Second, PoSQLTimeUnit::Microsecond) => timestamp * 1_000_000,
+            (PoSQLTimeUnit::Second, PoSQLTimeUnit::Nanosecond) => timestamp * 1_000_000_000,
+
+            // Conversions from Milliseconds
+            (PoSQLTimeUnit::Millisecond, PoSQLTimeUnit::Second) => timestamp / 1000,
+            (PoSQLTimeUnit::Millisecond, PoSQLTimeUnit::Microsecond) => timestamp * 1000,
+            (PoSQLTimeUnit::Millisecond, PoSQLTimeUnit::Nanosecond) => timestamp * 1_000_000,
+
+            // Conversions from Microseconds
+            (PoSQLTimeUnit::Microsecond, PoSQLTimeUnit::Second) => timestamp / 1_000_000,
+            (PoSQLTimeUnit::Microsecond, PoSQLTimeUnit::Millisecond) => timestamp / 1000,
+            (PoSQLTimeUnit::Microsecond, PoSQLTimeUnit::Nanosecond) => timestamp * 1000,
+
+            // Conversions from Nanoseconds
+            (PoSQLTimeUnit::Nanosecond, PoSQLTimeUnit::Second) => timestamp / 1_000_000_000,
+            (PoSQLTimeUnit::Nanosecond, PoSQLTimeUnit::Millisecond) => timestamp / 1_000_000,
+            (PoSQLTimeUnit::Nanosecond, PoSQLTimeUnit::Microsecond) => timestamp / 1000,
+
+            // If units are the same, no adjustment is needed
+            _ => timestamp,
+        }
+    }
+}
+
 impl TryFrom<&str> for PoSQLTimeUnit {
     type Error = PoSQLTimestampError;
     fn try_from(value: &str) -> Result<Self, PoSQLTimestampError> {
@@ -103,5 +137,148 @@ mod time_unit_tests {
             result.timestamp().timestamp_nanos_opt().unwrap(),
             expected.timestamp_nanos_opt().unwrap()
         );
+    }
+    #[test]
+    fn test_normalize_timeunit_seconds_to_milliseconds() {
+        let timestamp = 1231006505; // seconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Second,
+            &PoSQLTimeUnit::Millisecond,
+        );
+        assert_eq!(result, 1231006505000); // converted to milliseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_seconds_to_microseconds() {
+        let timestamp = 1231006505; // seconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Second,
+            &PoSQLTimeUnit::Microsecond,
+        );
+        assert_eq!(result, 1231006505000000); // converted to microseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_seconds_to_nanoseconds() {
+        let timestamp = 1231006505; // seconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Second,
+            &PoSQLTimeUnit::Nanosecond,
+        );
+        assert_eq!(result, 1231006505000000000); // converted to nanoseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_milliseconds_to_seconds() {
+        let timestamp = 1231006505000; // milliseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Millisecond,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, 1231006505); // converted to seconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_milliseconds_to_microseconds() {
+        let timestamp = 1231006505; // milliseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Millisecond,
+            &PoSQLTimeUnit::Microsecond,
+        );
+        assert_eq!(result, 1231006505000); // converted to microseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_milliseconds_to_nanoseconds() {
+        let timestamp = 1231006505; // milliseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Millisecond,
+            &PoSQLTimeUnit::Nanosecond,
+        );
+        assert_eq!(result, 1231006505000000); // converted to nanoseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_microseconds_to_seconds() {
+        let timestamp = 1231006505000000; // microseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Microsecond,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, 1231006505); // converted to seconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_microseconds_to_milliseconds() {
+        let timestamp = 1231006505000; // microseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Microsecond,
+            &PoSQLTimeUnit::Millisecond,
+        );
+        assert_eq!(result, 1231006505); // converted to milliseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_microseconds_to_nanoseconds() {
+        let timestamp = 1231006505; // microseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Microsecond,
+            &PoSQLTimeUnit::Nanosecond,
+        );
+        assert_eq!(result, 1231006505000); // converted to nanoseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_nanoseconds_to_seconds() {
+        let timestamp = 1231006505000000000; // nanoseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Nanosecond,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, 1231006505); // converted to seconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_nanoseconds_to_milliseconds() {
+        let timestamp = 1231006505000000; // nanoseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Nanosecond,
+            &PoSQLTimeUnit::Millisecond,
+        );
+        assert_eq!(result, 1231006505); // converted to milliseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_nanoseconds_to_microseconds() {
+        let timestamp = 1231006505000; // nanoseconds
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Nanosecond,
+            &PoSQLTimeUnit::Microsecond,
+        );
+        assert_eq!(result, 1231006505); // converted to microseconds
+    }
+
+    #[test]
+    fn test_normalize_timeunit_same_units() {
+        // If from_unit and to_unit are the same, it should return the timestamp as is
+        let timestamp = 1231006505;
+        let result = PoSQLTimeUnit::normalize_timeunit(
+            timestamp,
+            &PoSQLTimeUnit::Second,
+            &PoSQLTimeUnit::Second,
+        );
+        assert_eq!(result, timestamp); // No conversion needed
     }
 }

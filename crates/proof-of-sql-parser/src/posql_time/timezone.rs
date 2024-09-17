@@ -21,6 +21,15 @@ impl PoSQLTimeZone {
             PoSQLTimeZone::FixedOffset(offset)
         }
     }
+
+    /// For comparisons, normalize a timestamp based on a timezone offset so
+    /// it can be compared to another timestamp.
+    pub fn normalize_to_utc(timestamp: i64, tz: &PoSQLTimeZone) -> i64 {
+        match tz {
+            PoSQLTimeZone::Utc => timestamp, // No adjustment needed
+            PoSQLTimeZone::FixedOffset(offset) => timestamp - *offset as i64, // Adjust by offset in seconds
+        }
+    }
 }
 
 impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
@@ -74,7 +83,7 @@ impl fmt::Display for PoSQLTimeZone {
 
 #[cfg(test)]
 mod timezone_parsing_tests {
-    use crate::posql_time::timezone;
+    use crate::posql_time::{timezone, PoSQLTimeZone, PoSQLTimestamp};
 
     #[test]
     fn test_display_fixed_offset_positive() {
@@ -93,11 +102,6 @@ mod timezone_parsing_tests {
         let timezone = timezone::PoSQLTimeZone::Utc;
         assert_eq!(format!("{}", timezone), "+00:00");
     }
-}
-
-#[cfg(test)]
-mod timezone_offset_tests {
-    use crate::posql_time::{timestamp::PoSQLTimestamp, timezone};
 
     #[test]
     fn test_utc_timezone() {
@@ -129,5 +133,44 @@ mod timezone_offset_tests {
         let expected_timezone = timezone::PoSQLTimeZone::Utc; // Zero offset defaults to UTC
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timezone(), expected_timezone);
+    }
+
+    #[test]
+    fn test_from_offset() {
+        // UTC case
+        let tz = PoSQLTimeZone::from_offset(0);
+        assert!(matches!(tz, PoSQLTimeZone::Utc));
+
+        // Fixed offset case
+        let tz = PoSQLTimeZone::from_offset(3600); // UTC+1
+        assert!(matches!(tz, PoSQLTimeZone::FixedOffset(3600)));
+
+        // Negative offset case (UTC-5)
+        let tz = PoSQLTimeZone::from_offset(-18000);
+        assert!(matches!(tz, PoSQLTimeZone::FixedOffset(-18000)));
+    }
+
+    #[test]
+    fn test_normalize_to_utc_with_utc() {
+        let timestamp = 1231006505; // Unix timestamp in seconds
+        let tz = PoSQLTimeZone::Utc;
+        let normalized = PoSQLTimeZone::normalize_to_utc(timestamp, &tz);
+        assert_eq!(normalized, timestamp); // No adjustment for UTC
+    }
+
+    #[test]
+    fn test_normalize_to_utc_with_positive_offset() {
+        let timestamp = 1231006505; // Unix timestamp in seconds
+        let tz = PoSQLTimeZone::FixedOffset(3600); // UTC+1 (3600 seconds offset)
+        let normalized = PoSQLTimeZone::normalize_to_utc(timestamp, &tz);
+        assert_eq!(normalized, 1231006505 - 3600); // Adjusted by 1 hour
+    }
+
+    #[test]
+    fn test_normalize_to_utc_with_negative_offset() {
+        let timestamp = 1231006505; // Unix timestamp in seconds
+        let tz = PoSQLTimeZone::FixedOffset(-18000); // UTC-5 (18000 seconds offset)
+        let normalized = PoSQLTimeZone::normalize_to_utc(timestamp, &tz);
+        assert_eq!(normalized, 1231006505 + 18000); // Adjusted by 5 hours
     }
 }
