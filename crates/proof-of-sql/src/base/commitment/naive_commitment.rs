@@ -167,7 +167,7 @@ fn we_can_compute_commitments_from_commitable_columns() {
     let column_b_scalars: Vec<TestScalar> = column_b.iter().map(|b| b.into()).collect();
     let commitable_column_a = CommittableColumn::BigInt(&column_a);
     let commitable_column_b = CommittableColumn::VarChar(column_b);
-    let committable_columns: &[CommittableColumn] = &vec![commitable_column_a, commitable_column_b];
+    let committable_columns: &[CommittableColumn] = &[commitable_column_a, commitable_column_b];
     let mut commitments: Vec<NaiveCommitment> = vec![NaiveCommitment(Vec::new()); 2];
     NaiveCommitment::compute_commitments(&mut commitments, committable_columns, 0, &());
     assert_eq!(commitments[0].0, column_a_scalars);
@@ -179,7 +179,7 @@ fn we_can_compute_commitments_from_commitable_columns_with_offset() {
     let column_a = [0i64, 1, 10, -5, 0, 10];
     let column_a_scalars: Vec<TestScalar> = column_a.iter().map(|a| a.into()).collect();
     let commitable_column_a = CommittableColumn::BigInt(&column_a[1..]);
-    let committable_columns: &[CommittableColumn] = &vec![commitable_column_a];
+    let committable_columns: &[CommittableColumn] = &[commitable_column_a];
     let mut commitments: Vec<NaiveCommitment> = vec![NaiveCommitment(Vec::new()); 2];
     NaiveCommitment::compute_commitments(&mut commitments, committable_columns, 1, &());
     assert_eq!(commitments[0].0, column_a_scalars);
