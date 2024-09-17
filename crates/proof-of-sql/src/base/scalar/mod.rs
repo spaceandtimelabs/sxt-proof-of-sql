@@ -13,6 +13,8 @@ mod mont_scalar_from_test;
 /// Module for a test Scalar
 #[cfg(test)]
 pub mod test_scalar;
+#[cfg(test)]
+mod test_scalar_test;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]
