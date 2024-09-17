@@ -80,19 +80,19 @@ impl PartialEq for NaiveCommitment {
 impl core::ops::Mul<NaiveCommitment> for TestScalar {
     type Output = NaiveCommitment;
     fn mul(self, rhs: NaiveCommitment) -> Self::Output {
-        NaiveCommitment(rhs.0.iter().map(|s| self * *s).collect())
+        self * &rhs
     }
 }
 impl core::ops::Mul<TestScalar> for NaiveCommitment {
     type Output = NaiveCommitment;
     fn mul(self, rhs: TestScalar) -> Self::Output {
-        NaiveCommitment(self.0.iter().map(|s| rhs * *s).collect())
+        &self * rhs
     }
 }
 impl core::ops::Mul<&NaiveCommitment> for TestScalar {
     type Output = NaiveCommitment;
     fn mul(self, rhs: &NaiveCommitment) -> Self::Output {
-        NaiveCommitment(rhs.0.iter().map(|s| self * *s).collect())
+        rhs * self
     }
 }
 impl core::ops::Mul<TestScalar> for &NaiveCommitment {
