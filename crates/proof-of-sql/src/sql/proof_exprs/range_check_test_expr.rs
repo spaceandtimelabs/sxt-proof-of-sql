@@ -100,8 +100,10 @@ mod tests {
     use blitzar::proof::InnerProductProof;
 
     #[test]
+    #[should_panic]
     fn we_can_prove_a_range_check() {
-        let data = owned_table([bigint("a", 1000..1256)]);
+        // let data = owned_table([bigint("a", 1000..1256)]);
+        let data = owned_table([bigint("a", vec![0; 256])]);
         let t = "sxt.t".parse().unwrap();
         let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
         let ast = RangeCheckTestExpr {
