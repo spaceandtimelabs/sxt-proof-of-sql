@@ -899,7 +899,7 @@ pub(crate) fn slice_eq_with_casting_and_timeunit(
 ) -> Vec<bool> {
     let lhs_adjusted: Vec<i64> = lhs
         .iter()
-        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, *lhs_unit, *rhs_unit))
         .collect();
 
     slice_eq(&lhs_adjusted, rhs)
@@ -914,7 +914,7 @@ pub(crate) fn slice_le_with_casting_and_timeunit(
 ) -> Vec<bool> {
     let lhs_adjusted: Vec<i64> = lhs
         .iter()
-        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, *lhs_unit, *rhs_unit))
         .collect();
 
     lhs_adjusted
@@ -933,7 +933,7 @@ pub(crate) fn slice_ge_with_casting_and_timeunit(
 ) -> Vec<bool> {
     let lhs_adjusted: Vec<i64> = lhs
         .iter()
-        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, lhs_unit, rhs_unit))
+        .map(|&ts| PoSQLTimeUnit::normalize_timeunit(ts, *lhs_unit, *rhs_unit))
         .collect();
 
     lhs_adjusted
