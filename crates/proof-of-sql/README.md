@@ -35,7 +35,7 @@ Get started with Proof of SQL by using the published crate on [crates.io](https:
 * NVIDIA GPU & Drivers (Strongly Recommended)
 * lld (`sudo apt install lld`)
 * clang (`sudo apt install clang`)
-* [Rust 1.78.0](https://www.rust-lang.org/tools/install)
+* [Rust 1.81.0](https://www.rust-lang.org/tools/install)
 
 <!-- TDDO: add this in when we put it on crates.io
 
