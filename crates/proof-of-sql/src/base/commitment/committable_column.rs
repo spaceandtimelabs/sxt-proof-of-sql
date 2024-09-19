@@ -117,6 +117,12 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     }
 }
 
+impl<'a, S: Scalar> From<Column<'a, S>> for CommittableColumn<'a> {
+    fn from(value: Column<'a, S>) -> Self {
+        (&value).into()
+    }
+}
+
 impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {

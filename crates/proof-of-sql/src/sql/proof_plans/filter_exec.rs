@@ -118,9 +118,9 @@ where
             builder,
             alpha,
             beta,
-            columns_evals,
+            &columns_evals,
             selection_eval,
-            filtered_columns_evals.clone(),
+            &filtered_columns_evals,
         )?;
         Ok(filtered_columns_evals)
     }
@@ -202,8 +202,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
-        filtered_columns.iter().for_each(|column| {
-            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        filtered_columns.iter().cloned().for_each(|column| {
+            builder.produce_intermediate_mle(column);
         });
 
         let alpha = builder.consume_post_result_challenge();
@@ -227,9 +227,9 @@ fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
     beta: C::Scalar,
-    c_evals: Vec<C::Scalar>,
+    c_evals: &[C::Scalar],
     s_eval: C::Scalar,
-    d_evals: Vec<C::Scalar>,
+    d_evals: &[C::Scalar],
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
 
@@ -238,8 +238,8 @@ fn verify_filter<C: Commitment>(
         None => return Err(ProofError::VerificationError("Result indexes not valid.")),
     };
 
-    let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
-    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);
+    let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
+    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
     let d_star_eval = builder.consume_intermediate_mle();
 

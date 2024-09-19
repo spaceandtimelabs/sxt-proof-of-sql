@@ -95,7 +95,7 @@ where
     slice_like_mle_impl!();
 }
 
-impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
+impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
     fn inner_product(&self, evaluation_vec: &[S]) -> S {
         match self {
             Column::Boolean(c) => c.inner_product(evaluation_vec),
@@ -150,5 +150,23 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
             Column::Decimal75(_, _, c) => MultilinearExtension::<S>::id(c),
             Column::TimestampTZ(_, _, c) => MultilinearExtension::<S>::id(c),
         }
+    }
+}
+
+impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
+    fn inner_product(&self, evaluation_vec: &[S]) -> S {
+        (&self).inner_product(evaluation_vec)
+    }
+
+    fn mul_add(&self, res: &mut [S], multiplier: &S) {
+        (&self).mul_add(res, multiplier)
+    }
+
+    fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {
+        (&self).to_sumcheck_term(num_vars)
+    }
+
+    fn id(&self) -> *const c_void {
+        (&self).id()
     }
 }
