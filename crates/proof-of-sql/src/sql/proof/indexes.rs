@@ -92,11 +92,11 @@ impl Indexes {
             Indexes::Dense(range) => {
                 if range.is_empty() {
                     Some(Zero::zero())
-                } else {
-                    // Do not run `compute_truncated_lagrange_basis_sum` if the range is too large.
-                    if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
-                        return None;
-                    }
+                } else if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
+                    // This only happens when the indexes are tampered with.
+                    None
+                }
+                {
                     Some(
                         compute_truncated_lagrange_basis_sum(range.end as usize, evaluation_point)
                             - compute_truncated_lagrange_basis_sum(
