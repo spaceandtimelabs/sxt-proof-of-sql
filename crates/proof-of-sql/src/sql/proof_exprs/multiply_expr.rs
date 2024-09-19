@@ -105,8 +105,10 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
         let lhs_times_rhs = builder.consume_intermediate_mle();
 
         // subpolynomial: lhs_times_rhs - lhs * rhs
-        let eval = builder.mle_evaluations.random_evaluation * (lhs_times_rhs - lhs * rhs);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            lhs_times_rhs - lhs * rhs,
+        );
 
         // selection
         Ok(lhs_times_rhs)

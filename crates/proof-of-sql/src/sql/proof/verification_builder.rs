@@ -1,4 +1,4 @@
-use super::SumcheckMleEvaluations;
+use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, commitment::Commitment};
 use num_traits::Zero;
 
@@ -105,9 +105,18 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
-    pub fn produce_sumcheck_subpolynomial_evaluation(&mut self, eval: &C::Scalar) {
-        self.sumcheck_evaluation +=
-            self.subpolynomial_multipliers[self.produced_subpolynomials] * *eval;
+    pub fn produce_sumcheck_subpolynomial_evaluation(
+        &mut self,
+        subpolynomial_type: SumcheckSubpolynomialType,
+        eval: C::Scalar,
+    ) {
+        self.sumcheck_evaluation += self.subpolynomial_multipliers[self.produced_subpolynomials]
+            * match subpolynomial_type {
+                SumcheckSubpolynomialType::Identity => {
+                    eval * self.mle_evaluations.random_evaluation
+                }
+                SumcheckSubpolynomialType::ZeroSum => eval,
+            };
         self.produced_subpolynomials += 1;
     }
 

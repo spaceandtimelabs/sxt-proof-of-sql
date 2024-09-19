@@ -131,8 +131,10 @@ pub fn verifier_evaluate_or<C: Commitment>(
     let lhs_and_rhs = builder.consume_intermediate_mle();
 
     // subpolynomial: lhs_and_rhs - lhs * rhs
-    let eval = builder.mle_evaluations.random_evaluation * (lhs_and_rhs - *lhs * *rhs);
-    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        lhs_and_rhs - *lhs * *rhs,
+    );
 
     // selection
     *lhs + *rhs - lhs_and_rhs

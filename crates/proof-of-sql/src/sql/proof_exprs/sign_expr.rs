@@ -180,9 +180,10 @@ fn verify_bits_are_binary<C: Commitment>(
     bit_evals: &[C::Scalar],
 ) {
     for bit_eval in bit_evals.iter() {
-        let mut eval = *bit_eval - *bit_eval * *bit_eval;
-        eval *= builder.mle_evaluations.random_evaluation;
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            *bit_eval - *bit_eval * *bit_eval,
+        );
     }
 }
 
@@ -237,6 +238,5 @@ fn verify_bit_decomposition<C: Commitment>(
         eval -= C::Scalar::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
-    eval *= builder.mle_evaluations.random_evaluation;
-    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(SumcheckSubpolynomialType::Identity, eval);
 }

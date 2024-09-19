@@ -150,13 +150,16 @@ pub fn verifier_evaluate_equals_zero<C: Commitment>(
     let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
 
     // subpolynomial: selection * lhs
-    let eval = builder.mle_evaluations.random_evaluation * (selection_eval * lhs_eval);
-    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        selection_eval * lhs_eval,
+    );
 
     // subpolynomial: selection_not - lhs * lhs_pseudo_inv
-    let eval = builder.mle_evaluations.random_evaluation
-        * (selection_not_eval - lhs_eval * lhs_pseudo_inv_eval);
-    builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::Identity,
+        selection_not_eval - lhs_eval * lhs_pseudo_inv_eval,
+    );
 
     selection_eval
 }

@@ -226,7 +226,6 @@ fn verify_filter<C: Commitment>(
     d_evals: Vec<C::Scalar>,
 ) -> Result<Vec<C::Scalar>, ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
-    let rand_eval = builder.mle_evaluations.random_evaluation;
 
     let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
         Some(eval) => eval,
@@ -239,16 +238,21 @@ fn verify_filter<C: Commitment>(
     let d_star_eval = builder.consume_intermediate_mle();
 
     // sum c_star * s - d_star = 0
-    builder.produce_sumcheck_subpolynomial_evaluation(&(c_star_eval * s_eval - d_star_eval));
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::ZeroSum,
+        c_star_eval * s_eval - d_star_eval,
+    );
 
     // c_fold * c_star - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &(rand_eval * (c_fold_eval * c_star_eval - one_eval)),
+        SumcheckSubpolynomialType::Identity,
+        c_fold_eval * c_star_eval - one_eval,
     );
 
     // d_bar_fold * d_star - chi = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &(rand_eval * (d_bar_fold_eval * d_star_eval - chi_eval)),
+        SumcheckSubpolynomialType::Identity,
+        d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
     Ok(c_evals)
