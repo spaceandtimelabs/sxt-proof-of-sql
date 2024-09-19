@@ -317,7 +317,6 @@ fn verify_group_by<C: Commitment>(
     (g_out_evals, sum_out_evals, count_out_eval): (Vec<C::Scalar>, Vec<C::Scalar>, C::Scalar),
 ) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
-    let rand_eval = builder.mle_evaluations.random_evaluation;
 
     // g_in_fold = alpha + sum beta^j * g_in[j]
     let g_in_fold_eval = alpha * one_eval + fold_vals(beta, &g_in_evals);
@@ -333,18 +332,20 @@ fn verify_group_by<C: Commitment>(
 
     // sum g_in_star * sel_in * sum_in_fold - g_out_star * sum_out_bar_fold = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &(g_in_star_eval * sel_in_eval * sum_in_fold_eval
-            - g_out_star_eval * sum_out_bar_fold_eval),
+        SumcheckSubpolynomialType::ZeroSum,
+        g_in_star_eval * sel_in_eval * sum_in_fold_eval - g_out_star_eval * sum_out_bar_fold_eval,
     );
 
     // g_in_star * g_in_fold - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &(rand_eval * (g_in_star_eval * g_in_fold_eval - one_eval)),
+        SumcheckSubpolynomialType::Identity,
+        g_in_star_eval * g_in_fold_eval - one_eval,
     );
 
     // g_out_star * g_out_bar_fold - 1 = 0
     builder.produce_sumcheck_subpolynomial_evaluation(
-        &(rand_eval * (g_out_star_eval * g_out_bar_fold_eval - one_eval)),
+        SumcheckSubpolynomialType::Identity,
+        g_out_star_eval * g_out_bar_fold_eval - one_eval,
     );
 
     Ok(())

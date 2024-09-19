@@ -1,5 +1,5 @@
 use super::{SumcheckMleEvaluations, VerificationBuilder};
-use crate::base::scalar::Curve25519Scalar;
+use crate::{base::scalar::Curve25519Scalar, sql::proof::SumcheckSubpolynomialType};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use num_traits::Zero;
 use rand_core::OsRng;
@@ -45,8 +45,14 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         &[][..],
         Vec::new(),
     );
-    builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::from(2u64));
-    builder.produce_sumcheck_subpolynomial_evaluation(&Curve25519Scalar::from(3u64));
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::ZeroSum,
+        Curve25519Scalar::from(2u64),
+    );
+    builder.produce_sumcheck_subpolynomial_evaluation(
+        SumcheckSubpolynomialType::ZeroSum,
+        Curve25519Scalar::from(3u64),
+    );
     let expected_sumcheck_evaluation = subpolynomial_multipliers[0] * Curve25519Scalar::from(2u64)
         + subpolynomial_multipliers[1] * Curve25519Scalar::from(3u64);
     assert_eq!(builder.sumcheck_evaluation(), expected_sumcheck_evaluation);

@@ -97,8 +97,10 @@ impl<C: Commitment> ProofExpr<C> for AndExpr<C> {
         let lhs_and_rhs = builder.consume_intermediate_mle();
 
         // subpolynomial: lhs_and_rhs - lhs * rhs
-        let eval = builder.mle_evaluations.random_evaluation * (lhs_and_rhs - lhs * rhs);
-        builder.produce_sumcheck_subpolynomial_evaluation(&eval);
+        builder.produce_sumcheck_subpolynomial_evaluation(
+            SumcheckSubpolynomialType::Identity,
+            lhs_and_rhs - lhs * rhs,
+        );
 
         // selection
         Ok(lhs_and_rhs)
