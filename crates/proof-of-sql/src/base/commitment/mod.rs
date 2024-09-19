@@ -40,6 +40,17 @@ pub use table_commitment::{
 mod query_commitments;
 pub use query_commitments::{QueryCommitments, QueryCommitmentsExt};
 
+/// Module for providing a mock commitment.
+#[cfg(test)]
+pub mod naive_commitment;
+
+/// Module for providing a test commitment evaluation proof.
+#[cfg(test)]
+pub mod test_evaluation_proof;
+
+#[cfg(test)]
+mod naive_commitment_test;
+
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
@@ -66,6 +77,12 @@ pub trait Commitment:
     type PublicSetup<'a>;
 
     /// Compute the commitments for the given columns.
+    ///
+    /// The resulting commitments are written to the slice in `commitments`, which is a buffer.
+    /// `commitments` is expected to have the same length as `committable_columns` and the behavior is undefined if it does not.
+    /// The length of each CommittableColumn should be the same.
+    ///
+    /// `offset` is the amount that `committable_columns` is "offset" by. Logically adding `offset` many 0s to the beginning of each of the `committable_columns`.
     fn compute_commitments(
         commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
