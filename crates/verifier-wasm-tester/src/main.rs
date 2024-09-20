@@ -11,13 +11,12 @@ use proof_of_sql::{
         DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
         VerifierSetup,
     },
-    sql::{parse::QueryExpr, proof::ProofPlan, proof::ProvableQueryResult, proof::QueryProof},
+    sql::{
+        parse::QueryExpr,
+        proof::{ProofPlan, ProvableQueryResult, QueryProof},
+    },
 };
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::PathBuf;
-use std::process::ExitCode;
+use std::{env, fs::File, io::prelude::*, path::PathBuf, process::ExitCode};
 
 struct VerifierInputs {
     query: String,
