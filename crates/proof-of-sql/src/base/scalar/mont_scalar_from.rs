@@ -1,4 +1,5 @@
 use crate::base::scalar::MontScalar;
+use alloc::string::String;
 use ark_ff::MontConfig;
 use num_traits::Zero;
 

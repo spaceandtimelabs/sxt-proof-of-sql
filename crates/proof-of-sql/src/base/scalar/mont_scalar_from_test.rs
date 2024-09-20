@@ -1,4 +1,5 @@
 use crate::base::scalar::{Curve25519Scalar, Scalar};
+use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
 use core::cmp::Ordering;
 use indexmap::IndexSet;

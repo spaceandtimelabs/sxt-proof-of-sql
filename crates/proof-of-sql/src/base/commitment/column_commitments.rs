@@ -3,11 +3,16 @@ use super::{
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
 use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use alloc::{
+    borrow::ToOwned,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
 use core::{iter, slice};
 use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use std::vec;
 use thiserror::Error;
 
 /// Cannot create commitments with duplicate identifier.

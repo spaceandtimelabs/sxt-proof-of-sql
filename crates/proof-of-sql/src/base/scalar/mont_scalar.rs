@@ -1,5 +1,6 @@
 use super::{Scalar, ScalarConversionError};
 use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
+use alloc::{format, vec::Vec};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;

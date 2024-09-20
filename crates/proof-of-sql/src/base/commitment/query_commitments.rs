@@ -3,6 +3,7 @@ use crate::base::database::{
     ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
     TableRef,
 };
+use alloc::vec::Vec;
 use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 

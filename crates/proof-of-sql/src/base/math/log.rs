@@ -1,5 +1,5 @@
+use core::mem;
 use num_traits::{PrimInt, Unsigned};
-use std::mem;
 
 pub fn log2_down<T: PrimInt + Unsigned>(x: T) -> usize {
     mem::size_of::<T>() * 8 - (x.leading_zeros() as usize) - 1

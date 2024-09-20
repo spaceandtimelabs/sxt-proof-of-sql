@@ -4,6 +4,7 @@ use crate::base::{
     ref_into::RefInto,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};

@@ -1,9 +1,9 @@
-use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
-use std::{
+use core::{
     fmt,
     fmt::{Display, Formatter},
     str::FromStr,
 };
+use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]

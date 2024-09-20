@@ -4,6 +4,7 @@ pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
+use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
