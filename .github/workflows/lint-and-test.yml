@@ -4,6 +4,9 @@ on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - davidsebek/wasm-experiments
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -89,6 +92,49 @@ jobs:
         run: cargo run --example hello_world --features="blitzar test"
       - name: Run posql_db example
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
+
+  test-wasm:
+    name: Test Wasm
+    runs-on: large-8-core-32gb-22-04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-wasm-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+      - name: Install Dependencies
+        run: |
+          export DEBIAN_FRONTEND=non-interactive
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+      - name: Add Wasm toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install --force wasm-pack
+      - name: Install Deno
+        run: curl -fsSL https://deno.land/install.sh | sh
+      - name: Build a Wasm
+        run: |
+          CARGO_PROFILE_RELEASE_OPT_LEVEL=z wasm-pack build --release --target deno --no-typescript --no-pack ./crates/verifier-wasm
+          rm -rf ./verifier-wasm-artifacts
+          mv ./crates/verifier-wasm/pkg ./verifier-wasm-artifacts
+      - name: Generate test inputs
+        run: |
+          cargo run -p verifier-wasm-tester -- ./verifier-wasm-inputs
+      - name: Run Wasm with Deno
+        run: |
+          export DENO_INSTALL="$HOME/.deno"
+          export PATH="$DENO_INSTALL/bin:$PATH"
+          deno run --allow-read crates/verifier-wasm-tester/js/run_verifier_wasm.js ./verifier-wasm-inputs | tail -1 | grep 'Verification SUCCESS'
 
   clippy:
     name: Clippy

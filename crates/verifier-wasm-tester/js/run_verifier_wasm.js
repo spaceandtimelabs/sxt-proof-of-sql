@@ -39,3 +39,5 @@ switch (ret) {
     default:
         console.log("Unexpected return value: " + ret);
 }
+
+Deno.exit(ret)
