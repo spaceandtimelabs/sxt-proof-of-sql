@@ -19,6 +19,10 @@ $ cargo install wasm-pack
 Build a Wasm version of the verifier:
 ```
 $ CARGO_PROFILE_RELEASE_OPT_LEVEL=z wasm-pack build --release --target deno --no-typescript --no-pack ./crates/verifier-wasm
+```
+
+(Optional) Move the result to a new directory:
+```
 $ rm -rf ./verifier-wasm-artifacts
 $ mv ./crates/verifier-wasm/pkg ./verifier-wasm-artifacts
 $ rm verifier-wasm-artifacts/.gitignore
@@ -46,6 +50,11 @@ See the [verifier-wasm-tester](../verifier-wasm-tester/README.md) crate for the 
 
 `wasm-pack` uses Cargo, `wasm-bindgen` and `wasm-opt` to build and optimize the Wasm binary. This section shows how to build the Wasm using these tools directly instead of using `wasm-pack`.
 
+Enable the Wasm build target:
+```
+$ rustup target add wasm32-unknown-unknown
+```
+
 Install `wasm-bindgen` command-line tool (the version must be the same as the version of the `wasm-bindgen` library with which the Wasm will be built):
 ```
 $ cargo install --force wasm-bindgen-cli --version 0.2.93
@@ -60,6 +69,10 @@ $ cargo install --force wasm-opt
 Build a Wasm version of the verifier:
 ```
 $ CARGO_PROFILE_RELEASE_OPT_LEVEL=z cargo build -p verifier-wasm --release --no-default-features --target wasm32-unknown-unknown
+```
+
+Generate JavaScript bindings:
+```
 $ wasm-bindgen --target deno --no-typescript ./target/wasm32-unknown-unknown/release/verifier_wasm.wasm --out-dir ./verifier-wasm-artifacts
 ```
 
