@@ -7,12 +7,16 @@ pub use accessor::{CommitmentAccessor, DataAccessor, MetadataAccessor, SchemaAcc
 mod column;
 pub use column::{Column, ColumnField, ColumnRef, ColumnType};
 
+#[cfg(feature = "std")]
 mod column_operation;
+#[cfg(feature = "std")]
 pub use column_operation::{
     try_add_subtract_column_types, try_divide_column_types, try_multiply_column_types,
 };
 
+#[cfg(feature = "std")]
 mod column_operation_error;
+#[cfg(feature = "std")]
 pub use column_operation_error::{ColumnOperationError, ColumnOperationResult};
 
 mod literal_value;
@@ -44,20 +48,26 @@ mod owned_column_error;
 pub use owned_column_error::{OwnedColumnError, OwnedColumnResult};
 
 /// TODO: add docs
+#[cfg(feature = "std")]
 pub(crate) mod owned_column_operation;
 
 mod owned_table;
 pub use owned_table::OwnedTable;
 pub(crate) use owned_table::OwnedTableError;
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod owned_table_test;
 pub mod owned_table_utility;
 
 /// TODO: add docs
+#[cfg(feature = "std")]
 pub(crate) mod expression_evaluation;
+#[cfg(feature = "std")]
 mod expression_evaluation_error;
 #[cfg(test)]
+#[cfg(feature = "std")]
 mod expression_evaluation_test;
+#[cfg(feature = "std")]
 pub use expression_evaluation_error::{ExpressionEvaluationError, ExpressionEvaluationResult};
 
 #[cfg(feature = "arrow")]
@@ -68,20 +78,27 @@ pub use owned_and_arrow_conversions::OwnedArrowConversionError;
 mod owned_and_arrow_conversions_test;
 
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "std")]
 mod test_accessor;
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "std")]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
+#[cfg(feature = "std")]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
 
 #[cfg(test)]
+#[cfg(feature = "std")]
 mod test_schema_accessor;
 #[cfg(test)]
+#[cfg(feature = "std")]
 pub(crate) use test_schema_accessor::TestSchemaAccessor;
 
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "std")]
 mod owned_table_test_accessor;
 #[cfg(any(test, feature = "test"))]
+#[cfg(feature = "std")]
 pub use owned_table_test_accessor::OwnedTableTestAccessor;
 #[cfg(all(test, feature = "blitzar"))]
 mod owned_table_test_accessor_test;
@@ -90,10 +107,14 @@ mod owned_table_test_accessor_test;
 pub mod scalar_and_i256_conversions;
 
 /// TODO: add docs
+#[cfg(feature = "std")]
 pub(crate) mod filter_util;
 #[cfg(test)]
+#[cfg(feature = "std")]
 mod filter_util_test;
 
+#[cfg(feature = "std")]
 pub(crate) mod group_by_util;
 #[cfg(test)]
+#[cfg(feature = "std")]
 mod group_by_util_test;

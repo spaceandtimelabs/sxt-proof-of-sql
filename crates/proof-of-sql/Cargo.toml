@@ -72,9 +72,11 @@ flexbuffers = { workspace = true }
 development = ["arrow-csv"]
 
 [features]
-default = ["arrow", "blitzar"]
-arrow = ["dep:arrow"]
-test = ["dep:rand"]
+default = ["arrow", "blitzar", "std"]
+arrow = ["dep:arrow", "std"]
+test = ["dep:rand", "std"]
+blitzar = ["dep:blitzar", "std"]
+std = []
 
 [lints]
 workspace = true

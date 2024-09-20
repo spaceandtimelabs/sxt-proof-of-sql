@@ -543,6 +543,7 @@ impl From<&ColumnField> for Field {
     }
 }
 
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use super::*;

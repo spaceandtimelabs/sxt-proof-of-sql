@@ -94,6 +94,7 @@ mod tests {
         assert_ne!(transcript1.challenge_as_le(), transcript2.challenge_as_le());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn we_can_extend_transcript_with_wrapped_transcript() {
         let mut transcript1: Keccak256Transcript = Transcript::new();

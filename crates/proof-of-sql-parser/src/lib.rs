@@ -43,6 +43,8 @@ macro_rules! impl_serde_from_str {
             where
                 S: serde::Serializer,
             {
+                extern crate alloc;
+                use alloc::string::ToString;
                 serializer.serialize_str(&self.to_string())
             }
         }
@@ -51,7 +53,8 @@ macro_rules! impl_serde_from_str {
             where
                 D: serde::Deserializer<'d>,
             {
-                let string = String::deserialize(deserializer)?;
+                extern crate alloc;
+                let string = alloc::string::String::deserialize(deserializer)?;
                 <$type>::from_str(&string).map_err(serde::de::Error::custom)
             }
         }
