@@ -45,9 +45,11 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features
       - name: Run cargo check (proof-of-sql) (all features)
         run: cargo check -p proof-of-sql --all-features
-      - name: Run cargo check (proof-of-sql) (just "test" feature)
+      - name: Run cargo check (proof-of-sql) (just "std" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="std"
+      - name: Run cargo check (proof-of-sql) (just "test" (and "std") feature)
         run: cargo check -p proof-of-sql --no-default-features --features="test"
-      - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
+      - name: Run cargo check (proof-of-sql) (just "blitzar" (and "std") feature)
         run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
 
   test:
@@ -75,11 +77,13 @@ jobs:
           sudo apt-get install -y clang lld
       - name: Run cargo test
         run: cargo test --all-features
-      - name: Dry run cargo test (proof-of-sql) (test feature only)
+      - name: Dry run cargo test (proof-of-sql) (std feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
+      - name: Dry run cargo test (proof-of-sql) (test (and "std") feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
-      - name: Dry run cargo test (proof-of-sql) (arrow feature only)
+      - name: Dry run cargo test (proof-of-sql) (arrow (and "std") feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
-      - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
+      - name: Dry run cargo test (proof-of-sql) (blitzar (and "std") feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
       - name: Dry run cargo test (proof-of-sql) (no features)
         run: cargo test -p proof-of-sql --no-run --no-default-features
