@@ -189,7 +189,7 @@ mod tests {
     fn we_can_convert_from_columns() {
         // empty case
         let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
-            &Vec::<Column<Curve25519Scalar>>::new(),
+            Vec::<Column<Curve25519Scalar>>::new(),
             0,
             &(),
         );
