@@ -3,9 +3,11 @@ use super::{
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
 use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use core::{iter, slice};
 use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use std::vec;
 use thiserror::Error;
 
 /// Cannot create commitments with duplicate identifier.
@@ -269,8 +271,8 @@ impl<C: Commitment> ColumnCommitments<C> {
 }
 
 /// Owning iterator for [`ColumnCommitments`].
-pub type IntoIter<C> = std::iter::Map<
-    std::iter::Zip<<ColumnCommitmentMetadataMap as IntoIterator>::IntoIter, std::vec::IntoIter<C>>,
+pub type IntoIter<C> = iter::Map<
+    iter::Zip<<ColumnCommitmentMetadataMap as IntoIterator>::IntoIter, vec::IntoIter<C>>,
     fn(((Identifier, ColumnCommitmentMetadata), C)) -> (Identifier, ColumnCommitmentMetadata, C),
 >;
 
@@ -286,11 +288,8 @@ impl<C> IntoIterator for ColumnCommitments<C> {
 }
 
 /// Borrowing iterator for [`ColumnCommitments`].
-pub type Iter<'a, C> = std::iter::Map<
-    std::iter::Zip<
-        <&'a ColumnCommitmentMetadataMap as IntoIterator>::IntoIter,
-        std::slice::Iter<'a, C>,
-    >,
+pub type Iter<'a, C> = iter::Map<
+    iter::Zip<<&'a ColumnCommitmentMetadataMap as IntoIterator>::IntoIter, slice::Iter<'a, C>>,
     fn(
         ((&'a Identifier, &'a ColumnCommitmentMetadata), &'a C),
     ) -> (&'a Identifier, &'a ColumnCommitmentMetadata, &'a C),
