@@ -4,9 +4,6 @@ on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches:
-      - davidsebek/wasm-experiments
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
