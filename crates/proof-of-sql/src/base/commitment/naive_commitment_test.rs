@@ -2,6 +2,7 @@ use crate::base::{
     commitment::naive_commitment::NaiveCommitment,
     scalar::{test_scalar::TestScalar, Scalar},
 };
+use alloc::vec::Vec;
 
 // PartialEq Tests
 

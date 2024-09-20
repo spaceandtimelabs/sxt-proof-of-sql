@@ -3,6 +3,7 @@ use super::{
     CommittableColumn,
 };
 use crate::base::database::ColumnField;
+use alloc::string::{String, ToString};
 use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 use thiserror::Error;
@@ -132,6 +133,7 @@ mod tests {
         database::{owned_table_utility::*, ColumnType, OwnedTable},
         scalar::Curve25519Scalar,
     };
+    use alloc::vec::Vec;
     use itertools::Itertools;
 
     fn metadata_map_from_owned_table(

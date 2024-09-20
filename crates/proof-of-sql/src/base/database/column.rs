@@ -3,20 +3,21 @@ use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
+use alloc::{sync::Arc, vec::Vec};
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    mem::size_of,
+};
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt,
-    fmt::{Display, Formatter},
-    sync::Arc,
-};
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -546,6 +547,10 @@ impl From<&ColumnField> for Field {
 mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use alloc::{
+        string::{String, ToString},
+        vec,
+    };
 
     #[test]
     fn column_type_serializes_to_string() {

@@ -17,6 +17,8 @@ use super::{
     U256,
 };
 use crate::base::scalar::MontScalar;
+#[cfg(test)]
+use alloc::{vec, vec::Vec};
 use ark_ff::MontConfig;
 
 /// Most-significant byte, == 0x80

@@ -1,4 +1,5 @@
 use crate::base::database::ColumnType;
+use alloc::string::String;
 use thiserror::Error;
 
 /// Errors from operations related to `OwnedColumn`s.

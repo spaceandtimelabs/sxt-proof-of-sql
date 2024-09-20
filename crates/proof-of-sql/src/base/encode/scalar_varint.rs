@@ -3,7 +3,7 @@ use crate::base::{
     scalar::MontScalar,
 };
 use ark_ff::MontConfig;
-use std::cmp::{max, Ordering};
+use core::cmp::{max, Ordering};
 
 /// This function writes the input scalar x as a varint encoding to buf slice
 ///

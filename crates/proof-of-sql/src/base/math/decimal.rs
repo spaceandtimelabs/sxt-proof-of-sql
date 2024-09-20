@@ -1,5 +1,9 @@
 //! Module for parsing an `IntermediateDecimal` into a `Decimal75`.
 use crate::base::scalar::{Scalar, ScalarConversionError};
+use alloc::{
+    format,
+    string::{String, ToString},
+};
 use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;

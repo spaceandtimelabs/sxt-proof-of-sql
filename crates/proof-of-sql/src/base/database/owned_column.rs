@@ -10,6 +10,10 @@ use crate::base::{
     },
     scalar::Scalar,
 };
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::cmp::Ordering;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection,
@@ -344,6 +348,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
 mod test {
     use super::*;
     use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
+    use alloc::vec;
     use bumpalo::Bump;
     use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 

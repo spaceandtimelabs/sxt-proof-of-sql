@@ -3,11 +3,13 @@ use crate::base::{
     commitment::CommittableColumn,
     scalar::{test_scalar::TestScalar, Scalar},
 };
-use serde::{Deserialize, Serialize};
-use std::{
+use alloc::{vec, vec::Vec};
+use core::{
+    cmp,
     fmt::Debug,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
+use serde::{Deserialize, Serialize};
 
 /// A naive [Commitment] implementation that should only be used for the purpose of unit testing.
 #[derive(Clone, Debug, Eq, Default, Serialize, Deserialize)]

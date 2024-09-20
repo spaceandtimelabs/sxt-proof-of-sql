@@ -1,4 +1,5 @@
 use crate::base::scalar::{Curve25519Scalar, Scalar, ScalarConversionError};
+use alloc::format;
 use num_bigint::BigInt;
 use num_traits::{Inv, One};
 

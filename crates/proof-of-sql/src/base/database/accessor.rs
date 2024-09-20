@@ -3,6 +3,7 @@ use crate::base::{
     database::{Column, ColumnRef, ColumnType, TableRef},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use proof_of_sql_parser::Identifier;
 
 /// Access metadata of a table span in a database.

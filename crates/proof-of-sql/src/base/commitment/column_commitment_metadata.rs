@@ -1,7 +1,7 @@
 use super::{column_bounds::BoundsInner, committable_column::CommittableColumn, ColumnBounds};
 use crate::base::database::ColumnType;
+use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use thiserror::Error;
 
 /// Errors that can occur when constructing invalid [`ColumnCommitmentMetadata`].
@@ -169,6 +169,7 @@ mod tests {
         commitment::column_bounds::Bounds, database::OwnedColumn, math::decimal::Precision,
         scalar::Curve25519Scalar,
     };
+    use alloc::string::String;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
     #[test]
