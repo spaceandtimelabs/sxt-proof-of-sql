@@ -107,6 +107,8 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
             target/
           key: ${{ runner.os }}-cargo-test-wasm-${{ hashFiles('**/Cargo.toml') }}
       - name: Install stable toolchain
@@ -119,7 +121,7 @@ jobs:
       - name: Add Wasm toolchain
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install --force wasm-pack
+          cargo install wasm-pack
       - name: Install Deno
         run: curl -fsSL https://deno.land/install.sh | sh
       - name: Build a Wasm
