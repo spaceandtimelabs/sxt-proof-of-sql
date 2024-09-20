@@ -168,7 +168,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // verify sizes
         if !self.validate_sizes(&counts) {
-            Err(ProofError::VerificationError("invalid proof size"))?;
+            Err(ProofError::VerificationError {
+                error: "invalid proof size",
+            })?;
         }
 
         // construct a transcript for the proof
@@ -250,9 +252,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         )?;
         // check the evaluation of the result MLEs
         if verifier_evaluations != result_evaluations {
-            Err(ProofError::VerificationError(
-                "result evaluation check failed",
-            ))?;
+            Err(ProofError::VerificationError {
+                error: "result evaluation check failed",
+            })?;
         }
 
         // perform the evaluation check of the sumcheck polynomial

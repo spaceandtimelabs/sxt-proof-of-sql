@@ -119,7 +119,7 @@ mod tests {
 
         // empty case
         let commitments = Vec::<DoryCommitment>::from_columns_with_offset(
-            &Vec::<Column<DoryScalar>>::new(),
+            Vec::<Column<DoryScalar>>::new(),
             0,
             &setup,
         );

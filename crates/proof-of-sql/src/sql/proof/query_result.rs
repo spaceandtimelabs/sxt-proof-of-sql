@@ -38,7 +38,8 @@ pub enum QueryError {
     InvalidTable {
         /// The underlying source error
         source: OwnedTableError,
-    }/// The number of columns in the table was invalid.
+    },
+    /// The number of columns in the table was invalid.
     #[snafu(display("Invalid number of columns"))]
     InvalidColumnCount,
 }
