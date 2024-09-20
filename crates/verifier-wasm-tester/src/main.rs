@@ -11,9 +11,7 @@ use proof_of_sql::{
         DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, ProverSetup, PublicParameters,
         VerifierSetup,
     },
-    sql::{
-        parse::QueryExpr, proof::ProofExecutionPlan, proof::ProvableQueryResult, proof::QueryProof,
-    },
+    sql::{parse::QueryExpr, proof::ProofPlan, proof::ProvableQueryResult, proof::QueryProof},
 };
 use std::env;
 use std::fs::File;
