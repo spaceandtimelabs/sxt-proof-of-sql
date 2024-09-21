@@ -1,7 +1,8 @@
 use super::intermediate_ast::{OrderBy, SetExpression, Slice, TableExpression};
 use crate::{sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{fmt, ops::Deref, str::FromStr};
 use serde::{Deserialize, Serialize};
-use std::{fmt, ops::Deref, str::FromStr};
 
 /// Representation of a select statement, that is, the only type of queries allowed.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]

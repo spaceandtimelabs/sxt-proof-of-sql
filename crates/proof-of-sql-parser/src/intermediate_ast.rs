@@ -5,12 +5,13 @@
 ***/
 
 use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp, Identifier};
-use core::hash::Hash;
-use serde::{Deserialize, Serialize};
-use std::{
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::{
     fmt,
     fmt::{Display, Formatter},
+    hash::Hash,
 };
+use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]

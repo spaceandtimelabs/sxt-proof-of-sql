@@ -6,10 +6,10 @@
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
+use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
-use core::hash::Hash;
+use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use std::{fmt, str::FromStr};
 use thiserror::Error;
 
 /// Errors related to the processing of decimal values in proof-of-sql
@@ -157,6 +157,7 @@ impl TryFrom<IntermediateDecimal> for i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
 
     #[test]
     fn test_valid_decimal_simple() {

@@ -1,3 +1,4 @@
+use alloc::string::String;
 use thiserror::Error;
 
 /// Errors encountered during the parsing process

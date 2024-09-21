@@ -1,6 +1,7 @@
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
+use alloc::{format, string::ToString};
 use arrayvec::ArrayString;
-use std::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
+use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
@@ -87,6 +88,7 @@ impl AsRef<str> for Identifier {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{borrow::ToOwned, vec, vec::Vec};
 
     #[test]
     fn from_str_identifier() {

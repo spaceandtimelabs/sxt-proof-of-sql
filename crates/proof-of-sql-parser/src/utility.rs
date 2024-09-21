@@ -1,4 +1,5 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
+use alloc::{boxed::Box, vec, vec::Vec};
 
 /// Construct an identifier from a str
 pub fn ident(name: &str) -> Identifier {
