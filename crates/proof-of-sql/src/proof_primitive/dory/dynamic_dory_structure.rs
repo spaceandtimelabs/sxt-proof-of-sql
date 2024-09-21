@@ -39,7 +39,6 @@ pub(crate) fn row_start_index(row: usize) -> usize {
     width_of_row * (row - width_of_row / 2)
 }
 /// Returns the (row, column) in the matrix where the data with the given index belongs.
-#[cfg(test)]
 pub(crate) fn row_and_column_from_index(index: usize) -> (usize, usize) {
     let width_of_row = 1 << (((2 * index + 1).ilog2() + 1) / 2);
     let row = index / width_of_row + width_of_row / 2;

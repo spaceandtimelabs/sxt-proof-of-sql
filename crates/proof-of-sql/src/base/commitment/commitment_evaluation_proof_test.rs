@@ -94,7 +94,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
         table_length,
         verifier_setup,
     );
-    assert!(r.is_ok());
+    assert!(r.is_ok(), "verification improperly failed");
 
     // Invalid Transcript
     let mut transcript = Transcript::new(b"evaluation_proof_wrong");
@@ -107,7 +107,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
         table_length,
         verifier_setup,
     );
-    assert!(r.is_err());
+    assert!(r.is_err(), "verification improperly succeeded");
 
     // Invalid Product
     let mut transcript = Transcript::new(b"evaluation_proof");
@@ -120,7 +120,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
         table_length,
         verifier_setup,
     );
-    assert!(r.is_err());
+    assert!(r.is_err(), "verification improperly succeeded");
 
     // Invalid offset
     let wrong_offset = if offset == 0 { 1 } else { 0 };
@@ -134,7 +134,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
         table_length,
         verifier_setup,
     );
-    assert!(r.is_err());
+    assert!(r.is_err(), "verification improperly succeeded");
 }
 
 #[test]
