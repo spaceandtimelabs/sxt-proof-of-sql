@@ -16,8 +16,8 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
-    #[error(transparent)]
-    ParseError(#[from] ParseBigDecimalError),
+    #[error("{0}")]
+    ParseError(ParseBigDecimalError),
     /// Error occurs when this decimal cannot fit in a primitive.
     #[error("Value out of range for target type")]
     OutOfRange,
@@ -27,6 +27,11 @@ pub enum IntermediateDecimalError {
     /// Cannot cast this decimal to a big integer
     #[error("Conversion to integer failed")]
     ConversionFailure,
+}
+impl From<ParseBigDecimalError> for IntermediateDecimalError {
+    fn from(value: ParseBigDecimalError) -> Self {
+        IntermediateDecimalError::ParseError(value)
+    }
 }
 
 impl Eq for IntermediateDecimalError {}

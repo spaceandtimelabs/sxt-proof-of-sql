@@ -1,6 +1,6 @@
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
 use arrayvec::ArrayString;
-use std::{cmp::Ordering, fmt, str::FromStr};
+use std::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
@@ -70,7 +70,7 @@ impl PartialOrd<str> for Identifier {
     }
 }
 
-impl std::ops::Deref for Identifier {
+impl Deref for Identifier {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
