@@ -49,6 +49,10 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
         run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+      - name: Install no_std target
+        run: rustup target add thumbv7em-none-eabi
+      - name: Run cargo check (proof-of-sql-parser) with no_std target
+        run: cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
 
   test:
     name: Test Suite

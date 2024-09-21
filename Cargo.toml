@@ -38,8 +38,8 @@ flexbuffers = { version = "2.0.0" }
 # forge-script = { git = "https://github.com/foundry-rs/foundry", tag = "nightly-bf1a39980532f76cd76fd87ee32661180f606435" }
 indexmap = { version = "2.1" }
 itertools = { version = "0.13.0" }
-lalrpop = { version = "0.21.0" }
-lalrpop-util = { version = "0.20.0", default-features = false }
+lalrpop = { git = "https://github.com/lalrpop/lalrpop", rev = "9e0ccd64aab70e166614b34be932cc58c407945c" }
+lalrpop-util = { git = "https://github.com/lalrpop/lalrpop", rev = "9e0ccd64aab70e166614b34be932cc58c407945c", default-features = false }
 lazy_static = { version = "1.4.0" }
 merlin = { version = "2" }
 num-traits = { version = "0.2" }
@@ -54,7 +54,7 @@ rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1" }
-thiserror = { version = "1", default-features = false }
+thiserror = { git = "https://github.com/dtolnay/thiserror", rev = "44737a516b7fd0cc9dabcab07e7b1f927f8f5636", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 # tokio = { version = "1.39.3" }
 tracing = { version = "0.1.36" }
