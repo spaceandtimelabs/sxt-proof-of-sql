@@ -3,11 +3,13 @@ use crate::base::{
     commitment::CommittableColumn,
     scalar::{test_scalar::TestScalar, Scalar},
 };
-use serde::{Deserialize, Serialize};
-use std::{
+use alloc::{vec, vec::Vec};
+use core::{
+    cmp,
     fmt::Debug,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
+use serde::{Deserialize, Serialize};
 
 /// A naive [Commitment] implementation that should only be used for the purpose of unit testing.
 #[derive(Clone, Debug, Eq, Default, Serialize, Deserialize)]
@@ -62,13 +64,13 @@ impl AddAssign for NaiveCommitment {
 impl PartialEq for NaiveCommitment {
     fn eq(&self, other: &Self) -> bool {
         match self.0.len().cmp(&other.0.len()) {
-            std::cmp::Ordering::Less => {
+            cmp::Ordering::Less => {
                 let mut extended_self = self.0.clone();
                 extended_self.extend((self.0.len()..other.0.len()).map(|_i| TestScalar::ZERO));
                 extended_self == other.0
             }
-            std::cmp::Ordering::Equal => self.0 == other.0,
-            std::cmp::Ordering::Greater => {
+            cmp::Ordering::Equal => self.0 == other.0,
+            cmp::Ordering::Greater => {
                 let mut extended_other = other.0.clone();
                 extended_other.extend((other.0.len()..self.0.len()).map(|_i| TestScalar::ZERO));
                 extended_other == self.0

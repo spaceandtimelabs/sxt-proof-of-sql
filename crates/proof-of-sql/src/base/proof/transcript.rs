@@ -1,4 +1,5 @@
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A public-coin transcript.
@@ -55,6 +56,7 @@ pub trait Transcript {
 mod tests {
     use super::Transcript;
     use crate::base::proof::Keccak256Transcript;
+    use alloc::{string::ToString, vec};
 
     #[test]
     fn we_can_extend_transcript_with_serialize() {

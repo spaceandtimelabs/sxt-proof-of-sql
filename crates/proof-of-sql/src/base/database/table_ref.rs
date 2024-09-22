@@ -1,5 +1,9 @@
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
-use std::str::FromStr;
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -37,8 +41,8 @@ impl FromStr for TableRef {
     }
 }
 
-impl std::fmt::Display for TableRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for TableRef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.resource_id.fmt(f)
     }
 }

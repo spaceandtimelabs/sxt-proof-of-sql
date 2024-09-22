@@ -8,12 +8,13 @@ use crate::base::{
     database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 #[cfg(feature = "arrow")]
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use core::ops::Range;
 use proof_of_sql_parser::{Identifier, ParseError};
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
 use thiserror::Error;
 
 /// Cannot create a [`TableCommitment`] with a negative range.

@@ -1,10 +1,12 @@
 use super::{Scalar, ScalarConversionError};
 use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
+use alloc::{format, vec::Vec};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
 use core::{
     cmp::Ordering,
+    fmt,
     fmt::{Debug, Display, Formatter},
     hash::{Hash, Hasher},
     iter::{Product, Sum},
@@ -96,7 +98,7 @@ impl<T: MontConfig<4>> Default for MontScalar<T> {
     }
 }
 impl<T: MontConfig<4>> Debug for MontScalar<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("MontScalar").field(&self.0).finish()
     }
 }
@@ -292,7 +294,7 @@ impl<T: MontConfig<4>> From<&MontScalar<T>> for [u64; 4] {
 }
 
 impl<T: MontConfig<4>> Display for MontScalar<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let sign = match f.sign_plus() {
             true => {
                 let n = -self;

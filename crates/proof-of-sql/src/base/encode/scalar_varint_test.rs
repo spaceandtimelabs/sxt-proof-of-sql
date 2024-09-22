@@ -3,6 +3,7 @@ use super::scalar_varint::{
     write_scalar_varint, write_scalar_varints,
 };
 use crate::base::{encode::U256, scalar::Curve25519Scalar};
+use alloc::vec;
 
 #[test]
 fn small_scalars_are_encoded_as_positive_varints_and_consume_few_bytes() {

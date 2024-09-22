@@ -3,16 +3,21 @@ use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
 };
+use alloc::{sync::Arc, vec::Vec};
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    mem::size_of,
+};
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -314,9 +319,9 @@ impl ColumnType {
             return None;
         }
         self.to_integer_bits().and_then(|self_bits| {
-            other.to_integer_bits().and_then(|other_bits| {
-                Self::from_integer_bits(std::cmp::max(self_bits, other_bits))
-            })
+            other
+                .to_integer_bits()
+                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits)))
         })
     }
 
@@ -353,12 +358,12 @@ impl ColumnType {
     /// Returns the byte size of the column type.
     pub fn byte_size(&self) -> usize {
         match self {
-            Self::Boolean => std::mem::size_of::<bool>(),
-            Self::SmallInt => std::mem::size_of::<i16>(),
-            Self::Int => std::mem::size_of::<i32>(),
-            Self::BigInt | Self::TimestampTZ(_, _) => std::mem::size_of::<i64>(),
-            Self::Int128 => std::mem::size_of::<i128>(),
-            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => std::mem::size_of::<[u64; 4]>(),
+            Self::Boolean => size_of::<bool>(),
+            Self::SmallInt => size_of::<i16>(),
+            Self::Int => size_of::<i32>(),
+            Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
+            Self::Int128 => size_of::<i128>(),
+            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
         }
     }
 
@@ -441,8 +446,8 @@ impl TryFrom<DataType> for ColumnType {
 }
 
 /// Display the column type as a str name (in all caps)
-impl std::fmt::Display for ColumnType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ColumnType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
@@ -542,6 +547,10 @@ impl From<&ColumnField> for Field {
 mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use alloc::{
+        string::{String, ToString},
+        vec,
+    };
 
     #[test]
     fn column_type_serializes_to_string() {

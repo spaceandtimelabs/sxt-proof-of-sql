@@ -1,3 +1,4 @@
+use alloc::{format, string::String, vec::Vec};
 use thiserror::Error;
 
 /// An error that occurs when working with permutations
@@ -78,6 +79,7 @@ impl Permutation {
 #[cfg(test)]
 mod test {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_apply_permutation() {
