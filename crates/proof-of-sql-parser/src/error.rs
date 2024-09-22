@@ -1,3 +1,4 @@
+use alloc::string::String;
 use thiserror::Error;
 
 /// Errors encountered during the parsing process
@@ -16,4 +17,4 @@ pub enum ParseError {
 
 /// General parsing error that may occur, for example if the provided schema/object_name strings
 /// aren't valid postgres-style identifiers (excluding dollar signs).
-pub type ParseResult<T> = std::result::Result<T, ParseError>;
+pub type ParseResult<T> = Result<T, ParseError>;

@@ -5,7 +5,12 @@
 ***/
 
 use crate::{intermediate_decimal::IntermediateDecimal, posql_time::PoSQLTimestamp, Identifier};
-use core::hash::Hash;
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    hash::Hash,
+};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
@@ -128,8 +133,8 @@ pub enum AggregationOperator {
     First,
 }
 
-impl std::fmt::Display for AggregationOperator {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for AggregationOperator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             AggregationOperator::Max => write!(f, "max"),
             AggregationOperator::Min => write!(f, "min"),
@@ -290,9 +295,9 @@ pub enum OrderByDirection {
     Desc,
 }
 
-impl std::fmt::Display for OrderByDirection {
+impl Display for OrderByDirection {
     // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             OrderByDirection::Asc => write!(f, "asc"),
             OrderByDirection::Desc => write!(f, "desc"),

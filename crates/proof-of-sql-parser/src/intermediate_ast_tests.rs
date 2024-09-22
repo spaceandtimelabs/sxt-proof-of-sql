@@ -5,6 +5,7 @@ use crate::{
     utility::*,
     SelectStatement,
 };
+use alloc::{borrow::ToOwned, string::ToString, vec};
 
 // Sting parser tests
 #[test]

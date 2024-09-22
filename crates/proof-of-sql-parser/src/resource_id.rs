@@ -1,6 +1,10 @@
 //! This file defines the resource identifier type.
 use crate::{impl_serde_from_str, sql::ResourceIdParser, Identifier, ParseError, ParseResult};
-use std::{
+use alloc::{
+    format,
+    string::{String, ToString},
+};
+use core::{
     fmt::{self, Display},
     str::FromStr,
 };

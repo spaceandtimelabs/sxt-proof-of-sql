@@ -6,18 +6,18 @@
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
+use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
-use core::hash::Hash;
+use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use std::{fmt, str::FromStr};
 use thiserror::Error;
 
 /// Errors related to the processing of decimal values in proof-of-sql
 #[derive(Error, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
-    #[error(transparent)]
-    ParseError(#[from] ParseBigDecimalError),
+    #[error("{0}")]
+    ParseError(ParseBigDecimalError),
     /// Error occurs when this decimal cannot fit in a primitive.
     #[error("Value out of range for target type")]
     OutOfRange,
@@ -27,6 +27,11 @@ pub enum IntermediateDecimalError {
     /// Cannot cast this decimal to a big integer
     #[error("Conversion to integer failed")]
     ConversionFailure,
+}
+impl From<ParseBigDecimalError> for IntermediateDecimalError {
+    fn from(value: ParseBigDecimalError) -> Self {
+        IntermediateDecimalError::ParseError(value)
+    }
 }
 
 impl Eq for IntermediateDecimalError {}
@@ -152,6 +157,7 @@ impl TryFrom<IntermediateDecimal> for i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
 
     #[test]
     fn test_valid_decimal_simple() {

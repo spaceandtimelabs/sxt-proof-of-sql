@@ -1,4 +1,5 @@
 use super::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use alloc::{format, string::ToString};
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use core::hash::Hash;
 use serde::{Deserialize, Serialize};
@@ -230,7 +231,6 @@ mod tests {
         // Parse timestamps
         let before_leap_dt = PoSQLTimestamp::try_from(before_leap_second).unwrap();
         let leap_second_dt = PoSQLTimestamp::try_from(leap_second).unwrap();
-        dbg!(&leap_second_dt.timestamp.timestamp());
         let after_leap_dt = PoSQLTimestamp::try_from(after_leap_second).unwrap();
 
         // Ensure that "23:59:60Z" - 1 second is considered equivalent to "23:59:59Z"

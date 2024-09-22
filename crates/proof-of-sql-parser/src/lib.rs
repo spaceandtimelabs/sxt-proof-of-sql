@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
 pub mod intermediate_decimal;
@@ -51,7 +52,8 @@ macro_rules! impl_serde_from_str {
             where
                 D: serde::Deserializer<'d>,
             {
-                let string = String::deserialize(deserializer)?;
+                extern crate alloc;
+                let string = alloc::string::String::deserialize(deserializer)?;
                 <$type>::from_str(&string).map_err(serde::de::Error::custom)
             }
         }

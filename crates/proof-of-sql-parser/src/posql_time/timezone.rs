@@ -1,7 +1,7 @@
 use super::PoSQLTimestampError;
+use alloc::{string::ToString, sync::Arc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// Captures a timezone from a timestamp query
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
@@ -75,6 +75,7 @@ impl fmt::Display for PoSQLTimeZone {
 #[cfg(test)]
 mod timezone_parsing_tests {
     use crate::posql_time::timezone;
+    use alloc::format;
 
     #[test]
     fn test_display_fixed_offset_positive() {
