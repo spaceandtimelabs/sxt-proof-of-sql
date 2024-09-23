@@ -6,8 +6,13 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum ColumnOperationError {
     /// Two columns do not have the same length
-    #[error("Columns have different lengths: {0} != {1}")]
-    DifferentColumnLength(usize, usize),
+    #[error("Columns have different lengths: {len_a} != {len_b}")]
+    DifferentColumnLength {
+        /// The length of the first column
+        len_a: usize,
+        /// The length of the second column
+        len_b: usize,
+    },
 
     /// Incorrect `ColumnType` in binary operations
     #[error("{operator:?}(lhs: {left_type:?}, rhs: {right_type:?}) is not supported")]
@@ -30,8 +35,11 @@ pub enum ColumnOperationError {
     },
 
     /// Overflow in integer operations
-    #[error("Overflow in integer operation: {0}")]
-    IntegerOverflow(String),
+    #[error("Overflow in integer operation: {error}")]
+    IntegerOverflow {
+        /// The underlying overflow error
+        error: String,
+    },
 
     /// Division by zero
     #[error("Division by zero")]
@@ -39,7 +47,11 @@ pub enum ColumnOperationError {
 
     /// Errors related to decimal operations
     #[error(transparent)]
-    DecimalConversionError(#[from] DecimalError),
+    DecimalConversionError {
+        /// The underlying source error
+        #[from]
+        source: DecimalError,
+    },
 }
 
 /// Result type for column operations

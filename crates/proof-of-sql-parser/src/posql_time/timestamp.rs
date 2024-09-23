@@ -61,8 +61,11 @@ impl PoSQLTimestamp {
     /// assert_eq!(intermediate_timestamp.timezone(), PoSQLTimeZone::FixedOffset(10800)); // 3 hours in seconds
     /// ```
     pub fn try_from(timestamp_str: &str) -> Result<Self, PoSQLTimestampError> {
-        let dt = DateTime::parse_from_rfc3339(timestamp_str)
-            .map_err(|e| PoSQLTimestampError::ParsingError(e.to_string()))?;
+        let dt = DateTime::parse_from_rfc3339(timestamp_str).map_err(|e| {
+            PoSQLTimestampError::ParsingError {
+                error: e.to_string(),
+            }
+        })?;
 
         let offset_seconds = dt.offset().local_minus_utc();
         let timezone = PoSQLTimeZone::from_offset(offset_seconds);
@@ -108,9 +111,9 @@ impl PoSQLTimestamp {
                 timeunit: PoSQLTimeUnit::Second,
                 timezone: PoSQLTimeZone::Utc,
             }),
-            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
+            LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous{ error:
                 format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
-            )),
+        }),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
     }
@@ -177,9 +180,9 @@ mod tests {
         let input = "not-a-timestamp";
         assert_eq!(
             PoSQLTimestamp::try_from(input),
-            Err(PoSQLTimestampError::ParsingError(
-                "input contains invalid characters".into()
-            ))
+            Err(PoSQLTimestampError::ParsingError {
+                error: "input contains invalid characters".into()
+            })
         );
     }
 
@@ -198,7 +201,10 @@ mod tests {
         // This test assumes that there's a catch-all parsing error case that isn't covered by the more specific errors.
         let malformed_input = "2009-01-03T::00Z"; // Intentionally malformed timestamp
         let result = PoSQLTimestamp::try_from(malformed_input);
-        assert!(matches!(result, Err(PoSQLTimestampError::ParsingError(_))));
+        assert!(matches!(
+            result,
+            Err(PoSQLTimestampError::ParsingError { .. })
+        ));
     }
 
     #[test]

@@ -1591,39 +1591,39 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 fn we_cannot_use_non_grouped_columns_outside_agg() {
     assert!(matches!(
         query!(select: ["i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["min(i) + i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["2 * i", "min(i)"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
     assert!(matches!(
         query!(select: ["sum(i)", "i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
     assert!(matches!(
         query!(select: ["max(i) + 2 * i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
 }
 
@@ -1631,31 +1631,31 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
 fn varchar_column_is_not_compatible_with_integer_column() {
     assert_eq!(
         query!(select: ["-123 * s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::BigInt.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
     assert_eq!(
         query!(select: ["i - s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::BigInt.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' = i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::BigInt.to_string(),
+        }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' != i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::BigInt.to_string(),
+        }
     );
 }
 
@@ -1663,10 +1663,10 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     assert_eq!(
         query!(select: ["s - s1"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
 }
 
@@ -1866,7 +1866,9 @@ fn nested_aggregations_are_not_supported() {
     for perm_aggs in supported_agg.iter().permutations(2) {
         assert_eq!(
             query!(select: [format!("{}({}(i))", perm_aggs[0], perm_aggs[1])], should_err: true),
-            ConversionError::InvalidExpression("nested aggregations are not supported".to_string())
+            ConversionError::InvalidExpression {
+                expression: "nested aggregations are not supported".to_string()
+            }
         );
     }
 }

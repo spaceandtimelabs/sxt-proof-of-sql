@@ -17,10 +17,9 @@ impl<S: Scalar> OwnedTable<S> {
             Expression::Literal(lit) => self.evaluate_literal(lit),
             Expression::Binary { op, left, right } => self.evaluate_binary_expr(*op, left, right),
             Expression::Unary { op, expr } => self.evaluate_unary_expr(*op, expr),
-            _ => Err(ExpressionEvaluationError::Unsupported(format!(
-                "Expression {:?} is not supported yet",
-                expr
-            ))),
+            _ => Err(ExpressionEvaluationError::Unsupported {
+                expression: format!("Expression {:?} is not supported yet", expr),
+            }),
         }
     }
 
@@ -31,9 +30,9 @@ impl<S: Scalar> OwnedTable<S> {
         Ok(self
             .inner_table()
             .get(identifier)
-            .ok_or(ExpressionEvaluationError::ColumnNotFound(
-                identifier.to_string(),
-            ))?
+            .ok_or(ExpressionEvaluationError::ColumnNotFound {
+                error: identifier.to_string(),
+            })?
             .clone())
     }
 

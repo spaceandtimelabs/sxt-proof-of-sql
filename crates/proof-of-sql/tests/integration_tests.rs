@@ -431,7 +431,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
             "sxt".parse().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(..))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

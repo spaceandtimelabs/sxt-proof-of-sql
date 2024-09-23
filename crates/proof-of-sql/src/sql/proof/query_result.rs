@@ -29,10 +29,18 @@ pub enum QueryError {
     MiscellaneousEvaluationError,
     /// The proof failed to verify.
     #[error(transparent)]
-    ProofError(#[from] ProofError),
+    ProofError {
+        /// The underlying source error
+        #[from]
+        source: ProofError,
+    },
     /// The table data was invalid. This should never happen because this should get caught by the verifier before reaching this point.
     #[error(transparent)]
-    InvalidTable(#[from] OwnedTableError),
+    InvalidTable {
+        /// The underlying source error
+        #[from]
+        source: OwnedTableError,
+    },
 }
 
 /// The verified results of a query along with metadata produced by verification

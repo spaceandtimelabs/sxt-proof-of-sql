@@ -8,14 +8,20 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum InvalidColumnCommitmentMetadata {
     /// Column of this type cannot have these bounds.
-    #[error("column of type {0} cannot have bounds like {1:?}")]
-    TypeBoundsMismatch(ColumnType, ColumnBounds),
+    #[error("column of type {column_type} cannot have bounds like {column_bounds:?}")]
+    TypeBoundsMismatch {
+        column_type: ColumnType,
+        column_bounds: ColumnBounds,
+    },
 }
 
 /// During column operation, metadata indicates that the operand columns cannot be the same.
 #[derive(Debug, Error)]
-#[error("column with type {0} cannot operate with column with type {1}")]
-pub struct ColumnCommitmentMetadataMismatch(ColumnType, ColumnType);
+#[error("column with type {datatype_a} cannot operate with column with type {datatype_b}")]
+pub struct ColumnCommitmentMetadataMismatch {
+    datatype_a: ColumnType,
+    datatype_b: ColumnType,
+}
 
 const EXPECT_BOUNDS_MATCH_MESSAGE: &str = "we've already checked the column types match, which is a stronger requirement (mapping of type variants to bounds variants is surjective)";
 
@@ -51,10 +57,10 @@ impl ColumnCommitmentMetadata {
                 column_type,
                 bounds,
             }),
-            _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(
+            _ => Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch {
                 column_type,
-                bounds,
-            )),
+                column_bounds: bounds,
+            }),
         }
     }
 
@@ -117,10 +123,10 @@ impl ColumnCommitmentMetadata {
         other: ColumnCommitmentMetadata,
     ) -> Result<ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch> {
         if self.column_type != other.column_type {
-            return Err(ColumnCommitmentMetadataMismatch(
-                self.column_type,
-                other.column_type,
-            ));
+            return Err(ColumnCommitmentMetadataMismatch {
+                datatype_a: self.column_type,
+                datatype_b: other.column_type,
+            });
         }
 
         let bounds = self
@@ -143,10 +149,10 @@ impl ColumnCommitmentMetadata {
         other: ColumnCommitmentMetadata,
     ) -> Result<ColumnCommitmentMetadata, ColumnCommitmentMetadataMismatch> {
         if self.column_type != other.column_type {
-            return Err(ColumnCommitmentMetadataMismatch(
-                self.column_type,
-                other.column_type,
-            ));
+            return Err(ColumnCommitmentMetadataMismatch {
+                datatype_a: self.column_type,
+                datatype_b: other.column_type,
+            });
         }
 
         let bounds = self
@@ -267,14 +273,14 @@ mod tests {
                 ColumnType::Boolean,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Boolean,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -282,14 +288,14 @@ mod tests {
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Decimal75(Precision::new(10).unwrap(), 10),
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -297,14 +303,14 @@ mod tests {
                 ColumnType::Scalar,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::Scalar,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -312,11 +318,11 @@ mod tests {
                 ColumnType::BigInt,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(ColumnType::BigInt, ColumnBounds::NoOrder),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -324,11 +330,11 @@ mod tests {
                 ColumnType::Int128,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(ColumnType::Int128, ColumnBounds::NoOrder),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
 
         assert!(matches!(
@@ -336,14 +342,14 @@ mod tests {
                 ColumnType::VarChar,
                 ColumnBounds::BigInt(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
         assert!(matches!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::VarChar,
                 ColumnBounds::Int128(Bounds::Empty)
             ),
-            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch(..))
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
     }
 

@@ -155,7 +155,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // validate bit decompositions
         for dist in self.bit_distributions.iter() {
             if !dist.is_valid() {
-                Err(ProofError::VerificationError("invalid bit distributions"))?;
+                Err(ProofError::VerificationError {
+                    error: "invalid bit distributions",
+                })?;
             }
         }
 
@@ -168,7 +170,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // verify sizes
         if !self.validate_sizes(&counts, result) {
-            Err(ProofError::VerificationError("invalid proof size"))?;
+            Err(ProofError::VerificationError {
+                error: "invalid proof size",
+            })?;
         }
 
         // construct a transcript for the proof
@@ -254,9 +258,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
-            Err(ProofError::VerificationError(
-                "sumcheck evaluation check failed",
-            ))?;
+            Err(ProofError::VerificationError {
+                error: "sumcheck evaluation check failed",
+            })?;
         }
 
         // finally, check the MLE evaluations with the inner product proof
@@ -272,8 +276,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 table_length,
                 setup,
             )
-            .map_err(|_e| {
-                ProofError::VerificationError("Inner product proof of MLE evaluations failed")
+            .map_err(|_e| ProofError::VerificationError {
+                error: "Inner product proof of MLE evaluations failed",
             })?;
 
         let mut verification_hash = [0u8; 32];

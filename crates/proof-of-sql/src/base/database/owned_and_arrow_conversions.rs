@@ -44,23 +44,44 @@ use thiserror::Error;
 /// Errors cause by conversions between Arrow and owned types.
 pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
-    #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
-    UnsupportedType(DataType),
+
+    #[error(
+        "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
+    )]
+    UnsupportedType {
+        /// The unsupported datatype
+        datatype: DataType,
+    },
     /// This error occurs when trying to convert from a record batch with duplicate identifiers (e.g. `"a"` and `"A"`).
     #[error("conversion resulted in duplicate identifiers")]
     DuplicateIdentifiers,
+
     #[error(transparent)]
     /// This error occurs when convering from a record batch name to an identifier fails. (Which may my impossible.)
-    FieldParseFail(#[from] ParseError),
+    FieldParseFail {
+        /// The underlying source error
+        #[from]
+        source: ParseError,
+    },
+
     #[error(transparent)]
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
-    InvalidTable(#[from] OwnedTableError),
+    InvalidTable {
+        /// The underlying source error
+        #[from]
+        source: OwnedTableError,
+    },
     /// This error occurs when trying to convert from an Arrow array with nulls.
     #[error("null values are not supported in OwnedColumn yet")]
     NullNotSupportedYet,
     /// Using TimeError to handle all time-related errors
+
     #[error(transparent)]
-    TimestampConversionError(#[from] PoSQLTimestampError),
+    TimestampConversionError {
+        /// The underlying source error
+        #[from]
+        source: PoSQLTimestampError,
+    },
 }
 
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
@@ -245,9 +266,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     ))
                 }
             },
-            &data_type => Err(OwnedArrowConversionError::UnsupportedType(
-                data_type.clone(),
-            )),
+            &data_type => Err(OwnedArrowConversionError::UnsupportedType {
+                datatype: data_type.clone(),
+            }),
         }
     }
 }

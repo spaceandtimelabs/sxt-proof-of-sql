@@ -6,13 +6,22 @@ use thiserror::Error;
 pub enum ParseError {
     #[error("Unable to parse query")]
     /// Cannot parse the query
-    QueryParseError(String),
+    QueryParseError {
+        /// The underlying error
+        error: String,
+    },
     #[error("Unable to parse identifier")]
     /// Cannot parse the identifier
-    IdentifierParseError(String),
+    IdentifierParseError {
+        /// The underlying error
+        error: String,
+    },
     #[error("Unable to parse resource_id")]
     /// Can not parse the resource_id
-    ResourceIdParseError(String),
+    ResourceIdParseError {
+        /// The underlying error
+        error: String,
+    },
 }
 
 /// General parsing error that may occur, for example if the provided schema/object_name strings

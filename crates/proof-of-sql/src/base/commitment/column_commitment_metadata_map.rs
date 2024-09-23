@@ -16,15 +16,24 @@ pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMeta
 pub enum ColumnCommitmentsMismatch {
     /// Anonymous metadata indicates a column mismatch.
     #[error(transparent)]
-    ColumnCommitmentMetadata(#[from] ColumnCommitmentMetadataMismatch),
+    ColumnCommitmentMetadata {
+        /// The underlying source error
+        #[from]
+        source: ColumnCommitmentMetadataMismatch,
+    },
     /// Commitments with different column counts cannot operate with each other.
     #[error("commitments with different column counts cannot operate with each other")]
     NumColumns,
     /// Columns with mismatched identifiers cannot operate with each other.
     ///
     /// Strings are used here instead of Identifiers to decrease the size of this variant
-    #[error("column with identifier {0} cannot operate with column with identifier {1}")]
-    Identifier(String, String),
+    #[error("column with identifier {id_a} cannot operate with column with identifier {id_b}")]
+    Identifier {
+        /// The first column identifier
+        id_a: String,
+        /// The second column identifier
+        id_b: String,
+    },
 }
 
 /// Extension trait intended for [`ColumnCommitmentMetadataMap`].
@@ -90,10 +99,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?
                 }
 
                 Ok((identifier_a, metadata_a.try_union(metadata_b)?))
@@ -113,10 +122,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?
                 }
 
                 Ok((identifier_a, metadata_a.try_difference(metadata_b)?))

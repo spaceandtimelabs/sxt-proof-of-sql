@@ -16,8 +16,11 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
-    #[error("{0}")]
-    ParseError(ParseBigDecimalError),
+    #[error("{error}")]
+    ParseError {
+        /// The underlying error
+        error: ParseBigDecimalError,
+    },
     /// Error occurs when this decimal cannot fit in a primitive.
     #[error("Value out of range for target type")]
     OutOfRange,
@@ -30,7 +33,7 @@ pub enum IntermediateDecimalError {
 }
 impl From<ParseBigDecimalError> for IntermediateDecimalError {
     fn from(value: ParseBigDecimalError) -> Self {
-        IntermediateDecimalError::ParseError(value)
+        IntermediateDecimalError::ParseError { error: value }
     }
 }
 
@@ -88,7 +91,7 @@ impl FromStr for IntermediateDecimal {
             .map(|value| IntermediateDecimal {
                 value: value.normalized(),
             })
-            .map_err(ParseError)
+            .map_err(|err| ParseError { error: err })
     }
 }
 
