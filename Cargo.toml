@@ -10,6 +10,7 @@ version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
 license-file = "LICENSE"
 
 [workspace.dependencies]
+ahash = { version = "0.8.11", default-features = false, features = ["runtime-rng"] }
 # alloy-primitives = { version = "0.8.1" }
 # alloy-sol-types = { version = "0.8.1" }
 ark-bls12-381 = { version = "0.4.0" }
