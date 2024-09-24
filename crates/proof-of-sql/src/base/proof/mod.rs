@@ -4,7 +4,7 @@ mod error;
 pub use error::ProofError;
 
 /// Contains an extension trait for `merlin::Transcript`, which is used to construct a proof.
-mod transcript_protocol;
+mod merlin_transcript_core;
 
 mod transcript;
 pub use transcript::Transcript;
