@@ -1,11 +1,11 @@
 use super::Commitment;
 use crate::base::commitment::committable_column::CommittableColumn;
 use alloc::{vec, vec::Vec};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot update commitment collections with different column counts
-#[derive(Error, Debug)]
-#[error("cannot update commitment collections with different column counts")]
+#[derive(Snafu, Debug)]
+#[snafu(display("cannot update commitment collections with different column counts"))]
 pub struct NumColumnsMismatch;
 
 /// Extension trait intended for collections of commitments.

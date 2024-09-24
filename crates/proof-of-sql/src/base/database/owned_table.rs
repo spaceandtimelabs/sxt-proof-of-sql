@@ -2,13 +2,13 @@ use super::OwnedColumn;
 use crate::base::scalar::Scalar;
 use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// An error that occurs when working with tables.
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum OwnedTableError {
     /// The columns have different lengths.
-    #[error("Columns have different lengths")]
+    #[snafu(display("Columns have different lengths"))]
     ColumnLengthMismatch,
 }
 /// A table of data, with schema included. This is simply a map from `Identifier` to `OwnedColumn`,

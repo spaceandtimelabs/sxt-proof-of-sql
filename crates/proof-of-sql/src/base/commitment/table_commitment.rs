@@ -15,114 +15,106 @@ use bumpalo::Bump;
 use core::ops::Range;
 use proof_of_sql_parser::{Identifier, ParseError};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot create a [`TableCommitment`] with a negative range.
-#[derive(Debug, Error)]
-#[error("cannot create a TableCommitment with a negative range")]
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create a TableCommitment with a negative range"))]
 pub struct NegativeRange;
 
 /// Cannot create a [`TableCommitment`] from columns of mixed length.
-#[derive(Debug, Error)]
-#[error("cannot create a TableCommitment from columns of mixed length")]
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create a TableCommitment from columns of mixed length"))]
 pub struct MixedLengthColumns;
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from columns.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum TableCommitmentFromColumnsError {
     /// Cannot construct [`TableCommitment`] from columns of mixed length.
-    #[error(transparent)]
+    #[snafu(transparent)]
     MixedLengthColumns {
         /// The underlying source error
-        #[from]
         source: MixedLengthColumns,
     },
     /// Cannot construct [`TableCommitment`] from columns with duplicate identifiers.
-    #[error(transparent)]
+    #[snafu(transparent)]
     DuplicateIdentifiers {
         /// The underlying source error
-        #[from]
         source: DuplicateIdentifiers,
     },
 }
 
 /// Errors that can occur when attempting to append rows to a [`TableCommitment`].
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendTableCommitmentError {
     /// Cannot append columns of mixed length to existing [`TableCommitment`].
-    #[error(transparent)]
+    #[snafu(transparent)]
     MixedLengthColumns {
         /// The underlying source error
-        #[from]
         source: MixedLengthColumns,
     },
     /// Encountered error when appending internal [`ColumnCommitments`].
-    #[error(transparent)]
+    #[snafu(transparent)]
     AppendColumnCommitments {
         /// The underlying source error
-        #[from]
         source: AppendColumnCommitmentsError,
     },
 }
 
 /// Errors that can occur when performing arithmetic on [`TableCommitment`]s.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum TableCommitmentArithmeticError {
     /// Cannot perform arithmetic on columns with mismatched metadata.
-    #[error(transparent)]
+    #[snafu(transparent)]
     ColumnMismatch {
         /// The underlying source error
-        #[from]
         source: ColumnCommitmentsMismatch,
     },
     /// Cannot perform TableCommitment arithmetic that would result in a negative range.
-    #[error(transparent)]
+    #[snafu(transparent)]
     NegativeRange {
         /// The underlying source error
-        #[from]
         source: NegativeRange,
     },
     /// Cannot perform arithmetic for noncontiguous table commitments.
-    #[error("cannot perform table commitment arithmetic for noncontiguous table commitments")]
+    #[snafu(display(
+        "cannot perform table commitment arithmetic for noncontiguous table commitments"
+    ))]
     NonContiguous,
 }
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
 #[cfg(feature = "arrow")]
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum RecordBatchToColumnsError {
     /// Error converting from arrow array
-    #[error(transparent)]
+    #[snafu(transparent)]
     ArrowArrayToColumnConversionError {
         /// The underlying source error
-        #[from]
         source: ArrowArrayToColumnConversionError,
     },
-    #[error(transparent)]
+    #[snafu(transparent)]
     /// This error occurs when convering from a record batch name to an identifier fails. (Which may be impossible.)
     FieldParseFail {
         /// The underlying source error
-        #[from]
         source: ParseError,
     },
 }
 
 /// Errors that can occur when attempting to append a record batch to a [`TableCommitment`].
 #[cfg(feature = "arrow")]
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendRecordBatchTableCommitmentError {
     /// During commitment operation, metadata indicates that operand tables cannot be the same.
-    #[error(transparent)]
+    #[snafu(transparent)]
     ColumnCommitmentsMismatch {
         /// The underlying source error
-        #[from]
         source: ColumnCommitmentsMismatch,
     },
     /// Error converting from arrow array
-    #[error(transparent)]
+    #[snafu(transparent)]
     ArrowBatchToColumnError {
         /// The underlying source error
-        #[from]
         source: RecordBatchToColumnsError,
     },
 }

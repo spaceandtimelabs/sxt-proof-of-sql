@@ -1,14 +1,14 @@
 use alloc::{format, string::String, vec::Vec};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// An error that occurs when working with permutations
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum PermutationError {
     /// The permutation is invalid
-    #[error("Permutation is invalid {error}")]
+    #[snafu(display("Permutation is invalid {error}"))]
     InvalidPermutation { error: String },
     /// Application of a permutation to a slice with an incorrect length
-    #[error("Application of a permutation to a slice with a different length {permutation_size} != {slice_length}")]
+    #[snafu(display("Application of a permutation to a slice with a different length {permutation_size} != {slice_length}"))]
     PermutationSizeMismatch {
         permutation_size: usize,
         slice_length: usize,

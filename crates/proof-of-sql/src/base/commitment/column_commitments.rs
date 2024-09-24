@@ -13,30 +13,28 @@ use core::{iter, slice};
 use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot create commitments with duplicate identifier.
-#[derive(Debug, Error)]
-#[error("cannot create commitments with duplicate identifier: {id}")]
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create commitments with duplicate identifier: {id}"))]
 pub struct DuplicateIdentifiers {
     id: String,
 }
 
 /// Errors that can occur when attempting to append rows to ColumnCommitments.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendColumnCommitmentsError {
     /// Metadata between new and old columns are mismatched.
-    #[error(transparent)]
+    #[snafu(transparent)]
     Mismatch {
         /// The underlying source error
-        #[from]
         source: ColumnCommitmentsMismatch,
     },
     /// New columns have duplicate identifiers.
-    #[error(transparent)]
+    #[snafu(transparent)]
     DuplicateIdentifiers {
         /// The underlying source error
-        #[from]
         source: DuplicateIdentifiers,
     },
 }

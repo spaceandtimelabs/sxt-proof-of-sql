@@ -2,13 +2,13 @@ use super::{column_bounds::BoundsInner, committable_column::CommittableColumn, C
 use crate::base::database::ColumnType;
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors that can occur when constructing invalid [`ColumnCommitmentMetadata`].
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum InvalidColumnCommitmentMetadata {
     /// Column of this type cannot have these bounds.
-    #[error("column of type {column_type} cannot have bounds like {column_bounds:?}")]
+    #[snafu(display("column of type {column_type} cannot have bounds like {column_bounds:?}"))]
     TypeBoundsMismatch {
         column_type: ColumnType,
         column_bounds: ColumnBounds,
@@ -16,8 +16,10 @@ pub enum InvalidColumnCommitmentMetadata {
 }
 
 /// During column operation, metadata indicates that the operand columns cannot be the same.
-#[derive(Debug, Error)]
-#[error("column with type {datatype_a} cannot operate with column with type {datatype_b}")]
+#[derive(Debug, Snafu)]
+#[snafu(display(
+    "column with type {datatype_a} cannot operate with column with type {datatype_b}"
+))]
 pub struct ColumnCommitmentMetadataMismatch {
     datatype_a: ColumnType,
     datatype_b: ColumnType,

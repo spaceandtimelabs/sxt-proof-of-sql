@@ -5,40 +5,38 @@ use crate::base::{
 };
 #[cfg(feature = "arrow")]
 use arrow::{error::ArrowError, record_batch::RecordBatch};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Verifiable query errors
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 pub enum QueryError {
     /// The query result overflowed. This does not mean that the verification failed.
     /// This just means that the database was supposed to respond with a result that was too large.
-    #[error("Overflow error")]
+    #[snafu(display("Overflow error"))]
     Overflow,
     /// The query result string could not be decoded. This does not mean that the verification failed.
     /// This just means that the database was supposed to respond with a string that was not valid UTF-8.
-    #[error("String decode error")]
+    #[snafu(display("String decode error"))]
     InvalidString,
     /// Decoding errors other than overflow and invalid string.
-    #[error("Miscellaneous decoding error")]
+    #[snafu(display("Miscellaneous decoding error"))]
     MiscellaneousDecodingError,
     /// Indexes are invalid.
-    #[error("Invalid indexes")]
+    #[snafu(display("Invalid indexes"))]
     InvalidIndexes,
     /// Miscellaneous evaluation error.
-    #[error("Miscellaneous evaluation error")]
+    #[snafu(display("Miscellaneous evaluation error"))]
     MiscellaneousEvaluationError,
     /// The proof failed to verify.
-    #[error(transparent)]
+    #[snafu(transparent)]
     ProofError {
         /// The underlying source error
-        #[from]
         source: ProofError,
     },
     /// The table data was invalid. This should never happen because this should get caught by the verifier before reaching this point.
-    #[error(transparent)]
+    #[snafu(transparent)]
     InvalidTable {
         /// The underlying source error
-        #[from]
         source: OwnedTableError,
     },
 }

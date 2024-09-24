@@ -6,12 +6,12 @@ use alloc::{
 };
 use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors related to decimal operations.
-#[derive(Error, Debug, Eq, PartialEq)]
+#[derive(Snafu, Debug, Eq, PartialEq)]
 pub enum DecimalError {
-    #[error("Invalid decimal format or value: {error}")]
+    #[snafu(display("Invalid decimal format or value: {error}"))]
     /// Error when a decimal format or value is incorrect,
     /// the string isn't even a decimal e.g. "notastring",
     /// "-21.233.122" etc aka InvalidDecimal
@@ -20,7 +20,7 @@ pub enum DecimalError {
         error: String,
     },
 
-    #[error("Decimal precision is not valid: {error}")]
+    #[snafu(display("Decimal precision is not valid: {error}"))]
     /// Decimal precision exceeds the allowed limit,
     /// e.g. precision above 75/76/whatever set by Scalar
     /// or non-positive aka InvalidPrecision
@@ -29,7 +29,7 @@ pub enum DecimalError {
         error: String,
     },
 
-    #[error("Decimal scale is not valid: {scale}")]
+    #[snafu(display("Decimal scale is not valid: {scale}"))]
     /// Decimal scale is not valid. Here we use i16 in order to include
     /// invalid scale values
     InvalidScale {
@@ -37,7 +37,7 @@ pub enum DecimalError {
         scale: i16,
     },
 
-    #[error("Unsupported operation: cannot round decimal: {error}")]
+    #[snafu(display("Unsupported operation: cannot round decimal: {error}"))]
     /// This error occurs when attempting to scale a
     /// decimal in such a way that a loss of precision occurs.
     RoundingError {
@@ -47,10 +47,9 @@ pub enum DecimalError {
 
     /// Errors that may occur when parsing an intermediate decimal
     /// into a posql decimal
-    #[error(transparent)]
+    #[snafu(transparent)]
     IntermediateDecimalConversionError {
         /// The underlying source error
-        #[from]
         source: IntermediateDecimalError,
     },
 }

@@ -6,28 +6,29 @@ use crate::base::database::ColumnField;
 use alloc::string::{String, ToString};
 use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Mapping of column identifiers to column metadata used to associate metadata with commitments.
 pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMetadata>;
 
 /// During commitment operation, metadata indicates that operand tables cannot be the same.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum ColumnCommitmentsMismatch {
     /// Anonymous metadata indicates a column mismatch.
-    #[error(transparent)]
+    #[snafu(transparent)]
     ColumnCommitmentMetadata {
         /// The underlying source error
-        #[from]
         source: ColumnCommitmentMetadataMismatch,
     },
     /// Commitments with different column counts cannot operate with each other.
-    #[error("commitments with different column counts cannot operate with each other")]
+    #[snafu(display("commitments with different column counts cannot operate with each other"))]
     NumColumns,
     /// Columns with mismatched identifiers cannot operate with each other.
     ///
     /// Strings are used here instead of Identifiers to decrease the size of this variant
-    #[error("column with identifier {id_a} cannot operate with column with identifier {id_b}")]
+    #[snafu(display(
+        "column with identifier {id_a} cannot operate with column with identifier {id_b}"
+    ))]
     Identifier {
         /// The first column identifier
         id_a: String,

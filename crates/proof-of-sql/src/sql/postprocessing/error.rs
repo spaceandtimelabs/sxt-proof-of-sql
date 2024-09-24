@@ -1,57 +1,53 @@
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors in postprocessing
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum PostprocessingError {
     /// Error in slicing due to slice index beyond usize
-    #[error("Error in slicing due to slice index beyond usize {index}")]
+    #[snafu(display("Error in slicing due to slice index beyond usize {index}"))]
     InvalidSliceIndex {
         /// The overflowing index value
         index: i128,
     },
     /// Column not found
-    #[error("Column not found: {column}")]
+    #[snafu(display("Column not found: {column}"))]
     ColumnNotFound {
         /// The column which is not found
         column: String,
     },
     /// Errors in evaluation of `Expression`s
-    #[error(transparent)]
+    #[snafu(transparent)]
     ExpressionEvaluationError {
         /// The underlying source error
-        #[from]
         source: crate::base::database::ExpressionEvaluationError,
     },
     /// Errors in constructing `OwnedTable`
-    #[error(transparent)]
+    #[snafu(transparent)]
     OwnedTableError {
         /// The underlying source error
-        #[from]
         source: crate::base::database::OwnedTableError,
     },
     /// GROUP BY clause references a column not in a group by expression outside aggregate functions
-    #[error("Invalid group by: column '{column}' must not appear outside aggregate functions or `GROUP BY` clause.")]
+    #[snafu(display("Invalid group by: column '{column}' must not appear outside aggregate functions or `GROUP BY` clause."))]
     IdentifierNotInAggregationOperatorOrGroupByClause {
         /// The column identifier
         column: Identifier,
     },
     /// Errors in aggregate columns
-    #[error(transparent)]
+    #[snafu(transparent)]
     AggregateColumnsError {
         /// The underlying source error
-        #[from]
         source: crate::base::database::group_by_util::AggregateColumnsError,
     },
     /// Errors in `OwnedColumn`
-    #[error(transparent)]
+    #[snafu(transparent)]
     OwnedColumnError {
         /// The underlying source error
-        #[from]
         source: crate::base::database::OwnedColumnError,
     },
     /// Nested aggregation in `GROUP BY` clause
-    #[error("Nested aggregation in `GROUP BY` clause: {error}")]
+    #[snafu(display("Nested aggregation in `GROUP BY` clause: {error}"))]
     NestedAggregationInGroupByClause {
         /// The nested aggregation error
         error: String,

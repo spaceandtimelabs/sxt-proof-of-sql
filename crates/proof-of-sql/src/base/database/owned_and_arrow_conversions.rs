@@ -36,50 +36,43 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     Identifier, ParseError,
 };
+use snafu::Snafu;
 use std::sync::Arc;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 #[non_exhaustive]
 /// Errors cause by conversions between Arrow and owned types.
 pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
-
-    #[error(
+    #[snafu(display(
         "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
-    )]
+    ))]
     UnsupportedType {
         /// The unsupported datatype
         datatype: DataType,
     },
     /// This error occurs when trying to convert from a record batch with duplicate identifiers (e.g. `"a"` and `"A"`).
-    #[error("conversion resulted in duplicate identifiers")]
+    #[snafu(display("conversion resulted in duplicate identifiers"))]
     DuplicateIdentifiers,
-
-    #[error(transparent)]
     /// This error occurs when convering from a record batch name to an identifier fails. (Which may my impossible.)
+    #[snafu(transparent)]
     FieldParseFail {
         /// The underlying source error
-        #[from]
         source: ParseError,
     },
-
-    #[error(transparent)]
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
+    #[snafu(transparent)]
     InvalidTable {
         /// The underlying source error
-        #[from]
         source: OwnedTableError,
     },
     /// This error occurs when trying to convert from an Arrow array with nulls.
-    #[error("null values are not supported in OwnedColumn yet")]
+    #[snafu(display("null values are not supported in OwnedColumn yet"))]
     NullNotSupportedYet,
     /// Using TimeError to handle all time-related errors
-
-    #[error(transparent)]
+    #[snafu(transparent)]
     TimestampConversionError {
         /// The underlying source error
-        #[from]
         source: PoSQLTimestampError,
     },
 }

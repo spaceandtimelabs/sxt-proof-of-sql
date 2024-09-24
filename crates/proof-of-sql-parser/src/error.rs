@@ -1,22 +1,22 @@
 use alloc::string::String;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors encountered during the parsing process
-#[derive(Debug, Error, Eq, PartialEq)]
+#[derive(Debug, Snafu, Eq, PartialEq)]
 pub enum ParseError {
-    #[error("Unable to parse query")]
+    #[snafu(display("Unable to parse query"))]
     /// Cannot parse the query
     QueryParseError {
         /// The underlying error
         error: String,
     },
-    #[error("Unable to parse identifier")]
+    #[snafu(display("Unable to parse identifier"))]
     /// Cannot parse the identifier
     IdentifierParseError {
         /// The underlying error
         error: String,
     },
-    #[error("Unable to parse resource_id")]
+    #[snafu(display("Unable to parse resource_id"))]
     /// Can not parse the resource_id
     ResourceIdParseError {
         /// The underlying error

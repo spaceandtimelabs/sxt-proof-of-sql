@@ -7,22 +7,22 @@ use super::{
 };
 use crate::base::commitment::CommitmentEvaluationProof;
 use merlin::Transcript;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
 pub type DoryEvaluationProof = DoryMessages;
 
 /// The error type for the Dory PCS.
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 pub enum DoryError {
     /// This error occurs when the generators offset is invalid.
-    #[error("invalid generators offset: {offset}")]
+    #[snafu(display("invalid generators offset: {offset}"))]
     InvalidGeneratorsOffset { offset: u64 },
     /// This error occurs when the proof fails to verify.
-    #[error("verification error")]
+    #[snafu(display("verification error"))]
     VerificationError,
     /// This error occurs when the setup is too small.
-    #[error("setup is too small: the setup is {actual}, but the proof requires a setup of size {required}")]
+    #[snafu(display("setup is too small: the setup is {actual}, but the proof requires a setup of size {required}"))]
     SmallSetup { actual: usize, required: usize },
 }
 

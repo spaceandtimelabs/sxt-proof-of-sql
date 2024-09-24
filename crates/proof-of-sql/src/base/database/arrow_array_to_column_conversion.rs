@@ -10,38 +10,37 @@ use arrow::{
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use snafu::Snafu;
 use std::ops::Range;
-use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Snafu, Debug, PartialEq)]
 /// Errors caused by conversions between Arrow and owned types.
 pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when an array contains a non-zero number of null elements
-    #[error("arrow array must not contain nulls")]
+    #[snafu(display("arrow array must not contain nulls"))]
     ArrayContainsNulls,
     /// This error occurs when trying to convert from an unsupported arrow type.
-    #[error(
+    #[snafu(display(
         "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
-    )]
+    ))]
     UnsupportedType {
         /// The unsupported datatype
         datatype: DataType,
     },
     /// Variant for decimal errors
-    #[error(transparent)]
+    #[snafu(transparent)]
     DecimalError {
         /// The underlying source error
-        #[from]
         source: crate::base::math::decimal::DecimalError,
     },
     /// This error occurs when trying to convert from an i256 to a Scalar.
-    #[error("decimal conversion failed: {number}")]
+    #[snafu(display("decimal conversion failed: {number}"))]
     DecimalConversionFailed {
         /// The `i256` value for which conversion is attempted
         number: i256,
     },
     /// This error occurs when the specified range is out of the bounds of the array.
-    #[error("index out of bounds: the len is {len} but the index is {index}")]
+    #[snafu(display("index out of bounds: the len is {len} but the index is {index}"))]
     IndexOutOfBounds {
         /// The actual length of the array
         len: usize,
@@ -49,10 +48,9 @@ pub enum ArrowArrayToColumnConversionError {
         index: usize,
     },
     /// Using TimeError to handle all time-related errors
-    #[error(transparent)]
+    #[snafu(transparent)]
     TimestampConversionError {
         /// The underlying source error
-        #[from]
         source: PoSQLTimestampError,
     },
 }
