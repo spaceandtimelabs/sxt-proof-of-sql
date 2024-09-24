@@ -5,8 +5,7 @@ use super::{
     extended_dory_inner_product_verify, DeferredGT, DoryMessages, DoryScalar,
     DynamicDoryCommitment, ProverSetup, VerifierSetup, F,
 };
-use crate::base::commitment::CommitmentEvaluationProof;
-use merlin::Transcript;
+use crate::base::{commitment::CommitmentEvaluationProof, proof::Transcript};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -37,7 +36,7 @@ impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
 
     #[tracing::instrument(name = "DoryEvaluationProof::new", level = "debug", skip_all)]
     fn new(
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
@@ -71,7 +70,7 @@ impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
     )]
     fn verify_batched_proof(
         &self,
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
         product: &Self::Scalar,
