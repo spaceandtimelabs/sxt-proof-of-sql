@@ -2,11 +2,13 @@
 
 use crate::base::{
     database::{filter_util::filter_column_by_index, Column, OwnedColumn},
+    if_rayon,
     scalar::Scalar,
 };
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;
+#[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
 use thiserror::Error;
 
@@ -71,8 +73,18 @@ pub fn aggregate_columns<'a, S: Scalar>(
             .filter(|&(_, &b)| b)
             .map(|(i, _)| i),
     );
-    filtered_indexes
-        .par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(group_by_columns_in, a, b));
+    if_rayon!(
+        filtered_indexes.par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            group_by_columns_in,
+            a,
+            b
+        )),
+        filtered_indexes.sort_unstable_by(|&a, &b| compare_indexes_by_columns(
+            group_by_columns_in,
+            a,
+            b
+        ))
+    );
 
     // `group_by_result_indexes` gives a single index for each group in `filtered_indexes`. It does
     // not matter which index is chosen for each group, so we choose the first one. This is only used

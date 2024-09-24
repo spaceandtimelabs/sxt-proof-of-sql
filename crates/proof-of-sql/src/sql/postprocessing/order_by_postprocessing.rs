@@ -1,10 +1,12 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{compare_indexes_by_owned_columns_with_direction, OwnedColumn, OwnedTable},
+    if_rayon,
     math::permutation::Permutation,
     scalar::Scalar,
 };
 use proof_of_sql_parser::intermediate_ast::{OrderBy, OrderByDirection};
+#[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
 
@@ -46,9 +48,14 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
             )
             .collect::<PostprocessingResult<Vec<(OwnedColumn<S>, OrderByDirection)>>>()?;
         // Define the ordering
-        indexes.par_sort_unstable_by(|&a, &b| {
-            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, a, b)
-        });
+        if_rayon!(
+            indexes.par_sort_unstable_by(|&a, &b| {
+                compare_indexes_by_owned_columns_with_direction(&order_by_pairs, a, b)
+            }),
+            indexes.sort_unstable_by(|&a, &b| {
+                compare_indexes_by_owned_columns_with_direction(&order_by_pairs, a, b)
+            })
+        );
         let permutation = Permutation::unchecked_new(indexes);
         // Apply the ordering
         Ok(

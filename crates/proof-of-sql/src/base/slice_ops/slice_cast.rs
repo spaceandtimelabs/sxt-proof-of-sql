@@ -1,3 +1,5 @@
+use crate::base::if_rayon;
+#[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 /// This operation takes a slice and casts it to a vector of a different type using the provided function.
@@ -6,11 +8,12 @@ where
     F: Sync,
     T: Send,
 {
-    value
-        .par_iter()
-        .with_min_len(super::MIN_RAYON_LEN)
-        .map(cast)
-        .collect()
+    if_rayon!(
+        value.par_iter().with_min_len(super::MIN_RAYON_LEN),
+        value.iter()
+    )
+    .map(cast)
+    .collect()
 }
 
 /// This operation takes a slice and casts it to a mutable slice of a different type using the provided function.
@@ -22,11 +25,12 @@ pub fn slice_cast_mut_with<'a, F, T>(
     F: Sync,
     T: Send + Sync,
 {
-    value
-        .par_iter()
-        .with_min_len(super::MIN_RAYON_LEN)
-        .zip(result)
-        .for_each(|(a, b)| *b = cast(a));
+    if_rayon!(
+        value.par_iter().with_min_len(super::MIN_RAYON_LEN),
+        value.iter()
+    )
+    .zip(result)
+    .for_each(|(a, b)| *b = cast(a));
 }
 
 /// This operation takes a slice and casts it to a vector of a different type using the provided function.

@@ -1,7 +1,10 @@
+use crate::base::if_rayon;
 use core::ops::{Mul, MulAssign, Sub, SubAssign};
 use num_traits::One;
+#[cfg(feature = "rayon")]
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
+#[cfg(feature = "rayon")]
 const MIN_PARALLEL_LEN: usize = 16; // The minimum size for which we should actually parallelize the compute.
 
 /// This method manipulates left and right such that
@@ -12,19 +15,22 @@ where
 {
     let k = std::cmp::min(left.len(), right.len());
     let one_minus_p = F::one() - p;
-    left.par_iter_mut()
-        .with_min_len(MIN_PARALLEL_LEN)
-        .zip(right.par_iter_mut())
-        .for_each(|(li, ri)| {
-            *ri = *li * p;
-            *li -= *ri;
-        });
-    left[k..]
-        .par_iter_mut()
-        .with_min_len(MIN_PARALLEL_LEN)
-        .for_each(|li| {
-            *li *= one_minus_p;
-        });
+    if_rayon!(
+        left.par_iter_mut().with_min_len(MIN_PARALLEL_LEN),
+        left.iter_mut()
+    )
+    .zip(right)
+    .for_each(|(li, ri)| {
+        *ri = *li * p;
+        *li -= *ri;
+    });
+    if_rayon!(
+        left[k..].par_iter_mut().with_min_len(MIN_PARALLEL_LEN),
+        left[k..].iter_mut()
+    )
+    .for_each(|li| {
+        *li *= one_minus_p;
+    });
 }
 
 /// Given a point of evaluation, computes the vector that allows us

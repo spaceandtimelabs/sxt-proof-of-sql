@@ -1,10 +1,11 @@
 use crate::base::{
+    if_rayon,
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
-    slice_ops,
 };
 use indexmap::IndexMap;
 use num_traits::{One, Zero};
+#[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use std::{ffi::c_void, rc::Rc};
 
@@ -40,10 +41,13 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         terms: &[Box<dyn MultilinearExtension<S> + '_>],
     ) {
         if terms.is_empty() {
-            self.fr_multiplicands_degree1
-                .par_iter_mut()
-                .with_min_len(slice_ops::MIN_RAYON_LEN)
-                .for_each(|val| *val += *mult);
+            if_rayon!(
+                self.fr_multiplicands_degree1
+                    .par_iter_mut()
+                    .with_min_len(crate::base::slice_ops::MIN_RAYON_LEN),
+                self.fr_multiplicands_degree1.iter_mut()
+            )
+            .for_each(|val| *val += *mult);
         } else if terms.len() == 1 {
             terms[0].mul_add(&mut self.fr_multiplicands_degree1, mult);
         } else {
