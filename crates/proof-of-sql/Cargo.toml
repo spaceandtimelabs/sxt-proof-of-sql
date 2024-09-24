@@ -75,6 +75,7 @@ development = ["arrow-csv"]
 default = ["arrow", "blitzar", "rayon"]
 arrow = ["dep:arrow"]
 test = ["dep:rand"]
+std = ["snafu/std"]
 
 [lints]
 workspace = true
@@ -85,7 +86,7 @@ required-features = [ "blitzar", "test" ]
 
 [[example]]
 name = "posql_db"
-required-features = [ "arrow", "blitzar" ]
+required-features = [ "arrow", "blitzar", "std" ]
 
 [[bench]]
 name = "posql_benches"
