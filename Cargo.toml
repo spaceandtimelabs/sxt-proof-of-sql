@@ -37,7 +37,7 @@ curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 flexbuffers = { version = "2.0.0" }
 # forge-script = { git = "https://github.com/foundry-rs/foundry", tag = "nightly-bf1a39980532f76cd76fd87ee32661180f606435" }
-indexmap = { version = "2.1" }
+indexmap = { version = "2.1", default-features = false }
 itertools = { version = "0.13.0" }
 lalrpop = { version = "0.21.0" }
 lalrpop-util = { version = "0.20.0", default-features = false }
