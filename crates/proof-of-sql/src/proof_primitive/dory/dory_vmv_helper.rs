@@ -2,14 +2,14 @@
 use super::G1Projective;
 use super::{transpose, G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
+#[cfg(feature = "blitzar")]
+use crate::base::slice_ops::slice_cast;
 #[cfg(not(feature = "blitzar"))]
 use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::{BigInt, MontBackend};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
 use num_traits::{One, Zero};
-#[cfg(feature = "blitzar")]
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
 pub(super) fn compute_v_vec(a: &[F], L_vec: &[F], sigma: usize, nu: usize) -> Vec<F> {
@@ -57,7 +57,7 @@ pub(super) fn compute_T_vec_prime(
         a_transpose.as_slice(),
     );
 
-    blitzar_commits.par_iter().map(Into::into).collect()
+    slice_cast(&blitzar_commits)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
