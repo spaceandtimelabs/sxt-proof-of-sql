@@ -1,7 +1,5 @@
 use crate::base::{
-    polynomial::CompositePolynomial,
-    proof::{MessageLabel, TranscriptProtocol},
-    scalar::Curve25519Scalar,
+    polynomial::CompositePolynomial, proof::Transcript as _, scalar::Curve25519Scalar,
 };
 /**
  * Adopted from arkworks
@@ -47,7 +45,7 @@ fn test_create_verify_proof() {
 
     // we return a different evaluation point if we start with a different transcript
     let mut transcript = Transcript::new(b"sumchecktest");
-    transcript.append_auto(MessageLabel::SumcheckChallenge, &123u64);
+    transcript.extend_serialize_as_le(&123u64);
     let subclaim = proof
         .verify_without_evaluation(
             &mut transcript,
