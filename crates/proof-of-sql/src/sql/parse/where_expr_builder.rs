@@ -3,10 +3,10 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType},
+        map::IndexMap,
     },
     sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
 /// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is

@@ -1,9 +1,9 @@
 use crate::base::{
     if_rayon,
+    map::IndexMap,
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
-use indexmap::IndexMap;
 use num_traits::{One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -28,7 +28,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             fr_multiplicands_rest: vec![],
             zerosum_multiplicands: vec![],
             fr: fr.to_sumcheck_term(num_sumcheck_variables),
-            mles: IndexMap::new(),
+            mles: IndexMap::default(),
         }
     }
 

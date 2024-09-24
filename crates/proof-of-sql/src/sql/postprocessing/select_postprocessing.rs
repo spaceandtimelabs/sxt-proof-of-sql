@@ -1,9 +1,9 @@
 use super::{PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{OwnedColumn, OwnedTable},
+    map::IndexMap,
     scalar::Scalar,
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{intermediate_ast::AliasedResultExpr, Identifier};
 use serde::{Deserialize, Serialize};
 

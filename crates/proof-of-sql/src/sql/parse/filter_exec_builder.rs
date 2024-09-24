@@ -3,13 +3,13 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
+        map::IndexMap,
     },
     sql::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, TableExpr},
         proof_plans::FilterExec,
     },
 };
-use indexmap::IndexMap;
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 

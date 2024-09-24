@@ -1,11 +1,11 @@
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
+        map::IndexMap,
         scalar::Curve25519Scalar,
     },
     proof_primitive::dory::DoryScalar,
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
@@ -13,7 +13,7 @@ use proof_of_sql_parser::{
 
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
-    let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap();
+    let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::default()).unwrap();
     assert_eq!(table.num_columns(), 0);
 }
 #[test]
@@ -25,7 +25,7 @@ fn we_can_create_an_empty_owned_table() {
         scalar("scalar", [0; 0]),
         boolean("boolean", [true; 0]),
     ]);
-    let mut table = IndexMap::new();
+    let mut table = IndexMap::default();
     table.insert(
         Identifier::try_new("bigint").unwrap(),
         OwnedColumn::BigInt(vec![]),
@@ -66,7 +66,7 @@ fn we_can_create_an_owned_table_with_data() {
             [0, 1, 2, 3, 4, 5, 6, i64::MIN, i64::MAX],
         ),
     ]);
-    let mut table = IndexMap::new();
+    let mut table = IndexMap::default();
     table.insert(
         Identifier::try_new("time_stamp").unwrap(),
         OwnedColumn::TimestampTZ(

@@ -1,6 +1,7 @@
 use crate::{
     base::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
     sql::{
@@ -9,7 +10,6 @@ use crate::{
     },
 };
 use curve25519_dalek::RistrettoPoint;
-use indexmap::{indexmap, IndexMap};
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
@@ -20,7 +20,7 @@ use std::str::FromStr;
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
-    let mut column_mapping = IndexMap::new();
+    let mut column_mapping = IndexMap::default();
     // Setup column mapping
     column_mapping.insert(
         ident("boolean_column"),
@@ -281,7 +281,7 @@ fn we_can_not_have_non_boolean_column_as_where_clause() {
 
 #[test]
 fn we_can_not_have_non_boolean_literal_as_where_clause() {
-    let column_mapping = IndexMap::new();
+    let column_mapping = IndexMap::default();
 
     let builder = WhereExprBuilder::new(&column_mapping);
 

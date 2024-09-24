@@ -1,5 +1,4 @@
-use crate::base::scalar::Scalar;
-use indexmap::IndexMap;
+use crate::base::{map::IndexMap, scalar::Scalar};
 /**
  * Adopted from arkworks
  *
@@ -53,7 +52,7 @@ impl<S: Scalar> CompositePolynomial<S> {
             num_variables,
             products: Vec::new(),
             flattened_ml_extensions: Vec::new(),
-            raw_pointers_lookup_table: IndexMap::new(),
+            raw_pointers_lookup_table: IndexMap::default(),
         }
     }
 

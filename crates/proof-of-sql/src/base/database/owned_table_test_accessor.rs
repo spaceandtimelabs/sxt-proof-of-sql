@@ -2,9 +2,11 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedColumn,
     OwnedTable, SchemaAccessor, TableRef, TestAccessor,
 };
-use crate::base::commitment::{CommitmentEvaluationProof, VecCommitmentExt};
+use crate::base::{
+    commitment::{CommitmentEvaluationProof, VecCommitmentExt},
+    map::IndexMap,
+};
 use bumpalo::Bump;
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 
 /// A test accessor that uses OwnedTable as the underlying table type.

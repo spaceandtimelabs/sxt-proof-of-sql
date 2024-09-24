@@ -1,6 +1,5 @@
 use super::OwnedColumn;
-use crate::base::scalar::Scalar;
-use indexmap::IndexMap;
+use crate::base::{map::IndexMap, scalar::Scalar};
 use proof_of_sql_parser::Identifier;
 use thiserror::Error;
 

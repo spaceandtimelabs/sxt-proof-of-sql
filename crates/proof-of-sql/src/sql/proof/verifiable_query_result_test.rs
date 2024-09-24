@@ -10,13 +10,13 @@ use crate::{
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
             MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
         },
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
     },
     sql::proof::{QueryData, ResultBuilder},
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]

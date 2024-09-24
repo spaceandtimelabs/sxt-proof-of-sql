@@ -3,12 +3,12 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical NOT expression

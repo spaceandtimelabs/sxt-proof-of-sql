@@ -5,6 +5,7 @@ use crate::{
             owned_table_utility::*, ColumnField, ColumnRef, ColumnType, OwnedTable,
             OwnedTableTestAccessor, TableRef, TestAccessor,
         },
+        map::{IndexMap, IndexSet},
         math::decimal::Precision,
         scalar::Curve25519Scalar,
     },
@@ -19,7 +20,6 @@ use crate::{
 use blitzar::proof::InnerProductProof;
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
-use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{Identifier, ResourceId};
 
 #[test]
@@ -89,7 +89,7 @@ fn we_can_correctly_fetch_all_the_referenced_columns() {
 
     assert_eq!(
         ref_columns,
-        IndexSet::from([
+        IndexSet::from_iter([
             ColumnRef::new(
                 table_ref,
                 Identifier::try_new("a").unwrap(),
@@ -211,7 +211,7 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
         ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
             .to_owned_table(fields)
             .unwrap();
-    let expected = OwnedTable::try_new(IndexMap::new()).unwrap();
+    let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
 

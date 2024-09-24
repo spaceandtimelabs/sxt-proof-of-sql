@@ -3,6 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -10,7 +11,6 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable AST expression for an equals expression
