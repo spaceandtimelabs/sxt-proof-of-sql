@@ -75,6 +75,7 @@ development = ["arrow-csv"]
 default = ["arrow", "blitzar"]
 arrow = ["dep:arrow"]
 test = ["dep:rand"]
+rayon = []
 
 [lints]
 workspace = true
