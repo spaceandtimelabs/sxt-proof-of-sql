@@ -75,6 +75,8 @@ jobs:
           sudo apt-get install -y clang lld
       - name: Run cargo test
         run: cargo test --all-features
+      - name: Run cargo test without rayon
+        run: cargo test --no-default-features --features="arrow blitzar"
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
       - name: Dry run cargo test (proof-of-sql) (arrow feature only)

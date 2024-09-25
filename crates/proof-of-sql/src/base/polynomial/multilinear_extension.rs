@@ -1,6 +1,7 @@
-use crate::base::{database::Column, scalar::Scalar, slice_ops};
+use crate::base::{database::Column, if_rayon, scalar::Scalar, slice_ops};
 use num_traits::Zero;
-use rayon::iter::*;
+#[cfg(feature = "rayon")]
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{ffi::c_void, rc::Rc};
 
 /// Interface for operating on multilinear extension's in-place
@@ -44,10 +45,12 @@ where
         let values = self;
         let n = 1 << num_vars;
         assert!(n >= values.len());
-        let scalars = values
-            .par_iter()
+        let scalars = if_rayon!(values.par_iter(), values.iter())
             .map(|val| val.into())
-            .chain(rayon::iter::repeatn(Zero::zero(), n - values.len()))
+            .chain(if_rayon!(
+                rayon::iter::repeatn(Zero::zero(), n - values.len()),
+                itertools::repeat_n(Zero::zero(), n - values.len())
+            ))
             .collect();
         Rc::new(scalars)
     }

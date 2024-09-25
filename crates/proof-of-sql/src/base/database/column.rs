@@ -2,6 +2,7 @@ use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
+    slice_ops::slice_cast_with,
 };
 use alloc::{sync::Arc, vec::Vec};
 #[cfg(feature = "arrow")]
@@ -16,7 +17,6 @@ use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 
 /// Represents a read-only view of a column in an in-memory,
@@ -187,43 +187,15 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
-            Self::Boolean(col) => col
-                .par_iter()
-                .map(|b| S::from(b) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Decimal75(_, _, col) => col
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::VarChar((_, scals)) => scals
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-
-            Self::SmallInt(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Int(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::BigInt(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Int128(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Scalar(col) => col
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::TimestampTZ(_, _, col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
+            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
+            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
+            Self::VarChar((_, scals)) => slice_cast_with(scals, |s| *s * scale_factor),
+            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
         }
     }
 }

@@ -1,6 +1,7 @@
 use crate::{
     base::{
         database::Column,
+        if_rayon,
         math::decimal::{DecimalError, Precision},
         scalar::Scalar,
     },
@@ -8,9 +9,8 @@ use crate::{
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+#[cfg(feature = "rayon")]
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 fn unchecked_subtract_impl<'a, S: Scalar>(
     alloc: &'a Bump,
@@ -19,9 +19,10 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     table_length: usize,
 ) -> ConversionResult<&'a [S]> {
     let res = alloc.alloc_slice_fill_default(table_length);
-    res.par_iter_mut()
-        .zip(lhs.par_iter().zip(rhs.par_iter()))
-        .for_each(|(a, (l, r))| {
+    if_rayon!(res.par_iter_mut(), res.iter_mut())
+        .zip(lhs)
+        .zip(rhs)
+        .for_each(|((a, l), r)| {
             *a = *l - *r;
         });
     Ok(res)

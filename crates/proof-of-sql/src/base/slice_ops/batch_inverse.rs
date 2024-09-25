@@ -6,11 +6,12 @@
 //!
 //! Additionally, `num_elem_per_thread` rounds up instead of down.
 
-use core::{
-    cmp::max,
-    ops::{Mul, MulAssign},
-};
+use crate::base::if_rayon;
+#[cfg(feature = "rayon")]
+use core::cmp::max;
+use core::ops::{Mul, MulAssign};
 use num_traits::{Inv, One, Zero};
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
 /**
@@ -33,18 +34,23 @@ pub fn batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,
 {
-    // Divide the vector v evenly between all available cores, but make sure that each
-    // core has at least MIN_RAYON_LEN elements to work on
-    let num_cpus_available = max(1, rayon::current_num_threads());
-    let num_elem_per_thread = max(
-        (v.len() + num_cpus_available - 1) / num_cpus_available,
-        super::MIN_RAYON_LEN,
-    );
+    if_rayon!(
+        {
+            // Divide the vector v evenly between all available cores, but make sure that each
+            // core has at least MIN_RAYON_LEN elements to work on
+            let num_cpus_available = max(1, rayon::current_num_threads());
+            let num_elem_per_thread = max(
+                (v.len() + num_cpus_available - 1) / num_cpus_available,
+                super::MIN_RAYON_LEN,
+            );
 
-    // Batch invert in parallel, without copying the vector
-    v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
-        serial_batch_inversion_and_mul(chunk, coeff);
-    });
+            // Batch invert in parallel, without copying the vector
+            v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
+                serial_batch_inversion_and_mul(chunk, coeff);
+            })
+        },
+        serial_batch_inversion_and_mul(v, coeff)
+    )
 }
 
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)

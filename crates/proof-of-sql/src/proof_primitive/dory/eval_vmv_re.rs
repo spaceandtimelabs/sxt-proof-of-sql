@@ -2,8 +2,10 @@ use super::{
     pairings, DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
     ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
+use crate::base::if_rayon;
 use ark_ec::VariableBaseMSM;
 use merlin::Transcript;
+#[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 /// This is the prover side of the Eval-VMV-RE algorithm in section 5 of https://eprint.iacr.org/2020/1274.pdf.
@@ -34,9 +36,7 @@ pub fn eval_vmv_re_prove(
     messages.prover_send_GT_message(transcript, D_2);
     messages.prover_send_G1_message(transcript, E_1);
     let Gamma_2_fin = setup.Gamma_2_fin;
-    let v2 = state
-        .v_vec
-        .par_iter()
+    let v2 = if_rayon!(state.v_vec.par_iter(), state.v_vec.iter())
         .map(|c| (Gamma_2_fin * c).into())
         .collect::<Vec<_>>();
     ExtendedProverState::from_vmv_prover_state(state, v2)
