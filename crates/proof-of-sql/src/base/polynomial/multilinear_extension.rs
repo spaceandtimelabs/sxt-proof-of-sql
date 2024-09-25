@@ -1,8 +1,9 @@
 use crate::base::{database::Column, if_rayon, scalar::Scalar, slice_ops};
+use core::ffi::c_void;
 use num_traits::Zero;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use std::{ffi::c_void, rc::Rc};
+use std::rc::Rc;
 
 /// Interface for operating on multilinear extension's in-place
 pub trait MultilinearExtension<S: Scalar> {
