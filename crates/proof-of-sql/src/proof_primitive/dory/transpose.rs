@@ -25,6 +25,7 @@ pub fn transpose_for_fixed_msm<const LEN: usize, T: OffsetToBytes<LEN>>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::mem;
     use zerocopy::AsBytes;
 
     #[test]
@@ -34,7 +35,7 @@ mod tests {
         let offset = 0;
         let rows = 0;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -51,7 +52,7 @@ mod tests {
         let offset = 0;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -78,7 +79,7 @@ mod tests {
         let offset = 2;
         let rows = 2;
         let cols = 3;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset + 1);
 
@@ -107,7 +108,7 @@ mod tests {
         let offset = 1;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -134,7 +135,7 @@ mod tests {
         let offset = 0;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -167,7 +168,7 @@ mod tests {
         let offset = 0;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -200,7 +201,7 @@ mod tests {
         let offset = 0;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 
@@ -227,7 +228,7 @@ mod tests {
         let offset = 0;
         let rows = 2;
         let cols = 2;
-        let data_size = std::mem::size_of::<T>();
+        let data_size = mem::size_of::<T>();
 
         let expected_len = data_size * (column.len() + offset);
 

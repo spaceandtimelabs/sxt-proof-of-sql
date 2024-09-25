@@ -4,6 +4,7 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
+use core::iter;
 use num_traits::{One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -99,7 +100,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             One::one(),
         );
         for (mult, terms) in self.fr_multiplicands_rest.iter() {
-            let fr_iter = std::iter::once(self.fr.clone());
+            let fr_iter = iter::once(self.fr.clone());
             let terms_iter = terms.iter().cloned();
             res.add_product(fr_iter.chain(terms_iter), *mult)
         }

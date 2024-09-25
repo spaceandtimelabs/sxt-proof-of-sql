@@ -23,7 +23,7 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use core::iter::repeat_with;
+use core::{iter, iter::repeat_with};
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
@@ -172,7 +172,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             group_by_result_columns_evals
                 .into_iter()
                 .chain(sum_result_columns_evals)
-                .chain(std::iter::once(count_column_eval)),
+                .chain(iter::once(count_column_eval)),
         ))
     }
 
@@ -183,7 +183,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .chain(self.sum_expr.iter().map(|aliased_expr| {
                 ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
             }))
-            .chain(std::iter::once(ColumnField::new(
+            .chain(iter::once(ColumnField::new(
                 self.count_alias,
                 ColumnType::BigInt,
             )))
@@ -250,7 +250,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             group_by_result_columns
                 .into_iter()
                 .chain(sum_result_columns_iter)
-                .chain(std::iter::once(Column::BigInt(count_column))),
+                .chain(iter::once(Column::BigInt(count_column))),
         )
     }
 
@@ -305,7 +305,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             group_by_result_columns
                 .into_iter()
                 .chain(sum_result_columns_iter)
-                .chain(std::iter::once(Column::BigInt(count_column))),
+                .chain(iter::once(Column::BigInt(count_column))),
         )
     }
 }

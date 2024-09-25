@@ -2,6 +2,7 @@ use crate::base::{
     database::{ColumnOperationError, ColumnType},
     math::decimal::DecimalError,
 };
+use core::result::Result;
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
     ResourceId,
@@ -171,4 +172,4 @@ impl ConversionError {
     }
 }
 
-pub type ConversionResult<T> = std::result::Result<T, ConversionError>;
+pub type ConversionResult<T> = Result<T, ConversionError>;

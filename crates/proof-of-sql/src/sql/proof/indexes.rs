@@ -1,5 +1,5 @@
 use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::Scalar};
-use core::ops::Range;
+use core::{ops::Range, slice};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
@@ -46,8 +46,8 @@ impl Indexes {
     /// Get an iterator over the indexes
     pub fn iter(&self) -> impl Iterator<Item = u64> + '_ {
         enum Iter<'a> {
-            Sparse(std::slice::Iter<'a, u64>),
-            Dense(std::ops::Range<u64>),
+            Sparse(slice::Iter<'a, u64>),
+            Dense(Range<u64>),
         }
         impl<'a> Iterator for Iter<'a> {
             type Item = u64;

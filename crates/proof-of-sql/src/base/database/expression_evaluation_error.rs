@@ -1,4 +1,5 @@
 use crate::base::{database::ColumnOperationError, math::decimal::DecimalError};
+use core::result::Result;
 use snafu::Snafu;
 
 /// Errors from evaluation of `Expression`s.
@@ -31,4 +32,4 @@ pub enum ExpressionEvaluationError {
 }
 
 /// Result type for expression evaluation
-pub type ExpressionEvaluationResult<T> = std::result::Result<T, ExpressionEvaluationError>;
+pub type ExpressionEvaluationResult<T> = Result<T, ExpressionEvaluationError>;
