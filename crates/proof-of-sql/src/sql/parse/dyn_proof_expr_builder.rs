@@ -3,6 +3,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue},
+        map::IndexMap,
         math::decimal::{try_into_to_scalar, DecimalError::InvalidPrecision, Precision},
     },
     sql::{
@@ -10,7 +11,6 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},

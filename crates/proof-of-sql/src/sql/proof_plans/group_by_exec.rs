@@ -9,6 +9,7 @@ use crate::{
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
             MetadataAccessor, OwnedTable,
         },
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -23,7 +24,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use indexmap::IndexSet;
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
@@ -190,7 +190,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
 
         for col in self.group_by_exprs.iter() {
             columns.insert(col.get_column_reference());

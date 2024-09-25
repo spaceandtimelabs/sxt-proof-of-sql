@@ -10,13 +10,13 @@ use crate::{
             MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
             UnimplementedTestAccessor,
         },
+        map::IndexSet,
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
     sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::Serialize;
 
 /// Type to allow us to prove and verify an artificial polynomial where we prove

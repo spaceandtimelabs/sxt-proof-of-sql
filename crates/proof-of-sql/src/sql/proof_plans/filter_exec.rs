@@ -6,6 +6,7 @@ use crate::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
             DataAccessor, MetadataAccessor, OwnedTable,
         },
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -20,7 +21,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::{iter::repeat_with, marker::PhantomData};
-use indexmap::IndexSet;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
@@ -131,7 +131,7 @@ where
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
 
         for aliased_expr in self.aliased_results.iter() {
             aliased_expr.expr.get_column_references(&mut columns);

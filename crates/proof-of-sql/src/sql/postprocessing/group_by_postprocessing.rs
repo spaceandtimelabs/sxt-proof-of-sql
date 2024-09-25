@@ -1,10 +1,10 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
+    map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
 use bumpalo::Bump;
-use indexmap::{indexmap, IndexMap, IndexSet};
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
@@ -45,9 +45,9 @@ fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
 /// Get identifiers NOT in aggregate functions
 fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
     match expr {
-        Expression::Column(identifier) => IndexSet::from([*identifier]),
+        Expression::Column(identifier) => IndexSet::from_iter([*identifier]),
         Expression::Literal(_) | Expression::Aggregation { .. } | Expression::Wildcard => {
-            IndexSet::new()
+            IndexSet::default()
         }
         Expression::Binary { left, right, .. } => {
             let mut left_identifiers = get_free_identifiers_from_expr(left);
@@ -141,7 +141,7 @@ impl GroupByPostprocessing {
         aliased_exprs: Vec<AliasedResultExpr>,
     ) -> PostprocessingResult<Self> {
         let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
-            IndexMap::new();
+            IndexMap::default();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
         let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
             .into_iter()
@@ -345,7 +345,7 @@ mod tests {
     fn we_can_get_free_identifiers_from_expr() {
         // Literal
         let expr = lit("Not an identifier");
-        let expected: IndexSet<Identifier> = IndexSet::new();
+        let expected: IndexSet<Identifier> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -366,7 +366,7 @@ mod tests {
 
         // SUM(a + b) * 2
         let expr = mul(sum(add(col("a"), col("b"))), lit(2));
-        let expected: IndexSet<Identifier> = IndexSet::new();
+        let expected: IndexSet<Identifier> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -380,7 +380,7 @@ mod tests {
     #[test]
     fn we_can_get_aggregate_and_remainder_expressions() {
         let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
-            IndexMap::new();
+            IndexMap::default();
         // SUM(a) + b
         let expr = add(sum(col("a")), col("b"));
         let remainder_expr =

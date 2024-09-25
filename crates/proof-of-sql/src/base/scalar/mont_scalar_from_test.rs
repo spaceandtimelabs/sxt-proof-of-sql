@@ -1,8 +1,10 @@
-use crate::base::scalar::{Curve25519Scalar, Scalar};
+use crate::base::{
+    map::IndexSet,
+    scalar::{Curve25519Scalar, Scalar},
+};
 use alloc::{format, string::ToString, vec::Vec};
 use byte_slice_cast::AsByteSlice;
 use core::cmp::Ordering;
-use indexmap::IndexSet;
 use num_traits::{One, Zero};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -120,7 +122,7 @@ fn byte_arrays_with_the_same_content_but_different_types_map_to_different_scalar
 
 #[test]
 fn strings_of_arbitrary_size_map_to_different_scalars() {
-    let mut prev_scalars = IndexSet::new();
+    let mut prev_scalars = IndexSet::default();
     let mut rng = StdRng::from_seed([0u8; 32]);
     let dist = Uniform::new(1, 100);
 
@@ -137,7 +139,7 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
 
 #[test]
 fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
-    let mut prev_scalars = IndexSet::new();
+    let mut prev_scalars = IndexSet::default();
     let mut rng = StdRng::from_seed([0u8; 32]);
     let dist = Uniform::new(1, 100);
 
@@ -157,7 +159,7 @@ fn the_string_hash_implementation_uses_the_full_range_of_bits() {
 
     for i in 0..252 {
         let mut curr_iters = 0;
-        let mut bset = IndexSet::new();
+        let mut bset = IndexSet::default();
 
         loop {
             let s: Curve25519Scalar = dist.sample(&mut rng).to_string().as_str().into();
@@ -167,7 +169,7 @@ fn the_string_hash_implementation_uses_the_full_range_of_bits() {
 
             bset.insert(is_ith_bit_set);
 
-            if bset == IndexSet::from([false, true]) {
+            if bset == IndexSet::from_iter([false, true]) {
                 break;
             }
 
