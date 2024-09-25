@@ -109,15 +109,13 @@ impl Commitment for NaiveCommitment {
     type PublicSetup<'a> = ();
 
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         _setup: &Self::PublicSetup<'_>,
-    ) {
-        commitments
-            .iter_mut()
-            .zip(committable_columns)
-            .for_each(|(nc, cc)| {
+    ) -> Vec<Self> {
+        committable_columns
+            .iter()
+            .map(|cc| {
                 let mut vectors: Vec<TestScalar> = vec![TestScalar::ZERO; offset];
                 let mut existing_scalars: Vec<TestScalar> = match cc {
                     CommittableColumn::Boolean(bool_vec) => {
@@ -150,8 +148,9 @@ impl Commitment for NaiveCommitment {
                     }
                 };
                 vectors.append(&mut existing_scalars);
-                *nc = NaiveCommitment(vectors);
-            });
+                NaiveCommitment(vectors)
+            })
+            .collect()
     }
 }
 
@@ -170,8 +169,7 @@ fn we_can_compute_commitments_from_commitable_columns() {
     let commitable_column_a = CommittableColumn::BigInt(&column_a);
     let commitable_column_b = CommittableColumn::VarChar(column_b);
     let committable_columns: &[CommittableColumn] = &[commitable_column_a, commitable_column_b];
-    let mut commitments: Vec<NaiveCommitment> = vec![NaiveCommitment(Vec::new()); 2];
-    NaiveCommitment::compute_commitments(&mut commitments, committable_columns, 0, &());
+    let commitments = NaiveCommitment::compute_commitments(committable_columns, 0, &());
     assert_eq!(commitments[0].0, column_a_scalars);
     assert_eq!(commitments[1].0, column_b_scalars);
 }
@@ -182,7 +180,6 @@ fn we_can_compute_commitments_from_commitable_columns_with_offset() {
     let column_a_scalars: Vec<TestScalar> = column_a.iter().map(|a| a.into()).collect();
     let commitable_column_a = CommittableColumn::BigInt(&column_a[1..]);
     let committable_columns: &[CommittableColumn] = &[commitable_column_a];
-    let mut commitments: Vec<NaiveCommitment> = vec![NaiveCommitment(Vec::new()); 2];
-    NaiveCommitment::compute_commitments(&mut commitments, committable_columns, 1, &());
+    let commitments = NaiveCommitment::compute_commitments(committable_columns, 1, &());
     assert_eq!(commitments[0].0, column_a_scalars);
 }

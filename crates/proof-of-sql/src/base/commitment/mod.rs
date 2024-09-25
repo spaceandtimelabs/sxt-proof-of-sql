@@ -84,11 +84,10 @@ pub trait Commitment:
     ///
     /// `offset` is the amount that `committable_columns` is "offset" by. Logically adding `offset` many 0s to the beginning of each of the `committable_columns`.
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::PublicSetup<'_>,
-    );
+    ) -> Vec<Self>;
 }
 
 impl Commitment for RistrettoPoint {
@@ -96,11 +95,10 @@ impl Commitment for RistrettoPoint {
     type PublicSetup<'a> = ();
     #[cfg(feature = "blitzar")]
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         _setup: &Self::PublicSetup<'_>,
-    ) {
+    ) -> Vec<Self>{
         let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
         let mut compressed_commitments = vec![Default::default(); committable_columns.len()];
         blitzar::compute::compute_curve25519_commitments(
@@ -108,22 +106,19 @@ impl Commitment for RistrettoPoint {
             &sequences,
             offset as u64,
         );
-        commitments
-            .iter_mut()
-            .zip(compressed_commitments.iter())
-            .for_each(|(c, cc)| {
-                *c = cc.decompress().expect(
-                    "invalid ristretto point decompression in Commitment::compute_commitments",
-                );
-            });
+        compressed_commitments
+            .into_iter()
+            .map(|cc| cc.decompress().expect(
+                "invalid ristretto point decompression in Commitment::compute_commitments",
+            ))
+            .collect()
     }
     #[cfg(not(feature = "blitzar"))]
     fn compute_commitments(
-        _commitments: &mut [Self],
         _committable_columns: &[CommittableColumn],
         _offset: usize,
         _setup: &Self::PublicSetup<'_>,
-    ) {
+    ) -> Vec<Self> {
         unimplemented!()
     }
 }

@@ -32,12 +32,12 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
                 .collect(),
         );
 
-        let mut commitments = vec![C::default(); columns.len()];
         let committable_columns = columns
             .iter()
             .map(|(_, col)| col.into())
             .collect::<Vec<_>>();
-        C::compute_commitments(&mut commitments, &committable_columns, 0, setup);
+
+        let commitments = C::compute_commitments(&committable_columns, 0, setup);
 
         let mut length = None;
         for (column, commitment) in columns.iter().zip(commitments) {
