@@ -1,5 +1,8 @@
 use crate::base::if_rayon;
-use core::ops::{Mul, MulAssign, Sub, SubAssign};
+use core::{
+    cmp,
+    ops::{Mul, MulAssign, Sub, SubAssign},
+};
 use num_traits::One;
 #[cfg(feature = "rayon")]
 use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -13,7 +16,7 @@ fn compute_evaluation_vector_impl<F>(left: &mut [F], right: &mut [F], p: F)
 where
     F: One + Sub<Output = F> + MulAssign + SubAssign + Mul<Output = F> + Send + Sync + Copy,
 {
-    let k = std::cmp::min(left.len(), right.len());
+    let k = cmp::min(left.len(), right.len());
     let one_minus_p = F::one() - p;
     if_rayon!(
         left.par_iter_mut().with_min_len(MIN_PARALLEL_LEN),

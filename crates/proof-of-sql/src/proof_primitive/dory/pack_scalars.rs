@@ -5,6 +5,7 @@ use crate::{
 };
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
+use core::iter;
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
@@ -311,7 +312,7 @@ fn compute_cumulative_bit_sum_table(
                 .take(sub_commits)
                 .sum::<u32>() as usize;
             num_sub_commits_completed += sub_commits;
-            std::iter::once(current_sum)
+            iter::once(current_sum)
         })
         .collect()
 }
@@ -344,8 +345,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
     let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
 
     // Add offsets to handle signed values to the bit table.
-    bit_table
-        .extend(std::iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
+    bit_table.extend(iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
     let bit_table_full_sum_in_bytes = bit_table.iter().sum::<u32>() as usize / BYTE_SIZE;
 
     // Create the packed_scalar array.

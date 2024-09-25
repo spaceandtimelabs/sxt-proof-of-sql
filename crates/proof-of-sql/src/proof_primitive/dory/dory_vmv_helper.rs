@@ -9,6 +9,8 @@ use ark_ec::{AffineRepr, VariableBaseMSM};
 use ark_ff::{BigInt, MontBackend};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
+#[cfg(feature = "blitzar")]
+use core::mem;
 use num_traits::{One, Zero};
 
 /// Compute the evaluations of the columns of the matrix M that is derived from `a`.
@@ -43,7 +45,7 @@ pub(super) fn compute_T_vec_prime(
 ) -> Vec<G1Affine> {
     let num_columns = 1 << sigma;
     let num_outputs = 1 << nu;
-    let data_size = std::mem::size_of::<F>();
+    let data_size = mem::size_of::<F>();
 
     let a_array = convert_scalar_to_array(a);
     let a_transpose =

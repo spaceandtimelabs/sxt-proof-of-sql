@@ -1,5 +1,6 @@
 use super::QueryError;
 use crate::base::encode::VarInt;
+use core::str;
 
 pub trait ProvableResultElement<'a> {
     fn required_bytes(&self) -> usize;
@@ -75,7 +76,7 @@ impl<'a> ProvableResultElement<'a> for &'a str {
         }
 
         Ok((
-            std::str::from_utf8(data).map_err(|_e| QueryError::InvalidString)?,
+            str::from_utf8(data).map_err(|_e| QueryError::InvalidString)?,
             bytes_read,
         ))
     }

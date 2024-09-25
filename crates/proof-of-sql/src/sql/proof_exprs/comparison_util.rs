@@ -8,6 +8,7 @@ use crate::{
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
 use bumpalo::Bump;
+use core::cmp;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -59,7 +60,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             right_type: rhs_type.to_string(),
         });
     }
-    let max_scale = std::cmp::max(lhs_scale, rhs_scale);
+    let max_scale = cmp::max(lhs_scale, rhs_scale);
     let lhs_upscale = max_scale - lhs_scale;
     let rhs_upscale = max_scale - rhs_scale;
     // Only check precision overflow issues if at least one side is decimal
@@ -70,7 +71,7 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         let rhs_precision_value = rhs_type
             .precision_value()
             .expect("If scale is set, precision must be set");
-        let max_precision_value = std::cmp::max(
+        let max_precision_value = cmp::max(
             lhs_precision_value + (max_scale - lhs_scale) as u8,
             rhs_precision_value + (max_scale - rhs_scale) as u8,
         );
