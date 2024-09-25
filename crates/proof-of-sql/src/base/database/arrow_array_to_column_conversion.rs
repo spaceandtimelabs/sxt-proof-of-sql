@@ -379,7 +379,8 @@ mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use arrow::array::Decimal256Builder;
-    use std::{str::FromStr, sync::Arc};
+    use core::str::FromStr;
+    use std::sync::Arc;
 
     #[test]
     fn we_can_convert_timestamp_array_normal_range() {
