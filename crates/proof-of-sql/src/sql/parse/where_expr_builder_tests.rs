@@ -9,6 +9,7 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
+use core::str::FromStr;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimal,
@@ -16,7 +17,6 @@ use proof_of_sql_parser::{
     utility::*,
     Identifier, SelectStatement,
 };
-use core::str::FromStr;
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
