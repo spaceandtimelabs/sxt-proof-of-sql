@@ -50,7 +50,7 @@ where
             });
         },
         serial_batch_inversion_and_mul(v, coeff)
-    )
+    );
 }
 
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)

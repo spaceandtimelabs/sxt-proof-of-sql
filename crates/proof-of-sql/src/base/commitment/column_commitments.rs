@@ -7,7 +7,6 @@ use crate::base::{
     map::IndexSet,
 };
 use alloc::{
-    borrow::ToOwned,
     string::{String, ToString},
     vec,
     vec::Vec,

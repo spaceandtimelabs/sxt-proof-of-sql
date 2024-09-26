@@ -31,7 +31,7 @@ impl<T: TranscriptCore> Transcript for T {
             let bytes = message.as_bytes_mut();
             bytes.reverse();
             self.raw_append(bytes);
-        })
+        });
     }
     fn extend_as_le_from_refs<'a, M: AsBytes + 'a + ?Sized>(
         &mut self,
