@@ -1,6 +1,6 @@
 use super::Commitment;
 use crate::base::commitment::committable_column::CommittableColumn;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use thiserror::Error;
 
 /// Cannot update commitment collections with different column counts
