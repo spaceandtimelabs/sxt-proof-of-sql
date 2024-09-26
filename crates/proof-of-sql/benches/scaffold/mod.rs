@@ -71,7 +71,7 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
     prover_setup: &CP::ProverPublicSetup<'_>,
     verifier_setup: &CP::VerifierPublicSetup<'_>,
 ) {
-    let mut group = c.benchmark_group(format!("{} - {}", title, query));
+    let mut group = c.benchmark_group(format!("{title} - {query}"));
     group.sample_size(10);
     group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
     init_backend();
@@ -90,10 +90,10 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
             &mut rng,
         );
         group.bench_function("Generate Proof", |b| {
-            b.iter(|| VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup))
+            b.iter(|| VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup));
         });
         group.bench_function("Verify Proof", |b| {
-            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup))
+            b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup));
         });
     }
 }

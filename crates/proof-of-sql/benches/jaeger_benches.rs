@@ -5,7 +5,7 @@
 //! cargo bench -p proof-of-sql --bench jaeger_benches InnerProductProof
 //! cargo bench -p proof-of-sql --bench jaeger_benches Dory --features="test"
 //! ```
-//! Then, navigate to http://localhost:16686 to view the traces.
+//! Then, navigate to <http://localhost:16686> to view the traces.
 
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 #[cfg(feature = "test")]
@@ -45,7 +45,7 @@ fn main() {
         "InnerProductProof" => {
             // Run 3 times to ensure that warm-up of the GPU has occurred.
             for _ in 0..3 {
-                for (title, query, columns) in QUERIES.iter() {
+                for (title, query, columns) in QUERIES {
                     jaeger_scaffold::<InnerProductProof>(title, query, columns, SIZE, &(), &());
                 }
             }

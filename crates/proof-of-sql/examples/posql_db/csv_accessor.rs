@@ -58,7 +58,7 @@ impl CsvDataAccessor {
         Ok(())
     }
     fn get_table_path(&self, table_ref: &TableRef) -> PathBuf {
-        self.base_path.join(format!("{}.csv", table_ref))
+        self.base_path.join(format!("{table_ref}.csv"))
     }
     pub fn write_table(
         &self,
