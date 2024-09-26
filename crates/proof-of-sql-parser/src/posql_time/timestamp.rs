@@ -19,21 +19,21 @@ pub struct PoSQLTimestamp {
 
 impl PoSQLTimestamp {
     /// Returns the combined date and time with time zone.
-    pub fn timestamp(&self) -> DateTime<Utc> {
+    #[must_use] pub fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
     }
 
-    /// Returns the [PoSQLTimeUnit] for this timestamp
-    pub fn timeunit(&self) -> PoSQLTimeUnit {
+    /// Returns the [`PoSQLTimeUnit`] for this timestamp
+    #[must_use] pub fn timeunit(&self) -> PoSQLTimeUnit {
         self.timeunit
     }
 
-    /// Returns the [PoSQLTimeZone] for this timestamp
-    pub fn timezone(&self) -> PoSQLTimeZone {
+    /// Returns the [`PoSQLTimeZone`] for this timestamp
+    #[must_use] pub fn timezone(&self) -> PoSQLTimeZone {
         self.timezone
     }
 
-    /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
+    /// Attempts to parse a timestamp string into an [`PoSQLTimestamp`] structure.
     /// This function supports two primary formats:
     ///
     /// 1. **RFC 3339 Parsing**:
@@ -109,7 +109,7 @@ impl PoSQLTimestamp {
                 timezone: PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous(
-                format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
+                format!("The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "),
             )),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_time_timezone() {
-        let unix_time = 1231006505; // Unix time as string
+        let unix_time = 1_231_006_505; // Unix time as string
         let expected_timezone = PoSQLTimeZone::Utc; // Unix time should always be UTC
         let result = PoSQLTimestamp::to_timestamp(unix_time).unwrap();
         assert_eq!(result.timezone, expected_timezone);
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_timestamp_parsing() {
-        let unix_time = 1231006505; // Example Unix timestamp (seconds since epoch)
+        let unix_time = 1_231_006_505; // Example Unix timestamp (seconds since epoch)
         let expected_datetime = Utc.timestamp_opt(unix_time, 0).unwrap();
         let expected_unit = PoSQLTimeUnit::Second; // Assuming basic second precision for Unix timestamp
         let input = unix_time; // Simulate input as string since Unix times are often transmitted as strings
@@ -207,8 +207,7 @@ mod tests {
         for input in inputs {
             assert!(
                 DateTime::parse_from_rfc3339(input).is_ok(),
-                "Should parse correctly: {}",
-                input
+                "Should parse correctly: {input}"
             );
         }
     }
@@ -258,8 +257,7 @@ mod tests {
         for input in incorrect_formats {
             assert!(
                 DateTime::parse_from_rfc3339(input).is_err(),
-                "Should reject incorrect format: {}",
-                input
+                "Should reject incorrect format: {input}"
             );
         }
     }

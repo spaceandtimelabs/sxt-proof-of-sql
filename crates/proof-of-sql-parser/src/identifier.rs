@@ -12,9 +12,9 @@ pub struct Identifier {
 impl Identifier {
     /// Constructor for [Identifier]
     ///
-    /// Note: this constructor should be private within the proof_of_sql_parser crate.
+    /// Note: this constructor should be private within the `proof_of_sql_parser` crate.
     /// This is necessary to guarantee that no one outside the crate
-    /// can create Names, thus securing that ResourceIds and Identifiers
+    /// can create Names, thus securing that `ResourceIds` and Identifiers
     /// are always valid postgresql identifiers.
     pub(crate) fn new<S: AsRef<str>>(string: S) -> Self {
         Self {
@@ -22,19 +22,19 @@ impl Identifier {
         }
     }
 
-    /// An alias for [Identifier::from_str], provided for convenience.
+    /// An alias for [`Identifier::from_str`], provided for convenience.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
-    pub fn name(&self) -> &str {
+    #[must_use] pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
-    /// An alias for [Identifier::name], provided for convenience.
-    pub fn as_str(&self) -> &str {
+    /// An alias for [`Identifier::name`], provided for convenience.
+    #[must_use] pub fn as_str(&self) -> &str {
         self.name()
     }
 }
@@ -46,7 +46,7 @@ impl FromStr for Identifier {
         let name = IdentifierParser::new()
             .parse(string)
             .map_err(|e| ParseError::IdentifierParseError(
-                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {:?}", e)))?;
+                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {e:?}")))?;
 
         Ok(Identifier::new(name))
     }
@@ -183,11 +183,10 @@ mod tests {
             "to_timestamp",
         ];
 
-        for keyword in keywords.iter() {
+        for keyword in &keywords {
             assert!(
                 Identifier::from_str(keyword).is_err(),
-                "Should not parse keyword as identifier: {}",
-                keyword
+                "Should not parse keyword as identifier: {keyword}"
             );
         }
     }

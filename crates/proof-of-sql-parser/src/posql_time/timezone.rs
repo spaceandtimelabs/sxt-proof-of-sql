@@ -8,13 +8,13 @@ use serde::{Deserialize, Serialize};
 pub enum PoSQLTimeZone {
     /// Default variant for UTC timezone
     Utc,
-    /// TImezone offset in seconds
+    /// `TImezone` offset in seconds
     FixedOffset(i32),
 }
 
 impl PoSQLTimeZone {
     /// Parse a timezone from a count of seconds
-    pub fn from_offset(offset: i32) -> Self {
+    #[must_use] pub fn from_offset(offset: i32) -> Self {
         if offset == 0 {
             PoSQLTimeZone::Utc
         } else {
@@ -65,7 +65,7 @@ impl fmt::Display for PoSQLTimeZone {
                 if seconds < 0 {
                     write!(f, "-{:02}:{:02}", hours.abs(), minutes)
                 } else {
-                    write!(f, "+{:02}:{:02}", hours, minutes)
+                    write!(f, "+{hours:02}:{minutes:02}")
                 }
             }
         }
@@ -80,19 +80,19 @@ mod timezone_parsing_tests {
     #[test]
     fn test_display_fixed_offset_positive() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
-        assert_eq!(format!("{}", timezone), "+01:15");
+        assert_eq!(format!("{timezone}"), "+01:15");
     }
 
     #[test]
     fn test_display_fixed_offset_negative() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
-        assert_eq!(format!("{}", timezone), "-01:03");
+        assert_eq!(format!("{timezone}"), "-01:03");
     }
 
     #[test]
     fn test_display_utc() {
         let timezone = timezone::PoSQLTimeZone::Utc;
-        assert_eq!(format!("{}", timezone), "+00:00");
+        assert_eq!(format!("{timezone}"), "+00:00");
     }
 }
 

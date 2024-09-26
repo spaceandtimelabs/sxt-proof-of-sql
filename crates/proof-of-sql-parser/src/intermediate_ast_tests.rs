@@ -26,7 +26,7 @@ fn we_can_correctly_escape_the_single_quote_character() {
 
 #[test]
 fn we_can_parse_empty_strings() {
-    assert_eq!(StringLiteralParser::new().parse("''"), Ok("".to_string()));
+    assert_eq!(StringLiteralParser::new().parse("''"), Ok(String::new()));
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn we_can_parse_strings_having_control_characters() {
 
 #[test]
 fn unnormalized_strings_should_differ() {
-    let lhs = StringLiteralParser::new().parse("'á'").unwrap();
+    let lhs = StringLiteralParser::new().parse("'á'").unwrap();
     let rhs = StringLiteralParser::new().parse("'á'").unwrap();
     assert_ne!(lhs, rhs);
 }
@@ -1108,7 +1108,7 @@ fn we_cannot_parse_queries_with_long_identifiers() {
 }
 
 ////////////////////////////////
-/// Tests for the GroupByClause
+/// Tests for the `GroupByClause`
 ////////////////////////////////
 #[test]
 fn we_can_parse_a_simple_group_by_clause() {
