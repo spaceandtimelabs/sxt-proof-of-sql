@@ -2,7 +2,7 @@ use crate::{
     base::{bit::BitDistribution, proof::ProofError},
     sql::proof::ProofCounts,
 };
-use std::cmp::max;
+use core::cmp::max;
 
 /// Track the number of components expected for in a query's proof
 pub struct CountBuilder<'a> {

@@ -16,7 +16,7 @@ use arrow::{
 };
 use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {

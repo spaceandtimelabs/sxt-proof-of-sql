@@ -7,7 +7,7 @@ use crate::base::{
 };
 use ark_std::UniformRand;
 use num_traits::Zero;
-use std::iter;
+use core::iter;
 
 #[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_0_variables() {

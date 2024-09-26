@@ -14,7 +14,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use num_traits::Zero;
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {

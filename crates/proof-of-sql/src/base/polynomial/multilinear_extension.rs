@@ -3,7 +3,7 @@ use core::ffi::c_void;
 use num_traits::Zero;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use std::rc::Rc;
+use alloc::rc::Rc;
 
 /// Interface for operating on multilinear extension's in-place
 pub trait MultilinearExtension<S: Scalar> {

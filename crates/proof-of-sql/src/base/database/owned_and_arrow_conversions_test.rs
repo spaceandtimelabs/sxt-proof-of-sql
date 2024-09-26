@@ -12,7 +12,7 @@ use arrow::{
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: OwnedColumn<Curve25519Scalar>,
