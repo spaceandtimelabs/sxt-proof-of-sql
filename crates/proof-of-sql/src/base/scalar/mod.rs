@@ -16,9 +16,6 @@ mod mont_scalar_from_test;
 pub mod test_scalar;
 #[cfg(test)]
 mod test_scalar_test;
-
-#[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
 use num_bigint::BigInt;
 
 /// A trait for the scalar field used in Proof of SQL.
