@@ -4,8 +4,10 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::{Commitment, CommittableColumn},
         database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::Curve25519Scalar,
+        slice_ops::slice_cast,
     },
     sql::proof::Indexes,
 };
@@ -13,7 +15,6 @@ use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
-
 /// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
 /// verification fails.
 ///
@@ -42,10 +43,16 @@ pub fn exercise_verification(
     }
 
     // try changing intermediate commitments
-    let commit_p = compute_commitment_for_testing(
-        &[353453245u64, 93402346u64][..], // some arbitrary values
+    let commit_p = RistrettoPoint::compute_commitments(
+        &[CommittableColumn::Scalar(slice_cast::<
+            Curve25519Scalar,
+            [u64; 4],
+        >(&slice_cast(
+            &[353453245u64, 93402346u64][..],
+        )))],
         0_usize,
-    );
+        &(),
+    )[0];
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
