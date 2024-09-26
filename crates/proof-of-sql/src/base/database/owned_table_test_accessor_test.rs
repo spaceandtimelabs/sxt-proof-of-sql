@@ -4,10 +4,12 @@ use super::{
 };
 use crate::base::{
     database::owned_table_utility::*,
-    scalar::{compute_commitment_for_testing, Curve25519Scalar},
+    scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use blitzar::commitment::{Commitment, CommittableColumn};
+use curve25519_dalek::ristretto::RistrettoPoint;
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -128,25 +130,37 @@ fn we_can_access_the_commitments_of_table_columns() {
     accessor.add_table(table_ref_1, data1, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(
-        accessor.get_commitment(column),
-        compute_commitment_for_testing(&[4, 5, 6], 0_usize)
+    let mut expected_commitment = [RistrettoPoint::default()];
+    RistrettoPoint::compute_commitments(
+        &mut expected_commitment,
+        &[CommittableColumn::Scalar([4, 5, 6].iter().map(|&x| Curve25519Scalar::from(x)))],
+        0_usize,
+        &(),
     );
+    assert_eq!(accessor.get_commitment(column), expected_commitment[0]);
 
     let data2 = owned_table([bigint("a", [1, 2, 3, 4]), bigint("b", [4, 5, 6, 5])]);
     accessor.add_table(table_ref_2, data2, 0_usize);
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(
-        accessor.get_commitment(column),
-        compute_commitment_for_testing(&[1, 2, 3], 0_usize)
+    let mut expected_commitment = [RistrettoPoint::default()];
+    RistrettoPoint::compute_commitments(
+        &mut expected_commitment,
+        &[CommittableColumn::Scalar([1, 2, 3].iter().map(|&x| Curve25519Scalar::from(x)))],
+        0_usize,
+        &(),
     );
+    assert_eq!(accessor.get_commitment(column), expected_commitment[0]);
 
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
-    assert_eq!(
-        accessor.get_commitment(column),
-        compute_commitment_for_testing(&[4, 5, 6, 5], 0_usize)
+    let mut expected_commitment = [RistrettoPoint::default()];
+    RistrettoPoint::compute_commitments(
+        &mut expected_commitment,
+        &[CommittableColumn::Scalar([4, 5, 6, 5].iter().map(|&x| Curve25519Scalar::from(x)))],
+        0_usize,
+        &(),
     );
+    assert_eq!(accessor.get_commitment(column), expected_commitment[0]);
 }
 
 #[test]
