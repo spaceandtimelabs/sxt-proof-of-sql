@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![warn(clippy::pedantic)]
 extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
