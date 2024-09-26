@@ -7,6 +7,7 @@ use crate::{
     },
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
+use alloc::string::ToString;
 use bumpalo::Bump;
 use core::cmp;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;

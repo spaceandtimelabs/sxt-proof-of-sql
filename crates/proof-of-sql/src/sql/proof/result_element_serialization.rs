@@ -1,5 +1,6 @@
 use super::QueryError;
 use crate::base::encode::VarInt;
+use alloc::{string::String, vec::Vec};
 use core::str;
 
 pub trait ProvableResultElement<'a> {

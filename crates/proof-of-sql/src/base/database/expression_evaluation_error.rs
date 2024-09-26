@@ -1,4 +1,5 @@
 use crate::base::{database::ColumnOperationError, math::decimal::DecimalError};
+use alloc::string::String;
 use core::result::Result;
 use snafu::Snafu;
 

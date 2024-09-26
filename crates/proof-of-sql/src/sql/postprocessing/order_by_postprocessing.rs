@@ -5,6 +5,7 @@ use crate::base::{
     math::permutation::Permutation,
     scalar::Scalar,
 };
+use alloc::{string::ToString, vec::Vec};
 use proof_of_sql_parser::intermediate_ast::{OrderBy, OrderByDirection};
 #[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;

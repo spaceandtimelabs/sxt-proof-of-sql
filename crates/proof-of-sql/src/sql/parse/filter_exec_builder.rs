@@ -10,6 +10,7 @@ use crate::{
         proof_plans::FilterExec,
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 

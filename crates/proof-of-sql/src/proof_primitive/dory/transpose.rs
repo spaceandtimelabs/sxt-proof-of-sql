@@ -1,4 +1,5 @@
 use crate::proof_primitive::dory::offset_to_bytes::OffsetToBytes;
+use alloc::{vec, vec::Vec};
 
 #[tracing::instrument(name = "transpose_for_fixed_msm (gpu)", level = "debug", skip_all)]
 pub fn transpose_for_fixed_msm<const LEN: usize, T: OffsetToBytes<LEN>>(

@@ -3,6 +3,7 @@ use crate::{
     base::{commitment::Commitment, database::ColumnRef, map::IndexMap},
     sql::proof_exprs::DynProofExpr,
 };
+use alloc::boxed::Box;
 use proof_of_sql_parser::{
     intermediate_ast::{AliasedResultExpr, Expression},
     Identifier,

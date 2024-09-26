@@ -19,6 +19,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter::repeat_with, marker::PhantomData};
 use num_traits::{One, Zero};

@@ -1,4 +1,5 @@
 use super::{G1Affine, G2Affine};
+use alloc::vec::Vec;
 /// The public parameters for the Dory protocol. See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
 ///
 /// Note: even though H_1 and H_2 are marked as blue, they are still needed.

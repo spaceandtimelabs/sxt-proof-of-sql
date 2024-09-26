@@ -14,6 +14,7 @@ use crate::{
         proof_exprs::multiply_columns,
     },
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
