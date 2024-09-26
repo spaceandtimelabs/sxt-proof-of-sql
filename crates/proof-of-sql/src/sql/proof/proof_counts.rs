@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use core::fmt::Debug;
+use serde::{Deserialize, Serialize};
 
 /// Counters for different terms used within a proof
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]

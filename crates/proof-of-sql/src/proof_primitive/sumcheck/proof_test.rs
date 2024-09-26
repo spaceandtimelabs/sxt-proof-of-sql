@@ -7,10 +7,10 @@ use crate::base::{
  * See third_party/license/arkworks.LICENSE
  */
 use crate::proof_primitive::sumcheck::proof::*;
+use alloc::rc::Rc;
 use ark_std::UniformRand;
 use merlin::Transcript;
 use num_traits::{One, Zero};
-use alloc::rc::Rc;
 
 #[test]
 fn test_create_verify_proof() {

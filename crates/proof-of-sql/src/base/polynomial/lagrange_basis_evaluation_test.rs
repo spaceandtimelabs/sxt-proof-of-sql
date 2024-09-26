@@ -6,8 +6,8 @@ use crate::base::{
     scalar::Curve25519Scalar,
 };
 use ark_std::UniformRand;
-use num_traits::Zero;
 use core::iter;
+use num_traits::Zero;
 
 #[test]
 fn compute_truncated_lagrange_basis_sum_gives_correct_values_with_0_variables() {
