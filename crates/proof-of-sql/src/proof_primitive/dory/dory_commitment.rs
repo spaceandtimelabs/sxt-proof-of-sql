@@ -88,14 +88,11 @@ impl Commitment for DoryCommitment {
     type PublicSetup<'a> = DoryProverPublicSetup<'a>;
 
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::PublicSetup<'_>,
-    ) {
-        assert_eq!(commitments.len(), committable_columns.len());
-        let c = super::compute_dory_commitments(committable_columns, offset, setup);
-        commitments.copy_from_slice(&c);
+    ) -> Vec<Self> {
+        super::compute_dory_commitments(committable_columns, offset, setup)
     }
 }
 
