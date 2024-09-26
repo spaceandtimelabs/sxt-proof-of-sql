@@ -103,7 +103,7 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
 }
 
 /// This function writes all the input scalars `scals` to the input buffer `buf`.
-/// For that, the Varint together with the ZigZag encoding is used.
+/// For that, the Varint together with the `ZigZag` encoding is used.
 ///
 /// return:
 /// - the total number of bytes written to buf
@@ -114,7 +114,7 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
 pub fn write_scalar_varints<T: MontConfig<4>>(buf: &mut [u8], scals: &[MontScalar<T>]) -> usize {
     let mut total_bytes_written = 0;
 
-    for scal in scals.iter() {
+    for scal in scals {
         let bytes_written = write_scalar_varint(&mut buf[total_bytes_written..], scal);
 
         total_bytes_written += bytes_written;
@@ -124,7 +124,7 @@ pub fn write_scalar_varints<T: MontConfig<4>>(buf: &mut [u8], scals: &[MontScala
 }
 
 /// This function read all the specified scalars from `input_buf` to `scals_buf`.
-/// For that, it converts the input buffer from a Varint and ZigZag encoding to a Dalek Scalar
+/// For that, it converts the input buffer from a Varint and `ZigZag` encoding to a Dalek Scalar
 ///
 /// See `<https://developers.google.com/protocol-buffers/docs/encoding#varints>` as reference.
 ///
@@ -174,7 +174,7 @@ pub fn u256_varint_size(zig_x: U256) -> usize {
 pub fn scalar_varints_size<T: MontConfig<4>>(scals: &[MontScalar<T>]) -> usize {
     let mut all_size: usize = 0;
 
-    for x in scals.iter() {
+    for x in scals {
         all_size += scalar_varint_size(x);
     }
 

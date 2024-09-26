@@ -6,7 +6,7 @@ pub struct TestEvaluationProof {}
 
 /// This should only be used for the purpose of unit testing.
 /// For now it is only being created for the purpose of implementing
-/// CommitmentEvaluationProof for TestEvaluationProof.
+/// `CommitmentEvaluationProof` for `TestEvaluationProof`.
 pub enum TestErrorType {}
 
 impl CommitmentEvaluationProof for TestEvaluationProof {

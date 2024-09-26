@@ -6,7 +6,7 @@ use ark_std::rand::{rngs::StdRng, SeedableRng};
 use ark_std::{rand::Rng, UniformRand};
 
 /// Create a random number generator for testing.
-pub fn test_rng() -> impl Rng {
+#[must_use] pub fn test_rng() -> impl Rng {
     ark_std::test_rng()
 }
 

@@ -121,7 +121,7 @@ mod tests {
                         _ => row[0]
                             .expect("Every row except 1 should have a value in the 0th position."),
                     }
-                )
+                );
             }
         }
     }

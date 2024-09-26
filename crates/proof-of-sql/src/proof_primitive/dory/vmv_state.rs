@@ -96,14 +96,7 @@ impl VMV {
         let mut R = vec![Default::default(); 1 << r_tensor.len()];
         compute_evaluation_vector(&mut L, &l_tensor);
         compute_evaluation_vector(&mut R, &r_tensor);
-        Self {
-            M,
-            L,
-            R,
-            l_tensor,
-            r_tensor,
-            nu,
-        }
+        Self { M, l_tensor, r_tensor, L, R, nu }
     }
     /// Calculate the VMV prover state from a vector-matrix-vector product and setup information.
     pub(super) fn calculate_prover_state(&self, setup: &super::ProverSetup) -> VMVProverState {

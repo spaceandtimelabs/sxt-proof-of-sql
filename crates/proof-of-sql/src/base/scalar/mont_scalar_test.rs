@@ -53,7 +53,7 @@ fn test_curve25519_scalar_serialization() {
         Curve25519Scalar::from(12345),
         Curve25519Scalar::from(2357),
         Curve25519Scalar::from(999),
-        Curve25519Scalar::from(123456789),
+        Curve25519Scalar::from(123_456_789),
     ];
     let serialized = serde_json::to_string(&s).unwrap();
     let deserialized: [Curve25519Scalar; 10] = serde_json::from_str(&serialized).unwrap();
@@ -64,35 +64,35 @@ fn test_curve25519_scalar_serialization() {
 fn test_curve25519_scalar_display() {
     assert_eq!(
         "0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{}", Curve25519Scalar::from(0xABC123))
+        format!("{}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5C4A12CA",
-        format!("{}", Curve25519Scalar::from(-0xABC123))
+        format!("{}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "0x0000...C123",
-        format!("{:#}", Curve25519Scalar::from(0xABC123))
+        format!("{:#}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "0x1000...12CA",
-        format!("{:#}", Curve25519Scalar::from(-0xABC123))
+        format!("{:#}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(0xABC123))
+        format!("{:+}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(-0xABC123))
+        format!("{:+}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(0xABC123))
+        format!("{:+#}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(-0xABC123))
+        format!("{:+#}", Curve25519Scalar::from(-0x00AB_C123))
     );
 }
 
@@ -144,11 +144,11 @@ fn test_curve25519_scalar_to_i8() {
 #[test]
 fn test_curve25519_scalar_to_i8_overflow() {
     matches!(
-        i8::try_from(Curve25519Scalar::from(i8::MAX as i128 + 1)),
+        i8::try_from(Curve25519Scalar::from(i128::from(i8::MAX) + 1)),
         Err(ScalarConversionError::Overflow(_))
     );
     matches!(
-        i8::try_from(Curve25519Scalar::from(i8::MIN as i128 - 1)),
+        i8::try_from(Curve25519Scalar::from(i128::from(i8::MIN) - 1)),
         Err(ScalarConversionError::Overflow(_))
     );
 }
@@ -171,11 +171,11 @@ fn test_curve25519_scalar_to_i16() {
 #[test]
 fn test_curve25519_scalar_to_i16_overflow() {
     matches!(
-        i16::try_from(Curve25519Scalar::from(i16::MAX as i128 + 1)),
+        i16::try_from(Curve25519Scalar::from(i128::from(i16::MAX) + 1)),
         Err(ScalarConversionError::Overflow(_))
     );
     matches!(
-        i16::try_from(Curve25519Scalar::from(i16::MIN as i128 - 1)),
+        i16::try_from(Curve25519Scalar::from(i128::from(i16::MIN) - 1)),
         Err(ScalarConversionError::Overflow(_))
     );
 }
@@ -198,11 +198,11 @@ fn test_curve25519_scalar_to_i32() {
 #[test]
 fn test_curve25519_scalar_to_i32_overflow() {
     matches!(
-        i32::try_from(Curve25519Scalar::from(i32::MAX as i128 + 1)),
+        i32::try_from(Curve25519Scalar::from(i128::from(i32::MAX) + 1)),
         Err(ScalarConversionError::Overflow(_))
     );
     matches!(
-        i32::try_from(Curve25519Scalar::from(i32::MIN as i128 - 1)),
+        i32::try_from(Curve25519Scalar::from(i128::from(i32::MIN) - 1)),
         Err(ScalarConversionError::Overflow(_))
     );
 }
@@ -225,11 +225,11 @@ fn test_curve25519_scalar_to_i64() {
 #[test]
 fn test_curve25519_scalar_to_i64_overflow() {
     matches!(
-        i64::try_from(Curve25519Scalar::from(i64::MAX as i128 + 1)),
+        i64::try_from(Curve25519Scalar::from(i128::from(i64::MAX) + 1)),
         Err(ScalarConversionError::Overflow(_))
     );
     matches!(
-        i64::try_from(Curve25519Scalar::from(i64::MIN as i128 - 1)),
+        i64::try_from(Curve25519Scalar::from(i128::from(i64::MIN) - 1)),
         Err(ScalarConversionError::Overflow(_))
     );
 }

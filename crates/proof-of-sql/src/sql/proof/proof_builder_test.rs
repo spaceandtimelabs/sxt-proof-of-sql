@@ -126,7 +126,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     );
     let random_point = [
         Curve25519Scalar::from(123u64),
-        Curve25519Scalar::from(101112u64),
+        Curve25519Scalar::from(101_112_u64),
     ];
     let eval = poly.evaluate(&random_point);
     let expected_eval = expected_poly.evaluate(&random_point);
@@ -150,7 +150,7 @@ fn we_can_form_the_provable_query_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields.iter().map(std::convert::Into::into).collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(

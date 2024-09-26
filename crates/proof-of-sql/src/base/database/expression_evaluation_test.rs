@@ -37,7 +37,7 @@ fn we_can_evaluate_a_simple_literal() {
     ));
     let actual_column = table.evaluate(&expr).unwrap();
     // UNIX timestamp for 2022-03-01T00:00:00Z
-    let actual_timestamp = 1646092800;
+    let actual_timestamp = 1_646_092_800;
     let expected_column = OwnedColumn::TimestampTZ(
         PoSQLTimeUnit::Second,
         PoSQLTimeZone::Utc,
@@ -69,7 +69,7 @@ fn we_can_evaluate_a_simple_column() {
     let expected_column = OwnedColumn::VarChar(
         ["John", "Juan", "João", "Jean", "Jean"]
             .iter()
-            .map(|s| s.to_string())
+            .map(|s| (*s).to_string())
             .collect(),
     );
     assert_eq!(actual_column, expected_column);
@@ -187,7 +187,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         col("int128s"),
     );
     let actual_column = table.evaluate(&expr).unwrap();
-    let expected_scalars = [-16000000, -7960000, 80000, 8120000, 16160000]
+    let expected_scalars = [-16_000_000, -7_960_000, 80000, 8_120_000, 16_160_000]
         .iter()
         .map(|&x| x.into())
         .collect();

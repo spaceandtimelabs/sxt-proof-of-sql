@@ -374,7 +374,7 @@ mod test {
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
             ["b", "b", "a", "b", "a"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
@@ -409,7 +409,7 @@ mod test {
         assert_eq!(
             compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
             Ordering::Less
-        )
+        );
     }
 
     #[test]
@@ -446,7 +446,7 @@ mod test {
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>())
+            OwnedColumn::VarChar(strs.iter().map(|s| (*s).to_string()).collect::<Vec<String>>())
         );
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);

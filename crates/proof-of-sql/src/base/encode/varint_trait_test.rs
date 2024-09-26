@@ -24,14 +24,14 @@ fn test_required_space() {
     assert_eq!(1_u32.required_space(), 1);
     assert_eq!(128_u32.required_space(), 2);
     assert_eq!(16384_u32.required_space(), 3);
-    assert_eq!(2097151_u32.required_space(), 3);
-    assert_eq!(2097152_u32.required_space(), 4);
+    assert_eq!(2_097_151_u32.required_space(), 3);
+    assert_eq!(2_097_152_u32.required_space(), 4);
 }
 
 #[test]
 fn test_encode_u64() {
-    assert_eq!(0_u32.encode_var_vec(), vec![0b00000000]);
-    assert_eq!(300_u32.encode_var_vec(), vec![0b10101100, 0b00000010]);
+    assert_eq!(0_u32.encode_var_vec(), vec![0b0000_0000]);
+    assert_eq!(300_u32.encode_var_vec(), vec![0b1010_1100, 0b0000_0010]);
 }
 
 #[test]
@@ -65,8 +65,8 @@ fn test_encode_i64() {
     assert_eq!(150_i64.encode_var_vec(), 300_u32.encode_var_vec());
     assert_eq!((-150_i64).encode_var_vec(), 299_u32.encode_var_vec());
     assert_eq!(
-        (-2147483648_i64).encode_var_vec(),
-        4294967295_u64.encode_var_vec()
+        (-2_147_483_648_i64).encode_var_vec(),
+        4_294_967_295_u64.encode_var_vec()
     );
     assert_eq!(
         i64::MAX.encode_var_vec(),
@@ -150,7 +150,7 @@ fn test_decode_extra_bytes_i64() {
 
 #[test]
 fn test_regression_22() {
-    let encoded: Vec<u8> = 0x112233_u64.encode_var_vec();
+    let encoded: Vec<u8> = 0x0011_2233_u64.encode_var_vec();
     assert!(i8::decode_var(&encoded).is_none());
 }
 
@@ -294,10 +294,10 @@ fn we_can_encode_and_decode_i32_and_i64_the_same() {
     test_encode_and_decode_types_align::<i32, i64>(
         &rng.gen::<[_; 32]>(),
         &[
-            i32::MAX as i64 + 1,
-            i32::MIN as i64 - 1,
-            i32::MAX as i64 * 1000,
-            i32::MIN as i64 * 1000,
+            i64::from(i32::MAX) + 1,
+            i64::from(i32::MIN) - 1,
+            i64::from(i32::MAX) * 1000,
+            i64::from(i32::MIN) * 1000,
         ],
         100,
     );
@@ -308,7 +308,7 @@ fn we_can_encode_and_decode_u32_and_u64_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<u32, u64>(
         &rng.gen::<[_; 32]>(),
-        &[u32::MAX as u64 + 1, u32::MAX as u64 * 1000],
+        &[u64::from(u32::MAX) + 1, u64::from(u32::MAX) * 1000],
         100,
     );
 }
@@ -319,8 +319,8 @@ fn we_can_encode_and_decode_large_positive_u128() {
     let value: u128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_0011100;
     let expected_result: &[u8] = &[
-        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1100, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111,
+        0b1111_1111, 0b1111_1111, 0b1001_0101, 0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);
@@ -335,8 +335,8 @@ fn we_can_encode_and_decode_large_positive_i128() {
     let value: i128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[
-        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1100, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111,
+        0b1111_1111, 0b1111_1111, 0b1001_0101, 0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);
@@ -351,8 +351,8 @@ fn we_can_encode_and_decode_large_negative_i128() {
     let value: i128 =
         -1 - 0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[
-        0b10011101, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1101, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111, 0b1111_1111,
+        0b1111_1111, 0b1111_1111, 0b1001_0101, 0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);
@@ -396,10 +396,10 @@ fn we_can_encode_and_decode_i64_and_i128_the_same() {
     test_encode_and_decode_types_align::<i64, i128>(
         &rng.gen::<[_; 32]>(),
         &[
-            i64::MAX as i128 + 1,
-            i64::MIN as i128 - 1,
-            i64::MAX as i128 * 1000,
-            i64::MIN as i128 * 1000,
+            i128::from(i64::MAX) + 1,
+            i128::from(i64::MIN) - 1,
+            i128::from(i64::MAX) * 1000,
+            i128::from(i64::MIN) * 1000,
         ],
         100,
     );

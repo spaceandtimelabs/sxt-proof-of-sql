@@ -1172,13 +1172,13 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let result = lhs.element_wise_eq(&rhs);
@@ -1342,7 +1342,7 @@ mod test {
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);
@@ -1376,13 +1376,13 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);
@@ -1403,7 +1403,7 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::Scalar(vec![
@@ -1677,7 +1677,7 @@ mod test {
         let rhs =
             OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
         let result = (lhs / rhs).unwrap();
-        let expected_scalars = [-400000000_i128, 250000000, 75000000]
+        let expected_scalars = [-400_000_000_i128, 250_000_000, 75_000_000]
             .iter()
             .map(Curve25519Scalar::from)
             .collect();
@@ -1696,7 +1696,7 @@ mod test {
         let rhs =
             OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(3).unwrap(), 2, rhs_scalars);
         let result = (lhs / rhs).unwrap();
-        let expected_scalars = [-400000000, 250000000, 100000000]
+        let expected_scalars = [-400_000_000, 250_000_000, 100_000_000]
             .iter()
             .map(Curve25519Scalar::from)
             .collect();

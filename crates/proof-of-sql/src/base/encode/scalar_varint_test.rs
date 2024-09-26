@@ -33,8 +33,8 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_posi
     // x = (p - 1) / 10 (p is the ristretto group order)
     // y = -x = (p + 1) / 10
     let val: Curve25519Scalar = (&U256::from_words(
-        0x9bafe5c976b25c7bd59b704f6fb22eca,
-        0x1999999999999999999999999999999,
+        0x9baf_e5c9_76b2_5c7b_d59b_704f_6fb2_2eca,
+        0x0199_9999_9999_9999_9999_9999_9999_9999,
     ))
         .into();
     assert!(scalar_varint_size(&val) == 36);
@@ -46,8 +46,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
     // x = (p + 1) / 10 (p is the ristretto group order)
     // y = -x = (p - 1) / 10
     let val: Curve25519Scalar = (&U256::from_words(
-        0x9bafe5c976b25c7bd59b704f6fb22ecb,
-        0x1999999999999999999999999999999,
+        0x9baf_e5c9_76b2_5c7b_d59b_704f_6fb2_2ecb,
+        0x0199_9999_9999_9999_9999_9999_9999_9999,
     ))
         .into();
     assert!(scalar_varint_size(&val) == 36);
@@ -59,8 +59,8 @@ fn the_maximum_positive_and_negative_encoded_scalars_consume_the_maximum_amount_
     // x = (p + 1) / 2 (p is the ristretto group order)
     // y = -x = (p - 1) / 2
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f7,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f7,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
     assert!(scalar_varint_size(&val) == 37);
@@ -69,8 +69,8 @@ fn the_maximum_positive_and_negative_encoded_scalars_consume_the_maximum_amount_
     // x = (p - 1) / 2 (p is the ristretto group order)
     // y = -x = (p + 1) / 2
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f6,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f6,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
 
@@ -84,8 +84,8 @@ fn scalar_slices_consumes_the_correct_amount_of_bytes() {
 
     // x = (p + 1) / 2
     let val2: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f7,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f7,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
 
@@ -152,8 +152,8 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_correctly_encod
     // (p - 1) / 2 (p is the ristretto group order)
     // y = -x = (p + 1) / 2 (which is bigger than x)
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f6,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f6,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
     assert!(write_scalar_varint(&mut buf[..], &val) == 37);
@@ -171,8 +171,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
     // x = (p + 1) / 2 (p is the group order)
     // y = -x = (p - 1) / 2 (which is smaller than x)
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f7,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f7,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
 
@@ -186,18 +186,18 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 #[test]
 fn valid_varint_encoded_input_that_map_to_curve25519_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
 ) {
-    let mut buf = [0b11111111_u8; 36];
+    let mut buf = [0b1111_1111_u8; 36];
 
     // 252 bits set is fine (252 bits = 36 * 7 as
     //  each byte can hold only 7 bits in the varint encoding)
-    buf[35] = 0b01111111_u8;
+    buf[35] = 0b0111_1111_u8;
 
     // buf represents the number 2^252 - 1
     // removing the varint encoding, we would have y = ((2^252 - 1) // 2 + 1) % p
     // since we want x, we would have x = -y
     let expected_x = -Curve25519Scalar::from(&U256::from_words(
-        0x00000000000000000000000000000000,
-        0x8000000000000000000000000000000,
+        0x0000_0000_0000_0000_0000_0000_0000_0000,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ));
 
     assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_x, 36));
@@ -206,38 +206,38 @@ fn valid_varint_encoded_input_that_map_to_curve25519_scalars_smaller_than_the_p_
 #[test]
 fn valid_varint_encoded_input_that_map_to_curve25519_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
 ) {
-    let mut buf = [0b11111111_u8; 37];
+    let mut buf = [0b1111_1111_u8; 37];
 
     // we set the first bit to 0 so that we have a positive varint encoding
-    buf[0] = 0b11111110;
+    buf[0] = 0b1111_1110;
     // we set the last byte to 31, so that we have 256 bits set, and the MST equal 0
-    buf[36] = 0b00001111; // buf has 256 bit-length
+    buf[36] = 0b0000_1111; // buf has 256 bit-length
 
     // at this point, buf represents the number 2^256 - 2,
     // which has 256 bit-length, where 255 bits are set to 1
     // also, `expected_val` is simply x = ((2^256 - 2) >> 1) % p
     let expected_val: Curve25519Scalar = (&U256::from_words(
-        0x6de72ae98b3ab623977f4a4775473484,
-        0xfffffffffffffffffffffffffffffff,
+        0x6de7_2ae9_8b3a_b623_977f_4a47_7547_3484,
+        0x0fff_ffff_ffff_ffff_ffff_ffff_ffff_ffff,
     ))
         .into();
     assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_val, 37));
 
     // even though we are able to read varint numbers of up to 259 bits-length,
     // we can only represent a number up to 256 bits-length. Bits 257 to 259 are ignored
-    buf[36] = 0b00011111; // buf has 257 bit-length
+    buf[36] = 0b0001_1111; // buf has 257 bit-length
     assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_val, 37));
 
-    buf[36] = 0b00111111; // buf has 258 bit-length
+    buf[36] = 0b0011_1111; // buf has 258 bit-length
     assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_val, 37));
 
-    buf[36] = 0b01111111; // buf has 259 bit-length
+    buf[36] = 0b0111_1111; // buf has 259 bit-length
     assert!(read_scalar_varint(&buf[..]).unwrap() == (expected_val, 37));
 }
 
 #[test]
 fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out() {
-    let buf = [0b11111111_u8; 5];
+    let buf = [0b1111_1111_u8; 5];
 
     // varint numbers that do not terminate will fail out
     assert!((read_scalar_varint(&buf[..]) as Option<(Curve25519Scalar, _)>).is_none());
@@ -246,16 +246,16 @@ fn varint_encoded_values_that_never_ends_will_make_the_read_scalar_to_error_out(
 #[test]
 fn valid_varint_encoded_input_that_has_length_bigger_than_259_bits_will_make_the_read_scalar_to_error_out(
 ) {
-    let mut buf = [0b11111111_u8; 38];
+    let mut buf = [0b1111_1111_u8; 38];
 
     // a varint with 260 bit-length will fail (260 bits = 37 * 7 + 1 as
     //  each byte can hold only 7 bits in the varint encoding)
-    buf[37] = 0b00000001_u8;
+    buf[37] = 0b0000_0001_u8;
     assert!((read_scalar_varint(&buf[..37]) as Option<(Curve25519Scalar, _)>).is_none());
 
     // a varint with 266 bit-length will fail (266 bits = 38 * 7 as
     //  each byte can hold only 7 bits in the varint encoding)
-    buf[37] = 0b01111111_u8;
+    buf[37] = 0b0111_1111_u8;
     assert!((read_scalar_varint(&buf[..38]) as Option<(Curve25519Scalar, _)>).is_none());
 }
 

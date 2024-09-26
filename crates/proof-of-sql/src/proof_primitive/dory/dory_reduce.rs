@@ -3,7 +3,7 @@ use super::{
 };
 use merlin::Transcript;
 
-/// This is the prover side of the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the prover side of the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 #[cfg(test)]
 pub fn dory_reduce_prove(
     messages: &mut DoryMessages,
@@ -28,7 +28,7 @@ pub fn dory_reduce_prove(
     state.nu -= 1;
 }
 
-/// This is the verifier side of the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the verifier side of the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 #[cfg(test)]
 pub fn dory_reduce_verify(
     messages: &mut DoryMessages,

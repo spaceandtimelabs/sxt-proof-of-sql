@@ -489,7 +489,7 @@ fn the_sign_can_be_0_or_1_for_a_constant_column_of_zeros() {
     );
     if let DynProofPlan::Filter(filter) = &mut ast {
         if let DynProofExpr::Inequality(lte) = &mut filter.where_clause {
-            lte.treat_column_of_zeros_as_negative = true
+            lte.treat_column_of_zeros_as_negative = true;
         }
     }
     let verifiable_res = VerifiableQueryResult::new(&ast, &accessor, &());
@@ -546,7 +546,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
                 .multiunzip();
         let expected_result = owned_table([bigint("a", expected_a), varchar("b", expected_b)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 

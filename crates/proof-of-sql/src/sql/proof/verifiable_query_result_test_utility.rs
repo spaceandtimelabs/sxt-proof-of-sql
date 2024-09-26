@@ -15,7 +15,7 @@ use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
 
-/// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
+/// This function takes a valid `verifiable_result`, copies it, tweaks it, and checks that
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.
@@ -44,7 +44,7 @@ pub fn exercise_verification(
 
     // try changing intermediate commitments
     let commit_p = RistrettoPoint::compute_commitments(
-        &[CommittableColumn::BigInt(&[353453245i64, 93402346i64])],
+        &[CommittableColumn::BigInt(&[353_453_245_i64, 93_402_346_i64])],
         0_usize,
         &(),
     )[0];
