@@ -5,7 +5,6 @@ use crate::{
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::Curve25519Scalar,
-        slice_ops::slice_cast,
     },
     sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
@@ -31,10 +30,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     assert_eq!(
         commitments,
         [RistrettoPoint::compute_commitments(
-            &[CommittableColumn::Scalar(slice_cast::<
-                Curve25519Scalar,
-                [u64; 4],
-            >(&slice_cast(&mle2)))],
+            &[CommittableColumn::from(&mle2[..])],
             offset_generators,
             &()
         )[0]]
@@ -53,10 +49,7 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     assert_eq!(
         commitments,
         [RistrettoPoint::compute_commitments(
-            &[CommittableColumn::Scalar(slice_cast::<
-                Curve25519Scalar,
-                [u64; 4],
-            >(&slice_cast(&mle2)))],
+            &[CommittableColumn::from(&mle2[..])],
             offset_generators,
             &()
         )[0]]

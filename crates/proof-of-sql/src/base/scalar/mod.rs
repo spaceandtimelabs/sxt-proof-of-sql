@@ -19,10 +19,6 @@ mod test_scalar_test;
 
 #[cfg(any(test, feature = "test"))]
 #[cfg(feature = "blitzar")]
-mod commitment_utility;
-#[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
-pub use commitment_utility::compute_commitment_for_testing;
 use num_bigint::BigInt;
 
 /// A trait for the scalar field used in Proof of SQL.

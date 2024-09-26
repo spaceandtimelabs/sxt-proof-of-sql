@@ -6,7 +6,6 @@ use crate::base::{
     commitment::{Commitment, CommittableColumn},
     database::owned_table_utility::*,
     scalar::Curve25519Scalar,
-    slice_ops::slice_cast,
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::ristretto::RistrettoPoint;
@@ -134,12 +133,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     assert_eq!(
         accessor.get_commitment(column),
         RistrettoPoint::compute_commitments(
-            &[CommittableColumn::Scalar(slice_cast::<
-                Curve25519Scalar,
-                [u64; 4],
-            >(&slice_cast(&[
-                4, 5, 6
-            ])))],
+            &[CommittableColumn::from(&[4i64, 5, 6][..])],
             0_usize,
             &()
         )[0]
@@ -152,12 +146,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     assert_eq!(
         accessor.get_commitment(column),
         RistrettoPoint::compute_commitments(
-            &[CommittableColumn::Scalar(slice_cast::<
-                Curve25519Scalar,
-                [u64; 4],
-            >(&slice_cast(&[
-                1, 2, 3
-            ])))],
+            &[CommittableColumn::from(&[1i64, 2, 3][..])],
             0_usize,
             &()
         )[0]
@@ -167,12 +156,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     assert_eq!(
         accessor.get_commitment(column),
         RistrettoPoint::compute_commitments(
-            &[CommittableColumn::Scalar(slice_cast::<
-                Curve25519Scalar,
-                [u64; 4],
-            >(&slice_cast(&[
-                1, 2, 3
-            ])))],
+            &[CommittableColumn::from(&[4i64, 5, 6, 5][..])],
             0_usize,
             &()
         )[0]
