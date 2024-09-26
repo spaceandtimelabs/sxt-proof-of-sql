@@ -17,7 +17,7 @@ use crate::{
 use bumpalo::Bump;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
-use std::cmp;
+use core::cmp;
 
 /// The proof for a query.
 ///

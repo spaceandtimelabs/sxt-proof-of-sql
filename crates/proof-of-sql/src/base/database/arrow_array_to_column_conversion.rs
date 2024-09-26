@@ -9,9 +9,9 @@ use arrow::{
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
 use bumpalo::Bump;
+use core::ops::Range;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
-use std::ops::Range;
 
 #[derive(Snafu, Debug, PartialEq)]
 /// Errors caused by conversions between Arrow and owned types.
@@ -378,9 +378,9 @@ mod tests {
 
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use alloc::sync::Arc;
     use arrow::array::Decimal256Builder;
     use core::str::FromStr;
-    use std::sync::Arc;
 
     #[test]
     fn we_can_convert_timestamp_array_normal_range() {

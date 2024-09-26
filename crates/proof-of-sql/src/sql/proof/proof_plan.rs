@@ -10,7 +10,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use bumpalo::Bump;
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// Provable nodes in the provable AST.
 pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {

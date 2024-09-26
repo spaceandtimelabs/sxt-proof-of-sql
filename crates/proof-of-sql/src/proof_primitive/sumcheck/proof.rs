@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
  *
  * See third_party/license/arkworks.LICENSE
  */
-use std::vec::Vec;
+use alloc::vec::Vec;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof<S: Scalar> {

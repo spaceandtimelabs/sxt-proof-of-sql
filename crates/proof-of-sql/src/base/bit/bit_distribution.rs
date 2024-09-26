@@ -1,7 +1,7 @@
 use crate::base::{bit::make_abs_bit_mask, scalar::Scalar};
 use bit_iter::BitIter;
 use serde::{Deserialize, Serialize};
-use std::convert::Into;
+use core::convert::Into;
 
 /// Describe the distribution of bit values in a table column
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

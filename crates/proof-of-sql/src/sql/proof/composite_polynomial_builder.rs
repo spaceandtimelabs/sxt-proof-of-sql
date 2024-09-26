@@ -8,7 +8,7 @@ use core::{ffi::c_void, iter};
 use num_traits::{One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
-use std::rc::Rc;
+use alloc::rc::Rc;
 
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder<S: Scalar> {
