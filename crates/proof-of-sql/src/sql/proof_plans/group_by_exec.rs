@@ -22,6 +22,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter, iter::repeat_with};
 use num_traits::One;

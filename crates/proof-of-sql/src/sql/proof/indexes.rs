@@ -1,4 +1,5 @@
 use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::Scalar};
+use alloc::vec::Vec;
 use core::{ops::Range, slice};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};

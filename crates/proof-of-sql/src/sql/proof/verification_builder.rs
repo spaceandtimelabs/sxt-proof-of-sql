@@ -1,5 +1,6 @@
 use super::{SumcheckMleEvaluations, SumcheckSubpolynomialType};
 use crate::base::{bit::BitDistribution, commitment::Commitment};
+use alloc::vec::Vec;
 use num_traits::Zero;
 
 /// Track components used to verify a query's proof

@@ -5,6 +5,7 @@ use crate::base::{
     math::decimal::{scale_scalar, DecimalError, Precision, MAX_SUPPORTED_PRECISION},
     scalar::Scalar,
 };
+use alloc::{format, string::ToString, vec::Vec};
 use core::{cmp::Ordering, fmt::Debug};
 use num_bigint::BigInt;
 use num_traits::{

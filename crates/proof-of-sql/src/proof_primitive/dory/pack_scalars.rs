@@ -3,6 +3,7 @@ use crate::{
     base::{commitment::CommittableColumn, database::ColumnType},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
+use alloc::{vec, vec::Vec};
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
 use core::iter;

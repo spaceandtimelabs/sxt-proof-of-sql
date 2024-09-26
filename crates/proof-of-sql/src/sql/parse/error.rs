@@ -2,6 +2,11 @@ use crate::base::{
     database::{ColumnOperationError, ColumnType},
     math::decimal::DecimalError,
 };
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+};
 use core::result::Result;
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,

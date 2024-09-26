@@ -9,6 +9,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::fmt::Debug;
 

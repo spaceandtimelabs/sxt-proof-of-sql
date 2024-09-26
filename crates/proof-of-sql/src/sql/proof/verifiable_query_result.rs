@@ -7,6 +7,7 @@ use crate::base::{
     proof::ProofError,
     scalar::Scalar,
 };
+use alloc::{vec, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
