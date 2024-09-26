@@ -6,6 +6,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
+        map::IndexSet,
         proof::ProofError,
     },
     sql::{
@@ -14,7 +15,6 @@ use crate::{
     },
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

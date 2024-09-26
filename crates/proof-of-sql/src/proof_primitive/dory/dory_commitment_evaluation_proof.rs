@@ -5,8 +5,7 @@ use super::{
     extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs, DeferredGT,
     DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
 };
-use crate::base::commitment::CommitmentEvaluationProof;
-use merlin::Transcript;
+use crate::base::{commitment::CommitmentEvaluationProof, proof::Transcript};
 use snafu::Snafu;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
@@ -35,7 +34,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
 
     #[tracing::instrument(name = "DoryEvaluationProof::new", level = "debug", skip_all)]
     fn new(
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
@@ -70,7 +69,7 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
     )]
     fn verify_batched_proof(
         &self,
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
         product: &Self::Scalar,

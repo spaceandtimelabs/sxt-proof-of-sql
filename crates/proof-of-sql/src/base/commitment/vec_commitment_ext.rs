@@ -1,6 +1,6 @@
 use super::Commitment;
 use crate::base::commitment::committable_column::CommittableColumn;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use snafu::Snafu;
 
 /// Cannot update commitment collections with different column counts
@@ -102,10 +102,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
         offset: usize,
         setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self {
-        let mut commitments = vec![C::default(); committable_columns.len()];
-        C::compute_commitments(&mut commitments, committable_columns, offset, setup);
-
-        commitments
+        C::compute_commitments(committable_columns, offset, setup)
     }
 
     fn try_append_rows_with_offset<'a, COL>(
@@ -124,8 +121,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
             return Err(NumColumnsMismatch);
         }
 
-        let partial_commitments =
-            Self::from_commitable_columns_with_offset(&committable_columns, offset, setup);
+        let partial_commitments = C::compute_commitments(&committable_columns, offset, setup);
         unsafe_add_assign(self, &partial_commitments);
 
         Ok(())

@@ -1,5 +1,5 @@
 use super::{ColumnType, SchemaAccessor, TableRef};
-use indexmap::IndexMap;
+use crate::base::map::IndexMap;
 use proof_of_sql_parser::Identifier;
 
 /// A simple in-memory `SchemaAccessor` for testing intermediate AST -> Provable AST conversion.
@@ -22,7 +22,7 @@ impl SchemaAccessor for TestSchemaAccessor {
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.schemas
             .get(&table_ref)
-            .unwrap_or(&IndexMap::new())
+            .unwrap_or(&IndexMap::default())
             .iter()
             .map(|(id, col)| (*id, *col))
             .collect()
@@ -32,7 +32,7 @@ impl SchemaAccessor for TestSchemaAccessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use indexmap::indexmap;
+    use crate::base::map::indexmap;
 
     fn sample_test_schema_accessor() -> TestSchemaAccessor {
         let table1: TableRef = TableRef::new("schema.table1".parse().unwrap());

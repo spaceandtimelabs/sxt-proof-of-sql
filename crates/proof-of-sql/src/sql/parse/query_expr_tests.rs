@@ -1,6 +1,9 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, TableRef, TestSchemaAccessor},
+    base::{
+        database::{ColumnType, TableRef, TestSchemaAccessor},
+        map::{indexmap, IndexMap},
+    },
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
@@ -9,7 +12,6 @@ use crate::{
     },
 };
 use curve25519_dalek::RistrettoPoint;
-use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection::*,

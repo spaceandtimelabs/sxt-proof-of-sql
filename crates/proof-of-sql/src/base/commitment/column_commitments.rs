@@ -2,7 +2,10 @@ use super::{
     committable_column::CommittableColumn, ColumnCommitmentMetadata, ColumnCommitmentMetadataMap,
     ColumnCommitmentMetadataMapExt, ColumnCommitmentsMismatch, Commitment, VecCommitmentExt,
 };
-use crate::base::database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef};
+use crate::base::{
+    database::{ColumnField, ColumnRef, CommitmentAccessor, TableRef},
+    map::IndexSet,
+};
 use alloc::{
     borrow::ToOwned,
     string::{String, ToString},
@@ -10,7 +13,6 @@ use alloc::{
     vec::Vec,
 };
 use core::{iter, slice};
-use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
@@ -119,7 +121,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers
-        let mut unique_identifiers = IndexSet::new();
+        let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {
@@ -171,7 +173,7 @@ impl<C: Commitment> ColumnCommitments<C> {
         COL: Into<CommittableColumn<'a>>,
     {
         // Check for duplicate identifiers.
-        let mut unique_identifiers = IndexSet::new();
+        let mut unique_identifiers = IndexSet::default();
         let unique_columns = columns
             .into_iter()
             .map(|(identifier, column)| {

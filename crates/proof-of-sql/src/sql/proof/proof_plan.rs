@@ -5,11 +5,11 @@ use crate::base::{
         Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
         OwnedTable,
     },
+    map::IndexSet,
     proof::ProofError,
     scalar::Scalar,
 };
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use std::fmt::Debug;
 
 /// Provable nodes in the provable AST.

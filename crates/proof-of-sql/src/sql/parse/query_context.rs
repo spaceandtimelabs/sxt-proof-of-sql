@@ -2,6 +2,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, LiteralValue, TableRef},
+        map::{IndexMap, IndexSet},
     },
     sql::{
         parse::{ConversionError, ConversionResult, DynProofExprBuilder, WhereExprBuilder},
@@ -9,7 +10,6 @@ use crate::{
         proof_plans::GroupByExec,
     },
 };
-use indexmap::{IndexMap, IndexSet};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,

@@ -18,6 +18,7 @@ use crate::base::{
         scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
         OwnedTableError,
     },
+    map::IndexMap,
     math::decimal::Precision,
     scalar::Scalar,
 };
@@ -31,7 +32,6 @@ use arrow::{
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     Identifier, ParseError,

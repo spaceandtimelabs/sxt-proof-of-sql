@@ -491,12 +491,12 @@ mod tests {
     use crate::{
         base::{
             database::{owned_table_utility::*, OwnedColumn},
+            map::IndexMap,
             scalar::Curve25519Scalar,
         },
         record_batch,
     };
     use curve25519_dalek::RistrettoPoint;
-    use indexmap::IndexMap;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
@@ -511,7 +511,7 @@ mod tests {
     fn we_can_construct_table_commitment_from_columns_and_identifiers() {
         // no-columns case
         let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<Curve25519Scalar>> =
-            IndexMap::new();
+            IndexMap::default();
         let empty_table_commitment =
             TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 &empty_columns_iter,

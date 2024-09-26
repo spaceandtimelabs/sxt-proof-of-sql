@@ -2,9 +2,8 @@ use super::{
     column_commitment_metadata::ColumnCommitmentMetadataMismatch, ColumnCommitmentMetadata,
     CommittableColumn,
 };
-use crate::base::database::ColumnField;
+use crate::base::{database::ColumnField, map::IndexMap};
 use alloc::string::{String, ToString};
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
 

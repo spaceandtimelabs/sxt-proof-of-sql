@@ -1,10 +1,12 @@
 use super::{Commitment, TableCommitment};
-use crate::base::database::{
-    ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
-    TableRef,
+use crate::base::{
+    database::{
+        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
+        TableRef,
+    },
+    map::IndexMap,
 };
 use alloc::vec::Vec;
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 
 /// The commitments for all of the tables in a query.
@@ -34,13 +36,16 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     ) -> Self {
         columns
             .into_iter()
-            .fold(IndexMap::<_, Vec<_>>::new(), |mut table_columns, column| {
-                table_columns
-                    .entry(column.table_ref())
-                    .or_default()
-                    .push(ColumnField::new(column.column_id(), *column.column_type()));
-                table_columns
-            })
+            .fold(
+                IndexMap::<_, Vec<_>>::default(),
+                |mut table_columns, column| {
+                    table_columns
+                        .entry(column.table_ref())
+                        .or_default()
+                        .push(ColumnField::new(column.column_id(), *column.column_type()));
+                    table_columns
+                },
+            )
             .into_iter()
             .map(|(table_ref, columns)| {
                 (

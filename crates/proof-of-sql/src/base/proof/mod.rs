@@ -4,10 +4,8 @@ mod error;
 pub use error::ProofError;
 
 /// Contains an extension trait for `merlin::Transcript`, which is used to construct a proof.
-mod transcript_protocol;
-#[cfg(test)]
-mod transcript_protocol_test;
-pub use transcript_protocol::{MessageLabel, TranscriptProtocol};
+#[cfg(any(test, feature = "blitzar"))]
+mod merlin_transcript_core;
 
 mod transcript;
 pub use transcript::Transcript;

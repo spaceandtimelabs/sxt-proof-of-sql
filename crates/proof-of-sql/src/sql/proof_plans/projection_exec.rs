@@ -5,6 +5,7 @@ use crate::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
             OwnedTable,
         },
+        map::IndexSet,
         proof::ProofError,
     },
     sql::{
@@ -17,7 +18,6 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
@@ -85,7 +85,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
         self.aliased_results.iter().for_each(|aliased_expr| {
             aliased_expr.expr.get_column_references(&mut columns);
         });

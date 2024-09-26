@@ -3,13 +3,13 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::marker::PhantomData;
-use indexmap::IndexSet;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 /// Provable expression for a column
