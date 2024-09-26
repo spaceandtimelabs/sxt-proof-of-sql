@@ -39,13 +39,13 @@ pub enum Column<'a, S: Scalar> {
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::Curve25519Scalar]
+    ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
     /// String columns
     ///  - the first element maps to the str values.
-    ///  - the second element maps to the str hashes (see [crate::base::scalar::Scalar]).
+    ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
     VarChar((&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
     /// - the first element maps to the stored [`TimeUnit`]
@@ -56,7 +56,7 @@ pub enum Column<'a, S: Scalar> {
 
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
-    pub fn column_type(&self) -> ColumnType {
+    #[must_use] pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
             Self::SmallInt(_) => ColumnType::SmallInt,
@@ -72,7 +72,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns the length of the column.
-    pub fn len(&self) -> usize {
+    #[must_use] pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
             Self::SmallInt(col) => col.len(),
@@ -89,7 +89,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns `true` if the column has no elements.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -231,14 +231,14 @@ pub enum ColumnType {
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
-    /// Mapped to Curve25519Scalar
+    /// Mapped to `Curve25519Scalar`
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
 }
 
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
-    pub fn is_numeric(&self) -> bool {
+    #[must_use] pub fn is_numeric(&self) -> bool {
         matches!(
             self,
             ColumnType::SmallInt
@@ -251,7 +251,7 @@ impl ColumnType {
     }
 
     /// Returns true if this column is an integer and false otherwise
-    pub fn is_integer(&self) -> bool {
+    #[must_use] pub fn is_integer(&self) -> bool {
         matches!(
             self,
             ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
@@ -269,7 +269,7 @@ impl ColumnType {
         }
     }
 
-    /// Returns the ColumnType of the integer type with the given number of bits if it is a valid integer type.
+    /// Returns the `ColumnType` of the integer type with the given number of bits if it is a valid integer type.
     ///
     /// Otherwise, return None.
     fn from_integer_bits(bits: usize) -> Option<Self> {
@@ -282,10 +282,10 @@ impl ColumnType {
         }
     }
 
-    /// Returns the larger integer type of two ColumnTypes if they are both integers.
+    /// Returns the larger integer type of two `ColumnTypes` if they are both integers.
     ///
     /// If either of the columns is not an integer, return None.
-    pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
+    #[must_use] pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
         // If either of the columns is not an integer, return None
         if !self.is_integer() || !other.is_integer() {
             return None;
@@ -297,8 +297,8 @@ impl ColumnType {
         })
     }
 
-    /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
-    pub fn precision_value(&self) -> Option<u8> {
+    /// Returns the precision of a `ColumnType` if it is converted to a decimal wrapped in `Some()`. If it can not be converted to a decimal, return None.
+    #[must_use] pub fn precision_value(&self) -> Option<u8> {
         match self {
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
@@ -312,8 +312,8 @@ impl ColumnType {
             Self::Boolean | Self::VarChar => None,
         }
     }
-    /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
-    pub fn scale(&self) -> Option<i8> {
+    /// Returns scale of a `ColumnType` if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
+    #[must_use] pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
@@ -328,7 +328,7 @@ impl ColumnType {
     }
 
     /// Returns the byte size of the column type.
-    pub fn byte_size(&self) -> usize {
+    #[must_use] pub fn byte_size(&self) -> usize {
         match self {
             Self::Boolean => size_of::<bool>(),
             Self::SmallInt => size_of::<i16>(),
@@ -340,12 +340,12 @@ impl ColumnType {
     }
 
     /// Returns the bit size of the column type.
-    pub fn bit_size(&self) -> u32 {
+    #[must_use] pub fn bit_size(&self) -> u32 {
         self.byte_size() as u32 * 8
     }
 
     /// Returns if the column type supports signed values.
-    pub const fn is_signed(&self) -> bool {
+    #[must_use] pub const fn is_signed(&self) -> bool {
         match self {
             Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
                 true
@@ -355,7 +355,7 @@ impl ColumnType {
     }
 }
 
-/// Convert ColumnType values to some arrow DataType
+/// Convert `ColumnType` values to some arrow `DataType`
 #[cfg(feature = "arrow")]
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
@@ -384,7 +384,7 @@ impl From<&ColumnType> for DataType {
     }
 }
 
-/// Convert arrow DataType values to some ColumnType
+/// Convert arrow `DataType` values to some `ColumnType`
 #[cfg(feature = "arrow")]
 impl TryFrom<DataType> for ColumnType {
     type Error = String;
@@ -412,7 +412,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
-            _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
+            _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
 }
@@ -452,26 +452,22 @@ pub struct ColumnRef {
 
 impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
-    pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
-        Self {
-            column_id,
-            column_type,
-            table_ref,
-        }
+    #[must_use] pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
+        Self { column_id, table_ref, column_type }
     }
 
     /// Returns the table reference of this column
-    pub fn table_ref(&self) -> TableRef {
+    #[must_use] pub fn table_ref(&self) -> TableRef {
         self.table_ref
     }
 
     /// Returns the column identifier of this column
-    pub fn column_id(&self) -> Identifier {
+    #[must_use] pub fn column_id(&self) -> Identifier {
         self.column_id
     }
 
     /// Returns the column type of this column
-    pub fn column_type(&self) -> &ColumnType {
+    #[must_use] pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
 }
@@ -488,22 +484,22 @@ pub struct ColumnField {
 
 impl ColumnField {
     /// Create a new `ColumnField` from a name and a type
-    pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
+    #[must_use] pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
         ColumnField { name, data_type }
     }
 
     /// Returns the name of the column
-    pub fn name(&self) -> Identifier {
+    #[must_use] pub fn name(&self) -> Identifier {
         self.name
     }
 
     /// Returns the type of the column
-    pub fn data_type(&self) -> ColumnType {
+    #[must_use] pub fn data_type(&self) -> ColumnType {
         self.data_type
     }
 }
 
-/// Convert ColumnField values to arrow Field
+/// Convert `ColumnField` values to arrow Field
 #[cfg(feature = "arrow")]
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {

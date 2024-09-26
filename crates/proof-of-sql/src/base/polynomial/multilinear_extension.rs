@@ -46,7 +46,7 @@ where
         let n = 1 << num_vars;
         assert!(n >= values.len());
         let scalars = if_rayon!(values.par_iter(), values.iter())
-            .map(|val| val.into())
+            .map(std::convert::Into::into)
             .chain(if_rayon!(
                 rayon::iter::repeatn(Zero::zero(), n - values.len()),
                 itertools::repeat_n(Zero::zero(), n - values.len())
@@ -56,7 +56,7 @@ where
     }
 
     fn id(&self) -> *const c_void {
-        self.as_ptr() as *const c_void
+        self.as_ptr().cast::<c_void>()
     }
 }
 

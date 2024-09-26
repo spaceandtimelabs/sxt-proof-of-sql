@@ -31,12 +31,12 @@ pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when the specified range is out of the bounds of the array.
     #[error("index out of bounds: the len is {0} but the index is {1}")]
     IndexOutOfBounds(usize, usize),
-    /// Using TimeError to handle all time-related errors
+    /// Using `TimeError` to handle all time-related errors
     #[error(transparent)]
     TimestampConversionError(#[from] PoSQLTimestampError),
 }
 
-/// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
+/// This trait is used to provide utility functions to convert `ArrayRefs` into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
     /// Convert an ArrayRef into a Proof of SQL Vec<Scalar>
     ///
@@ -48,16 +48,16 @@ pub trait ArrayRefExt {
         &self,
     ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError>;
 
-    /// Convert an ArrayRef into a Proof of SQL Column type
+    /// Convert an `ArrayRef` into a Proof of SQL Column type
     ///
     /// Parameters:
     /// - `alloc`: used to allocate a slice of data when necessary
-    ///    (vide StringArray into Column::HashedBytes((_,_)).
+    ///    (vide `StringArray` into `Column::HashedBytes`((_,_)).
     ///
-    /// - `range`: used to get a subslice out of ArrayRef.
+    /// - `range`: used to get a subslice out of `ArrayRef`.
     ///
-    /// - `scals`: scalar representation of each element in the ArrayRef.
-    ///    Some types don't require this slice (see Column::BigInt). But for types requiring it,
+    /// - `scals`: scalar representation of each element in the `ArrayRef`.
+    ///    Some types don't require this slice (see `Column::BigInt`). But for types requiring it,
     ///    `scals` must be provided and have a length equal to `range.len()`.
     ///
     /// Note: this function must not be called from unsupported or nullable arrays as it will panic.
@@ -157,14 +157,14 @@ impl ArrayRefExt for ArrayRef {
         })
     }
 
-    /// Converts the given ArrowArray into a `Column` data type based on its `DataType`. Returns an
+    /// Converts the given `ArrowArray` into a `Column` data type based on its `DataType`. Returns an
     /// empty `Column` for any empty tange if it is in-bounds.
     ///
     /// # Parameters
     /// - `alloc`: Reference to a `Bump` allocator used for memory allocation during the conversion.
     /// - `range`: Reference to a `Range<usize>` specifying the slice of the array to convert.
     /// - `precomputed_scals`: Optional reference to a slice of `Curve25519Scalar` values.
-    ///    VarChar columns store hashes to their values as scalars, which can be provided here.
+    ///    `VarChar` columns store hashes to their values as scalars, which can be provided here.
     ///
     /// # Supported types
     /// - For `DataType::Int64` and `DataType::Decimal128(38, 0)`, it slices the array

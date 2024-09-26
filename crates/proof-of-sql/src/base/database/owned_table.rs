@@ -14,13 +14,13 @@ pub enum OwnedTableError {
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
-/// This is the analog of an arrow RecordBatch.
+/// This is the analog of an arrow `RecordBatch`.
 #[derive(Debug, Clone, Eq)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Identifier, OwnedColumn<S>>,
 }
 impl<S: Scalar> OwnedTable<S> {
-    /// Creates a new OwnedTable.
+    /// Creates a new `OwnedTable`.
     pub fn try_new(table: IndexMap<Identifier, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
             return Ok(Self { table });
@@ -32,18 +32,18 @@ impl<S: Scalar> OwnedTable<S> {
             Ok(Self { table })
         }
     }
-    /// Creates a new OwnedTable.
+    /// Creates a new `OwnedTable`.
     pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
         Self::try_new(IndexMap::from_iter(iter))
     }
     /// Number of columns in the table.
-    pub fn num_columns(&self) -> usize {
+    #[must_use] pub fn num_columns(&self) -> usize {
         self.table.len()
     }
     /// Number of rows in the table.
-    pub fn num_rows(&self) -> usize {
+    #[must_use] pub fn num_rows(&self) -> usize {
         if self.table.is_empty() {
             0
         } else {
@@ -51,15 +51,15 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
     /// Whether the table has no columns.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         self.table.is_empty()
     }
-    /// Returns the columns of this table as an IndexMap
-    pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
+    /// Returns the columns of this table as an `IndexMap`
+    #[must_use] pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
-    /// Returns the columns of this table as an IndexMap
-    pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
+    /// Returns the columns of this table as an `IndexMap`
+    #[must_use] pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table
     }
     /// Returns the columns of this table as an Iterator

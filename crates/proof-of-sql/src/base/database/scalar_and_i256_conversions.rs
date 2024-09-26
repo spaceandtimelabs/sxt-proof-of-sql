@@ -2,12 +2,12 @@ use crate::base::scalar::Scalar;
 use arrow::datatypes::i256;
 
 const MIN_SUPPORTED_I256: i256 = i256::from_parts(
-    326411208032252286695448638536326387210,
-    -10633823966279326983230456482242756609,
+    326_411_208_032_252_286_695_448_638_536_326_387_210,
+    -10_633_823_966_279_326_983_230_456_482_242_756_609,
 );
 const MAX_SUPPORTED_I256: i256 = i256::from_parts(
-    13871158888686176767925968895441824246,
-    10633823966279326983230456482242756608,
+    13_871_158_888_686_176_767_925_968_895_441_824_246,
+    10_633_823_966_279_326_983_230_456_482_242_756_608,
 );
 
 /// Converts a type implementing [Scalar] into an arrow i256
@@ -17,7 +17,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
     let limbs: [u64; 4] = abs_scalar.into();
 
     let low = (limbs[0] as u128) | ((limbs[1] as u128) << 64);
-    let high = (limbs[2] as i128) | ((limbs[3] as i128) << 64);
+    let high = i128::from(limbs[2]) | (i128::from(limbs[3]) << 64);
 
     let abs_i256 = i256::from_parts(low, high);
     if is_negative {
@@ -29,7 +29,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
 
 /// Converts an arrow i256 into limbed representation and then
 /// into a type implementing [Scalar]
-pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
+#[must_use] pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
     // Check if value is within the bounds
     if value < &MIN_SUPPORTED_I256 || value > &MAX_SUPPORTED_I256 {
         None

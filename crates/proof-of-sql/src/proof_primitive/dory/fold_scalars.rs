@@ -5,7 +5,7 @@ use super::{
 };
 use merlin::Transcript;
 
-/// This is the prover side of the Fold-Scalars algorithm in section 4.1 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the prover side of the Fold-Scalars algorithm in section 4.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Note: this only works for nu = 0.
 pub fn fold_scalars_0_prove(

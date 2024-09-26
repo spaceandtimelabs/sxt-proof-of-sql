@@ -20,11 +20,11 @@ pub struct ProvableQueryResult {
 
 impl ProvableQueryResult {
     /// The number of columns in the result
-    pub fn num_columns(&self) -> usize {
+    #[must_use] pub fn num_columns(&self) -> usize {
         self.num_columns as usize
     }
     /// The indexes in the result.
-    pub fn indexes(&self) -> &Indexes {
+    #[must_use] pub fn indexes(&self) -> &Indexes {
         &self.indexes
     }
     /// A mutable reference to a the indexes in the result. Because the struct is deserialized from untrusted data, it
@@ -56,14 +56,14 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
-    pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
+    #[must_use] pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.num_bytes(indexes);
         }
         let mut data = vec![0u8; sz];
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.write(&mut data[sz..], indexes);
         }
         ProvableQueryResult {
@@ -91,8 +91,7 @@ impl ProvableQueryResult {
             .indexes
             .iter()
             .max()
-            .map(|max| max as usize + 1)
-            .unwrap_or(0);
+            .map_or(0, |max| max as usize + 1);
         let mut evaluation_vec = vec![Zero::zero(); evaluation_vec_len];
         compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
 

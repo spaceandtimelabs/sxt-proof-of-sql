@@ -145,7 +145,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     )]
     pub fn evaluate_pcs_proof_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
         let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
-        for evaluator in self.pcs_proof_mles.iter() {
+        for evaluator in &self.pcs_proof_mles {
             res.push(evaluator.inner_product(evaluation_vec));
         }
         res

@@ -1,11 +1,11 @@
 use super::{DeferredGT, G1Affine, F};
 
 /// The state of the verifier during the VMV evaluation proof verification.
-/// See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See section 5 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 pub struct VMVVerifierState {
     /// The evaluation of the matrix. That is, y = LMR.
     pub(super) y: F,
-    /// The commitment to the entire matrix. That is, T = <T_vec_prime, Gamma_2[nu]>.
+    /// The commitment to the entire matrix. That is, T = <`T_vec_prime`, `Gamma_2`[nu]>.
     pub(super) T: DeferredGT,
     /// The left tensor, l.
     pub(super) l_tensor: Vec<F>,
@@ -16,11 +16,11 @@ pub struct VMVVerifierState {
 }
 
 /// The state of the prover during the VMV evaluation proof generation.
-/// See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See section 5 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 pub struct VMVProverState {
     /// Evaluations of the columns of the matrix. That is, v = transpose(L) * M. In other words, v[j] = <L, M[_, j]> = sum_{i=0}^{2^nu} M[i,j] L[i].
     pub(super) v_vec: Vec<F>,
-    /// Commitments to the rows of the matrix. That is T_vec_prime[i] = <M[i, _], Gamma_1[nu]> = sum_{j=0}^{2^nu} M[i,j] Gamma_1[nu][j].
+    /// Commitments to the rows of the matrix. That is `T_vec_prime`[i] = <M[i, _], `Gamma_1`[nu]> = sum_{j=0}^{2^nu} M[i,j] `Gamma_1`[nu][j].
     pub(super) T_vec_prime: Vec<G1Affine>,
     /// The left tensor, l.
     #[cfg(test)]

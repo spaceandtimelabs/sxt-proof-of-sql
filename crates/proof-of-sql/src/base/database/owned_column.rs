@@ -22,7 +22,7 @@ use proof_of_sql_parser::{
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
-/// Supported types for OwnedColumn
+/// Supported types for `OwnedColumn`
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
@@ -46,7 +46,7 @@ pub enum OwnedColumn<S: Scalar> {
 
 impl<S: Scalar> OwnedColumn<S> {
     /// Returns the length of the column.
-    pub fn len(&self) -> usize {
+    #[must_use] pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
             OwnedColumn::SmallInt(col) => col.len(),
@@ -80,7 +80,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns the sliced column.
-    pub fn slice(&self, start: usize, end: usize) -> Self {
+    #[must_use] pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
@@ -99,7 +99,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns true if the column is empty.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
             OwnedColumn::SmallInt(col) => col.is_empty(),
@@ -113,7 +113,7 @@ impl<S: Scalar> OwnedColumn<S> {
         }
     }
     /// Returns the type of the column.
-    pub fn column_type(&self) -> ColumnType {
+    #[must_use] pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
             OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
@@ -301,7 +301,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
             Column::VarChar((col, _)) => {
-                OwnedColumn::VarChar(col.iter().map(|s| s.to_string()).collect())
+                OwnedColumn::VarChar(col.iter().map(|s| (*s).to_string()).collect())
             }
             Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
             Column::Decimal75(precision, scale, col) => {
@@ -313,8 +313,8 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
-/// Compares the tuples (order_by_pairs[0][i], order_by_pairs[1][i], ...) and
-/// (order_by_pairs[0][j], order_by_pairs[1][j], ...) in lexicographic order.
+/// Compares the tuples (`order_by_pairs`[0][i], `order_by_pairs`[1][i], ...) and
+/// (`order_by_pairs`[0][j], `order_by_pairs`[1][j], ...) in lexicographic order.
 /// Note that direction flips the ordering.
 pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
     order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],

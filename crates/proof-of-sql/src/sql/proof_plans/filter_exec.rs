@@ -65,7 +65,7 @@ where
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
@@ -133,7 +133,7 @@ where
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         let mut columns = IndexSet::default();
 
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 

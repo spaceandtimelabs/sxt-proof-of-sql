@@ -112,7 +112,7 @@ fn check_and_get_aggregation_and_remainder(
     let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
-        .cloned()
+        .copied()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
         return Err(PostprocessingError::NestedAggregationInGroupByClause(
@@ -165,17 +165,17 @@ impl GroupByPostprocessing {
     }
 
     /// Get group by identifiers
-    pub fn group_by(&self) -> &[Identifier] {
+    #[must_use] pub fn group_by(&self) -> &[Identifier] {
         &self.group_by_identifiers
     }
 
     /// Get remainder expressions for SELECT
-    pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
+    #[must_use] pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
         &self.remainder_exprs
     }
 
     /// Get aggregation expressions
-    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
+    #[must_use] pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
         &self.aggregation_exprs
     }
 }
@@ -209,31 +209,28 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         let selection_in = vec![true; owned_table.num_rows()];
         let (sum_ids, sum_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Sum)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (max_ids, max_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Max)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (min_ids, min_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Min)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,

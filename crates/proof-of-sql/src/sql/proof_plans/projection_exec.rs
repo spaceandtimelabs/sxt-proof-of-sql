@@ -46,7 +46,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         builder: &mut CountBuilder,
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }

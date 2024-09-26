@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use std::vec::Vec;
 

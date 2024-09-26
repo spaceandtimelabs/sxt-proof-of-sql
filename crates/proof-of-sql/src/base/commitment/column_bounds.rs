@@ -107,9 +107,9 @@ where
             (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Sharp(bounds_a.union(bounds_b))
             }
-            (Bounds::Bounded(bounds_a), Bounds::Bounded(bounds_b))
-            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b)) => {
+            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a),
+Bounds::Bounded(bounds_b)) |
+(Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Bounded(bounds_a.union(bounds_b))
             }
             (bounds, Bounds::Empty) | (Bounds::Empty, bounds) => bounds,
@@ -128,14 +128,13 @@ where
         match (self, other) {
             (Bounds::Empty, _) => Bounds::Empty,
             (bounds, Bounds::Empty) => bounds,
-            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b) | Bounds::Bounded(bounds_b))
                 if bounds_a.max() < bounds_b.min() || bounds_b.max() < bounds_a.min() =>
             {
                 // source collections must be disjoint, so no rows are removed
                 Bounds::Sharp(bounds_a)
             }
-            (Bounds::Bounded(bounds), _) | (Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
+            (Bounds::Bounded(bounds) | Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
         }
     }
 
@@ -200,11 +199,11 @@ pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
-    /// The bounds of a SmallInt column.
+    /// The bounds of a `SmallInt` column.
     SmallInt(Bounds<i16>),
     /// The bounds of an Int column.
     Int(Bounds<i32>),
-    /// The bounds of a BigInt column.
+    /// The bounds of a `BigInt` column.
     BigInt(Bounds<i64>),
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
@@ -216,7 +215,7 @@ impl ColumnBounds {
     /// Construct a [`ColumnBounds`] from a column by reference.
     ///
     /// If the column variant has order, only the minimum and maximum value will be copied.
-    pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
+    #[must_use] pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),

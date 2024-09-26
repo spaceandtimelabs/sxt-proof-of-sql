@@ -1,5 +1,5 @@
-//! These functions are adapted from arkworks. https://github.com/arkworks-rs/algebra/blob/ab13aa09ae3c11cde0224028dee7b878bbcf9246/ff/src/fields/mod.rs#L347-L410
-//! See third_party/license/arkworks.LICENSE
+//! These functions are adapted from arkworks. <https://github.com/arkworks-rs/algebra/blob/ab13aa09ae3c11cde0224028dee7b878bbcf9246/ff/src/fields/mod.rs#L347-L410>
+//! See `third_party/license/arkworks.LICENSE`
 //!
 //! They differ in that they don't rely on the `Field` trait, but instead use `core::ops` and `crate::base::scalar` traits.
 //! This results in minor modifications.
@@ -17,10 +17,10 @@ use rayon::prelude::*;
 /**
  * Adapted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 
-/// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)} using Montgomery's trick.
+/// Given a vector of field elements {`v_i`}, compute the vector {v_i^(-1)} using Montgomery's trick.
 /// The vector is modified in place.
 /// Any zero elements in the vector are left unchanged.
 pub fn batch_inversion<F>(v: &mut [F])
@@ -47,7 +47,7 @@ where
             // Batch invert in parallel, without copying the vector
             v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
                 serial_batch_inversion_and_mul(chunk, coeff);
-            })
+            });
         },
         serial_batch_inversion_and_mul(v, coeff)
     )

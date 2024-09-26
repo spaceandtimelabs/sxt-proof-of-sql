@@ -1,7 +1,7 @@
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use crate::base::scalar::Scalar;
 use crate::{base::if_rayon, proof_primitive::sumcheck::ProverState};
@@ -11,9 +11,7 @@ use rayon::prelude::*;
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
     if let Some(r) = r_maybe {
-        if prover_state.round == 0 {
-            panic!("first round should be prover first.");
-        }
+        assert!(!(prover_state.round == 0), "first round should be prover first.");
         prover_state.randomness.push(*r);
 
         // fix argument
@@ -35,9 +33,7 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
 
     prover_state.round += 1;
 
-    if prover_state.round > prover_state.num_vars {
-        panic!("Prover is not active");
-    }
+    assert!(!(prover_state.round > prover_state.num_vars), "Prover is not active");
 
     let degree = prover_state.max_multiplicands; // the degree of univariate polynomial sent by prover at this round
     let round_length = 1usize << (prover_state.num_vars - prover_state.round);
@@ -100,7 +96,7 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
 
 /// This is equivalent to
 /// *multiplicand = Vec<S> {
-///                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
+///                    `ark_impl`: `multiplicand.ark_impl.fix_variables`(&[`r_as_field`]),
 ///                };
 /// Only it does it in place
 fn in_place_fix_variable<S: Scalar>(multiplicand: &mut [S], r_as_field: S, num_vars: usize) {

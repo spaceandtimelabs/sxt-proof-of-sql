@@ -55,7 +55,7 @@ pub enum TableCommitmentArithmeticError {
     /// Cannot perform arithmetic on columns with mismatched metadata.
     #[error(transparent)]
     ColumnMismatch(#[from] ColumnCommitmentsMismatch),
-    /// Cannot perform TableCommitment arithmetic that would result in a negative range.
+    /// Cannot perform `TableCommitment` arithmetic that would result in a negative range.
     #[error(transparent)]
     NegativeRange(#[from] NegativeRange),
     /// Cannot perform arithmetic for noncontiguous table commitments.
@@ -138,22 +138,22 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a reference to this type's internal [`ColumnCommitments`].
-    pub fn column_commitments(&self) -> &ColumnCommitments<C> {
+    #[must_use] pub fn column_commitments(&self) -> &ColumnCommitments<C> {
         &self.column_commitments
     }
 
     /// Returns a reference to the range of rows this type commits to.
-    pub fn range(&self) -> &Range<usize> {
+    #[must_use] pub fn range(&self) -> &Range<usize> {
         &self.range
     }
 
     /// Returns the number of columns in the committed table.
-    pub fn num_columns(&self) -> usize {
+    #[must_use] pub fn num_columns(&self) -> usize {
         self.column_commitments.len()
     }
 
     /// Returns the number of rows that have been committed to.
-    pub fn num_rows(&self) -> usize {
+    #[must_use] pub fn num_rows(&self) -> usize {
         self.range.len()
     }
 

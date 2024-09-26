@@ -32,19 +32,19 @@ impl<S: Scalar> PostprocessingStep<S> for OwnedTablePostprocessing {
 
 impl OwnedTablePostprocessing {
     /// Create a new `OwnedTablePostprocessing` with the given `SlicePostprocessing`.
-    pub fn new_slice(slice_expr: SlicePostprocessing) -> Self {
+    #[must_use] pub fn new_slice(slice_expr: SlicePostprocessing) -> Self {
         Self::Slice(slice_expr)
     }
     /// Create a new `OwnedTablePostprocessing` with the given `OrderByPostprocessing`.
-    pub fn new_order_by(order_by_expr: OrderByPostprocessing) -> Self {
+    #[must_use] pub fn new_order_by(order_by_expr: OrderByPostprocessing) -> Self {
         Self::OrderBy(order_by_expr)
     }
     /// Create a new `OwnedTablePostprocessing` with the given `SelectPostprocessing`.
-    pub fn new_select(select_expr: SelectPostprocessing) -> Self {
+    #[must_use] pub fn new_select(select_expr: SelectPostprocessing) -> Self {
         Self::Select(select_expr)
     }
     /// Create a new `OwnedTablePostprocessing` with the given `GroupByPostprocessing`.
-    pub fn new_group_by(group_by_postprocessing: GroupByPostprocessing) -> Self {
+    #[must_use] pub fn new_group_by(group_by_postprocessing: GroupByPostprocessing) -> Self {
         Self::GroupBy(group_by_postprocessing)
     }
 }

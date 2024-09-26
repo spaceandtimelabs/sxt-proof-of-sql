@@ -14,13 +14,13 @@ pub enum DecimalError {
     #[error("Invalid decimal format or value: {0}")]
     /// Error when a decimal format or value is incorrect,
     /// the string isn't even a decimal e.g. "notastring",
-    /// "-21.233.122" etc aka InvalidDecimal
+    /// "-21.233.122" etc aka `InvalidDecimal`
     InvalidDecimal(String),
 
     #[error("Decimal precision is not valid: {0}")]
     /// Decimal precision exceeds the allowed limit,
     /// e.g. precision above 75/76/whatever set by Scalar
-    /// or non-positive aka InvalidPrecision
+    /// or non-positive aka `InvalidPrecision`
     InvalidPrecision(String),
 
     #[error("Decimal scale is not valid: {0}")]
@@ -59,8 +59,7 @@ impl Precision {
     pub fn new(value: u8) -> Result<Self, DecimalError> {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
             Err(DecimalError::InvalidPrecision(format!(
-                "Failed to parse precision. Value of {} exceeds max supported precision of {}",
-                value, MAX_SUPPORTED_PRECISION
+                "Failed to parse precision. Value of {value} exceeds max supported precision of {MAX_SUPPORTED_PRECISION}"
             )))
         } else {
             Ok(Precision(value))
@@ -68,7 +67,7 @@ impl Precision {
     }
 
     /// Gets the precision as a u8 for this decimal
-    pub fn value(&self) -> u8 {
+    #[must_use] pub fn value(&self) -> u8 {
         self.0
     }
 }

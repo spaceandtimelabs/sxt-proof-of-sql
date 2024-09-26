@@ -8,7 +8,7 @@ use ark_ec::VariableBaseMSM;
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
 /// `base_state` is the state of the prover during the Dory proof generation with the original algorithm.
-/// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 pub struct ExtendedProverState {
     /// The state of the prover during the Dory proof generation with the original algorithm.
     pub(super) base_state: ProverState,
@@ -87,7 +87,7 @@ impl ExtendedProverState {
 
 /// The state of the verifier during the Dory proof verification with the extended algorithm.
 /// `base_state` is the state of the verifier during the Dory proof verification with the original algorithm.
-/// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 #[cfg_attr(test, derive(PartialEq))]
 #[derive(Debug)]
 pub struct ExtendedVerifierState {
@@ -101,9 +101,9 @@ pub struct ExtendedVerifierState {
     pub(super) s1_tensor: Vec<F>,
     /// The second tensor of F elements in the witness. This will NOT be mutated during the proof verification.
     pub(super) s2_tensor: Vec<F>,
-    /// The folding factors for the s1_tensors. This will be populated during the proof verification.
+    /// The folding factors for the `s1_tensors`. This will be populated during the proof verification.
     pub(super) alphas: Vec<F>,
-    /// The folding factors for the s2_tensors. This will be populated during the proof verification.
+    /// The folding factors for the `s2_tensors`. This will be populated during the proof verification.
     pub(super) alpha_invs: Vec<F>,
 }
 

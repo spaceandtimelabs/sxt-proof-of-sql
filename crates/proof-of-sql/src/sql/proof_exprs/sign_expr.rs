@@ -68,7 +68,7 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
 ///
 /// If x1, ..., xn denotes the data, prove the column of
 /// booleans, i.e. sign bits, s1, ..., sn where si == 1 if xi > MID and
-/// si == 1 if xi <= MID and MID is defined in base/bit/abs_bit_mask.rs
+/// si == 1 if xi <= MID and MID is defined in `base/bit/abs_bit_mask.rs`
 ///
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
@@ -112,7 +112,7 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
 
 /// Verify the sign decomposition for a column of scalars.
 ///
-/// See prover_evaluate_sign.
+/// See `prover_evaluate_sign`.
 pub fn verifier_evaluate_sign<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     eval: C::Scalar,
@@ -163,7 +163,7 @@ fn verifier_const_sign_evaluate<S: Scalar>(
 }
 
 fn prove_bits_are_binary<'a, S: Scalar>(builder: &mut ProofBuilder<'a, S>, bits: &[&'a [bool]]) {
-    for &seq in bits.iter() {
+    for &seq in bits {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -179,7 +179,7 @@ fn verify_bits_are_binary<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     bit_evals: &[C::Scalar],
 ) {
-    for bit_eval in bit_evals.iter() {
+    for bit_eval in bit_evals {
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,
@@ -196,7 +196,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 ) {
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
-        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * i32::from(sign_mle[i]));
     let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
 
     // expr

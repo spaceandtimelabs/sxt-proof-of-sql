@@ -39,15 +39,15 @@ pub fn try_add_subtract_column_types(
         Ok(ColumnType::Scalar)
     } else {
         let left_precision_value =
-            lhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(lhs.precision_value().expect("Numeric types have precision"));
         let right_precision_value =
-            rhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(rhs.precision_value().expect("Numeric types have precision"));
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.max(right_scale);
-        let precision_value: i16 = scale as i16
-            + (left_precision_value - left_scale as i16)
-                .max(right_precision_value - right_scale as i16)
+        let precision_value: i16 = i16::from(scale)
+            + (left_precision_value - i16::from(left_scale))
+                .max(right_precision_value - i16::from(right_scale))
             + 1_i16;
         let precision = u8::try_from(precision_value)
             .map_err(|_| {
@@ -92,15 +92,14 @@ pub fn try_multiply_column_types(
         let precision_value = left_precision_value + right_precision_value + 1;
         let precision = Precision::new(precision_value).map_err(|_| {
             ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(format!(
-                "Required precision {} is beyond what we can support",
-                precision_value
+                "Required precision {precision_value} is beyond what we can support"
             )))
         })?;
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.checked_add(right_scale).ok_or(
             ColumnOperationError::DecimalConversionError(DecimalError::InvalidScale(
-                left_scale as i16 + right_scale as i16,
+                i16::from(left_scale) + i16::from(right_scale),
             )),
         )?;
         Ok(ColumnType::Decimal75(precision, scale))
@@ -129,10 +128,10 @@ pub fn try_divide_column_types(
         // We can unwrap here because we know that both types are integers
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
-    let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;
-    let right_precision_value = rhs.precision_value().expect("Numeric types have precision") as i16;
-    let left_scale = lhs.scale().expect("Numeric types have scale") as i16;
-    let right_scale = rhs.scale().expect("Numeric types have scale") as i16;
+    let left_precision_value = i16::from(lhs.precision_value().expect("Numeric types have precision"));
+    let right_precision_value = i16::from(rhs.precision_value().expect("Numeric types have precision"));
+    let left_scale = i16::from(lhs.scale().expect("Numeric types have scale"));
+    let right_scale = i16::from(rhs.scale().expect("Numeric types have scale"));
     let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
     let scale = i8::try_from(raw_scale).map_err(|_| {
@@ -234,8 +233,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_add(r)
                 .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer addition {:?} + {:?}",
-                    l, r
+                    "Overflow in integer addition {l:?} + {r:?}"
                 )))
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -253,8 +251,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_sub(r)
                 .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
+                    "Overflow in integer subtraction {l:?} - {r:?}"
                 )))
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -272,8 +269,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_mul(r)
                 .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer multiplication {:?} * {:?}",
-                    l, r
+                    "Overflow in integer multiplication {l:?} * {r:?}"
                 )))
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -370,8 +366,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_add(r).ok_or(
                 ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer addition {:?} + {:?}",
-                    l, r
+                    "Overflow in integer addition {l:?} + {r:?}"
                 )),
             )
         })
@@ -394,8 +389,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_sub(r).ok_or(
                 ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
+                    "Overflow in integer subtraction {l:?} - {r:?}"
                 )),
             )
         })
@@ -418,8 +412,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             l.checked_sub(&Into::<LargerType>::into(*r)).ok_or(
                 ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
+                    "Overflow in integer subtraction {l:?} - {r:?}"
                 )),
             )
         })
@@ -443,8 +436,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_mul(r).ok_or(
                 ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer multiplication {:?} * {:?}",
-                    l, r
+                    "Overflow in integer multiplication {l:?} * {r:?}"
                 )),
             )
         })
@@ -840,8 +832,8 @@ where
 /// 2. We use floor division for rounding.
 /// 3. If division by zero occurs, we return an error.
 /// 4. Precision and scale follow T-SQL rules. That is,
-///   - new_scale = max(6, right_precision + left_scale + 1)
-///   - new_precision = left_precision - left_scale + right_scale + new_scale
+///   - `new_scale` = max(6, `right_precision` + `left_scale` + 1)
+///   - `new_precision` = `left_precision` - `left_scale` + `right_scale` + `new_scale`
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -865,7 +857,7 @@ where
         .scale()
         .expect("numeric columns have scale");
     let applied_scale = rhs_scale - lhs_scale + new_scale;
-    let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
+    let applied_scale_factor = BigInt::from(10).pow(u32::from(applied_scale.unsigned_abs()));
     let res: Vec<S> = lhs
         .iter()
         .zip(rhs)

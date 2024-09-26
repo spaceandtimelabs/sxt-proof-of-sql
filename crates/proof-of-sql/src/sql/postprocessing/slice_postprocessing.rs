@@ -21,7 +21,7 @@ pub struct SlicePostprocessing {
 
 impl SlicePostprocessing {
     /// Create a new `SlicePostprocessing` with the given `number_rows` and `offset`.
-    pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
+    #[must_use] pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
         Self {
             number_rows,
             offset_value,
@@ -38,12 +38,12 @@ impl<S: Scalar> PostprocessingStep<S> for SlicePostprocessing {
         // Be permissive with data types at first so that computation can be done.
         // If the conversion fails, we will return None.
         let possible_starting_row = if offset < 0 {
-            num_rows as i128 + offset as i128
+            num_rows as i128 + i128::from(offset)
         } else {
-            offset as i128
+            i128::from(offset)
         };
         // The `possible_ending_row` is NOT inclusive.
-        let possible_ending_row = (possible_starting_row + limit as i128).min(num_rows as i128);
+        let possible_ending_row = (possible_starting_row + i128::from(limit)).min(num_rows as i128);
         let starting_row = usize::try_from(possible_starting_row)
             .map_err(|_| PostprocessingError::InvalidSliceIndex(possible_starting_row))?;
         let ending_row = usize::try_from(possible_ending_row)

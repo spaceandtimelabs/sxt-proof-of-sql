@@ -116,7 +116,7 @@ pub(super) fn compute_L_R_vec(b_point: &[F], sigma: usize, nu: usize) -> (Vec<F>
 }
 
 /// Compute the l and r tensors that are derived from `b_point`.
-/// These match with [compute_L_R_vec] but are in tensor form.
+/// These match with [`compute_L_R_vec`] but are in tensor form.
 pub(super) fn compute_l_r_tensors(b_point: &[F], sigma: usize, nu: usize) -> (Vec<F>, Vec<F>) {
     let mut r_tensor = vec![Zero::zero(); nu];
     let mut l_tensor = vec![Zero::zero(); nu];

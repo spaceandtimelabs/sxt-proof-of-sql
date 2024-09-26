@@ -61,8 +61,7 @@ impl DynProofExprBuilder<'_> {
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable(format!(
-                "Expression {:?} is not supported yet",
-                expr
+                "Expression {expr:?} is not supported yet"
             ))),
         }
     }
@@ -184,8 +183,7 @@ impl DynProofExprBuilder<'_> {
                 DynProofExpr::try_new_multiply(left?, right?)
             }
             BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
-                "Binary operator {:?} is not supported at this location",
-                op
+                "Binary operator {op:?} is not supported at this location"
             ))),
         }
     }
@@ -206,12 +204,10 @@ impl DynProofExprBuilder<'_> {
                 Ok(DynProofExpr::new_aggregate(op, expr))
             }
             (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression(format!(
-                "Aggregation operator {:?} doesn't work with non-numeric types",
-                op
+                "Aggregation operator {op:?} doesn't work with non-numeric types"
             ))),
             _ => Err(ConversionError::Unprovable(format!(
-                "Aggregation operator {:?} is not supported at this location",
-                op
+                "Aggregation operator {op:?} is not supported at this location"
             ))),
         }
     }

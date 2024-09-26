@@ -41,7 +41,7 @@ impl<G, F> From<G> for DeferredMSM<G, F> {
 }
 impl<G, F> AddAssign<G> for DeferredMSM<G, F> {
     fn add_assign(&mut self, rhs: G) {
-        self.pairs.push((rhs, None))
+        self.pairs.push((rhs, None));
     }
 }
 impl<G, F: MulAssign + Copy> MulAssign<F> for DeferredMSM<G, F> {
@@ -49,7 +49,7 @@ impl<G, F: MulAssign + Copy> MulAssign<F> for DeferredMSM<G, F> {
         self.pairs.iter_mut().for_each(|(_, f)| match f {
             Some(i) => *i *= rhs,
             None => *f = Some(rhs),
-        })
+        });
     }
 }
 impl<G, F: MulAssign + Copy> Mul<F> for DeferredMSM<G, F> {
@@ -61,7 +61,7 @@ impl<G, F: MulAssign + Copy> Mul<F> for DeferredMSM<G, F> {
 }
 impl<G, F> AddAssign<DeferredMSM<G, F>> for DeferredMSM<G, F> {
     fn add_assign(&mut self, rhs: DeferredMSM<G, F>) {
-        self.pairs.extend(rhs.pairs)
+        self.pairs.extend(rhs.pairs);
     }
 }
 impl<G, F> Add<DeferredMSM<G, F>> for DeferredMSM<G, F> {

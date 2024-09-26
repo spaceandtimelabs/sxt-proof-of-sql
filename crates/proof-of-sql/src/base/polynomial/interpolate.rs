@@ -1,7 +1,7 @@
 /**
  * Adapted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use core::ops::{Add, AddAssign, Mul, MulAssign, SubAssign};
 use core::{cmp::PartialEq, iter::Product};

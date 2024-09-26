@@ -8,20 +8,20 @@ pub struct DoryProverPublicSetup<'a> {
 }
 impl<'a> DoryProverPublicSetup<'a> {
     /// Create a new public setup for the Dory PCS.
-    /// public_parameters: The public parameters for the Dory protocol.
+    /// `public_parameters`: The public parameters for the Dory protocol.
     /// sigma: A commitment with this setup is a matrix commitment with `1 << sigma` columns.
-    pub fn new(prover_setup: &'a ProverSetup<'a>, sigma: usize) -> Self {
+    #[must_use] pub fn new(prover_setup: &'a ProverSetup<'a>, sigma: usize) -> Self {
         Self {
             prover_setup,
             sigma,
         }
     }
     /// Returns sigma. A commitment with this setup is a matrix commitment with `1 << sigma` columns.
-    pub fn sigma(&self) -> usize {
+    #[must_use] pub fn sigma(&self) -> usize {
         self.sigma
     }
     /// The public setup for the Dory protocol.
-    pub fn prover_setup(&self) -> &ProverSetup {
+    #[must_use] pub fn prover_setup(&self) -> &ProverSetup {
         self.prover_setup
     }
 }
@@ -34,20 +34,20 @@ pub struct DoryVerifierPublicSetup<'a> {
 }
 impl<'a> DoryVerifierPublicSetup<'a> {
     /// Create a new public setup for the Dory PCS.
-    /// verifier_setup: The verifier's setup parameters for the Dory protocol.
+    /// `verifier_setup`: The verifier's setup parameters for the Dory protocol.
     /// sigma: A commitment with this setup is a matrix commitment with `1 << sigma` columns.
-    pub fn new(verifier_setup: &'a VerifierSetup, sigma: usize) -> Self {
+    #[must_use] pub fn new(verifier_setup: &'a VerifierSetup, sigma: usize) -> Self {
         Self {
             verifier_setup,
             sigma,
         }
     }
     /// Returns sigma. A commitment with this setup is a matrix commitment with `1<<sigma` columns.
-    pub fn sigma(&self) -> usize {
+    #[must_use] pub fn sigma(&self) -> usize {
         self.sigma
     }
     /// The verifier's setup parameters for the Dory protocol.
-    pub fn verifier_setup(&self) -> &VerifierSetup {
+    #[must_use] pub fn verifier_setup(&self) -> &VerifierSetup {
         self.verifier_setup
     }
 }

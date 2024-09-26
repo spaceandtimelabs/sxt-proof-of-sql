@@ -21,7 +21,7 @@ impl TranscriptCore for Keccak256Transcript {
         Self(Keccak::v256())
     }
     fn raw_append(&mut self, message: &[u8]) {
-        self.0.update(message)
+        self.0.update(message);
     }
     fn raw_challenge(&mut self) -> [u8; 32] {
         let mut result = [0; 32];

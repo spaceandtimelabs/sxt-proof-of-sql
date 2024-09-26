@@ -87,10 +87,10 @@ pub fn dory_reduce_prove_fold_v_vecs(
     state.v1.truncate(half_n);
     state.v2.truncate(half_n);
 }
-/// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
 /// Updates C
-/// * C' <- C + chi + beta * D_2 + beta_inv * D_1 + alpha * C_plus + alpha_inv * C_minus
+/// * C' <- C + chi + beta * `D_2` + `beta_inv` * `D_1` + alpha * `C_plus` + `alpha_inv` * `C_minus`
 ///
 /// Note: this should not be used after `dory_reduce_verify_update_Ds` because that function mutates the Ds.
 pub fn dory_reduce_verify_update_C(
@@ -106,11 +106,11 @@ pub fn dory_reduce_verify_update_C(
         + DeferredGT::from(C_minus) * alpha_inv
         + setup.chi[state.nu];
 }
-/// From the Dory-Reduce algorithm in section 3.2 of https://eprint.iacr.org/2020/1274.pdf.
+/// From the Dory-Reduce algorithm in section 3.2 of <https://eprint.iacr.org/2020/1274.pdf>.
 ///
-/// Updates D_1 and D_2
-/// * D_1' <- alpha * D_1 + D_1R + alpha * beta * Delta_1L + beta * Delta_1R
-/// * D_2' <- alpha_inv * D_2 + D_2R + alpha_inv * beta_inv * Delta_2L + beta_inv * Delta_2R
+/// Updates `D_1` and `D_2`
+/// * `D_1`' <- alpha * `D_1` + `D_1R` + alpha * beta * `Delta_1L` + beta * `Delta_1R`
+/// * `D_2`' <- `alpha_inv` * `D_2` + `D_2R` + `alpha_inv` * `beta_inv` * `Delta_2L` + `beta_inv` * `Delta_2R`
 pub fn dory_reduce_verify_update_Ds(
     state: &mut VerifierState,
     setup: &VerifierSetup,

@@ -32,7 +32,7 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         self.get_length(accessor) == 0
     }
 
-    /// Form components needed to verify and proof store into VerificationBuilder
+    /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder<C>,

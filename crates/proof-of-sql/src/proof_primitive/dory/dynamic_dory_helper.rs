@@ -71,7 +71,7 @@ pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
 
 /// Folds the `s1` and `s2` tensors:
 ///
-/// This is the analogous function of the non-dynamic folding function [extended_dory_reduce_verify_fold_s_vecs](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
+/// This is the analogous function of the non-dynamic folding function [`extended_dory_reduce_verify_fold_s_vecs`](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
 /// See that method for more details.
 pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
     let point = &state.s1_tensor;

@@ -92,7 +92,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
                     Err(ColumnCommitmentsMismatch::Identifier(
                         identifier_a.to_string(),
                         identifier_b.to_string(),
-                    ))?
+                    ))?;
                 }
 
                 Ok((identifier_a, metadata_a.try_union(metadata_b)?))
@@ -115,7 +115,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
                     Err(ColumnCommitmentsMismatch::Identifier(
                         identifier_a.to_string(),
                         identifier_b.to_string(),
-                    ))?
+                    ))?;
                 }
 
                 Ok((identifier_a, metadata_a.try_difference(metadata_b)?))

@@ -91,7 +91,7 @@ impl DoryMessages {
         let mut message = F::zero();
         while message.is_zero() {
             transcript
-                .challenge_scalars(core::iter::once(&mut message), MessageLabel::DoryChallenge)
+                .challenge_scalars(core::iter::once(&mut message), MessageLabel::DoryChallenge);
         }
         let message_inv = message.inverse().unwrap();
         (message, message_inv)

@@ -22,7 +22,7 @@ use thiserror::Error;
 #[error("cannot create commitments with duplicate identifier: {0}")]
 pub struct DuplicateIdentifiers(String);
 
-/// Errors that can occur when attempting to append rows to ColumnCommitments.
+/// Errors that can occur when attempting to append rows to `ColumnCommitments`.
 #[derive(Debug, Error)]
 pub enum AppendColumnCommitmentsError {
     /// Metadata between new and old columns are mismatched.
@@ -67,34 +67,34 @@ impl<C: Commitment> ColumnCommitments<C> {
     }
 
     /// Returns a reference to the stored commitments.
-    pub fn commitments(&self) -> &Vec<C> {
+    #[must_use] pub fn commitments(&self) -> &Vec<C> {
         &self.commitments
     }
 
     /// Returns a reference to the stored column metadata.
-    pub fn column_metadata(&self) -> &ColumnCommitmentMetadataMap {
+    #[must_use] pub fn column_metadata(&self) -> &ColumnCommitmentMetadataMap {
         &self.column_metadata
     }
 
     /// Returns the number of columns.
-    pub fn len(&self) -> usize {
+    #[must_use] pub fn len(&self) -> usize {
         self.column_metadata.len()
     }
 
     /// Returns true if there are no columns.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         self.column_metadata.is_empty()
     }
 
     /// Returns the commitment with the given identifier.
-    pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
+    #[must_use] pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
         self.column_metadata
             .get_index_of(identifier)
             .map(|index| self.commitments[index].clone())
     }
 
     /// Returns the metadata for the commitment with the given identifier.
-    pub fn get_metadata(&self, identifier: &Identifier) -> Option<&ColumnCommitmentMetadata> {
+    #[must_use] pub fn get_metadata(&self, identifier: &Identifier) -> Option<&ColumnCommitmentMetadata> {
         self.column_metadata.get(identifier)
     }
 
@@ -188,7 +188,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             identifiers.into_iter().zip(committable_columns.iter()),
         );
 
-        self.column_metadata = self.column_metadata.to_owned().try_union(column_metadata)?;
+        self.column_metadata = self.column_metadata.clone().try_union(column_metadata)?;
 
         self.commitments
             .try_append_rows_with_offset(committable_columns, offset, setup)
@@ -250,10 +250,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             .try_add(other.commitments)
             .expect("we've already checked that self and other have equal column counts");
 
-        Ok(ColumnCommitments {
-            column_metadata,
-            commitments,
-        })
+        Ok(ColumnCommitments { commitments, column_metadata })
     }
 
     /// Subtract two [`ColumnCommitments`].
@@ -270,10 +267,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             .try_sub(other.commitments)
             .expect("we've already checked that self and other have equal column counts");
 
-        Ok(ColumnCommitments {
-            column_metadata,
-            commitments,
-        })
+        Ok(ColumnCommitments { commitments, column_metadata })
     }
 }
 
