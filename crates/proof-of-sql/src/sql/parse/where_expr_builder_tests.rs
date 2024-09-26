@@ -19,6 +19,7 @@ use proof_of_sql_parser::{
 use std::str::FromStr;
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
+    //TODO: add panic docs
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
@@ -31,6 +32,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("decimal_column"),
+            //TODO: add panic docs
             ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
         ),
     );
@@ -82,6 +84,7 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     column_mapping
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_directly_check_whether_boolean_column_is_true() {
     let column_mapping = get_column_mappings_for_testing();

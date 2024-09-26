@@ -453,6 +453,7 @@ fn num_rows_of_columns<'a>(
     Ok(num_rows)
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;

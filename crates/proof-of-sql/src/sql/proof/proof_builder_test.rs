@@ -134,6 +134,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 }
 
 #[cfg(feature = "arrow")]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_form_the_provable_query_result() {
     let result_indexes = Indexes::Sparse(vec![1, 2]);

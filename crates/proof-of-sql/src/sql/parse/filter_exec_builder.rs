@@ -61,6 +61,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
         if has_nonprovable_column {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {
+                //TODO: add panic docs
                 let column_ref = self.column_mapping.get(alias).unwrap();
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
                     expr: DynProofExpr::new_column(*column_ref),

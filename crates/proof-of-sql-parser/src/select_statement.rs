@@ -90,6 +90,7 @@ fn convert_table_expr_to_resource_id_vector(
     tables
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod tests {
     use super::*;

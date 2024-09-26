@@ -162,6 +162,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
     pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
+        // TODO: add panic docs
         self.post_result_challenges.pop().unwrap()
     }
 }

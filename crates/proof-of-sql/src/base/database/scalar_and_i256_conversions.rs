@@ -50,6 +50,7 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod tests {
 

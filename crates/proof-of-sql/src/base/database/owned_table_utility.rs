@@ -42,6 +42,7 @@ use proof_of_sql_parser::{
 pub fn owned_table<S: Scalar>(
     iter: impl IntoIterator<Item = (Identifier, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
+    // TODO: add panic docs
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
@@ -58,6 +59,7 @@ pub fn smallint<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i16>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::SmallInt(data.into_iter().map(Into::into).collect()),
     )
@@ -76,6 +78,7 @@ pub fn int<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i32>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::Int(data.into_iter().map(Into::into).collect()),
     )
@@ -94,6 +97,7 @@ pub fn bigint<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<i64>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::BigInt(data.into_iter().map(Into::into).collect()),
     )
@@ -108,11 +112,13 @@ pub fn bigint<S: Scalar>(
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn boolean<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<bool>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::Boolean(data.into_iter().map(Into::into).collect()),
     )
@@ -127,11 +133,13 @@ pub fn boolean<S: Scalar>(
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn int128<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i128>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::Int128(data.into_iter().map(Into::into).collect()),
     )
@@ -146,11 +154,13 @@ pub fn int128<S: Scalar>(
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn scalar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<S>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::Scalar(data.into_iter().map(Into::into).collect()),
     )
@@ -165,11 +175,13 @@ pub fn scalar<S: Scalar>(
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn varchar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<String>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::VarChar(data.into_iter().map(Into::into).collect()),
     )
@@ -184,6 +196,7 @@ pub fn varchar<S: Scalar>(
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn decimal75<S: Scalar>(
     name: impl Deref<Target = str>,
     precision: u8,
@@ -191,6 +204,7 @@ pub fn decimal75<S: Scalar>(
     data: impl IntoIterator<Item = impl Into<S>>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::Decimal75(
             crate::base::math::decimal::Precision::new(precision).unwrap(),
@@ -221,6 +235,7 @@ pub fn decimal75<S: Scalar>(
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
+// TODO: add panic docs
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,
@@ -228,6 +243,7 @@ pub fn timestamptz<S: Scalar>(
     data: impl IntoIterator<Item = i64>,
 ) -> (Identifier, OwnedColumn<S>) {
     (
+        // TODO: add panic docs
         name.parse().unwrap(),
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )

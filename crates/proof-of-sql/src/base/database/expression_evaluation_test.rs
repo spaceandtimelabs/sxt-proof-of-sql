@@ -13,6 +13,7 @@ use proof_of_sql_parser::{
     utility::*,
 };
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_evaluate_a_simple_literal() {
     let table: OwnedTable<Curve25519Scalar> =

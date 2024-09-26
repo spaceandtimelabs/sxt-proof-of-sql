@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_a_query_with_a_single_selected_row() {
     let data = owned_table([boolean("a", [true, false])]);

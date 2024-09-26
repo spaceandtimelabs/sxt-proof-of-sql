@@ -82,6 +82,7 @@ impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
 
 impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
+        //TODO: add panic docs
         let table_commitment = self.get(&column.table_ref()).unwrap();
 
         table_commitment
@@ -109,6 +110,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
         &self,
         table_ref: crate::base::database::TableRef,
     ) -> Vec<(Identifier, ColumnType)> {
+        //TODO: add panic docs
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment
@@ -120,6 +122,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;

@@ -17,6 +17,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
         .iter()
         .map(|(id, ty, bound)| {
             (
+                // TODO: add panic docs
                 id.parse().unwrap(),
                 match (ty, bound) {
                     (ColumnType::BigInt, None) => {

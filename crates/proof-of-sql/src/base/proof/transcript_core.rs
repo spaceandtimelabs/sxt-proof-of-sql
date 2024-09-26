@@ -19,6 +19,7 @@ fn receive_challenge_as_be<M: FromBytes>(slf: &mut impl TranscriptCore) -> M {
     debug_assert_eq!(32, core::mem::size_of::<M>());
     let mut bytes = slf.raw_challenge();
     bytes.reverse();
+    // TODO: add panic docs
     M::read_from(&bytes).unwrap()
 }
 

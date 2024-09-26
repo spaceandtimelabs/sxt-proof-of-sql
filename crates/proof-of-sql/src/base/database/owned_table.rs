@@ -81,6 +81,7 @@ impl<S: Scalar> PartialEq for OwnedTable<S> {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 impl<S: Scalar> core::ops::Index<&str> for OwnedTable<S> {
     type Output = OwnedColumn<S>;

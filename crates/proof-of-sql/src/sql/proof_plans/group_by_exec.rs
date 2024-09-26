@@ -254,7 +254,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     }
 
     #[tracing::instrument(name = "GroupByExec::prover_evaluate", level = "debug", skip_all)]
-    #[allow(unused_variables)]
+    #[allow(unused_variables, clippy::missing_panics_doc)]
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, C::Scalar>,

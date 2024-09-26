@@ -87,6 +87,7 @@ fn compute_dory_commitments_packed_impl(
     .zip(&num_sub_commits_per_full_commit)
     .map(|(&idx, &num_sub_commits)| {
         let sub_commits = &modified_sub_commits_update[idx..idx + num_sub_commits];
+        //TODO: add panic docs
         let gamma_2_slice =
             &gamma_2.last().unwrap()[gamma_2_offset..gamma_2_offset + num_sub_commits];
 

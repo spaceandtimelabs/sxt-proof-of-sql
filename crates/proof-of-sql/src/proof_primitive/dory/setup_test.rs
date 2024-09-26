@@ -1,6 +1,7 @@
 use super::{test_rng, ProverSetup, PublicParameters, VerifierSetup};
 use ark_ec::pairing::Pairing;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_create_and_manually_check_a_small_prover_setup() {
     let mut rng = test_rng();

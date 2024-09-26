@@ -21,11 +21,13 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
 ) -> (QueryExpr<CP::Commitment>, VerifiableQueryResult<CP>) {
+    // TODO: add panic docs
     accessor.insert_table(
         "bench.table".parse().unwrap(),
         &generate_random_columns(alloc, rng, columns, size),
         prover_setup,
     );
+    // TODO: add panic docs
     let query =
         QueryExpr::try_new(query.parse().unwrap(), "bench".parse().unwrap(), accessor).unwrap();
     let result = VerifiableQueryResult::new(query.proof_expr(), accessor, prover_setup);
@@ -56,6 +58,7 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
         &mut accessor,
         &mut rng,
     );
+    // TODO: add panic docs
     result
         .verify(query.proof_expr(), &accessor, verifier_setup)
         .unwrap();

@@ -13,6 +13,7 @@ use std::{
 /// TODO: add docs
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
+    // TODO: add panic docs
     stdout().flush().unwrap();
     Instant::now()
 }
@@ -28,6 +29,7 @@ fn main() {
     let timer = start_timer("Loading data");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
+        // TODO: add panic docs
         "sxt.table".parse().unwrap(),
         owned_table([
             bigint("a", [1, 2, 3, 2]),
@@ -38,6 +40,7 @@ fn main() {
     end_timer(timer);
     let timer = start_timer("Parsing Query");
     let query = QueryExpr::try_new(
+        // TODO: add panic docs
         "SELECT b FROM table WHERE a = 2".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,

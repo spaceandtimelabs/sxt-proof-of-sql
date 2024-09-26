@@ -72,6 +72,7 @@ where
     }
 
     // Invert `tmp`.
+    // TODO: add panic docs
     tmp = tmp.inv().unwrap(); // Guaranteed to be nonzero.
 
     // Multiply product by coeff, so all inverses will be scaled by coeff

@@ -7,6 +7,7 @@ use crate::base::{
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
+    //TODO: add panic docs
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     ColumnRef::new(tab, name, type_col)
@@ -17,44 +18,54 @@ pub fn column<C: Commitment>(
     name: &str,
     accessor: &impl SchemaAccessor,
 ) -> DynProofExpr<C> {
+    // TODO: add panic docs
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
 }
 
 pub fn equal<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    //TODO: add panic docs
     DynProofExpr::try_new_equals(left, right).unwrap()
 }
 
 pub fn lte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_inequality(left, right, true).unwrap()
 }
 
 pub fn gte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_inequality(left, right, false).unwrap()
 }
 
 pub fn not<C: Commitment>(expr: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_not(expr).unwrap()
 }
 
 pub fn and<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_and(left, right).unwrap()
 }
 
 pub fn or<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_or(left, right).unwrap()
 }
 
 pub fn add<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_add(left, right).unwrap()
 }
 
 pub fn subtract<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_subtract(left, right).unwrap()
 }
 
 pub fn multiply<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
+    // TODO: add panic docs
     DynProofExpr::try_new_multiply(left, right).unwrap()
 }
 
@@ -91,6 +102,7 @@ pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> DynProofExpr<C
     DynProofExpr::new_literal(LiteralValue::Scalar(val.into()))
 }
 
+//TODO: add panic docs
 pub fn const_decimal75<C: Commitment, T: Into<C::Scalar>>(
     precision: u8,
     scale: i8,
@@ -107,6 +119,7 @@ pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
+//TODO: add panic docs
 pub fn aliased_plan<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr,
@@ -114,6 +127,7 @@ pub fn aliased_plan<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> Aliase
     }
 }
 
+//TODO: add panic docs
 pub fn aliased_col_expr_plan<C: Commitment>(
     tab: TableRef,
     old_name: &str,
@@ -126,6 +140,7 @@ pub fn aliased_col_expr_plan<C: Commitment>(
     }
 }
 
+//TODO: add panic docs
 pub fn col_expr_plan<C: Commitment>(
     tab: TableRef,
     name: &str,
@@ -178,6 +193,7 @@ pub fn cols_expr<C: Commitment>(
         .collect()
 }
 
+//TODO: add panic docs
 pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),

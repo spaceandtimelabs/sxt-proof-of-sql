@@ -121,6 +121,7 @@ pub fn decode_multiple_elements<'a, T: ProvableResultElement<'a>>(
 }
 
 #[cfg(test)]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 mod tests {
 
     use super::*;

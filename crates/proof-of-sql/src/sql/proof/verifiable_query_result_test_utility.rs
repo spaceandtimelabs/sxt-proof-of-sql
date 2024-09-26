@@ -33,11 +33,13 @@ pub fn exercise_verification(
     if res.proof.is_none() {
         return;
     }
+    //TODO: add panic docs
     let proof = res.proof.as_ref().unwrap();
 
     // try changing MLE evaluations
     for i in 0..proof.pcs_proof_evaluations.len() {
         let mut res_p = res.clone();
+        //TODO: add panic docs
         res_p.proof.as_mut().unwrap().pcs_proof_evaluations[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
@@ -51,6 +53,7 @@ pub fn exercise_verification(
 
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
+        //TODO: add panic docs
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
@@ -66,6 +69,7 @@ pub fn exercise_verification(
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
         fake_accessor.update_offset(table_ref, offset_generators);
+        //TODO: add panic docs
         res.verify(expr, &fake_accessor, &()).unwrap();
         fake_accessor.update_offset(table_ref, offset_generators + 1);
         assert!(res.verify(expr, &fake_accessor, &()).is_err());
@@ -116,6 +120,7 @@ fn tamper_result(
         tamper_no_result(res, expr, accessor);
         return;
     }
+    //TODO: add panic docs
     let provable_res = res.provable_result.as_ref().unwrap();
     if provable_res.indexes().is_empty() {
         tamper_empty_result(res, expr, accessor);

@@ -1,6 +1,7 @@
 use crate::base::{scalar::Curve25519Scalar, slice_ops};
 use num_traits::{Inv, Zero};
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_pseudo_invert_empty_arrays() {
     let input: Vec<Curve25519Scalar> = Vec::new();
@@ -17,7 +18,6 @@ fn we_can_pseudo_invert_arrays_of_length_1_with_non_zero() {
     assert_eq!(res.len(), input.len());
     res.copy_from_slice(&input[..]);
     slice_ops::batch_inversion(&mut res[..]);
-
     assert!(res == vec![input[0].inv().unwrap()]);
 }
 

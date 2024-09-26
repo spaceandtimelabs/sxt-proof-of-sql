@@ -491,6 +491,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
 }
 
 #[cfg(test)]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 mod tests {
     use super::*;
     use crate::base::math::decimal::Precision;

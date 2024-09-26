@@ -25,6 +25,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_compare_columns_with_small_timestamp_values_gte() {
     let data: OwnedTable<Curve25519Scalar> = owned_table([timestamptz(

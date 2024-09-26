@@ -3,6 +3,7 @@ use crate::base::scalar::{Scalar, ScalarConversionError};
 use core::cmp::Ordering;
 use num_bigint::BigInt;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn test_dory_scalar_to_bool() {
     assert!(!bool::try_from(DoryScalar::ZERO).unwrap());

@@ -73,12 +73,14 @@ fn get_aggregate_and_remainder_expressions(
         Expression::Aggregation { op, expr } => {
             let key = (op, (*expr));
             if !aggregation_expr_map.contains_key(&key) {
+                //TODO: add panic docs
                 let new_col_id = format!("__col_agg_{}", aggregation_expr_map.len())
                     .parse()
                     .unwrap();
                 aggregation_expr_map.insert(key, new_col_id);
                 Expression::Column(new_col_id)
             } else {
+                //TODO: add panic docs
                 Expression::Column(*aggregation_expr_map.get(&key).unwrap())
             }
         }
@@ -126,6 +128,7 @@ fn check_and_get_aggregation_and_remainder(
             expr: Box::new(remainder),
         })
     } else {
+        // TODO: add panic docs
         let diff = free_identifiers
             .difference(&group_by_identifier_set)
             .next()

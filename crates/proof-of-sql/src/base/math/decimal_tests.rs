@@ -1,3 +1,4 @@
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod precision_tests {
     use crate::base::math::decimal::Precision;

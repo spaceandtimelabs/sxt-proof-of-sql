@@ -19,6 +19,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_an_equality_query_with_no_rows() {
     let data: OwnedTable<Curve25519Scalar> = owned_table([

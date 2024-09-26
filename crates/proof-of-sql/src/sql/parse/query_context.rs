@@ -172,6 +172,7 @@ impl QueryContext {
             && self.first_result_col_out_agg_scope.is_some()
         {
             return Err(ConversionError::InvalidGroupByColumnRef(
+                //TODO: add panic docs
                 self.first_result_col_out_agg_scope.unwrap().to_string(),
             ));
         }

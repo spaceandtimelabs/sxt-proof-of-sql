@@ -61,24 +61,28 @@ impl DoryMessages {
     }
     /// Pops a field element from the verifier's queue, and appends it to the transcript.
     pub(super) fn prover_recieve_F_message(&mut self, transcript: &mut Transcript) -> F {
+        //TODO: add panic docs
         let message = self.F_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G1 element from the verifier's queue, and appends it to the transcript.
     pub(super) fn prover_recieve_G1_message(&mut self, transcript: &mut Transcript) -> G1Affine {
+        //TODO: add panic docs
         let message = self.G1_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G2 element from the verifier's queue, and appends it to the transcript.
     pub(super) fn prover_recieve_G2_message(&mut self, transcript: &mut Transcript) -> G2Affine {
+        // TODO: add panic docs
         let message = self.G2_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a GT element from the verifier's queue, and appends it to the transcript.
     pub(super) fn prover_recieve_GT_message(&mut self, transcript: &mut Transcript) -> GT {
+        //TODO: add panic docs
         let message = self.GT_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
@@ -93,6 +97,7 @@ impl DoryMessages {
             transcript
                 .challenge_scalars(core::iter::once(&mut message), MessageLabel::DoryChallenge)
         }
+        //TODO: add panic docs
         let message_inv = message.inverse().unwrap();
         (message, message_inv)
     }

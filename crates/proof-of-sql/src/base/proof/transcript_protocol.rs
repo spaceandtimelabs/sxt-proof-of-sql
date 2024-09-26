@@ -66,6 +66,7 @@ pub trait TranscriptProtocol {
 
 impl TranscriptProtocol for Transcript {
     fn append_auto(&mut self, label: MessageLabel, message: &(impl serde::Serialize + ?Sized)) {
+        // TODO: add panic docs
         self.append_message(label.as_bytes(), &postcard::to_allocvec(message).unwrap());
     }
 
@@ -75,6 +76,7 @@ impl TranscriptProtocol for Transcript {
         message: &(impl CanonicalSerialize + ?Sized),
     ) {
         let mut buf = vec![Default::default(); message.compressed_size()];
+        // TODO: add panic docs
         message.serialize_compressed(&mut buf).unwrap();
         self.append_message(label.as_bytes(), &buf);
     }

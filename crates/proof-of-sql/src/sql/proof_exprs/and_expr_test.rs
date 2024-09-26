@@ -18,6 +18,7 @@ use rand::{
 };
 use rand_core::SeedableRng;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_a_simple_and_query() {
     let data = owned_table([

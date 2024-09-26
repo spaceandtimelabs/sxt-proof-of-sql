@@ -42,6 +42,7 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
         "lhs and rhs should have the same length"
     );
     alloc.alloc_slice_fill_with(lhs_len, |i| {
+        //TODO: add panic docs
         lhs.scalar_at(i).unwrap() * rhs.scalar_at(i).unwrap()
     })
 }

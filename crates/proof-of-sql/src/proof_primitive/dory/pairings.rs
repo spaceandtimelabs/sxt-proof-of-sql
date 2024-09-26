@@ -65,6 +65,7 @@ fn multi_pairing_impl<P: Pairing>(
     a: impl IntoIterator<Item = impl Into<P::G1Prepared> + Send>,
     b: impl IntoIterator<Item = impl Into<P::G2Prepared> + Send>,
 ) -> PairingOutput<P> {
+    //TODO: add panic docs
     if_rayon!(
         {
             let a: Vec<_> = a.into_iter().collect();

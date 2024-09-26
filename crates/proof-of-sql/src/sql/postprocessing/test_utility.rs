@@ -11,6 +11,7 @@ pub fn group_by_postprocessing(
 ) -> OwnedTablePostprocessing {
     let ids: Vec<Identifier> = cols.iter().map(|col| ident(col)).collect();
     OwnedTablePostprocessing::new_group_by(
+        //TODO: add panic docs
         GroupByPostprocessing::try_new(ids, result_exprs.to_vec()).unwrap(),
     )
 }
@@ -28,6 +29,7 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> OwnedTablePostp
         .iter()
         .zip(directions.iter())
         .map(|(col, direction)| OrderBy {
+            //TODO: add panic docs
             expr: col.parse().unwrap(),
             direction: *direction,
         })

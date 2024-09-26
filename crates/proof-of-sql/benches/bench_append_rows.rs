@@ -44,6 +44,7 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     c.bench_function("append_rows_to_table_commitment", |b| {
         let initial_columns: OwnedTable<DoryScalar> = generate_random_owned_table(cols, rows);
 
+        // TODO: add panic docs
         let table_commitment = TableCommitment::<DoryCommitment>::try_from_columns_with_offset(
             initial_columns.inner_table(),
             0,
@@ -53,6 +54,7 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
 
         let append_columns: OwnedTable<DoryScalar> = initial_columns;
 
+        // TODO: add panic docs
         b.iter(|| {
             let mut local_commitment = table_commitment.clone();
             local_commitment

@@ -12,6 +12,7 @@ use proof_of_sql_parser::{
     intermediate_ast::AggregationOperator, intermediate_decimal::IntermediateDecimal, utility::*,
 };
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_cannot_have_invalid_group_bys() {
     // Column in result but not in group by or aggregation

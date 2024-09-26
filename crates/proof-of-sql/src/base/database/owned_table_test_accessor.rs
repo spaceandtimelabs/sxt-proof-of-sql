@@ -51,6 +51,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     }
 
     fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
+        //TODO: add panic docs
         self.tables
             .get(&table_ref)
             .unwrap()
@@ -61,11 +62,13 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     }
 
     fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
+        //TODO: add panic docs
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
 impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<'_, CP> {
     fn get_column(&self, column: ColumnRef) -> Column<CP::Scalar> {
+        //TODO: add panic docs
         match self
             .tables
             .get(&column.table_ref())
@@ -101,6 +104,7 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     for OwnedTableTestAccessor<'_, CP>
 {
     fn get_commitment(&self, column: ColumnRef) -> CP::Commitment {
+        //TODO: add panic docs
         let (table, offset) = self.tables.get(&column.table_ref()).unwrap();
         let owned_column = table.inner_table().get(&column.column_id()).unwrap();
         Vec::<CP::Commitment>::from_columns_with_offset(
@@ -111,6 +115,7 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
         .clone()
     }
 }
+//TODO: add panic docs
 impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {
     fn get_length(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
@@ -131,7 +136,7 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_
                 .column_type(),
         )
     }
-
+    //TODO: add panic docs
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.tables
             .get(&table_ref)

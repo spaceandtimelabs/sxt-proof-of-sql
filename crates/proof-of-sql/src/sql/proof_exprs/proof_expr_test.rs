@@ -6,6 +6,7 @@ use crate::base::{
 use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_compute_the_correct_result_of_a_complex_bool_expr_using_result_evaluate() {
     let data = owned_table([

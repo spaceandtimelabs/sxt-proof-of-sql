@@ -1,6 +1,7 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
 use alloc::{boxed::Box, vec, vec::Vec};
 
+// TODO: add panic docs
 /// Construct an identifier from a str
 pub fn ident(name: &str) -> Identifier {
     name.parse().unwrap()
@@ -95,6 +96,7 @@ pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
+// TODO: add panic docs
 /// Get table from schema and name.
 ///
 /// If the schema is `None`, the table is assumed to be in the default schema.
@@ -105,6 +107,7 @@ pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     })
 }
 
+// TODO: add panic docs
 /// Get column from name
 pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
@@ -152,6 +155,7 @@ pub fn count_all() -> Box<Expression> {
     count(Box::new(Expression::Wildcard))
 }
 
+// TODO: add panic docs
 /// An expression with an alias i.e. EXPR AS ALIAS
 pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
     AliasedResultExpr {
@@ -165,6 +169,7 @@ pub fn col_res_all() -> SelectResultExpr {
     SelectResultExpr::ALL
 }
 
+// TODO: add panic docs
 /// Select one column from a table and give it an alias i.e. SELECT COL AS ALIAS
 pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -178,6 +183,7 @@ pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
     names.iter().map(|name| col_res(col(name), name)).collect()
 }
 
+// TODO: add panic docs
 /// Compute the minimum of an expression and give it an alias i.e. SELECT MIN(EXPR) AS ALIAS
 pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -186,6 +192,7 @@ pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+// TODO: add panic docs
 /// Compute the maximum of an expression and give it an alias i.e. SELECT MAX(EXPR) AS ALIAS
 pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -194,6 +201,7 @@ pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+// TODO: add panic docs
 /// Compute the sum of an expression and give it an alias i.e. SELECT SUM(EXPR) AS ALIAS
 pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -202,6 +210,7 @@ pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+// TODO: add panic docs
 /// Count the amount of non-null entries of expression and give it an alias i.e. SELECT COUNT(EXPR) AS ALIAS
 pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -210,6 +219,7 @@ pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
+// TODO: add panic docs
 /// Count rows and give the result an alias i.e. SELECT COUNT(*) AS ALIAS
 pub fn count_all_res(alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
@@ -268,6 +278,7 @@ pub fn select(
     }
 }
 
+// TODO: add panic docs
 /// Order by one column i.e. ORDER BY ID [ASC|DESC]
 pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     vec![OrderBy {
@@ -276,6 +287,7 @@ pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     }]
 }
 
+// TODO: add panic docs
 /// Order by multiple columns i.e. ORDER BY ID0 [ASC|DESC], ID1 [ASC|DESC], ...
 pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
     ids.iter()
@@ -295,6 +307,7 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
     })
 }
 
+// TODO: add panic docs
 /// Group by clause with multiple columns i.e. GROUP BY ID0, ID1, ...
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()

@@ -3,6 +3,7 @@ use crate::base::{database::Column, math::decimal::Precision, scalar::Curve25519
 use bumpalo::Bump;
 use num_traits::Zero;
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_fold_columns_with_scalars() {
     let expected = vec![

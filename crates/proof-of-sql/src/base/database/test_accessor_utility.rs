@@ -87,6 +87,7 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
                 columns.push(Arc::new(
+                    //TODO: add panic docs
                     Decimal128Array::from(values.to_vec())
                         .with_precision_and_scale(38, 0)
                         .unwrap(),
@@ -101,6 +102,7 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
                 columns.push(Arc::new(
+                    //TODO: add panic docs
                     Decimal256Array::from(values.to_vec())
                         .with_precision_and_scale(precision.value(), *scale)
                         .unwrap(),
@@ -151,6 +153,7 @@ pub fn make_random_test_accessor_data(
     }
 
     let schema = Arc::new(Schema::new(column_fields));
+    //TODO: add panic docs
     RecordBatch::try_new(schema, columns).unwrap()
 }
 

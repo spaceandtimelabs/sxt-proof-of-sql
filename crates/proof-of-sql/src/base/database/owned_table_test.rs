@@ -11,6 +11,7 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_create_an_owned_table_with_no_columns() {
     let table = OwnedTable::<Curve25519Scalar>::try_new(IndexMap::default()).unwrap();

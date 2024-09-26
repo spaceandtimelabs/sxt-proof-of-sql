@@ -33,6 +33,7 @@ pub fn try_add_subtract_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
+        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
@@ -82,6 +83,7 @@ pub fn try_multiply_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
+        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
@@ -127,6 +129,7 @@ pub fn try_divide_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
+        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;
@@ -890,6 +893,7 @@ where
     ))
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod test {
     use super::*;

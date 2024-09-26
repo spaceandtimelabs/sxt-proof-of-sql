@@ -77,6 +77,7 @@ impl Permutation {
 }
 
 #[cfg(test)]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 mod test {
     use super::*;
     use alloc::vec;

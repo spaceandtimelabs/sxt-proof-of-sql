@@ -29,6 +29,7 @@ pub fn group_by<C: Commitment>(
     DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
+        //TODO: add panic docs
         count_alias.parse().unwrap(),
         table,
         where_clause,

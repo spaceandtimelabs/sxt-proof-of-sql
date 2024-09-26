@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     let data = owned_table([

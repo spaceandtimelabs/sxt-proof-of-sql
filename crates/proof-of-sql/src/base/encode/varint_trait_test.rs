@@ -18,6 +18,7 @@ use rand::Rng;
 // The following tests are taken directly from integer-encoding-rs with minimal modification
 // -----------------------------------------------------------------------------------------------------
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn test_required_space() {
     assert_eq!(0_u32.required_space(), 1);

@@ -174,6 +174,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
     pub fn consume_post_result_challenge(&mut self) -> S {
+        //TODO: add panic docs
         self.post_result_challenges.pop().unwrap()
     }
 }

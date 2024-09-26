@@ -72,6 +72,7 @@ impl fmt::Display for PoSQLTimeZone {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod timezone_parsing_tests {
     use crate::posql_time::timezone;
@@ -96,6 +97,7 @@ mod timezone_parsing_tests {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod timezone_offset_tests {
     use crate::posql_time::{timestamp::PoSQLTimestamp, timezone};

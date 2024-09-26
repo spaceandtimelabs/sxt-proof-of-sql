@@ -85,6 +85,7 @@ impl AsRef<str> for Identifier {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod tests {
     use super::*;

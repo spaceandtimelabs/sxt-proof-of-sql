@@ -91,6 +91,7 @@ where
             let mut scaled_lagrange_basis = vec![S::zero(); n + 1];
             // First compute the constant factor of this lagrange basis polynomial:
             scaled_lagrange_basis[0] = (i - n as i32..0)
+                //TODO: add panic docs
                 .chain(1..=i)
                 .map(S::from)
                 .product::<S>()

@@ -1,3 +1,4 @@
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 use super::{OwnedColumn, OwnedTable};
 use crate::{
     base::{

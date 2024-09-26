@@ -99,6 +99,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         Ok(vec![C::Scalar::ZERO])
     }
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
+        //TODO: add panic docs
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
@@ -123,6 +124,7 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
     assert_eq!(table, expected_result);
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_verify_a_trivial_query_proof_with_a_zero_offset() {
     for n in 1..5 {

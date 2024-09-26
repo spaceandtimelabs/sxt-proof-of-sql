@@ -28,6 +28,7 @@ fn query_to_provable_ast(
     query: &str,
     accessor: &TestSchemaAccessor,
 ) -> QueryExpr<RistrettoPoint> {
+    //TODO: add panic docs
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
@@ -41,6 +42,7 @@ fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSc
 }
 
 #[cfg(test)]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 pub fn schema_accessor_from_table_ref_with_schema(
     table: TableRef,
     schema: IndexMap<Identifier, ColumnType>,

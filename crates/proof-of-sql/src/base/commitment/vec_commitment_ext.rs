@@ -171,6 +171,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;

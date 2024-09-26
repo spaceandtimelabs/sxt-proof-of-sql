@@ -161,6 +161,7 @@ impl ColumnCommitmentMetadata {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod tests {
 

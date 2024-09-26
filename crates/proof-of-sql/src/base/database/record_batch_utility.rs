@@ -117,6 +117,7 @@ impl ToArrow for Vec<i128> {
 
     fn to_array(self) -> Arc<dyn arrow::array::Array> {
         Arc::new(
+            //TODO: add panic docs
             arrow::array::Decimal128Array::from(self)
                 .with_precision_and_scale(38, 0)
                 .unwrap(),
@@ -168,11 +169,13 @@ macro_rules! record_batch {
 
             let arrays = vec![$($slice.to_vec().to_array(),)+];
 
+            //TODO: add panic docs
             RecordBatch::try_new(schema, arrays).unwrap()
         }
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod tests {
     use crate::record_batch;

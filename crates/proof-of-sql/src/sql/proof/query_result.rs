@@ -51,6 +51,7 @@ pub struct QueryData<S: Scalar> {
 impl<S: Scalar> QueryData<S> {
     #[cfg(all(test, feature = "arrow"))]
     pub fn into_record_batch(self) -> RecordBatch {
+        //TODO: add panic docs
         self.try_into().unwrap()
     }
 }

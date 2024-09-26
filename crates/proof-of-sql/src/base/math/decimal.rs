@@ -208,6 +208,7 @@ pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> DecimalResult<S> {
 }
 
 #[cfg(test)]
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 mod scale_adjust_test {
 
     use super::*;

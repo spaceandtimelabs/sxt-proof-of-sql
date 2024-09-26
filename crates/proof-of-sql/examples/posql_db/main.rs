@@ -117,6 +117,7 @@ enum Commands {
 
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
+    // TODO: add panic docs
     stdout().flush().unwrap();
     Instant::now()
 }
@@ -166,6 +167,7 @@ fn main() {
             commit_accessor
                 .load_commit(table_name)
                 .expect("Failed to load commit");
+            // TODO: add panic docs
             let mut table_commitment = commit_accessor.get_commit(&table_name).unwrap().clone();
             let schema = Schema::new(
                 commit_accessor
@@ -192,6 +194,7 @@ fn main() {
             let mut commit_accessor =
                 CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
             let mut csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path.clone()));
+            // TODO: add panic docs
             let tables = query.get_table_references("example".parse().unwrap());
             for table in tables.into_iter().map(TableRef::new) {
                 commit_accessor
@@ -208,6 +211,7 @@ fn main() {
                     .load_table(table, schema)
                     .expect("Failed to load table");
             }
+            // TODO: add panic docs
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
             let timer = start_timer("Generating Proof");
@@ -226,6 +230,7 @@ fn main() {
         Commands::Verify { query, file } => {
             let mut commit_accessor =
                 CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
+            // TODO: add panic docs
             let table_refs = query.get_table_references("example".parse().unwrap());
             for table_ref in table_refs {
                 let table_name = TableRef::new(table_ref);
@@ -233,6 +238,7 @@ fn main() {
                     .load_commit(table_name)
                     .expect("Failed to load commit");
             }
+            // TODO: add panic docs
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
             let result: VerifiableQueryResult<InnerProductProof> =
@@ -243,6 +249,7 @@ fn main() {
                 .verify(query.proof_expr(), &commit_accessor, &())
                 .expect("Failed to verify proof");
             end_timer(timer);
+            // TODO: add panic docs
             println!(
                 "Verified Result: {:?}",
                 RecordBatch::try_from(query_result).unwrap()

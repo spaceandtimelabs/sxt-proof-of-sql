@@ -107,7 +107,8 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
     ///
-    /// Note: This does NOT transform the result!
+    /// Note: This does NOT transform the result!4
+    // TODO: add panic docs
     pub fn verify(
         &self,
         expr: &(impl ProofPlan<CP::Commitment> + Serialize),
@@ -135,7 +136,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
                 "non-zero sumcheck variables but empty result",
             ))?;
         }
-
+        // TODO: add panic docs
         self.proof.as_ref().unwrap().verify(
             expr,
             accessor,

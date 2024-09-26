@@ -224,6 +224,7 @@ impl Expression {
             expr: Box::new(self),
         })
     }
+    // TODO: add panic docs
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
     pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {

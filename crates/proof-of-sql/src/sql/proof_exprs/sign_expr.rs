@@ -59,6 +59,7 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
         return alloc.alloc_slice_fill_copy(table_length, dist.sign_bit());
     }
 
+    //TODO: add panic docs
     let result = bits.last().unwrap();
     assert_eq!(table_length, result.len());
     result
@@ -107,6 +108,7 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
         prove_bit_decomposition(builder, alloc, expr, &bits, &dist);
     }
 
+    // TODO: add panic docs
     bits.last().unwrap()
 }
 
@@ -145,6 +147,7 @@ pub fn verifier_evaluate_sign<C: Commitment>(
         verify_bit_decomposition(builder, eval, &bit_evals, &dist);
     }
 
+    // TODO: add panic docs
     Ok(*bit_evals.last().unwrap())
 }
 
@@ -194,6 +197,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     bits: &[&'a [bool]],
     dist: &BitDistribution,
 ) {
+    // TODO: add panic docs
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
         alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
@@ -227,6 +231,7 @@ fn verify_bit_decomposition<C: Commitment>(
     dist: &BitDistribution,
 ) {
     let mut eval = expr_eval;
+    //TODO: add panic docs
     let sign_eval = bit_evals.last().unwrap();
     let sign_eval = builder.mle_evaluations.one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;

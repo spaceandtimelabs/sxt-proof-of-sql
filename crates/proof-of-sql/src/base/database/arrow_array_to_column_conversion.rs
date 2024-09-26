@@ -349,6 +349,7 @@ impl ArrayRefExt for ArrayRef {
     }
 }
 
+#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 #[cfg(feature = "blitzar")]
 mod tests {

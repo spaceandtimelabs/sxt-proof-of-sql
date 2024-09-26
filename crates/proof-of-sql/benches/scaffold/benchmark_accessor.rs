@@ -58,17 +58,20 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
                 length = Some(column.1.len());
             }
         }
+        // TODO: add panic docs
         self.lengths.insert(table_ref, length.unwrap());
     }
 }
 
 impl<C: Commitment> DataAccessor<C::Scalar> for BenchmarkAccessor<'_, C> {
     fn get_column(&self, column: ColumnRef) -> Column<C::Scalar> {
+        // TODO: add panic docs
         *self.columns.get(&column).unwrap()
     }
 }
 impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
     fn get_length(&self, table_ref: TableRef) -> usize {
+        // TODO: add panic docs
         *self.lengths.get(&table_ref).unwrap()
     }
     fn get_offset(&self, _table_ref: TableRef) -> usize {
@@ -77,6 +80,7 @@ impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
 }
 impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
+        // TODO: add panic docs
         self.commitments.get(&column).unwrap().clone()
     }
 }
@@ -85,6 +89,7 @@ impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
         self.column_types.get(&(table_ref, column_id)).copied()
     }
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+        // TODO: add panic docs
         self.table_schemas.get(&table_ref).unwrap().clone()
     }
 }

@@ -14,6 +14,7 @@ where
     &'a T: Into<DoryScalar>,
     T: Sync,
 {
+    //TODO: add panic docs
     let Gamma_1 = setup.Gamma_1.last().unwrap();
     let Gamma_2 = setup.Gamma_2.last().unwrap();
     let (first_row, _) = row_and_column_from_index(offset);
