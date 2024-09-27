@@ -83,7 +83,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
             column(t, "a", &accessor),
             const_bigint::<RistrettoPoint>(1)
         ),
-        Err(ConversionError::DataTypeMismatch(..))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

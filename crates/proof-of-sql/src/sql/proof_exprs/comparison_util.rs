@@ -41,7 +41,10 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     let lhs_len = lhs.len();
     let rhs_len = rhs.len();
     if lhs_len != rhs_len {
-        return Err(ConversionError::DifferentColumnLength(lhs_len, rhs_len));
+        return Err(ConversionError::DifferentColumnLength {
+            len_a: lhs_len,
+            len_b: rhs_len,
+        });
     }
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
@@ -51,10 +54,10 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         BinaryOperator::LessThanOrEqual
     };
     if !type_check_binary_operation(&lhs_type, &rhs_type, operator) {
-        return Err(ConversionError::DataTypeMismatch(
-            lhs_type.to_string(),
-            rhs_type.to_string(),
-        ));
+        return Err(ConversionError::DataTypeMismatch {
+            left_type: lhs_type.to_string(),
+            right_type: rhs_type.to_string(),
+        });
     }
     let max_scale = std::cmp::max(lhs_scale, rhs_scale);
     let lhs_upscale = max_scale - lhs_scale;
@@ -73,9 +76,11 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::DecimalConversionError(DecimalError::InvalidPrecision(
-                max_precision_value.to_string(),
-            ))
+            ConversionError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: max_precision_value.to_string(),
+                },
+            }
         })?;
     }
     unchecked_subtract_impl(

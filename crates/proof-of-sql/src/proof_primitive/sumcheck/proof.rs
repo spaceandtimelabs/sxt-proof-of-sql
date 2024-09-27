@@ -65,9 +65,9 @@ impl<S: Scalar> SumcheckProof<S> {
         // This challenge is in order to keep transcript messages grouped. (This simplifies the Solidity implementation.)
         transcript.scalar_challenge_as_be::<S>();
         if self.evaluations.len() != polynomial_info.num_variables {
-            return Err(ProofError::VerificationError(
-                "invalid number of evaluations",
-            ));
+            return Err(ProofError::VerificationError {
+                error: "invalid number of evaluations",
+            });
         }
         let mut evaluation_point = Vec::with_capacity(polynomial_info.num_variables);
         for round_index in 0..polynomial_info.num_variables {

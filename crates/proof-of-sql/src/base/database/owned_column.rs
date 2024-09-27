@@ -144,10 +144,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<bool, _> { TryInto::<bool>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::TinyInt => Ok(OwnedColumn::TinyInt(
@@ -166,10 +164,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i16, _> { TryInto::<i16>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::Int => Ok(OwnedColumn::Int(
@@ -177,10 +173,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i32, _> { TryInto::<i32>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::BigInt => Ok(OwnedColumn::BigInt(
@@ -188,10 +182,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i64, _> { TryInto::<i64>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::Int128 => Ok(OwnedColumn::Int128(
@@ -199,10 +191,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i128, _> { TryInto::<i128>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::Scalar => Ok(OwnedColumn::Scalar(scalars.to_vec())),
@@ -214,10 +204,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i64, _> { TryInto::<i64>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?;
                 Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
             }
@@ -238,9 +226,9 @@ impl<S: Scalar> OwnedColumn<S> {
             .iter()
             .copied()
             .collect::<Option<Vec<_>>>()
-            .ok_or(OwnedColumnError::Unsupported(
-                "NULL is not supported yet".to_string(),
-            ))?;
+            .ok_or(OwnedColumnError::Unsupported {
+                error: "NULL is not supported yet".to_string(),
+            })?;
         Self::try_from_scalars(&scalars, column_type)
     }
 
@@ -553,7 +541,7 @@ mod test {
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(
             res,
-            Err(OwnedColumnError::ScalarConversionError(_))
+            Err(OwnedColumnError::ScalarConversionError { .. })
         ));
 
         // Boolean
@@ -565,7 +553,7 @@ mod test {
         let res = OwnedColumn::try_from_scalars(&scalars, column_type);
         assert!(matches!(
             res,
-            Err(OwnedColumnError::ScalarConversionError(_))
+            Err(OwnedColumnError::ScalarConversionError { .. })
         ));
     }
 
@@ -637,7 +625,7 @@ mod test {
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(
             res,
-            Err(OwnedColumnError::ScalarConversionError(_))
+            Err(OwnedColumnError::ScalarConversionError { .. })
         ));
 
         // Boolean
@@ -655,7 +643,7 @@ mod test {
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
         assert!(matches!(
             res,
-            Err(OwnedColumnError::ScalarConversionError(_))
+            Err(OwnedColumnError::ScalarConversionError { .. })
         ));
     }
 
@@ -668,7 +656,7 @@ mod test {
             .collect::<Vec<_>>();
         let column_type = ColumnType::Int128;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
-        assert!(matches!(res, Err(OwnedColumnError::Unsupported(_))));
+        assert!(matches!(res, Err(OwnedColumnError::Unsupported { .. })));
 
         // Boolean
         let option_scalars = [Some(true), Some(false), None, Some(false), Some(true)]
@@ -677,6 +665,6 @@ mod test {
             .collect::<Vec<_>>();
         let column_type = ColumnType::Boolean;
         let res = OwnedColumn::try_from_option_scalars(&option_scalars, column_type);
-        assert!(matches!(res, Err(OwnedColumnError::Unsupported(_))));
+        assert!(matches!(res, Err(OwnedColumnError::Unsupported { .. })));
     }
 }

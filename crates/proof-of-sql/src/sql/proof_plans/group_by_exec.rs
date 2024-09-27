@@ -119,10 +119,11 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
+        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
+            ProofError::VerificationError {
+                error: "invalid indexes",
+            },
+        )?;
         // 4. filtered_columns
 
         let group_by_result_columns_evals = Vec::from_iter(
@@ -153,15 +154,15 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
                     .iter()
                     .map(|col| table.inner_table().get(&col.column_id()))
                     .collect::<Option<Vec<_>>>()
-                    .ok_or(ProofError::VerificationError(
-                        "Result does not all correct group by columns.",
-                    ))?;
+                    .ok_or(ProofError::VerificationError {
+                        error: "Result does not all correct group by columns.",
+                    })?;
                 if (0..table.num_rows() - 1)
                     .any(|i| compare_indexes_by_owned_columns(&cols, i, i + 1).is_ge())
                 {
-                    Err(ProofError::VerificationError(
-                        "Result of group by not ordered as expected.",
-                    ))?;
+                    Err(ProofError::VerificationError {
+                        error: "Result of group by not ordered as expected.",
+                    })?;
                 }
             }
             None => todo!("GroupByExec currently only supported at top level of query plan."),

@@ -38,9 +38,9 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                         owned_table
                             .inner_table()
                             .get(&order_by.expr)
-                            .ok_or(PostprocessingError::ColumnNotFound(
-                                order_by.expr.to_string(),
-                            ))?
+                            .ok_or(PostprocessingError::ColumnNotFound {
+                                column: order_by.expr.to_string(),
+                            })?
                             .clone(),
                         order_by.direction,
                     ))

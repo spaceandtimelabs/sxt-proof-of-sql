@@ -21,10 +21,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise AND for two columns
     pub fn element_wise_and(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (self, rhs) {
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_and(lhs, rhs))),
@@ -39,10 +39,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise OR for two columns
     pub fn element_wise_or(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (self, rhs) {
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_or(lhs, rhs))),
@@ -57,10 +57,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise equality check for two columns
     pub fn element_wise_eq(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (self, rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
@@ -213,10 +213,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise <= check for two columns
     pub fn element_wise_le(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (self, rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_le(lhs, rhs))),
@@ -347,10 +347,10 @@ impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise >= check for two columns
     pub fn element_wise_ge(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (self, rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
@@ -484,10 +484,10 @@ impl<S: Scalar> Add for OwnedColumn<S> {
 
     fn add(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (&self, &rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => {
@@ -627,10 +627,10 @@ impl<S: Scalar> Sub for OwnedColumn<S> {
 
     fn sub(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (&self, &rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => {
@@ -774,10 +774,10 @@ impl<S: Scalar> Mul for OwnedColumn<S> {
 
     fn mul(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (&self, &rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => {
@@ -921,10 +921,10 @@ impl<S: Scalar> Div for OwnedColumn<S> {
 
     fn div(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
-            return Err(ColumnOperationError::DifferentColumnLength(
-                self.len(),
-                rhs.len(),
-            ));
+            return Err(ColumnOperationError::DifferentColumnLength {
+                len_a: self.len(),
+                len_b: rhs.len(),
+            });
         }
         match (&self, &rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => {
@@ -1076,25 +1076,25 @@ mod test {
         let result = lhs.element_wise_and(&rhs);
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs.element_wise_eq(&rhs);
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs.element_wise_le(&rhs);
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs.element_wise_ge(&rhs);
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let lhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
@@ -1102,25 +1102,25 @@ mod test {
         let result = lhs.clone() + rhs.clone();
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs.clone() - rhs.clone();
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs.clone() * rhs.clone();
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let result = lhs / rhs;
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
     }
 
