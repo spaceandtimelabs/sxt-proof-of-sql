@@ -9,6 +9,7 @@ use merlin::Transcript;
 use num_traits::Zero;
 
 #[derive(Default, Clone, CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug)]
+#[allow(clippy::struct_field_names)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
 ///
