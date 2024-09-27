@@ -68,9 +68,9 @@ where
     sum * product
 }
 
-/// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
+/// Let d be the `evals.len() - 1` and let f be the polynomial such that f(i) = evals[i].
 /// The output of this function is the vector of coefficients of f, leading coefficient first.
-/// That is, `f(x) = evals[j]*x^(d-j)``.
+/// That is, `f(x) = evals[j]*x^(d-j)`.
 #[allow(dead_code)]
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
