@@ -234,6 +234,15 @@ impl<S: Scalar> OwnedColumn<S> {
 
     #[cfg(test)]
     /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i8], panicking if it is not.
+    pub fn i8_iter(&self) -> impl Iterator<Item = &i8> {
+        match self {
+            OwnedColumn::TinyInt(col) => col.iter(),
+            _ => panic!("Expected TinyInt column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
     /// assuming the underlying type is [i16], panicking if it is not.
     pub fn i16_iter(&self) -> impl Iterator<Item = &i16> {
         match self {

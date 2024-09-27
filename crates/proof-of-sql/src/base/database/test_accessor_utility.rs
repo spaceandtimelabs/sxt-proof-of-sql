@@ -60,7 +60,14 @@ pub fn make_random_test_accessor_data(
                 let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
                 columns.push(Arc::new(BooleanArray::from(boolean_values)));
             }
-
+            ColumnType::TinyInt => {
+                column_fields.push(Field::new(*col_name, DataType::Int8, false));
+                let values: Vec<i8> = values
+                    .iter()
+                    .map(|x| ((*x >> 56) as i8)) // Shift right to align the lower 8 bits
+                    .collect();
+                columns.push(Arc::new(Int16Array::from(values)));
+            }
             ColumnType::SmallInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int16, false));
                 let values: Vec<i16> = values
@@ -170,6 +177,7 @@ mod tests {
             ("c", ColumnType::Int128),
             ("d", ColumnType::SmallInt),
             ("e", ColumnType::Int),
+            ("f", ColumnType::TinyInt),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);

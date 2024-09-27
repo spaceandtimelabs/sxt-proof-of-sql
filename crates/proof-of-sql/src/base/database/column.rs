@@ -107,6 +107,9 @@ impl<'a, S: Scalar> Column<'a, S> {
             LiteralValue::Boolean(value) => {
                 Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
             }
+            LiteralValue::TinyInt(value) => {
+                Column::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
+            }
             LiteralValue::SmallInt(value) => {
                 Column::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
             }
