@@ -251,7 +251,8 @@ impl ColumnType {
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
-            ColumnType::SmallInt
+            ColumnType::TinyInt
+                | ColumnType::SmallInt
                 | ColumnType::Int
                 | ColumnType::BigInt
                 | ColumnType::Int128
@@ -264,13 +265,18 @@ impl ColumnType {
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
+            ColumnType::TinyInt
+                | ColumnType::SmallInt
+                | ColumnType::Int
+                | ColumnType::BigInt
+                | ColumnType::Int128
         )
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
+            ColumnType::TinyInt => Some(8),
             ColumnType::SmallInt => Some(16),
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
@@ -284,6 +290,7 @@ impl ColumnType {
     /// Otherwise, return None.
     fn from_integer_bits(bits: usize) -> Option<Self> {
         match bits {
+            8 => Some(ColumnType::TinyInt),
             16 => Some(ColumnType::SmallInt),
             32 => Some(ColumnType::Int),
             64 => Some(ColumnType::BigInt),
@@ -413,6 +420,7 @@ impl TryFrom<DataType> for ColumnType {
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
             DataType::Boolean => Ok(ColumnType::Boolean),
+            DataType::Int8 => Ok(ColumnType::TinyInt),
             DataType::Int16 => Ok(ColumnType::SmallInt),
             DataType::Int32 => Ok(ColumnType::Int),
             DataType::Int64 => Ok(ColumnType::BigInt),
@@ -556,6 +564,10 @@ mod tests {
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
 
+        let column_type = ColumnType::TinyInt;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""TinyInt""#);
+
         let column_type = ColumnType::SmallInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""SmallInt""#);
@@ -597,6 +609,10 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""Boolean""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
+        let expected_column_type = ColumnType::TinyInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""TinyInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
         let expected_column_type = ColumnType::SmallInt;
         let deserialized: ColumnType = serde_json::from_str(r#""SmallInt""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
@@ -607,6 +623,10 @@ mod tests {
 
         let expected_column_type = ColumnType::BigInt;
         let deserialized: ColumnType = serde_json::from_str(r#""BigInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::TinyInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""TINYINT""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::SmallInt;
@@ -661,6 +681,14 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""BIGINT""#).unwrap(),
             ColumnType::BigInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""TINYINT""#).unwrap(),
+            ColumnType::TinyInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""tinyint""#).unwrap(),
+            ColumnType::TinyInt
         );
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""SMALLINT""#).unwrap(),
@@ -729,6 +757,9 @@ mod tests {
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""BooLean""#);
         assert!(deserialized.is_err());
 
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Tinyint""#);
+        assert!(deserialized.is_err());
+
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Smallint""#);
         assert!(deserialized.is_err());
 
@@ -763,6 +794,14 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<ColumnType>(&boolean_json).unwrap(),
             boolean
+        );
+
+        let tinyint = ColumnType::TinyInt;
+        let tinyint_json = serde_json::to_string(&tinyint).unwrap();
+        assert_eq!(tinyint_json, "\"TinyInt\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&tinyint_json).unwrap(),
+            tinyint
         );
 
         let smallint = ColumnType::SmallInt;
@@ -835,6 +874,10 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
+        let column = Column::<DoryScalar>::TinyInt(&[1, 2, 3]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
         let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
@@ -872,6 +915,10 @@ mod tests {
 
         // Test empty columns
         let column = Column::<DoryScalar>::Boolean(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::<DoryScalar>::TinyInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
@@ -955,6 +1002,10 @@ mod tests {
     #[test]
     fn we_can_get_the_data_size_of_a_column() {
         let column = Column::<DoryScalar>::Boolean(&[true, false, true]);
+        assert_eq!(column.column_type().byte_size(), 1);
+        assert_eq!(column.column_type().bit_size(), 8);
+
+        let column = Column::<Curve25519Scalar>::TinyInt(&[1, 2, 3, 4]);
         assert_eq!(column.column_type().byte_size(), 1);
         assert_eq!(column.column_type().bit_size(), 8);
 
