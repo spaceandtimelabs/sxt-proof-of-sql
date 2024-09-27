@@ -66,13 +66,12 @@ pub fn aggregate_columns<'a, S: Scalar>(
 
     // `filtered_indexes` is a vector of indexes of the rows that are selected. We sort this vector
     // so that all the rows in the same group are next to each other.
-    let mut filtered_indexes = Vec::from_iter(
-        selection_column_in
-            .iter()
-            .enumerate()
-            .filter(|&(_, &b)| b)
-            .map(|(i, _)| i),
-    );
+    let mut filtered_indexes: Vec<_> = selection_column_in
+        .iter()
+        .enumerate()
+        .filter(|&(_, &b)| b)
+        .map(|(i, _)| i)
+        .collect();
     if_rayon!(
         filtered_indexes.par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(
             group_by_columns_in,
@@ -95,25 +94,33 @@ pub fn aggregate_columns<'a, S: Scalar>(
             compare_indexes_by_columns(group_by_columns_in, a, b) == Ordering::Equal
         })
         .multiunzip();
-    let group_by_columns_out = Vec::from_iter(
-        group_by_columns_in
-            .iter()
-            .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes)),
-    );
+    let group_by_columns_out: Vec<_> = group_by_columns_in
+        .iter()
+        .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes))
+        .collect();
 
     // This calls the `sum_aggregate_column_by_index_counts` function on each column in `sum_columns`
     // and gives a vector of `S` slices
-    let sum_columns_out = Vec::from_iter(sum_columns_in.iter().map(|column| {
-        sum_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let sum_columns_out: Vec<_> = sum_columns_in
+        .iter()
+        .map(|column| {
+            sum_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
-    let max_columns_out = Vec::from_iter(max_columns_in.iter().map(|column| {
-        max_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let max_columns_out: Vec<_> = max_columns_in
+        .iter()
+        .map(|column| {
+            max_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
-    let min_columns_out = Vec::from_iter(min_columns_in.iter().map(|column| {
-        min_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let min_columns_out: Vec<_> = min_columns_in
+        .iter()
+        .map(|column| {
+            min_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
     // Cast the counts to something compatible with BigInt.
     let count_column_out = alloc.alloc_slice_fill_iter(counts.into_iter().map(|c| c as i64));

@@ -217,8 +217,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -258,8 +260,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -343,8 +347,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -384,8 +390,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -460,8 +468,10 @@ mod tests {
             ],
             3,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }

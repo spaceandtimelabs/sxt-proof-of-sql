@@ -99,7 +99,7 @@ impl Commitment for RistrettoPoint {
         offset: usize,
         _setup: &Self::PublicSetup<'_>,
     ) -> Vec<Self> {
-        let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
+        let sequences: Vec<_> = committable_columns.iter().map(Into::into).collect();
         let mut compressed_commitments = vec![Default::default(); committable_columns.len()];
         blitzar::compute::compute_curve25519_commitments(
             &mut compressed_commitments,

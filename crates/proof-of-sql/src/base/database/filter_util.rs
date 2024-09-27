@@ -22,11 +22,10 @@ pub fn filter_columns<'a, S: Scalar>(
         .map(|(i, _)| i)
         .collect();
     let result_length = indexes.len();
-    let filtered_result = Vec::from_iter(
-        columns
-            .iter()
-            .map(|column| filter_column_by_index(alloc, column, &indexes)),
-    );
+    let filtered_result: Vec<_> = columns
+        .iter()
+        .map(|column| filter_column_by_index(alloc, column, &indexes))
+        .collect();
     (filtered_result, result_length)
 }
 /// This function takes an index vector and a `Column` and returns a

@@ -28,12 +28,12 @@ where
     // Compute commitments for the rows.
     let first_row_commit = G1Projective::msm_unchecked(
         &setup.prover_setup().Gamma_1.last().unwrap()[first_row_offset..num_columns],
-        &Vec::from_iter(first_row.iter().map(|s| s.into().0)),
+        &first_row.iter().map(|s| s.into().0).collect::<Vec<_>>(),
     );
     let remaining_row_commits = remaining_rows.map(|row| {
         G1Projective::msm_unchecked(
             &setup.prover_setup().Gamma_1.last().unwrap()[..num_columns],
-            &Vec::from_iter(row.iter().map(|s| s.into().0)),
+            &row.iter().map(|s| s.into().0).collect::<Vec<_>>(),
         )
     });
 

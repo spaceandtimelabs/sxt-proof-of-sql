@@ -72,9 +72,9 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        ))
+        Ok(repeat_with(|| builder.consume_result_mle())
+            .take(self.aliased_results.len())
+            .collect::<Vec<_>>())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -101,11 +101,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
+
         builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
         columns
     }
@@ -118,10 +123,9 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        )
+        self.aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect()
     }
 }

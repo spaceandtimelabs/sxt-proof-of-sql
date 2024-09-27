@@ -94,12 +94,11 @@ where
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
-        let columns_evals = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
-                .collect::<Result<Vec<_>, _>>()?,
-        );
+        let columns_evals: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .collect::<Result<Vec<_>, _>>()?;
         // 3. indexes
         let indexes_eval = builder
             .mle_evaluations
