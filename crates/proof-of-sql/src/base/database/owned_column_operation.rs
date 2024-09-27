@@ -64,13 +64,23 @@ impl<S: Scalar> OwnedColumn<S> {
         }
         match (self, rhs) {
             (Self::SmallInt(lhs), Self::SmallInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
+            (Self::TinyInt(lhs), Self::TinyInt(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),
             (Self::SmallInt(lhs), Self::Int(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
+            }
+            (Self::TinyInt(lhs), Self::Int(rhs)) => {
                 Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs), Self::BigInt(rhs)) => {
                 Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
+            (Self::TinyInt(lhs), Self::BigInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
+            }
             (Self::SmallInt(lhs), Self::Int128(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
+            }
+            (Self::TinyInt(lhs), Self::Int128(rhs)) => {
                 Ok(Self::Boolean(slice_eq_with_casting(lhs, rhs)))
             }
             (Self::SmallInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
@@ -81,7 +91,18 @@ impl<S: Scalar> OwnedColumn<S> {
                     rhs.column_type(),
                 )))
             }
+            (Self::TinyInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                Ok(Self::Boolean(eq_decimal_columns(
+                    lhs_values,
+                    rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )))
+            }
             (Self::Int(lhs), Self::SmallInt(rhs)) => {
+                Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
+            }
+            (Self::Int(lhs), Self::TinyInt(rhs)) => {
                 Ok(Self::Boolean(slice_eq_with_casting(rhs, lhs)))
             }
             (Self::Int(lhs), Self::Int(rhs)) => Ok(Self::Boolean(slice_eq(lhs, rhs))),

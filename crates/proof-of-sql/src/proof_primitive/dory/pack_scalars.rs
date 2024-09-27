@@ -55,6 +55,7 @@ fn output_bit_table(
 /// * `column_type` - The type of a committable column.
 const fn min_as_f(column_type: ColumnType) -> F {
     match column_type {
+        ColumnType::TinyInt => MontFp!("-128"),
         ColumnType::SmallInt => MontFp!("-32768"),
         ColumnType::Int => MontFp!("-2147483648"),
         ColumnType::BigInt | ColumnType::TimestampTZ(_, _) => MontFp!("-9223372036854775808"),
@@ -375,6 +376,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
         .iter()
         .enumerate()
         .for_each(|(i, column)| match column {
+            CommittableColumn::TinyInt(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
+                    committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
             CommittableColumn::SmallInt(column) => {
                 pack_bit(
                     column,
@@ -499,6 +511,7 @@ mod tests {
     #[test]
     fn we_can_get_a_bit_table() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -534,6 +547,7 @@ mod tests {
     #[test]
     fn we_can_get_a_bit_table_with_offset() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -569,6 +583,7 @@ mod tests {
     #[test]
     fn we_can_get_the_num_of_sub_commits_with_more_rows_than_cols_update() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -609,6 +624,7 @@ mod tests {
     #[test]
     fn we_can_get_the_num_of_sub_commits_offset_with_more_rows_than_cols_update() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -649,6 +665,7 @@ mod tests {
     #[test]
     fn we_can_get_the_num_of_sub_commits_with_less_rows_than_cols_update() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),
@@ -689,6 +706,7 @@ mod tests {
     #[test]
     fn we_can_get_the_num_of_sub_commits_offset_with_less_rows_than_cols_update() {
         let committable_columns = [
+            CommittableColumn::TinyInt(&[1]),
             CommittableColumn::SmallInt(&[1]),
             CommittableColumn::Int(&[1, 2]),
             CommittableColumn::BigInt(&[1, 2, 3]),

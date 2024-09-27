@@ -36,7 +36,8 @@ impl ColumnCommitmentMetadata {
         bounds: ColumnBounds,
     ) -> Result<ColumnCommitmentMetadata, InvalidColumnCommitmentMetadata> {
         match (column_type, bounds) {
-            (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
+            (ColumnType::TinyInt, ColumnBounds::TinyInt(_))
+            | (ColumnType::SmallInt, ColumnBounds::SmallInt(_))
             | (ColumnType::Int, ColumnBounds::Int(_))
             | (ColumnType::BigInt, ColumnBounds::BigInt(_))
             | (ColumnType::Int128, ColumnBounds::Int128(_))
@@ -61,6 +62,10 @@ impl ColumnCommitmentMetadata {
     /// Construct a [`ColumnCommitmentMetadata`] with widest possible bounds for the column type.
     pub fn from_column_type_with_max_bounds(column_type: ColumnType) -> Self {
         let bounds = match column_type {
+            ColumnType::TinyInt => ColumnBounds::TinyInt(super::Bounds::Bounded(
+                BoundsInner::try_new(i8::MIN, i8::MAX)
+                    .expect("i8::MIN and i8::MAX are valid bounds for TinyInt"),
+            )),
             ColumnType::SmallInt => ColumnBounds::SmallInt(super::Bounds::Bounded(
                 BoundsInner::try_new(i16::MIN, i16::MAX)
                     .expect("i16::MIN and i16::MAX are valid bounds for SmallInt"),
@@ -174,6 +179,14 @@ mod tests {
 
     #[test]
     fn we_can_construct_metadata() {
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(ColumnType::TinyInt, ColumnBounds::TinyInt(Bounds::Empty)).unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::TinyInt,
+                bounds: ColumnBounds::TinyInt(Bounds::Empty)
+            }
+        );
+
         assert_eq!(
             ColumnCommitmentMetadata::try_new(
                 ColumnType::SmallInt,
@@ -421,6 +434,17 @@ mod tests {
             panic!("Bounds constructed from nonempty BigInt column should be ColumnBounds::Int(Bounds::Sharp(_))");
         }
 
+        let tinyint_column = OwnedColumn::<Curve25519Scalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
+        let committable_tinyint_column = CommittableColumn::from(&tinyint_column);
+        let tinyint_metadata = ColumnCommitmentMetadata::from_column(&committable_tinyint_column);
+        assert_eq!(tinyint_metadata.column_type(), &ColumnType::TinyInt);
+        if let ColumnBounds::TinyInt(Bounds::Sharp(bounds)) = tinyint_metadata.bounds() {
+            assert_eq!(bounds.min(), &0);
+            assert_eq!(bounds.max(), &3);
+        } else {
+            panic!("Bounds constructed from nonempty TinyInt column should be ColumnBounds::TinyInt(Bounds::Sharp(_))");
+        }
+
         let smallint_column = OwnedColumn::<Curve25519Scalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
         let committable_smallint_column = CommittableColumn::from(&smallint_column);
         let smallint_metadata = ColumnCommitmentMetadata::from_column(&committable_smallint_column);
@@ -489,6 +513,18 @@ mod tests {
         );
 
         // Ordered case
+        let ints = [1, 2, 3, 1, 0];
+        let tinyint_column_a = CommittableColumn::TinyInt(&ints[..2]);
+        let tinyint_metadata_a = ColumnCommitmentMetadata::from_column(&tinyint_column_a);
+        let tinyint_column_b = CommittableColumn::TinyInt(&ints[2..]);
+        let tinyint_metadata_b = ColumnCommitmentMetadata::from_column(&tinyint_column_b);
+        let tinyint_column_c = CommittableColumn::TinyInt(&ints);
+        let tinyint_metadata_c = ColumnCommitmentMetadata::from_column(&tinyint_column_c);
+        assert_eq!(
+            tinyint_metadata_a.try_union(tinyint_metadata_b).unwrap(),
+            tinyint_metadata_c
+        );
+
         let ints = [1, 2, 3, 1, 0];
         let smallint_column_a = CommittableColumn::SmallInt(&ints[..2]);
         let smallint_metadata_a = ColumnCommitmentMetadata::from_column(&smallint_column_a);
@@ -636,6 +672,35 @@ mod tests {
     }
 
     #[test]
+    fn we_can_difference_tinyint_matching_metadata() {
+        // Ordered case
+        let ints = [1, 2, 3, 1, 0];
+        let tinyint_column_a = CommittableColumn::TinyInt(&ints[..2]);
+        let tinyint_metadata_a = ColumnCommitmentMetadata::from_column(&tinyint_column_a);
+        let tinyint_column_b = CommittableColumn::TinyInt(&ints[2..]);
+        let tinyint_metadata_b = ColumnCommitmentMetadata::from_column(&tinyint_column_b);
+        let tinyint_column_c = CommittableColumn::TinyInt(&ints);
+        let tinyint_metadata_c = ColumnCommitmentMetadata::from_column(&tinyint_column_c);
+        assert_eq!(
+            tinyint_metadata_a.try_union(tinyint_metadata_b).unwrap(),
+            tinyint_metadata_c
+        );
+
+        let tinyint_column_empty = CommittableColumn::TinyInt(&[]);
+        let tinyint_metadata_empty = ColumnCommitmentMetadata::from_column(&tinyint_column_empty);
+
+        assert_eq!(
+            tinyint_metadata_b.try_difference(tinyint_metadata_empty).unwrap(),
+            tinyint_metadata_b
+        );
+        assert_eq!(
+            tinyint_metadata_empty.try_difference(tinyint_metadata_b).unwrap(),
+            tinyint_metadata_empty
+        );
+    }
+    
+
+    #[test]
     fn we_can_difference_smallint_matching_metadata() {
         // Ordered case
         let smallints = [1, 2, 3, 1, 0];
@@ -717,6 +782,10 @@ mod tests {
             column_type: ColumnType::Scalar,
             bounds: ColumnBounds::NoOrder,
         };
+        let tinyint_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::TinyInt,
+            bounds: ColumnBounds::TinyInt(Bounds::Empty),
+        };
         let smallint_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::SmallInt,
             bounds: ColumnBounds::SmallInt(Bounds::Empty),
@@ -737,6 +806,10 @@ mod tests {
             column_type: ColumnType::Decimal75(Precision::new(4).unwrap(), 8),
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
+        
+
+        assert!(tinyint_metadata.try_union(scalar_metadata).is_err());
+        assert!(scalar_metadata.try_union(tinyint_metadata).is_err());
 
         assert!(smallint_metadata.try_union(scalar_metadata).is_err());
         assert!(scalar_metadata.try_union(smallint_metadata).is_err());

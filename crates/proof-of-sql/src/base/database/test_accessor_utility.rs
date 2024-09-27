@@ -60,6 +60,11 @@ pub fn make_random_test_accessor_data(
                 let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
                 columns.push(Arc::new(BooleanArray::from(boolean_values)));
             }
+            ColumnType::TinyInt => {
+                column_fields.push(Field::new(*col_name, DataType::Int8, false));
+                let values: Vec<i8> = values.iter().map(|x| *x as i8).collect();
+                columns.push(Arc::new(Int8Array::from(values)));
+            }
 
             ColumnType::SmallInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int16, false));
@@ -168,8 +173,9 @@ mod tests {
             ("a", ColumnType::BigInt),
             ("b", ColumnType::VarChar),
             ("c", ColumnType::Int128),
-            ("d", ColumnType::SmallInt),
-            ("e", ColumnType::Int),
+            ("d", ColumnType::TinyInt),
+            ("e", ColumnType::SmallInt),
+            ("f", ColumnType::Int),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
@@ -190,12 +196,15 @@ mod tests {
             ("b", ColumnType::BigInt),
             ("a", ColumnType::VarChar),
             ("c", ColumnType::Int128),
+            ("d", ColumnType::TinyInt),
+            ("e", ColumnType::SmallInt),
+            ("f", ColumnType::Int),
         ];
         let data = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
 
         assert_eq!(
             data,
-            record_batch!("b" => [-2_i64], "a" => ["s-2"], "c" => [-2_i128])
+            record_batch!("b" => [-2_i64], "a" => ["s-2"], "c" => [-2_i128], "d" => [-2_i8], "e" => [-2_i16], "f" => [-2_i32])
         );
     }
 }

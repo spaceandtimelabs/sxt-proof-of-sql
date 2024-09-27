@@ -66,6 +66,10 @@ pub fn const_smallint<C: Commitment>(val: i16) -> DynProofExpr<C> {
     DynProofExpr::new_literal(LiteralValue::SmallInt(val))
 }
 
+pub fn const_tinyint<C: Commitment>(val: i8) -> DynProofExpr<C> {
+    DynProofExpr::new_literal(LiteralValue::TinyInt(val))
+}
+
 pub fn const_int<C: Commitment>(val: i32) -> DynProofExpr<C> {
     DynProofExpr::new_literal(LiteralValue::Int(val))
 }

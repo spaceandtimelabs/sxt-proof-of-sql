@@ -372,6 +372,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
             CommittableColumn::BigInt(&[0, 1]),
             CommittableColumn::BigInt(&[2, 3]),
             CommittableColumn::Int(&[4, 5, 10]),
+            CommittableColumn::TinyInt(&[11, 12]),
             CommittableColumn::SmallInt(&[6, 7]),
             CommittableColumn::Int128(&[8, 9]),
             CommittableColumn::Boolean(&[true, true]),
@@ -406,36 +407,40 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(10);
     assert_eq!(res[2].0, expected);
 
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(11)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(12);
+    assert_eq!(res[3].0, expected);
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(6)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(7);
-    assert_eq!(res[3].0, expected);
+    assert_eq!(res[4].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(8)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(9);
-    assert_eq!(res[4].0, expected);
+    assert_eq!(res[5].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(true)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(true);
-    assert_eq!(res[5].0, expected);
+    assert_eq!(res[6].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(10)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(11)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(12)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(13);
-    assert_eq!(res[6].0, expected);
+    assert_eq!(res[7].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(14)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(15);
-    assert_eq!(res[7].0, expected);
+    assert_eq!(res[8].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(16);
-    assert_eq!(res[8].0, expected);
+    assert_eq!(res[9].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(17)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(18)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(19)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(20);
-    assert_eq!(res[9].0, expected);
+    assert_eq!(res[10].0, expected);
 }
 
 #[test]
@@ -449,6 +454,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::BigInt(&[0, 1]),
             CommittableColumn::BigInt(&[2, 3]),
             CommittableColumn::Int(&[4, 5, 10]),
+            CommittableColumn::TinyInt(&[11, 12]),
             CommittableColumn::SmallInt(&[6, 7]),
             CommittableColumn::Int128(&[8, 9]),
             CommittableColumn::Boolean(&[true, true]),
@@ -483,36 +489,40 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
         + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(10);
     assert_eq!(res[2].0, expected);
 
+    let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(11)
+        + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(12);
+    assert_eq!(res[3].0, expected);
+
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(6)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(7);
-    assert_eq!(res[3].0, expected);
+    assert_eq!(res[4].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(8)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(9);
-    assert_eq!(res[4].0, expected);
+    assert_eq!(res[5].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(true)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(true);
-    assert_eq!(res[5].0, expected);
+    assert_eq!(res[6].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(10)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(11)
         + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(12)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(13);
-    assert_eq!(res[6].0, expected);
+    assert_eq!(res[7].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(14)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(15);
-    assert_eq!(res[7].0, expected);
+    assert_eq!(res[8].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(16);
-    assert_eq!(res[8].0, expected);
+    assert_eq!(res[9].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(17)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(18)
         + Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(19)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(20);
-    assert_eq!(res[9].0, expected);
+    assert_eq!(res[10].0, expected);
 }
 
 #[test]
@@ -525,6 +535,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
             CommittableColumn::BigInt(&[-2, -1, 0, 1, 2]),
             CommittableColumn::BigInt(&[-3, -2, 2, 3]),
             CommittableColumn::Int(&[-6, -5, -4, 4, 5, 6]),
+            CommittableColumn::TinyInt(&[-7, -6, 6, 7]),
             CommittableColumn::SmallInt(&[-7, -6, 6, 7]),
             CommittableColumn::Int128(&[-9, -8, 8, 9]),
             CommittableColumn::Boolean(&[true, true]),
@@ -573,34 +584,40 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(7);
     assert_eq!(res[3].0, expected);
 
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-7)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-6)
+        + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(6)
+        + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(7);
+    assert_eq!(res[4].0, expected);
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-9)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-8)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(8)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(9);
-    assert_eq!(res[4].0, expected);
+    assert_eq!(res[5].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(true)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(true);
-    assert_eq!(res[5].0, expected);
+    assert_eq!(res[6].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(10)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(11)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(12)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(13);
-    assert_eq!(res[6].0, expected);
+    assert_eq!(res[7].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(14)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(15);
-    assert_eq!(res[7].0, expected);
+    assert_eq!(res[8].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(16);
-    assert_eq!(res[8].0, expected);
+    assert_eq!(res[9].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(-18)
         + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(-17)
         + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(17)
         + Pairing::pairing(Gamma_1[3], Gamma_2[0]) * F::from(18);
-    assert_eq!(res[9].0, expected);
+    assert_eq!(res[10].0, expected);
 }
 
 #[test]
@@ -614,6 +631,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
             CommittableColumn::BigInt(&[-2, -1, 0, 1, 2]),
             CommittableColumn::BigInt(&[-3, -2, 2, 3]),
             CommittableColumn::Int(&[-6, -5, -4, 4, 5, 6]),
+            CommittableColumn::TinyInt(&[-7, -6, 6, 7]),
             CommittableColumn::SmallInt(&[-7, -6, 6, 7]),
             CommittableColumn::Int128(&[-9, -8, 8, 9]),
             CommittableColumn::Boolean(&[true, true]),
@@ -662,32 +680,40 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(7);
     assert_eq!(res[3].0, expected);
 
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-7)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-6)
+        + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(6)
+        + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(7);
+    assert_eq!(res[4].0, expected);
+
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-9)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-8)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(8)
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(9);
-    assert_eq!(res[4].0, expected);
+    assert_eq!(res[5].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(true)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(true);
-    assert_eq!(res[5].0, expected);
+    assert_eq!(res[6].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(10)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(11)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(12)
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(13);
-    assert_eq!(res[6].0, expected);
+    assert_eq!(res[7].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(14)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(15);
-    assert_eq!(res[7].0, expected);
+    assert_eq!(res[8].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(16);
-    assert_eq!(res[8].0, expected);
+    assert_eq!(res[9].0, expected);
 
     let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[1]) * F::from(-18)
         + Pairing::pairing(Gamma_1[1], Gamma_2[1]) * F::from(-17)
         + Pairing::pairing(Gamma_1[2], Gamma_2[1]) * F::from(17)
         + Pairing::pairing(Gamma_1[3], Gamma_2[1]) * F::from(18);
-    assert_eq!(res[9].0, expected);
+    assert_eq!(res[10].0, expected);
+    
 }
+

@@ -42,6 +42,7 @@ pub trait Scalar:
     + for<'a> core::convert::From<&'a i32> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i128> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> core::convert::From<&'a i8> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a u8> // Required for `Column` to implement `MultilinearExtension`
     + core::convert::TryInto <bool>
     + core::convert::TryInto <i8>
@@ -69,6 +70,7 @@ pub trait Scalar:
     + core::convert::From<i16>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
+    + core::convert::From<i8>
     + TryFrom<BigInt, Error = ScalarConversionError>
 {
     /// The value (p - 1) / 2. This is "mid-point" of the field - the "six" on the clock.

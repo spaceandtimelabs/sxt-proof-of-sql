@@ -2,9 +2,7 @@ use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
 use arrow::{
     array::{
-        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray,
+        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray
     },
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
@@ -205,6 +203,15 @@ impl ArrayRefExt for ArrayRef {
                         .ok_or(ArrowArrayToColumnConversionError::ArrayContainsNulls)?;
                     let values = alloc.alloc_slice_fill_with(range.len(), |i| boolean_slice[i]);
                     Ok(Column::Boolean(values))
+                } else {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
+                        self.data_type().clone(),
+                    ))
+                }
+            }
+            DataType::Int8 => {
+                if let Some(array) = self.as_any().downcast_ref::<Int8Array>() {
+                    Ok(Column::TinyInt(&array.values()[range.start..range.end]))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType(
                         self.data_type().clone(),
@@ -705,11 +712,27 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_tinyint_array_normal_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
+        let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
+        assert_eq!(result.unwrap(), Column::TinyInt(&[-3, 42]));
+    }
+
+    #[test]
     fn we_can_convert_int16_array_normal_range() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(Int16Array::from(vec![1, -3, 42]));
         let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
         assert_eq!(result.unwrap(), Column::SmallInt(&[-3, 42]));
+    }
+
+    #[test]
+    fn we_can_convert_tinyint_array_empty_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
+        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        assert_eq!(result.unwrap(), Column::TinyInt(&[]));
     }
 
     #[test]
@@ -847,6 +870,16 @@ mod tests {
     }
 
     #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_int8() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![1, -3]));
+        let result = array
+            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .unwrap();
+        assert_eq!(result, Column::TinyInt(&[]));
+    }
+
+    #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_int16() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
@@ -931,6 +964,14 @@ mod tests {
     #[test]
     fn we_can_convert_valid_integer_array_refs_into_valid_columns() {
         let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![1, -3]));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .unwrap(),
+            Column::TinyInt(&[1, -3])
+        );
+
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
         assert_eq!(
             array
@@ -1018,6 +1059,14 @@ mod tests {
     fn we_can_convert_valid_integer_array_refs_into_valid_columns_using_ranges_smaller_than_arrays()
     {
         let alloc = Bump::new();
+
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![0, 1, 127]));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .unwrap(),
+            Column::TinyInt(&[1, 127])
+        );
 
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![0, 1, 545]));
         assert_eq!(

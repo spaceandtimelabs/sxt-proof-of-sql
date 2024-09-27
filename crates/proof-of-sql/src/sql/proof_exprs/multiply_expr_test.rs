@@ -24,34 +24,36 @@ use rand_core::SeedableRng;
 #[test]
 fn we_can_prove_a_typical_multiply_query() {
     let data = owned_table([
-        smallint("a", [1_i16, 2, 3, 4]),
-        int("b", [0_i32, 1, 2, 1]),
-        varchar("e", ["ab", "t", "efg", "g"]),
-        bigint("c", [0_i64, 2, 2, 0]),
-        decimal75("d", 2, 1, [21_i64, 4, 21, -7]),
+        tinyint("a", [1_i8, 2, 3, 4]),
+        smallint("b", [1_i16, 2, 3, 4]),
+        int("c", [0_i32, 1, 2, 1]),
+        varchar("d", ["ab", "t", "efg", "g"]),
+        bigint("e", [0_i64, 2, 2, 0]),
+        decimal75("f", 2, 1, [21_i64, 4, 21, -7]),
     ]);
     let t = "sxt.t".parse().unwrap();
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     let ast = filter(
         vec![
-            aliased_plan(multiply(column(t, "a", &accessor), const_int(2)), "a"),
-            col_expr_plan(t, "c", &accessor),
+            aliased_plan(multiply(column(t, "a", &accessor), const_tinyint(2)), "a"),
+            aliased_plan(multiply(column(t, "b", &accessor), const_int(2)), "b"),
+            col_expr_plan(t, "d", &accessor),
             aliased_plan(
-                multiply(column(t, "b", &accessor), const_decimal75(2, 1, 45)),
-                "b",
+                multiply(column(t, "c", &accessor), const_decimal75(2, 1, 45)),
+                "c",
             ),
             aliased_plan(
                 add(
-                    multiply(column(t, "d", &accessor), const_smallint(3)),
+                    multiply(column(t, "e", &accessor), const_smallint(3)),
                     const_decimal75(2, 1, 47),
                 ),
-                "d",
+                "e",
             ),
-            col_expr_plan(t, "e", &accessor),
+            col_expr_plan(t, "f", &accessor),
         ],
         tab(t),
         equal(
-            multiply(column(t, "d", &accessor), const_decimal75(2, 1, 39)),
+            multiply(column(t, "e", &accessor), const_decimal75(2, 1, 39)),
             const_decimal75(3, 2, 819),
         ),
     );
@@ -59,14 +61,16 @@ fn we_can_prove_a_typical_multiply_query() {
     exercise_verification(&verifiable_res, &ast, &accessor, t);
     let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
     let expected_res = owned_table([
-        int("a", [2_i32, 6]),
-        bigint("c", [0_i64, 2]),
-        decimal75("b", 13, 1, [0_i64, 90]),
-        decimal75("d", 9, 1, [110_i64, 110]),
-        varchar("e", ["ab", "efg"]),
+        tinyint("a", [2_i8, 6]),
+        int("b", [2_i32, 6]),
+        bigint("d", [0_i64, 2]),
+        decimal75("c", 13, 1, [0_i64, 90]),
+        decimal75("e", 9, 1, [110_i64, 110]),
+        varchar("d", ["ab", "efg"]),
     ]);
     assert_eq!(res, expected_res);
 }
+
 
 // Column type issue tests
 #[test]
