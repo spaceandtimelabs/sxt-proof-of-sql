@@ -106,9 +106,9 @@ where
             .result_indexes_evaluation
             .ok_or(ProofError::VerificationError("invalid indexes"))?;
         // 4. filtered_columns
-        let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        );
+        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_result_mle())
+            .take(self.aliased_results.len())
+            .collect();
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -163,11 +163,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
@@ -192,11 +197,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
 
@@ -227,9 +233,8 @@ fn verify_filter<C: Commitment>(
 ) -> Result<Vec<C::Scalar>, ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
 
-    let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
-        Some(eval) => eval,
-        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
+    let Some(chi_eval) = builder.mle_evaluations.result_indexes_evaluation else {
+        return Err(ProofError::VerificationError("Result indexes not valid."));
     };
 
     let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
