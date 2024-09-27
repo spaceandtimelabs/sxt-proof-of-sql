@@ -6,23 +6,23 @@ use super::{
     DoryCommitment, DoryMessages, DoryProverPublicSetup, DoryScalar, DoryVerifierPublicSetup, F,
 };
 use crate::base::{commitment::CommitmentEvaluationProof, proof::Transcript};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
 pub type DoryEvaluationProof = DoryMessages;
 
 /// The error type for the Dory PCS.
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 pub enum DoryError {
     /// This error occurs when the generators offset is invalid.
-    #[error("invalid generators offset: {0}")]
-    InvalidGeneratorsOffset(u64),
+    #[snafu(display("invalid generators offset: {offset}"))]
+    InvalidGeneratorsOffset { offset: u64 },
     /// This error occurs when the proof fails to verify.
-    #[error("verification error")]
+    #[snafu(display("verification error"))]
     VerificationError,
     /// This error occurs when the setup is too small.
-    #[error("setup is too small: the setup is {0}, but the proof requires a setup of size {1}")]
-    SmallSetup(usize, usize),
+    #[snafu(display("setup is too small: the setup is {actual}, but the proof requires a setup of size {required}"))]
+    SmallSetup { actual: usize, required: usize },
 }
 
 impl CommitmentEvaluationProof for DoryEvaluationProof {
@@ -84,14 +84,19 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         );
         // Dory PCS Logic
         if generators_offset != 0 {
-            return Err(DoryError::InvalidGeneratorsOffset(generators_offset));
+            return Err(DoryError::InvalidGeneratorsOffset {
+                offset: generators_offset,
+            });
         }
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
         let verifier_setup = setup.verifier_setup();
         let mut messages = self.clone();
         let nu = compute_nu(b_point.len(), setup.sigma());
         if nu > verifier_setup.max_nu {
-            return Err(DoryError::SmallSetup(verifier_setup.max_nu, nu));
+            return Err(DoryError::SmallSetup {
+                actual: verifier_setup.max_nu,
+                required: nu,
+            });
         }
         let state = build_vmv_verifier_state(product.0, b_point, a_commit, setup.sigma(), nu);
         let extended_state = eval_vmv_re_verify(&mut messages, transcript, state, verifier_setup)

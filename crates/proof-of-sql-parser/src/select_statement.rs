@@ -62,7 +62,9 @@ impl FromStr for SelectStatement {
     fn from_str(query: &str) -> ParseResult<Self> {
         SelectStatementParser::new()
             .parse(query)
-            .map_err(|e| ParseError::QueryParseError(e.to_string()))
+            .map_err(|e| ParseError::QueryParseError {
+                error: e.to_string(),
+            })
     }
 }
 

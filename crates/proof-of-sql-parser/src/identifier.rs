@@ -45,8 +45,8 @@ impl FromStr for Identifier {
     fn from_str(string: &str) -> ParseResult<Self> {
         let name = IdentifierParser::new()
             .parse(string)
-            .map_err(|e| ParseError::IdentifierParseError(
-                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {:?}", e)))?;
+            .map_err(|e| ParseError::IdentifierParseError{ error:
+                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {:?}", e)})?;
 
         Ok(Identifier::new(name))
     }

@@ -165,11 +165,11 @@ impl<T: MontConfig<4>> TryFrom<BigInt> for MontScalar<T> {
 
         // Check if the number of digits exceeds the maximum precision allowed
         if digits.len() > MAX_SUPPORTED_PRECISION.into() {
-            return Err(ScalarConversionError::Overflow(format!(
+            return Err(ScalarConversionError::Overflow{ error: format!(
                 "Attempted to parse a number with {} digits, which exceeds the max supported precision of {}",
                 digits.len(),
                 MAX_SUPPORTED_PRECISION
-            )));
+            )});
         }
 
         // Continue with the previous logic
@@ -380,19 +380,17 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i8",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i8", value),
+            });
         }
         let val: i128 = sign * abs[0] as i128;
         match val {
             0 => Ok(false),
             1 => Ok(true),
-            _ => Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in a bool",
-                value
-            ))),
+            _ => Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in a bool", value),
+            }),
         }
     }
 }
@@ -410,14 +408,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i8",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i8", value),
+            });
         }
         let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i8", value))
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{} is too large to fit in an i8", value),
         })
     }
 }
@@ -435,14 +432,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i16",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i16", value),
+            });
         }
         let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i16", value))
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{} is too large to fit in an i16", value),
         })
     }
 }
@@ -460,14 +456,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i32",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i32", value),
+            });
         }
         let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i32", value))
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{} is too large to fit in an i32", value),
         })
     }
 }
@@ -485,14 +480,13 @@ where
             (1, value.into())
         };
         if abs[1] != 0 || abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i64",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i64", value),
+            });
         }
         let val: i128 = sign * abs[0] as i128;
-        val.try_into().map_err(|_| {
-            ScalarConversionError::Overflow(format!("{} is too large to fit in an i64", value))
+        val.try_into().map_err(|_| ScalarConversionError::Overflow {
+            error: format!("{} is too large to fit in an i64", value),
         })
     }
 }
@@ -510,20 +504,18 @@ where
             (1, value.into())
         };
         if abs[2] != 0 || abs[3] != 0 {
-            return Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i128",
-                value
-            )));
+            return Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i128", value),
+            });
         }
         let val: u128 = (abs[1] as u128) << 64 | (abs[0] as u128);
         match (sign, val) {
             (1, v) if v <= i128::MAX as u128 => Ok(v as i128),
             (-1, v) if v <= i128::MAX as u128 => Ok(-(v as i128)),
             (-1, v) if v == i128::MAX as u128 + 1 => Ok(i128::MIN),
-            _ => Err(ScalarConversionError::Overflow(format!(
-                "{} is too large to fit in an i128",
-                value
-            ))),
+            _ => Err(ScalarConversionError::Overflow {
+                error: format!("{} is too large to fit in an i128", value),
+            }),
         }
     }
 }
