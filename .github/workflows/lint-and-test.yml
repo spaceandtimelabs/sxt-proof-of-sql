@@ -57,6 +57,11 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features --features="perf"
       - name: Run cargo check (proof-of-sql) (just "std" feature)
         run: cargo check -p proof-of-sql --no-default-features --features="std"
+      - name: Run cargo check (proof-of-sql-parser) with no_std target. This requires a lalrpop patch.
+        run: |
+          rustup target add thumbv7em-none-eabi
+          printf '\n[patch.crates-io]\nlalrpop = { git = "https://github.com/lalrpop/lalrpop", rev = "173597c" }\nlalrpop-util = { git = "https://github.com/lalrpop/lalrpop", rev = "173597c" }\n' >> Cargo.toml
+          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
 
   test:
     name: Test Suite
