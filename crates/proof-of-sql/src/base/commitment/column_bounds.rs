@@ -205,6 +205,8 @@ pub struct ColumnBoundsMismatch {
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
+    /// The bounds of a TinyInt column.
+    TinyInt(Bounds<i8>),
     /// The bounds of a SmallInt column.
     SmallInt(Bounds<i16>),
     /// The bounds of an Int column.
@@ -223,6 +225,7 @@ impl ColumnBounds {
     /// If the column variant has order, only the minimum and maximum value will be copied.
     pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
+            CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),

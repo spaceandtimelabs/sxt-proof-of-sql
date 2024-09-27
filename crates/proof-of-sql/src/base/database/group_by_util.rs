@@ -139,6 +139,7 @@ pub(crate) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
     indexes: &[usize],
 ) -> &'a [S] {
     match column {
+        Column::TinyInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::SmallInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -167,6 +168,7 @@ pub(crate) fn max_aggregate_column_by_index_counts<'a, S: Scalar>(
 ) -> &'a [Option<S>] {
     match column {
         Column::Boolean(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::TinyInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::SmallInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => max_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -198,6 +200,7 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
 ) -> &'a [Option<S>] {
     match column {
         Column::Boolean(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
+        Column::TinyInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::SmallInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::Int(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         Column::BigInt(col) => min_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
@@ -351,6 +354,7 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
         .iter()
         .map(|col| match col {
             Column::Boolean(col) => col[i].cmp(&col[j]),
+            Column::TinyInt(col) => col[i].cmp(&col[j]),
             Column::SmallInt(col) => col[i].cmp(&col[j]),
             Column::Int(col) => col[i].cmp(&col[j]),
             Column::BigInt(col) => col[i].cmp(&col[j]),
@@ -377,6 +381,7 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
         .iter()
         .map(|col| match col {
             OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
+            OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
             OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
             OwnedColumn::Int(col) => col[i].cmp(&col[j]),
             OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),

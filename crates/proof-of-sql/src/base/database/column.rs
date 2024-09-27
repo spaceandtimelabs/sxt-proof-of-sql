@@ -139,6 +139,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
         match owned_column {
             OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
+            OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
             OwnedColumn::Int(col) => Column::Int(col.as_slice()),
             OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
@@ -195,6 +196,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
             Self::VarChar((_, scals)) => slice_cast_with(scals, |s| *s * scale_factor),
+            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -308,7 +310,7 @@ impl ColumnType {
     /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
     pub fn precision_value(&self) -> Option<u8> {
         match self {
-            Self::TinyInt => Some(1_u8),
+            Self::TinyInt => Some(3_u8),
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
             Self::BigInt => Some(19_u8),
@@ -345,6 +347,7 @@ impl ColumnType {
     pub fn byte_size(&self) -> usize {
         match self {
             Self::Boolean => size_of::<bool>(),
+            Self::TinyInt => size_of::<i8>(),
             Self::SmallInt => size_of::<i16>(),
             Self::Int => size_of::<i32>(),
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
@@ -361,9 +364,12 @@ impl ColumnType {
     /// Returns if the column type supports signed values.
     pub const fn is_signed(&self) -> bool {
         match self {
-            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
-                true
-            }
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::TimestampTZ(_, _) => true,
             Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
         }
     }
@@ -375,6 +381,7 @@ impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
             ColumnType::Boolean => DataType::Boolean,
+            ColumnType::TinyInt => DataType::Int8,
             ColumnType::SmallInt => DataType::Int16,
             ColumnType::Int => DataType::Int32,
             ColumnType::BigInt => DataType::Int64,
@@ -436,6 +443,7 @@ impl Display for ColumnType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
+            ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),
             ColumnType::BigInt => write!(f, "BIGINT"),
