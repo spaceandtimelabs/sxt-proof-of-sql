@@ -26,6 +26,8 @@ use proof_of_sql_parser::{
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
+    /// i8 columns
+    TinyInt(Vec<i8>),
     /// i16 columns
     SmallInt(Vec<i16>),
     /// i32 columns
@@ -49,6 +51,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
+            OwnedColumn::TinyInt(col) => col.len(),
             OwnedColumn::SmallInt(col) => col.len(),
             OwnedColumn::Int(col) => col.len(),
             OwnedColumn::BigInt(col) => col.len(),
@@ -64,6 +67,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(permutation.try_apply(col)?),
+            OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(permutation.try_apply(col)?),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(permutation.try_apply(col)?),
             OwnedColumn::Int(col) => OwnedColumn::Int(permutation.try_apply(col)?),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(permutation.try_apply(col)?),
@@ -83,6 +87,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
+            OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(col[start..end].to_vec()),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
             OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
@@ -102,6 +107,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
+            OwnedColumn::TinyInt(col) => col.is_empty(),
             OwnedColumn::SmallInt(col) => col.is_empty(),
             OwnedColumn::Int(col) => col.is_empty(),
             OwnedColumn::BigInt(col) => col.is_empty(),
@@ -116,6 +122,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
+            OwnedColumn::TinyInt(_) => ColumnType::TinyInt,
             OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
             OwnedColumn::Int(_) => ColumnType::Int,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
@@ -136,6 +143,15 @@ impl<S: Scalar> OwnedColumn<S> {
                 scalars
                     .iter()
                     .map(|s| -> Result<bool, _> { TryInto::<bool>::try_into(*s) })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
+                    })?,
+            )),
+            ColumnType::TinyInt => Ok(OwnedColumn::TinyInt(
+                scalars
+                    .iter()
+                    .map(|s| -> Result<i8, _> { TryInto::<i8>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|_| OwnedColumnError::ScalarConversionError {
                         error: "Overflow in scalar conversions".to_string(),
@@ -216,6 +232,15 @@ impl<S: Scalar> OwnedColumn<S> {
 
     #[cfg(test)]
     /// Returns an iterator over the raw data of the column
+    /// assuming the underlying type is [i8], panicking if it is not.
+    pub fn i8_iter(&self) -> impl Iterator<Item = &i8> {
+        match self {
+            OwnedColumn::TinyInt(col) => col.iter(),
+            _ => panic!("Expected TinyInt column"),
+        }
+    }
+    #[cfg(test)]
+    /// Returns an iterator over the raw data of the column
     /// assuming the underlying type is [i16], panicking if it is not.
     pub fn i16_iter(&self) -> impl Iterator<Item = &i16> {
         match self {
@@ -285,6 +310,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     fn from(col: &Column<'a, S>) -> Self {
         match col {
             Column::Boolean(col) => OwnedColumn::Boolean(col.to_vec()),
+            Column::TinyInt(col) => OwnedColumn::TinyInt(col.to_vec()),
             Column::SmallInt(col) => OwnedColumn::SmallInt(col.to_vec()),
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
@@ -314,6 +340,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
         .map(|(col, direction)| {
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
+                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
                 OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
@@ -373,10 +400,12 @@ mod test {
                 .map(|&i| Curve25519Scalar::from(i))
                 .collect(),
         );
+        let col4: OwnedColumn<Curve25519Scalar> = OwnedColumn::TinyInt(vec![1, 1, 2, 1, 1]);
         let order_by_pairs = vec![
             (col1, OrderByDirection::Asc),
             (col2, OrderByDirection::Desc),
             (col3, OrderByDirection::Asc),
+            (col4,OrderByDirection::Asc),
         ];
         // Equal on col1 and col2, less on col3
         assert_eq!(
@@ -398,6 +427,17 @@ mod test {
             compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
             Ordering::Less
         )
+        // Test TinyInt column.
+        assert_eq!(
+            compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 3, 4),
+            Ordering::Equal
+        );
+        // Test TinyInt column with different values
+        let col5: OwnedColumn<Curve25519Scalar> = OwnedColumn::TinyInt(vec![2, 2, 1, 2, 2]);
+        assert_eq!(
+            compare_indexes_by_owned_columns_with_direction(&[(col4, OrderByDirection::Asc), (col5, OrderByDirection::Asc)], 0, 1),
+            Ordering::Less
+        );
     }
 
     #[test]
