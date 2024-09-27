@@ -1,7 +1,10 @@
 use crate::{intermediate_ast::*, Identifier, SelectStatement};
 use alloc::{boxed::Box, vec, vec::Vec};
 
-// TODO: add panic docs
+///
+/// # Panics
+///
+/// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed.
 /// Construct an identifier from a str
 pub fn ident(name: &str) -> Identifier {
     name.parse().unwrap()
@@ -96,10 +99,12 @@ pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
     })
 }
 
-// TODO: add panic docs
 /// Get table from schema and name.
 ///
 /// If the schema is `None`, the table is assumed to be in the default schema.
+/// # Panics
+///
+/// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed.
 pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     Box::new(TableExpression::Named {
         table: name.parse().unwrap(),
@@ -107,8 +112,11 @@ pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     })
 }
 
-// TODO: add panic docs
 /// Get column from name
+///
+/// # Panics
+///
+/// This function will panic if the `name` cannot be parsed into a valid column expression.
 pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
 }
@@ -155,8 +163,11 @@ pub fn count_all() -> Box<Expression> {
     count(Box::new(Expression::Wildcard))
 }
 
-// TODO: add panic docs
 /// An expression with an alias i.e. EXPR AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
     AliasedResultExpr {
         expr,
@@ -169,8 +180,11 @@ pub fn col_res_all() -> SelectResultExpr {
     SelectResultExpr::ALL
 }
 
-// TODO: add panic docs
 /// Select one column from a table and give it an alias i.e. SELECT COL AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: col_val,
@@ -183,8 +197,11 @@ pub fn cols_res(names: &[&str]) -> Vec<SelectResultExpr> {
     names.iter().map(|name| col_res(col(name), name)).collect()
 }
 
-// TODO: add panic docs
 /// Compute the minimum of an expression and give it an alias i.e. SELECT MIN(EXPR) AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: min(expr),
@@ -192,8 +209,11 @@ pub fn min_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
-// TODO: add panic docs
 /// Compute the maximum of an expression and give it an alias i.e. SELECT MAX(EXPR) AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: max(expr),
@@ -201,8 +221,11 @@ pub fn max_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
-// TODO: add panic docs
 /// Compute the sum of an expression and give it an alias i.e. SELECT SUM(EXPR) AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: sum(expr),
@@ -210,8 +233,11 @@ pub fn sum_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
-// TODO: add panic docs
 /// Count the amount of non-null entries of expression and give it an alias i.e. SELECT COUNT(EXPR) AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: count(expr),
@@ -219,8 +245,11 @@ pub fn count_res(expr: Box<Expression>, alias: &str) -> SelectResultExpr {
     })
 }
 
-// TODO: add panic docs
 /// Count rows and give the result an alias i.e. SELECT COUNT(*) AS ALIAS
+/// 
+/// # Panics
+///
+/// This function will panic if the `alias` cannot be parsed.
 pub fn count_all_res(alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: Expression::Aggregation {
@@ -278,8 +307,11 @@ pub fn select(
     }
 }
 
-// TODO: add panic docs
 /// Order by one column i.e. ORDER BY ID [ASC|DESC]
+/// 
+/// # Panics
+///
+/// This function will panic if the `id` cannot be parsed into an identifier.
 pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     vec![OrderBy {
         expr: id.parse().unwrap(),
@@ -287,8 +319,12 @@ pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
     }]
 }
 
-// TODO: add panic docs
 /// Order by multiple columns i.e. ORDER BY ID0 [ASC|DESC], ID1 [ASC|DESC], ...
+/// 
+/// # Panics
+///
+/// This function will panic if any of the `ids` cannot be parsed 
+/// into an identifier.
 pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
     ids.iter()
         .zip(directions.iter())
@@ -307,8 +343,12 @@ pub fn slice(number_rows: u64, offset_value: i64) -> Option<Slice> {
     })
 }
 
-// TODO: add panic docs
 /// Group by clause with multiple columns i.e. GROUP BY ID0, ID1, ...
+/// 
+/// # Panics
+///
+/// This function will panic if any of the `ids` cannot be parsed 
+/// into an identifier.
 pub fn group_by(ids: &[&str]) -> Vec<Identifier> {
     ids.iter().map(|id| id.parse().unwrap()).collect()
 }
