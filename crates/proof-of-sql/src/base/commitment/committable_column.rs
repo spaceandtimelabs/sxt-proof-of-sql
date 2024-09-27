@@ -52,6 +52,7 @@ impl<'a> CommittableColumn<'a> {
     /// Returns the length of the column.
     pub fn len(&self) -> usize {
         match self {
+            CommittableColumn::TinyInt(col) => col.len(),
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
             CommittableColumn::BigInt(col) => col.len(),
@@ -79,6 +80,7 @@ impl<'a> CommittableColumn<'a> {
 impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
+            CommittableColumn::TinyInt(_) => ColumnType::TinyInt,
             CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
             CommittableColumn::Int(_) => ColumnType::Int,
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
@@ -124,6 +126,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
+            OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
@@ -155,6 +158,11 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
 impl<'a> From<&'a [u8]> for CommittableColumn<'a> {
     fn from(value: &'a [u8]) -> Self {
         CommittableColumn::RangeCheckWord(value)
+    }
+}
+impl<'a> From<&'a [i8]> for CommittableColumn<'a> {
+    fn from(value: &'a [i8]) -> Self {
+        CommittableColumn::TinyInt(value)
     }
 }
 impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
@@ -194,6 +202,7 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
+            CommittableColumn::TinyInt(ints) => Sequence::from(*ints),
             CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),

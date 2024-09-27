@@ -25,7 +25,7 @@ use crate::base::{
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
@@ -67,6 +67,7 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::from(col)),
+            OwnedColumn::TinyInt(col) => Arc::new(Int8Array::from(col)),
             OwnedColumn::SmallInt(col) => Arc::new(Int16Array::from(col)),
             OwnedColumn::Int(col) => Arc::new(Int32Array::from(col)),
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
