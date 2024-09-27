@@ -15,7 +15,17 @@ pub(super) fn build_vmv_prover_state(
     #[cfg(test)]
     let (l_tensor, r_tensor) = compute_l_r_tensors(b_point, sigma, nu);
     let v_vec = compute_v_vec(a, &L_vec, sigma, nu);
-    VMVProverState { v_vec, T_vec_prime, l_tensor, r_tensor, L_vec, R_vec, nu }
+    VMVProverState {
+        v_vec,
+        T_vec_prime,
+        #[cfg(test)]
+        l_tensor,
+        #[cfg(test)]
+        r_tensor,
+        L_vec,
+        R_vec,
+        nu,
+    }
 }
 
 /// Builds a `VMVVerifierState` from the given parameters.
