@@ -49,6 +49,14 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
         run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+      - name: Run cargo check (proof-of-sql) (just "arrow" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="arrow"
+      - name: Run cargo check (proof-of-sql) (just "rayon" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="rayon"
+      - name: Run cargo check (proof-of-sql) (just "perf" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="perf"
+      - name: Run cargo check (proof-of-sql) (just "std" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="std"
 
   test:
     name: Test Suite
@@ -83,10 +91,10 @@ jobs:
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
       - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
-      - name: Dry run cargo test (proof-of-sql) (no features)
-        run: cargo test -p proof-of-sql --no-run --no-default-features
-      - name: Run cargo test (proof primitives - Dory) (no features - i.e. not using blitzar)
-        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features
+      - name: Dry run cargo test (proof-of-sql) (std feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
+      - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
+        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
       - name: Run hello_world example
         run: cargo run --example hello_world --features="blitzar test"
       - name: Run posql_db example
