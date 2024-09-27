@@ -25,6 +25,8 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 pub enum CommittableColumn<'a> {
     /// Borrowed Bool column, mapped to `bool`.
     Boolean(&'a [bool]),
+    /// Borrowed TinyInt column, mapped to `i8`.
+    TinyInt(&'a [i8]),
     /// Borrowed SmallInt column, mapped to `i16`.
     SmallInt(&'a [i16]),
     /// Borrowed SmallInt column, mapped to `i32`.
@@ -99,6 +101,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
+            Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),

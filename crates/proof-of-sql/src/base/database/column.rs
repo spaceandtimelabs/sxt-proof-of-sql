@@ -30,6 +30,8 @@ use serde::{Deserialize, Serialize};
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
     Boolean(&'a [bool]),
+    /// i8 columns
+    TinyInt(&'a [i8]),
     /// i16 columns
     SmallInt(&'a [i16]),
     /// i32 columns
@@ -59,6 +61,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
@@ -75,6 +78,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
+            Self::TinyInt(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
             Self::BigInt(col) => col.len(),
@@ -172,6 +176,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
         (index < self.len()).then_some(match self {
             Self::Boolean(col) => S::from(col[index]),
+            Self::TinyInt(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
             Self::BigInt(col) => S::from(col[index]),
@@ -210,6 +215,9 @@ pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
     Boolean,
+    /// Mapped to i8
+    #[serde(alias = "TINYINT", alias = "tinyint")]
+    TinyInt,
     /// Mapped to i16
     #[serde(alias = "SMALLINT", alias = "smallint")]
     SmallInt,
@@ -300,6 +308,7 @@ impl ColumnType {
     /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
     pub fn precision_value(&self) -> Option<u8> {
         match self {
+            Self::TinyInt => Some(1_u8),
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
             Self::BigInt => Some(19_u8),
@@ -316,7 +325,12 @@ impl ColumnType {
     pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
-            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::Scalar => Some(0),
             Self::Boolean | Self::VarChar => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
