@@ -22,7 +22,6 @@ use bumpalo::Bump;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{Identifier, ResourceId};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_correctly_fetch_the_query_result_schema() {
     let table_ref = TableRef::new(ResourceId::try_new("sxt", "sxt_tab").unwrap());

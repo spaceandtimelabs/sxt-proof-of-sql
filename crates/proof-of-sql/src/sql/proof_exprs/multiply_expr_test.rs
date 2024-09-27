@@ -21,7 +21,6 @@ use rand::{
 use rand_core::SeedableRng;
 
 // select a * 2 as a, c, b * 4.5 as b, d * 3  + 4.7 as d, e from sxt.t where d * 3.9 = 8.19
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_a_typical_multiply_query() {
     let data = owned_table([

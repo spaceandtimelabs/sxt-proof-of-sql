@@ -344,7 +344,6 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
         .unwrap_or(Ordering::Equal)
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod test {
     use super::*;

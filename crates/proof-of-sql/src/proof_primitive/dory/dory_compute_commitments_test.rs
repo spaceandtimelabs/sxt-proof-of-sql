@@ -9,7 +9,6 @@ use ark_std::test_rng;
 use num_traits::Zero;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_compute_a_dory_commitment_with_int128_values() {
     let public_parameters = PublicParameters::rand(5, &mut test_rng());

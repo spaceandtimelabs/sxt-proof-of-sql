@@ -21,7 +21,6 @@ use rand::{
 use rand_core::SeedableRng;
 
 // select a, c, b + 4 as res, d from sxt.t where a - b = 3
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_a_typical_add_subtract_query() {
     let data = owned_table([

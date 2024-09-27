@@ -4,7 +4,6 @@ use super::{
 use ark_std::UniformRand;
 use merlin::Transcript;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_prove_and_verify_an_eval_vmv_re() {
     let mut rng = test_rng();

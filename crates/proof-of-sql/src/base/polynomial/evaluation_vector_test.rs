@@ -3,7 +3,6 @@ use crate::base::{scalar::Curve25519Scalar, slice_ops};
 use ark_poly::MultilinearExtension;
 use num_traits::{One, Zero};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_compute_the_correct_evaluation_vector_for_a_small_example() {
     let mut v = [Curve25519Scalar::zero(); 2];

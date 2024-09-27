@@ -127,7 +127,6 @@ fn tamper_column<'a>(
     columns
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let data = owned_table([

@@ -3,7 +3,6 @@ use alloc::format;
 use num_bigint::BigInt;
 use num_traits::{Inv, One};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn test_dalek_interop_1() {
     let x = curve25519_dalek::scalar::Scalar::from(1u64);

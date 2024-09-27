@@ -5,7 +5,6 @@ use crate::base::{
 };
 use bumpalo::Bump;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_filter_columns() {
     let selection = vec![true, false, true, false, true];

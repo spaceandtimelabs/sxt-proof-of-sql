@@ -8,7 +8,6 @@ use crate::{
 use proof_of_sql_parser::intermediate_ast::OrderByDirection::{Asc, Desc};
 use rand::{seq::SliceRandom, Rng};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_transform_a_result_using_a_single_order_by_in_ascending_direction() {
     let table: OwnedTable<Curve25519Scalar> = owned_table([

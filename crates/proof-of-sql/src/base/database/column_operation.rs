@@ -893,7 +893,6 @@ where
     ))
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(test)]
 mod test {
     use super::*;

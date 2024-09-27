@@ -8,7 +8,6 @@ use crate::base::scalar::{Curve25519Scalar, Curve25519Scalar as S};
 use ark_std::UniformRand;
 use num_traits::{Inv, Zero};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn test_interpolate_uni_poly_for_random_polynomials() {
     let mut prng = ark_std::test_rng();

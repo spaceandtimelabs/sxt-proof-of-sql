@@ -16,7 +16,6 @@ use arrow::{
 use num_traits::Zero;
 use std::sync::Arc;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
     let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];

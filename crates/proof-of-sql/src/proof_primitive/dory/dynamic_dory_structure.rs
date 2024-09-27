@@ -34,7 +34,6 @@
 ///
 /// Note: when row = 1, this correctly returns 0, even though no data belongs there.
 #[cfg(test)]
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 pub(crate) fn row_start_index(row: usize) -> usize {
     let width_of_row = ((2 * row + 4) / 3).next_power_of_two();
     width_of_row * (row - width_of_row / 2)

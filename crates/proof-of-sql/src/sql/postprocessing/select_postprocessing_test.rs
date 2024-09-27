@@ -7,7 +7,6 @@ use crate::{
 };
 use proof_of_sql_parser::utility::*;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_filter_out_owned_table_columns() {
     let table: OwnedTable<Curve25519Scalar> = owned_table([

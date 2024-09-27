@@ -205,7 +205,6 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     }
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;

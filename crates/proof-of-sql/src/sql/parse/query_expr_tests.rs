@@ -42,7 +42,6 @@ fn invalid_query_to_provable_ast(table: TableRef, query: &str, accessor: &TestSc
 }
 
 #[cfg(test)]
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 pub fn schema_accessor_from_table_ref_with_schema(
     table: TableRef,
     schema: IndexMap<Identifier, ColumnType>,

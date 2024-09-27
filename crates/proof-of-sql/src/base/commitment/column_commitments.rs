@@ -329,7 +329,6 @@ impl<C> FromIterator<(Identifier, ColumnCommitmentMetadata, C)> for ColumnCommit
     }
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(all(test, feature = "blitzar"))]
 mod tests {
     use super::*;

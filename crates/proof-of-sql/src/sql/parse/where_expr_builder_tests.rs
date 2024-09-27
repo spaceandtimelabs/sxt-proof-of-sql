@@ -84,7 +84,6 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     column_mapping
 }
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_directly_check_whether_boolean_column_is_true() {
     let column_mapping = get_column_mappings_for_testing();

@@ -6,7 +6,6 @@ use crate::base::commitment::{commitment_evaluation_proof_test::*, CommitmentEva
 use ark_std::UniformRand;
 use merlin::Transcript;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn test_simple_ipa() {
     let public_parameters = PublicParameters::rand(4, &mut test_rng());

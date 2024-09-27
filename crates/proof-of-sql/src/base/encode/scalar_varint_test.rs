@@ -5,7 +5,6 @@ use super::scalar_varint::{
 use crate::base::{encode::U256, scalar::Curve25519Scalar};
 use alloc::vec;
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn small_scalars_are_encoded_as_positive_varints_and_consume_few_bytes() {
     assert!(scalar_varint_size(&Curve25519Scalar::from(0_u64)) == 1);

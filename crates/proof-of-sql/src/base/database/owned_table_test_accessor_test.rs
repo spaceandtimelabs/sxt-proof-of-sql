@@ -11,7 +11,6 @@ use blitzar::proof::InnerProductProof;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_query_the_length_of_a_table() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());

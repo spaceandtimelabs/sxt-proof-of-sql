@@ -6,7 +6,6 @@ use crate::{
     sql::postprocessing::{apply_postprocessing_steps, test_utility::*},
 };
 
-#[cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_positive_limit_value() {
     let limit = 3_usize;
