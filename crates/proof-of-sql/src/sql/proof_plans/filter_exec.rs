@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
+pub struct OstensibleFilterExecution<C: Commitment, H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
     /// TODO: add docs
@@ -39,7 +39,7 @@ pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExecution<C, H> {
     /// Creates a new filter expression.
     pub fn new(
         aliased_results: Vec<AliasedDynProofExpr<C>>,
@@ -55,9 +55,9 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExecution<C, H>
 where
-    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExecution<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -144,7 +144,7 @@ where
 }
 
 /// Alias for a filter expression with a honest prover.
-pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
+pub type FilterExec<C> = OstensibleFilterExecution<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]

@@ -1,4 +1,4 @@
-use super::{filter_exec::prove_filter, OstensibleFilterExec};
+use super::{filter_exec::prove_filter, OstensibleFilterExecution};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
@@ -27,7 +27,7 @@ use num_traits::One;
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
+type DishonestFilterExec<C> = OstensibleFilterExecution<C, Dishonest>;
 
 impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     #[tracing::instrument(
