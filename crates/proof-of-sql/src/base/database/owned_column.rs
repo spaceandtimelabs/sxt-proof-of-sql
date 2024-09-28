@@ -153,10 +153,8 @@ impl<S: Scalar> OwnedColumn<S> {
                     .iter()
                     .map(|s| -> Result<i8, _> { TryInto::<i8>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
-                    .map_err(|_| {
-                        OwnedColumnError::ScalarConversionError(
-                            "Overflow in scalar conversions".to_string(),
-                        )
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
             ColumnType::SmallInt => Ok(OwnedColumn::SmallInt(

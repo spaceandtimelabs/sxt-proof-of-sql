@@ -236,9 +236,9 @@ impl ArrayRefExt for ArrayRef {
                 if let Some(array) = self.as_any().downcast_ref::<Int8Array>() {
                     Ok(Column::TinyInt(&array.values()[range.start..range.end]))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Int16 => {
@@ -777,7 +777,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -864,7 +864,7 @@ mod tests {
         let result0 = array0.to_column::<DoryScalar>(&alloc, &(2..3), None);
         assert_eq!(
             result0,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 3))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
         );
 
         let array1: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));
@@ -897,7 +897,7 @@ mod tests {
         let result0 = array0.to_column::<DoryScalar>(&alloc, &(5..5), None);
         assert_eq!(
             result0,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 5))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
         );
 
         let array1: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));

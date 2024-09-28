@@ -1410,7 +1410,7 @@ mod test {
         let result = lhs.clone() + rhs.clone();
         assert!(matches!(
             result,
-            Err(ColumnOperationError::DifferentColumnLength(_, _))
+            Err(ColumnOperationError::DifferentColumnLength { .. })
         ));
 
         let lhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![1, 2, 3]);
