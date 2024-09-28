@@ -23,6 +23,11 @@ impl Identifier {
     }
 
     /// An alias for [`Identifier::from_str`], provided for convenience.
+    ///
+    /// # Errors
+    /// Returns a `ParseResult::Err` if the input string does not meet the requirements for a valid identifier.
+    /// This may include errors such as invalid characters or incorrect formatting based on the specific rules
+    /// that `Identifier::from_str` enforces.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }

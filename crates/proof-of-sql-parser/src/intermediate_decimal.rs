@@ -47,22 +47,28 @@ pub struct IntermediateDecimal {
 
 impl IntermediateDecimal {
     /// Get the integer part of the fixed-point representation of this intermediate decimal.
-    #[must_use] pub fn value(&self) -> BigDecimal {
+    #[must_use]
+    pub fn value(&self) -> BigDecimal {
         self.value.clone()
     }
 
     /// Get the precision of the fixed-point representation of this intermediate decimal.
-    #[must_use] pub fn precision(&self) -> u8 {
+    #[must_use]
+    pub fn precision(&self) -> u8 {
         self.value.digits() as u8
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
-    #[must_use] pub fn scale(&self) -> i8 {
+    #[must_use]
+    pub fn scale(&self) -> i8 {
         self.value.fractional_digit_count() as i8
     }
 
     /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
     /// Returns an error if the conversion cannot be performed due to precision or scale constraints.
+    ///
+    /// # Errors
+    /// Returns an `IntermediateDecimalError::LossyCast` error if the number of digits in the scaled decimal exceeds the specified precision.
     pub fn try_into_bigint_with_precision_and_scale(
         &self,
         precision: u8,
@@ -229,7 +235,10 @@ mod tests {
         let valid_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("9223372036854775807").unwrap(),
         };
-        assert_eq!(i64::try_from(valid_decimal), Ok(9_223_372_036_854_775_807_i64));
+        assert_eq!(
+            i64::try_from(valid_decimal),
+            Ok(9_223_372_036_854_775_807_i64)
+        );
 
         let valid_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("123.000").unwrap(),

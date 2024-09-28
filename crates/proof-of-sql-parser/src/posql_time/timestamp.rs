@@ -48,6 +48,13 @@ impl PoSQLTimestamp {
     ///    - The `from_offset` method is used to determine whether the timezone should be represented
     ///      as `Utc` or `FixedOffset`. This function simplifies the decision based on the offset value.
     ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Parsing Error**: Returns `PoSQLTimestampError::ParsingError` if the input string does not conform
+    ///   to the RFC 3339 format or if the timestamp cannot be parsed due to invalid formatting.
+    ///   This error includes the original parsing error message for further details.
+    ///
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
@@ -96,6 +103,17 @@ impl PoSQLTimestamp {
     /// **Unix Epoch Time Parsing**:
     ///    - Since Unix epoch timestamps don't inherently carry timezone information,
     ///      any Unix time parsed directly from an integer is assumed to be in UTC.
+    ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Ambiguous Time**: Returns `PoSQLTimestampError::Ambiguous` if the provided epoch time
+    ///   corresponds to a time that is ambiguous (e.g., during a daylight saving time change where
+    ///   the local time could correspond to two different UTC times).
+    ///
+    /// - **Non-Existent Local Time**: Returns `PoSQLTimestampError::LocalTimeDoesNotExist` if the
+    ///   provided epoch time corresponds to a time that does not exist in the local time zone (e.g.,
+    ///   during a daylight saving time change where a certain local time is skipped).
     ///
     /// # Examples
     /// ```
