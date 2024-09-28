@@ -1,6 +1,7 @@
 use alloc::string::String;
 use snafu::Snafu;
 
+#[allow(clippy::module_name_repetitions)]
 /// Errors encountered during the parsing process
 #[derive(Debug, Snafu, Eq, PartialEq)]
 pub enum ParseError {

@@ -12,6 +12,7 @@ use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
+#[allow(clippy::module_name_repetitions)]
 /// Errors related to the processing of decimal values in proof-of-sql
 #[derive(Snafu, Debug, PartialEq)]
 pub enum IntermediateDecimalError {

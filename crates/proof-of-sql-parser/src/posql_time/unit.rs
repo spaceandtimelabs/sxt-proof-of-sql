@@ -2,6 +2,7 @@ use super::PoSQLTimestampError;
 use core::fmt;
 use serde::{Deserialize, Serialize};
 
+#[allow(clippy::module_name_repetitions)]
 /// An intermediate type representing the time units from a parsed query
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PoSQLTimeUnit {
