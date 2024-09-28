@@ -97,3 +97,5 @@ mod filter_util_test;
 pub(crate) mod group_by_util;
 #[cfg(test)]
 mod group_by_util_test;
+mod nullable_column;
+mod owned_nullable_column;
