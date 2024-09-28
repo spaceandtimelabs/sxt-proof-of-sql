@@ -101,10 +101,11 @@ where
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
+        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
+            ProofError::VerificationError {
+                error: "invalid indexes",
+            },
+        )?;
         // 4. filtered_columns
         let filtered_columns_evals = Vec::from_iter(
             repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
@@ -229,7 +230,11 @@ fn verify_filter<C: Commitment>(
 
     let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
         Some(eval) => eval,
-        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
+        None => {
+            return Err(ProofError::VerificationError {
+                error: "Result indexes not valid.",
+            })
+        }
     };
 
     let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);

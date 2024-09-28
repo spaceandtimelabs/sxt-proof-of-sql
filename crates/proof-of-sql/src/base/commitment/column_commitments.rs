@@ -15,22 +15,30 @@ use alloc::{
 use core::{iter, slice};
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot create commitments with duplicate identifier.
-#[derive(Debug, Error)]
-#[error("cannot create commitments with duplicate identifier: {0}")]
-pub struct DuplicateIdentifiers(String);
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create commitments with duplicate identifier: {id}"))]
+pub struct DuplicateIdentifiers {
+    id: String,
+}
 
 /// Errors that can occur when attempting to append rows to ColumnCommitments.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendColumnCommitmentsError {
     /// Metadata between new and old columns are mismatched.
-    #[error(transparent)]
-    Mismatch(#[from] ColumnCommitmentsMismatch),
+    #[snafu(transparent)]
+    Mismatch {
+        /// The underlying source error
+        source: ColumnCommitmentsMismatch,
+    },
     /// New columns have duplicate identifiers.
-    #[error(transparent)]
-    DuplicateIdentifiers(#[from] DuplicateIdentifiers),
+    #[snafu(transparent)]
+    DuplicateIdentifiers {
+        /// The underlying source error
+        source: DuplicateIdentifiers,
+    },
 }
 
 /// Commitments for a collection of columns with some metadata.
@@ -120,7 +128,9 @@ impl<C: Commitment> ColumnCommitments<C> {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -170,7 +180,9 @@ impl<C: Commitment> ColumnCommitments<C> {
                 if unique_identifiers.insert(identifier) {
                     Ok((identifier, column))
                 } else {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -218,7 +230,9 @@ impl<C: Commitment> ColumnCommitments<C> {
             .into_iter()
             .map(|(identifier, column)| {
                 if self.column_metadata.contains_key(identifier) {
-                    Err(DuplicateIdentifiers(identifier.to_string()))
+                    Err(DuplicateIdentifiers {
+                        id: identifier.to_string(),
+                    })
                 } else {
                     Ok((identifier, column))
                 }
@@ -471,7 +485,10 @@ mod tests {
             0,
             &(),
         );
-        assert!(matches!(from_columns_result, Err(DuplicateIdentifiers(_))));
+        assert!(matches!(
+            from_columns_result,
+            Err(DuplicateIdentifiers { .. })
+        ));
 
         let mut existing_column_commitments =
             ColumnCommitments::<RistrettoPoint>::try_from_columns_with_offset(
@@ -488,7 +505,7 @@ mod tests {
             .try_extend_columns_with_offset([(&duplicate_identifier_a, &empty_column)], 0, &());
         assert!(matches!(
             extend_with_existing_column_result,
-            Err(DuplicateIdentifiers(_))
+            Err(DuplicateIdentifiers { .. })
         ));
 
         let extend_with_duplicate_columns_result = existing_column_commitments
@@ -502,7 +519,7 @@ mod tests {
             );
         assert!(matches!(
             extend_with_duplicate_columns_result,
-            Err(DuplicateIdentifiers(_))
+            Err(DuplicateIdentifiers { .. })
         ));
 
         let append_result = existing_column_commitments.try_append_rows_with_offset(
@@ -516,7 +533,7 @@ mod tests {
         );
         assert!(matches!(
             append_result,
-            Err(AppendColumnCommitmentsError::DuplicateIdentifiers(_))
+            Err(AppendColumnCommitmentsError::DuplicateIdentifiers { .. })
         ));
     }
 
@@ -629,9 +646,9 @@ mod tests {
         ]);
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_type.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_)
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. }
+            })
         ));
 
         let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table([
@@ -644,18 +661,18 @@ mod tests {
         );
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_id.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::Identifier(..)
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::Identifier { .. }
+            })
         ));
 
         let table_diff_len: OwnedTable<Curve25519Scalar> =
             owned_table([bigint("column_a", [5, 6, 7, 8])]);
         assert!(matches!(
             base_commitments.try_append_rows_with_offset(table_diff_len.inner_table(), 4, &()),
-            Err(AppendColumnCommitmentsError::Mismatch(
-                ColumnCommitmentsMismatch::NumColumns
-            ))
+            Err(AppendColumnCommitmentsError::Mismatch {
+                source: ColumnCommitmentsMismatch::NumColumns
+            })
         ));
     }
 
@@ -770,7 +787,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_type),
-            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
+            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. })
         ));
 
         let table_diff_id: OwnedTable<Curve25519Scalar> = owned_table([
@@ -782,7 +799,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             base_commitments.clone().try_add(commitments_diff_id),
-            Err(ColumnCommitmentsMismatch::Identifier(..))
+            Err(ColumnCommitmentsMismatch::Identifier { .. })
         ));
 
         let table_diff_len: OwnedTable<Curve25519Scalar> =
@@ -898,7 +915,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_type),
-            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_))
+            Err(ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. })
         ));
 
         let table_diff_id: OwnedTable<Curve25519Scalar> =
@@ -908,7 +925,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             minuend_commitments.clone().try_sub(commitments_diff_id),
-            Err(ColumnCommitmentsMismatch::Identifier(..))
+            Err(ColumnCommitmentsMismatch::Identifier { .. })
         ));
 
         let table_diff_len: OwnedTable<Curve25519Scalar> =

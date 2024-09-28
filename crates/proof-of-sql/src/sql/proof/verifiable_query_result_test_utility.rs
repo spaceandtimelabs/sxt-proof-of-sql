@@ -4,8 +4,9 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::{Commitment, CommittableColumn},
         database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::Curve25519Scalar,
     },
     sql::proof::Indexes,
 };
@@ -42,10 +43,12 @@ pub fn exercise_verification(
     }
 
     // try changing intermediate commitments
-    let commit_p = compute_commitment_for_testing(
-        &[353453245u64, 93402346u64][..], // some arbitrary values
+    let commit_p = RistrettoPoint::compute_commitments(
+        &[CommittableColumn::BigInt(&[353453245i64, 93402346i64])],
         0_usize,
-    );
+        &(),
+    )[0];
+
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;

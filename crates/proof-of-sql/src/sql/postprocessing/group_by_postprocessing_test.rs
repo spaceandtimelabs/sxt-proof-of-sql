@@ -19,7 +19,7 @@ fn we_cannot_have_invalid_group_bys() {
     let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
-        Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_))
+        Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. })
     ));
 
     // Nested aggregation
@@ -27,7 +27,7 @@ fn we_cannot_have_invalid_group_bys() {
     let res = GroupByPostprocessing::try_new(vec![ident("a")], vec![aliased_expr(expr, "res")]);
     assert!(matches!(
         res,
-        Err(PostprocessingError::NestedAggregationInGroupByClause(_))
+        Err(PostprocessingError::NestedAggregationInGroupByClause { .. })
     ));
 }
 

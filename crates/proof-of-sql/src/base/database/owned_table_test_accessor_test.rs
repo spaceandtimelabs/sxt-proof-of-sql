@@ -3,10 +3,12 @@ use super::{
     OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
 use crate::base::{
+    commitment::{Commitment, CommittableColumn},
     database::owned_table_utility::*,
-    scalar::{compute_commitment_for_testing, Curve25519Scalar},
+    scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
@@ -130,7 +132,11 @@ fn we_can_access_the_commitments_of_table_columns() {
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        compute_commitment_for_testing(&[4, 5, 6], 0_usize)
+        RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&[4i64, 5, 6][..])],
+            0_usize,
+            &()
+        )[0]
     );
 
     let data2 = owned_table([bigint("a", [1, 2, 3, 4]), bigint("b", [4, 5, 6, 5])]);
@@ -139,13 +145,21 @@ fn we_can_access_the_commitments_of_table_columns() {
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        compute_commitment_for_testing(&[1, 2, 3], 0_usize)
+        RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&[1i64, 2, 3][..])],
+            0_usize,
+            &()
+        )[0]
     );
 
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        compute_commitment_for_testing(&[4, 5, 6, 5], 0_usize)
+        RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&[4i64, 5, 6, 5][..])],
+            0_usize,
+            &()
+        )[0]
     );
 }
 

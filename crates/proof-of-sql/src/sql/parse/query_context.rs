@@ -77,9 +77,9 @@ impl QueryContext {
 
         if self.in_agg_scope {
             // TODO: Disable this once we support nested aggregations
-            return Err(ConversionError::InvalidExpression(
-                "nested aggregations are not supported".to_string(),
-            ));
+            return Err(ConversionError::InvalidExpression {
+                expression: "nested aggregations are not supported".to_string(),
+            });
         }
 
         self.agg_counter += 1;
@@ -147,7 +147,9 @@ impl QueryContext {
             .iter()
             .find(|group_column| *group_column == column)
             .map(|_| true)
-            .ok_or(ConversionError::InvalidGroupByColumnRef(column.to_string()))
+            .ok_or(ConversionError::InvalidGroupByColumnRef {
+                column: column.to_string(),
+            })
     }
 
     pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
@@ -162,7 +164,9 @@ impl QueryContext {
                 .sum::<u64>()
                 != 1
             {
-                return Err(ConversionError::DuplicateResultAlias(col.alias.to_string()));
+                return Err(ConversionError::DuplicateResultAlias {
+                    alias: col.alias.to_string(),
+                });
             }
         }
 
@@ -171,9 +175,9 @@ impl QueryContext {
             && self.agg_counter > 0
             && self.first_result_col_out_agg_scope.is_some()
         {
-            return Err(ConversionError::InvalidGroupByColumnRef(
-                self.first_result_col_out_agg_scope.unwrap().to_string(),
-            ));
+            return Err(ConversionError::InvalidGroupByColumnRef {
+                column: self.first_result_col_out_agg_scope.unwrap().to_string(),
+            });
         }
 
         Ok(&self.res_aliased_exprs)
@@ -185,9 +189,9 @@ impl QueryContext {
             self.res_aliased_exprs
                 .iter()
                 .find(|col| col.alias == by_expr.expr)
-                .ok_or(ConversionError::InvalidOrderBy(
-                    by_expr.expr.as_str().to_string(),
-                ))?;
+                .ok_or(ConversionError::InvalidOrderBy {
+                    alias: by_expr.expr.as_str().to_string(),
+                })?;
         }
 
         Ok(self.order_by_exprs.clone())
@@ -222,7 +226,9 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
         let table = value.table.map(|table_ref| TableExpr { table_ref }).ok_or(
-            ConversionError::InvalidExpression("QueryContext has no table_ref".to_owned()),
+            ConversionError::InvalidExpression {
+                expression: "QueryContext has no table_ref".to_owned(),
+            },
         )?;
         let resource_id = table.table_ref.resource_id();
         let group_by_exprs = value
@@ -232,10 +238,10 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                 value
                     .column_mapping
                     .get(expr)
-                    .ok_or(ConversionError::MissingColumn(
-                        Box::new(*expr),
-                        Box::new(resource_id),
-                    ))
+                    .ok_or(ConversionError::MissingColumn {
+                        identifier: Box::new(*expr),
+                        resource_id: Box::new(resource_id),
+                    })
                     .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
             })
             .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;

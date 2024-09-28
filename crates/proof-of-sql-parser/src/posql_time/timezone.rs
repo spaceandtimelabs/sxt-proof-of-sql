@@ -45,7 +45,9 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                         let total_seconds = sign * ((hours * 3600) + (minutes * 60));
                         Ok(PoSQLTimeZone::FixedOffset(total_seconds))
                     }
-                    _ => Err(PoSQLTimestampError::InvalidTimezone(tz.to_string())),
+                    _ => Err(PoSQLTimestampError::InvalidTimezone {
+                        timezone: tz.to_string(),
+                    }),
                 }
             }
             None => Ok(PoSQLTimeZone::Utc),

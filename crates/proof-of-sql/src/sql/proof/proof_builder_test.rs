@@ -1,9 +1,10 @@
 use super::{ProofBuilder, ProvableQueryResult, SumcheckRandomScalars};
 use crate::{
     base::{
+        commitment::{Commitment, CommittableColumn},
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::Curve25519Scalar,
     },
     sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
@@ -28,7 +29,11 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&mle2[..])],
+            offset_generators,
+            &()
+        )[0]]
     );
 }
 
@@ -43,7 +48,11 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&mle2[..])],
+            offset_generators,
+            &()
+        )[0]]
     );
 }
 

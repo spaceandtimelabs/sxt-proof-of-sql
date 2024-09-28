@@ -10,30 +10,49 @@ use arrow::{
 };
 use bumpalo::Bump;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use snafu::Snafu;
 use std::ops::Range;
-use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Snafu, Debug, PartialEq)]
 /// Errors caused by conversions between Arrow and owned types.
 pub enum ArrowArrayToColumnConversionError {
     /// This error occurs when an array contains a non-zero number of null elements
-    #[error("arrow array must not contain nulls")]
+    #[snafu(display("arrow array must not contain nulls"))]
     ArrayContainsNulls,
     /// This error occurs when trying to convert from an unsupported arrow type.
-    #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
-    UnsupportedType(DataType),
+    #[snafu(display(
+        "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
+    ))]
+    UnsupportedType {
+        /// The unsupported datatype
+        datatype: DataType,
+    },
     /// Variant for decimal errors
-    #[error(transparent)]
-    DecimalError(#[from] crate::base::math::decimal::DecimalError),
+    #[snafu(transparent)]
+    DecimalError {
+        /// The underlying source error
+        source: crate::base::math::decimal::DecimalError,
+    },
     /// This error occurs when trying to convert from an i256 to a Scalar.
-    #[error("decimal conversion failed: {0}")]
-    DecimalConversionFailed(i256),
+    #[snafu(display("decimal conversion failed: {number}"))]
+    DecimalConversionFailed {
+        /// The `i256` value for which conversion is attempted
+        number: i256,
+    },
     /// This error occurs when the specified range is out of the bounds of the array.
-    #[error("index out of bounds: the len is {0} but the index is {1}")]
-    IndexOutOfBounds(usize, usize),
+    #[snafu(display("index out of bounds: the len is {len} but the index is {index}"))]
+    IndexOutOfBounds {
+        /// The actual length of the array
+        len: usize,
+        /// The out of bounds index requested
+        index: usize,
+    },
     /// Using TimeError to handle all time-related errors
-    #[error(transparent)]
-    TimestampConversionError(#[from] PoSQLTimestampError),
+    #[snafu(transparent)]
+    TimestampConversionError {
+        /// The underlying source error
+        source: PoSQLTimestampError,
+    },
 }
 
 /// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
@@ -114,7 +133,9 @@ impl ArrayRefExt for ArrayRef {
                             .iter()
                             .map(|v| {
                                 convert_i256_to_scalar(v).ok_or(
-                                    ArrowArrayToColumnConversionError::DecimalConversionFailed(*v),
+                                    ArrowArrayToColumnConversionError::DecimalConversionFailed {
+                                        number: *v,
+                                    },
                                 )
                             })
                             .collect()
@@ -151,9 +172,9 @@ impl ArrayRefExt for ArrayRef {
         };
 
         result.unwrap_or_else(|| {
-            Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                self.data_type().clone(),
-            ))
+            Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                datatype: self.data_type().clone(),
+            })
         })
     }
 
@@ -188,10 +209,10 @@ impl ArrayRefExt for ArrayRef {
 
         // Before performing any operations, check if the range is out of bounds
         if range.end > self.len() {
-            return Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(
-                self.len(),
-                range.end,
-            ));
+            return Err(ArrowArrayToColumnConversionError::IndexOutOfBounds {
+                len: self.len(),
+                index: range.end,
+            });
         }
         // Match supported types and attempt conversion
         match self.data_type() {
@@ -206,9 +227,9 @@ impl ArrayRefExt for ArrayRef {
                     let values = alloc.alloc_slice_fill_with(range.len(), |i| boolean_slice[i]);
                     Ok(Column::Boolean(values))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Int8 => {
@@ -224,36 +245,36 @@ impl ArrayRefExt for ArrayRef {
                 if let Some(array) = self.as_any().downcast_ref::<Int16Array>() {
                     Ok(Column::SmallInt(&array.values()[range.start..range.end]))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Int32 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int32Array>() {
                     Ok(Column::Int(&array.values()[range.start..range.end]))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Int64 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int64Array>() {
                     Ok(Column::BigInt(&array.values()[range.start..range.end]))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Decimal128(38, 0) => {
                 if let Some(array) = self.as_any().downcast_ref::<Decimal128Array>() {
                     Ok(Column::Int128(&array.values()[range.start..range.end]))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             DataType::Decimal256(precision, scale) if *precision <= 75 => {
@@ -262,7 +283,9 @@ impl ArrayRefExt for ArrayRef {
                     let scalars = alloc.alloc_slice_fill_default(i256_slice.len());
                     for (scalar, value) in scalars.iter_mut().zip(i256_slice) {
                         *scalar = convert_i256_to_scalar(value).ok_or(
-                            ArrowArrayToColumnConversionError::DecimalConversionFailed(*value),
+                            ArrowArrayToColumnConversionError::DecimalConversionFailed {
+                                number: *value,
+                            },
                         )?;
                     }
                     Ok(Column::Decimal75(
@@ -271,9 +294,9 @@ impl ArrayRefExt for ArrayRef {
                         scalars,
                     ))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
             // Handle all possible TimeStamp TimeUnit instances
@@ -286,9 +309,9 @@ impl ArrayRefExt for ArrayRef {
                             &array.values()[range.start..range.end],
                         ))
                     } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                            self.data_type().clone(),
-                        ))
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                            datatype: self.data_type().clone(),
+                        })
                     }
                 }
                 ArrowTimeUnit::Millisecond => {
@@ -299,9 +322,9 @@ impl ArrayRefExt for ArrayRef {
                             &array.values()[range.start..range.end],
                         ))
                     } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                            self.data_type().clone(),
-                        ))
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                            datatype: self.data_type().clone(),
+                        })
                     }
                 }
                 ArrowTimeUnit::Microsecond => {
@@ -312,9 +335,9 @@ impl ArrayRefExt for ArrayRef {
                             &array.values()[range.start..range.end],
                         ))
                     } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                            self.data_type().clone(),
-                        ))
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                            datatype: self.data_type().clone(),
+                        })
                     }
                 }
                 ArrowTimeUnit::Nanosecond => {
@@ -325,9 +348,9 @@ impl ArrayRefExt for ArrayRef {
                             &array.values()[range.start..range.end],
                         ))
                     } else {
-                        Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                            self.data_type().clone(),
-                        ))
+                        Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                            datatype: self.data_type().clone(),
+                        })
                     }
                 }
             },
@@ -346,14 +369,14 @@ impl ArrayRefExt for ArrayRef {
 
                     Ok(Column::VarChar((vals, scals)))
                 } else {
-                    Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                        self.data_type().clone(),
-                    ))
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
                 }
             }
-            data_type => Err(ArrowArrayToColumnConversionError::UnsupportedType(
-                data_type.clone(),
-            )),
+            data_type => Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                datatype: data_type.clone(),
+            }),
         }
     }
 }
@@ -429,7 +452,7 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(3..5), None);
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 5))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 5 })
         );
     }
 
@@ -456,7 +479,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(2..4), None);
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -579,7 +602,7 @@ mod tests {
         let result = array.to_column::<DoryScalar>(&alloc, &(2..4), None);
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -626,7 +649,7 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(2..4), None);
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -698,7 +721,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -767,7 +790,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -818,7 +841,7 @@ mod tests {
 
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(3, 4))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
         );
     }
 
@@ -848,21 +871,21 @@ mod tests {
         let result1 = array1.to_column::<DoryScalar>(&alloc, &(2..3), None);
         assert_eq!(
             result1,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 3))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
         );
 
         let array2: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![1, -3]));
         let result2 = array2.to_column::<DoryScalar>(&alloc, &(2..3), None);
         assert_eq!(
             result2,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 3))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
         );
 
         let array3: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         let result3 = array3.to_column::<DoryScalar>(&alloc, &(2..3), None);
         assert_eq!(
             result3,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 3))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
         );
     }
 
@@ -881,21 +904,21 @@ mod tests {
         let result1 = array1.to_column::<Curve25519Scalar>(&alloc, &(5..5), None);
         assert_eq!(
             result1,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 5))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
         );
 
         let array2: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![1, -3]));
         let result2 = array2.to_column::<DoryScalar>(&alloc, &(5..5), None);
         assert_eq!(
             result2,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 5))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
         );
 
         let array3: ArrayRef = Arc::new(arrow::array::Int64Array::from(vec![1, -3]));
         let result3 = array3.to_column::<Curve25519Scalar>(&alloc, &(5..5), None);
         assert_eq!(
             result3,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 5))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 5 })
         );
     }
 
@@ -987,7 +1010,7 @@ mod tests {
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
         assert_eq!(
             result,
-            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds(2, 3))
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 2, index: 3 })
         );
     }
 
