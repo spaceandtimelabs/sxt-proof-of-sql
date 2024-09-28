@@ -1,11 +1,11 @@
 use crate::base::{map::IndexMap, scalar::Scalar};
+use alloc::{rc::Rc, vec::Vec};
 /**
  * Adopted from arkworks
  *
  * See `third_party/license/arkworks.LICENSE`
  */
-use std::cmp::max;
-use std::{rc::Rc, vec::Vec};
+use core::cmp::max;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///

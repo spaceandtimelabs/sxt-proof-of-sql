@@ -8,6 +8,7 @@ use crate::{
     },
     sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
+use alloc::sync::Arc;
 #[cfg(feature = "arrow")]
 use arrow::{
     array::Int64Array,
@@ -16,7 +17,6 @@ use arrow::{
 };
 use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
-use std::sync::Arc;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {

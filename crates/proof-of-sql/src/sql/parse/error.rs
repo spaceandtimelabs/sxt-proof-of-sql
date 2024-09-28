@@ -2,24 +2,38 @@ use crate::base::{
     database::{ColumnOperationError, ColumnType},
     math::decimal::DecimalError,
 };
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+};
+use core::result::Result;
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
     ResourceId,
 };
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors from converting an intermediate AST into a provable AST.
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum ConversionError {
-    #[error("Column '{0}' was not found in table '{1}'")]
+    #[snafu(display("Column '{identifier}' was not found in table '{resource_id}'"))]
     /// The column is missing in the table
-    MissingColumn(Box<Identifier>, Box<ResourceId>),
+    MissingColumn {
+        /// The missing column identifier
+        identifier: Box<Identifier>,
+        /// The table resource id
+        resource_id: Box<ResourceId>,
+    },
 
-    #[error("Column '{0}' was not found")]
+    #[snafu(display("Column '{identifier}' was not found"))]
     /// The column is missing (without table information)
-    MissingColumnWithoutTable(Box<Identifier>),
+    MissingColumnWithoutTable {
+        /// The missing column identifier
+        identifier: Box<Identifier>,
+    },
 
-    #[error("Expected '{expected}' but found '{actual}'")]
+    #[snafu(display("Expected '{expected}' but found '{actual}'"))]
     /// Invalid data type received
     InvalidDataType {
         /// Expected data type
@@ -28,62 +42,111 @@ pub enum ConversionError {
         actual: ColumnType,
     },
 
-    #[error("Left side has '{1}' type but right side has '{0}' type")]
+    #[snafu(display("Left side has '{left_type}' type but right side has '{right_type}' type"))]
     /// Data types do not match
-    DataTypeMismatch(String, String),
+    DataTypeMismatch {
+        /// The left side datatype
+        left_type: String,
+        /// The right side datatype
+        right_type: String,
+    },
 
-    #[error("Columns have different lengths: {0} != {1}")]
+    #[snafu(display("Columns have different lengths: {len_a} != {len_b}"))]
     /// Two columns do not have the same length
-    DifferentColumnLength(usize, usize),
+    DifferentColumnLength {
+        /// The length of the first column
+        len_a: usize,
+        /// The length of the second column
+        len_b: usize,
+    },
 
-    #[error("Multiple result columns with the same alias '{0}' have been found.")]
+    #[snafu(display("Multiple result columns with the same alias '{alias}' have been found."))]
     /// Duplicate alias in result columns
-    DuplicateResultAlias(String),
+    DuplicateResultAlias {
+        /// The duplicate alias
+        alias: String,
+    },
 
-    #[error("A WHERE clause must has boolean type. It is currently of type '{0}'.")]
+    #[snafu(display(
+        "A WHERE clause must has boolean type. It is currently of type '{datatype}'."
+    ))]
     /// WHERE clause is not boolean
-    NonbooleanWhereClause(ColumnType),
+    NonbooleanWhereClause {
+        /// The actual datatype of the WHERE clause
+        datatype: ColumnType,
+    },
 
-    #[error("Invalid order by: alias '{0}' does not appear in the result expressions.")]
+    #[snafu(display(
+        "Invalid order by: alias '{alias}' does not appear in the result expressions."
+    ))]
     /// ORDER BY clause references a non-existent alias
-    InvalidOrderBy(String),
+    InvalidOrderBy {
+        /// The non-existent alias in the ORDER BY clause
+        alias: String,
+    },
 
-    #[error("Invalid group by: column '{0}' must appear in the group by expression.")]
+    #[snafu(display(
+        "Invalid group by: column '{column}' must appear in the group by expression."
+    ))]
     /// GROUP BY clause references a non-existent column
-    InvalidGroupByColumnRef(String),
+    InvalidGroupByColumnRef {
+        /// The non-existent column in the GROUP BY clause
+        column: String,
+    },
 
-    #[error("Invalid expression: {0}")]
+    #[snafu(display("Invalid expression: {expression}"))]
     /// General error for invalid expressions
-    InvalidExpression(String),
+    InvalidExpression {
+        /// The invalid expression error
+        expression: String,
+    },
 
-    #[error("Encountered parsing error: {0}")]
+    #[snafu(display("Encountered parsing error: {error}"))]
     /// General parsing error
-    ParseError(String),
+    ParseError {
+        /// The underlying error
+        error: String,
+    },
 
-    #[error(transparent)]
+    #[snafu(transparent)]
     /// Errors related to decimal operations
-    DecimalConversionError(#[from] DecimalError),
+    DecimalConversionError {
+        /// The underlying source error
+        source: DecimalError,
+    },
 
     /// Errors related to timestamp parsing
-    #[error("Timestamp conversion error: {0}")]
-    TimestampConversionError(#[from] PoSQLTimestampError),
+    #[snafu(context(false), display("Timestamp conversion error: {source}"))]
+    TimestampConversionError {
+        /// The underlying source error
+        source: PoSQLTimestampError,
+    },
 
     /// Errors related to column operations
-    #[error(transparent)]
-    ColumnOperationError(#[from] ColumnOperationError),
+    #[snafu(transparent)]
+    ColumnOperationError {
+        /// The underlying source error
+        source: ColumnOperationError,
+    },
 
     /// Errors related to postprocessing
-    #[error(transparent)]
-    PostprocessingError(#[from] crate::sql::postprocessing::PostprocessingError),
+    #[snafu(transparent)]
+    PostprocessingError {
+        /// The underlying source error
+        source: crate::sql::postprocessing::PostprocessingError,
+    },
 
-    #[error("Query not provable because: {0}")]
+    #[snafu(display("Query not provable because: {error}"))]
     /// Query requires unprovable feature
-    Unprovable(String),
+    Unprovable {
+        /// The underlying error
+        error: String,
+    },
 }
 
 impl From<String> for ConversionError {
     fn from(value: String) -> Self {
-        ConversionError::ParseError(value)
+        ConversionError::ParseError { error: value }
     }
 }
 
@@ -95,21 +158,23 @@ impl From<ConversionError> for String {
 
 impl From<IntermediateDecimalError> for ConversionError {
     fn from(err: IntermediateDecimalError) -> ConversionError {
-        ConversionError::DecimalConversionError(DecimalError::IntermediateDecimalConversionError(
-            err,
-        ))
+        ConversionError::DecimalConversionError {
+            source: DecimalError::IntermediateDecimalConversionError { source: err },
+        }
     }
 }
 
 impl ConversionError {
     /// Returns a `ConversionError::InvalidExpression` for non-numeric types used in numeric aggregation functions.
     pub fn non_numeric_expr_in_agg<S: Into<String>>(dtype: S, func: S) -> Self {
-        ConversionError::InvalidExpression(format!(
-            "cannot use expression of type '{}' with numeric aggregation function '{}'",
-            dtype.into().to_lowercase(),
-            func.into().to_lowercase()
-        ))
+        ConversionError::InvalidExpression {
+            expression: format!(
+                "cannot use expression of type '{}' with numeric aggregation function '{}'",
+                dtype.into().to_lowercase(),
+                func.into().to_lowercase()
+            ),
+        }
     }
 }
 
-pub type ConversionResult<T> = std::result::Result<T, ConversionError>;
+pub type ConversionResult<T> = Result<T, ConversionError>;

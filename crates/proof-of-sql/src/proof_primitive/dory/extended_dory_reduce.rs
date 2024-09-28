@@ -4,13 +4,13 @@ use super::{
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     DoryMessages, ProverSetup, VerifierSetup,
 };
-use merlin::Transcript;
+use crate::base::proof::Transcript;
 
 /// This is the prover side of the extended Dory-Reduce algorithm in section 3.2 & 4.2 of https://eprint.iacr.org/2020/1274.pdf.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: &mut ExtendedProverState,
     setup: &ProverSetup,
 ) {
@@ -45,7 +45,7 @@ pub fn extended_dory_reduce_prove(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_reduce_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: &mut ExtendedVerifierState,
     setup: &VerifierSetup,
 ) -> bool {

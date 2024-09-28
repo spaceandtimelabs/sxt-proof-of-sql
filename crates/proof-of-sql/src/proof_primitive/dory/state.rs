@@ -1,6 +1,7 @@
 #[cfg(test)]
 use super::ProverSetup;
 use super::{DeferredGT, G1Affine, G2Affine};
+use alloc::vec::Vec;
 #[cfg(test)]
 use ark_ec::pairing::Pairing;
 

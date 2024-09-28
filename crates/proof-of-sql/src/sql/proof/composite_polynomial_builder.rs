@@ -4,10 +4,11 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, rc::Rc, vec, vec::Vec};
+use core::{ffi::c_void, iter};
 use num_traits::{One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
-use std::{ffi::c_void, rc::Rc};
 
 // Build up a composite polynomial from individual MLE expressions
 pub struct CompositePolynomialBuilder<S: Scalar> {
@@ -99,7 +100,7 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             One::one(),
         );
         for (mult, terms) in &self.fr_multiplicands_rest {
-            let fr_iter = std::iter::once(self.fr.clone());
+            let fr_iter = iter::once(self.fr.clone());
             let terms_iter = terms.iter().cloned();
             res.add_product(fr_iter.chain(terms_iter), *mult);
         }

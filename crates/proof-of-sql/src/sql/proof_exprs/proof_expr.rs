@@ -8,7 +8,7 @@ use crate::{
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// Provable AST column expression that evaluates to a `Column`
 pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {

@@ -1,12 +1,11 @@
 use super::Commitment;
-use crate::base::{proof::Transcript as _, scalar::Scalar};
+use crate::base::{proof::Transcript, scalar::Scalar};
 #[cfg(feature = "blitzar")]
 use crate::base::{scalar::MontScalar, slice_ops};
 #[cfg(feature = "blitzar")]
 use blitzar::proof::{InnerProductProof, ProofError};
 #[cfg(feature = "blitzar")]
 use curve25519_dalek::RistrettoPoint;
-use merlin::Transcript;
 use serde::{Deserialize, Serialize};
 
 /// A trait for using commitment schemes generically. Specifically, this trait is for the evaluation proof of a commitment scheme.
@@ -31,7 +30,7 @@ pub trait CommitmentEvaluationProof {
     /// `b_point` are the values for the variables that are being evaluated.
     /// The resulting evaluation is the the inner product of `a` and `b`, where `b` is the expanded vector form of `b_point`.
     fn new(
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
@@ -45,7 +44,7 @@ pub trait CommitmentEvaluationProof {
     #[allow(clippy::too_many_arguments)]
     fn verify_proof(
         &self,
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         a_commit: &Self::Commitment,
         product: &Self::Scalar,
         b_point: &[Self::Scalar],
@@ -68,7 +67,7 @@ pub trait CommitmentEvaluationProof {
     #[allow(clippy::too_many_arguments)]
     fn verify_batched_proof(
         &self,
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
         product: &Self::Scalar,
@@ -87,7 +86,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
     type ProverPublicSetup<'a> = ();
     type VerifierPublicSetup<'a> = ();
     fn new(
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         a: &[Self::Scalar],
         b_point: &[Self::Scalar],
         generators_offset: u64,
@@ -115,7 +114,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
 
     fn verify_batched_proof(
         &self,
-        transcript: &mut Transcript,
+        transcript: &mut impl Transcript,
         commit_batch: &[Self::Commitment],
         batching_factors: &[Self::Scalar],
         product: &Self::Scalar,

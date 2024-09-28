@@ -5,6 +5,7 @@ use crate::base::polynomial::CompositePolynomial;
  * See `third_party/license/arkworks.LICENSE`
  */
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 
 pub struct ProverState<S: Scalar> {
     /// sampled randomness given by the verifier

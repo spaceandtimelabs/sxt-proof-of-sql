@@ -2,6 +2,7 @@ use super::{
     dynamic_dory_helper::{compute_dynamic_v_vec, compute_dynamic_vecs},
     DeferredGT, G1Affine, VMVProverState, VMVVerifierState, F,
 };
+use alloc::vec::Vec;
 
 /// Builds a `VMVProverState` from the given parameters.
 pub(super) fn build_dynamic_vmv_prover_state(

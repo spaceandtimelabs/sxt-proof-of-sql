@@ -11,6 +11,7 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
+use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
@@ -61,9 +62,9 @@ impl DynProofExprBuilder<'_> {
             Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
-            _ => Err(ConversionError::Unprovable(format!(
-                "Expression {expr:?} is not supported yet"
-            ))),
+            _ => Err(ConversionError::Unprovable {
+                error: format!("Expression {expr:?} is not supported yet"),
+            }),
         }
     }
 
@@ -73,7 +74,9 @@ impl DynProofExprBuilder<'_> {
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
             *self.column_mapping.get(&identifier).ok_or(
-                ConversionError::MissingColumnWithoutTable(Box::new(identifier)),
+                ConversionError::MissingColumnWithoutTable {
+                    identifier: Box::new(identifier),
+                },
             )?,
         )))
     }
@@ -89,9 +92,12 @@ impl DynProofExprBuilder<'_> {
             Literal::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
             Literal::Decimal(d) => {
                 let scale = d.scale();
-                let precision = Precision::new(d.precision()).map_err(|_| {
-                    DecimalConversionError(InvalidPrecision(d.precision().to_string()))
-                })?;
+                let precision =
+                    Precision::new(d.precision()).map_err(|_| DecimalConversionError {
+                        source: InvalidPrecision {
+                            error: d.precision().to_string(),
+                        },
+                    })?;
                 Ok(DynProofExpr::new_literal(LiteralValue::Decimal75(
                     precision,
                     scale,
@@ -106,10 +112,10 @@ impl DynProofExprBuilder<'_> {
                 let timestamp = match its.timeunit() {
                     PoSQLTimeUnit::Nanosecond => {
                         its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
-                                PoSQLTimestampError::UnsupportedPrecision("Timestamp out of range: 
+                                PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range: 
                                 Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
                                 and 2262-04-11T23:47:16.854775807.".to_owned()
-                            )
+                        }
                         })?
                     }
                     PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
@@ -184,9 +190,9 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_multiply(left?, right?)
             }
-            BinaryOperator::Division => Err(ConversionError::Unprovable(format!(
-                "Binary operator {op:?} is not supported at this location"
-            ))),
+            BinaryOperator::Division => Err(ConversionError::Unprovable {
+                error: format!("Binary operator {op:?} is not supported at this location"),
+            }),
         }
     }
 
@@ -196,21 +202,23 @@ impl DynProofExprBuilder<'_> {
         expr: &Expression,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         if self.in_agg_scope {
-            return Err(ConversionError::InvalidExpression(
-                "nested aggregations are invalid".to_string(),
-            ));
+            return Err(ConversionError::InvalidExpression {
+                expression: "nested aggregations are invalid".to_string(),
+            });
         }
         let expr = DynProofExprBuilder::new_agg(self.column_mapping).visit_expr(expr)?;
         match (op, expr.data_type().is_numeric()) {
             (AggregationOperator::Count, _) | (AggregationOperator::Sum, true) => {
                 Ok(DynProofExpr::new_aggregate(op, expr))
             }
-            (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression(format!(
-                "Aggregation operator {op:?} doesn't work with non-numeric types"
-            ))),
-            _ => Err(ConversionError::Unprovable(format!(
-                "Aggregation operator {op:?} is not supported at this location"
-            ))),
+            (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression {
+                expression: format!(
+                    "Aggregation operator {op:?} doesn't work with non-numeric types"
+                ),
+            }),
+            _ => Err(ConversionError::Unprovable {
+                error: format!("Aggregation operator {op:?} is not supported at this location"),
+            }),
         }
     }
 }

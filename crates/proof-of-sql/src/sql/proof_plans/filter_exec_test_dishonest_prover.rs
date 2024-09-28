@@ -151,6 +151,8 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(
         res.verify(&expr, &accessor, &()),
-        Err(QueryError::ProofError(ProofError::VerificationError(_)))
+        Err(QueryError::ProofError {
+            source: ProofError::VerificationError { .. }
+        })
     ));
 }

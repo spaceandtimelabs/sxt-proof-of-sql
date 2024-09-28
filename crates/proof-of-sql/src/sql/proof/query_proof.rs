@@ -9,16 +9,16 @@ use crate::{
         database::{CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
-        proof::{MessageLabel, ProofError, TranscriptProtocol},
+        proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
     sql::proof::{QueryData, ResultBuilder},
 };
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
-use merlin::Transcript;
+use core::cmp;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
-use std::cmp;
 
 /// The proof for a query.
 ///
@@ -59,7 +59,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             ProvableQueryResult::new(&result_builder.result_index_vector, &result_cols);
 
         // construct a transcript for the proof
-        let mut transcript: Transcript =
+        let mut transcript: Keccak256Transcript =
             make_transcript(expr, &provable_result, table_length, generator_offset);
 
         // These are the challenges that will be consumed by the proof
@@ -67,12 +67,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // the prover after the prover sends the result, but before the prover
         // send commitments to the intermediate witness columns.
         // Note: the last challenge in the vec is the first one that is consumed.
-        let mut post_result_challenges =
-            vec![Zero::zero(); result_builder.num_post_result_challenges()];
-        transcript.challenge_scalars(
-            &mut post_result_challenges,
-            MessageLabel::PostResultChallenges,
-        );
+        let post_result_challenges =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(result_builder.num_post_result_challenges())
+                .collect();
 
         let mut builder =
             ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
@@ -89,8 +87,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct the sumcheck polynomial
         let num_random_scalars = num_sumcheck_variables + builder.num_sumcheck_subpolynomials();
-        let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        let random_scalars: Vec<_> =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(num_random_scalars)
+                .collect();
         let poly = builder.make_sumcheck_polynomial(&SumcheckRandomScalars::new(
             &random_scalars,
             table_length,
@@ -107,16 +107,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let pcs_proof_evaluations = builder.evaluate_pcs_proof_mles(&evaluation_vec);
 
         // commit to the MLE evaluations
-        transcript
-            .append_canonical_serialize(MessageLabel::QueryMleEvaluations, &pcs_proof_evaluations);
+        transcript.extend_canonical_serialize_as_le(&pcs_proof_evaluations);
 
         // fold together the pre result MLEs -- this will form the input to an inner product proof
         // of their evaluations (fold in this context means create a random linear combination)
-        let mut random_scalars = vec![Zero::zero(); pcs_proof_evaluations.len()];
-        transcript.challenge_scalars(
-            &mut random_scalars,
-            MessageLabel::QueryMleEvaluationsChallenge,
-        );
+        let random_scalars: Vec<_> =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(pcs_proof_evaluations.len())
+                .collect();
         let folded_mle = builder.fold_pcs_proof_mles(&random_scalars);
 
         // finally, form the inner product proof of the MLEs' evaluations
@@ -155,7 +153,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // validate bit decompositions
         for dist in &self.bit_distributions {
             if !dist.is_valid() {
-                Err(ProofError::VerificationError("invalid bit distributions"))?;
+                Err(ProofError::VerificationError {
+                    error: "invalid bit distributions",
+                })?;
             }
         }
 
@@ -168,30 +168,34 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // verify sizes
         if !self.validate_sizes(&counts, result) {
-            Err(ProofError::VerificationError("invalid proof size"))?;
+            Err(ProofError::VerificationError {
+                error: "invalid proof size",
+            })?;
         }
 
         // construct a transcript for the proof
-        let mut transcript = make_transcript(expr, result, table_length, generator_offset);
+        let mut transcript: Keccak256Transcript =
+            make_transcript(expr, result, table_length, generator_offset);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
         // the prover after the prover sends the result, but before the prover
         // send commitments to the intermediate witness columns.
         // Note: the last challenge in the vec is the first one that is consumed.
-        let mut post_result_challenges = vec![Zero::zero(); counts.post_result_challenges];
-        transcript.challenge_scalars(
-            &mut post_result_challenges,
-            MessageLabel::PostResultChallenges,
-        );
+        let post_result_challenges =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(counts.post_result_challenges)
+                .collect();
 
         // add the commitments and bit disctibutions to the proof
         extend_transcript(&mut transcript, &self.commitments, &self.bit_distributions);
 
         // draw the random scalars for sumcheck
         let num_random_scalars = num_sumcheck_variables + counts.sumcheck_subpolynomials;
-        let mut random_scalars = vec![Zero::zero(); num_random_scalars];
-        transcript.challenge_scalars(&mut random_scalars, MessageLabel::QuerySumcheckChallenge);
+        let random_scalars: Vec<_> =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(num_random_scalars)
+                .collect();
         let sumcheck_random_scalars =
             SumcheckRandomScalars::new(&random_scalars, table_length, num_sumcheck_variables);
 
@@ -209,18 +213,14 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         )?;
 
         // commit to mle evaluations
-        transcript.append_canonical_serialize(
-            MessageLabel::QueryMleEvaluations,
-            &self.pcs_proof_evaluations,
-        );
+        transcript.extend_canonical_serialize_as_le(&self.pcs_proof_evaluations);
 
         // draw the random scalars for the evaluation proof
         // (i.e. the folding/random linear combination of the pcs_proof_mles)
-        let mut evaluation_random_scalars = vec![Zero::zero(); self.pcs_proof_evaluations.len()];
-        transcript.challenge_scalars(
-            &mut evaluation_random_scalars,
-            MessageLabel::QueryMleEvaluationsChallenge,
-        );
+        let evaluation_random_scalars: Vec<_> =
+            core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
+                .take(self.pcs_proof_evaluations.len())
+                .collect();
 
         let column_result_fields = expr.get_column_result_fields();
 
@@ -254,9 +254,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
-            Err(ProofError::VerificationError(
-                "sumcheck evaluation check failed",
-            ))?;
+            Err(ProofError::VerificationError {
+                error: "sumcheck evaluation check failed",
+            })?;
         }
 
         // finally, check the MLE evaluations with the inner product proof
@@ -272,15 +272,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 table_length,
                 setup,
             )
-            .map_err(|_e| {
-                ProofError::VerificationError("Inner product proof of MLE evaluations failed")
+            .map_err(|_e| ProofError::VerificationError {
+                error: "Inner product proof of MLE evaluations failed",
             })?;
 
-        let mut verification_hash = [0u8; 32];
-        transcript.challenge_bytes(
-            MessageLabel::VerificationHash.as_bytes(),
-            &mut verification_hash,
-        );
+        let verification_hash = transcript.challenge_as_le();
         Ok(QueryData {
             table: owned_table_result,
             verification_hash,
@@ -317,25 +313,25 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 /// This function returns a `merlin::Transcript`. The transcript is a record
 /// of all the operations and data involved in creating a proof.
 /// ```
-fn make_transcript<C: Commitment>(
+fn make_transcript<C: Commitment, T: Transcript>(
     expr: &(impl ProofPlan<C> + Serialize),
     result: &ProvableQueryResult,
     table_length: usize,
     generator_offset: usize,
-) -> merlin::Transcript {
-    let mut transcript = Transcript::new(MessageLabel::QueryProof.as_bytes());
-    transcript.append_auto(MessageLabel::QueryResultData, result);
-    transcript.append_auto(MessageLabel::ProofPlan, expr);
-    transcript.append_auto(MessageLabel::TableLength, &table_length);
-    transcript.append_auto(MessageLabel::GeneratorOffset, &generator_offset);
+) -> T {
+    let mut transcript = T::new();
+    transcript.extend_serialize_as_le(result);
+    transcript.extend_serialize_as_le(expr);
+    transcript.extend_serialize_as_le(&table_length);
+    transcript.extend_serialize_as_le(&generator_offset);
     transcript
 }
 
 fn extend_transcript<C: serde::Serialize>(
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     commitments: &C,
     bit_distributions: &[BitDistribution],
 ) {
-    transcript.append_auto(MessageLabel::QueryCommit, commitments);
-    transcript.append_auto(MessageLabel::QueryBitDistributions, bit_distributions);
+    transcript.extend_serialize_as_le(commitments);
+    transcript.extend_serialize_as_le(bit_distributions);
 }

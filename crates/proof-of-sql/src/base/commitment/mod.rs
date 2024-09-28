@@ -9,7 +9,7 @@ use core::ops::{AddAssign, SubAssign};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
-pub(crate) use committable_column::CommittableColumn;
+pub use committable_column::CommittableColumn;
 
 mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};

@@ -1,11 +1,11 @@
 #![allow(unused_variables)]
 use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
-use merlin::Transcript;
+use crate::base::proof::Transcript;
 
 /// This is the prover side of the Scalar-Product algorithm in section 3.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 pub fn scalar_product_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: ProverState,
 ) {
     // See section 3.1 of https://eprint.iacr.org/2020/1274.pdf.
@@ -39,7 +39,7 @@ pub fn scalar_product_prove(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn scalar_product_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: VerifierState,
     setup: &VerifierSetup,
 ) -> bool {

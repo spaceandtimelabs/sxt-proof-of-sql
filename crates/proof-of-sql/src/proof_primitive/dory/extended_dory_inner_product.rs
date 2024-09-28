@@ -2,18 +2,20 @@ use super::{
     scalar_product_prove, scalar_product_verify, DoryMessages, ExtendedProverState,
     ExtendedVerifierState, ProverSetup, VerifierSetup, F,
 };
-use crate::proof_primitive::dory::{
-    extended_dory_reduce_prove, extended_dory_reduce_verify, fold_scalars_0_prove,
-    fold_scalars_0_verify,
+use crate::{
+    base::proof::Transcript,
+    proof_primitive::dory::{
+        extended_dory_reduce_prove, extended_dory_reduce_verify, fold_scalars_0_prove,
+        fold_scalars_0_verify,
+    },
 };
-use merlin::Transcript;
 
 /// This is the prover side of the extended Dory-Innerproduct algorithm in section 4.3 of https://eprint.iacr.org/2020/1274.pdf.
 /// This function builds/enqueues `messages`, appends to `transcript`, and consumes `state`.
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_inner_product_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: ExtendedProverState,
     setup: &ProverSetup,
 ) {
@@ -31,7 +33,7 @@ pub fn extended_dory_inner_product_prove(
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn extended_dory_inner_product_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: ExtendedVerifierState,
     setup: &VerifierSetup,
     fold_s_tensors_verify: impl Fn(&ExtendedVerifierState) -> (F, F),

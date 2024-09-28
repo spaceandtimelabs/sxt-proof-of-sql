@@ -18,7 +18,8 @@ pub struct ResourceId {
 
 impl ResourceId {
     /// Constructor for [`ResourceId`]s.
-    #[must_use] pub fn new(schema: Identifier, object_name: Identifier) -> Self {
+    #[must_use]
+    pub fn new(schema: Identifier, object_name: Identifier) -> Self {
         Self {
             schema,
             object_name,
@@ -43,12 +44,14 @@ impl ResourceId {
     }
 
     /// The schema identifier of this [`ResourceId`].
-    #[must_use] pub fn schema(&self) -> Identifier {
+    #[must_use]
+    pub fn schema(&self) -> Identifier {
         self.schema
     }
 
     /// The `object_name` identifier of this [`ResourceId`].
-    #[must_use] pub fn object_name(&self) -> Identifier {
+    #[must_use]
+    pub fn object_name(&self) -> Identifier {
         self.object_name
     }
 
@@ -63,7 +66,8 @@ impl ResourceId {
     /// This method performs that transformation as well.
     /// For more information, see
     /// <https://space-and-time.atlassian.net/wiki/spaces/SE/pages/4947974/Gateway+Storage+Overview#Database-Resources>.
-    #[must_use] pub fn storage_format(&self) -> String {
+    #[must_use]
+    pub fn storage_format(&self) -> String {
         let ResourceId {
             schema,
             object_name,
@@ -91,9 +95,11 @@ impl FromStr for ResourceId {
     type Err = ParseError;
 
     fn from_str(string: &str) -> ParseResult<Self> {
-        let (schema, object_name) = ResourceIdParser::new()
-            .parse(string)
-            .map_err(|e| ParseError::ResourceIdParseError(format!("{e:?}")))?;
+        let (schema, object_name) = ResourceIdParser::new().parse(string).map_err(|e| {
+            ParseError::ResourceIdParseError {
+                error: format!("{e:?}"),
+            }
+        })?;
 
         // use unsafe `Identifier::new` to prevent double parsing the ids
         Ok(ResourceId {

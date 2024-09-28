@@ -4,6 +4,7 @@ use crate::base::{
     map::IndexMap,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use proof_of_sql_parser::{intermediate_ast::AliasedResultExpr, Identifier};
 use serde::{Deserialize, Serialize};
 

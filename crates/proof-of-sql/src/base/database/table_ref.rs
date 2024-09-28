@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use core::{
     fmt,
     fmt::{Display, Formatter},

@@ -1,11 +1,11 @@
 use super::committable_column::CommittableColumn;
 use alloc::boxed::Box;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot construct bounds where min is greater than max.
-#[derive(Error, Debug)]
-#[error("cannot construct bounds where min is greater than max")]
+#[derive(Snafu, Debug)]
+#[snafu(display("cannot construct bounds where min is greater than max"))]
 pub struct NegativeBounds;
 
 /// Inner value for [`Bounds::Sharp`] and [`Bounds::Bounded`].
@@ -186,9 +186,14 @@ where
 }
 
 /// Columns with different [`ColumnBounds`] variants cannot operate with each other.
-#[derive(Debug, Error)]
-#[error("column with bounds {0:?} cannot operate with column with bounds {1:?}")]
-pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
+#[derive(Debug, Snafu)]
+#[snafu(display(
+    "column with bounds {bounds_a:?} cannot operate with column with bounds {bounds_b:?}"
+))]
+pub struct ColumnBoundsMismatch {
+    bounds_a: Box<ColumnBounds>,
+    bounds_b: Box<ColumnBounds>,
+}
 
 /// Column metadata storing the bounds for column types that have order.
 ///
@@ -253,9 +258,10 @@ impl ColumnBounds {
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.union(bounds_b)))
             }
-            (bounds_a, bounds_b) => {
-                Err(ColumnBoundsMismatch(Box::new(bounds_a), Box::new(bounds_b)))
-            }
+            (bounds_a, bounds_b) => Err(ColumnBoundsMismatch {
+                bounds_a: Box::new(bounds_a),
+                bounds_b: Box::new(bounds_b),
+            }),
         }
     }
 
@@ -281,7 +287,10 @@ impl ColumnBounds {
             (ColumnBounds::TimestampTZ(bounds_a), ColumnBounds::TimestampTZ(bounds_b)) => {
                 Ok(ColumnBounds::TimestampTZ(bounds_a.difference(bounds_b)))
             }
-            (_, _) => Err(ColumnBoundsMismatch(Box::new(self), Box::new(other))),
+            (_, _) => Err(ColumnBoundsMismatch {
+                bounds_a: Box::new(self),
+                bounds_b: Box::new(other),
+            }),
         }
     }
 }

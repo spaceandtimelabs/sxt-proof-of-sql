@@ -4,6 +4,7 @@ use crate::base::{
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
@@ -115,9 +116,9 @@ fn check_and_get_aggregation_and_remainder(
         .copied()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
-        return Err(PostprocessingError::NestedAggregationInGroupByClause(
-            format!("Nested aggregations found {:?}", expr.expr),
-        ));
+        return Err(PostprocessingError::NestedAggregationInGroupByClause {
+            error: format!("Nested aggregations found {:?}", expr.expr),
+        });
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
         let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
@@ -130,7 +131,11 @@ fn check_and_get_aggregation_and_remainder(
             .difference(&group_by_identifier_set)
             .next()
             .unwrap();
-        Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(*diff))
+        Err(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause {
+                column: *diff,
+            },
+        )
     }
 }
 
@@ -198,10 +203,11 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .group_by_identifiers
             .iter()
             .map(|id| {
-                let column = owned_table
-                    .inner_table()
-                    .get(id)
-                    .ok_or(PostprocessingError::ColumnNotFound(id.to_string()))?;
+                let column = owned_table.inner_table().get(id).ok_or(
+                    PostprocessingError::ColumnNotFound {
+                        column: id.to_string(),
+                    },
+                )?;
                 Ok(Column::<S>::from_owned_column(column, &alloc))
             })
             .collect::<PostprocessingResult<Vec<_>>>()?;

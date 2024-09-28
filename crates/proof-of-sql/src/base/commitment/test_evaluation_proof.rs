@@ -1,5 +1,5 @@
 use super::{naive_commitment::NaiveCommitment, CommitmentEvaluationProof};
-use crate::base::scalar::test_scalar::TestScalar;
+use crate::base::{proof::Transcript, scalar::test_scalar::TestScalar};
 
 /// This should only be used for the purpose of unit testing.
 pub struct TestEvaluationProof {}
@@ -21,7 +21,7 @@ impl CommitmentEvaluationProof for TestEvaluationProof {
     type VerifierPublicSetup<'a> = ();
 
     fn new(
-        _transcript: &mut merlin::Transcript,
+        _transcript: &mut impl Transcript,
         _a: &[Self::Scalar],
         _b_point: &[Self::Scalar],
         _generators_offset: u64,
@@ -32,7 +32,7 @@ impl CommitmentEvaluationProof for TestEvaluationProof {
 
     fn verify_batched_proof(
         &self,
-        _transcript: &mut merlin::Transcript,
+        _transcript: &mut impl Transcript,
         _commit_batch: &[Self::Commitment],
         _batching_factors: &[Self::Scalar],
         _product: &Self::Scalar,

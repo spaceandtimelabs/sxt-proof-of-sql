@@ -1,14 +1,14 @@
 use alloc::{format, string::String, vec::Vec};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// An error that occurs when working with permutations
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum PermutationError {
     /// The permutation is invalid
-    #[error("Permutation is invalid {0}")]
-    InvalidPermutation(String),
+    #[snafu(display("Permutation is invalid {error}"))]
+    InvalidPermutation { error: String },
     /// Application of a permutation to a slice with an incorrect length
-    #[error("Application of a permutation to a slice with a different length {permutation_size} != {slice_length}")]
+    #[snafu(display("Application of a permutation to a slice with a different length {permutation_size} != {slice_length}"))]
     PermutationSizeMismatch {
         permutation_size: usize,
         slice_length: usize,
@@ -39,15 +39,15 @@ impl Permutation {
         elements.sort_unstable();
         elements.dedup();
         if elements.len() < length {
-            Err(PermutationError::InvalidPermutation(format!(
-                "Permutation can not have duplicate elements: {permutation:?}"
-            )))
+            Err(PermutationError::InvalidPermutation {
+                error: format!("Permutation can not have duplicate elements: {permutation:?}"),
+            })
         }
         // Check that no element is out of bounds
         else if permutation.iter().any(|&i| i >= length) {
-            Err(PermutationError::InvalidPermutation(format!(
-                "Permutation can not have elements out of bounds: {permutation:?}"
-            )))
+            Err(PermutationError::InvalidPermutation {
+                error: format!("Permutation can not have elements out of bounds: {permutation:?}"),
+            })
         } else {
             Ok(Self { permutation })
         }
@@ -93,11 +93,11 @@ mod test {
     fn test_invalid_permutation() {
         assert!(matches!(
             Permutation::try_new(vec![1, 0, 0]),
-            Err(PermutationError::InvalidPermutation(_))
+            Err(PermutationError::InvalidPermutation { .. })
         ));
         assert!(matches!(
             Permutation::try_new(vec![1, 0, 3]),
-            Err(PermutationError::InvalidPermutation(_))
+            Err(PermutationError::InvalidPermutation { .. })
         ));
     }
 

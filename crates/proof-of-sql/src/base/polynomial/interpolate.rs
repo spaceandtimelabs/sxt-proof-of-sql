@@ -1,3 +1,4 @@
+use alloc::{vec, vec::Vec};
 /**
  * Adapted from arkworks
  *

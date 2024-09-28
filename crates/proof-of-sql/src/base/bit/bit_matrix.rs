@@ -2,6 +2,7 @@ use crate::base::{
     bit::{make_abs_bit_mask, BitDistribution},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 
 /// Let x1, ..., xn denote the values of a data column. Let

@@ -5,6 +5,7 @@
  */
 use crate::base::scalar::Scalar;
 use crate::base::{polynomial::interpolate_uni_poly, proof::ProofError};
+use alloc::vec::Vec;
 
 pub struct Subclaim<S: Scalar> {
     pub evaluation_point: Vec<S>,
@@ -25,14 +26,14 @@ impl<S: Scalar> Subclaim<S> {
         for round_index in 0..num_vars {
             let round_evaluation = &evaluations[round_index];
             if round_evaluation.len() != max_multiplicands + 1 {
-                return Err(ProofError::VerificationError(
-                    "round evaluation length does not match max multiplicands",
-                ));
+                return Err(ProofError::VerificationError {
+                    error: "round evaluation length does not match max multiplicands",
+                });
             }
             if expected_sum != round_evaluation[0] + round_evaluation[1] {
-                return Err(ProofError::VerificationError(
-                    "round evaluation does not match claimed sum",
-                ));
+                return Err(ProofError::VerificationError {
+                    error: "round evaluation does not match claimed sum",
+                });
             }
             expected_sum = interpolate_uni_poly(round_evaluation, evaluation_point[round_index]);
         }

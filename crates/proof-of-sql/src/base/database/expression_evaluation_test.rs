@@ -83,7 +83,7 @@ fn we_can_not_evaluate_a_nonexisting_column() {
     let expr = col("not_a_column");
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnNotFound(_))
+        Err(ExpressionEvaluationError::ColumnNotFound { .. })
     ));
 }
 
@@ -207,44 +207,44 @@ fn we_cannot_evaluate_expressions_if_column_operation_errors_out() {
     let expr = not(col("language"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::UnaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::UnaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // NOT doesn't work on bigint
     let expr = not(col("bigints"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::UnaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::UnaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // + doesn't work on varchar
     let expr = add(col("sarah"), col("bigints"));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::BinaryOperationInvalidColumnType { .. }
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::BinaryOperationInvalidColumnType { .. }
+        })
     ));
 
     // i64::MIN - 1 overflows
     let expr = sub(col("bigints"), lit(1));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::IntegerOverflow(_)
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::IntegerOverflow { .. }
+        })
     ));
 
     // We can't divide by zero
     let expr = div(col("bigints"), lit(0));
     assert!(matches!(
         table.evaluate(&expr),
-        Err(ExpressionEvaluationError::ColumnOperationError(
-            ColumnOperationError::DivisionByZero
-        ))
+        Err(ExpressionEvaluationError::ColumnOperationError {
+            source: ColumnOperationError::DivisionByZero
+        })
     ));
 }

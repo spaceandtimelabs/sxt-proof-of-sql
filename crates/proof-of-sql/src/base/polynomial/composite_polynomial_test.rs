@@ -1,6 +1,6 @@
 use super::CompositePolynomial;
 use crate::base::scalar::Curve25519Scalar;
-use std::rc::Rc;
+use alloc::rc::Rc;
 
 #[test]
 fn test_composite_polynomial_evaluation() {

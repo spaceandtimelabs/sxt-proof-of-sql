@@ -1,3 +1,4 @@
+use alloc::{vec, vec::Vec};
 use ark_ec::VariableBaseMSM;
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 use itertools::Itertools;

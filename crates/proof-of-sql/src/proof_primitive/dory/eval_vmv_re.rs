@@ -2,9 +2,9 @@ use super::{
     pairings, DeferredG2, DoryMessages, ExtendedProverState, ExtendedVerifierState, G1Projective,
     ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
-use crate::base::if_rayon;
+use crate::base::{if_rayon, proof::Transcript};
+use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
-use merlin::Transcript;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -19,7 +19,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn eval_vmv_re_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: VMVProverState,
     setup: &ProverSetup,
 ) -> ExtendedProverState {
@@ -52,7 +52,7 @@ pub fn eval_vmv_re_prove(
 /// Note: the paper has the prover send `E_2` to the verifier. We opt to simply have the verifier compute `E_2` from y, which is known.
 pub fn eval_vmv_re_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     state: VMVVerifierState,
     setup: &VerifierSetup,
 ) -> Option<ExtendedVerifierState> {

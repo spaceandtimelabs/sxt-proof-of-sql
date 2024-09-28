@@ -114,15 +114,15 @@ fn test_curve25519_scalar_to_bool() {
 fn test_curve25519_scalar_to_bool_overflow() {
     matches!(
         bool::try_from(Curve25519Scalar::from(2)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         bool::try_from(Curve25519Scalar::from(-1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         bool::try_from(Curve25519Scalar::from(-2)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -144,12 +144,12 @@ fn test_curve25519_scalar_to_i8() {
 #[test]
 fn test_curve25519_scalar_to_i8_overflow() {
     matches!(
-        i8::try_from(Curve25519Scalar::from(i128::from(i8::MAX) + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i8::try_from(Curve25519Scalar::from(i8::MAX as i128 + 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i8::try_from(Curve25519Scalar::from(i128::from(i8::MIN) - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i8::try_from(Curve25519Scalar::from(i8::MIN as i128 - 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -171,12 +171,12 @@ fn test_curve25519_scalar_to_i16() {
 #[test]
 fn test_curve25519_scalar_to_i16_overflow() {
     matches!(
-        i16::try_from(Curve25519Scalar::from(i128::from(i16::MAX) + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i16::try_from(Curve25519Scalar::from(i16::MAX as i128 + 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i16::try_from(Curve25519Scalar::from(i128::from(i16::MIN) - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i16::try_from(Curve25519Scalar::from(i16::MIN as i128 - 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -198,12 +198,12 @@ fn test_curve25519_scalar_to_i32() {
 #[test]
 fn test_curve25519_scalar_to_i32_overflow() {
     matches!(
-        i32::try_from(Curve25519Scalar::from(i128::from(i32::MAX) + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i32::try_from(Curve25519Scalar::from(i32::MAX as i128 + 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i32::try_from(Curve25519Scalar::from(i128::from(i32::MIN) - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i32::try_from(Curve25519Scalar::from(i32::MIN as i128 - 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -225,12 +225,12 @@ fn test_curve25519_scalar_to_i64() {
 #[test]
 fn test_curve25519_scalar_to_i64_overflow() {
     matches!(
-        i64::try_from(Curve25519Scalar::from(i128::from(i64::MAX) + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i64::try_from(Curve25519Scalar::from(i64::MAX as i128 + 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
-        i64::try_from(Curve25519Scalar::from(i128::from(i64::MIN) - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        i64::try_from(Curve25519Scalar::from(i64::MIN as i128 - 1)),
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -253,11 +253,11 @@ fn test_curve25519_scalar_to_i128() {
 fn test_curve25519_scalar_to_i128_overflow() {
     matches!(
         i128::try_from(Curve25519Scalar::from(i128::MAX) + Curve25519Scalar::ONE),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i128::try_from(Curve25519Scalar::from(i128::MIN) - Curve25519Scalar::ONE),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 

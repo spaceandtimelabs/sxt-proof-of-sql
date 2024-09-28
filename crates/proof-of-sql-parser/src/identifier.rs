@@ -29,12 +29,14 @@ impl Identifier {
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
-    #[must_use] pub fn name(&self) -> &str {
+    #[must_use]
+    pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
     /// An alias for [`Identifier::name`], provided for convenience.
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         self.name()
     }
 }
@@ -45,8 +47,8 @@ impl FromStr for Identifier {
     fn from_str(string: &str) -> ParseResult<Self> {
         let name = IdentifierParser::new()
             .parse(string)
-            .map_err(|e| ParseError::IdentifierParseError(
-                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {e:?}")))?;
+            .map_err(|e| ParseError::IdentifierParseError{ error:
+                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {e:?}")})?;
 
         Ok(Identifier::new(name))
     }

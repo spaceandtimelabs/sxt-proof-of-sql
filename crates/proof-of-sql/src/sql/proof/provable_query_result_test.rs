@@ -8,13 +8,13 @@ use crate::{
     },
     sql::proof::Indexes,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::{i256, Field, Schema},
     record_batch::RecordBatch,
 };
 use num_traits::Zero;
-use std::sync::Arc;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {

@@ -9,6 +9,7 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
+use core::str::FromStr;
 use curve25519_dalek::RistrettoPoint;
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimal,
@@ -16,7 +17,6 @@ use proof_of_sql_parser::{
     utility::*,
     Identifier, SelectStatement,
 };
-use std::str::FromStr;
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
@@ -261,7 +261,7 @@ fn we_can_not_have_missing_column_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_missing));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::MissingColumnWithoutTable(_))
+        Result::Err(ConversionError::MissingColumnWithoutTable { .. })
     ));
 }
 
@@ -275,7 +275,7 @@ fn we_can_not_have_non_boolean_column_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::NonbooleanWhereClause(_))
+        Result::Err(ConversionError::NonbooleanWhereClause { .. })
     ));
 }
 
@@ -289,7 +289,7 @@ fn we_can_not_have_non_boolean_literal_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::NonbooleanWhereClause(_))
+        Result::Err(ConversionError::NonbooleanWhereClause { .. })
     ));
 }
 
@@ -308,7 +308,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
             t.schema_id(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -327,7 +327,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
             t.schema_id(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

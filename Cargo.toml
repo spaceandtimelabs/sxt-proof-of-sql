@@ -55,7 +55,7 @@ rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1" }
-thiserror = { version = "1", default-features = false }
+snafu = { version = "0.8.4", default-features = false, features = ["std"] }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 # tokio = { version = "1.39.3" }
 tracing = { version = "0.1.36" }

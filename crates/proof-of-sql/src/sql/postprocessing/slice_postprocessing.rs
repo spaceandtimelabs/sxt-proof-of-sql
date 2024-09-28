@@ -21,7 +21,8 @@ pub struct SlicePostprocessing {
 
 impl SlicePostprocessing {
     /// Create a new `SlicePostprocessing` with the given `number_rows` and `offset`.
-    #[must_use] pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
+    #[must_use]
+    pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
         Self {
             number_rows,
             offset_value,
@@ -43,11 +44,17 @@ impl<S: Scalar> PostprocessingStep<S> for SlicePostprocessing {
             i128::from(offset)
         };
         // The `possible_ending_row` is NOT inclusive.
-        let possible_ending_row = (possible_starting_row + i128::from(limit)).min(num_rows as i128);
-        let starting_row = usize::try_from(possible_starting_row)
-            .map_err(|_| PostprocessingError::InvalidSliceIndex(possible_starting_row))?;
-        let ending_row = usize::try_from(possible_ending_row)
-            .map_err(|_| PostprocessingError::InvalidSliceIndex(possible_ending_row))?;
+        let possible_ending_row = (possible_starting_row + limit as i128).min(num_rows as i128);
+        let starting_row = usize::try_from(possible_starting_row).map_err(|_| {
+            PostprocessingError::InvalidSliceIndex {
+                index: possible_starting_row,
+            }
+        })?;
+        let ending_row = usize::try_from(possible_ending_row).map_err(|_| {
+            PostprocessingError::InvalidSliceIndex {
+                index: possible_ending_row,
+            }
+        })?;
         Ok(OwnedTable::<S>::try_from_iter(
             owned_table
                 .into_inner()

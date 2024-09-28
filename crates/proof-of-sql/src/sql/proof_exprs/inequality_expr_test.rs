@@ -304,7 +304,7 @@ fn we_cannot_compare_columns_filtering_on_extreme_decimal_values() {
             const_scalar::<RistrettoPoint, Curve25519Scalar>(Curve25519Scalar::ONE),
             false
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

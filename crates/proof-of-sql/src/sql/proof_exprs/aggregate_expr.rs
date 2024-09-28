@@ -8,6 +8,7 @@ use crate::{
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};

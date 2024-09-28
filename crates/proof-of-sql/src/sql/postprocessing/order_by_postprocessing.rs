@@ -5,6 +5,7 @@ use crate::base::{
     math::permutation::Permutation,
     scalar::Scalar,
 };
+use alloc::{string::ToString, vec::Vec};
 use proof_of_sql_parser::intermediate_ast::{OrderBy, OrderByDirection};
 #[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
@@ -38,9 +39,9 @@ impl<S: Scalar> PostprocessingStep<S> for OrderByPostprocessing {
                         owned_table
                             .inner_table()
                             .get(&order_by.expr)
-                            .ok_or(PostprocessingError::ColumnNotFound(
-                                order_by.expr.to_string(),
-                            ))?
+                            .ok_or(PostprocessingError::ColumnNotFound {
+                                column: order_by.expr.to_string(),
+                            })?
                             .clone(),
                         order_by.direction,
                     ))

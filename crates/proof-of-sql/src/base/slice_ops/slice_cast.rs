@@ -1,4 +1,5 @@
 use crate::base::if_rayon;
+use alloc::vec::Vec;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
