@@ -369,8 +369,11 @@ impl ColumnType {
     }
 
     /// Convert a column type to its nullable variant
-    pub fn to_nullable(self) -> ColumnType {
-        ColumnType::Nullable(Box::new(self))
+    pub fn into_nullable(self) -> ColumnType {
+        match self {
+            ColumnType::Nullable(_) => self,
+            val => ColumnType::Nullable(Box::new(val)),
+        }
     }
 
     /// Get the inner column type if nullable

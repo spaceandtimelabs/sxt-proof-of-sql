@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(
             boolean_metadata
                 .clone()
-                .try_union(boolean_metadata)
+                .try_union(boolean_metadata.clone())
                 .unwrap(),
             boolean_metadata
         );
@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(
             decimal_metadata
                 .clone()
-                .try_union(decimal_metadata)
+                .try_union(decimal_metadata.clone())
                 .unwrap(),
             decimal_metadata
         );
@@ -491,7 +491,7 @@ mod tests {
         assert_eq!(
             varchar_metadata
                 .clone()
-                .try_union(varchar_metadata)
+                .try_union(varchar_metadata.clone())
                 .unwrap(),
             varchar_metadata
         );
@@ -501,7 +501,10 @@ mod tests {
             bounds: ColumnBounds::NoOrder,
         };
         assert_eq!(
-            scalar_metadata.clone().try_union(scalar_metadata).unwrap(),
+            scalar_metadata
+                .clone()
+                .try_union(scalar_metadata.clone())
+                .unwrap(),
             scalar_metadata
         );
 
@@ -607,14 +610,14 @@ mod tests {
         assert_eq!(
             timestamp_metadata_b
                 .clone()
-                .try_difference(timestamp_metadata_empty)
+                .try_difference(timestamp_metadata_empty.clone())
                 .unwrap(),
             timestamp_metadata_b
         );
         assert_eq!(
             timestamp_metadata_empty
                 .clone()
-                .try_difference(timestamp_metadata_b)
+                .try_difference(timestamp_metadata_b.clone())
                 .unwrap(),
             timestamp_metadata_empty
         );
@@ -647,7 +650,7 @@ mod tests {
         assert_eq!(
             bigint_metadata_b
                 .clone()
-                .try_difference(bigint_metadata_empty)
+                .try_difference(bigint_metadata_empty.clone())
                 .unwrap(),
             bigint_metadata_b
         );
@@ -687,16 +690,17 @@ mod tests {
         assert_eq!(
             smallint_metadata_b
                 .clone()
-                .try_difference(smallint_metadata_empty)
+                .try_difference(smallint_metadata_empty.clone())
                 .unwrap(),
             smallint_metadata_b
         );
         assert_eq!(
             smallint_metadata_empty
                 .clone()
+                .clone()
                 .try_difference(smallint_metadata_b)
                 .unwrap(),
-            smallint_metadata_empty
+            smallint_metadata_empty.clone()
         );
     }
 
@@ -727,16 +731,17 @@ mod tests {
         assert_eq!(
             int_metadata_b
                 .clone()
-                .try_difference(int_metadata_empty)
+                .try_difference(int_metadata_empty.clone())
                 .unwrap(),
             int_metadata_b
         );
         assert_eq!(
             int_metadata_empty
                 .clone()
+                .clone()
                 .try_difference(int_metadata_b)
                 .unwrap(),
-            int_metadata_empty
+            int_metadata_empty.clone()
         );
     }
 
@@ -775,104 +780,302 @@ mod tests {
             bounds: ColumnBounds::Int128(Bounds::Empty),
         };
 
-        assert!(smallint_metadata.try_union(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_union(smallint_metadata).is_err());
+        assert!(smallint_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(smallint_metadata.clone())
+            .is_err());
 
-        assert!(smallint_metadata.try_union(decimal75_metadata).is_err());
-        assert!(decimal75_metadata.try_union(smallint_metadata).is_err());
+        assert!(smallint_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(smallint_metadata.clone())
+            .is_err());
 
-        assert!(smallint_metadata.try_union(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_union(smallint_metadata).is_err());
+        assert!(smallint_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(smallint_metadata.clone())
+            .is_err());
 
-        assert!(smallint_metadata.try_union(boolean_metadata).is_err());
-        assert!(boolean_metadata.try_union(smallint_metadata).is_err());
+        assert!(smallint_metadata
+            .clone()
+            .try_union(boolean_metadata.clone())
+            .is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_union(smallint_metadata.clone())
+            .is_err());
 
-        assert!(int_metadata.try_union(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_union(int_metadata).is_err());
+        assert!(int_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(int_metadata.clone())
+            .is_err());
 
-        assert!(int_metadata.try_union(decimal75_metadata).is_err());
-        assert!(decimal75_metadata.try_union(int_metadata).is_err());
+        assert!(int_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(int_metadata.clone())
+            .is_err());
 
-        assert!(int_metadata.try_union(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_union(int_metadata).is_err());
+        assert!(int_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(int_metadata.clone())
+            .is_err());
 
-        assert!(int_metadata.try_union(boolean_metadata).is_err());
-        assert!(boolean_metadata.try_union(int_metadata).is_err());
+        assert!(int_metadata
+            .clone()
+            .try_union(boolean_metadata.clone())
+            .is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_union(int_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_union(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_union(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_union(int128_metadata).is_err());
-        assert!(int128_metadata.try_union(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_union(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_union(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_union(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_union(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_union(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_union(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_union(int128_metadata).is_err());
-        assert!(int128_metadata.try_union(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_union(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_union(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(scalar_metadata.try_union(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_union(scalar_metadata).is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
 
-        assert!(scalar_metadata.try_union(int128_metadata).is_err());
-        assert!(int128_metadata.try_union(scalar_metadata).is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_union(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_union(scalar_metadata.clone())
+            .is_err());
 
-        assert!(bigint_metadata.try_union(int128_metadata).is_err());
-        assert!(int128_metadata.try_union(bigint_metadata).is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_union(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_union(bigint_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_difference(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_difference(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_difference(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_difference(varchar_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_difference(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_difference(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_difference(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_difference(varchar_metadata.clone())
+            .is_err());
 
-        assert!(varchar_metadata.try_difference(int128_metadata).is_err());
-        assert!(int128_metadata.try_difference(varchar_metadata).is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_difference(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_difference(varchar_metadata.clone())
+            .is_err());
 
-        assert!(scalar_metadata.try_difference(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_difference(scalar_metadata).is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_difference(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_difference(scalar_metadata.clone())
+            .is_err());
 
-        assert!(scalar_metadata.try_difference(int128_metadata).is_err());
-        assert!(int128_metadata.try_difference(scalar_metadata).is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_difference(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_difference(scalar_metadata.clone())
+            .is_err());
 
-        assert!(bigint_metadata.try_difference(int128_metadata).is_err());
-        assert!(int128_metadata.try_difference(bigint_metadata).is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_difference(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_difference(bigint_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_difference(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_difference(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_difference(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_difference(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_difference(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_difference(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_difference(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_difference(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_difference(int128_metadata).is_err());
-        assert!(int128_metadata.try_difference(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_difference(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_difference(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_difference(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_difference(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_difference(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_difference(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(decimal75_metadata.try_difference(boolean_metadata).is_err());
-        assert!(boolean_metadata.try_difference(decimal75_metadata).is_err());
+        assert!(decimal75_metadata
+            .clone()
+            .try_difference(boolean_metadata.clone())
+            .is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_difference(decimal75_metadata.clone())
+            .is_err());
 
-        assert!(boolean_metadata.try_difference(bigint_metadata).is_err());
-        assert!(bigint_metadata.try_difference(boolean_metadata).is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_difference(bigint_metadata.clone())
+            .is_err());
+        assert!(bigint_metadata
+            .clone()
+            .try_difference(boolean_metadata.clone())
+            .is_err());
 
-        assert!(boolean_metadata.try_difference(int128_metadata).is_err());
-        assert!(int128_metadata.try_difference(boolean_metadata).is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_difference(int128_metadata.clone())
+            .is_err());
+        assert!(int128_metadata
+            .clone()
+            .try_difference(boolean_metadata.clone())
+            .is_err());
 
-        assert!(boolean_metadata.try_difference(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_difference(boolean_metadata).is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_difference(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_difference(boolean_metadata.clone())
+            .is_err());
 
-        assert!(boolean_metadata.try_difference(scalar_metadata).is_err());
-        assert!(scalar_metadata.try_difference(boolean_metadata).is_err());
+        assert!(boolean_metadata
+            .clone()
+            .try_difference(scalar_metadata.clone())
+            .is_err());
+        assert!(scalar_metadata
+            .clone()
+            .try_difference(boolean_metadata.clone())
+            .is_err());
 
         let different_decimal75_metadata = ColumnCommitmentMetadata {
             column_type: ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
@@ -880,17 +1083,21 @@ mod tests {
         };
 
         assert!(decimal75_metadata
-            .try_difference(different_decimal75_metadata)
+            .clone()
+            .try_difference(different_decimal75_metadata.clone())
             .is_err());
         assert!(different_decimal75_metadata
-            .try_difference(decimal75_metadata)
+            .clone()
+            .try_difference(decimal75_metadata.clone())
             .is_err());
 
         assert!(decimal75_metadata
-            .try_union(different_decimal75_metadata)
+            .clone()
+            .try_union(different_decimal75_metadata.clone())
             .is_err());
         assert!(different_decimal75_metadata
-            .try_union(decimal75_metadata)
+            .clone()
+            .try_union(decimal75_metadata.clone())
             .is_err());
 
         let timestamp_tz_metadata_a = ColumnCommitmentMetadata {
@@ -904,31 +1111,42 @@ mod tests {
         };
 
         // Tests for union operations
-        assert!(timestamp_tz_metadata_a.try_union(varchar_metadata).is_err());
-        assert!(varchar_metadata.try_union(timestamp_tz_metadata_a).is_err());
+        assert!(timestamp_tz_metadata_a
+            .clone()
+            .try_union(varchar_metadata.clone())
+            .is_err());
+        assert!(varchar_metadata
+            .clone()
+            .try_union(timestamp_tz_metadata_a.clone())
+            .is_err());
 
         // Tests for difference operations
         assert!(timestamp_tz_metadata_a
-            .try_difference(scalar_metadata)
+            .clone()
+            .try_difference(scalar_metadata.clone())
             .is_err());
         assert!(scalar_metadata
-            .try_difference(timestamp_tz_metadata_a)
+            .clone()
+            .try_difference(timestamp_tz_metadata_a.clone())
             .is_err());
 
         // Tests for different time units within the same type
         assert!(timestamp_tz_metadata_a
-            .try_union(timestamp_tz_metadata_b)
+            .clone()
+            .try_union(timestamp_tz_metadata_b.clone())
             .is_err());
         assert!(timestamp_tz_metadata_b
-            .try_union(timestamp_tz_metadata_a)
+            .clone()
+            .try_union(timestamp_tz_metadata_a.clone())
             .is_err());
 
         // Difference with different time units
         assert!(timestamp_tz_metadata_a
-            .try_difference(timestamp_tz_metadata_b)
+            .clone()
+            .try_difference(timestamp_tz_metadata_b.clone())
             .is_err());
         assert!(timestamp_tz_metadata_b
-            .try_difference(timestamp_tz_metadata_a)
+            .try_difference(timestamp_tz_metadata_a.clone())
             .is_err());
     }
 }

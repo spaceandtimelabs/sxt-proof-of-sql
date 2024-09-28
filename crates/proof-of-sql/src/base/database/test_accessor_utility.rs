@@ -38,6 +38,111 @@ impl Default for RandomTestAccessorDescriptor {
     }
 }
 
+// TODO: rename
+fn foo(
+    col_type: &ColumnType,
+    col_name: &&str,
+    columns: &mut Vec<Arc<dyn Array>>,
+    column_fields: &mut Vec<Field>,
+    values: Vec<i64>,
+) {
+    match col_type {
+        ColumnType::Boolean => {
+            column_fields.push(Field::new(*col_name, DataType::Boolean, false));
+            let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
+            columns.push(Arc::new(BooleanArray::from(boolean_values)));
+        }
+
+        ColumnType::SmallInt => {
+            column_fields.push(Field::new(*col_name, DataType::Int16, false));
+            let values: Vec<i16> = values
+                .iter()
+                .map(|x| ((*x >> 48) as i16)) // Shift right to align the lower 16 bits
+                .collect();
+            columns.push(Arc::new(Int16Array::from(values)));
+        }
+        ColumnType::Int => {
+            column_fields.push(Field::new(*col_name, DataType::Int32, false));
+            let values: Vec<i32> = values
+                .iter()
+                .map(|x| ((*x >> 32) as i32)) // Shift right to align the lower 32 bits
+                .collect();
+            columns.push(Arc::new(Int32Array::from(values)));
+        }
+        ColumnType::BigInt => {
+            column_fields.push(Field::new(*col_name, DataType::Int64, false));
+            let values: Vec<i64> = values.to_vec();
+            columns.push(Arc::new(Int64Array::from(values)));
+        }
+        ColumnType::Int128 => {
+            column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
+
+            let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
+            columns.push(Arc::new(
+                Decimal128Array::from(values.to_vec())
+                    .with_precision_and_scale(38, 0)
+                    .unwrap(),
+            ));
+        }
+        ColumnType::Decimal75(precision, scale) => {
+            column_fields.push(Field::new(
+                *col_name,
+                DataType::Decimal256(precision.value(), *scale),
+                false,
+            ));
+
+            let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
+            columns.push(Arc::new(
+                Decimal256Array::from(values.to_vec())
+                    .with_precision_and_scale(precision.value(), *scale)
+                    .unwrap(),
+            ));
+        }
+        ColumnType::VarChar => {
+            let col = &values
+                .iter()
+                .map(|v| "s".to_owned() + &v.to_string()[..])
+                .collect::<Vec<String>>()[..];
+            let col: Vec<_> = col.iter().map(|v| v.as_str()).collect();
+
+            column_fields.push(Field::new(*col_name, DataType::Utf8, false));
+
+            columns.push(Arc::new(StringArray::from(col)));
+        }
+        ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
+        ColumnType::TimestampTZ(tu, tz) => {
+            column_fields.push(Field::new(
+                *col_name,
+                DataType::Timestamp(
+                    match tu {
+                        PoSQLTimeUnit::Second => TimeUnit::Second,
+                        PoSQLTimeUnit::Millisecond => TimeUnit::Millisecond,
+                        PoSQLTimeUnit::Microsecond => TimeUnit::Microsecond,
+                        PoSQLTimeUnit::Nanosecond => TimeUnit::Nanosecond,
+                    },
+                    Some(Arc::from(tz.to_string())),
+                ),
+                false,
+            ));
+            // Create the correct timestamp array based on the time unit
+            let timestamp_array: Arc<dyn Array> = match tu {
+                PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
+                PoSQLTimeUnit::Millisecond => {
+                    Arc::new(TimestampMillisecondArray::from(values.to_vec()))
+                }
+                PoSQLTimeUnit::Microsecond => {
+                    Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
+                }
+                PoSQLTimeUnit::Nanosecond => {
+                    Arc::new(TimestampNanosecondArray::from(values.to_vec()))
+                }
+            };
+            columns.push(timestamp_array);
+        }
+        ColumnType::Nullable(val) => foo(val.as_ref(), col_name, columns, column_fields, values),
+    }
+}
+
 /// Generate a DataFrame with random data
 #[allow(dead_code)]
 pub fn make_random_test_accessor_data(
@@ -53,101 +158,7 @@ pub fn make_random_test_accessor_data(
 
     for (col_name, col_type) in cols {
         let values: Vec<i64> = dist.sample_iter(&mut *rng).take(n).collect();
-
-        match col_type {
-            ColumnType::Boolean => {
-                column_fields.push(Field::new(*col_name, DataType::Boolean, false));
-                let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
-                columns.push(Arc::new(BooleanArray::from(boolean_values)));
-            }
-
-            ColumnType::SmallInt => {
-                column_fields.push(Field::new(*col_name, DataType::Int16, false));
-                let values: Vec<i16> = values
-                    .iter()
-                    .map(|x| ((*x >> 48) as i16)) // Shift right to align the lower 16 bits
-                    .collect();
-                columns.push(Arc::new(Int16Array::from(values)));
-            }
-            ColumnType::Int => {
-                column_fields.push(Field::new(*col_name, DataType::Int32, false));
-                let values: Vec<i32> = values
-                    .iter()
-                    .map(|x| ((*x >> 32) as i32)) // Shift right to align the lower 32 bits
-                    .collect();
-                columns.push(Arc::new(Int32Array::from(values)));
-            }
-            ColumnType::BigInt => {
-                column_fields.push(Field::new(*col_name, DataType::Int64, false));
-                let values: Vec<i64> = values.to_vec();
-                columns.push(Arc::new(Int64Array::from(values)));
-            }
-            ColumnType::Int128 => {
-                column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
-
-                let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
-                columns.push(Arc::new(
-                    Decimal128Array::from(values.to_vec())
-                        .with_precision_and_scale(38, 0)
-                        .unwrap(),
-                ));
-            }
-            ColumnType::Decimal75(precision, scale) => {
-                column_fields.push(Field::new(
-                    *col_name,
-                    DataType::Decimal256(precision.value(), *scale),
-                    false,
-                ));
-
-                let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
-                columns.push(Arc::new(
-                    Decimal256Array::from(values.to_vec())
-                        .with_precision_and_scale(precision.value(), *scale)
-                        .unwrap(),
-                ));
-            }
-            ColumnType::VarChar => {
-                let col = &values
-                    .iter()
-                    .map(|v| "s".to_owned() + &v.to_string()[..])
-                    .collect::<Vec<String>>()[..];
-                let col: Vec<_> = col.iter().map(|v| v.as_str()).collect();
-
-                column_fields.push(Field::new(*col_name, DataType::Utf8, false));
-
-                columns.push(Arc::new(StringArray::from(col)));
-            }
-            ColumnType::Scalar => unimplemented!("Scalar columns are not supported by arrow"),
-            ColumnType::TimestampTZ(tu, tz) => {
-                column_fields.push(Field::new(
-                    *col_name,
-                    DataType::Timestamp(
-                        match tu {
-                            PoSQLTimeUnit::Second => TimeUnit::Second,
-                            PoSQLTimeUnit::Millisecond => TimeUnit::Millisecond,
-                            PoSQLTimeUnit::Microsecond => TimeUnit::Microsecond,
-                            PoSQLTimeUnit::Nanosecond => TimeUnit::Nanosecond,
-                        },
-                        Some(Arc::from(tz.to_string())),
-                    ),
-                    false,
-                ));
-                // Create the correct timestamp array based on the time unit
-                let timestamp_array: Arc<dyn Array> = match tu {
-                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
-                    PoSQLTimeUnit::Millisecond => {
-                        Arc::new(TimestampMillisecondArray::from(values.to_vec()))
-                    }
-                    PoSQLTimeUnit::Microsecond => {
-                        Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
-                    }
-                    PoSQLTimeUnit::Nanosecond => {
-                        Arc::new(TimestampNanosecondArray::from(values.to_vec()))
-                    }
-                };
-                columns.push(timestamp_array);
-            }
-        }
+        foo(col_type, col_name, &mut columns, &mut column_fields, values);
     }
 
     let schema = Arc::new(Schema::new(column_fields));

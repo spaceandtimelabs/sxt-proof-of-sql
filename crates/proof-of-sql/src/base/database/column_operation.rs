@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use super::{ColumnOperationError, ColumnOperationResult};
 use crate::base::{
     database::ColumnType,
@@ -36,15 +35,16 @@ pub fn try_add_subtract_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
+        let result = lhs.max_integer_type(&rhs).unwrap();
         return if is_nullable {
-            Ok(ColumnType::Scalar.to_nullable())
+            Ok(result.into_nullable())
         } else {
-            Ok(ColumnType::Scalar)
+            Ok(result)
         };
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
         return if is_nullable {
-            Ok(ColumnType::Scalar.to_nullable())
+            Ok(ColumnType::Scalar.into_nullable())
         } else {
             Ok(ColumnType::Scalar)
         };
@@ -73,12 +73,10 @@ pub fn try_add_subtract_column_types(
                     },
                 })
             })?;
-        let result_type = ColumnType::Decimal75(precision, scale);
-
         if is_nullable {
-            Ok(result_type.to_nullable())
+            Ok(ColumnType::Decimal75(precision, scale).into_nullable())
         } else {
-            Ok(result_type)
+            Ok(ColumnType::Decimal75(precision, scale))
         }
     }
 }
@@ -144,8 +142,8 @@ pub fn try_divide_column_types(
     {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
             operator: BinaryOperator::Division,
-            left_type: lhs.clone(),
-            right_type: rhs.clone(),
+            left_type: lhs,
+            right_type: rhs,
         });
     }
     if lhs.is_integer() && rhs.is_integer() {
