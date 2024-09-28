@@ -53,12 +53,14 @@ impl IntermediateDecimal {
         self.value.clone()
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     /// Get the precision of the fixed-point representation of this intermediate decimal.
     #[must_use]
     pub fn precision(&self) -> u8 {
         self.value.digits() as u8
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     /// Get the scale of the fixed-point representation of this intermediate decimal.
     #[must_use]
     pub fn scale(&self) -> i8 {
