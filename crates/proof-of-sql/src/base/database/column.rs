@@ -56,7 +56,8 @@ pub enum Column<'a, S: Scalar> {
 
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
-    #[must_use] pub fn column_type(&self) -> ColumnType {
+    #[must_use]
+    pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
             Self::SmallInt(_) => ColumnType::SmallInt,
@@ -72,7 +73,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns the length of the column.
-    #[must_use] pub fn len(&self) -> usize {
+    #[must_use]
+    pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
             Self::SmallInt(col) => col.len(),
@@ -89,7 +91,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns `true` if the column has no elements.
-    #[must_use] pub fn is_empty(&self) -> bool {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -238,7 +241,8 @@ pub enum ColumnType {
 
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
-    #[must_use] pub fn is_numeric(&self) -> bool {
+    #[must_use]
+    pub fn is_numeric(&self) -> bool {
         matches!(
             self,
             ColumnType::SmallInt
@@ -251,7 +255,8 @@ impl ColumnType {
     }
 
     /// Returns true if this column is an integer and false otherwise
-    #[must_use] pub fn is_integer(&self) -> bool {
+    #[must_use]
+    pub fn is_integer(&self) -> bool {
         matches!(
             self,
             ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
@@ -285,7 +290,8 @@ impl ColumnType {
     /// Returns the larger integer type of two `ColumnTypes` if they are both integers.
     ///
     /// If either of the columns is not an integer, return None.
-    #[must_use] pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
+    #[must_use]
+    pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
         // If either of the columns is not an integer, return None
         if !self.is_integer() || !other.is_integer() {
             return None;
@@ -298,7 +304,8 @@ impl ColumnType {
     }
 
     /// Returns the precision of a `ColumnType` if it is converted to a decimal wrapped in `Some()`. If it can not be converted to a decimal, return None.
-    #[must_use] pub fn precision_value(&self) -> Option<u8> {
+    #[must_use]
+    pub fn precision_value(&self) -> Option<u8> {
         match self {
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
@@ -313,7 +320,8 @@ impl ColumnType {
         }
     }
     /// Returns scale of a `ColumnType` if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
-    #[must_use] pub fn scale(&self) -> Option<i8> {
+    #[must_use]
+    pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
             Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
@@ -328,7 +336,8 @@ impl ColumnType {
     }
 
     /// Returns the byte size of the column type.
-    #[must_use] pub fn byte_size(&self) -> usize {
+    #[must_use]
+    pub fn byte_size(&self) -> usize {
         match self {
             Self::Boolean => size_of::<bool>(),
             Self::SmallInt => size_of::<i16>(),
@@ -340,12 +349,14 @@ impl ColumnType {
     }
 
     /// Returns the bit size of the column type.
-    #[must_use] pub fn bit_size(&self) -> u32 {
+    #[must_use]
+    pub fn bit_size(&self) -> u32 {
         self.byte_size() as u32 * 8
     }
 
     /// Returns if the column type supports signed values.
-    #[must_use] pub const fn is_signed(&self) -> bool {
+    #[must_use]
+    pub const fn is_signed(&self) -> bool {
         match self {
             Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
                 true
@@ -452,22 +463,30 @@ pub struct ColumnRef {
 
 impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
-    #[must_use] pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
-        Self { column_id, table_ref, column_type }
+    #[must_use]
+    pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
+        Self {
+            column_id,
+            table_ref,
+            column_type,
+        }
     }
 
     /// Returns the table reference of this column
-    #[must_use] pub fn table_ref(&self) -> TableRef {
+    #[must_use]
+    pub fn table_ref(&self) -> TableRef {
         self.table_ref
     }
 
     /// Returns the column identifier of this column
-    #[must_use] pub fn column_id(&self) -> Identifier {
+    #[must_use]
+    pub fn column_id(&self) -> Identifier {
         self.column_id
     }
 
     /// Returns the column type of this column
-    #[must_use] pub fn column_type(&self) -> &ColumnType {
+    #[must_use]
+    pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
 }
@@ -484,17 +503,20 @@ pub struct ColumnField {
 
 impl ColumnField {
     /// Create a new `ColumnField` from a name and a type
-    #[must_use] pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
+    #[must_use]
+    pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
         ColumnField { name, data_type }
     }
 
     /// Returns the name of the column
-    #[must_use] pub fn name(&self) -> Identifier {
+    #[must_use]
+    pub fn name(&self) -> Identifier {
         self.name
     }
 
     /// Returns the type of the column
-    #[must_use] pub fn data_type(&self) -> ColumnType {
+    #[must_use]
+    pub fn data_type(&self) -> ColumnType {
         self.data_type
     }
 }
@@ -905,8 +927,11 @@ mod tests {
             "Spazju u Ħin",
         ];
         let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
-        let owned_col =
-            OwnedColumn::VarChar(strs.iter().map(|s| (*s).to_string()).collect::<Vec<String>>());
+        let owned_col = OwnedColumn::VarChar(
+            strs.iter()
+                .map(|s| (*s).to_string())
+                .collect::<Vec<String>>(),
+        );
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::VarChar((&strs, &scalars)));
         let new_owned_col = (&col).into();

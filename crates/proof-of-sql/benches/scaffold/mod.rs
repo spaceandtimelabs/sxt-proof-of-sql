@@ -90,7 +90,9 @@ pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
             &mut rng,
         );
         group.bench_function("Generate Proof", |b| {
-            b.iter(|| VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup));
+            b.iter(|| {
+                VerifiableQueryResult::<CP>::new(query.proof_expr(), &accessor, prover_setup)
+            });
         });
         group.bench_function("Verify Proof", |b| {
             b.iter(|| result.verify(query.proof_expr(), &accessor, verifier_setup));

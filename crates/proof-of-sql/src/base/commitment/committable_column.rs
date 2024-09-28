@@ -48,7 +48,8 @@ pub enum CommittableColumn<'a> {
 
 impl<'a> CommittableColumn<'a> {
     /// Returns the length of the column.
-    #[must_use] pub fn len(&self) -> usize {
+    #[must_use]
+    pub fn len(&self) -> usize {
         match self {
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
@@ -64,12 +65,14 @@ impl<'a> CommittableColumn<'a> {
     }
 
     /// Returns true if the column is empty.
-    #[must_use] pub fn is_empty(&self) -> bool {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns the type of the column.
-    #[must_use] pub fn column_type(&self) -> ColumnType {
+    #[must_use]
+    pub fn column_type(&self) -> ColumnType {
         self.into()
     }
 }

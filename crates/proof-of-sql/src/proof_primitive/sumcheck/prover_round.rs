@@ -12,7 +12,10 @@ use rayon::prelude::*;
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Option<S>) -> Vec<S> {
     if let Some(r) = r_maybe {
-        assert!(prover_state.round != 0, "first round should be prover first.");
+        assert!(
+            prover_state.round != 0,
+            "first round should be prover first."
+        );
         prover_state.randomness.push(*r);
 
         // fix argument
@@ -34,7 +37,10 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
 
     prover_state.round += 1;
 
-    assert!(prover_state.round <= prover_state.num_vars, "Prover is not active");
+    assert!(
+        prover_state.round <= prover_state.num_vars,
+        "Prover is not active"
+    );
 
     let degree = prover_state.max_multiplicands; // the degree of univariate polynomial sent by prover at this round
     let round_length = 1usize << (prover_state.num_vars - prover_state.round);

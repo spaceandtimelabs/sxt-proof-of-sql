@@ -8,8 +8,14 @@ use alloc::vec::Vec;
 
 #[test]
 fn we_can_compare_columns_with_equal_length() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_b: Vec<TestScalar> = [1i64, 10, -5, 0, 11].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_b: Vec<TestScalar> = [1i64, 10, -5, 0, 11]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let commitment_a = NaiveCommitment(column_a.clone());
     let commitment_b = NaiveCommitment(column_b);
     let commitment_c = NaiveCommitment(column_a);
@@ -23,8 +29,14 @@ fn we_can_compare_columns_with_different_length() {
         .iter()
         .map(std::convert::Into::into)
         .collect();
-    let column_b: Vec<TestScalar> = [1i64, 10, -5, 0, 11].iter().map(std::convert::Into::into).collect();
-    let column_c: Vec<TestScalar> = [1i64, 10, -5].iter().map(std::convert::Into::into).collect();
+    let column_b: Vec<TestScalar> = [1i64, 10, -5, 0, 11]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_c: Vec<TestScalar> = [1i64, 10, -5]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let commitment_a = NaiveCommitment(column_a.clone());
     let commitment_b = NaiveCommitment(column_b);
     let commitment_c = NaiveCommitment(column_c);
@@ -38,7 +50,10 @@ fn we_can_compare_columns_with_different_length() {
 
 #[test]
 fn we_can_compare_columns_with_at_least_one_empty() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_b: Vec<TestScalar> = Vec::new();
     let commitment_a = NaiveCommitment(column_a);
     let commitment_b = NaiveCommitment(column_b.clone());
@@ -53,9 +68,18 @@ fn we_can_compare_columns_with_at_least_one_empty() {
 
 #[test]
 fn we_can_add_naive_commitments() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100].iter().map(std::convert::Into::into).collect();
-    let column_sum: Vec<TestScalar> = [3i64, 0, -10, 5, 110].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_sum: Vec<TestScalar> = [3i64, 0, -10, 5, 110]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a);
     let commitment_b = NaiveCommitment(column_b);
@@ -69,7 +93,10 @@ fn we_can_add_naive_commitments() {
 
 #[test]
 fn we_can_add_naive_commitments_with_one_empty() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_b: Vec<TestScalar> = Vec::new();
 
     let commitment_a = NaiveCommitment(column_a);
@@ -97,10 +124,18 @@ fn we_can_add_naive_commitments_with_both_empty() {
 
 #[test]
 fn we_can_subtract_naive_commitments() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100].iter().map(std::convert::Into::into).collect();
-    let column_difference: Vec<TestScalar> =
-        [-1i64, 20, 0, -5, -90].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_difference: Vec<TestScalar> = [-1i64, 20, 0, -5, -90]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a);
     let commitment_b = NaiveCommitment(column_b);
@@ -112,9 +147,15 @@ fn we_can_subtract_naive_commitments() {
 
 #[test]
 fn we_can_subtract_naive_commitments_with_one_empty() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_b: Vec<TestScalar> = Vec::new();
-    let column_b_minus_a = [-1i64, -10, 5, 0, -10].iter().map(std::convert::Into::into).collect();
+    let column_b_minus_a = [-1i64, -10, 5, 0, -10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a.clone());
     let commitment_b = NaiveCommitment(column_b);
@@ -145,9 +186,18 @@ fn we_can_subtract_naive_commitments_with_both_empty() {
 
 #[test]
 fn we_can_add_assign_naive_commitments() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100].iter().map(std::convert::Into::into).collect();
-    let column_sum: Vec<TestScalar> = [3i64, 0, -10, 5, 110].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_sum: Vec<TestScalar> = [3i64, 0, -10, 5, 110]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a.clone());
     let commitment_b = NaiveCommitment(column_b.clone());
@@ -167,7 +217,10 @@ fn we_can_add_assign_naive_commitments() {
 
 #[test]
 fn we_can_add_assign_naive_commitments_with_one_empty() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_b: Vec<TestScalar> = Vec::new();
 
     let commitment_a = NaiveCommitment(column_a.clone());
@@ -204,10 +257,18 @@ fn we_can_add_assign_naive_commitments_with_both_empty() {
 
 #[test]
 fn we_can_sub_assign_naive_commitments() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100].iter().map(std::convert::Into::into).collect();
-    let column_difference: Vec<TestScalar> =
-        [-1i64, 20, 0, -5, -90].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_b: Vec<TestScalar> = [2i64, -10, -5, 5, 100]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_difference: Vec<TestScalar> = [-1i64, 20, 0, -5, -90]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_b = NaiveCommitment(column_b.clone());
     let mut commitment_a_mutable = NaiveCommitment(column_a);
@@ -222,9 +283,15 @@ fn we_can_sub_assign_naive_commitments() {
 
 #[test]
 fn we_can_sub_assign_naive_commitments_with_one_empty() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_b: Vec<TestScalar> = Vec::new();
-    let column_b_minus_a = [-1i64, -10, 5, 0, -10].iter().map(std::convert::Into::into).collect();
+    let column_b_minus_a = [-1i64, -10, 5, 0, -10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a.clone());
     let commitment_b = NaiveCommitment(column_b.clone());
@@ -260,9 +327,14 @@ fn we_can_sub_assign_naive_commitments_with_both_empty() {
 
 #[test]
 fn we_can_negate_naive_commitments() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
-    let column_negation: Vec<TestScalar> =
-        [-1i64, -10, 5, 0, -10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
+    let column_negation: Vec<TestScalar> = [-1i64, -10, 5, 0, -10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
 
     let commitment_a = NaiveCommitment(column_a);
     let commitment_negation = NaiveCommitment(column_negation);
@@ -288,7 +360,10 @@ fn we_can_negate_empty_naive_commitments() {
 
 #[test]
 fn we_can_do_scalar_multiplication() {
-    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10].iter().map(std::convert::Into::into).collect();
+    let column_a: Vec<TestScalar> = [1i64, 10, -5, 0, 10]
+        .iter()
+        .map(std::convert::Into::into)
+        .collect();
     let column_empty: Vec<TestScalar> = Vec::new();
     let scalar: TestScalar = (-2i64).into();
     let zero = TestScalar::ZERO;
