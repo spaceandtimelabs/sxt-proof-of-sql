@@ -4,6 +4,7 @@ use crate::base::{
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{

@@ -5,6 +5,7 @@
  */
 use crate::base::scalar::Scalar;
 use crate::{base::if_rayon, proof_primitive::sumcheck::ProverState};
+use alloc::{vec, vec::Vec};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 

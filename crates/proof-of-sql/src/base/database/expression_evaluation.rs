@@ -4,6 +4,7 @@ use crate::base::{
     math::decimal::{try_into_to_scalar, Precision},
     scalar::Scalar,
 };
+use alloc::{format, string::ToString, vec};
 use proof_of_sql_parser::{
     intermediate_ast::{BinaryOperator, Expression, Literal, UnaryOperator},
     Identifier,

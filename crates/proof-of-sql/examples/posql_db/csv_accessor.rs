@@ -1,12 +1,12 @@
 use super::record_batch_accessor::RecordBatchAccessor;
 use arrow::{datatypes::Schema, record_batch::RecordBatch};
 use arrow_csv::{ReaderBuilder, WriterBuilder};
+use core::error::Error;
 use proof_of_sql::base::{
     database::{Column, ColumnRef, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef},
     scalar::Scalar,
 };
 use std::{
-    error::Error,
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
     sync::Arc,

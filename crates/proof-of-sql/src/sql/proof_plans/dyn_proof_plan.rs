@@ -3,6 +3,7 @@ use crate::{
     base::{commitment::Commitment, database::Column, map::IndexSet},
     sql::proof::{ProofPlan, ProverEvaluate},
 };
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query

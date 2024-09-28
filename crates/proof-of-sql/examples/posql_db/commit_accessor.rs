@@ -1,9 +1,10 @@
+use core::error::Error;
 use proof_of_sql::base::{
     commitment::{Commitment, QueryCommitments, TableCommitment},
     database::{CommitmentAccessor, MetadataAccessor, SchemaAccessor, TableRef},
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 pub struct CommitAccessor<C: Commitment> {
     base_path: PathBuf,
     inner: QueryCommitments<C>,

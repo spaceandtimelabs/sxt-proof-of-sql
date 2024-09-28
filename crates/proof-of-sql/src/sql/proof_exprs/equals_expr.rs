@@ -10,6 +10,7 @@ use crate::{
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 

@@ -1,5 +1,6 @@
 use super::{pairings, DoryCommitment, DoryProverPublicSetup, DoryScalar, G1Projective};
 use crate::base::commitment::CommittableColumn;
+use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
 use core::iter::once;
 

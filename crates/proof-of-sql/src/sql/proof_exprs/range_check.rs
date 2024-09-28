@@ -1,4 +1,5 @@
 use crate::base::{scalar::Scalar, slice_ops};
+use alloc::vec::Vec;
 use bytemuck::cast_slice;
 
 // Decomposes a scalar to requisite words, additionally tracks the total
