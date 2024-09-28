@@ -48,6 +48,7 @@ impl<'a> DynProofExprBuilder<'a> {
     }
 }
 
+#[allow(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
     fn visit_expr<C: Commitment>(
