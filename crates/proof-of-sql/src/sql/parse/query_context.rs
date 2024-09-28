@@ -10,6 +10,7 @@ use crate::{
         proof_plans::GroupByExec,
     },
 };
+use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
     Identifier,

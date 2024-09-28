@@ -22,6 +22,7 @@ use crate::base::{
     math::decimal::Precision,
     scalar::Scalar,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
@@ -37,7 +38,6 @@ use proof_of_sql_parser::{
     Identifier, ParseError,
 };
 use snafu::Snafu;
-use std::sync::Arc;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]

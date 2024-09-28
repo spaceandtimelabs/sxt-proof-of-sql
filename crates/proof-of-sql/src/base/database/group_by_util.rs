@@ -5,6 +5,7 @@ use crate::base::{
     if_rayon,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::cmp::Ordering;
 use itertools::Itertools;

@@ -1,3 +1,4 @@
+use alloc::string::String;
 use proof_of_sql_parser::Identifier;
 use snafu::Snafu;
 

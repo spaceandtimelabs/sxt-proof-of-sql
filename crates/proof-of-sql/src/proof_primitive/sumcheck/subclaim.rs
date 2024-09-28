@@ -5,6 +5,7 @@
  */
 use crate::base::scalar::Scalar;
 use crate::base::{polynomial::interpolate_uni_poly, proof::ProofError};
+use alloc::vec::Vec;
 
 pub struct Subclaim<S: Scalar> {
     pub evaluation_point: Vec<S>,

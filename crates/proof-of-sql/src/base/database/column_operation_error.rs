@@ -1,4 +1,6 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
+use alloc::string::String;
+use core::result::Result;
 use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
 use snafu::Snafu;
 
@@ -54,4 +56,4 @@ pub enum ColumnOperationError {
 }
 
 /// Result type for column operations
-pub type ColumnOperationResult<T> = std::result::Result<T, ColumnOperationError>;
+pub type ColumnOperationResult<T> = Result<T, ColumnOperationError>;

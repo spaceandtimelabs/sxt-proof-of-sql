@@ -7,12 +7,12 @@ use crate::{
     },
     record_batch,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{ArrayRef, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray},
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use std::sync::Arc;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: OwnedColumn<Curve25519Scalar>,

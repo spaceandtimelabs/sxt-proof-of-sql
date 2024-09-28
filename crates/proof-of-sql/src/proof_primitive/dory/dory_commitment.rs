@@ -28,6 +28,7 @@ use crate::base::{
     impl_serde_for_ark_serde_checked,
     scalar::{MontScalar, Scalar},
 };
+use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;

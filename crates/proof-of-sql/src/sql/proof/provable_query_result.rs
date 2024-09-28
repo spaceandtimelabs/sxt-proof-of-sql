@@ -6,6 +6,7 @@ use crate::base::{
     polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
+use alloc::{vec, vec::Vec};
 use num_traits::Zero;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};

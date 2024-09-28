@@ -3,6 +3,7 @@ use super::{
 };
 #[cfg(test)]
 use super::{G1Affine, G1Projective, G2Projective, ProverSetup};
+use alloc::{vec, vec::Vec};
 #[cfg(test)]
 use ark_ec::VariableBaseMSM;
 

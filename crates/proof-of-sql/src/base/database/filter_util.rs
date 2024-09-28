@@ -1,4 +1,5 @@
 use crate::base::{database::Column, scalar::Scalar};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 
 /// This function takes a selection vector and a set of columns and returns a
