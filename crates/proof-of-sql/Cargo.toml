@@ -45,7 +45,7 @@ rand = { workspace = true, default-features = false, optional = true }
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
+snafu = { workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }

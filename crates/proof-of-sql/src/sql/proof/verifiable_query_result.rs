@@ -120,9 +120,9 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         // handle the empty case
         if expr.is_empty(accessor) {
             if self.provable_result.is_some() || self.proof.is_some() {
-                return Err(ProofError::VerificationError(
-                    "zero sumcheck variables but non-empty result",
-                ))?;
+                return Err(ProofError::VerificationError {
+                    error: "zero sumcheck variables but non-empty result",
+                })?;
             }
 
             let result_fields = expr.get_column_result_fields();
@@ -131,9 +131,9 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         }
 
         if self.provable_result.is_none() || self.proof.is_none() {
-            return Err(ProofError::VerificationError(
-                "non-zero sumcheck variables but empty result",
-            ))?;
+            return Err(ProofError::VerificationError {
+                error: "non-zero sumcheck variables but empty result",
+            })?;
         }
 
         self.proof.as_ref().unwrap().verify(

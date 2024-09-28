@@ -7,24 +7,24 @@ use super::{
 };
 use crate::base::{commitment::CommitmentEvaluationProof, proof::Transcript};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// The `CommitmentEvaluationProof` for the Dory PCS.
 #[derive(Default, Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct DynamicDoryEvaluationProof(pub(super) DoryMessages);
 
 /// The error type for the Dory PCS.
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 pub enum DoryError {
     /// This error occurs when the generators offset is invalid.
-    #[error("invalid generators offset: {0}")]
-    InvalidGeneratorsOffset(u64),
+    #[snafu(display("invalid generators offset: {offset}"))]
+    InvalidGeneratorsOffset { offset: u64 },
     /// This error occurs when the proof fails to verify.
-    #[error("verification error")]
+    #[snafu(display("verification error"))]
     VerificationError,
     /// This error occurs when the setup is too small.
-    #[error("setup is too small: the setup is {0}, but the proof requires a setup of size {1}")]
-    SmallSetup(usize, usize),
+    #[snafu(display("setup is too small: the setup is {actual}, but the proof requires a setup of size {required}"))]
+    SmallSetup { actual: usize, required: usize },
 }
 
 impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
@@ -85,13 +85,18 @@ impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
         );
         // Dory PCS Logic
         if generators_offset != 0 {
-            return Err(DoryError::InvalidGeneratorsOffset(generators_offset));
+            return Err(DoryError::InvalidGeneratorsOffset {
+                offset: generators_offset,
+            });
         }
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
         let mut messages = self.0.clone();
         let nu = compute_dynamic_nu(b_point.len());
         if nu > setup.max_nu {
-            return Err(DoryError::SmallSetup(setup.max_nu, nu));
+            return Err(DoryError::SmallSetup {
+                actual: setup.max_nu,
+                required: nu,
+            });
         }
         let state = build_dynamic_vmv_verifier_state(product.0, b_point, a_commit, nu);
         let extended_state = eval_vmv_re_verify(&mut messages, transcript, state, setup)

@@ -229,8 +229,9 @@ impl<'a> QueryContextBuilder<'a> {
         let table_ref = self.context.get_table_ref();
         let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
 
-        let column_type = column_type.ok_or_else(|| {
-            ConversionError::MissingColumn(Box::new(column_name), Box::new(table_ref.resource_id()))
+        let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
+            identifier: Box::new(column_name),
+            resource_id: Box::new(table_ref.resource_id()),
         })?;
 
         let column = ColumnRef::new(*table_ref, column_name, column_type.clone());
@@ -313,9 +314,9 @@ fn check_dtypes(
     if type_check_binary_operation(&left_dtype, &right_dtype, binary_operator) {
         Ok(())
     } else {
-        Err(ConversionError::DataTypeMismatch(
-            left_dtype.to_string(),
-            right_dtype.to_string(),
-        ))
+        Err(ConversionError::DataTypeMismatch {
+            left_type: left_dtype.to_string(),
+            right_type: right_dtype.to_string(),
+        })
     }
 }

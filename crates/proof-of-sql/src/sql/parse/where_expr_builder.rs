@@ -33,9 +33,9 @@ impl<'a> WhereExprBuilder<'a> {
                 // Ensure that the expression is a boolean expression
                 match expr_plan.data_type() {
                     ColumnType::Boolean => Ok(expr_plan),
-                    _ => Err(ConversionError::NonbooleanWhereClause(
-                        expr_plan.data_type(),
-                    )),
+                    _ => Err(ConversionError::NonbooleanWhereClause {
+                        datatype: expr_plan.data_type(),
+                    }),
                 }
             })
             .transpose()

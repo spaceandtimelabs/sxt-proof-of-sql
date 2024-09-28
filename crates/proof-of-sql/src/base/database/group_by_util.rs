@@ -10,7 +10,7 @@ use core::cmp::Ordering;
 use itertools::Itertools;
 #[cfg(feature = "rayon")]
 use rayon::prelude::ParallelSliceMut;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// The output of the `aggregate_columns` function.
 #[derive(Debug)]
@@ -29,9 +29,9 @@ pub struct AggregatedColumns<'a, S: Scalar> {
     /// The number of rows in each group.
     pub count_column: &'a [i64],
 }
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Snafu, Debug, PartialEq, Eq)]
 pub enum AggregateColumnsError {
-    #[error("Column length mismatch")]
+    #[snafu(display("Column length mismatch"))]
     ColumnLengthMismatch,
 }
 

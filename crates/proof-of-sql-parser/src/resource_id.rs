@@ -91,9 +91,11 @@ impl FromStr for ResourceId {
     type Err = ParseError;
 
     fn from_str(string: &str) -> ParseResult<Self> {
-        let (schema, object_name) = ResourceIdParser::new()
-            .parse(string)
-            .map_err(|e| ParseError::ResourceIdParseError(format!("{:?}", e)))?;
+        let (schema, object_name) = ResourceIdParser::new().parse(string).map_err(|e| {
+            ParseError::ResourceIdParseError {
+                error: format!("{:?}", e),
+            }
+        })?;
 
         // use unsafe `Identifier::new` to prevent double parsing the ids
         Ok(ResourceId {

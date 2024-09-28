@@ -107,7 +107,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
         DynProofExpr::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
-        Err(ConversionError::DataTypeMismatch(..))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

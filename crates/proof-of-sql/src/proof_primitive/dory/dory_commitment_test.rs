@@ -13,15 +13,15 @@ fn test_dory_scalar_to_bool() {
 fn test_dory_scalar_to_bool_overflow() {
     matches!(
         bool::try_from(DoryScalar::from(2)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         bool::try_from(DoryScalar::from(-1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         bool::try_from(DoryScalar::from(-2)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -38,11 +38,11 @@ fn test_dory_scalar_to_i8() {
 fn test_dory_scalar_to_i8_overflow() {
     matches!(
         i8::try_from(DoryScalar::from(i8::MAX as i128 + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i8::try_from(DoryScalar::from(i8::MIN as i128 - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -59,11 +59,11 @@ fn test_dory_scalar_to_i16() {
 fn test_dory_scalar_to_i16_overflow() {
     matches!(
         i16::try_from(DoryScalar::from(i16::MAX as i128 + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i16::try_from(DoryScalar::from(i16::MIN as i128 - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -80,11 +80,11 @@ fn test_dory_scalar_to_i32() {
 fn test_dory_scalar_to_i32_overflow() {
     matches!(
         i32::try_from(DoryScalar::from(i32::MAX as i128 + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i32::try_from(DoryScalar::from(i32::MIN as i128 - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -101,11 +101,11 @@ fn test_dory_scalar_to_i64() {
 fn test_dory_scalar_to_i64_overflow() {
     matches!(
         i64::try_from(DoryScalar::from(i64::MAX as i128 + 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i64::try_from(DoryScalar::from(i64::MIN as i128 - 1)),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 
@@ -128,11 +128,11 @@ fn test_dory_scalar_to_i128() {
 fn test_dory_scalar_to_i128_overflow() {
     matches!(
         i128::try_from(DoryScalar::from(i128::MAX) + DoryScalar::ONE),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
     matches!(
         i128::try_from(DoryScalar::from(i128::MIN) - DoryScalar::ONE),
-        Err(ScalarConversionError::Overflow(_))
+        Err(ScalarConversionError::Overflow { .. })
     );
 }
 

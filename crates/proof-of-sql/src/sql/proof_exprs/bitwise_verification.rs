@@ -45,9 +45,9 @@ pub fn verify_constant_sign_decomposition<S: Scalar>(
     if lhs == rhs {
         Ok(())
     } else {
-        Err(ProofError::VerificationError(
-            "constant sign bitwise decomposition is invalid",
-        ))
+        Err(ProofError::VerificationError {
+            error: "constant sign bitwise decomposition is invalid",
+        })
     }
 }
 
@@ -67,8 +67,8 @@ pub fn verify_constant_abs_decomposition<S: Scalar>(
     if S::from(dist.constant_part()) * t == eval {
         Ok(())
     } else {
-        Err(ProofError::VerificationError(
-            "constant absolute bitwise decomposition is invalid",
-        ))
+        Err(ProofError::VerificationError {
+            error: "constant absolute bitwise decomposition is invalid",
+        })
     }
 }
