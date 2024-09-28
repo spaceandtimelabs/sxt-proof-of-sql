@@ -58,6 +58,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
                 has_nonprovable_column = true;
             }
         }
+        
         if has_nonprovable_column {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {

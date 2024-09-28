@@ -30,6 +30,8 @@ pub(crate) fn add_subtract_columns<'a, S: Scalar>(
 }
 
 /// Multiply two columns together.
+/// # Panics
+/// Panics if: The lengths of `lhs` and `rhs` are not equal.`lhs.scalar_at(i)` or `rhs.scalar_at(i)` returns `None`, which occurs if the column does not have, a scalar at the given index `i`.
 pub(crate) fn multiply_columns<'a, S: Scalar>(
     lhs: &Column<'a, S>,
     rhs: &Column<'a, S>,
@@ -42,7 +44,6 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
         "lhs and rhs should have the same length"
     );
     alloc.alloc_slice_fill_with(lhs_len, |i| {
-        //TODO: add panic docs
         lhs.scalar_at(i).unwrap() * rhs.scalar_at(i).unwrap()
     })
 }

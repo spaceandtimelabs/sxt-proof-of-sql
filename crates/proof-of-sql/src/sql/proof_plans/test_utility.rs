@@ -19,6 +19,9 @@ pub fn filter<C: Commitment>(
     DynProofPlan::Filter(FilterExec::new(results, table, where_clause))
 }
 
+/// # Panics
+///
+/// Will panic if `count_alias` cannot be parsed as a valid identifier.
 pub fn group_by<C: Commitment>(
     group_by_exprs: Vec<ColumnExpr<C>>,
     sum_expr: Vec<AliasedDynProofExpr<C>>,
@@ -29,7 +32,6 @@ pub fn group_by<C: Commitment>(
     DynProofPlan::GroupBy(GroupByExec::new(
         group_by_exprs,
         sum_expr,
-        //TODO: add panic docs
         count_alias.parse().unwrap(),
         table,
         where_clause,

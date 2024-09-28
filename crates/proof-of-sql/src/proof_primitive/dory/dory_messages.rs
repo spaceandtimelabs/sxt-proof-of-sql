@@ -60,29 +60,40 @@ impl DoryMessages {
         self.GT_messages.insert(0, message);
     }
     /// Pops a field element from the verifier's queue, and appends it to the transcript.
+    /// # Panics
+    ///
+    /// Will panic if there are no messages in the queue (i.e., `F_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
     pub(super) fn prover_recieve_F_message(&mut self, transcript: &mut Transcript) -> F {
-        //TODO: add panic docs
         let message = self.F_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G1 element from the verifier's queue, and appends it to the transcript.
+    /// 
+    /// # Panics
+    ///
+    /// Will panic if there are no messages in the queue (i.e., `G1_messages` is empty), indicating
     pub(super) fn prover_recieve_G1_message(&mut self, transcript: &mut Transcript) -> G1Affine {
-        //TODO: add panic docs
         let message = self.G1_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a G2 element from the verifier's queue, and appends it to the transcript.
+    /// 
+    /// # Panics
+    ///
+    /// Will panic if there are no messages in the queue (i.e., `G2_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
     pub(super) fn prover_recieve_G2_message(&mut self, transcript: &mut Transcript) -> G2Affine {
-        // TODO: add panic docs
         let message = self.G2_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
     /// Pops a GT element from the verifier's queue, and appends it to the transcript.
+    /// 
+    /// # Panics
+    ///
+    /// Will panic if there are no messages in the queue (i.e., `GT_messages` is empty), indicating that the prover attempted to receive a message that was never sent.
     pub(super) fn prover_recieve_GT_message(&mut self, transcript: &mut Transcript) -> GT {
-        //TODO: add panic docs
         let message = self.GT_messages.pop().unwrap();
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
@@ -91,13 +102,16 @@ impl DoryMessages {
     /// This message is produces as a challenge from the transcript.
     ///
     /// While the message is a simple field element, we ensure that it is non-zero, and also return it's inverse.
+    /// 
+    /// # Panics
+    ///
+    /// Will panic if the challenge process fails to generate a non-zero message, indicating a logical issue in the protocol's challenge generation.
     pub(super) fn verifier_F_message(&mut self, transcript: &mut Transcript) -> (F, F) {
         let mut message = F::zero();
         while message.is_zero() {
             transcript
                 .challenge_scalars(core::iter::once(&mut message), MessageLabel::DoryChallenge)
         }
-        //TODO: add panic docs
         let message_inv = message.inverse().unwrap();
         (message, message_inv)
     }

@@ -11,11 +11,14 @@ pub fn group_by_postprocessing(
 ) -> OwnedTablePostprocessing {
     let ids: Vec<Identifier> = cols.iter().map(|col| ident(col)).collect();
     OwnedTablePostprocessing::new_group_by(
-        //TODO: add panic docs
         GroupByPostprocessing::try_new(ids, result_exprs.to_vec()).unwrap(),
     )
 }
 
+///
+/// # Panics
+///
+/// This function may panic if the internal structures cannot be created properly, although this is unlikely under normal circumstances.
 pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_select(SelectPostprocessing::new(result_exprs.to_vec()))
 }

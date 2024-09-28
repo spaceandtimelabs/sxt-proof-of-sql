@@ -129,8 +129,11 @@ impl<T: MontConfig<4>> MontScalar<T> {
         Self(value)
     }
     /// Create a new `MontScalar<T>` from a `[u64, 4]`. The array is expected to be in non-montgomery form.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the provided `[u64; 4]` cannot be converted into a valid `BigInt` due to an overflow or invalid input. The method unwraps the result of `Fp::from_bigint`, which will panic if the `BigInt` does not represent a valid field element.
     pub fn from_bigint(vals: [u64; 4]) -> Self {
-        //TODO: add panic docs
         Self(Fp::from_bigint(ark_ff::BigInt(vals)).unwrap())
     }
     /// Create a new `MontScalar<T>` from a `[u8]` modulus the field order. The array is expected to be in non-montgomery form.
@@ -276,9 +279,12 @@ impl From<Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
 }
 
 impl From<&Curve25519Scalar> for curve25519_dalek::scalar::Scalar {
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the byte array cannot be converted to a canonical scalar. This can occur if the byte array is not of the expected length (32 bytes), leading to a failure in the from_canonical_bytes` method.
     fn from(value: &Curve25519Scalar) -> Self {
         let bytes = ark_ff::BigInteger::to_bytes_le(&value.0.into_bigint());
-        //TODO: add panic docs
         curve25519_dalek::scalar::Scalar::from_canonical_bytes(bytes.try_into().unwrap()).unwrap()
     }
 }

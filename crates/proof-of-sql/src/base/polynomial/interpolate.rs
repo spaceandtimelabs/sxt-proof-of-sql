@@ -71,6 +71,13 @@ where
 /// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
 /// The output of this function is the vector of coefficients of f, leading coefficient first.
 /// That is, `f(x) = evals[j]*x^(d-j)``.
+///
+/// # Panics
+///
+/// This function may panic in the following situations:
+/// - If the evaluation points are insufficient (less than 1), resulting in `n` being 0 or negative, which could lead to incorrect calculations or indexing issues.
+/// - The `inv()` method on `Product` type can panic if the product is zero, leading to a division by zero situation when calculating the inverse.
+/// - The `unwrap()` calls will panic if the value being unwrapped is `None`, which can occur during the evaluation of Lagrange basis polynomials.
 #[allow(dead_code)]
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
@@ -91,7 +98,6 @@ where
             let mut scaled_lagrange_basis = vec![S::zero(); n + 1];
             // First compute the constant factor of this lagrange basis polynomial:
             scaled_lagrange_basis[0] = (i - n as i32..0)
-                //TODO: add panic docs
                 .chain(1..=i)
                 .map(S::from)
                 .product::<S>()

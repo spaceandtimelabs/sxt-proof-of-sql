@@ -6,66 +6,89 @@ use crate::base::{
 };
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 
+/// # Panics
+/// Panics if:
+/// - `name.parse()` fails, which means the provided string could not be parsed into the expected type (usually an `Identifier`).
 pub fn col_ref(tab: TableRef, name: &str, accessor: &impl SchemaAccessor) -> ColumnRef {
-    //TODO: add panic docs
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     ColumnRef::new(tab, name, type_col)
 }
 
+/// # Panics
+/// Panics if:
+/// - `name.parse()` fails to parse the column name.
+/// - `accessor.lookup_column()` returns `None`, indicating the column is not found.
 pub fn column<C: Commitment>(
     tab: TableRef,
     name: &str,
     accessor: &impl SchemaAccessor,
 ) -> DynProofExpr<C> {
-    // TODO: add panic docs
     let name = name.parse().unwrap();
     let type_col = accessor.lookup_column(tab, name).unwrap();
     DynProofExpr::Column(ColumnExpr::new(ColumnRef::new(tab, name, type_col)))
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_equals()` returns an error.
 pub fn equal<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    //TODO: add panic docs
     DynProofExpr::try_new_equals(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_inequality()` returns an error.
 pub fn lte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_inequality(left, right, true).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_inequality()` returns an error.
 pub fn gte<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_inequality(left, right, false).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_not()` returns an error.
 pub fn not<C: Commitment>(expr: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_not(expr).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_and()` returns an error.
 pub fn and<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_and(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_or()` returns an error.
 pub fn or<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_or(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_add()` returns an error.
 pub fn add<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_add(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_subtract()` returns an error.
 pub fn subtract<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_subtract(left, right).unwrap()
 }
 
+/// # Panics
+/// Panics if:
+/// - `DynProofExpr::try_new_multiply()` returns an error.
 pub fn multiply<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) -> DynProofExpr<C> {
-    // TODO: add panic docs
     DynProofExpr::try_new_multiply(left, right).unwrap()
 }
 
@@ -102,7 +125,9 @@ pub fn const_scalar<C: Commitment, T: Into<C::Scalar>>(val: T) -> DynProofExpr<C
     DynProofExpr::new_literal(LiteralValue::Scalar(val.into()))
 }
 
-//TODO: add panic docs
+/// # Panics
+/// Panics if:
+/// - `Precision::new(precision)` fails, meaning the provided precision is invalid.
 pub fn const_decimal75<C: Commitment, T: Into<C::Scalar>>(
     precision: u8,
     scale: i8,
@@ -119,7 +144,9 @@ pub fn tab(tab: TableRef) -> TableExpr {
     TableExpr { table_ref: tab }
 }
 
-//TODO: add panic docs
+/// # Panics
+/// Panics if:
+/// - `alias.parse()` fails to parse the provided alias string.
 pub fn aliased_plan<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr,
@@ -127,7 +154,10 @@ pub fn aliased_plan<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> Aliase
     }
 }
 
-//TODO: add panic docs
+/// # Panics
+/// Panics if:
+/// - `old_name.parse()` or `new_name.parse()` fails to parse the provided column names.
+/// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
 pub fn aliased_col_expr_plan<C: Commitment>(
     tab: TableRef,
     old_name: &str,
@@ -140,7 +170,10 @@ pub fn aliased_col_expr_plan<C: Commitment>(
     }
 }
 
-//TODO: add panic docs
+/// # Panics
+/// Panics if:
+/// - `name.parse()` fails to parse the provided column name.
+/// - `col_ref()` fails to find the referenced column, leading to a panic in the column accessor.
 pub fn col_expr_plan<C: Commitment>(
     tab: TableRef,
     name: &str,
@@ -193,7 +226,9 @@ pub fn cols_expr<C: Commitment>(
         .collect()
 }
 
-//TODO: add panic docs
+/// # Panics
+/// Panics if:
+/// - `alias.parse()` fails to parse the provided alias string.
 pub fn sum_expr<C: Commitment>(expr: DynProofExpr<C>, alias: &str) -> AliasedDynProofExpr<C> {
     AliasedDynProofExpr {
         expr: DynProofExpr::new_aggregate(AggregationOperator::Sum, expr),
