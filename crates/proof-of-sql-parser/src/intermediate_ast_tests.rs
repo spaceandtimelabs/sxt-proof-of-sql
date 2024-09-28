@@ -110,7 +110,7 @@ fn we_can_parse_strings_having_control_characters() {
 
 #[test]
 fn unnormalized_strings_should_differ() {
-    let lhs = StringLiteralParser::new().parse("'á'").unwrap();
+    let lhs = StringLiteralParser::new().parse("'á'").unwrap();
     let rhs = StringLiteralParser::new().parse("'á'").unwrap();
     assert_ne!(lhs, rhs);
 }
