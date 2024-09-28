@@ -14,6 +14,7 @@ use crate::{
         VerificationBuilder,
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 
 /// Count the number of components needed to prove a sign decomposition

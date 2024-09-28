@@ -7,6 +7,7 @@ use crate::{
     },
     sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
+use alloc::boxed::Box;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
 /// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is

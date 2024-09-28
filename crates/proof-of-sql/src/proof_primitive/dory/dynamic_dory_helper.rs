@@ -4,6 +4,7 @@ use super::{
     ProverSetup, F,
 };
 use crate::proof_primitive::dory::dynamic_dory_standard_basis_helper::compute_dynamic_standard_basis_vecs;
+use alloc::{vec, vec::Vec};
 use ark_ff::Field;
 use itertools::Itertools;
 

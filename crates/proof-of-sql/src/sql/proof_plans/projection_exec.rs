@@ -16,6 +16,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};

@@ -2,6 +2,7 @@ use super::{
     compute_L_R_vec, compute_l_r_tensors, compute_v_vec, DeferredGT, G1Affine, VMVProverState,
     VMVVerifierState, F,
 };
+use alloc::vec::Vec;
 
 /// Builds a VMVProverState from the given parameters.
 pub(super) fn build_vmv_prover_state(

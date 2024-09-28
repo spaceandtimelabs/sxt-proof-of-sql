@@ -14,10 +14,11 @@ use crate::{
     proof_primitive::sumcheck::SumcheckProof,
     sql::proof::{QueryData, ResultBuilder},
 };
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
+use core::cmp;
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
-use std::cmp;
 
 /// The proof for a query.
 ///

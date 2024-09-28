@@ -1,5 +1,6 @@
 use super::{G1Affine, G2Affine, PublicParameters, GT};
 use crate::base::impl_serde_for_ark_serde_unchecked;
+use alloc::vec::Vec;
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use itertools::MultiUnzip;

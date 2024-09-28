@@ -11,6 +11,7 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, ProofExpr},
     },
 };
+use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
     posql_time::{PoSQLTimeUnit, PoSQLTimestampError},

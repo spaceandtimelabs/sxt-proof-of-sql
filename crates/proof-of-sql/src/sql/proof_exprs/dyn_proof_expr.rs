@@ -14,10 +14,11 @@ use crate::{
         proof::{CountBuilder, ProofBuilder, VerificationBuilder},
     },
 };
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
+use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

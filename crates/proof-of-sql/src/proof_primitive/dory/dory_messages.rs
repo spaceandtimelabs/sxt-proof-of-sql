@@ -1,5 +1,6 @@
 use super::{DoryScalar, G1Affine, G2Affine, F, GT};
 use crate::base::{impl_serde_for_ark_serde_checked, proof::Transcript};
+use alloc::vec::Vec;
 use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use num_traits::Zero;

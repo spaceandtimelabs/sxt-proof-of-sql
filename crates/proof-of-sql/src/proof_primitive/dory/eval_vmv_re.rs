@@ -3,6 +3,7 @@ use super::{
     ProverSetup, VMVProverState, VMVVerifierState, VerifierSetup,
 };
 use crate::base::{if_rayon, proof::Transcript};
+use alloc::vec::Vec;
 use ark_ec::VariableBaseMSM;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
