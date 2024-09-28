@@ -44,7 +44,7 @@ impl<S: Scalar> PostprocessingStep<S> for SlicePostprocessing {
             i128::from(offset)
         };
         // The `possible_ending_row` is NOT inclusive.
-        let possible_ending_row = (possible_starting_row + limit as i128).min(num_rows as i128);
+        let possible_ending_row = (possible_starting_row + i128::from(limit)).min(num_rows as i128);
         let starting_row = usize::try_from(possible_starting_row).map_err(|_| {
             PostprocessingError::InvalidSliceIndex {
                 index: possible_starting_row,

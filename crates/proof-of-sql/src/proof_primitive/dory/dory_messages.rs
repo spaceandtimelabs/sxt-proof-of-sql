@@ -96,7 +96,7 @@ impl DoryMessages {
     pub(super) fn verifier_F_message(&mut self, transcript: &mut impl Transcript) -> (F, F) {
         let mut message = F::zero();
         while message.is_zero() {
-            message = transcript.scalar_challenge_as_be::<DoryScalar>().0
+            message = transcript.scalar_challenge_as_be::<DoryScalar>().0;
         }
         let message_inv = message.inverse().unwrap();
         (message, message_inv)
