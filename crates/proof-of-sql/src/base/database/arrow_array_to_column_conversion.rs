@@ -933,6 +933,16 @@ mod tests {
     }
 
     #[test]
+    fn we_can_build_an_empty_column_from_an_empty_range_int8() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![1, -3]));
+        let result = array
+            .to_column::<Curve25519Scalar>(&alloc, &(2..2), None)
+            .unwrap();
+        assert_eq!(result, Column::TinyInt(&[]));
+    }
+
+    #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_int16() {
         let alloc = Bump::new();
         let array: ArrayRef = Arc::new(arrow::array::Int16Array::from(vec![1, -3]));

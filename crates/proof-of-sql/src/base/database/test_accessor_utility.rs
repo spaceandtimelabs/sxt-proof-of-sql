@@ -2,7 +2,7 @@ use crate::base::database::ColumnType;
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Field, Schema, TimeUnit},
@@ -66,7 +66,7 @@ pub fn make_random_test_accessor_data(
                     .iter()
                     .map(|x| ((*x >> 56) as i8)) // Shift right to align the lower 8 bits
                     .collect();
-                columns.push(Arc::new(Int16Array::from(values)));
+                columns.push(Arc::new(Int8Array::from(values)));
             }
             ColumnType::SmallInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int16, false));

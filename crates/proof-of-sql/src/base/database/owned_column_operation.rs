@@ -1209,6 +1209,15 @@ impl<S: Scalar> Div for OwnedColumn<S> {
             (Self::TinyInt(lhs), Self::Int128(rhs)) => {
                 Ok(Self::Int128(try_divide_slices_left_upcast(lhs, rhs)?))
             }
+            (Self::TinyInt(lhs_values), Self::Decimal75(_, _, rhs_values)) => {
+                let (new_precision, new_scale, new_values) = try_divide_decimal_columns(
+                    lhs_values,
+                    rhs_values,
+                    self.column_type(),
+                    rhs.column_type(),
+                )?;
+                Ok(Self::Decimal75(new_precision, new_scale, new_values))
+            }
 
             (Self::SmallInt(lhs), Self::TinyInt(rhs)) => {
                 Ok(Self::SmallInt(try_divide_slices_right_upcast(lhs, rhs)?))
@@ -1442,6 +1451,26 @@ mod test {
 
     #[test]
     fn we_cannot_do_logical_operation_on_nonboolean_columns() {
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_and(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_or(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.element_wise_not();
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::UnaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
         let result = lhs.element_wise_and(&rhs);
@@ -1564,6 +1593,18 @@ mod test {
 
         // Decimals and integers
         let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, -2, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 1, lhs_scalars);
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
+
+        let lhs_scalars = [10, 2, 30].iter().map(Curve25519Scalar::from).collect();
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, -2, 3]);
         let lhs =
             OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 1, lhs_scalars);
@@ -1626,6 +1667,18 @@ mod test {
         );
 
         // Decimals and integers
+        let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, -20, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let result = lhs.element_wise_le(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                false, true, true
+            ]))
+        );
+
         let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, -20, 3]);
         let lhs =
@@ -1690,6 +1743,18 @@ mod test {
 
         // Decimals and integers
         let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1_i8, -20, 3]);
+        let lhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
+        let result = lhs.element_wise_ge(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, true, false
+            ]))
+        );
+
+        let lhs_scalars = [10, -2, -30].iter().map(Curve25519Scalar::from).collect();
         let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, -20, 3]);
         let lhs =
             OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), -1, lhs_scalars);
@@ -1705,6 +1770,19 @@ mod test {
     #[test]
     fn we_cannot_do_comparison_on_columns_with_incompatible_types() {
         // Strings can't be compared with other types
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "Time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
@@ -1731,6 +1809,14 @@ mod test {
         ));
 
         // Booleans can't be compared with other types
+        let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Boolean(vec![true, false, true]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
         let result = lhs.element_wise_le(&rhs);
@@ -1823,6 +1909,14 @@ mod test {
         );
 
         // lhs and rhs have different precisions
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1_i8, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1_i32, 2, 3]);
+        let result = lhs + rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Int(vec![2_i32, 4, 6]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int128(vec![1_i128, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1_i32, 2, 3]);
         let result = lhs + rhs;
@@ -1871,6 +1965,21 @@ mod test {
         );
 
         // lhs is integer and rhs is decimal
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = (lhs + rhs).unwrap();
+        let expected_scalars = [101, 202, 303].iter().map(Curve25519Scalar::from).collect();
+        assert_eq!(
+            result,
+            OwnedColumn::<Curve25519Scalar>::Decimal75(
+                Precision::new(6).unwrap(),
+                2,
+                expected_scalars
+            )
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
         let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
         let rhs =
@@ -1890,6 +1999,14 @@ mod test {
     #[test]
     fn we_can_try_subtract_integer_columns() {
         // lhs and rhs have the same precision
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 5, 2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1_i8, 2, 3]);
+        let result = lhs - rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::TinyInt(vec![3_i8, 3, -1]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![4_i32, 5, 2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1_i32, 2, 3]);
         let result = lhs - rhs;
@@ -1899,6 +2016,14 @@ mod test {
         );
 
         // lhs and rhs have different precisions
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 5, 2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, 2, 5]);
+        let result = lhs - rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::BigInt(vec![3_i64, 3, -3]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![3_i32, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, 2, 5]);
         let result = lhs - rhs;
@@ -1947,6 +2072,21 @@ mod test {
         );
 
         // lhs is integer and rhs is decimal
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4, 5, 2]);
+        let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = (lhs - rhs).unwrap();
+        let expected_scalars = [399, 498, 197].iter().map(Curve25519Scalar::from).collect();
+        assert_eq!(
+            result,
+            OwnedColumn::<Curve25519Scalar>::Decimal75(
+                Precision::new(6).unwrap(),
+                2,
+                expected_scalars
+            )
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
         let rhs =
@@ -1966,6 +2106,14 @@ mod test {
     #[test]
     fn we_can_try_multiply_integer_columns() {
         // lhs and rhs have the same precision
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 5, -2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1_i8, 2, 3]);
+        let result = lhs * rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 10, -6]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![4_i64, 5, -2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, 2, 3]);
         let result = lhs * rhs;
@@ -1975,6 +2123,14 @@ mod test {
         );
 
         // lhs and rhs have different precisions
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![3_i8, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int128(vec![1_i128, 2, 5]);
+        let result = lhs * rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Int128(vec![3_i128, 4, 15]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![3_i32, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int128(vec![1_i128, 2, 5]);
         let result = lhs * rhs;
@@ -2005,6 +2161,21 @@ mod test {
         );
 
         // lhs is integer and rhs is decimal
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4, 5, 2]);
+        let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(5).unwrap(), 2, rhs_scalars);
+        let result = (lhs * rhs).unwrap();
+        let expected_scalars = [4, 10, 6].iter().map(Curve25519Scalar::from).collect();
+        assert_eq!(
+            result,
+            OwnedColumn::<Curve25519Scalar>::Decimal75(
+                Precision::new(9).unwrap(),
+                2,
+                expected_scalars
+            )
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![4, 5, 2]);
         let rhs_scalars = [1, 2, 3].iter().map(Curve25519Scalar::from).collect();
         let rhs =
@@ -2024,6 +2195,14 @@ mod test {
     #[test]
     fn we_can_try_divide_integer_columns() {
         // lhs and rhs have the same precision
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 5, -2]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1_i8, 2, 3]);
+        let result = lhs / rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4_i8, 2, 0]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![4_i64, 5, -2]);
         let rhs = OwnedColumn::<Curve25519Scalar>::BigInt(vec![1_i64, 2, 3]);
         let result = lhs / rhs;
@@ -2033,6 +2212,14 @@ mod test {
         );
 
         // lhs and rhs have different precisions
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![3_i8, 2, 3]);
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int128(vec![1_i128, 2, 5]);
+        let result = lhs / rhs;
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Int128(vec![3_i128, 1, 0]))
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::Int(vec![3_i32, 2, 3]);
         let rhs = OwnedColumn::<Curve25519Scalar>::Int128(vec![1_i128, 2, 5]);
         let result = lhs / rhs;
@@ -2066,6 +2253,24 @@ mod test {
         );
 
         // lhs is integer and rhs is decimal
+        let lhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![4, 5, 3]);
+        let rhs_scalars = [-1, 2, 3].iter().map(Curve25519Scalar::from).collect();
+        let rhs =
+            OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(3).unwrap(), 2, rhs_scalars);
+        let result = (lhs / rhs).unwrap();
+        let expected_scalars = [-400000000, 250000000, 100000000]
+            .iter()
+            .map(Curve25519Scalar::from)
+            .collect();
+        assert_eq!(
+            result,
+            OwnedColumn::<Curve25519Scalar>::Decimal75(
+                Precision::new(11).unwrap(),
+                6,
+                expected_scalars
+            )
+        );
+
         let lhs = OwnedColumn::<Curve25519Scalar>::SmallInt(vec![4, 5, 3]);
         let rhs_scalars = [-1, 2, 3].iter().map(Curve25519Scalar::from).collect();
         let rhs =

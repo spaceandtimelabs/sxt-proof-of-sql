@@ -13,7 +13,7 @@ use proof_of_sql::{
         database::{
             owned_table_utility::{
                 bigint, boolean, decimal75, int, int128, owned_table, scalar, smallint,
-                timestamptz, varchar,
+                timestamptz, tinyint, varchar,
             },
             OwnedTable,
         },
@@ -78,6 +78,7 @@ pub fn generate_random_owned_table<S: Scalar>(
         "scalar",
         "varchar",
         "decimal75",
+        "tinyint",
         "smallint",
         "int",
         "timestamptz",
@@ -110,6 +111,7 @@ pub fn generate_random_owned_table<S: Scalar>(
                 2,
                 vec![generate_random_u64_array(); num_rows],
             )),
+            "tinyint" => columns.push(tinyint(identifier.deref(), vec![rng.gen::<i8>(); num_rows])),
             "smallint" => columns.push(smallint(
                 identifier.deref(),
                 vec![rng.gen::<i16>(); num_rows],
