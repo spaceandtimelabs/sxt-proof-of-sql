@@ -19,6 +19,14 @@ use serde::Serialize;
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.
+/// 
+/// # Panics
+///
+/// Will panic if:
+/// - The verification of `res` does not succeed, causing the assertion `assert!(res.verify(...).is_ok())` to fail.
+/// - `res.proof` is `None`, causing `res.proof.as_ref().unwrap()` to panic.
+/// - Attempting to modify `pcs_proof_evaluations` or `commitments` if `res_p.proof` is `None`, leading to a panic on `unwrap()`.
+/// - `fake_accessor.update_offset` fails, causing a panic if it is designed to do so in the implementation.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
@@ -33,13 +41,11 @@ pub fn exercise_verification(
     if res.proof.is_none() {
         return;
     }
-    //TODO: add panic docs
     let proof = res.proof.as_ref().unwrap();
 
     // try changing MLE evaluations
     for i in 0..proof.pcs_proof_evaluations.len() {
         let mut res_p = res.clone();
-        //TODO: add panic docs
         res_p.proof.as_mut().unwrap().pcs_proof_evaluations[i] += Curve25519Scalar::one();
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
@@ -53,7 +59,6 @@ pub fn exercise_verification(
 
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
-        //TODO: add panic docs
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
         assert!(res_p.verify(expr, accessor, &()).is_err());
     }
@@ -69,7 +74,6 @@ pub fn exercise_verification(
         let offset_generators = accessor.get_offset(table_ref);
         let mut fake_accessor = accessor.clone();
         fake_accessor.update_offset(table_ref, offset_generators);
-        //TODO: add panic docs
         res.verify(expr, &fake_accessor, &()).unwrap();
         fake_accessor.update_offset(table_ref, offset_generators + 1);
         assert!(res.verify(expr, &fake_accessor, &()).is_err());
@@ -111,6 +115,15 @@ fn tamper_empty_result(
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }
 
+/// # Panics
+///
+/// Will panic if:
+/// - `res.provable_result` is `None`, which leads to calling `unwrap()` on it in the subsequent
+///   code and may cause an unexpected behavior.
+/// - The `provable_res.indexes()` returns an empty vector, which leads to attempting to modify an
+///   index of an empty result, causing an invalid state.
+/// - The assertion `assert!(res_p.verify(expr, accessor, &()).is_err())` fails, indicating that the
+///   verification did not fail as expected after tampering.
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
@@ -120,7 +133,6 @@ fn tamper_result(
         tamper_no_result(res, expr, accessor);
         return;
     }
-    //TODO: add panic docs
     let provable_res = res.provable_result.as_ref().unwrap();
     if provable_res.indexes().is_empty() {
         tamper_empty_result(res, expr, accessor);

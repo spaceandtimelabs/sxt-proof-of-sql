@@ -150,6 +150,10 @@ impl QueryContext {
             .ok_or(ConversionError::InvalidGroupByColumnRef(column.to_string()))
     }
 
+    /// # Panics
+    ///
+    /// Will panic if:
+    /// - `self.res_aliased_exprs` is empty, triggering the assertion `assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs")`.
     pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
         assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs");
 
@@ -172,7 +176,6 @@ impl QueryContext {
             && self.first_result_col_out_agg_scope.is_some()
         {
             return Err(ConversionError::InvalidGroupByColumnRef(
-                //TODO: add panic docs
                 self.first_result_col_out_agg_scope.unwrap().to_string(),
             ));
         }

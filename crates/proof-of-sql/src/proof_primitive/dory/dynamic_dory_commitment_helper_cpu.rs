@@ -5,6 +5,12 @@ use super::{
 use crate::base::commitment::CommittableColumn;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
+/// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
+/// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -14,7 +20,6 @@ where
     &'a T: Into<DoryScalar>,
     T: Sync,
 {
-    //TODO: add panic docs
     let Gamma_1 = setup.Gamma_1.last().unwrap();
     let Gamma_2 = setup.Gamma_2.last().unwrap();
     let (first_row, _) = row_and_column_from_index(offset);

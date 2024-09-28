@@ -18,8 +18,16 @@ use proof_of_sql_parser::{
 };
 use std::str::FromStr;
 
+/// # Panics
+///
+/// Will panic if:
+/// - The parsing of the table reference `"sxt.sxt_tab"` fails, which would occur if the input
+///   string does not adhere to the expected format for identifiers. This is because `parse()`
+///   is called on the identifier string and `unwrap()` is used to handle the result.
+/// - The precision used for creating the `Decimal75` column type fails. The `Precision::new(7)` 
+///   call is expected to succeed; however, if it encounters an invalid precision value, it will 
+///   cause a panic when `unwrap()` is called.
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
-    //TODO: add panic docs
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
     let mut column_mapping = IndexMap::default();
     // Setup column mapping
@@ -32,7 +40,6 @@ fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
         ColumnRef::new(
             tab_ref,
             ident("decimal_column"),
-            //TODO: add panic docs
             ColumnType::Decimal75(Precision::new(7).unwrap(), 2),
         ),
     );

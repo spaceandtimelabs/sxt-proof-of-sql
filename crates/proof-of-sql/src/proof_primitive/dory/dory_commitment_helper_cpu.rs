@@ -4,6 +4,13 @@ use ark_ec::VariableBaseMSM;
 use core::iter::once;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `Gamma_1.last()` returns `None` when computing the first row commitment.
+/// - `Gamma_1.last()` returns `None` when computing remaining row commitments.
+/// - `Gamma_2.last()` returns `None` when computing the commitment for the entire matrix.
+/// - The slices accessed in `Gamma_1.last().unwrap()` or `Gamma_2.last().unwrap()` are out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -27,13 +34,11 @@ where
 
     // Compute commitments for the rows.
     let first_row_commit = G1Projective::msm_unchecked(
-        //TODO: add panic docs
         &setup.prover_setup().Gamma_1.last().unwrap()[first_row_offset..num_columns],
         &Vec::from_iter(first_row.iter().map(|s| s.into().0)),
     );
     let remaining_row_commits = remaining_rows.map(|row| {
         G1Projective::msm_unchecked(
-            //TODO: add panic docs
             &setup.prover_setup().Gamma_1.last().unwrap()[..num_columns],
             &Vec::from_iter(row.iter().map(|s| s.into().0)),
         )
@@ -42,7 +47,6 @@ where
     // Compute the commitment for the entire matrix.
     DoryCommitment(pairings::multi_pairing(
         once(first_row_commit).chain(remaining_row_commits),
-        // TODO: add panic docs
         &setup.prover_setup().Gamma_2.last().unwrap()
             [rows_offset..(rows_offset + remaining_row_count + 1)],
     ))

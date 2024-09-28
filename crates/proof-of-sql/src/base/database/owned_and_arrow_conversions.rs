@@ -63,6 +63,11 @@ pub enum OwnedArrowConversionError {
     TimestampConversionError(#[from] PoSQLTimestampError),
 }
 
+/// # Panics
+///
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Int128`.
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Decimal75`.
+/// Will panic if trying to convert `OwnedColumn::Scalar`, as this conversion is not implemented
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
@@ -71,7 +76,6 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
             OwnedColumn::Int(col) => Arc::new(Int32Array::from(col)),
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
             OwnedColumn::Int128(col) => Arc::new(
-                //TODO: add panic docs
                 Decimal128Array::from(col)
                     .with_precision_and_scale(38, 0)
                     .unwrap(),
@@ -80,7 +84,6 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                 let converted_col: Vec<i256> = col.iter().map(convert_scalar_to_i256).collect();
 
                 Arc::new(
-                    //TODO: add oanic docs
                     Decimal256Array::from(converted_col)
                         .with_precision_and_scale(precision.value(), scale)
                         .unwrap(),
@@ -122,12 +125,21 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 }
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
+    /// # Panics
+    ///
+    /// Will panic if downcasting fails for the following types:
+    /// - `BooleanArray` when converting from `DataType::Boolean`.
+    /// - `Int16Array` when converting from `DataType::Int16`.
+    /// - `Int32Array` when converting from `DataType::Int32`.
+    /// - `Int64Array` when converting from `DataType::Int64`.
+    /// - `Decimal128Array` when converting from `DataType::Decimal128(38, 0)`.
+    /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
+    /// - `StringArray` when converting from `DataType::Utf8`.
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
             // Arrow uses a bit-packed representation for booleans.
             // Hence we need to unpack the bits to get the actual boolean values.
             DataType::Boolean => Ok(Self::Boolean(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<BooleanArray>()
@@ -137,7 +149,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
             )),
             DataType::Int16 => Ok(Self::SmallInt(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<Int16Array>()
@@ -146,7 +157,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .to_vec(),
             )),
             DataType::Int32 => Ok(Self::Int(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<Int32Array>()
@@ -155,7 +165,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .to_vec(),
             )),
             DataType::Int64 => Ok(Self::BigInt(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<Int64Array>()
@@ -164,7 +173,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .to_vec(),
             )),
             DataType::Decimal128(38, 0) => Ok(Self::Int128(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<Decimal128Array>()
@@ -175,7 +183,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
             DataType::Decimal256(precision, scale) if *precision <= 75 => Ok(Self::Decimal75(
                 Precision::new(*precision).expect("precision is less than 76"),
                 *scale,
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<Decimal256Array>()
@@ -187,7 +194,6 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .collect(),
             )),
             DataType::Utf8 => Ok(Self::VarChar(
-                //TODO: add panic docs
                 value
                     .as_any()
                     .downcast_ref::<StringArray>()

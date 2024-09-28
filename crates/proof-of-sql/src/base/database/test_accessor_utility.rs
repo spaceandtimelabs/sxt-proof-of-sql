@@ -39,6 +39,15 @@ impl Default for RandomTestAccessorDescriptor {
 }
 
 /// Generate a DataFrame with random data
+/// 
+/// # Panics
+///
+/// This function may panic in the following cases:
+/// - If `Precision::new(7)` fails when creating a `Decimal75` column type, which would occur
+///   if the precision is invalid.
+/// - When calling `.unwrap()` on the result of `RecordBatch::try_new(schema, columns)`, which
+///   will panic if the schema and columns do not align correctly or if there are any other
+///   underlying errors.
 #[allow(dead_code)]
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,
@@ -87,7 +96,6 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
                 columns.push(Arc::new(
-                    //TODO: add panic docs
                     Decimal128Array::from(values.to_vec())
                         .with_precision_and_scale(38, 0)
                         .unwrap(),
@@ -102,7 +110,6 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
                 columns.push(Arc::new(
-                    //TODO: add panic docs
                     Decimal256Array::from(values.to_vec())
                         .with_precision_and_scale(precision.value(), *scale)
                         .unwrap(),
@@ -153,7 +160,6 @@ pub fn make_random_test_accessor_data(
     }
 
     let schema = Arc::new(Schema::new(column_fields));
-    //TODO: add panic docs
     RecordBatch::try_new(schema, columns).unwrap()
 }
 

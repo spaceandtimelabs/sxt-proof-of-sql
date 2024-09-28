@@ -32,7 +32,6 @@ pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> OwnedTablePostp
         .iter()
         .zip(directions.iter())
         .map(|(col, direction)| OrderBy {
-            //TODO: add panic docs
             expr: col.parse().unwrap(),
             direction: *direction,
         })

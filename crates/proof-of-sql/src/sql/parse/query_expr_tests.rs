@@ -23,12 +23,16 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
+/// # Panics
+///
+/// Will panic if:
+/// - The `parse` method of `SelectStatementParser` fails, causing `unwrap()` to panic.
+/// - The `try_new` method of `QueryExpr` fails, causing `unwrap()` to panic.
 fn query_to_provable_ast(
     table: TableRef,
     query: &str,
     accessor: &TestSchemaAccessor,
 ) -> QueryExpr<RistrettoPoint> {
-    //TODO: add panic docs
     let intermediate_ast = SelectStatementParser::new().parse(query).unwrap();
     QueryExpr::try_new(intermediate_ast, table.schema_id(), accessor).unwrap()
 }
