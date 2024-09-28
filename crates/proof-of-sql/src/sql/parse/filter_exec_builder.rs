@@ -63,7 +63,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
             for alias in self.column_mapping.keys().sorted() {
                 let column_ref = self.column_mapping.get(alias).unwrap();
                 self.filter_result_expr_list.push(AliasedDynProofExpr {
-                    expr: DynProofExpr::new_column(*column_ref),
+                    expr: DynProofExpr::new_column(column_ref.clone()),
                     alias: *alias,
                 });
             }

@@ -151,7 +151,7 @@ impl<'a> QueryContextBuilder<'a> {
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
-        check_dtypes(left_dtype, right_dtype, *op)?;
+        check_dtypes(left_dtype.clone(), right_dtype, *op)?;
         match op {
             BinaryOperator::And
             | BinaryOperator::Or
@@ -233,7 +233,7 @@ impl<'a> QueryContextBuilder<'a> {
             ConversionError::MissingColumn(Box::new(column_name), Box::new(table_ref.resource_id()))
         })?;
 
-        let column = ColumnRef::new(*table_ref, column_name, column_type);
+        let column = ColumnRef::new(*table_ref, column_name, column_type.clone());
 
         self.context.push_column_ref(column_name, column);
 
@@ -286,14 +286,21 @@ pub(crate) fn type_check_binary_operation(
                         | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                 )
         }
-        BinaryOperator::Add => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Add).is_ok()
+        BinaryOperator::Add => try_add_subtract_column_types(
+            left_dtype.clone(),
+            right_dtype.clone(),
+            BinaryOperator::Add,
+        )
+        .is_ok(),
+        BinaryOperator::Subtract => try_add_subtract_column_types(
+            left_dtype.clone(),
+            right_dtype.clone(),
+            BinaryOperator::Subtract,
+        )
+        .is_ok(),
+        BinaryOperator::Multiply => {
+            try_multiply_column_types(left_dtype.clone(), right_dtype.clone()).is_ok()
         }
-        BinaryOperator::Subtract => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Subtract)
-                .is_ok()
-        }
-        BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
         BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
     }
 }

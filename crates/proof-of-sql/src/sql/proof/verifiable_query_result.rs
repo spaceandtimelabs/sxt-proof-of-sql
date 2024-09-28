@@ -145,28 +145,27 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     }
 }
 
+// TODO: rename
+fn handle_field_datatype<S: Scalar>(ty: ColumnType) -> OwnedColumn<S> {
+    match ty {
+        ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
+        ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
+        ColumnType::Int => OwnedColumn::Int(vec![]),
+        ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
+        ColumnType::Int128 => OwnedColumn::Int128(vec![]),
+        ColumnType::Decimal75(precision, scale) => OwnedColumn::Decimal75(precision, scale, vec![]),
+        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
+        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
+        ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
+        ColumnType::Nullable(val) => handle_field_datatype(*val),
+    }
+}
+
 fn make_empty_query_result<S: Scalar>(result_fields: Vec<ColumnField>) -> QueryResult<S> {
     let table = OwnedTable::try_new(
         result_fields
             .iter()
-            .map(|field| {
-                (
-                    field.name(),
-                    match field.data_type() {
-                        ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
-                        ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
-                        ColumnType::Int => OwnedColumn::Int(vec![]),
-                        ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
-                        ColumnType::Int128 => OwnedColumn::Int128(vec![]),
-                        ColumnType::Decimal75(precision, scale) => {
-                            OwnedColumn::Decimal75(precision, scale, vec![])
-                        }
-                        ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
-                        ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
-                        ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
-                    },
-                )
-            })
+            .map(|field| (field.name(), handle_field_datatype(field.data_type())))
             .collect(),
     )?;
     Ok(QueryData {

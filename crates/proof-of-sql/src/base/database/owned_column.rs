@@ -208,6 +208,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 from_type: ColumnType::Scalar,
                 to_type: ColumnType::VarChar,
             }),
+            ColumnType::Nullable(val) => Self::try_from_scalars(scalars, *val),
         }
     }
 

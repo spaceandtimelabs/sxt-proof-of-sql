@@ -72,9 +72,12 @@ impl DynProofExprBuilder<'_> {
         identifier: Identifier,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            *self.column_mapping.get(&identifier).ok_or(
-                ConversionError::MissingColumnWithoutTable(Box::new(identifier)),
-            )?,
+            self.column_mapping
+                .get(&identifier)
+                .ok_or(ConversionError::MissingColumnWithoutTable(Box::new(
+                    identifier,
+                )))?
+                .clone(),
         )))
     }
 

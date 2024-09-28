@@ -7,6 +7,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use num_traits::Zero;
+use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
@@ -102,20 +103,7 @@ impl ProvableQueryResult {
         for field in column_result_fields {
             let mut val = S::zero();
             for index in self.indexes.iter() {
-                let (x, sz) = match field.data_type() {
-                    ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
-                    ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
-                    ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
-                    ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
-                    ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
-
-                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
-                    ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
-                    ColumnType::TimestampTZ(_, _) => {
-                        decode_and_convert::<i64, S>(&self.data[offset..])
-                    }
-                }?;
+                let (x, sz) = self.handle_decode_and_convert(field.data_type(), offset)?;
                 val += evaluation_vec[index as usize] * x;
                 offset += sz;
             }
@@ -127,6 +115,25 @@ impl ProvableQueryResult {
         }
 
         Ok(res)
+    }
+    fn handle_decode_and_convert<S: Scalar>(
+        &self,
+        ty: ColumnType,
+        offset: usize,
+    ) -> Result<(S, usize), QueryError> {
+        match ty {
+            ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
+            ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
+            ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
+            ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
+            ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
+            ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
+
+            ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
+            ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
+            ColumnType::TimestampTZ(_, _) => decode_and_convert::<i64, S>(&self.data[offset..]),
+            ColumnType::Nullable(val) => self.handle_decode_and_convert(*val, offset),
+        }
     }
 
     /// Convert the intermediate query result into a final query result
@@ -144,53 +151,7 @@ impl ProvableQueryResult {
         let owned_table = OwnedTable::try_new(
             column_result_fields
                 .iter()
-                .map(|field| match field.data_type() {
-                    ColumnType::Boolean => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::Boolean(col)))
-                    }
-                    ColumnType::SmallInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::SmallInt(col)))
-                    }
-                    ColumnType::Int => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::Int(col)))
-                    }
-                    ColumnType::BigInt => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::BigInt(col)))
-                    }
-                    ColumnType::Int128 => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::Int128(col)))
-                    }
-                    ColumnType::VarChar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::VarChar(col)))
-                    }
-                    ColumnType::Scalar => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::Scalar(col)))
-                    }
-                    ColumnType::Decimal75(precision, scale) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
-                    }
-                    ColumnType::TimestampTZ(tu, tz) => {
-                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
-                        offset += num_read;
-                        Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
-                    }
-                })
+                .map(|field| self.handle_field_datatype(field.data_type(), field, &mut offset, n))
                 .collect::<Result<_, QueryError>>()?,
         )?;
 
@@ -198,5 +159,61 @@ impl ProvableQueryResult {
         assert_eq!(owned_table.num_columns(), self.num_columns());
 
         Ok(owned_table)
+    }
+    fn handle_field_datatype<S: Scalar>(
+        &self,
+        ty: ColumnType,
+        field: &ColumnField,
+        offset: &mut usize,
+        n: usize,
+    ) -> Result<(Identifier, OwnedColumn<S>), QueryError> {
+        match ty {
+            ColumnType::Boolean => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::Boolean(col)))
+            }
+            ColumnType::SmallInt => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::SmallInt(col)))
+            }
+            ColumnType::Int => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::Int(col)))
+            }
+            ColumnType::BigInt => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::BigInt(col)))
+            }
+            ColumnType::Int128 => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::Int128(col)))
+            }
+            ColumnType::VarChar => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::VarChar(col)))
+            }
+            ColumnType::Scalar => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::Scalar(col)))
+            }
+            ColumnType::Decimal75(precision, scale) => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::Decimal75(precision, scale, col)))
+            }
+            ColumnType::TimestampTZ(tu, tz) => {
+                let (col, num_read) = decode_multiple_elements(&self.data[*offset..], n)?;
+                *offset += num_read;
+                Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
+            }
+            ColumnType::Nullable(val) => self.handle_field_datatype(*val, field, offset, n),
+        }
     }
 }

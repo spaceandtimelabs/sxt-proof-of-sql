@@ -53,7 +53,7 @@ fn output_bit_table(
 /// # Arguments
 ///
 /// * `column_type` - The type of a committable column.
-const fn min_as_f(column_type: ColumnType) -> F {
+const fn min_as_f(column_type: &ColumnType) -> F {
     match column_type {
         ColumnType::SmallInt => MontFp!("-32768"),
         ColumnType::Int => MontFp!("-2147483648"),
@@ -63,6 +63,7 @@ const fn min_as_f(column_type: ColumnType) -> F {
         | ColumnType::Scalar
         | ColumnType::VarChar
         | ColumnType::Boolean => MontFp!("0"),
+        ColumnType::Nullable(val) => min_as_f(&(*val)),
     }
 }
 
@@ -104,7 +105,7 @@ pub fn modify_commits(
     for (i, column) in committable_columns.iter().enumerate() {
         let num_sub_commits = num_sub_commits(column, offset, num_matrix_commitment_columns);
         if column.column_type().is_signed() {
-            let min = min_as_f(column.column_type());
+            let min = min_as_f(&column.column_type());
             let offset_sub_commit_first = offset_sub_commits[0].mul(min);
             let offset_sub_commit_middle = offset_sub_commits[1].mul(min);
             let offset_sub_commit_last = offset_sub_commits[OFFSET_SIZE + i].mul(min);

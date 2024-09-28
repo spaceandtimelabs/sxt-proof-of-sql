@@ -42,7 +42,10 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
                     table_columns
                         .entry(column.table_ref())
                         .or_default()
-                        .push(ColumnField::new(column.column_id(), *column.column_type()));
+                        .push(ColumnField::new(
+                            column.column_id(),
+                            column.column_type().clone(),
+                        ));
                     table_columns
                 },
             )
@@ -56,7 +59,7 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
                             accessor
                                 .lookup_schema(table_ref)
                                 .iter()
-                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied()),
+                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).cloned()),
                         ),
                         accessor,
                     ),
@@ -102,7 +105,7 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
         table_commitment
             .column_commitments()
             .get_metadata(&column_id)
-            .map(|column_metadata| *column_metadata.column_type())
+            .map(|column_metadata| column_metadata.column_type().clone())
     }
 
     fn lookup_schema(
@@ -115,7 +118,9 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
             .column_commitments()
             .column_metadata()
             .iter()
-            .map(|(identifier, column_metadata)| (*identifier, *column_metadata.column_type()))
+            .map(|(identifier, column_metadata)| {
+                (*identifier, column_metadata.column_type().clone())
+            })
             .collect()
     }
 }
