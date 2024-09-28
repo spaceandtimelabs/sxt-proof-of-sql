@@ -243,23 +243,27 @@ pub enum ColumnType {
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
     pub fn is_numeric(&self) -> bool {
-        matches!(
-            self,
+        match self {
+            ColumnType::Nullable(v) => v.is_numeric(),
             ColumnType::SmallInt
-                | ColumnType::Int
-                | ColumnType::BigInt
-                | ColumnType::Int128
-                | ColumnType::Scalar
-                | ColumnType::Decimal75(_, _)
-        )
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128
+            | ColumnType::Scalar
+            | ColumnType::Decimal75(_, _) => true,
+            _ => false,
+        }
     }
 
     /// Returns true if this column is an integer and false otherwise
     pub fn is_integer(&self) -> bool {
-        matches!(
-            self,
-            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
-        )
+        match self {
+            ColumnType::Nullable(v) => v.is_integer(),
+            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128 => {
+                true
+            }
+            _ => false,
+        }
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
@@ -269,6 +273,7 @@ impl ColumnType {
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
             ColumnType::Int128 => Some(128),
+            ColumnType::Nullable(v) => v.to_integer_bits(),
             _ => None,
         }
     }

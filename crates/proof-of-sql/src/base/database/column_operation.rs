@@ -973,6 +973,13 @@ mod test {
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), -13);
         assert_eq!(expected, actual);
+
+        // check if any of them are nullable
+        let lhs = ColumnType::Nullable(Box::new(ColumnType::SmallInt));
+        let rhs = ColumnType::Int;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::Nullable(Box::new(ColumnType::Int));
+        assert_eq!(expected, actual);
     }
 
     #[test]
