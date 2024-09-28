@@ -78,6 +78,7 @@ impl DynProofExprBuilder<'_> {
         )))
     }
 
+    #[allow(clippy::unused_self)]
     fn visit_literal<C: Commitment>(
         &self,
         lit: &Literal,

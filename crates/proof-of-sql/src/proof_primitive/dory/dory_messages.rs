@@ -84,6 +84,8 @@ impl DoryMessages {
         transcript.append_canonical_serialize(MessageLabel::DoryMessage, &message);
         message
     }
+
+    #[allow(clippy::unused_self)]
     /// This is the F message that the verifier sends to the prover.
     /// This message is produces as a challenge from the transcript.
     ///

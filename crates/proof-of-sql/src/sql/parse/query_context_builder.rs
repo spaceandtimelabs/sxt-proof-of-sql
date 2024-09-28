@@ -212,6 +212,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),
