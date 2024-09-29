@@ -1,5 +1,6 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 pub use blitzar::{
     compute::{init_backend, init_backend_with_config, BackendConfig},
