@@ -1323,18 +1323,18 @@ fn we_cannot_parse_literals_outside_of_i128_range_in_the_result_expr() {
         .is_ok());
     assert_eq!(
         "select 170141183460469231731687303715884105728 from tab".parse::<SelectStatement>(),
-        Err(super::error::ParseError::QueryParseError(
-            "i128 out of range".to_string()
-        ))
+        Err(super::error::ParseError::QueryParseError {
+            error: "i128 out of range".to_string()
+        })
     );
     assert!("select -170141183460469231731687303715884105728 from tab"
         .parse::<SelectStatement>()
         .is_ok());
     assert_eq!(
         "select -170141183460469231731687303715884105729 from tab".parse::<SelectStatement>(),
-        Err(super::error::ParseError::QueryParseError(
-            "i128 out of range".to_string()
-        ))
+        Err(super::error::ParseError::QueryParseError {
+            error: "i128 out of range".to_string()
+        })
     );
 }
 

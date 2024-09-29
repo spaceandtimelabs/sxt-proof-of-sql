@@ -14,15 +14,16 @@ use crate::{
         VerificationBuilder,
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     let dist = builder.consume_bit_distribution()?;
     if !is_within_acceptable_range(&dist) {
-        return Err(ProofError::VerificationError(
-            "bit distribution outside of acceptable range",
-        ));
+        return Err(ProofError::VerificationError {
+            error: "bit distribution outside of acceptable range",
+        });
     }
     if dist.num_varying_bits() == 0 {
         return Ok(());

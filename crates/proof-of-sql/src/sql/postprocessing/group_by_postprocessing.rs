@@ -4,6 +4,7 @@ use crate::base::{
     map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
@@ -11,7 +12,6 @@ use proof_of_sql_parser::{
     Identifier,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -122,9 +122,9 @@ fn check_and_get_aggregation_and_remainder(
         .cloned()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
-        return Err(PostprocessingError::NestedAggregationInGroupByClause(
-            format!("Nested aggregations found {:?}", expr.expr),
-        ));
+        return Err(PostprocessingError::NestedAggregationInGroupByClause {
+            error: format!("Nested aggregations found {:?}", expr.expr),
+        });
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
         let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
@@ -137,7 +137,11 @@ fn check_and_get_aggregation_and_remainder(
             .difference(&group_by_identifier_set)
             .next()
             .unwrap();
-        Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(*diff))
+        Err(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause {
+                column: *diff,
+            },
+        )
     }
 }
 
@@ -160,7 +164,7 @@ impl GroupByPostprocessing {
                 )
             })
             .collect::<PostprocessingResult<Vec<AliasedResultExpr>>>()?;
-        let group_by_identifiers = by_ids.into_iter().unique().collect();
+        let group_by_identifiers = Vec::from_iter(IndexSet::from_iter(by_ids));
         Ok(Self {
             remainder_exprs,
             group_by_identifiers,
@@ -192,23 +196,32 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         // First evaluate all the aggregated columns
         let alloc = Bump::new();
-        let evaluated_columns: HashMap<AggregationOperator, Vec<(Identifier, OwnedColumn<S>)>> =
-            self.aggregation_exprs
-                .iter()
-                .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
-                    let evaluated_owned_column = owned_table.evaluate(expr)?;
-                    Ok((*agg_op, (*id, evaluated_owned_column)))
-                })
-                .process_results(|iter| iter.into_group_map())?;
+        let evaluated_columns = self
+            .aggregation_exprs
+            .iter()
+            .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
+                let evaluated_owned_column = owned_table.evaluate(expr)?;
+                Ok((*agg_op, (*id, evaluated_owned_column)))
+            })
+            .process_results(|iter| {
+                iter.fold(
+                    IndexMap::<_, Vec<_>>::default(),
+                    |mut lookup, (key, val)| {
+                        lookup.entry(key).or_default().push(val);
+                        lookup
+                    },
+                )
+            })?;
         // Next actually do the GROUP BY
         let group_by_ins = self
             .group_by_identifiers
             .iter()
             .map(|id| {
-                let column = owned_table
-                    .inner_table()
-                    .get(id)
-                    .ok_or(PostprocessingError::ColumnNotFound(id.to_string()))?;
+                let column = owned_table.inner_table().get(id).ok_or(
+                    PostprocessingError::ColumnNotFound {
+                        column: id.to_string(),
+                    },
+                )?;
                 Ok(Column::<S>::from_owned_column(column, &alloc))
             })
             .collect::<PostprocessingResult<Vec<_>>>()?;

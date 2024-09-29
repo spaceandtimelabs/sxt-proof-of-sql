@@ -1,9 +1,9 @@
-use thiserror::Error;
+use snafu::Snafu;
 
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 /// These errors occur when a proof failed to verify.
 pub enum ProofError {
-    #[error("Verification error: {0}")]
+    #[snafu(display("Verification error: {error}"))]
     /// This error occurs when a proof failed to verify.
-    VerificationError(&'static str),
+    VerificationError { error: &'static str },
 }

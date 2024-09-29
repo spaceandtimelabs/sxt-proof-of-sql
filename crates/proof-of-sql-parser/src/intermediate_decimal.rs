@@ -10,27 +10,30 @@ use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
 use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors related to the processing of decimal values in proof-of-sql
-#[derive(Error, Debug, PartialEq)]
+#[derive(Snafu, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
-    #[error("{0}")]
-    ParseError(ParseBigDecimalError),
+    #[snafu(display("{error}"))]
+    ParseError {
+        /// The underlying error
+        error: ParseBigDecimalError,
+    },
     /// Error occurs when this decimal cannot fit in a primitive.
-    #[error("Value out of range for target type")]
+    #[snafu(display("Value out of range for target type"))]
     OutOfRange,
     /// Error occurs when this decimal cannot be losslessly cast into a primitive.
-    #[error("Fractional part of decimal is non-zero")]
+    #[snafu(display("Fractional part of decimal is non-zero"))]
     LossyCast,
     /// Cannot cast this decimal to a big integer
-    #[error("Conversion to integer failed")]
+    #[snafu(display("Conversion to integer failed"))]
     ConversionFailure,
 }
 impl From<ParseBigDecimalError> for IntermediateDecimalError {
     fn from(value: ParseBigDecimalError) -> Self {
-        IntermediateDecimalError::ParseError(value)
+        IntermediateDecimalError::ParseError { error: value }
     }
 }
 
@@ -88,7 +91,7 @@ impl FromStr for IntermediateDecimal {
             .map(|value| IntermediateDecimal {
                 value: value.normalized(),
             })
-            .map_err(ParseError)
+            .map_err(|err| ParseError { error: err })
     }
 }
 

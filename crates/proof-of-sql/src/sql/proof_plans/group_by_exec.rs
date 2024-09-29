@@ -22,8 +22,9 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
-use core::iter::repeat_with;
+use core::{iter, iter::repeat_with};
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
@@ -119,10 +120,11 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
+        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
+            ProofError::VerificationError {
+                error: "invalid indexes",
+            },
+        )?;
         // 4. filtered_columns
 
         let group_by_result_columns_evals = Vec::from_iter(
@@ -153,15 +155,15 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
                     .iter()
                     .map(|col| table.inner_table().get(&col.column_id()))
                     .collect::<Option<Vec<_>>>()
-                    .ok_or(ProofError::VerificationError(
-                        "Result does not all correct group by columns.",
-                    ))?;
+                    .ok_or(ProofError::VerificationError {
+                        error: "Result does not all correct group by columns.",
+                    })?;
                 if (0..table.num_rows() - 1)
                     .any(|i| compare_indexes_by_owned_columns(&cols, i, i + 1).is_ge())
                 {
-                    Err(ProofError::VerificationError(
-                        "Result of group by not ordered as expected.",
-                    ))?;
+                    Err(ProofError::VerificationError {
+                        error: "Result of group by not ordered as expected.",
+                    })?;
                 }
             }
             None => todo!("GroupByExec currently only supported at top level of query plan."),
@@ -171,7 +173,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             group_by_result_columns_evals
                 .into_iter()
                 .chain(sum_result_columns_evals)
-                .chain(std::iter::once(count_column_eval)),
+                .chain(iter::once(count_column_eval)),
         ))
     }
 
@@ -182,7 +184,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .chain(self.sum_expr.iter().map(|aliased_expr| {
                 ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
             }))
-            .chain(std::iter::once(ColumnField::new(
+            .chain(iter::once(ColumnField::new(
                 self.count_alias,
                 ColumnType::BigInt,
             )))
@@ -249,7 +251,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             group_by_result_columns
                 .into_iter()
                 .chain(sum_result_columns_iter)
-                .chain(std::iter::once(Column::BigInt(count_column))),
+                .chain(iter::once(Column::BigInt(count_column))),
         )
     }
 
@@ -304,7 +306,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             group_by_result_columns
                 .into_iter()
                 .chain(sum_result_columns_iter)
-                .chain(std::iter::once(Column::BigInt(count_column))),
+                .chain(iter::once(Column::BigInt(count_column))),
         )
     }
 }

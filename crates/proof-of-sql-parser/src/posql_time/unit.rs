@@ -23,7 +23,9 @@ impl TryFrom<&str> for PoSQLTimeUnit {
             "3" => Ok(PoSQLTimeUnit::Millisecond),
             "6" => Ok(PoSQLTimeUnit::Microsecond),
             "9" => Ok(PoSQLTimeUnit::Nanosecond),
-            _ => Err(PoSQLTimestampError::UnsupportedPrecision(value.into())),
+            _ => Err(PoSQLTimestampError::UnsupportedPrecision {
+                error: value.into(),
+            }),
         }
     }
 }
@@ -65,7 +67,7 @@ mod time_unit_tests {
             let result = PoSQLTimeUnit::try_from(value);
             assert!(matches!(
                 result,
-                Err(PoSQLTimestampError::UnsupportedPrecision(_))
+                Err(PoSQLTimestampError::UnsupportedPrecision { .. })
             ));
         }
     }

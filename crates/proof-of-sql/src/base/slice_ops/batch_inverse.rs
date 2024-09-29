@@ -7,6 +7,7 @@
 //! Additionally, `num_elem_per_thread` rounds up instead of down.
 
 use crate::base::if_rayon;
+use alloc::vec::Vec;
 #[cfg(feature = "rayon")]
 use core::cmp::max;
 use core::ops::{Mul, MulAssign};

@@ -10,26 +10,26 @@ version = "0.0.0" # DO NOT CHANGE THIS LINE! This will be automatically updated
 license-file = "LICENSE"
 
 [workspace.dependencies]
-ahash = { version = "0.8.11", default-features = false, features = ["runtime-rng"] }
+ahash = { version = "0.8.11", default-features = false }
 # alloy-primitives = { version = "0.8.1" }
 # alloy-sol-types = { version = "0.8.1" }
 ark-bls12-381 = { version = "0.4.0" }
 ark-curve25519 = { version = "0.4.0" }
-ark-ec = { version = "0.4.0", features = [ "parallel" ] }
-ark-ff = { version = "0.4.0", features = [ "parallel" ] }
-ark-poly = { version = "0.4.0", features = [ "parallel" ] }
+ark-ec = { version = "0.4.0" }
+ark-ff = { version = "0.4.0" }
+ark-poly = { version = "0.4.0" }
 ark-serialize = { version = "0.4.0" }
-ark-std = { version = "0.4.0", features = [ "parallel" ] }
+ark-std = { version = "0.4.0", default-features = false }
 arrayvec = { version = "0.7", default-features = false }
 arrow = { version = "51.0" }
 arrow-csv = { version = "51.0" }
 bit-iter = { version = "1.1.1" }
 bigdecimal = { version = "0.4.5", default-features = false, features = ["serde"] }
-blake3 = { version = "1.3.3" }
+blake3 = { version = "1.3.3", default-features = false }
 blitzar = { version = "3.1.0" }
 bumpalo = { version = "3.11.0" }
 bytemuck = {version = "1.16.3", features = ["derive"]}
-byte-slice-cast = { version = "1.2.1" }
+byte-slice-cast = { version = "1.2.1", default-features = false }
 clap = { version = "4.5.4" }
 criterion = { version = "0.5.1" }
 chrono = { version = "0.4.38", default-features = false }
@@ -38,12 +38,11 @@ derive_more = { version = "0.99" }
 flexbuffers = { version = "2.0.0" }
 # forge-script = { git = "https://github.com/foundry-rs/foundry", tag = "nightly-bf1a39980532f76cd76fd87ee32661180f606435" }
 indexmap = { version = "2.1", default-features = false }
-itertools = { version = "0.13.0" }
+itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }
 lalrpop = { version = "0.21.0" }
-lalrpop-util = { version = "0.20.0", default-features = false }
-lazy_static = { version = "1.4.0" }
+lalrpop-util = { version = "0.21.0", default-features = false }
 merlin = { version = "2" }
-num-traits = { version = "0.2" }
+num-traits = { version = "0.2", default-features = false }
 num-bigint = { version = "0.4.4", default-features = false }
 opentelemetry = { version = "0.23.0" }
 opentelemetry-jaeger = { version = "0.20.0" }
@@ -54,11 +53,11 @@ rand = { version = "0.8", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 rayon = { version = "1.5" }
 serde = { version = "1", default-features = false }
-serde_json = { version = "1" }
-thiserror = { version = "1", default-features = false }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+snafu = { version = "0.8.4", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
 # tokio = { version = "1.39.3" }
-tracing = { version = "0.1.36" }
+tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }
 wasm-bindgen = { version = "0.2.92" }

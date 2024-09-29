@@ -8,6 +8,7 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use num_traits::Zero;
 
 /// Track components used to form a query's proof

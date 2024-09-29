@@ -1,9 +1,9 @@
+use alloc::sync::Arc;
 use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
-use std::sync::Arc;
 
 /// Extension trait for Vec<T> to convert it to an Arrow array
 pub trait ToArrow {
@@ -165,7 +165,7 @@ string_to_arrow_array!(
 macro_rules! record_batch {
     ($($col_name:expr => $slice:expr), + $(,)?) => {
         {
-            use std::sync::Arc;
+            use alloc::sync::Arc;
             use arrow::datatypes::Field;
             use arrow::datatypes::Schema;
             use arrow::record_batch::RecordBatch;
@@ -185,11 +185,11 @@ macro_rules! record_batch {
 #[cfg(test)]
 mod tests {
     use crate::record_batch;
+    use alloc::sync::Arc;
     use arrow::{
         datatypes::{Field, Schema},
         record_batch::RecordBatch,
     };
-    use std::sync::Arc;
 
     #[test]
     fn test_record_batch_macro() {

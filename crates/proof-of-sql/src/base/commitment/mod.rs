@@ -1,5 +1,6 @@
 //! Types for creation and utilization of cryptographic commitments to proof-of-sql data.
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 pub use blitzar::{
     compute::{init_backend, init_backend_with_config, BackendConfig},
@@ -9,7 +10,7 @@ use core::ops::{AddAssign, SubAssign};
 use curve25519_dalek::ristretto::RistrettoPoint;
 
 mod committable_column;
-pub(crate) use committable_column::CommittableColumn;
+pub use committable_column::CommittableColumn;
 
 mod vec_commitment_ext;
 pub use vec_commitment_ext::{NumColumnsMismatch, VecCommitmentExt};

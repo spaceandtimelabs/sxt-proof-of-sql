@@ -13,6 +13,7 @@ use crate::{
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 

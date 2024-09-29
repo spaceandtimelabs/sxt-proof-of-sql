@@ -3,6 +3,7 @@ use super::{
     G1Affine, G1Projective, ProverSetup,
 };
 use crate::base::commitment::CommittableColumn;
+use alloc::{vec, vec::Vec};
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics

@@ -5,6 +5,7 @@ use crate::base::{
     math::decimal::{scale_scalar, DecimalError, Precision, MAX_SUPPORTED_PRECISION},
     scalar::Scalar,
 };
+use alloc::{format, string::ToString, vec::Vec};
 use core::{cmp::Ordering, fmt::Debug};
 use num_bigint::BigInt;
 use num_traits::{
@@ -55,16 +56,16 @@ pub fn try_add_subtract_column_types(
                 .max(right_precision_value - right_scale as i16)
             + 1_i16;
         let precision = u8::try_from(precision_value)
-            .map_err(|_| {
-                ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
-                    precision_value.to_string(),
-                ))
+            .map_err(|_| ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: precision_value.to_string(),
+                },
             })
             .and_then(|p| {
-                Precision::new(p).map_err(|_| {
-                    ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
-                        p.to_string(),
-                    ))
+                Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
+                    source: DecimalError::InvalidPrecision {
+                        error: p.to_string(),
+                    },
                 })
             })?;
         Ok(ColumnType::Decimal75(precision, scale))
@@ -101,17 +102,23 @@ pub fn try_multiply_column_types(
         let right_precision_value = rhs.precision_value().expect("Numeric types have precision");
         let precision_value = left_precision_value + right_precision_value + 1;
         let precision = Precision::new(precision_value).map_err(|_| {
-            ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(format!(
-                "Required precision {} is beyond what we can support",
-                precision_value
-            )))
+            ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: format!(
+                        "Required precision {} is beyond what we can support",
+                        precision_value
+                    ),
+                },
+            }
         })?;
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.checked_add(right_scale).ok_or(
-            ColumnOperationError::DecimalConversionError(DecimalError::InvalidScale(
-                left_scale as i16 + right_scale as i16,
-            )),
+            ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidScale {
+                    scale: left_scale as i16 + right_scale as i16,
+                },
+            },
         )?;
         Ok(ColumnType::Decimal75(precision, scale))
     }
@@ -150,20 +157,21 @@ pub fn try_divide_column_types(
     let right_scale = rhs.scale().expect("Numeric types have scale") as i16;
     let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
-    let scale = i8::try_from(raw_scale).map_err(|_| {
-        ColumnOperationError::DecimalConversionError(DecimalError::InvalidScale(raw_scale))
-    })?;
+    let scale =
+        i8::try_from(raw_scale).map_err(|_| ColumnOperationError::DecimalConversionError {
+            source: DecimalError::InvalidScale { scale: raw_scale },
+        })?;
     let precision = u8::try_from(precision_value)
-        .map_err(|_| {
-            ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
-                precision_value.to_string(),
-            ))
+        .map_err(|_| ColumnOperationError::DecimalConversionError {
+            source: DecimalError::InvalidPrecision {
+                error: precision_value.to_string(),
+            },
         })
         .and_then(|p| {
-            Precision::new(p).map_err(|_| {
-                ColumnOperationError::DecimalConversionError(DecimalError::InvalidPrecision(
-                    p.to_string(),
-                ))
+            Precision::new(p).map_err(|_| ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: p.to_string(),
+                },
             })
         })?;
     Ok(ColumnType::Decimal75(precision, scale))
@@ -248,10 +256,9 @@ where
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_add(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer addition {:?} + {:?}",
-                    l, r
-                )))
+                .ok_or(ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
 }
@@ -267,10 +274,9 @@ where
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_sub(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
-                )))
+                .ok_or(ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
 }
@@ -286,10 +292,9 @@ where
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_mul(r)
-                .ok_or(ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer multiplication {:?} * {:?}",
-                    l, r
-                )))
+                .ok_or(ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
 }
@@ -384,10 +389,9 @@ where
         .zip(numbers_of_larger_type.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_add(r).ok_or(
-                ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer addition {:?} + {:?}",
-                    l, r
-                )),
+                ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                },
             )
         })
         .collect()
@@ -408,10 +412,9 @@ where
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_sub(r).ok_or(
-                ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
-                )),
+                ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                },
             )
         })
         .collect()
@@ -432,10 +435,9 @@ where
         .zip(rhs.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             l.checked_sub(&Into::<LargerType>::into(*r)).ok_or(
-                ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer subtraction {:?} - {:?}",
-                    l, r
-                )),
+                ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                },
             )
         })
         .collect()
@@ -457,10 +459,9 @@ where
         .zip(numbers_of_larger_type.iter())
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_mul(r).ok_or(
-                ColumnOperationError::IntegerOverflow(format!(
-                    "Overflow in integer multiplication {:?} * {:?}",
-                    l, r
-                )),
+                ColumnOperationError::IntegerOverflow {
+                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                },
             )
         })
         .collect()
@@ -993,18 +994,18 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(73).unwrap(), 4);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         let lhs = ColumnType::Int;
         let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 10);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
     }
 
@@ -1091,18 +1092,18 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(73).unwrap(), 1);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         let lhs = ColumnType::Int128;
         let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 12);
         assert!(matches!(
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
     }
 
@@ -1190,18 +1191,18 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(37).unwrap(), 4);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         let lhs = ColumnType::Int;
         let rhs = ColumnType::Decimal75(Precision::new(65).unwrap(), 0);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         // Invalid scale
@@ -1209,18 +1210,18 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(5).unwrap(), -65_i8);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidScale(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidScale { .. }
+            })
         ));
 
         let lhs = ColumnType::Decimal75(Precision::new(5).unwrap(), 64_i8);
         let rhs = ColumnType::Decimal75(Precision::new(5).unwrap(), 64_i8);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidScale(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidScale { .. }
+            })
         ));
     }
 
@@ -1315,18 +1316,18 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(13).unwrap(), -14);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         let lhs = ColumnType::Int;
         let rhs = ColumnType::Decimal75(Precision::new(68).unwrap(), 67);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidPrecision(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision { .. }
+            })
         ));
 
         // Invalid scale
@@ -1334,9 +1335,9 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(75).unwrap(), 40_i8);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
-            Err(ColumnOperationError::DecimalConversionError(
-                DecimalError::InvalidScale(_)
-            ))
+            Err(ColumnOperationError::DecimalConversionError {
+                source: DecimalError::InvalidScale { .. }
+            })
         ));
     }
 
@@ -1755,7 +1756,7 @@ mod test {
         let rhs = [1_i16, 1];
         assert!(matches!(
             try_add_slices(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -1774,7 +1775,7 @@ mod test {
         let rhs = [i32::MIN, 1];
         assert!(matches!(
             try_add_slices_with_casting(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -1898,7 +1899,7 @@ mod test {
         let rhs = [1_i128, 1];
         assert!(matches!(
             try_subtract_slices(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -1917,7 +1918,7 @@ mod test {
         let rhs = [i32::MIN, 1];
         assert!(matches!(
             try_subtract_slices_left_upcast(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -1936,7 +1937,7 @@ mod test {
         let rhs = [1_i16, 1];
         assert!(matches!(
             try_subtract_slices_right_upcast(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -2060,7 +2061,7 @@ mod test {
         let rhs = [2, 2];
         assert!(matches!(
             try_multiply_slices(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 
@@ -2079,7 +2080,7 @@ mod test {
         let rhs = [i32::MAX, 2];
         assert!(matches!(
             try_multiply_slices_with_casting(&lhs, &rhs),
-            Err(ColumnOperationError::IntegerOverflow(_))
+            Err(ColumnOperationError::IntegerOverflow { .. })
         ));
     }
 

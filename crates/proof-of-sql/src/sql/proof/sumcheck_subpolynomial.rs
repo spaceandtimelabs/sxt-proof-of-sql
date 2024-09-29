@@ -1,5 +1,6 @@
 use super::CompositePolynomialBuilder;
 use crate::base::{polynomial::MultilinearExtension, scalar::Scalar};
+use alloc::{boxed::Box, vec::Vec};
 
 /// The type of a sumcheck subpolynomial
 pub enum SumcheckSubpolynomialType {
