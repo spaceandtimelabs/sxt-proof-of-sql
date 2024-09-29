@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
 extern crate alloc;
 
-/// Module for handling an intermediate decimal type received from the lexer.
-pub mod intermediate_decimal;
-/// Module for handling an intermediate timestamp type received from the lexer.
+
+
+// Module for handling an intermediate timestamp type received from the lexer.
 pub mod posql_time;
 #[macro_use]
 extern crate lalrpop_util;

@@ -9,7 +9,7 @@ use alloc::{
 };
 use core::result::Result;
 use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
+    posql_time::PoSQLTimestampError, Identifier,
     ResourceId,
 };
 use snafu::Snafu;
@@ -156,13 +156,7 @@ impl From<ConversionError> for String {
     }
 }
 
-impl From<IntermediateDecimalError> for ConversionError {
-    fn from(err: IntermediateDecimalError) -> ConversionError {
-        ConversionError::DecimalConversionError {
-            source: DecimalError::IntermediateDecimalConversionError { source: err },
-        }
-    }
-}
+
 
 impl ConversionError {
     /// Returns a `ConversionError::InvalidExpression` for non-numeric types used in numeric aggregation functions.

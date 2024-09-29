@@ -4,7 +4,6 @@ use alloc::{
     format,
     string::{String, ToString},
 };
-use proof_of_sql_parser::intermediate_decimal:: IntermediateDecimalError;
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
 use proof_of_sql::base::math::big_decimal_ext::BigDecimalExt;
@@ -46,13 +45,7 @@ pub enum DecimalError {
         error: String,
     },
 
-    /// Errors that may occur when parsing an intermediate decimal
-    /// into a posql decimal
-    #[snafu(transparent)]
-    IntermediateDecimalConversionError {
-        /// The underlying source error
-        source: IntermediateDecimalError,
-    },
+    
 }
 
 /// Result type for decimal operations.
