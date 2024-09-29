@@ -59,7 +59,7 @@ impl fmt::Display for BigDecimal {
 }
 
 impl FromStr for BigDecimal {
-    type Err = IntermediateDecimalError;
+    type Err = BigDecimalError;
 
     fn from_str(decimal_string: &str) -> Result<Self, Self::Err> {
         BigDecimal::from_str(decimal_string)
@@ -71,7 +71,7 @@ impl FromStr for BigDecimal {
 
 
 impl TryFrom<&str> for BigDecimal {
-    type Error = IntermediateDecimalError;
+    type Error = BigDecimalError;
 
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         BigDecimal::from_str(s)
@@ -79,7 +79,7 @@ impl TryFrom<&str> for BigDecimal {
 }
 
 impl TryFrom<String> for BigDecimal {
-    type Error = IntermediateDecimalError;
+    type Error = BigDecimalError;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
         BigDecimal::from_str(&s)
@@ -87,7 +87,7 @@ impl TryFrom<String> for BigDecimal {
 }
 
 impl TryFrom<BigDecimal> for i128 {
-    type Error = IntermediateDecimalError;
+    type Error = BigDecimalError;
 
     fn try_from(decimal: BigDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
@@ -102,7 +102,7 @@ impl TryFrom<BigDecimal> for i128 {
 }
 
 impl TryFrom<BigDecimal> for i64 {
-    type Error = IntermediateDecimalError;
+    type Error = BigDecimalError;
 
     fn try_from(decimal: BigDecimal) -> Result<Self, Self::Error> {
         if !decimal.value.is_integer() {
