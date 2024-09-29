@@ -117,8 +117,8 @@ enum Commands {
 
 /// # Panics
 ///
-/// Will panic if the call to `stdout().flush()` fails, indicating that the 
-/// standard output stream could not be flushed 
+/// Will panic if the call to `stdout().flush()` fails, indicating that the
+/// standard output stream could not be flushed
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
     stdout().flush().unwrap();

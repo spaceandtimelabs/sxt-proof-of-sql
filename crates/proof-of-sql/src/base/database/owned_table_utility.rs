@@ -39,7 +39,7 @@ use proof_of_sql_parser::{
 ///     decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if converting the iterator into an `OwnedTable<S>` fails.
 pub fn owned_table<S: Scalar>(
@@ -56,7 +56,7 @@ pub fn owned_table<S: Scalar>(
 /// let result = owned_table::<Curve25519Scalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
-/// 
+///
 /// /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn smallint<S: Scalar>(
@@ -77,7 +77,7 @@ pub fn smallint<S: Scalar>(
 /// let result = owned_table::<Curve25519Scalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int<S: Scalar>(
@@ -98,7 +98,7 @@ pub fn int<S: Scalar>(
 /// let result = owned_table::<Curve25519Scalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn bigint<S: Scalar>(
@@ -120,7 +120,7 @@ pub fn bigint<S: Scalar>(
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn boolean<S: Scalar>(
@@ -142,7 +142,7 @@ pub fn boolean<S: Scalar>(
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int128<S: Scalar>(
@@ -164,7 +164,7 @@ pub fn int128<S: Scalar>(
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn scalar<S: Scalar>(
@@ -186,7 +186,7 @@ pub fn scalar<S: Scalar>(
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn varchar<S: Scalar>(
@@ -208,7 +208,7 @@ pub fn varchar<S: Scalar>(
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 /// - Panics if creating the `Precision` from the specified precision value fails.
@@ -249,7 +249,7 @@ pub fn decimal75<S: Scalar>(
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
-/// 
+///
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn timestamptz<S: Scalar>(

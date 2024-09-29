@@ -37,7 +37,7 @@ use std::ops::Deref;
 /// append 10 rows to 10 cols in 100 tables = 1.1382 seconds
 /// append 1000 rows to 10 cols in 1 table = 652ms
 /// ```
-/// 
+///
 /// # Panics
 ///
 /// Will panic if the creation of the table commitment fails due to invalid column data or an incorrect prover setup.

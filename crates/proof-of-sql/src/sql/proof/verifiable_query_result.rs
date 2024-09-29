@@ -111,7 +111,7 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: This does NOT transform the result!4
     /// # Panics
     /// - Panics if:
-    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa. 
+    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa.
     ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
     ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(

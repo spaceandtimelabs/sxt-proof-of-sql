@@ -20,9 +20,9 @@ use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 /// Determine the output type of an add or subtract operation if it is possible
 /// to add or subtract the two input types. If the types are not compatible, return
 /// an error.
-/// 
+///
 /// # Panics
-/// 
+///
 /// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
 /// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_add_subtract_column_types(
@@ -75,9 +75,9 @@ pub fn try_add_subtract_column_types(
 /// Determine the output type of a multiplication operation if it is possible
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
-/// 
+///
 /// # Panics
-/// 
+///
 /// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
 /// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_multiply_column_types(
@@ -127,9 +127,9 @@ pub fn try_multiply_column_types(
 /// Determine the output type of a division operation if it is possible
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
-/// 
+///
 // # Panics
-/// 
+///
 /// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
 /// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_divide_column_types(

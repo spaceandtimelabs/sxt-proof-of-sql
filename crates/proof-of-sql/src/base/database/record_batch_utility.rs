@@ -115,7 +115,7 @@ impl ToArrow for Vec<i128> {
         arrow::datatypes::DataType::Decimal128(38, 0)
     }
 
-    /// 
+    ///
     /// # Panics
     ///
     /// Will panic if the conversion to a Decimal128Array fails, which can happen if the data exceeds the specified precision and scale (38, 0). Ensure that all values are within the valid range for the Decimal128 type.
@@ -156,7 +156,7 @@ string_to_arrow_array!(
 
 /// Utility macro to simplify the creation of RecordBatches
 #[macro_export]
-/// 
+///
 /// # Panics
 ///
 /// Will panic if the `RecordBatch` creation fails. This can occur if:

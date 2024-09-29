@@ -24,7 +24,7 @@ use rayon::prelude::*;
 /// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)} using Montgomery's trick.
 /// The vector is modified in place.
 /// Any zero elements in the vector are left unchanged.
-/// 
+///
 /// # Panics
 /// - Panics if the inversion of `tmp` fails, which can happen if `tmp` is zero,
 ///   although this case is guaranteed to be non-zero based on the preceding logic.

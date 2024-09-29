@@ -64,7 +64,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
             .collect()
     }
 
-    /// 
+    ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
@@ -73,7 +73,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     }
 }
 
-/// 
+///
 /// # Panics
 ///
 /// Will panic if the `column.table_ref()` is not found in `self.tables`, or if
@@ -113,7 +113,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
     }
 }
 
-/// 
+///
 /// # Panics
 ///
 /// Will panic if the `column.table_ref()` is not found in `self.tables`, or if the `column.column_id()` is not found in the inner table for that reference,indicating that an invalid column reference was provided.
@@ -132,14 +132,14 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     }
 }
 impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {
-    /// 
+    ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_length(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
     }
-     /// 
+    ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
@@ -158,7 +158,7 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_
                 .column_type(),
         )
     }
-    /// 
+    ///
     /// # Panics
     ///
     /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.

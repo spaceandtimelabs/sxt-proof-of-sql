@@ -162,10 +162,10 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
-    /// 
+    ///
     /// # Panics
     /// This function will panic if there are no post-result challenges available to pop from the stack.
-    /// 
+    ///
     /// # Panics
     /// This function will panic if `post_result_challenges` is empty,
     /// as it attempts to pop an element from the vector and unwraps the result.

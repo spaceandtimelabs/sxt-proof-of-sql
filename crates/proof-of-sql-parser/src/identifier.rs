@@ -16,7 +16,7 @@ impl Identifier {
     /// This is necessary to guarantee that no one outside the crate
     /// can create Names, thus securing that ResourceIds and Identifiers
     /// are always valid postgresql identifiers.
-    /// 
+    ///
     /// # Panics
     ///
     /// This function will panic if:

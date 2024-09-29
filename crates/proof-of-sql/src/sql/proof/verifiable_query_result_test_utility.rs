@@ -19,7 +19,7 @@ use serde::Serialize;
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.
-/// 
+///
 /// # Panics
 ///
 /// Will panic if:

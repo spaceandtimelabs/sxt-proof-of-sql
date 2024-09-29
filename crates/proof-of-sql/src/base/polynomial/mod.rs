@@ -1,7 +1,6 @@
 mod composite_polynomial;
 pub use composite_polynomial::{CompositePolynomial, CompositePolynomialInfo};
 #[cfg(test)]
-
 mod composite_polynomial_test;
 
 mod interpolate;
