@@ -9,8 +9,9 @@ use crate::{
     },
 };
 use proof_of_sql_parser::{
-    intermediate_ast::AggregationOperator, intermediate_decimal::IntermediateDecimal, utility::*,
+    intermediate_ast::AggregationOperator, utility::*,
 };
+use bigdecimal::BigDecimal;
 
 #[test]
 fn we_cannot_have_invalid_group_bys() {
@@ -221,14 +222,14 @@ fn we_can_do_complex_group_bys() {
             aliased_expr(
                 sub(
                     min(add(col("b"), lit(4))),
-                    lit("2.4".parse::<IntermediateDecimal>().unwrap()),
+                    lit("2.4".parse::<BigDecimal>().unwrap()),
                 ),
                 "min_b",
             ),
             aliased_expr(
                 sum(mul(
                     col("c"),
-                    lit("1.4".parse::<IntermediateDecimal>().unwrap()),
+                    lit("1.4".parse::<BigDecimal>().unwrap()),
                 )),
                 "sum_c",
             ),
@@ -259,7 +260,7 @@ fn we_can_do_complex_group_bys() {
                 add(
                     count(add(
                         col("a"),
-                        lit("2.5".parse::<IntermediateDecimal>().unwrap()),
+                        lit("2.5".parse::<BigDecimal>().unwrap()),
                     )),
                     lit(2),
                 ),
@@ -271,7 +272,7 @@ fn we_can_do_complex_group_bys() {
                     add(
                         max(add(mul(lit(2), col("c")), lit(1))),
                         sum(mul(
-                            lit("2.5".parse::<IntermediateDecimal>().unwrap()),
+                            lit("2.5".parse::<BigDecimal>().unwrap()),
                             col("d"),
                         )),
                     ),
@@ -283,16 +284,16 @@ fn we_can_do_complex_group_bys() {
                 sub(
                     min(add(
                         col("b"),
-                        lit("2.4".parse::<IntermediateDecimal>().unwrap()),
+                        lit("2.4".parse::<BigDecimal>().unwrap()),
                     )),
-                    lit("3.4".parse::<IntermediateDecimal>().unwrap()),
+                    lit("3.4".parse::<BigDecimal>().unwrap()),
                 ),
                 "min_b",
             ),
             aliased_expr(
                 sum(mul(
                     col("c"),
-                    lit("1.7".parse::<IntermediateDecimal>().unwrap()),
+                    lit("1.7".parse::<BigDecimal>().unwrap()),
                 )),
                 "sum_c",
             ),

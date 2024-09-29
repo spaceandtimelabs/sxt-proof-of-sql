@@ -8,10 +8,10 @@ use crate::base::{
 };
 use proof_of_sql_parser::{
     intermediate_ast::Literal,
-    intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
 };
+use bigdecimal::BigDecimal;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {
@@ -46,7 +46,7 @@ fn we_can_evaluate_a_simple_literal() {
     assert_eq!(actual_column, expected_column);
 
     // A group of people has about 0.67 cats per person
-    let expr = lit("0.67".parse::<IntermediateDecimal>().unwrap());
+    let expr = lit("0.67".parse::<BigDecimal>().unwrap());
     let actual_column = table.evaluate(&expr).unwrap();
     let expected_column = OwnedColumn::Decimal75(Precision::new(2).unwrap(), 2, vec![67.into(); 5]);
     assert_eq!(actual_column, expected_column);
@@ -167,7 +167,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
         col("smallints"),
         mul(
             col("decimals"),
-            lit("0.75".parse::<IntermediateDecimal>().unwrap()),
+            lit("0.75".parse::<BigDecimal>().unwrap()),
         ),
     );
     let actual_column = table.evaluate(&expr).unwrap();
@@ -182,7 +182,7 @@ fn we_can_evaluate_an_arithmetic_expression() {
     let expr = add(
         div(
             col("decimals"),
-            lit("2.5".parse::<IntermediateDecimal>().unwrap()),
+            lit("2.5".parse::<BigDecimal>().unwrap()),
         ),
         col("int128s"),
     );
