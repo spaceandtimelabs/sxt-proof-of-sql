@@ -12,7 +12,6 @@ use proof_of_sql_parser::{
     Identifier,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -158,7 +157,7 @@ impl GroupByPostprocessing {
                 )
             })
             .collect::<PostprocessingResult<Vec<AliasedResultExpr>>>()?;
-        let group_by_identifiers = by_ids.into_iter().unique().collect();
+        let group_by_identifiers = Vec::from_iter(IndexSet::from_iter(by_ids));
         Ok(Self {
             remainder_exprs,
             group_by_identifiers,
@@ -193,14 +192,22 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         // First evaluate all the aggregated columns
         let alloc = Bump::new();
-        let evaluated_columns: HashMap<AggregationOperator, Vec<(Identifier, OwnedColumn<S>)>> =
-            self.aggregation_exprs
-                .iter()
-                .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
-                    let evaluated_owned_column = owned_table.evaluate(expr)?;
-                    Ok((*agg_op, (*id, evaluated_owned_column)))
-                })
-                .process_results(|iter| iter.into_group_map())?;
+        let evaluated_columns = self
+            .aggregation_exprs
+            .iter()
+            .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
+                let evaluated_owned_column = owned_table.evaluate(expr)?;
+                Ok((*agg_op, (*id, evaluated_owned_column)))
+            })
+            .process_results(|iter| {
+                iter.fold(
+                    IndexMap::<_, Vec<_>>::default(),
+                    |mut lookup, (key, val)| {
+                        lookup.entry(key).or_default().push(val);
+                        lookup
+                    },
+                )
+            })?;
         // Next actually do the GROUP BY
         let group_by_ins = self
             .group_by_identifiers
