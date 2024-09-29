@@ -58,6 +58,10 @@ where
     )
 }
 
+/// # Panics
+/// * This function panics if the inversion operation (`inv()`) fails, which can happen if the slice
+///   contains any zero elements. However, zero elements are skipped, so this unwrap is guaranteed
+///   to succeed unless all elements are zero.
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Copy,

@@ -13,7 +13,14 @@ use num_traits::{Inv, One, Zero};
 ///
 /// For any polynomial, `f(x)`, with degree less than or equal to `d`, we have that:
 /// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
-/// unless x is one of 0,1,...,d, in which case, f(x) is already known.
+/// unless x is one of 0,1,...,d, in which case, f(x) is already known.\
+/// 
+///  # Panics
+/// * This function panics if any of the following occurs:
+///   * When computing the inverse of `(i! * (d-i)! * (x-i))`, if the value `x - i` is zero
+///     (which is guaranteed to not happen as `i == x` will return early).
+///   * If the slice of polynomial coefficients is empty, the function will return `F::zero()`
+///     without performing any operations.
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
