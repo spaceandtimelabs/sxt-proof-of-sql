@@ -266,7 +266,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         group_by_result_columns
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(std::iter::once(Column::BigInt(count_column)))
+            .chain(iter::once(Column::BigInt(count_column)))
             .collect()
     }
 
@@ -324,7 +324,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         group_by_result_columns
             .into_iter()
             .chain(sum_result_columns_iter)
-            .chain(std::iter::once(Column::BigInt(count_column)))
+            .chain(iter::once(Column::BigInt(count_column)))
             .collect::<Vec<_>>()
     }
 }
