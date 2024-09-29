@@ -75,7 +75,10 @@ impl ProvableQueryResult {
 
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
-    // TODO: add panic docs
+    ///
+    /// # Panics
+    /// This function will panic if the length of `evaluation_point` does not match `self.num_columns`.
+    /// It will also panic if the `data` array is not properly formatted for the expected column types.
     pub fn evaluate<S: Scalar>(
         &self,
         evaluation_point: &[S],
@@ -133,7 +136,6 @@ impl ProvableQueryResult {
     /// Convert the intermediate query result into a final query result
     ///
     /// The result is essentially an `OwnedTable` type.
-    // TODO: add panic docs
     pub fn to_owned_table<S: Scalar>(
         &self,
         column_result_fields: &[ColumnField],

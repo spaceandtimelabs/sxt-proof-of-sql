@@ -19,6 +19,11 @@ use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 /// Determine the output type of an add or subtract operation if it is possible
 /// to add or subtract the two input types. If the types are not compatible, return
 /// an error.
+/// 
+/// # Panics
+/// 
+/// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
+/// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_add_subtract_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
@@ -33,7 +38,6 @@ pub fn try_add_subtract_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
-        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
@@ -70,6 +74,11 @@ pub fn try_add_subtract_column_types(
 /// Determine the output type of a multiplication operation if it is possible
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
+/// 
+/// # Panics
+/// 
+/// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
+/// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_multiply_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
@@ -83,7 +92,6 @@ pub fn try_multiply_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
-        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
@@ -112,6 +120,11 @@ pub fn try_multiply_column_types(
 /// Determine the output type of a division operation if it is possible
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
+/// 
+// # Panics
+/// 
+/// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
+/// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
 pub fn try_divide_column_types(
     lhs: ColumnType,
     rhs: ColumnType,
@@ -129,7 +142,6 @@ pub fn try_divide_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
-        // TODO: add panic docs
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
     let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;

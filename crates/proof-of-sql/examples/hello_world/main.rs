@@ -10,18 +10,30 @@ use std::{
     time::Instant,
 };
 
-/// TODO: add docs
+/// # Panics
+///
+/// Will panic if flushing the output fails, which can happen due to issues with the underlying output stream.
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
-    // TODO: add panic docs
     stdout().flush().unwrap();
     Instant::now()
 }
-/// TODO: add docs
+/// # Panics
+///
+/// This function does not panic under normal circumstances but may panic if the internal printing fails due to issues with the output stream.
 fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }
 
+/// # Panics
+///
+/// - Will panic if the GPU initialization fails during `init_backend`.
+/// - Will panic if the table reference cannot be parsed in `add_table`.
+/// - Will panic if the offset provided to `add_table` is invalid.
+/// - Will panic if the query string cannot be parsed in `QueryExpr::try_new`.
+/// - Will panic if the table reference cannot be parsed in `QueryExpr::try_new`.
+/// - Will panic if the query expression creation fails.
+/// - Will panic if printing fails during error handling.
 fn main() {
     let timer = start_timer("Warming up GPU");
     init_backend();
@@ -29,7 +41,6 @@ fn main() {
     let timer = start_timer("Loading data");
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
-        // TODO: add panic docs
         "sxt.table".parse().unwrap(),
         owned_table([
             bigint("a", [1, 2, 3, 2]),
@@ -40,7 +51,6 @@ fn main() {
     end_timer(timer);
     let timer = start_timer("Parsing Query");
     let query = QueryExpr::try_new(
-        // TODO: add panic docs
         "SELECT b FROM table WHERE a = 2".parse().unwrap(),
         "sxt".parse().unwrap(),
         &accessor,

@@ -37,6 +37,12 @@ use std::ops::Deref;
 /// append 10 rows to 10 cols in 100 tables = 1.1382 seconds
 /// append 1000 rows to 10 cols in 1 table = 652ms
 /// ```
+/// 
+/// # Panics
+///
+/// Will panic if the creation of the table commitment fails due to invalid column data or an incorrect prover setup.
+///
+/// Will panic if the row appending operation fails due to invalid data or if the local commitment has reached an invalid state.
 fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     let public_parameters = PublicParameters::rand(10, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
@@ -44,7 +50,6 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     c.bench_function("append_rows_to_table_commitment", |b| {
         let initial_columns: OwnedTable<DoryScalar> = generate_random_owned_table(cols, rows);
 
-        // TODO: add panic docs
         let table_commitment = TableCommitment::<DoryCommitment>::try_from_columns_with_offset(
             initial_columns.inner_table(),
             0,
@@ -54,7 +59,6 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
 
         let append_columns: OwnedTable<DoryScalar> = initial_columns;
 
-        // TODO: add panic docs
         b.iter(|| {
             let mut local_commitment = table_commitment.clone();
             local_commitment

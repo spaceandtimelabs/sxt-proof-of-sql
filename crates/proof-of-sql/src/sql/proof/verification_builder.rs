@@ -164,8 +164,11 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// 
     /// # Panics
     /// This function will panic if there are no post-result challenges available to pop from the stack.
+    /// 
+    /// # Panics
+    /// This function will panic if `post_result_challenges` is empty,
+    /// as it attempts to pop an element from the vector and unwraps the result.
     pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
-        // TODO: add panic docs
         self.post_result_challenges.pop().unwrap()
     }
 }

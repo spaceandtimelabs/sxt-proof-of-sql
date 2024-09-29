@@ -65,18 +65,20 @@ pub trait TranscriptProtocol {
 }
 
 impl TranscriptProtocol for Transcript {
+    /// # Panics
+    /// - Panics if `postcard::to_allocvec(message)` fails to serialize the message.
     fn append_auto(&mut self, label: MessageLabel, message: &(impl serde::Serialize + ?Sized)) {
-        // TODO: add panic docs
         self.append_message(label.as_bytes(), &postcard::to_allocvec(message).unwrap());
     }
 
+    /// # Panics
+    /// - Panics if `message.serialize_compressed(&mut buf)` fails to serialize the message.
     fn append_canonical_serialize(
         &mut self,
         label: MessageLabel,
         message: &(impl CanonicalSerialize + ?Sized),
     ) {
         let mut buf = vec![Default::default(); message.compressed_size()];
-        // TODO: add panic docs
         message.serialize_compressed(&mut buf).unwrap();
         self.append_message(label.as_bytes(), &buf);
     }

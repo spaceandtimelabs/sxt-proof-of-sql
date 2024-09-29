@@ -12,6 +12,13 @@ pub mod querys;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
 
+/// # Panics
+///
+/// Will panic if:
+/// - The table reference cannot be parsed from the string.
+/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// - The query string cannot be parsed into a `QueryExpr`.
+/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn scaffold<'a, CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
@@ -21,13 +28,11 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     accessor: &mut BenchmarkAccessor<'a, CP::Commitment>,
     rng: &mut impl Rng,
 ) -> (QueryExpr<CP::Commitment>, VerifiableQueryResult<CP>) {
-    // TODO: add panic docs
     accessor.insert_table(
         "bench.table".parse().unwrap(),
         &generate_random_columns(alloc, rng, columns, size),
         prover_setup,
     );
-    // TODO: add panic docs
     let query =
         QueryExpr::try_new(query.parse().unwrap(), "bench".parse().unwrap(), accessor).unwrap();
     let result = VerifiableQueryResult::new(query.proof_expr(), accessor, prover_setup);
@@ -38,6 +43,11 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     level = "debug",
     skip(query, columns, size, prover_setup, verifier_setup)
 )]
+/// # Panics
+///
+/// Will panic if:
+/// - The call to `scaffold` results in a panic due to invalid inputs.
+/// - The `verify` method of `VerifiableQueryResult` fails, indicating an invalid proof.
 pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
     title: &str,
     query: &str,
@@ -58,7 +68,6 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
         &mut accessor,
         &mut rng,
     );
-    // TODO: add panic docs
     result
         .verify(query.proof_expr(), &accessor, verifier_setup)
         .unwrap();

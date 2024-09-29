@@ -115,9 +115,12 @@ enum Commands {
     },
 }
 
+/// # Panics
+///
+/// Will panic if the call to `stdout().flush()` fails, indicating that the 
+/// standard output stream could not be flushed 
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
-    // TODO: add panic docs
     stdout().flush().unwrap();
     Instant::now()
 }
@@ -126,6 +129,21 @@ fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }
 
+/// # Panics
+///
+/// This function can panic under the following circumstances:
+///
+/// - **GPU Initialization Failure**: The program will panic if the GPU backend initialization fails.
+/// - **Commit Load Failure**: Panics if the commit cannot be loaded from the specified path.
+/// - **Table Commitment Creation Failure**: Panics if the table commitment creation fails.
+/// - **Commit Write Failure**: Panics if writing the commit to storage fails.
+/// - **CSV Write Failure**: Panics if writing the table or batch data to the CSV accessor fails.
+/// - **CSV Read Failure**: Panics if reading a CSV file into a record batch fails.
+/// - **Query Parsing Failure**: Panics if parsing the query expression fails.
+/// - **Proof Generation Failure**: Panics if generating the cryptographic proof fails.
+/// - **Proof Verification Failure**: Panics if the proof verification process fails.
+/// - **Serialization/Deserialization Failure**: Panics if the proof cannot be serialized or deserialized.
+/// - **Record Batch Conversion Failure**: Panics if the query result cannot be converted into a `RecordBatch`.
 fn main() {
     let args = CliArgs::parse();
     println!("Warming up GPU...");
@@ -167,7 +185,6 @@ fn main() {
             commit_accessor
                 .load_commit(table_name)
                 .expect("Failed to load commit");
-            // TODO: add panic docs
             let mut table_commitment = commit_accessor.get_commit(&table_name).unwrap().clone();
             let schema = Schema::new(
                 commit_accessor
@@ -194,7 +211,6 @@ fn main() {
             let mut commit_accessor =
                 CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
             let mut csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path.clone()));
-            // TODO: add panic docs
             let tables = query.get_table_references("example".parse().unwrap());
             for table in tables.into_iter().map(TableRef::new) {
                 commit_accessor
@@ -211,7 +227,6 @@ fn main() {
                     .load_table(table, schema)
                     .expect("Failed to load table");
             }
-            // TODO: add panic docs
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
             let timer = start_timer("Generating Proof");
@@ -230,7 +245,6 @@ fn main() {
         Commands::Verify { query, file } => {
             let mut commit_accessor =
                 CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
-            // TODO: add panic docs
             let table_refs = query.get_table_references("example".parse().unwrap());
             for table_ref in table_refs {
                 let table_name = TableRef::new(table_ref);
@@ -238,7 +252,6 @@ fn main() {
                     .load_commit(table_name)
                     .expect("Failed to load commit");
             }
-            // TODO: add panic docs
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
             let result: VerifiableQueryResult<InnerProductProof> =
@@ -249,7 +262,6 @@ fn main() {
                 .verify(query.proof_expr(), &commit_accessor, &())
                 .expect("Failed to verify proof");
             end_timer(timer);
-            // TODO: add panic docs
             println!(
                 "Verified Result: {:?}",
                 RecordBatch::try_from(query_result).unwrap()

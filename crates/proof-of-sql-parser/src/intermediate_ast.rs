@@ -224,11 +224,11 @@ impl Expression {
             expr: Box::new(self),
         })
     }
-    // TODO: add panic docs
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
     /// # Panics
     ///
-    /// TODO: add panic docs
+    /// This function will panic if the provided `alias` cannot be parsed into an `Identifier`.
+    /// It will also panic if `self` cannot be boxed.
     pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {
             expr: Box::new(self),

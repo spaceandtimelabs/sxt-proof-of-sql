@@ -13,25 +13,21 @@ use proof_of_sql::proof_primitive::dory::{
     DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup, ProverSetup,
     PublicParameters, VerifierSetup,
 };
-/// TODO: add docs
 mod scaffold;
 use crate::scaffold::querys::QUERIES;
 use scaffold::jaeger_scaffold;
 use std::env;
 
-/// TODO: add docs
 const SIZE: usize = 1_000_000;
 
 fn main() {
     init_backend();
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-    // TODO: add panic docs
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name("benches")
         .install_simple()
         .unwrap();
     let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
-    // TODO: add panic docs
     tracing_subscriber::registry()
         .with(opentelemetry)
         .try_init()
