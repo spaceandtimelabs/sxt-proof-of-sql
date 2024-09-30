@@ -30,20 +30,55 @@
 //! ...
 //! ```
 
+/// Sets the data to indicate if no index exists.
+const fn no_index() -> usize {
+    usize::MAX
+}
+
+/// Returns if the index exists.
+pub(crate) const fn index_exists(index: usize) -> bool {
+    index != no_index()
+}
+
+/// Returns the full width of a row in the matrix.
+pub(crate) const fn full_width_of_row(row: usize) -> usize {
+    ((2 * row + 4) / 3).next_power_of_two()
+}
+
 /// Returns the index that belongs in the first column in a particular row.
 ///
 /// Note: when row = 1, this correctly returns 0, even though no data belongs there.
 #[cfg(test)]
-pub(crate) fn row_start_index(row: usize) -> usize {
-    let width_of_row = ((2 * row + 4) / 3).next_power_of_two();
+pub(crate) const fn row_start_index(row: usize) -> usize {
+    let width_of_row = full_width_of_row(row);
     width_of_row * (row - width_of_row / 2)
 }
+
 /// Returns the (row, column) in the matrix where the data with the given index belongs.
-pub(crate) fn row_and_column_from_index(index: usize) -> (usize, usize) {
+pub(crate) const fn row_and_column_from_index(index: usize) -> (usize, usize) {
     let width_of_row = 1 << (((2 * index + 1).ilog2() + 1) / 2);
     let row = index / width_of_row + width_of_row / 2;
     let column = index % width_of_row;
     (row, column)
+}
+
+/// Returns the index of data where the (row, column) belongs.
+pub(crate) const fn index_from_row_and_column(row: usize, column: usize) -> usize {
+    let width_of_row = full_width_of_row(row);
+
+    // Return no_index if the (row, column) is not in dynamic Dory structure.
+    if column >= width_of_row || (row == 1 && column == 0) {
+        return no_index();
+    }
+
+    width_of_row * (row - width_of_row / 2) + column
+}
+
+/// Returns a matrix size that can hold the given number of data points being committed with respect to an offset.
+pub(crate) const fn matrix_size(data_len: usize, offset: usize) -> (usize, usize) {
+    let (last_row, _) = row_and_column_from_index(offset + data_len - 1);
+    let width_of_last_row = full_width_of_row(last_row);
+    (width_of_last_row, last_row + 1)
 }
 
 #[cfg(test)]
@@ -124,5 +159,110 @@ mod tests {
                 )
             }
         }
+    }
+    #[test]
+    fn we_can_correctly_identify_index_existence() {
+        assert_eq!(index_exists(0), true);
+        assert_eq!(index_exists(no_index()), false);
+        assert_eq!(index_exists(no_index() - 1), true);
+    }
+    #[test]
+    fn we_can_find_the_full_width_of_row() {
+        let width_of_row = full_width_of_row(0);
+        assert_eq!(width_of_row, 1);
+
+        let width_of_row = full_width_of_row(1);
+        assert_eq!(width_of_row, 2);
+
+        let width_of_row = full_width_of_row(4);
+        assert_eq!(width_of_row, 4);
+
+        let width_of_row = full_width_of_row(7);
+        assert_eq!(width_of_row, 8);
+
+        let width_of_row = full_width_of_row(11);
+        assert_eq!(width_of_row, 8);
+
+        let width_of_row = full_width_of_row(12);
+        assert_eq!(width_of_row, 16);
+
+        let width_of_row = full_width_of_row(13);
+        assert_eq!(width_of_row, 16);
+    }
+    #[test]
+    fn we_can_produce_the_correct_matrix_size() {
+        let (width, height) = matrix_size(2, 0);
+        assert_eq!(width, 2);
+        assert_eq!(height, 2);
+
+        let (width, height) = matrix_size(3, 0);
+        assert_eq!(width, 2);
+        assert_eq!(height, 3);
+
+        let (width, height) = matrix_size(4, 0);
+        assert_eq!(width, 2);
+        assert_eq!(height, 3);
+
+        let (width, height) = matrix_size(16, 0);
+        assert_eq!(width, 4);
+        assert_eq!(height, 6);
+
+        let (width, height) = matrix_size(17, 0);
+        assert_eq!(width, 8);
+        assert_eq!(height, 7);
+
+        let (width, height) = matrix_size(64, 0);
+        assert_eq!(width, 8);
+        assert_eq!(height, 12);
+
+        let (width, height) = matrix_size(71, 0);
+        assert_eq!(width, 16);
+        assert_eq!(height, 13);
+    }
+    #[test]
+    fn we_can_produce_the_correct_matrix_size_with_offset() {
+        let (width, height) = matrix_size(2, 1);
+        assert_eq!(width, 2);
+        assert_eq!(height, 3);
+
+        let (width, height) = matrix_size(16, 1);
+        assert_eq!(width, 8);
+        assert_eq!(height, 7);
+
+        let (width, height) = matrix_size(64, 1);
+        assert_eq!(width, 16);
+        assert_eq!(height, 13);
+
+        let (width, height) = matrix_size(4, 16);
+        assert_eq!(width, 8);
+        assert_eq!(height, 7);
+    }
+    #[test]
+    fn we_can_find_index_from_row_and_column() {
+        for i in 0..1 << 10 {
+            let (row, column) = row_and_column_from_index(i);
+            let index = index_from_row_and_column(row, column);
+            assert_eq!(index, i);
+        }
+    }
+    #[test]
+    fn we_can_find_index_from_row_and_column_not_in_dynamic_dory_structure() {
+        let index = index_from_row_and_column(0, 1);
+        assert_eq!(index, no_index());
+
+        let index = index_from_row_and_column(1, 0);
+        assert_eq!(index, no_index());
+
+        let index = index_from_row_and_column(1, 2);
+        assert_eq!(index, no_index());
+
+        let index = index_from_row_and_column(3, 4);
+        assert_eq!(index, no_index());
+
+        let index = index_from_row_and_column(6, 8);
+        assert_eq!(index, no_index());
+
+        let index = index_from_row_and_column(12, 16);
+        assert_eq!(index, no_index());
     }
 }
