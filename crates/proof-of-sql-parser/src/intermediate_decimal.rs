@@ -157,7 +157,6 @@ impl TryFrom<IntermediateDecimal> for i64 {
     }
 }
 
-#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod tests {
     use super::*;

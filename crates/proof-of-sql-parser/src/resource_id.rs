@@ -106,7 +106,6 @@ impl FromStr for ResourceId {
 }
 impl_serde_from_str!(ResourceId);
 
-#[allow(clippy::missing_panics_doc)]
 #[cfg(test)]
 mod tests {
     use super::*;

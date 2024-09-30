@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
@@ -12,7 +13,6 @@ extern crate lalrpop_util;
 pub mod intermediate_ast;
 
 #[cfg(test)]
-#[allow(clippy::missing_panics_doc)]
 mod intermediate_ast_tests;
 
 /// Shortcuts to construct intermediate AST nodes.
