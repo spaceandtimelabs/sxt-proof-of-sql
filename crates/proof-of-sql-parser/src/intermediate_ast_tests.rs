@@ -124,7 +124,7 @@ fn we_cannot_parse_strings_having_incorrect_quotes() {
 }
 
 // Select Query parser Tests
-/*#[test]
+#[test]
 fn we_can_parse_a_query_with_constants() {
     let ast =
         "SELECT 3 as bigint, true as boolean, 'proof' as varchar, -2.34 as decimal FROM SXT_TAB;"
@@ -148,7 +148,7 @@ fn we_can_parse_a_query_with_constants() {
         None,
     );
     assert_eq!(ast, expected_ast);
-}*/
+}
 
 #[test]
 fn we_can_parse_a_query_with_a_column_equals_a_simple_bool() {
@@ -204,7 +204,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_string() {
     assert_eq!(ast, expected_ast);
 }
 
-/*#[test]
+#[test]
 fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
     let ast = "SELECT A FROM SXT_TAB WHERE A = -0.32;"
         .parse::<SelectStatement>()
@@ -223,7 +223,7 @@ fn we_can_parse_a_query_with_a_column_equals_a_decimal() {
         None,
     );
     assert_eq!(ast, expected_ast);
-}*/
+}
 
 #[test]
 fn we_can_parse_a_query_with_two_result_columns() {
@@ -423,7 +423,7 @@ fn we_can_parse_a_query_with_one_logical_and_filter_expression_with_both_left_an
     assert_eq!(ast, expected_ast);
 }
 
-/* #[test]
+ #[test]
 fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
     let ast = "select a from sxt_tab where (b = 3) or (c = -2.34);"
         .parse::<SelectStatement>()
@@ -445,7 +445,7 @@ fn we_can_parse_a_query_with_one_logical_or_filter_expression() {
         None,
     );
     assert_eq!(ast, expected_ast);
-}*/
+}
 
 #[test]
 fn we_can_parse_a_query_with_two_logical_and_not_filter_expressions() {

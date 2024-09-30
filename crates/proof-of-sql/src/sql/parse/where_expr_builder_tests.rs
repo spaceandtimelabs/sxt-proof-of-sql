@@ -17,6 +17,8 @@ use proof_of_sql_parser::{
     Identifier, SelectStatement,
 };
 use bigdecimal::BigDecimal;
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
+
 
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();

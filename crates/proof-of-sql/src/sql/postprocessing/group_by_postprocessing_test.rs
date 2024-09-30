@@ -12,6 +12,8 @@ use proof_of_sql_parser::{
     intermediate_ast::AggregationOperator, utility::*,
 };
 use bigdecimal::BigDecimal;
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
+
 
 #[test]
 fn we_cannot_have_invalid_group_bys() {

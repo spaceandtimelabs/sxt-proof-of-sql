@@ -3,7 +3,6 @@ extern crate alloc;
 
 
 
-// Module for handling an intermediate timestamp type received from the lexer.
 pub mod posql_time;
 #[macro_use]
 extern crate lalrpop_util;

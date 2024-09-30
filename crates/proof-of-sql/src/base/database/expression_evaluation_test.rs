@@ -12,6 +12,7 @@ use proof_of_sql_parser::{
     utility::*,
 };
 use bigdecimal::BigDecimal;
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 
 #[test]
 fn we_can_evaluate_a_simple_literal() {

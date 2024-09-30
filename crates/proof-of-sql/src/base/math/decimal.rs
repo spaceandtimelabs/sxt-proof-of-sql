@@ -6,7 +6,7 @@ use alloc::{
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
-use proof_of_sql::base::math::big_decimal_ext::BigDecimalExt;
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 
 /// Errors related to decimal operations.
 #[derive(Snafu, Debug, Eq, PartialEq)]

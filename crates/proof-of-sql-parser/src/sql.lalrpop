@@ -3,6 +3,7 @@ use crate::select_statement;
 use crate::identifier;
 use lalrpop_util::ParseError::User;
 use crate::{ posql_time::PoSQLTimestamp};
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 use bigdecimal::BigDecimal;
 use alloc::boxed::Box;
 use alloc::string::String;
