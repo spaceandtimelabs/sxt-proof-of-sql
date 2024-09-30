@@ -35,7 +35,6 @@ chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 itertools = { workspace = true }
-lazy_static = { workspace = true }
 merlin = { workspace = true, optional = true }
 num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
@@ -75,10 +74,13 @@ flexbuffers = { workspace = true }
 development = ["arrow-csv"]
 
 [features]
-default = ["arrow", "blitzar", "rayon"]
-arrow = ["dep:arrow"]
-blitzar = ["dep:blitzar", "dep:merlin"]
-test = ["dep:rand"]
+default = ["arrow", "perf"]
+arrow = ["dep:arrow", "std"]
+blitzar = ["dep:blitzar", "dep:merlin", "std"]
+test = ["dep:rand", "std"]
+perf = ["blitzar", "rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
+rayon = ["dep:rayon", "std"]
+std = ["snafu/std"]
 
 [lints]
 workspace = true
