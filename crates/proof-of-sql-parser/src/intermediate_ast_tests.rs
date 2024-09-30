@@ -5,6 +5,7 @@ use crate::{
     SelectStatement,
 };
 use alloc::{borrow::ToOwned, string::ToString, vec};
+
 // Sting parser tests
 #[test]
 fn we_can_parse_simple_strings() {

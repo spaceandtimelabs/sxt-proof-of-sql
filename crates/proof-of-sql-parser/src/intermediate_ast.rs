@@ -4,8 +4,7 @@
 * https://docs.rs/vervolg/latest/vervolg/ast/enum.Statement.html
 ***/
 
-use crate::{bigdecimal::BigDecimal, posql_time::PoSQLTimestamp, Identifier};
-use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
+use crate::{ posql_time::PoSQLTimestamp, Identifier};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{
     fmt,
@@ -13,6 +12,7 @@ use core::{
     hash::Hash,
 };
 use serde::{Deserialize, Serialize};
+use bigdecimal::BigDecimal; 
 
 /// Representation of a SetExpression, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
