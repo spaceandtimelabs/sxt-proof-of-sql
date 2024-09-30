@@ -13,12 +13,8 @@ use num_traits::{Inv, One, Zero};
 /// For any polynomial, `f(x)`, with degree less than or equal to `d`, we have that:
 /// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.\
-///  # Panics
-/// * This function panics if any of the following occurs:
-///   * When computing the inverse of `(i! * (d-i)! * (x-i))`, if the value `x - i` is zero
-///     (which is guaranteed to not happen as `i == x` will return early).
-///   * If the slice of polynomial coefficients is empty, the function will return `F::zero()`
-///     without performing any operations.
+// Allow missing panics documentation because the function should not panic under normal conditions.
+#[allow(clippy::missing_panics_doc)]
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
@@ -60,7 +56,9 @@ where
         let new_term = polynomial[i]
             * (factorials[i] * factorials[degree - i] * x_minus_i)
                 .inv()
-                .unwrap(); // This unwrap is safe because we are guarenteed that x-i is not zero, and factorials are never zero.
+                .expect(
+                    "Inverse computation failed unexpectedly. This should not happen as `x != i`.",
+                );
 
         // This handles the (-1)^(d-i) sign.
         if (degree - i) % 2 == 0 {
@@ -78,13 +76,11 @@ where
 /// The output of this function is the vector of coefficients of f, leading coefficient first.
 /// That is, `f(x) = evals[j]*x^(d-j)``.
 ///
-/// # Panics
-///
-/// This function may panic in the following situations:
-/// - If the evaluation points are insufficient (less than 1), resulting in `n` being 0 or negative, which could lead to incorrect calculations or indexing issues.
-/// - The `inv()` method on `Product` type can panic if the product is zero, leading to a division by zero situation when calculating the inverse.
-/// - The `unwrap()` calls will panic if the value being unwrapped is `None`, which can occur during the evaluation of Lagrange basis polynomials.
 #[allow(dead_code)]
+#[allow(clippy::missing_panics_doc)]
+// This function is guaranteed not to panic because:
+// - The product in `inv()` will never be zero, as the numbers being multiplied are all non-zero by construction.
+// - If there are no elements to reduce, `unwrap_or(vec![])` provides an empty vector as a safe fallback.
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
     S: Zero
@@ -108,7 +104,7 @@ where
                 .map(S::from)
                 .product::<S>()
                 .inv()
-                .unwrap()
+                .expect("Product will never be zero because the terms being multiplied are non-zero by construction.")
                 * eval_i;
             // Then multiply by the appropriate linear terms:
             // for j in 0..=n if j != i {

@@ -4,7 +4,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 ///
 /// # Panics
 ///
-/// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed.
+/// This function will panic if`name`(if provided) cannot be parsed.
 /// Construct an identifier from a str
 pub fn ident(name: &str) -> Identifier {
     name.parse().unwrap()
@@ -104,7 +104,7 @@ pub fn div(left: Box<Expression>, right: Box<Expression>) -> Box<Expression> {
 /// If the schema is `None`, the table is assumed to be in the default schema.
 /// # Panics
 ///
-/// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed.
+/// This function will panic if either the `name` or the `schema` (if provided) cannot be parsed as valid [Identifier]s.
 pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
     Box::new(TableExpression::Named {
         table: name.parse().unwrap(),
@@ -116,7 +116,7 @@ pub fn tab(schema: Option<&str>, name: &str) -> Box<TableExpression> {
 ///
 /// # Panics
 ///
-/// This function will panic if the `name` cannot be parsed into a valid column expression.
+/// This function will panic if the `name` cannot be parsed into a valid column expression as valid [Identifier]s.
 pub fn col(name: &str) -> Box<Expression> {
     Box::new(Expression::Column(name.parse().unwrap()))
 }
@@ -167,7 +167,7 @@ pub fn count_all() -> Box<Expression> {
 ///
 /// # Panics
 ///
-/// This function will panic if the `alias` cannot be parsed.
+/// This function will panic if the `alias` cannot be parsed as valid [Identifier]s.
 pub fn aliased_expr(expr: Box<Expression>, alias: &str) -> AliasedResultExpr {
     AliasedResultExpr {
         expr,
@@ -184,7 +184,7 @@ pub fn col_res_all() -> SelectResultExpr {
 ///
 /// # Panics
 ///
-/// This function will panic if the `alias` cannot be parsed.
+/// This function will panic if the `alias` cannot be parsed as valid [Identifier]s.
 pub fn col_res(col_val: Box<Expression>, alias: &str) -> SelectResultExpr {
     SelectResultExpr::AliasedResultExpr(AliasedResultExpr {
         expr: col_val,
