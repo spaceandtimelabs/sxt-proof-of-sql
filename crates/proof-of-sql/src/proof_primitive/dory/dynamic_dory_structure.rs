@@ -31,16 +31,19 @@
 //! ```
 
 /// Sets the data to indicate if no index exists.
+#[allow(dead_code)]
 const fn no_index() -> usize {
     usize::MAX
 }
 
 /// Returns if the index exists.
+#[allow(dead_code)]
 pub(crate) const fn index_exists(index: usize) -> bool {
     index != no_index()
 }
 
 /// Returns the full width of a row in the matrix.
+#[allow(dead_code)]
 pub(crate) const fn full_width_of_row(row: usize) -> usize {
     ((2 * row + 4) / 3).next_power_of_two()
 }
@@ -63,6 +66,7 @@ pub(crate) const fn row_and_column_from_index(index: usize) -> (usize, usize) {
 }
 
 /// Returns the index of data where the (row, column) belongs.
+#[allow(dead_code)]
 pub(crate) const fn index_from_row_and_column(row: usize, column: usize) -> usize {
     let width_of_row = full_width_of_row(row);
 
@@ -75,6 +79,7 @@ pub(crate) const fn index_from_row_and_column(row: usize, column: usize) -> usiz
 }
 
 /// Returns a matrix size that can hold the given number of data points being committed with respect to an offset.
+#[allow(dead_code)]
 pub(crate) const fn matrix_size(data_len: usize, offset: usize) -> (usize, usize) {
     let (last_row, _) = row_and_column_from_index(offset + data_len - 1);
     let width_of_last_row = full_width_of_row(last_row);
@@ -162,9 +167,9 @@ mod tests {
     }
     #[test]
     fn we_can_correctly_identify_index_existence() {
-        assert_eq!(index_exists(0), true);
-        assert_eq!(index_exists(no_index()), false);
-        assert_eq!(index_exists(no_index() - 1), true);
+        assert!(index_exists(0));
+        assert!(!index_exists(no_index()));
+        assert!(index_exists(no_index() - 1));
     }
     #[test]
     fn we_can_find_the_full_width_of_row() {
