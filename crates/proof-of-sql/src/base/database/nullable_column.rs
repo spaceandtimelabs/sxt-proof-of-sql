@@ -4,8 +4,8 @@ use crate::base::scalar::Scalar;
 /// Represents a nullable column with values and an optional presence slice
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct NullableColumn<'a, T: Scalar> {
-    values: Column<'a, T>,
-    presence: Option<&'a [bool]>,
+    pub values: Column<'a, T>,
+    pub presence: Option<&'a [bool]>,
 }
 
 impl<'a, T: Scalar> NullableColumn<'a, T> {
