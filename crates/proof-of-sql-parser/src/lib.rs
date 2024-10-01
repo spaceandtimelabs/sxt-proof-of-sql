@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
+#![allow(clippy::missing_panics_doc)] // Fixed in Issue #163
 extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
