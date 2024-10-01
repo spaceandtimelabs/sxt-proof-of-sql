@@ -112,7 +112,7 @@ impl PoSQLTimestamp {
                 timezone: PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous{ error:
-                format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
+                format!("The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "),
         }),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }

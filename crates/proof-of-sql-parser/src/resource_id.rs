@@ -93,7 +93,7 @@ impl FromStr for ResourceId {
     fn from_str(string: &str) -> ParseResult<Self> {
         let (schema, object_name) = ResourceIdParser::new().parse(string).map_err(|e| {
             ParseError::ResourceIdParseError {
-                error: format!("{:?}", e),
+                error: format!("{e:?}"),
             }
         })?;
 

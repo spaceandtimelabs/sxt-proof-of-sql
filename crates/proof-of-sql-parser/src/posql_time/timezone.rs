@@ -67,7 +67,7 @@ impl fmt::Display for PoSQLTimeZone {
                 if seconds < 0 {
                     write!(f, "-{:02}:{:02}", hours.abs(), minutes)
                 } else {
-                    write!(f, "+{:02}:{:02}", hours, minutes)
+                    write!(f, "+{hours:02}:{minutes:02}")
                 }
             }
         }
