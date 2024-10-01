@@ -30,19 +30,9 @@
 //! ...
 //! ```
 
-/// Sets the data to indicate if no index exists.
-#[allow(dead_code)]
-const fn no_index() -> usize {
-    usize::MAX
-}
-
-/// Returns if the index exists.
-#[allow(dead_code)]
-pub(crate) const fn index_exists(index: usize) -> bool {
-    index != no_index()
-}
-
 /// Returns the full width of a row in the matrix.
+///
+/// Note: when row = 1, this correctly returns 2, even though no data belongs at position 0.
 #[allow(dead_code)]
 pub(crate) const fn full_width_of_row(row: usize) -> usize {
     ((2 * row + 4) / 3).next_power_of_two()
@@ -67,23 +57,22 @@ pub(crate) const fn row_and_column_from_index(index: usize) -> (usize, usize) {
 
 /// Returns the index of data where the (row, column) belongs.
 #[allow(dead_code)]
-pub(crate) const fn index_from_row_and_column(row: usize, column: usize) -> usize {
+pub(crate) fn index_from_row_and_column(row: usize, column: usize) -> Option<usize> {
     let width_of_row = full_width_of_row(row);
-
-    // Return no_index if the (row, column) is not in dynamic Dory structure.
-    if column >= width_of_row || (row == 1 && column == 0) {
-        return no_index();
-    }
-
-    width_of_row * (row - width_of_row / 2) + column
+    (column < width_of_row && (row, column) != (1, 0))
+        .then_some(width_of_row * (row - width_of_row / 2) + column)
 }
 
-/// Returns a matrix size that can hold the given number of data points being committed with respect to an offset.
+/// Returns a matrix size, (height, width), that can hold the given number of data points being committed with respect to an offset.
 #[allow(dead_code)]
 pub(crate) const fn matrix_size(data_len: usize, offset: usize) -> (usize, usize) {
+    if data_len == 0 {
+        return (0, 0);
+    }
+
     let (last_row, _) = row_and_column_from_index(offset + data_len - 1);
     let width_of_last_row = full_width_of_row(last_row);
-    (width_of_last_row, last_row + 1)
+    (last_row + 1, width_of_last_row)
 }
 
 #[cfg(test)]
@@ -166,108 +155,129 @@ mod tests {
         }
     }
     #[test]
-    fn we_can_correctly_identify_index_existence() {
-        assert!(index_exists(0));
-        assert!(!index_exists(no_index()));
-        assert!(index_exists(no_index() - 1));
-    }
-    #[test]
     fn we_can_find_the_full_width_of_row() {
-        let width_of_row = full_width_of_row(0);
-        assert_eq!(width_of_row, 1);
+        // This corresponds to a matrix with 2^(N+1) rows.
+        let N = 20;
+        let mut expected_widths = Vec::new();
 
-        let width_of_row = full_width_of_row(1);
-        assert_eq!(width_of_row, 2);
+        // First three rows are defined by the dynamic Dory structure.
+        expected_widths.extend(std::iter::repeat(1).take(1));
+        expected_widths.extend(std::iter::repeat(2).take(2));
 
-        let width_of_row = full_width_of_row(4);
-        assert_eq!(width_of_row, 4);
+        // The rest of the rows are defined by the pattern 3*2^n rows of length 4*2^n.
+        for n in 0..N {
+            let repeat_count = 3 * 2_usize.pow(n);
+            let value = 4 * 2_usize.pow(n);
+            expected_widths.extend(std::iter::repeat(value).take(repeat_count));
+        }
 
-        let width_of_row = full_width_of_row(7);
-        assert_eq!(width_of_row, 8);
-
-        let width_of_row = full_width_of_row(11);
-        assert_eq!(width_of_row, 8);
-
-        let width_of_row = full_width_of_row(12);
-        assert_eq!(width_of_row, 16);
-
-        let width_of_row = full_width_of_row(13);
-        assert_eq!(width_of_row, 16);
-    }
-    #[test]
-    fn we_can_produce_the_correct_matrix_size() {
-        let (width, height) = matrix_size(2, 0);
-        assert_eq!(width, 2);
-        assert_eq!(height, 2);
-
-        let (width, height) = matrix_size(3, 0);
-        assert_eq!(width, 2);
-        assert_eq!(height, 3);
-
-        let (width, height) = matrix_size(4, 0);
-        assert_eq!(width, 2);
-        assert_eq!(height, 3);
-
-        let (width, height) = matrix_size(16, 0);
-        assert_eq!(width, 4);
-        assert_eq!(height, 6);
-
-        let (width, height) = matrix_size(17, 0);
-        assert_eq!(width, 8);
-        assert_eq!(height, 7);
-
-        let (width, height) = matrix_size(64, 0);
-        assert_eq!(width, 8);
-        assert_eq!(height, 12);
-
-        let (width, height) = matrix_size(71, 0);
-        assert_eq!(width, 16);
-        assert_eq!(height, 13);
-    }
-    #[test]
-    fn we_can_produce_the_correct_matrix_size_with_offset() {
-        let (width, height) = matrix_size(2, 1);
-        assert_eq!(width, 2);
-        assert_eq!(height, 3);
-
-        let (width, height) = matrix_size(16, 1);
-        assert_eq!(width, 8);
-        assert_eq!(height, 7);
-
-        let (width, height) = matrix_size(64, 1);
-        assert_eq!(width, 16);
-        assert_eq!(height, 13);
-
-        let (width, height) = matrix_size(4, 16);
-        assert_eq!(width, 8);
-        assert_eq!(height, 7);
-    }
-    #[test]
-    fn we_can_find_index_from_row_and_column() {
-        for i in 0..1 << 10 {
-            let (row, column) = row_and_column_from_index(i);
-            let index = index_from_row_and_column(row, column);
-            assert_eq!(index, i);
+        // Verify the widths.
+        for (row, width) in expected_widths.iter().enumerate() {
+            let width_of_row = full_width_of_row(row);
+            assert_eq!(
+                width_of_row, *width,
+                "row: {} does not produce expected width",
+                row
+            );
         }
     }
     #[test]
-    fn we_can_find_index_from_row_and_column_not_in_dynamic_dory_structure() {
-        let index = index_from_row_and_column(0, 1);
-        assert_eq!(index, no_index());
+    fn we_can_produce_the_correct_matrix_size() {
+        // NOTE: returned tuple is (height, width).
+        assert_eq!(matrix_size(0, 0), (0, 0));
+        assert_eq!(matrix_size(1, 0), (1, 1));
+        assert_eq!(matrix_size(2, 0), (2, 2));
+        assert_eq!(matrix_size(3, 0), (3, 2));
+        assert_eq!(matrix_size(4, 0), (3, 2));
+        assert_eq!(matrix_size(5, 0), (4, 4));
+        assert_eq!(matrix_size(6, 0), (4, 4));
+        assert_eq!(matrix_size(7, 0), (4, 4));
+        assert_eq!(matrix_size(8, 0), (4, 4));
+        assert_eq!(matrix_size(9, 0), (5, 4));
+        assert_eq!(matrix_size(10, 0), (5, 4));
+        assert_eq!(matrix_size(11, 0), (5, 4));
+        assert_eq!(matrix_size(12, 0), (5, 4));
+        assert_eq!(matrix_size(13, 0), (6, 4));
+        assert_eq!(matrix_size(14, 0), (6, 4));
+        assert_eq!(matrix_size(15, 0), (6, 4));
+        assert_eq!(matrix_size(16, 0), (6, 4));
+        assert_eq!(matrix_size(17, 0), (7, 8));
 
-        let index = index_from_row_and_column(1, 0);
-        assert_eq!(index, no_index());
+        assert_eq!(matrix_size(64, 0), (12, 8));
+        assert_eq!(matrix_size(71, 0), (13, 16));
+        assert_eq!(matrix_size(81, 0), (14, 16));
+        assert_eq!(matrix_size(98, 0), (15, 16));
+        assert_eq!(matrix_size(115, 0), (16, 16));
+    }
+    #[test]
+    fn we_can_produce_the_correct_matrix_size_with_offset() {
+        // NOTE: returned tuple is (height, width).
+        for i in 0..100 {
+            assert_eq!(matrix_size(0, i), (0, 0));
+        }
 
-        let index = index_from_row_and_column(1, 2);
-        assert_eq!(index, no_index());
+        assert_eq!(matrix_size(1, 1), (2, 2));
+        assert_eq!(matrix_size(1, 2), (3, 2));
+        assert_eq!(matrix_size(1, 3), (3, 2));
+        assert_eq!(matrix_size(1, 4), (4, 4));
+        assert_eq!(matrix_size(1, 5), (4, 4));
+        assert_eq!(matrix_size(1, 6), (4, 4));
+        assert_eq!(matrix_size(1, 7), (4, 4));
+        assert_eq!(matrix_size(1, 8), (5, 4));
+        assert_eq!(matrix_size(1, 9), (5, 4));
+        assert_eq!(matrix_size(1, 10), (5, 4));
+        assert_eq!(matrix_size(1, 11), (5, 4));
+        assert_eq!(matrix_size(1, 12), (6, 4));
+        assert_eq!(matrix_size(1, 13), (6, 4));
+        assert_eq!(matrix_size(1, 14), (6, 4));
+        assert_eq!(matrix_size(1, 15), (6, 4));
+        assert_eq!(matrix_size(1, 16), (7, 8));
 
-        let index = index_from_row_and_column(3, 4);
-        assert_eq!(index, no_index());
+        assert_eq!(matrix_size(1, 63), (12, 8));
+        assert_eq!(matrix_size(1, 70), (13, 16));
+        assert_eq!(matrix_size(1, 80), (14, 16));
+        assert_eq!(matrix_size(1, 97), (15, 16));
+        assert_eq!(matrix_size(1, 114), (16, 16));
+    }
+    #[test]
+    fn we_can_find_the_index_for_row_column_pairs() {
+        use std::collections::HashSet;
 
-        let index = index_from_row_and_column(6, 8);
-        assert_eq!(index, no_index());
+        const MAX_INDEX: usize = 1 << 16;
+        let mut valid_pairs = HashSet::new();
 
-        let index = index_from_row_and_column(12, 16);
-        assert_eq!(index, no_index());
+        // Collect all valid (row, column) pairs
+        for i in 0..MAX_INDEX {
+            let (row, column) = row_and_column_from_index(i);
+            valid_pairs.insert((row, column));
+        }
+
+        let (max_row, max_column) = valid_pairs
+            .iter()
+            .fold((0, 0), |(max_row, max_column), &(row, column)| {
+                (max_row.max(row), max_column.max(column))
+            });
+
+        // Check that all valid pairs are valid and all invalid pairs are invalid
+        for row in 0..max_row {
+            for column in 0..max_column {
+                let index = index_from_row_and_column(row, column);
+                if valid_pairs.contains(&(row, column)) {
+                    assert!(
+                        index.is_some(),
+                        "Valid pair ({}, {}) generated no index",
+                        row,
+                        column
+                    );
+                } else {
+                    assert!(
+                        index.is_none(),
+                        "Invalid pair ({}, {}) generated a valid index",
+                        row,
+                        column
+                    );
+                }
+            }
+        }
     }
 }
