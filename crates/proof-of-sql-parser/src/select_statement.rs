@@ -81,7 +81,7 @@ fn convert_table_expr_to_resource_id_vector(
             TableExpression::Named { table, schema } => {
                 let schema = schema
                     .as_ref()
-                    .map(|schema| schema.as_str())
+                    .map(super::identifier::Identifier::as_str)
                     .unwrap_or_else(|| default_schema.name());
 
                 tables.push(ResourceId::try_new(schema, table.as_str()).unwrap());
