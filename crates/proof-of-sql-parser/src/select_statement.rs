@@ -1,7 +1,7 @@
 use super::intermediate_ast::{OrderBy, SetExpression, Slice, TableExpression};
 use crate::{sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
-use core::{fmt, ops::Deref, str::FromStr};
+use core::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
 
 /// Representation of a select statement, that is, the only type of queries allowed.
@@ -75,7 +75,7 @@ fn convert_table_expr_to_resource_id_vector(
     let mut tables = Vec::new();
 
     for table_expression in table_expressions {
-        let table_ref: &TableExpression = &**table_expression;
+        let table_ref: &TableExpression = table_expression;
 
         match table_ref {
             TableExpression::Named { table, schema } => {
