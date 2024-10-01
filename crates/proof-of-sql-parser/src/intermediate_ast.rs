@@ -349,7 +349,7 @@ macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
             fn from(val: $tt) -> Self {
-                Literal::BigInt(val as i64)
+                Literal::BigInt(i64::from(val))
             }
         }
     };
