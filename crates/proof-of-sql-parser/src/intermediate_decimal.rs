@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 /// Errors related to the processing of decimal values in proof-of-sql
+#[allow(clippy::module_name_repetitions)]
 #[derive(Snafu, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
