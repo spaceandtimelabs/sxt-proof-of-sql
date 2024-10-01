@@ -61,7 +61,9 @@ pub fn multiply<C: Commitment>(left: DynProofExpr<C>, right: DynProofExpr<C>) ->
 pub fn const_bool<C: Commitment>(val: bool) -> DynProofExpr<C> {
     DynProofExpr::new_literal(LiteralValue::Boolean(val))
 }
-
+pub fn const_tinyint<C: Commitment>(val: i8) -> DynProofExpr<C> {
+    DynProofExpr::new_literal(LiteralValue::TinyInt(val))
+}
 pub fn const_smallint<C: Commitment>(val: i16) -> DynProofExpr<C> {
     DynProofExpr::new_literal(LiteralValue::SmallInt(val))
 }

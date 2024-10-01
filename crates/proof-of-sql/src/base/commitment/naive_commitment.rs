@@ -124,6 +124,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::SmallInt(small_int_vec) => {
                         small_int_vec.iter().map(|b| b.into()).collect()
                     }
+                    CommittableColumn::TinyInt(tiny_int_vec) => {
+                        tiny_int_vec.iter().map(|b| b.into()).collect()
+                    }
                     CommittableColumn::Int(int_vec) => int_vec.iter().map(|b| b.into()).collect(),
                     CommittableColumn::BigInt(big_int_vec) => {
                         big_int_vec.iter().map(|b| b.into()).collect()

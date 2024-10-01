@@ -207,6 +207,8 @@ pub enum ColumnBounds {
     NoOrder,
     /// The bounds of a SmallInt column.
     SmallInt(Bounds<i16>),
+    /// The bounds of a TinyInt column.
+    TinyInt(Bounds<i8>),
     /// The bounds of an Int column.
     Int(Bounds<i32>),
     /// The bounds of a BigInt column.
@@ -224,6 +226,7 @@ impl ColumnBounds {
     pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
+            CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int128(ints) => ColumnBounds::Int128(Bounds::from_iter(*ints)),
@@ -247,6 +250,9 @@ impl ColumnBounds {
             (ColumnBounds::SmallInt(bounds_a), ColumnBounds::SmallInt(bounds_b)) => {
                 Ok(ColumnBounds::SmallInt(bounds_a.union(bounds_b)))
             }
+            (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
+                Ok(ColumnBounds::TinyInt(bounds_a.union(bounds_b)))
+            }    
             (ColumnBounds::Int(bounds_a), ColumnBounds::Int(bounds_b)) => {
                 Ok(ColumnBounds::Int(bounds_a.union(bounds_b)))
             }
@@ -279,6 +285,9 @@ impl ColumnBounds {
             (ColumnBounds::Int(bounds_a), ColumnBounds::Int(bounds_b)) => {
                 Ok(ColumnBounds::Int(bounds_a.difference(bounds_b)))
             }
+            (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
+                    Ok(ColumnBounds::TinyInt(bounds_a.difference(bounds_b)))
+            }
             (ColumnBounds::BigInt(bounds_a), ColumnBounds::BigInt(bounds_b)) => {
                 Ok(ColumnBounds::BigInt(bounds_a.difference(bounds_b)))
             }
@@ -298,6 +307,8 @@ impl ColumnBounds {
 
 #[cfg(test)]
 mod tests {
+    use core::time;
+
     use super::*;
     use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
     use alloc::{string::String, vec};
@@ -522,6 +533,14 @@ mod tests {
             ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
         );
 
+        let tinyint_column = OwnedColumn::<Curve25519Scalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
+        let committable_tinyint_column = CommittableColumn::from(&tinyint_column);
+        let tinyint_column_bounds = ColumnBounds::from_column(&committable_tinyint_column);
+        assert_eq!(
+            tinyint_column_bounds,
+            ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
+        );
+
         let int128_column = OwnedColumn::<Curve25519Scalar>::Int128([1, 2, 3, 1, 0].to_vec());
         let committable_int128_column = CommittableColumn::from(&int128_column);
         let int128_column_bounds = ColumnBounds::from_column(&committable_int128_column);
@@ -574,7 +593,13 @@ mod tests {
             int_a.try_union(int_b).unwrap(),
             ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: 1, max: 6 }))
         );
-
+        
+        let tinyint_a = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let tinyint_b = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        assert_eq!(
+            TinyInt_a.try_union(tinyint_b).unwrap(),
+            ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 6 }))
+        );
         let bigint_a = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let bigint_b = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
         assert_eq!(
@@ -609,6 +634,7 @@ mod tests {
     fn we_cannot_union_mismatched_column_bounds() {
         let no_order = ColumnBounds::NoOrder;
         let smallint = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: -5, max: 5 }));
+        let tinyint = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: -3, max: 4}));
         let int = ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: -10, max: 10 }));
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
@@ -620,6 +646,7 @@ mod tests {
             (int, "Int"),
             (bigint, "BigInt"),
             (int128, "Int128"),
+            (tinyint, "TinyInt"),
             (timestamp, "Timestamp"),
         ];
 
@@ -647,6 +674,10 @@ mod tests {
         let smallint_a = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let smallint_b = ColumnBounds::SmallInt(Bounds::Empty);
         assert_eq!(smallint_a.try_difference(smallint_b).unwrap(), smallint_a);
+
+        let tinyint_a = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let tinyint_b = ColumnBounds::TinyInt(Bounds::Empty);
+        assert_eq!(smallint_a.try_difference(tinyint_b).unwrap(), tinyint_a);
 
         let int_a = ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int_b = ColumnBounds::Int(Bounds::Empty);
@@ -678,6 +709,7 @@ mod tests {
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
         let timestamp = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
         let smallint = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let tinyint = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 2, max: 4}));
 
         assert!(no_order.try_difference(bigint).is_err());
         assert!(bigint.try_difference(no_order).is_err());
@@ -690,5 +722,17 @@ mod tests {
 
         assert!(smallint.try_difference(timestamp).is_err());
         assert!(timestamp.try_difference(smallint).is_err());
+
+        assert!(tinyint.try_difference(smallint).is_err());
+        assert!(smallint.try_difference(tinyint).is_err());
+    
+         assert!(tinyint.try_difference(bigint).is_err());
+    assert!(bigint.try_difference(tinyint).is_err());
+
+    assert!(tinyint.try_difference(int128).is_err());
+    assert!(int128.try_difference(tinyint).is_err());
+
+    assert!(tinyint.try_difference(timestamp).is_err());
+    assert!(timestamp.try_difference(tinyint).is_err());
     }
 }

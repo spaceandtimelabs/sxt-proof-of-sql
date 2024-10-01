@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 pub enum LiteralValue<S: Scalar> {
     /// Boolean literals
     Boolean(bool),
+    /// i8 literals 
+    TinyInt(i8), 
     /// i16 literals
     SmallInt(i16),
     /// i32 literals
@@ -41,6 +43,7 @@ impl<S: Scalar> LiteralValue<S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
@@ -56,6 +59,7 @@ impl<S: Scalar> LiteralValue<S> {
     pub(crate) fn to_scalar(&self) -> S {
         match self {
             Self::Boolean(b) => b.into(),
+            Self::TinyInt(i) => i.into(),
             Self::SmallInt(i) => i.into(),
             Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),

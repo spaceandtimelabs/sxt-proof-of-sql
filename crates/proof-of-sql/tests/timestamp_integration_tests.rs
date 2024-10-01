@@ -2,7 +2,7 @@
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
-    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
+    base::database::{owned_table_utility::{tinyint, *}, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
         test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup,
         DoryVerifierPublicSetup, ProverSetup, PublicParameters, VerifierSetup,
@@ -27,6 +27,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),

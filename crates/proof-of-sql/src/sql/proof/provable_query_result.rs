@@ -108,9 +108,10 @@ impl ProvableQueryResult {
                     ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
                     ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
                     ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
+                    ColumnType::TinyInt => decode_and_convert::<i8, S>(&self[offset..]),
                     ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
                     ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
-
+        
                     ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                     ColumnType::TimestampTZ(_, _) => {
@@ -166,6 +167,12 @@ impl ProvableQueryResult {
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::BigInt(col)))
                     }
+                    ColumnType::TinyInt => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::TinyInt(col)))
+                    }
+                
                     ColumnType::Int128 => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;

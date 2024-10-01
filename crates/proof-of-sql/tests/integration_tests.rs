@@ -210,6 +210,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinyint",[i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -230,6 +231,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
+        tinyint("tinyint",[i8::MIN, 0, i8::MAX]),
         smallint("smallint", [i16::MIN, 0, i16::MAX]),
         int("int", [i32::MIN, 0, i32::MAX]),
         bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -251,6 +253,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinyint",[i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -276,6 +279,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
+        tinyint("tinyint",[i8::MIN, 0, i8::MAX]),
         smallint("smallint", [i16::MIN, 0, i16::MAX]),
         int("int", [i32::MIN, 0, i32::MAX]),
         bigint("bigint", [i64::MIN, 0, i64::MAX]),

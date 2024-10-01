@@ -12,7 +12,7 @@ use proof_of_sql::{
         commitment::TableCommitment,
         database::{
             owned_table_utility::{
-                bigint, boolean, decimal75, int, int128, owned_table, scalar, smallint,
+                bigint, boolean, decimal75, int, tinyint, int128, owned_table, scalar, smallint,
                 timestamptz, varchar,
             },
             OwnedTable,
@@ -76,6 +76,7 @@ pub fn generate_random_owned_table<S: Scalar>(
         "boolean",
         "int128",
         "scalar",
+        "tinyint",
         "varchar",
         "decimal75",
         "smallint",
@@ -102,6 +103,10 @@ pub fn generate_random_owned_table<S: Scalar>(
             "scalar" => columns.push(scalar(
                 identifier.deref(),
                 vec![generate_random_u64_array(); num_rows],
+            )),
+            "tinyint" => colums.push(tinyint( 
+                identifier.deref(),
+                vec![rng.gen::<i8>(); num_rows],    
             )),
             "varchar" => columns.push(varchar(identifier.deref(), gen_rnd_str(num_rows))),
             "decimal75" => columns.push(decimal75(

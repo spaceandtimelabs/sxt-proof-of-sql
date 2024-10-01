@@ -11,6 +11,7 @@
 //!     scalar("d", [1, 2, 3]),
 //!     varchar("e", ["a", "b", "c"]),
 //!     decimal75("f", 12, 1, [1, 2, 3]),
+//!     tinyint("g",[1, 2, 3]),
 //! ]);
 //! ```
 use super::{OwnedColumn, OwnedTable};
@@ -37,6 +38,7 @@ use proof_of_sql_parser::{
 ///     scalar("d", [1, 2, 3]),
 ///     varchar("e", ["a", "b", "c"]),
 ///     decimal75("f", 12, 1, [1, 2, 3]),
+///     tinyint("g",[1, 2, 3]),
 /// ]);
 /// ```
 pub fn owned_table<S: Scalar>(
@@ -98,7 +100,23 @@ pub fn bigint<S: Scalar>(
         OwnedColumn::BigInt(data.into_iter().map(Into::into).collect()),
     )
 }
-
+/// Creates a (Identifier, OwnedColumn) pair for a tinyint column.
+/// This is primarily intended for use in conjunction with [owned_table].
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let result = owned_table::<Curve25519Scalar>([
+///     tinyint("a", [1, 2, 3]),
+/// ]);
+pub fn tinyint<S: Scalar>(
+    name: impl Deref<Target = str>,
+    data: impl IntoIterator<Item = impl Into<i8>>,
+) -> (Identifier, OwnedColumn<S>) {
+    (
+        name.parse().unwrap(),
+        OwnedColumn::TinyInt(data.into_iter().map(Into::into).collect()),
+    )
+}
 /// Creates a (Identifier, OwnedColumn) pair for a boolean column.
 /// This is primarily intended for use in conjunction with [owned_table].
 /// # Example

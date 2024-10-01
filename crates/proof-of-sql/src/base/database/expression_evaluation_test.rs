@@ -143,6 +143,7 @@ fn we_can_evaluate_a_logical_expression() {
 #[test]
 fn we_can_evaluate_an_arithmetic_expression() {
     let table: OwnedTable<Curve25519Scalar> = owned_table([
+        tinyint("tinyints", [-128_i8, -64, 0, 64, 127]),
         smallint("smallints", [-2_i16, -1, 0, 1, 2]),
         int("ints", [-4_i32, -2, 0, 2, 4]),
         bigint("bigints", [-8_i64, -4, 0, 4, 8]),

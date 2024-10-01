@@ -1,7 +1,7 @@
 use crate::base::database::ColumnType;
 use arrow::{
     array::{
-        Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
+        Array, BooleanArray, Decimal128Array, Decimal256Array,Int8Array, Int16Array, Int32Array, Int64Array,
         StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
@@ -68,6 +68,14 @@ pub fn make_random_test_accessor_data(
                     .map(|x| ((*x >> 48) as i16)) // Shift right to align the lower 16 bits
                     .collect();
                 columns.push(Arc::new(Int16Array::from(values)));
+            }
+            ColumnType::TinyInt => {
+                column_fields.push(Field::new(*col_name, DataType::Int8, false));
+                let values: Vec<i8> = values
+                    .iter()
+                    .map(|x| ((*x >> 56) as i8)) // Shift right to align the lower 8
+                    .collect();
+                columns.push(Arc::new(Int8Array::from(values)));
             }
             ColumnType::Int => {
                 column_fields.push(Field::new(*col_name, DataType::Int32, false));
@@ -170,6 +178,7 @@ mod tests {
             ("c", ColumnType::Int128),
             ("d", ColumnType::SmallInt),
             ("e", ColumnType::Int),
+            ("g", ColumnType::TinyInt),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);

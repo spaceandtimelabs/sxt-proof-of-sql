@@ -250,6 +250,15 @@ impl ArrayRefExt for ArrayRef {
                     })
                 }
             }
+            DataType::Int8 => {
+                if let Some(array) = self.as_any().downcast_ref::<Int8Array>() {
+                    Ok(Column::TinyInt(&array.values()[range.start..range.end]))
+                } else {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
+                }
+            }
             DataType::Int64 => {
                 if let Some(array) = self.as_any().downcast_ref::<Int64Array>() {
                     Ok(Column::BigInt(&array.values()[range.start..range.end]))
@@ -379,7 +388,7 @@ mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use alloc::sync::Arc;
-    use arrow::array::Decimal256Builder;
+    use arrow::array::{Decimal256Builder, Int8Array};
     use core::str::FromStr;
 
     #[test]
@@ -727,7 +736,46 @@ mod tests {
             Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
         ));
     }
-
+    #[test]
+    fn we_can_convert_int8_array_normal_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
+        let result = array.to_column::<DoryScalar>(&alloc, &(1..3), None);
+        assert_eq!(result.unwrap(), Column::TinyInt(&[-3, 42]));
+    }
+    
+    #[test]
+    fn we_can_convert_int8_array_empty_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
+        let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..1), None);
+        assert_eq!(result.unwrap(), Column::TinyInt(&[]));
+    }
+    
+    #[test]
+    fn we_cannot_convert_int8_array_oob_range() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![1, -3, 42]));
+    
+        let result = array.to_column::<DoryScalar>(&alloc, &(2..4), None);
+    
+        assert_eq!(
+            result,
+            Err(ArrowArrayToColumnConversionError::IndexOutOfBounds { len: 3, index: 4 })
+        );
+    }
+    
+    #[test]
+    fn we_can_convert_int8_array_with_nulls() {
+        let alloc = Bump::new();
+        let array: ArrayRef = Arc::new(Int8Array::from(vec![Some(1), None, Some(42)]));
+        let result = array.to_column::<Curve25519Scalar>(&alloc, &(0..3), None);
+        assert!(matches!(
+            result,
+            Err(ArrowArrayToColumnConversionError::ArrayContainsNulls)
+        ));
+    }
+    
     #[test]
     fn we_can_convert_int16_array_normal_range() {
         let alloc = Bump::new();
@@ -962,7 +1010,13 @@ mod tests {
                 .unwrap(),
             Column::SmallInt(&[1, -3])
         );
-
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![1, -3]));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(0..2), None)
+                .unwrap(),
+            Column::TinyInt(&[1, -3])
+        );
         let array: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![1, -3]));
         assert_eq!(
             array
@@ -1049,6 +1103,13 @@ mod tests {
                 .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
                 .unwrap(),
             Column::SmallInt(&[1, 545])
+        );
+        let array: ArrayRef = Arc::new(arrow::array::Int8Array::from(vec![0, 1, 545]));
+        assert_eq!(
+            array
+                .to_column::<Curve25519Scalar>(&alloc, &(1..3), None)
+                .unwrap(),
+            Column::TinyInt(&[1, 545])
         );
 
         let array: ArrayRef = Arc::new(arrow::array::Int32Array::from(vec![0, 1, 545]));
@@ -1180,6 +1241,16 @@ mod tests {
         let data = vec![1, -3];
 
         let array: ArrayRef = Arc::new(Int16Array::from(data.clone()));
+        assert_eq!(
+            array.to_curve25519_scalars(),
+            Ok(data
+                .iter()
+                .map(|v| v.into())
+                .collect::<Vec<Curve25519Scalar>>())
+        );
+
+        let data: Vec<i8> = vec![1, -3];
+        let array: ArrayRef = Arc::new(Int8Array::from(data.clone()));
         assert_eq!(
             array.to_curve25519_scalars(),
             Ok(data

@@ -29,6 +29,8 @@ pub enum CommittableColumn<'a> {
     SmallInt(&'a [i16]),
     /// Borrowed SmallInt column, mapped to `i32`.
     Int(&'a [i32]),
+    /// Borrowed TinyInt column, mapped to `i8`.
+    TinyInt(&'a [i8]),
     /// Borrowed BigInt column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
@@ -52,6 +54,7 @@ impl<'a> CommittableColumn<'a> {
         match self {
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
+            CommittableColumn::TinyInt(col) => col.len(),
             CommittableColumn::BigInt(col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
             CommittableColumn::Decimal75(_, _, col) => col.len(),
@@ -79,6 +82,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
         match value {
             CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
             CommittableColumn::Int(_) => ColumnType::Int,
+            CommittableColumn::TinyInt(_) => ColumnType::TinyInt,
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
             CommittableColumn::Int128(_) => ColumnType::Int128,
             CommittableColumn::Decimal75(precision, scale, _) => {
@@ -100,6 +104,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
+            Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),
             Column::Int128(ints) => CommittableColumn::Int128(ints),
@@ -122,6 +127,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
+            OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int128(ints) => (ints as &[_]).into(),
@@ -165,6 +171,12 @@ impl<'a> From<&'a [i32]> for CommittableColumn<'a> {
     }
 }
 
+impl<'a> From<&'a [i8]> for CommittableColumn<'a> {
+    fn from(value: &'a [i32]) -> Self {
+        CommittableColumn::TinyInt(value)
+    }
+}
+
 impl<'a> From<&'a [i64]> for CommittableColumn<'a> {
     fn from(value: &'a [i64]) -> Self {
         CommittableColumn::BigInt(value)
@@ -191,6 +203,7 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
+            CommittableColumn::TinyInt(ints) => Sequence::from(*ints),
             CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
@@ -292,7 +305,19 @@ mod tests {
         assert!(!int_committable_column.is_empty());
         assert_eq!(int_committable_column.column_type(), ColumnType::Int);
     }
+    #[test]
+    fn we_can_get_type_and_length_of_tinyint_column() {
+        // empty case
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[]);
+        assert_eq!(tinyint_committable_column.len(), 0);
+        assert!(tinyint_committable_column.is_empty());
+        assert_eq!(tinyint_committable_column.column_type(), ColumnType::TinyInt);
 
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[12, 34, 56]);
+        assert_eq!(tinyint_committable_column.len(), 3);
+        assert!(!tinyint_committable_column.is_empty());
+        assert_eq!(tinyint_committable_column.column_type(), ColumnType::TinyInt);
+    }
     #[test]
     fn we_can_get_type_and_length_of_bigint_column() {
         // empty case
@@ -454,6 +479,21 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_borrowing_tinyint_column() {
+        // empty case
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::TinyInt(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[12, 34, 56]));
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::TinyInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
     fn we_can_convert_from_borrowing_smallint_column() {
         // empty case
         let from_borrowed_column =
@@ -589,6 +629,20 @@ mod tests {
         assert_eq!(
             from_owned_column,
             CommittableColumn::SmallInt(&[12, 34, 56])
+        );
+    }
+    #[test]
+    fn we_can_convert_from_owned_tinyint_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[]));
+
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(vec![12, 34, 56]);
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(
+            from_owned_column,
+            CommittableColumn::TinyInt(&[12, 34, 56])
         );
     }
 
@@ -765,7 +819,30 @@ mod tests {
         );
         assert_eq!(commitment_buffer[0], commitment_buffer[1]);
     }
-
+    #[test]
+    fn we_can_commit_to_tinyint_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::TinyInt(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+    
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::TinyInt(&values);
+    
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+    
     #[test]
     fn we_can_commit_to_int_column_through_committable_column() {
         // empty case

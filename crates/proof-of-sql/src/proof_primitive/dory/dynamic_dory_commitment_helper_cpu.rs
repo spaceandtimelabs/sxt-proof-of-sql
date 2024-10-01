@@ -41,6 +41,7 @@ fn compute_dory_commitment(
     match committable_column {
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::TinyInt(column)=> compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
