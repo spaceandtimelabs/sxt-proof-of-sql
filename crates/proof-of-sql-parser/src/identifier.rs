@@ -23,18 +23,25 @@ impl Identifier {
     }
 
     /// An alias for [`Identifier::from_str`], provided for convenience.
+    ///
+    /// # Errors
+    /// Returns a `ParseResult::Err` if the input string does not meet the requirements for a valid identifier.
+    /// This may include errors such as invalid characters or incorrect formatting based on the specific rules
+    /// that `Identifier::from_str` enforces.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
-    #[must_use] pub fn name(&self) -> &str {
+    #[must_use]
+    pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
     /// An alias for [`Identifier::name`], provided for convenience.
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         self.name()
     }
 }
