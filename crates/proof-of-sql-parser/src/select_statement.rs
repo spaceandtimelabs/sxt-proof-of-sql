@@ -75,7 +75,7 @@ fn convert_table_expr_to_resource_id_vector(
     let mut tables = Vec::new();
 
     for table_expression in table_expressions {
-        let table_ref: &TableExpression = table_expression.deref();
+        let table_ref: &TableExpression = &**table_expression;
 
         match table_ref {
             TableExpression::Named { table, schema } => {
