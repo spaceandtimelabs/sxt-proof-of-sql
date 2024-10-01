@@ -29,11 +29,11 @@ impl fmt::Debug for SelectStatement {
 }
 
 impl SelectStatement {
-    /// This function returns the referenced tables in the provided intermediate_ast
+    /// This function returns the referenced tables in the provided `intermediate_ast`
     ///
     /// Note that we provide a `default_schema` in case the table expression
     /// does not have any associated schema. This `default_schema` is
-    /// used to construct the resource_id, as we cannot have this field empty.
+    /// used to construct the `resource_id`, as we cannot have this field empty.
     /// In case the table expression already has an associated schema,
     /// then it's used instead of `default_schema`. Although the DQL endpoint
     /// would require both to be equal, we have chosen to not fail here

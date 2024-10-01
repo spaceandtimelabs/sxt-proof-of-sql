@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum PoSQLTimeZone {
     /// Default variant for UTC timezone
     Utc,
-    /// TImezone offset in seconds
+    /// `TImezone` offset in seconds
     FixedOffset(i32),
 }
 

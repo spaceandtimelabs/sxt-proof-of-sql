@@ -23,17 +23,17 @@ impl PoSQLTimestamp {
         self.timestamp
     }
 
-    /// Returns the [PoSQLTimeUnit] for this timestamp
+    /// Returns the [`PoSQLTimeUnit`] for this timestamp
     pub fn timeunit(&self) -> PoSQLTimeUnit {
         self.timeunit
     }
 
-    /// Returns the [PoSQLTimeZone] for this timestamp
+    /// Returns the [`PoSQLTimeZone`] for this timestamp
     pub fn timezone(&self) -> PoSQLTimeZone {
         self.timezone
     }
 
-    /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
+    /// Attempts to parse a timestamp string into an [`PoSQLTimestamp`] structure.
     /// This function supports two primary formats:
     ///
     /// 1. **RFC 3339 Parsing**:

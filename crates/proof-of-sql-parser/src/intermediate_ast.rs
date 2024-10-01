@@ -13,7 +13,7 @@ use core::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Representation of a SetExpression, a collection of rows, each having one or more columns.
+/// Representation of a `SetExpression`, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum SetExpression {
     /// Query result as `SetExpression`
@@ -185,7 +185,7 @@ pub enum Expression {
 }
 
 impl Expression {
-    /// Create a new SUM()
+    /// Create a new `SUM()`
     pub fn sum(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Sum,
@@ -193,7 +193,7 @@ impl Expression {
         })
     }
 
-    /// Create a new MAX()
+    /// Create a new `MAX()`
     pub fn max(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Max,
@@ -201,7 +201,7 @@ impl Expression {
         })
     }
 
-    /// Create a new MIN()
+    /// Create a new `MIN()`
     pub fn min(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Min,
@@ -209,7 +209,7 @@ impl Expression {
         })
     }
 
-    /// Create a new COUNT()
+    /// Create a new `COUNT()`
     pub fn count(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
@@ -217,7 +217,7 @@ impl Expression {
         })
     }
 
-    /// Create a new FIRST()
+    /// Create a new `FIRST()`
     pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::First,
@@ -277,7 +277,7 @@ impl core::ops::Sub<Box<Expression>> for Box<Expression> {
     }
 }
 
-/// OrderBy
+/// `OrderBy`
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OrderBy {
     /// which column to order by
@@ -286,7 +286,7 @@ pub struct OrderBy {
     pub direction: OrderByDirection,
 }
 
-/// OrderByDirection values
+/// `OrderByDirection` values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderByDirection {
     /// Ascending
@@ -310,7 +310,7 @@ impl Display for OrderByDirection {
 pub struct Slice {
     /// number of rows to return
     ///
-    /// if u64::MAX, specify all rows
+    /// if `u64::MAX`, specify all rows
     pub number_rows: u64,
 
     /// number of rows to skip

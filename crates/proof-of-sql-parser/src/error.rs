@@ -17,13 +17,13 @@ pub enum ParseError {
         error: String,
     },
     #[snafu(display("Unable to parse resource_id"))]
-    /// Can not parse the resource_id
+    /// Can not parse the `resource_id`
     ResourceIdParseError {
         /// The underlying error
         error: String,
     },
 }
 
-/// General parsing error that may occur, for example if the provided schema/object_name strings
+/// General parsing error that may occur, for example if the provided `schema/object_name` strings
 /// aren't valid postgres-style identifiers (excluding dollar signs).
 pub type ParseResult<T> = Result<T, ParseError>;

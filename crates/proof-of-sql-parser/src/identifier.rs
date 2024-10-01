@@ -12,9 +12,9 @@ pub struct Identifier {
 impl Identifier {
     /// Constructor for [Identifier]
     ///
-    /// Note: this constructor should be private within the proof_of_sql_parser crate.
+    /// Note: this constructor should be private within the `proof_of_sql_parser` crate.
     /// This is necessary to guarantee that no one outside the crate
-    /// can create Names, thus securing that ResourceIds and Identifiers
+    /// can create Names, thus securing that `ResourceIds` and Identifiers
     /// are always valid postgresql identifiers.
     pub(crate) fn new<S: AsRef<str>>(string: S) -> Self {
         Self {
@@ -22,7 +22,7 @@ impl Identifier {
         }
     }
 
-    /// An alias for [Identifier::from_str], provided for convenience.
+    /// An alias for [`Identifier::from_str`], provided for convenience.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }
@@ -33,7 +33,7 @@ impl Identifier {
         self.name.as_str()
     }
 
-    /// An alias for [Identifier::name], provided for convenience.
+    /// An alias for [`Identifier::name`], provided for convenience.
     pub fn as_str(&self) -> &str {
         self.name()
     }
