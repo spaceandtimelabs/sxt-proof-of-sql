@@ -42,7 +42,8 @@ impl SelectStatement {
     ///
     /// Return:
     /// - The vector with all tables referenced by the intermediate ast, encoded as resource ids.
-    #[must_use] pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
+    #[must_use]
+    pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
         let set_expression: &SetExpression = &(self.expr);
 
         match set_expression {
@@ -79,8 +80,10 @@ fn convert_table_expr_to_resource_id_vector(
 
         match table_ref {
             TableExpression::Named { table, schema } => {
-                let schema = schema
-                    .as_ref().map_or_else(|| default_schema.name(), super::identifier::Identifier::as_str);
+                let schema = schema.as_ref().map_or_else(
+                    || default_schema.name(),
+                    super::identifier::Identifier::as_str,
+                );
 
                 tables.push(ResourceId::try_new(schema, table.as_str()).unwrap());
             }

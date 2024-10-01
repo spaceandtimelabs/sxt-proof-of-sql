@@ -59,7 +59,7 @@ impl IntermediateDecimal {
         match u8::try_from(self.value.digits()) {
             Ok(v) => v,
             Err(_) => u8::MAX, // Returning u8::MAX on truncation
-        }    
+        }
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
@@ -68,7 +68,7 @@ impl IntermediateDecimal {
         match i8::try_from(self.value.fractional_digit_count()) {
             Ok(v) => v,
             Err(_) => i8::MAX, // Returning i8::MAX on truncation
-        }    
+        }
     }
 
     /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
