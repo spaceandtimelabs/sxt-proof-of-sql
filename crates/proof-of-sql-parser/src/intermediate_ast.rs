@@ -50,7 +50,7 @@ pub struct AliasedResultExpr {
 
 impl AliasedResultExpr {
     /// Create a new `AliasedResultExpr`
-    pub fn new(expr: Expression, alias: Identifier) -> Self {
+    #[must_use] pub fn new(expr: Expression, alias: Identifier) -> Self {
         Self {
             expr: Box::new(expr),
             alias,
@@ -59,7 +59,7 @@ impl AliasedResultExpr {
 
     /// Try to get the identifier of the expression if it is a column
     /// Otherwise return None
-    pub fn try_as_identifier(&self) -> Option<&Identifier> {
+    #[must_use] pub fn try_as_identifier(&self) -> Option<&Identifier> {
         match self.expr.as_ref() {
             Expression::Column(column) => Some(column),
             _ => None,
@@ -186,7 +186,7 @@ pub enum Expression {
 
 impl Expression {
     /// Create a new `SUM()`
-    pub fn sum(self) -> Box<Self> {
+    #[must_use] pub fn sum(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Sum,
             expr: Box::new(self),
@@ -194,7 +194,7 @@ impl Expression {
     }
 
     /// Create a new `MAX()`
-    pub fn max(self) -> Box<Self> {
+    #[must_use] pub fn max(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Max,
             expr: Box::new(self),
@@ -202,7 +202,7 @@ impl Expression {
     }
 
     /// Create a new `MIN()`
-    pub fn min(self) -> Box<Self> {
+    #[must_use] pub fn min(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Min,
             expr: Box::new(self),
@@ -210,7 +210,7 @@ impl Expression {
     }
 
     /// Create a new `COUNT()`
-    pub fn count(self) -> Box<Self> {
+    #[must_use] pub fn count(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
             expr: Box::new(self),
@@ -218,14 +218,14 @@ impl Expression {
     }
 
     /// Create a new `FIRST()`
-    pub fn first(self) -> Box<Self> {
+    #[must_use] pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::First,
             expr: Box::new(self),
         })
     }
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
-    pub fn alias(self, alias: &str) -> AliasedResultExpr {
+    #[must_use] pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {
             expr: Box::new(self),
             alias: alias.parse().unwrap(),

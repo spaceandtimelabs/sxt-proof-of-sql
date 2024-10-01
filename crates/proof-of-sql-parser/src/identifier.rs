@@ -29,12 +29,12 @@ impl Identifier {
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
-    pub fn name(&self) -> &str {
+    #[must_use] pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
     /// An alias for [`Identifier::name`], provided for convenience.
-    pub fn as_str(&self) -> &str {
+    #[must_use] pub fn as_str(&self) -> &str {
         self.name()
     }
 }

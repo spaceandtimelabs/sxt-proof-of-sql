@@ -14,7 +14,7 @@ pub enum PoSQLTimeZone {
 
 impl PoSQLTimeZone {
     /// Parse a timezone from a count of seconds
-    pub fn from_offset(offset: i32) -> Self {
+    #[must_use] pub fn from_offset(offset: i32) -> Self {
         if offset == 0 {
             PoSQLTimeZone::Utc
         } else {

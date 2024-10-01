@@ -19,17 +19,17 @@ pub struct PoSQLTimestamp {
 
 impl PoSQLTimestamp {
     /// Returns the combined date and time with time zone.
-    pub fn timestamp(&self) -> DateTime<Utc> {
+    #[must_use] pub fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
     }
 
     /// Returns the [`PoSQLTimeUnit`] for this timestamp
-    pub fn timeunit(&self) -> PoSQLTimeUnit {
+    #[must_use] pub fn timeunit(&self) -> PoSQLTimeUnit {
         self.timeunit
     }
 
     /// Returns the [`PoSQLTimeZone`] for this timestamp
-    pub fn timezone(&self) -> PoSQLTimeZone {
+    #[must_use] pub fn timezone(&self) -> PoSQLTimeZone {
         self.timezone
     }
 

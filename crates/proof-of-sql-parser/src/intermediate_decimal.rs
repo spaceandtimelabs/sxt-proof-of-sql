@@ -47,17 +47,17 @@ pub struct IntermediateDecimal {
 
 impl IntermediateDecimal {
     /// Get the integer part of the fixed-point representation of this intermediate decimal.
-    pub fn value(&self) -> BigDecimal {
+    #[must_use] pub fn value(&self) -> BigDecimal {
         self.value.clone()
     }
 
     /// Get the precision of the fixed-point representation of this intermediate decimal.
-    pub fn precision(&self) -> u8 {
+    #[must_use] pub fn precision(&self) -> u8 {
         self.value.digits() as u8
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
-    pub fn scale(&self) -> i8 {
+    #[must_use] pub fn scale(&self) -> i8 {
         self.value.fractional_digit_count() as i8
     }
 

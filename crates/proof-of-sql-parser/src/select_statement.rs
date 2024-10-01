@@ -42,7 +42,7 @@ impl SelectStatement {
     ///
     /// Return:
     /// - The vector with all tables referenced by the intermediate ast, encoded as resource ids.
-    pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
+    #[must_use] pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
         let set_expression: &SetExpression = &(self.expr);
 
         match set_expression {
