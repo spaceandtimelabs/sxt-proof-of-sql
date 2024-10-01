@@ -39,7 +39,7 @@ pub enum Column<'a, S: Scalar> {
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::Curve25519Scalar]
+    ///  - the backing store maps to the type [crate::base::scalar::test_scalar::TestScalar]
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
@@ -231,7 +231,7 @@ pub enum ColumnType {
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
-    /// Mapped to Curve25519Scalar
+    /// Mapped to TestScalar
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
 }
@@ -518,7 +518,7 @@ impl From<&ColumnField> for Field {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use crate::{base::scalar::test_scalar::TestScalar, proof_primitive::dory::DoryScalar};
     use alloc::{
         string::{String, ToString},
         vec,
@@ -803,9 +803,9 @@ mod tests {
         let scale = 2;
 
         let scals = [
-            Curve25519Scalar::from(1),
-            Curve25519Scalar::from(2),
-            Curve25519Scalar::from(3),
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
         ];
 
         // Test non-empty columns
@@ -813,15 +813,15 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3]);
+        let column = Column::<TestScalar>::SmallInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::Int(&[1, 2, 3]);
+        let column = Column::<TestScalar>::Int(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::BigInt(&[1, 2, 3]);
+        let column = Column::<TestScalar>::BigInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -838,9 +838,9 @@ mod tests {
         assert!(!column.is_empty());
 
         let decimal_data = [
-            Curve25519Scalar::from(1),
-            Curve25519Scalar::from(2),
-            Curve25519Scalar::from(3),
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
         ];
 
         let precision = Precision::new(precision).unwrap();
@@ -853,15 +853,15 @@ mod tests {
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::SmallInt(&[]);
+        let column = Column::<TestScalar>::SmallInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::Int(&[]);
+        let column = Column::<TestScalar>::Int(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::BigInt(&[]);
+        let column = Column::<TestScalar>::BigInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
@@ -869,7 +869,7 @@ mod tests {
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column = Column::<Curve25519Scalar>::Int128(&[]);
+        let column = Column::<TestScalar>::Int128(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
@@ -877,7 +877,7 @@ mod tests {
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
-        let column: Column<'_, Curve25519Scalar> = Column::Decimal75(precision, scale, &[]);
+        let column: Column<'_, TestScalar> = Column::Decimal75(precision, scale, &[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
     }
@@ -886,16 +886,16 @@ mod tests {
     fn we_can_convert_owned_columns_to_columns_round_trip() {
         let alloc = Bump::new();
         // Integers
-        let owned_col: OwnedColumn<Curve25519Scalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
-        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let owned_col: OwnedColumn<TestScalar> = OwnedColumn::Int128(vec![1, 2, 3, 4, 5]);
+        let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::Int128(&[1, 2, 3, 4, 5]));
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
 
         // Booleans
-        let owned_col: OwnedColumn<Curve25519Scalar> =
+        let owned_col: OwnedColumn<TestScalar> =
             OwnedColumn::Boolean(vec![true, false, true, false, true]);
-        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::Boolean(&[true, false, true, false, true]));
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
@@ -908,20 +908,19 @@ mod tests {
             "Spațiu și Timp",
             "Spazju u Ħin",
         ];
-        let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
+        let scalars = strs.iter().map(TestScalar::from).collect::<Vec<_>>();
         let owned_col =
             OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>());
-        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::VarChar((&strs, &scalars)));
         let new_owned_col = (&col).into();
         assert_eq!(owned_col, new_owned_col);
 
         // Decimals
-        let scalars: Vec<Curve25519Scalar> =
-            [1, 2, 3, 4, 5].iter().map(Curve25519Scalar::from).collect();
-        let owned_col: OwnedColumn<Curve25519Scalar> =
+        let scalars: Vec<TestScalar> = [1, 2, 3, 4, 5].iter().map(TestScalar::from).collect();
+        let owned_col: OwnedColumn<TestScalar> =
             OwnedColumn::Decimal75(Precision::new(75).unwrap(), 127, scalars.clone());
-        let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
+        let col = Column::<TestScalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(
             col,
             Column::Decimal75(Precision::new(75).unwrap(), 127, &scalars)
@@ -936,15 +935,15 @@ mod tests {
         assert_eq!(column.column_type().byte_size(), 1);
         assert_eq!(column.column_type().bit_size(), 8);
 
-        let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3, 4]);
+        let column = Column::<TestScalar>::SmallInt(&[1, 2, 3, 4]);
         assert_eq!(column.column_type().byte_size(), 2);
         assert_eq!(column.column_type().bit_size(), 16);
 
-        let column = Column::<Curve25519Scalar>::Int(&[1, 2, 3]);
+        let column = Column::<TestScalar>::Int(&[1, 2, 3]);
         assert_eq!(column.column_type().byte_size(), 4);
         assert_eq!(column.column_type().bit_size(), 32);
 
-        let column = Column::<Curve25519Scalar>::BigInt(&[1]);
+        let column = Column::<TestScalar>::BigInt(&[1]);
         assert_eq!(column.column_type().byte_size(), 8);
         assert_eq!(column.column_type().bit_size(), 64);
 
@@ -953,9 +952,9 @@ mod tests {
         assert_eq!(column.column_type().bit_size(), 128);
 
         let scals = [
-            Curve25519Scalar::from(1),
-            Curve25519Scalar::from(2),
-            Curve25519Scalar::from(3),
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
         ];
 
         let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scals));
@@ -969,9 +968,9 @@ mod tests {
         let precision = 10;
         let scale = 2;
         let decimal_data = [
-            Curve25519Scalar::from(1),
-            Curve25519Scalar::from(2),
-            Curve25519Scalar::from(3),
+            TestScalar::from(1),
+            TestScalar::from(2),
+            TestScalar::from(3),
         ];
 
         let precision = Precision::new(precision).unwrap();

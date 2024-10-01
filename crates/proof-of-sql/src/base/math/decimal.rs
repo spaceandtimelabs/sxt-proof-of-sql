@@ -230,7 +230,7 @@ pub(crate) fn scale_scalar<S: Scalar>(s: S, scale: i8) -> DecimalResult<S> {
 mod scale_adjust_test {
 
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
+    use crate::base::scalar::test_scalar::TestScalar;
     use num_bigint::BigInt;
 
     #[test]
@@ -241,7 +241,7 @@ mod scale_adjust_test {
 
         let target_scale = 5;
 
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8).unwrap(),
             target_scale
@@ -265,13 +265,13 @@ mod scale_adjust_test {
         let decimal = "120.00".parse().unwrap();
         let target_scale = -1;
         let expected = [12, 0, 0, 0];
-        let result = try_into_to_scalar::<Curve25519Scalar>(
+        let result = try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale,
         )
         .unwrap();
-        assert_eq!(result, Curve25519Scalar::from(expected));
+        assert_eq!(result, TestScalar::from(expected));
     }
 
     #[test]
@@ -280,14 +280,14 @@ mod scale_adjust_test {
         let target_scale = -2;
         let expected_limbs = [123, 0, 0, 0];
 
-        let limbs = try_into_to_scalar::<Curve25519Scalar>(
+        let limbs = try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8).unwrap(),
             target_scale,
         )
         .unwrap();
 
-        assert_eq!(limbs, Curve25519Scalar::from(expected_limbs));
+        assert_eq!(limbs, TestScalar::from(expected_limbs));
     }
 
     #[test]
@@ -295,13 +295,13 @@ mod scale_adjust_test {
         let decimal = "-123.45".parse().unwrap();
         let target_scale = 2;
         let expected_limbs = [12345, 0, 0, 0];
-        let limbs = try_into_to_scalar::<Curve25519Scalar>(
+        let limbs = try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8).unwrap(),
             target_scale,
         )
         .unwrap();
-        assert_eq!(limbs, -Curve25519Scalar::from(expected_limbs));
+        assert_eq!(limbs, -TestScalar::from(expected_limbs));
     }
 
     #[test]
@@ -311,7 +311,7 @@ mod scale_adjust_test {
             .parse()
             .unwrap();
         let target_scale = 6; // now precision exceeds maximum
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8,).unwrap(),
             target_scale
@@ -324,7 +324,7 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = 1;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale
@@ -337,7 +337,7 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = 1;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale
@@ -350,7 +350,7 @@ mod scale_adjust_test {
                 .parse()
                 .unwrap();
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8,).unwrap(),
             target_scale
@@ -360,7 +360,7 @@ mod scale_adjust_test {
         // this is ok because it can be scaled to 75 precision
         let decimal = "0.1".parse().unwrap();
         let target_scale = MAX_SUPPORTED_PRECISION as i8;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale
@@ -370,7 +370,7 @@ mod scale_adjust_test {
         // this exceeds max precision
         let decimal = "1.0".parse().unwrap();
         let target_scale = 75;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8,).unwrap(),
             target_scale
@@ -380,7 +380,7 @@ mod scale_adjust_test {
         // but this is ok
         let decimal = "1.0".parse().unwrap();
         let target_scale = 74;
-        assert!(try_into_to_scalar::<Curve25519Scalar>(
+        assert!(try_into_to_scalar::<TestScalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
             target_scale
