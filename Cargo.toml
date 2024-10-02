@@ -11,8 +11,7 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 ahash = { version = "0.8.11", default-features = false }
-# alloy-primitives = { version = "0.8.1" }
-# alloy-sol-types = { version = "0.8.1" }
+alloy-sol-types = { version = "0.8.5" }
 ark-bls12-381 = { version = "0.4.0" }
 ark-curve25519 = { version = "0.4.0" }
 ark-ec = { version = "0.4.0" }
@@ -36,7 +35,6 @@ chrono = { version = "0.4.38", default-features = false }
 curve25519-dalek = { version = "4", features = ["rand_core"] }
 derive_more = { version = "0.99" }
 flexbuffers = { version = "2.0.0" }
-# forge-script = { git = "https://github.com/foundry-rs/foundry", tag = "nightly-bf1a39980532f76cd76fd87ee32661180f606435" }
 indexmap = { version = "2.1", default-features = false }
 itertools = { version = "0.13.0", default-features = false, features = ["use_alloc"] }
 lalrpop = { version = "0.21.0" }
@@ -56,7 +54,6 @@ serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 snafu = { version = "0.8.4", default-features = false }
 tiny-keccak = { version = "2.0.2", features = [ "keccak" ] }
-# tokio = { version = "1.39.3" }
 tracing = { version = "0.1.36", default-features = false }
 tracing-opentelemetry = { version = "0.22.0" }
 tracing-subscriber = { version = "0.3.0" }
