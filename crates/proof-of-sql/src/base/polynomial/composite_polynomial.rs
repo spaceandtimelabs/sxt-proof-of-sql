@@ -8,6 +8,8 @@ use alloc::{rc::Rc, vec::Vec};
 use core::cmp::max;
 #[cfg(test)]
 use core::iter;
+#[cfg(test)]
+use itertools::Itertools;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
@@ -108,28 +110,20 @@ impl<S: Scalar> CompositePolynomial<S> {
         result
     }
 
+    #[cfg(test)]
+    /// Returns the product of the flattened_ml_extensions with referenced (as usize) by `terms` at the index `i`.
+    fn term_product(&self, terms: &[usize], i: usize) -> S {
+        terms
+            .iter()
+            .map(|&j| *self.flattened_ml_extensions[j].get(i).unwrap_or(&S::ZERO))
+            .product::<S>()
+    }
     /// Returns the sum of the evaluations of the `CompositePolynomial` on the boolean hypercube.
     #[cfg(test)]
     pub fn hypercube_sum(&self, length: usize) -> S {
-        self.products
-            .iter()
-            .map(|(coeff, terms)| {
-                (0..length)
-                    .map(|i| {
-                        *coeff
-                            * terms
-                                .iter()
-                                .copied()
-                                .map(|j| {
-                                    self.flattened_ml_extensions[j]
-                                        .get(i)
-                                        .copied()
-                                        .unwrap_or(S::ZERO)
-                                })
-                                .product::<S>()
-                    })
-                    .sum::<S>()
-            })
+        (0..length)
+            .cartesian_product(&self.products)
+            .map(|(i, (coeff, terms))| *coeff * self.term_product(terms, i))
             .sum::<S>()
     }
 
