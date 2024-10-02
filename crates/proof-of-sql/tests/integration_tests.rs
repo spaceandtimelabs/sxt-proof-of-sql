@@ -46,7 +46,7 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_minimal_filter_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -82,7 +82,7 @@ fn we_can_prove_a_minimal_filter_query_with_dory() {
 
 #[test]
 fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
@@ -144,7 +144,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_equality_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -241,7 +241,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -313,7 +313,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -380,7 +380,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_inequality_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -478,7 +478,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_complex_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -659,7 +659,7 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
@@ -738,7 +738,7 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
 
 #[test]
 fn we_can_prove_a_basic_group_by_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -808,7 +808,7 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_overflow_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);

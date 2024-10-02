@@ -1,5 +1,9 @@
 use super::{G1Affine, G2Affine};
 use alloc::vec::Vec;
+use ark_ff::UniformRand;
+use ark_std::rand::{CryptoRng, Rng};
+use core::iter;
+
 /// The public parameters for the Dory protocol. See section 5 of https://eprint.iacr.org/2020/1274.pdf for details.
 ///
 /// Note: even though H_1 and H_2 are marked as blue, they are still needed.
@@ -21,14 +25,19 @@ pub struct PublicParameters {
 }
 
 impl PublicParameters {
+    /// Generate cryptographically secure random public parameters.
+    pub fn rand<R: CryptoRng + Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
+        Self::rand_impl(max_nu, rng)
+    }
     #[cfg(any(test, feature = "test"))]
-    /// Generate random public parameters for testing purposes.
-    pub fn rand<R>(max_nu: usize, rng: &mut R) -> Self
-    where
-        R: ark_std::rand::Rng + ?Sized,
-    {
-        use ark_std::UniformRand;
-        let (Gamma_1, Gamma_2) = super::rand_G_vecs(max_nu, rng);
+    /// Generate random public parameters for testing.
+    pub fn test_rand<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
+        Self::rand_impl(max_nu, rng)
+    }
+    fn rand_impl<R: Rng + ?Sized>(max_nu: usize, rng: &mut R) -> Self {
+        let (Gamma_1, Gamma_2) = iter::repeat_with(|| (G1Affine::rand(rng), G2Affine::rand(rng)))
+            .take(1 << max_nu)
+            .unzip();
         let (H_1, H_2) = (G1Affine::rand(rng), G2Affine::rand(rng));
         let Gamma_2_fin = G2Affine::rand(rng);
 
