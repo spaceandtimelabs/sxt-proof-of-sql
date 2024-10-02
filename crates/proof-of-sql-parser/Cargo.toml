@@ -21,6 +21,7 @@ chrono = { workspace = true, features = ["serde"] }
 lalrpop-util = { workspace = true, features = ["lexer", "unicode"] }
 serde = { workspace = true, features = ["serde_derive", "alloc"] }
 snafu = { workspace = true }
+proof_of_sql_utils = { path = "../proof-of-sql-utils" }
 
 [build-dependencies]
 lalrpop = { workspace = true }

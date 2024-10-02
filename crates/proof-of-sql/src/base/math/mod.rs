@@ -7,3 +7,4 @@ mod log;
 pub(crate) use log::log2_up;
 /// TODO: add docs
 pub(crate) mod permutation;
+pub mod big_decimal_ext;
