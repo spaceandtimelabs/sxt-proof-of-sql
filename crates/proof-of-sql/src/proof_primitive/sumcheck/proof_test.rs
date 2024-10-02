@@ -1,5 +1,8 @@
+use super::test_cases::sumcheck_test_cases;
 use crate::base::{
-    polynomial::CompositePolynomial, proof::Transcript as _, scalar::Curve25519Scalar,
+    polynomial::{CompositePolynomial, CompositePolynomialInfo},
+    proof::Transcript as _,
+    scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
 };
 /**
  * Adopted from arkworks
@@ -157,4 +160,89 @@ fn test_normal_polynomial() {
     let num_products = 5;
 
     test_polynomial(nv, num_multiplicands_range, num_products);
+}
+
+#[test]
+fn we_can_verify_many_random_test_cases() {
+    let mut rng = ark_std::test_rng();
+
+    for test_case in sumcheck_test_cases::<TestScalar>(&mut rng) {
+        let mut transcript = Transcript::new(b"sumchecktest");
+        let mut evaluation_point = vec![Default::default(); test_case.num_vars];
+        let proof = SumcheckProof::create(
+            &mut transcript,
+            &mut evaluation_point,
+            &test_case.polynomial,
+        );
+
+        let mut transcript = Transcript::new(b"sumchecktest");
+        let subclaim = proof
+            .verify_without_evaluation(
+                &mut transcript,
+                CompositePolynomialInfo {
+                    max_multiplicands: test_case.max_multiplicands,
+                    num_variables: test_case.num_vars,
+                },
+                &test_case.sum,
+            )
+            .expect("verification should succeed with the correct setup");
+        assert_eq!(
+            subclaim.evaluation_point, evaluation_point,
+            "the prover's evaluation point should match the verifier's"
+        );
+        assert_eq!(
+            test_case.polynomial.evaluate(&evaluation_point),
+            subclaim.expected_evaluation,
+            "the claimed evaluation should match the actual evaluation"
+        );
+
+        let mut transcript = Transcript::new(b"sumchecktest");
+        transcript.extend_serialize_as_le(&123u64);
+        let verify_result = proof.verify_without_evaluation(
+            &mut transcript,
+            CompositePolynomialInfo {
+                max_multiplicands: test_case.max_multiplicands,
+                num_variables: test_case.num_vars,
+            },
+            &test_case.sum,
+        );
+        if let Ok(subclaim) = verify_result {
+            assert_ne!(
+                subclaim.evaluation_point, evaluation_point,
+                "either verification should fail or we should have a different evaluation point with a different transcript"
+            )
+        }
+
+        let mut transcript = Transcript::new(b"sumchecktest");
+        assert!(
+            proof
+                .verify_without_evaluation(
+                    &mut transcript,
+                    CompositePolynomialInfo {
+                        max_multiplicands: test_case.max_multiplicands,
+                        num_variables: test_case.num_vars,
+                    },
+                    &(test_case.sum + TestScalar::ONE),
+                )
+                .is_err(),
+            "verification should fail when the sum is wrong"
+        );
+
+        let mut modified_proof = proof;
+        modified_proof.evaluations[0][0] += TestScalar::ONE;
+        let mut transcript = Transcript::new(b"sumchecktest");
+        assert!(
+            modified_proof
+                .verify_without_evaluation(
+                    &mut transcript,
+                    CompositePolynomialInfo {
+                        max_multiplicands: test_case.max_multiplicands,
+                        num_variables: test_case.num_vars,
+                    },
+                    &test_case.sum,
+                )
+                .is_err(),
+            "verification should fail when the proof is modified"
+        );
+    }
 }
