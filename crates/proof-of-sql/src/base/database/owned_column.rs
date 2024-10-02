@@ -26,6 +26,8 @@ use proof_of_sql_parser::{
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
+    /// i8 columns 
+    TinyInt(Vec<i8>),
     /// i16 columns
     SmallInt(Vec<i16>),
     /// i32 columns
@@ -49,6 +51,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
+            OwnedColumn::TinyInt(col) => col.len(),
             OwnedColumn::SmallInt(col) => col.len(),
             OwnedColumn::Int(col) => col.len(),
             OwnedColumn::BigInt(col) => col.len(),
@@ -64,6 +67,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(permutation.try_apply(col)?),
+            OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(permutation.try_apply(col)?),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(permutation.try_apply(col)?),
             OwnedColumn::Int(col) => OwnedColumn::Int(permutation.try_apply(col)?),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(permutation.try_apply(col)?),
@@ -83,6 +87,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
+            OwnedColumn::TinyInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
             OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
             OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
@@ -102,6 +107,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
+            OwnedColumn::TinyInt(col) => col.is_empty(),
             OwnedColumn::SmallInt(col) => col.is_empty(),
             OwnedColumn::Int(col) => col.is_empty(),
             OwnedColumn::BigInt(col) => col.is_empty(),
@@ -116,6 +122,7 @@ impl<S: Scalar> OwnedColumn<S> {
     pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
+            OwnedColumn::TinyInt(_) => ColumnType::i8,
             OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
             OwnedColumn::Int(_) => ColumnType::Int,
             OwnedColumn::BigInt(_) => ColumnType::BigInt,
@@ -136,6 +143,15 @@ impl<S: Scalar> OwnedColumn<S> {
                 scalars
                     .iter()
                     .map(|s| -> Result<bool, _> { TryInto::<bool>::try_into(*s) })
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| OwnedColumnError::ScalarConversionError {
+                        error: "Overflow in scalar conversions".to_string(),
+                    })?,
+            )),
+            ColumnType::TinyInt => Ok(OwnedColumn::TinyInt(
+                scalars
+                    .iter()
+                    .map(|s| -> Result<i8, _> { TryInto::<i8>::try_into(*s) })
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|_| OwnedColumnError::ScalarConversionError {
                         error: "Overflow in scalar conversions".to_string(),
@@ -314,6 +330,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
         .map(|(col, direction)| {
             let ordering = match col {
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
+                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
                 OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),

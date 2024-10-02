@@ -83,7 +83,7 @@ impl ColumnCommitmentMetadata {
                     .expect("i64::MIN and i64::MAX are valid bounds for BigInt"),
             )),
             ColumnType::TinyInt => ColumnBounds::TinyInt(super::Bounds::Bounded(
-                BoundsInner::try_new(i64::MIN, i64::MAX)
+                BoundsInner::try_new(i8::MIN, i8::MAX)
                     .expect("i64::MIN and i64::MAX are valid bounds for TinyInt"),
             )),
             ColumnType::TimestampTZ(_, _) => ColumnBounds::TimestampTZ(super::Bounds::Bounded(
@@ -752,7 +752,7 @@ assert_eq!(
             tinyint_metadata_empty
         );
     }
-    
+
     #[test]
     fn we_can_difference_int_matching_metadata() {
         // Ordered case

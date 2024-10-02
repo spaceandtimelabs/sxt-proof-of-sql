@@ -172,7 +172,7 @@ impl<'a> From<&'a [i32]> for CommittableColumn<'a> {
 }
 
 impl<'a> From<&'a [i8]> for CommittableColumn<'a> {
-    fn from(value: &'a [i32]) -> Self {
+    fn from(value: &'a [i8]) -> Self {
         CommittableColumn::TinyInt(value)
     }
 }
@@ -842,7 +842,7 @@ mod tests {
         );
         assert_eq!(commitment_buffer[0], commitment_buffer[1]);
     }
-    
+
     #[test]
     fn we_can_commit_to_int_column_through_committable_column() {
         // empty case
