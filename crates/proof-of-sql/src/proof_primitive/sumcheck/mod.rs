@@ -11,3 +11,6 @@ pub use subclaim::Subclaim;
 
 mod prover_round;
 use prover_round::prove_round;
+
+#[cfg(test)]
+mod test_cases;
