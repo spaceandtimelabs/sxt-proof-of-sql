@@ -845,7 +845,7 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
 }
 
 #[test]
-fn can_we_perform_airthmatic_and_condtional_operations_on_tinyint() {
+fn can_we_perform_arithmetic_and_conditional_operations_on_tinyint() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
     accessor.add_table(
         "sxt.table".parse().unwrap(),
