@@ -14,7 +14,7 @@ impl Identifier {
     ///
     /// Note: this constructor should be private within the `proof_of_sql_parser` crate.
     /// This is necessary to guarantee that no one outside the crate
-    /// can create Names, thus securing that `ResourceIds` and Identifiers
+    /// can create Names, thus securing that [`ResourceId`]s and [`Identifier`]s
     /// are always valid postgresql identifiers.
     pub(crate) fn new<S: AsRef<str>>(string: S) -> Self {
         Self {
