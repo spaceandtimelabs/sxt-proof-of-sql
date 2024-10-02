@@ -68,7 +68,7 @@ fn test_create_verify_proof() {
     assert!(subclaim.is_err());
 
     // verify fails if evaluations are changed
-    proof.evaluations[0][1] += Curve25519Scalar::from(3u64);
+    proof.coefficients[0] += Curve25519Scalar::from(3u64);
     let subclaim = proof.verify_without_evaluation(
         &mut transcript,
         poly.info(),
@@ -229,7 +229,7 @@ fn we_can_verify_many_random_test_cases() {
         );
 
         let mut modified_proof = proof;
-        modified_proof.evaluations[0][0] += TestScalar::ONE;
+        modified_proof.coefficients[0] += TestScalar::ONE;
         let mut transcript = Transcript::new(b"sumchecktest");
         assert!(
             modified_proof
