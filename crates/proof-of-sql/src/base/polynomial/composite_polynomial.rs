@@ -6,6 +6,8 @@ use alloc::{rc::Rc, vec::Vec};
  * See third_party/license/arkworks.LICENSE
  */
 use core::cmp::max;
+#[cfg(test)]
+use core::iter;
 
 /// Stores a list of products of `DenseMultilinearExtension` that is meant to be added together.
 ///
@@ -84,6 +86,53 @@ impl<S: Scalar> CompositePolynomial<S> {
         }
         self.products.push((coefficient, indexed_product));
     }
+    /// Generate random `CompositePolnomial`.
+    #[cfg(test)]
+    pub fn rand(
+        num_variables: usize,
+        max_multiplicands: usize,
+        multiplicands_length: impl IntoIterator<Item = usize>,
+        products: impl IntoIterator<Item = impl IntoIterator<Item = usize>>,
+        rng: &mut (impl ark_std::rand::Rng + ?Sized),
+    ) -> Self {
+        let mut result = CompositePolynomial::new(num_variables);
+        result.max_multiplicands = max_multiplicands;
+        result.products = products
+            .into_iter()
+            .map(|p| (S::rand(rng), p.into_iter().collect()))
+            .collect();
+        result.flattened_ml_extensions = multiplicands_length
+            .into_iter()
+            .map(|length| Rc::new(iter::repeat_with(|| S::rand(rng)).take(length).collect()))
+            .collect();
+        result
+    }
+
+    /// Returns the sum of the evaluations of the `CompositePolynomial` on the boolean hypercube.
+    #[cfg(test)]
+    pub fn hypercube_sum(&self, length: usize) -> S {
+        self.products
+            .iter()
+            .map(|(coeff, terms)| {
+                (0..length)
+                    .map(|i| {
+                        *coeff
+                            * terms
+                                .iter()
+                                .copied()
+                                .map(|j| {
+                                    self.flattened_ml_extensions[j]
+                                        .get(i)
+                                        .copied()
+                                        .unwrap_or(S::ZERO)
+                                })
+                                .product::<S>()
+                    })
+                    .sum::<S>()
+            })
+            .sum::<S>()
+    }
+
     /// Evaluate the polynomial at point `point`
     #[cfg(test)]
     pub fn evaluate(&self, point: &[S]) -> S {
