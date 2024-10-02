@@ -843,3 +843,33 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         Err(QueryError::Overflow)
     ));
 }
+
+#[test]
+fn can_we_perform_airthmatic_and_condtional_operations_on_tinyint() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            tinyint("a", [3_i8, 5, 2, 1]),
+            tinyint("b", [2_i8, 1, 3, 4]),
+            tinyint("c", [1_i8, 4, 5, 2]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a*b+b+c as result FROM table WHERE a>b OR c=4"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([tinyint("result", [9_i8, 10])]);
+    assert_eq!(owned_table_result, expected_result);
+}
