@@ -1,10 +1,10 @@
 use crate::{
     base::{
-        polynomial::{CompositePolynomial, CompositePolynomialInfo},
+        polynomial::{interpolate_uni_poly, CompositePolynomial, CompositePolynomialInfo},
         proof::{ProofError, Transcript},
         scalar::Scalar,
     },
-    proof_primitive::sumcheck::{prove_round, ProverState, Subclaim},
+    proof_primitive::sumcheck::{prove_round, ProverState},
 };
 /**
  * Adopted from arkworks
@@ -17,6 +17,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SumcheckProof<S: Scalar> {
     pub(super) evaluations: Vec<Vec<S>>,
+}
+pub struct Subclaim<S: Scalar> {
+    pub evaluation_point: Vec<S>,
+    pub expected_evaluation: S,
 }
 
 impl<S: Scalar> SumcheckProof<S> {
@@ -74,11 +78,27 @@ impl<S: Scalar> SumcheckProof<S> {
             transcript.extend_scalars_as_be(&self.evaluations[round_index]);
             evaluation_point.push(transcript.scalar_challenge_as_be());
         }
-        Subclaim::create(
+
+        assert!(polynomial_info.max_multiplicands > 0);
+        let mut expected_evaluation = *claimed_sum;
+        for round_index in 0..polynomial_info.num_variables {
+            let round_evaluation = &self.evaluations[round_index];
+            if round_evaluation.len() != polynomial_info.max_multiplicands + 1 {
+                return Err(ProofError::VerificationError {
+                    error: "round evaluation length does not match max multiplicands",
+                });
+            }
+            if expected_evaluation != round_evaluation[0] + round_evaluation[1] {
+                return Err(ProofError::VerificationError {
+                    error: "round evaluation does not match claimed sum",
+                });
+            }
+            expected_evaluation =
+                interpolate_uni_poly(round_evaluation, evaluation_point[round_index]);
+        }
+        Ok(Subclaim {
             evaluation_point,
-            &self.evaluations,
-            polynomial_info.max_multiplicands,
-            claimed_sum,
-        )
+            expected_evaluation,
+        })
     }
 }
