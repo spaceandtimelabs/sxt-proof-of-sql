@@ -229,9 +229,9 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
 /// let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
 /// let counts = &[3, 3, 4];
 /// let expected = &[
-///     Curve25519Scalar::from(112 + 111 + 101),
-///     Curve25519Scalar::from(110 + 102 + 103),
-///     Curve25519Scalar::from(106 + 114 + 113 + 109),
+///     TestScalar::from(112 + 111 + 101),
+///     TestScalar::from(110 + 102 + 103),
+///     TestScalar::from(106 + 114 + 113 + 109),
 /// ];
 /// let alloc = Bump::new();
 /// let result = sum_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
@@ -270,9 +270,9 @@ where
 /// let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
 /// let counts = &[3, 3, 4];
 /// let expected = &[
-///     Some(Curve25519Scalar::from(max(112, 111, 101))),
-///     Some(Curve25519Scalar::from(max(110, 102, 103))),
-///     Some(Curve25519Scalar::from(max(106, 114, 113, 109))),
+///     Some(TestScalar::from(max(112, 111, 101))),
+///     Some(TestScalar::from(max(110, 102, 103))),
+///     Some(TestScalar::from(max(106, 114, 113, 109))),
 /// ];
 /// let alloc = Bump::new();
 /// let result = max_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);
@@ -313,9 +313,9 @@ where
 /// let indexes = &[12, 11, 1, 10, 2, 3, 6, 14, 13, 9];
 /// let counts = &[3, 3, 4];
 /// let expected = &[
-///     Some(Curve25519Scalar::from(min(112, 111, 101))),
-///     Some(Curve25519Scalar::from(min(110, 102, 103))),
-///     Some(Curve25519Scalar::from(min(106, 114, 113, 109))),
+///     Some(TestScalar::from(min(112, 111, 101))),
+///     Some(TestScalar::from(min(110, 102, 103))),
+///     Some(TestScalar::from(min(106, 114, 113, 109))),
 /// ];
 /// let alloc = Bump::new();
 /// let result = min_aggregate_slice_by_index_counts(&alloc, slice_a, counts, indexes);

@@ -894,7 +894,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::base::scalar::Curve25519Scalar;
+    use crate::base::scalar::test_scalar::TestScalar;
 
     #[test]
     fn we_can_add_numeric_types() {
@@ -1387,7 +1387,7 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1399,7 +1399,7 @@ mod test {
         let lhs = [400_i64, -82, -200];
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1410,11 +1410,11 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, -80, 230]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -8, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1425,11 +1425,11 @@ mod test {
         // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, 150000, -20000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
@@ -1440,11 +1440,11 @@ mod test {
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
         let lhs = [71_i64, 150000, -20000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1455,11 +1455,11 @@ mod test {
         // lhs and rhs are both decimals with negative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, 150000, -20000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
@@ -1470,11 +1470,11 @@ mod test {
         // lhs and rhs are decimals with extreme differences in scale
         let lhs = [4_i16, 0, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, 0, -20000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
@@ -1508,7 +1508,7 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1520,7 +1520,7 @@ mod test {
         let lhs = [400_i64, -82, -199];
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1531,11 +1531,11 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, -80, 230]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -8, 22]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1546,11 +1546,11 @@ mod test {
         // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, 150000, -30000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
@@ -1561,11 +1561,11 @@ mod test {
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
         let lhs = [71_i64, 150000, -19000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1576,11 +1576,11 @@ mod test {
         // lhs and rhs are both decimals with negative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71000_i64, 150000, -21000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
@@ -1591,11 +1591,11 @@ mod test {
         // lhs and rhs are decimals with extreme differences in scale
         let lhs = [1_i16, 1, 1, 0, 0, 0, -1, -1, -1]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [1_i64, 0, -1, 1, 0, -1, 1, 0, -1]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
@@ -1629,7 +1629,7 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1641,7 +1641,7 @@ mod test {
         let lhs = [400_i64, -82, 199];
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::BigInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1652,11 +1652,11 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, -80, 230]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -8, -22]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
@@ -1667,11 +1667,11 @@ mod test {
         // lhs is decimal with negative scale and rhs is decimal with nonnegative scale
         let lhs = [-4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, 150000, -30000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
@@ -1682,11 +1682,11 @@ mod test {
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
         let lhs = [71_i64, 150000, -19000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
@@ -1697,11 +1697,11 @@ mod test {
         // lhs and rhs are both decimals with negative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71000_i64, 150000, -21000]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -46);
@@ -1712,11 +1712,11 @@ mod test {
         // lhs and rhs are decimals with extreme differences in scale
         let lhs = [1_i16, 1, 1, 0, 0, 0, -1, -1, -1]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [1_i64, 0, -1, 1, 0, -1, 1, 0, -1]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -50);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), 26);
@@ -1770,16 +1770,16 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(104),
-            Curve25519Scalar::from(-195),
-            Curve25519Scalar::from(298),
+            TestScalar::from(104),
+            TestScalar::from(-195),
+            TestScalar::from(298),
         ];
         let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
         assert_eq!(expected, actual);
@@ -1787,17 +1787,17 @@ mod test {
         // lhs is decimal with negative scale and rhs is integer
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(471),
-            Curve25519Scalar::from(1418),
-            Curve25519Scalar::from(-177),
+            TestScalar::from(471),
+            TestScalar::from(1418),
+            TestScalar::from(-177),
         ];
         let expected = (Precision::new(20).unwrap(), 0, expected_scalars);
         assert_eq!(expected, actual);
@@ -1805,20 +1805,20 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(12).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(111),
-            Curve25519Scalar::from(68),
-            Curve25519Scalar::from(3),
+            TestScalar::from(111),
+            TestScalar::from(68),
+            TestScalar::from(3),
         ];
         let expected = (Precision::new(14).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -1827,20 +1827,20 @@ mod test {
         // and with result having maximum precision
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(50).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(400071),
-            Curve25519Scalar::from(1499918),
-            Curve25519Scalar::from(-199977),
+            TestScalar::from(400071),
+            TestScalar::from(1499918),
+            TestScalar::from(-199977),
         ];
         let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -1849,20 +1849,20 @@ mod test {
         // and with result having maximum precision and minimum scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
         let right_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(75),
-            Curve25519Scalar::from(-67),
-            Curve25519Scalar::from(21),
+            TestScalar::from(75),
+            TestScalar::from(-67),
+            TestScalar::from(21),
         ];
         let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
         assert_eq!(expected, actual);
@@ -1932,16 +1932,16 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(96),
-            Curve25519Scalar::from(-205),
-            Curve25519Scalar::from(302),
+            TestScalar::from(96),
+            TestScalar::from(-205),
+            TestScalar::from(302),
         ];
         let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
         assert_eq!(expected, actual);
@@ -1949,17 +1949,17 @@ mod test {
         // lhs is decimal with negative scale and rhs is integer
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(329),
-            Curve25519Scalar::from(1582),
-            Curve25519Scalar::from(-223),
+            TestScalar::from(329),
+            TestScalar::from(1582),
+            TestScalar::from(-223),
         ];
         let expected = (Precision::new(20).unwrap(), 0, expected_scalars);
         assert_eq!(expected, actual);
@@ -1967,20 +1967,20 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(12).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(-31),
-            Curve25519Scalar::from(232),
-            Curve25519Scalar::from(-43),
+            TestScalar::from(-31),
+            TestScalar::from(232),
+            TestScalar::from(-43),
         ];
         let expected = (Precision::new(14).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -1989,20 +1989,20 @@ mod test {
         // and with result having maximum precision
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(50).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(399929),
-            Curve25519Scalar::from(1500082),
-            Curve25519Scalar::from(-200023),
+            TestScalar::from(399929),
+            TestScalar::from(1500082),
+            TestScalar::from(-200023),
         ];
         let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -2011,20 +2011,20 @@ mod test {
         // and with result having maximum precision and minimum scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
         let right_column_type = ColumnType::Decimal75(Precision::new(74).unwrap(), -128);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(-67),
-            Curve25519Scalar::from(97),
-            Curve25519Scalar::from(-25),
+            TestScalar::from(-67),
+            TestScalar::from(97),
+            TestScalar::from(-25),
         ];
         let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
         assert_eq!(expected, actual);
@@ -2075,16 +2075,16 @@ mod test {
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(4),
-            Curve25519Scalar::from(-10),
-            Curve25519Scalar::from(-6),
+            TestScalar::from(4),
+            TestScalar::from(-10),
+            TestScalar::from(-6),
         ];
         let expected = (Precision::new(16).unwrap(), 2, expected_scalars);
         assert_eq!(expected, actual);
@@ -2092,17 +2092,17 @@ mod test {
         // lhs is decimal with negative scale and rhs is integer
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::BigInt;
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(284),
-            Curve25519Scalar::from(-1230),
-            Curve25519Scalar::from(-46),
+            TestScalar::from(284),
+            TestScalar::from(-1230),
+            TestScalar::from(-46),
         ];
         let expected = (Precision::new(30).unwrap(), -2, expected_scalars);
         assert_eq!(expected, actual);
@@ -2111,20 +2111,20 @@ mod test {
         // and with result having maximum precision and maximum scale
         let lhs = [4_i16, 25, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(42).unwrap(), 72);
         let right_column_type = ColumnType::Decimal75(Precision::new(32).unwrap(), 55);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(284),
-            Curve25519Scalar::from(-2050),
-            Curve25519Scalar::from(-46),
+            TestScalar::from(284),
+            TestScalar::from(-2050),
+            TestScalar::from(-46),
         ];
         let expected = (Precision::new(75).unwrap(), 127, expected_scalars);
         assert_eq!(expected, actual);
@@ -2133,20 +2133,20 @@ mod test {
         // and with result having maximum precision
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(69).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(5).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(284),
-            Curve25519Scalar::from(-1230),
-            Curve25519Scalar::from(-46),
+            TestScalar::from(284),
+            TestScalar::from(-1230),
+            TestScalar::from(-46),
         ];
         let expected = (Precision::new(75).unwrap(), 1, expected_scalars);
         assert_eq!(expected, actual);
@@ -2155,20 +2155,20 @@ mod test {
         // and with result having maximum precision and minimum scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(34).unwrap(), -64);
         let right_column_type = ColumnType::Decimal75(Precision::new(40).unwrap(), -64);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(284),
-            Curve25519Scalar::from(-1230),
-            Curve25519Scalar::from(-46),
+            TestScalar::from(284),
+            TestScalar::from(-1230),
+            TestScalar::from(-46),
         ];
         let expected = (Precision::new(75).unwrap(), -128, expected_scalars);
         assert_eq!(expected, actual);
@@ -2238,16 +2238,16 @@ mod test {
         let lhs = [0_i16, 2, 3];
         let rhs = [4_i16, 5, 2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::SmallInt;
         let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(0_i64),
-            Curve25519Scalar::from(40000000_i64),
-            Curve25519Scalar::from(150000000_i64),
+            TestScalar::from(0_i64),
+            TestScalar::from(40000000_i64),
+            TestScalar::from(150000000_i64),
         ];
         let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2255,17 +2255,17 @@ mod test {
         // lhs is decimal with negative scale and rhs is integer
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23];
         let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let right_column_type = ColumnType::SmallInt;
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(5633802),
-            Curve25519Scalar::from(-18292682),
-            Curve25519Scalar::from(-8695652),
+            TestScalar::from(5633802),
+            TestScalar::from(-18292682),
+            TestScalar::from(-8695652),
         ];
         let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2273,20 +2273,20 @@ mod test {
         // lhs and rhs are both decimals with nonnegative scale
         let lhs = [4_i16, 2, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [3_i64, -5, 7]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(4).unwrap(), 2);
         let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(1333333),
-            Curve25519Scalar::from(-400000),
-            Curve25519Scalar::from(-285714),
+            TestScalar::from(1333333),
+            TestScalar::from(-400000),
+            TestScalar::from(-285714),
         ];
         let expected = (Precision::new(10).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2294,20 +2294,20 @@ mod test {
         // lhs and rhs are both decimals one of which has negative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -2);
         let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 3);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(5633802816_i128),
-            Curve25519Scalar::from(-18292682926_i128),
-            Curve25519Scalar::from(-8695652173_i128),
+            TestScalar::from(5633802816_i128),
+            TestScalar::from(-18292682926_i128),
+            TestScalar::from(-8695652173_i128),
         ];
         let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2315,20 +2315,20 @@ mod test {
         // lhs and rhs are both decimals with negative scale
         let lhs = [4_i16, 15, -2]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let rhs = [71_i64, -82, 23]
             .into_iter()
-            .map(Curve25519Scalar::from)
+            .map(TestScalar::from)
             .collect::<Vec<_>>();
         let left_column_type = ColumnType::Decimal75(Precision::new(2).unwrap(), -3);
         let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), -2);
-        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+        let actual: (Precision, i8, Vec<TestScalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(563380),
-            Curve25519Scalar::from(-1829268),
-            Curve25519Scalar::from(-869565),
+            TestScalar::from(563380),
+            TestScalar::from(-1829268),
+            TestScalar::from(-869565),
         ];
         let expected = (Precision::new(9).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);

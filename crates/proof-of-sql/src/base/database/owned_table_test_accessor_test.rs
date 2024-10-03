@@ -3,17 +3,18 @@ use super::{
     OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
 use crate::base::{
-    commitment::{Commitment, CommittableColumn},
+    commitment::{
+        naive_commitment::NaiveCommitment, test_evaluation_proof::TestEvaluationProof, Commitment,
+        CommittableColumn,
+    },
     database::owned_table_utility::*,
-    scalar::Curve25519Scalar,
+    scalar::test_scalar::TestScalar,
 };
-use blitzar::proof::InnerProductProof;
-use curve25519_dalek::ristretto::RistrettoPoint;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -31,7 +32,7 @@ fn we_can_query_the_length_of_a_table() {
 
 #[test]
 fn we_can_access_the_columns_of_a_table() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -94,10 +95,10 @@ fn we_can_access_the_columns_of_a_table() {
         Column::Scalar(col) => assert_eq!(
             col.to_vec(),
             vec![
-                Curve25519Scalar::from(1),
-                Curve25519Scalar::from(2),
-                Curve25519Scalar::from(3),
-                Curve25519Scalar::from(4)
+                TestScalar::from(1),
+                TestScalar::from(2),
+                TestScalar::from(3),
+                TestScalar::from(4)
             ]
         ),
         _ => panic!("Invalid column type"),
@@ -122,7 +123,7 @@ fn we_can_access_the_columns_of_a_table() {
 
 #[test]
 fn we_can_access_the_commitments_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -132,7 +133,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        RistrettoPoint::compute_commitments(
+        NaiveCommitment::compute_commitments(
             &[CommittableColumn::from(&[4i64, 5, 6][..])],
             0_usize,
             &()
@@ -145,7 +146,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        RistrettoPoint::compute_commitments(
+        NaiveCommitment::compute_commitments(
             &[CommittableColumn::from(&[1i64, 2, 3][..])],
             0_usize,
             &()
@@ -155,7 +156,7 @@ fn we_can_access_the_commitments_of_table_columns() {
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
         accessor.get_commitment(column),
-        RistrettoPoint::compute_commitments(
+        NaiveCommitment::compute_commitments(
             &[CommittableColumn::from(&[4i64, 5, 6, 5][..])],
             0_usize,
             &()
@@ -165,7 +166,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
 #[test]
 fn we_can_access_the_type_of_table_columns() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
@@ -206,7 +207,7 @@ fn we_can_access_the_type_of_table_columns() {
 
 #[test]
 fn we_can_access_schema_and_column_names() {
-    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref_1 = "sxt.test".parse().unwrap();
 
     let data1 = owned_table([bigint("a", [1, 2, 3]), varchar("b", ["x", "y", "z"])]);
@@ -224,14 +225,14 @@ fn we_can_access_schema_and_column_names() {
 
 #[test]
 fn we_can_correctly_update_offsets() {
-    let mut accessor1 = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor1 = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     let table_ref = "sxt.test".parse().unwrap();
 
     let data = owned_table([bigint("a", [1, 2, 3]), bigint("b", [123, 5, 123])]);
     accessor1.add_table(table_ref, data.clone(), 0_usize);
 
     let offset = 123;
-    let mut accessor2 = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let mut accessor2 = OwnedTableTestAccessor::<TestEvaluationProof>::new_empty_with_setup(());
     accessor2.add_table(table_ref, data, offset);
 
     let column = ColumnRef::new(table_ref, "a".parse().unwrap(), ColumnType::BigInt);
