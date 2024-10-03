@@ -9,7 +9,7 @@ use merlin::Transcript;
 fn we_can_fold_scalars() {
     let mut rng = test_rng();
     let nu = 0;
-    let pp = PublicParameters::rand(nu, &mut rng);
+    let pp = PublicParameters::test_rand(nu, &mut rng);
     let prover_setup = (&pp).into();
     let verifier_setup = (&pp).into();
     let (s1_tensor, s2_tensor) = rand_F_tensors(nu, &mut rng);

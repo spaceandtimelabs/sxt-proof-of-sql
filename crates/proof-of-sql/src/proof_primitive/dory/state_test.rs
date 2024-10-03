@@ -5,7 +5,7 @@ use ark_ec::pairing::Pairing;
 pub fn we_can_create_a_verifier_state_from_a_prover_state() {
     let mut rng = test_rng();
     let max_nu = 5;
-    let pp = PublicParameters::rand(max_nu, &mut rng);
+    let pp = PublicParameters::test_rand(max_nu, &mut rng);
     let prover_setup = (&pp).into();
     for nu in 0..max_nu {
         let (v1, v2) = rand_G_vecs(nu, &mut rng);

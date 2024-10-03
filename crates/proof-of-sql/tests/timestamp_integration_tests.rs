@@ -1,11 +1,12 @@
 #![cfg(feature = "test")]
+use ark_std::test_rng;
 #[cfg(feature = "blitzar")]
 use proof_of_sql::base::commitment::InnerProductProof;
 use proof_of_sql::{
     base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
-        test_rng, DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup,
-        DoryVerifierPublicSetup, ProverSetup, PublicParameters, VerifierSetup,
+        DoryCommitment, DoryEvaluationProof, DoryProverPublicSetup, DoryVerifierPublicSetup,
+        ProverSetup, PublicParameters, VerifierSetup,
     },
     sql::{
         parse::QueryExpr,
@@ -16,7 +17,7 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -391,7 +392,7 @@ mod tests {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
