@@ -169,17 +169,17 @@ impl GroupByPostprocessing {
     }
 
     /// Get group by identifiers
-    pub fn group_by(&self) -> &[Identifier] {
+    #[must_use] pub fn group_by(&self) -> &[Identifier] {
         &self.group_by_identifiers
     }
 
     /// Get remainder expressions for SELECT
-    pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
+    #[must_use] pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
         &self.remainder_exprs
     }
 
     /// Get aggregation expressions
-    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
+    #[must_use] pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
         &self.aggregation_exprs
     }
 }

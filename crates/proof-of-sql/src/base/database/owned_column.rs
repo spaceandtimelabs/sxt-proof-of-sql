@@ -46,7 +46,7 @@ pub enum OwnedColumn<S: Scalar> {
 
 impl<S: Scalar> OwnedColumn<S> {
     /// Returns the length of the column.
-    pub fn len(&self) -> usize {
+    #[must_use] pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
             OwnedColumn::SmallInt(col) => col.len(),
@@ -80,7 +80,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns the sliced column.
-    pub fn slice(&self, start: usize, end: usize) -> Self {
+    #[must_use] pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
             OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
@@ -99,7 +99,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns true if the column is empty.
-    pub fn is_empty(&self) -> bool {
+    #[must_use] pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
             OwnedColumn::SmallInt(col) => col.is_empty(),
@@ -113,7 +113,7 @@ impl<S: Scalar> OwnedColumn<S> {
         }
     }
     /// Returns the type of the column.
-    pub fn column_type(&self) -> ColumnType {
+    #[must_use] pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
             OwnedColumn::SmallInt(_) => ColumnType::SmallInt,

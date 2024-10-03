@@ -29,7 +29,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
 
 /// Converts an arrow i256 into limbed representation and then
 /// into a type implementing [Scalar]
-pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
+#[must_use] pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
     // Check if value is within the bounds
     if value < &MIN_SUPPORTED_I256 || value > &MAX_SUPPORTED_I256 {
         None

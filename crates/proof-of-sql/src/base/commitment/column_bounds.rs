@@ -221,7 +221,7 @@ impl ColumnBounds {
     /// Construct a [`ColumnBounds`] from a column by reference.
     ///
     /// If the column variant has order, only the minimum and maximum value will be copied.
-    pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
+    #[must_use] pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
