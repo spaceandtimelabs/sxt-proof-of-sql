@@ -21,10 +21,12 @@ pub struct ProvableQueryResult {
 
 impl ProvableQueryResult {
     /// The number of columns in the result
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.num_columns as usize
     }
     /// The indexes in the result.
+    #[must_use]
     pub fn indexes(&self) -> &Indexes {
         &self.indexes
     }
@@ -57,6 +59,7 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
+    #[must_use]
     pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
         let mut sz = 0;
         for col in columns.iter() {
