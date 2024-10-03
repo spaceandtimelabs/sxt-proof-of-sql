@@ -2,7 +2,7 @@ use crate::base::polynomial::CompositePolynomial;
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
@@ -11,7 +11,7 @@ pub struct ProverState<S: Scalar> {
     /// sampled randomness given by the verifier
     pub randomness: Vec<S>,
     /// Stores the list of products that is meant to be added together. Each multiplicand is represented by
-    /// the index in flattened_ml_extensions
+    /// the index in `flattened_ml_extensions`
     pub list_of_products: Vec<(S, Vec<usize>)>,
     /// Stores a list of multilinear extensions in which `self.list_of_products` points to
     pub flattened_ml_extensions: Vec<Vec<S>>,

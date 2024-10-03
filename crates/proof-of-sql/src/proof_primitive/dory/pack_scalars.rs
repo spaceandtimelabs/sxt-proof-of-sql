@@ -12,7 +12,7 @@ const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
 
 /// Returns the number of sub commitments needed for
-/// each full commitment in the packed_msm function.
+/// each full commitment in the `packed_msm` function.
 ///
 /// # Arguments
 ///
@@ -285,7 +285,7 @@ fn pack_offsets(
     );
 }
 
-/// Creates a cumulative bit table sum used by the bit_table_and_scalars_for_packed_msm inner loop.
+/// Creates a cumulative bit table sum used by the [`bit_table_and_scalars_for_packed_msm`] inner loop.
 ///
 /// # Arguments
 ///

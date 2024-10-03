@@ -14,7 +14,7 @@ pub enum DecimalError {
     #[snafu(display("Invalid decimal format or value: {error}"))]
     /// Error when a decimal format or value is incorrect,
     /// the string isn't even a decimal e.g. "notastring",
-    /// "-21.233.122" etc aka InvalidDecimal
+    /// "-21.233.122" etc aka `InvalidDecimal`
     InvalidDecimal {
         /// The underlying error
         error: String,
@@ -23,7 +23,7 @@ pub enum DecimalError {
     #[snafu(display("Decimal precision is not valid: {error}"))]
     /// Decimal precision exceeds the allowed limit,
     /// e.g. precision above 75/76/whatever set by Scalar
-    /// or non-positive aka InvalidPrecision
+    /// or non-positive aka `InvalidPrecision`
     InvalidPrecision {
         /// The underlying error
         error: String,

@@ -1,7 +1,7 @@
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use crate::base::scalar::Scalar;
 use crate::{base::if_rayon, proof_primitive::sumcheck::ProverState};
@@ -101,7 +101,7 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
 
 /// This is equivalent to
 /// *multiplicand = Vec<S> {
-///                    ark_impl: multiplicand.ark_impl.fix_variables(&[r_as_field]),
+///                    `ark_impl`: `multiplicand.ark_impl.fix_variables(&[r_as_field])`,
 ///                };
 /// Only it does it in place
 fn in_place_fix_variable<S: Scalar>(multiplicand: &mut [S], r_as_field: S, num_vars: usize) {

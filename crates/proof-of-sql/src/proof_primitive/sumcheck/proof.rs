@@ -12,7 +12,7 @@ use crate::{
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};

@@ -43,7 +43,7 @@ pub enum QueryError {
 
 /// The verified results of a query along with metadata produced by verification
 pub struct QueryData<S: Scalar> {
-    /// We use Apache Arrow's RecordBatch to represent a table
+    /// We use Apache Arrow's [`RecordBatch`] to represent a table
     /// result so as to allow for easy interoperability with
     /// Apache Arrow Flight.
     ///

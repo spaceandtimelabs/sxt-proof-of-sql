@@ -22,7 +22,7 @@ use proof_of_sql_parser::{
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
-/// Supported types for OwnedColumn
+/// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
@@ -301,8 +301,8 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
-/// Compares the tuples (order_by_pairs[0][i], order_by_pairs[1][i], ...) and
-/// (order_by_pairs[0][j], order_by_pairs[1][j], ...) in lexicographic order.
+/// Compares the tuples `(order_by_pairs[0][i], order_by_pairs[1][i], ...)` and
+/// `(order_by_pairs[0][j], order_by_pairs[1][j], ...)` in lexicographic order.
 /// Note that direction flips the ordering.
 pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
     order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],

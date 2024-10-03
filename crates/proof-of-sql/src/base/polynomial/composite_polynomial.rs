@@ -3,7 +3,7 @@ use alloc::{rc::Rc, vec::Vec};
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use core::cmp::max;
 #[cfg(test)]
@@ -17,12 +17,12 @@ use itertools::Itertools;
 ///
 /// This data structure of the polynomial is a list of list of `(coefficient, DenseMultilinearExtension)`.
 /// * Number of products n = `self.products.len()`,
-/// * Number of multiplicands of ith product m_i = `self.products[i].1.len()`,
-/// * Coefficient of ith product c_i = `self.products[i].0`
+/// * Number of multiplicands of ith product `m_i` = `self.products[i].1.len()`,
+/// * Coefficient of ith product `c_i` = `self.products[i].0`
 ///
 /// The resulting polynomial is
 ///
-/// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
+/// `$$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$`
 ///
 /// The result polynomial is used as the prover key.
 #[derive(Clone, Debug)]

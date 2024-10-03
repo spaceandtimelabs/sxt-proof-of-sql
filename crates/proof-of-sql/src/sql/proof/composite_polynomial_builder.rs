@@ -34,8 +34,8 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
     }
 
     /// Produce a polynomial term of the form
-    ///    mult * f_r(X1, .., Xr) * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
-    /// where f_r is an MLE of random scalars
+    ///    `mult * f_r(X1, .., Xr) * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)`
+    /// where `f_r` is an MLE of random scalars
     pub fn produce_fr_multiplicand(
         &mut self,
         mult: &S,

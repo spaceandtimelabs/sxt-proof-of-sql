@@ -50,7 +50,7 @@ pub struct GroupByExec<C: Commitment> {
 }
 
 impl<C: Commitment> GroupByExec<C> {
-    /// Creates a new group_by expression.
+    /// Creates a new `group_by` expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
         sum_expr: Vec<AliasedDynProofExpr<C>>,

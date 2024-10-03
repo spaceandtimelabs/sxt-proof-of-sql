@@ -13,7 +13,7 @@ use core::cmp::{max, Ordering};
 /// - the total number of bytes N written to buf
 ///
 /// crash:
-/// - in case N is bigger than buf.len()
+/// - in case N is bigger than `buf.len()`
 pub fn write_scalar_varint<T: MontConfig<4>>(buf: &mut [u8], x: &MontScalar<T>) -> usize {
     write_u256_varint(buf, x.zigzag())
 }
@@ -46,9 +46,9 @@ pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
 /// each byte can have up to 7-bit set associated with the encoded number,
 /// besides MSB 1-bit to represent in which byte the encoding ends.
 ///
-/// return Some((value, read_bytes)):
-/// - value = the dalek scalar generated out of the consumed bytes
-/// - read_bytes = the total number of bytes N consumed
+/// return `Some((value, read_bytes))`:
+/// - `value` = the dalek scalar generated out of the consumed bytes
+/// - `read_bytes` = the total number of bytes N consumed
 ///
 /// return None:
 /// - in case of more than 37 bytes are read
