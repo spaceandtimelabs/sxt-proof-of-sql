@@ -41,8 +41,7 @@ impl Permutation {
         if elements.len() < length {
             Err(PermutationError::InvalidPermutation {
                 error: format!(
-                    "Permutation can not have duplicate elements: {:?}",
-                    permutation
+                    "Permutation can not have duplicate elements: {permutation:?}"
                 ),
             })
         }
@@ -50,8 +49,7 @@ impl Permutation {
         else if permutation.iter().any(|&i| i >= length) {
             Err(PermutationError::InvalidPermutation {
                 error: format!(
-                    "Permutation can not have elements out of bounds: {:?}",
-                    permutation
+                    "Permutation can not have elements out of bounds: {permutation:?}"
                 ),
             })
         } else {
