@@ -1,0 +1,33 @@
+name: Check Approver
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions: read-all
+
+jobs:
+  check_approver:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check Approver
+      uses: actions/github-script@v7
+      # Only run for external pull requests
+      if: github.event.pull_request.head.repo.fork
+      with:
+        script: |
+          const reviews = await github.rest.pulls.listReviews({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number,
+          });
+
+          const requiredReviewer = 'JayWhite2357';
+          const approved = reviews.data.some(review => review.user.login === requiredReviewer && review.state === 'APPROVED');
+
+          if (!approved) {
+            core.setFailed(`External pull request needs to be approved by ${requiredReviewer}.`);
+          } else {
+            console.log(`External pull request has been approved by ${requiredReviewer}.`);
+          }
