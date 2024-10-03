@@ -14,6 +14,7 @@ use num_traits::{Inv, One, Zero};
 /// For any polynomial, `f(x)`, with degree less than or equal to `d`, we have that:
 /// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.
+#[allow(dead_code)]
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
@@ -72,7 +73,6 @@ where
 /// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
 /// The output of this function is the vector of coefficients of f, leading coefficient first.
 /// That is, `f(x) = evals[j]*x^(d-j)``.
-#[allow(dead_code)]
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
     S: Zero
