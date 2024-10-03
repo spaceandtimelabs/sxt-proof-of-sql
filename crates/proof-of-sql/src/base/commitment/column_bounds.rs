@@ -75,7 +75,7 @@ where
     /// The source collection is empty so has no bounds.
     #[default]
     Empty,
-    /// After some operation (like [`Bounds::difference`]), the bounds cannot be determined exactly.
+    /// After some operation (like `Bounds::difference`), the bounds cannot be determined exactly.
     ///
     /// Instead, this variant underestimates the minimum and overestimates the maximum.
     Bounded(BoundsInner<T>),

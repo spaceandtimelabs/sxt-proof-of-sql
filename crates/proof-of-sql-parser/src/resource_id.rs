@@ -59,7 +59,7 @@ impl ResourceId {
     ///
     /// Space and time APIs accept a `.` separator in resource ids.
     /// However, when a resource id is stored in `KeyDB`, or used as a key, a `:` separator is used.
-    /// This method differs from [`ResourceId::to_string`] by using the latter format.
+    /// This method differs from [`ToString::to_string`] by using the latter format.
     ///
     /// Furthermore, while space and time APIs accept lowercase resource identifiers,
     /// all resource identifiers are stored internally in uppercase.

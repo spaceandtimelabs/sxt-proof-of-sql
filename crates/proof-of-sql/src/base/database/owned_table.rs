@@ -54,11 +54,11 @@ impl<S: Scalar> OwnedTable<S> {
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
     }
-    /// Returns the columns of this table as an [`IndexMap`]
+    /// Returns the columns of this table as an `IndexMap`
     pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
-    /// Returns the columns of this table as an [`IndexMap`]
+    /// Returns the columns of this table as an `IndexMap`
     pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table
     }

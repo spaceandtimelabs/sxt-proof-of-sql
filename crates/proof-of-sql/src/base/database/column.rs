@@ -48,7 +48,7 @@ pub enum Column<'a, S: Scalar> {
     ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
     VarChar((&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
-    /// - the first element maps to the stored [`TimeUnit`]
+    /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
