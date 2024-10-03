@@ -903,7 +903,10 @@ mod tests {
     #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_decimal128() {
         let alloc = Bump::new();
-        let decimal_values = vec![12_345_678_901_234_567_890_i128, -12_345_678_901_234_567_890_i128];
+        let decimal_values = vec![
+            12_345_678_901_234_567_890_i128,
+            -12_345_678_901_234_567_890_i128,
+        ];
         let array: ArrayRef = Arc::new(
             Decimal128Array::from(decimal_values)
                 .with_precision_and_scale(38, 0)

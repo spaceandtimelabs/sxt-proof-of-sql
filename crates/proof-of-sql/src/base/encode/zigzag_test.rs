@@ -94,5 +94,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
         high: 0x1_u128,
     })
         .into();
-    assert!((-val).zigzag() == U256::from_words(0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_u128, 0x1_u128));
+    assert!(
+        (-val).zigzag()
+            == U256::from_words(0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_u128, 0x1_u128)
+    );
 }

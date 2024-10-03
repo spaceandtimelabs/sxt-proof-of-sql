@@ -107,9 +107,8 @@ where
             (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Sharp(bounds_a.union(bounds_b))
             }
-            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a),
-Bounds::Bounded(bounds_b)) |
-(Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
+            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Bounded(bounds_a.union(bounds_b))
             }
             (bounds, Bounds::Empty) | (Bounds::Empty, bounds) => bounds,
