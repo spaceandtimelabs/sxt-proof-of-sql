@@ -48,7 +48,7 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         for (mult, term) in self.terms.iter() {
             match self.subpolynomial_type {
                 SumcheckSubpolynomialType::Identity => {
-                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term)
+                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term);
                 }
                 SumcheckSubpolynomialType::ZeroSum => composite_polynomial
                     .produce_zerosum_multiplicand(&(*mult * group_multiplier), term),

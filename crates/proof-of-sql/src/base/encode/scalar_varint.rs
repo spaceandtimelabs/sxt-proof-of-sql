@@ -81,7 +81,7 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
                 val.high |= ((*next_byte & 0b01111100) as u128) >> 2;
             }
             Ordering::Greater => {
-                val.high |= ((*next_byte & 0b01111111) as u128) << (shift_amount - 128)
+                val.high |= ((*next_byte & 0b01111111) as u128) << (shift_amount - 128);
             }
         }
 
