@@ -215,9 +215,7 @@ impl DynProofExprBuilder<'_> {
                 ),
             }),
             _ => Err(ConversionError::Unprovable {
-                error: format!(
-                    "Aggregation operator {op:?} is not supported at this location"
-                ),
+                error: format!("Aggregation operator {op:?} is not supported at this location"),
             }),
         }
     }

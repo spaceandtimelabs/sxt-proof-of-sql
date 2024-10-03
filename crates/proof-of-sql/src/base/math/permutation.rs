@@ -40,17 +40,13 @@ impl Permutation {
         elements.dedup();
         if elements.len() < length {
             Err(PermutationError::InvalidPermutation {
-                error: format!(
-                    "Permutation can not have duplicate elements: {permutation:?}"
-                ),
+                error: format!("Permutation can not have duplicate elements: {permutation:?}"),
             })
         }
         // Check that no element is out of bounds
         else if permutation.iter().any(|&i| i >= length) {
             Err(PermutationError::InvalidPermutation {
-                error: format!(
-                    "Permutation can not have elements out of bounds: {permutation:?}"
-                ),
+                error: format!("Permutation can not have elements out of bounds: {permutation:?}"),
             })
         } else {
             Ok(Self { permutation })
