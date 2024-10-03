@@ -6,6 +6,7 @@
 //! cargo bench --features "test" --bench bench_append_rows
 //! ```
 #![allow(missing_docs, clippy::missing_docs_in_private_items)]
+use ark_std::test_rng;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use proof_of_sql::{
     base::{
@@ -20,7 +21,7 @@ use proof_of_sql::{
         scalar::Scalar,
     },
     proof_primitive::dory::{
-        test_rng, DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
+        DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
     },
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
@@ -38,7 +39,7 @@ use std::ops::Deref;
 /// append 1000 rows to 10 cols in 1 table = 652ms
 /// ```
 fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
-    let public_parameters = PublicParameters::rand(10, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(10, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     c.bench_function("append_rows_to_table_commitment", |b| {
