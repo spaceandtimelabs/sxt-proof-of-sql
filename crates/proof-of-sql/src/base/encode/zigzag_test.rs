@@ -21,7 +21,7 @@ fn small_scalars_are_encoded_as_positive_zigzag_values() {
     // since x < y, where x + y = 0, the ZigZag value is encoded as 2 * x
     assert!(
         Curve25519Scalar::from(u128::MAX).zigzag()
-            == U256::from_words(0xfffffffffffffffffffffffffffffffe, 0x1)
+            == U256::from_words(0xffff_ffff_ffff_ffff_ffff_ffff_ffff_fffe, 0x1)
     );
 
     for x in 1..1000_u128 {
@@ -53,16 +53,16 @@ fn big_scalars_that_are_smaller_than_their_additive_inverses_are_encoded_as_posi
 {
     // x = (p - 1) / 2 (p is the ristretto group order)
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f6,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f6,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
     // since x < y, where x + y = 0, the ZigZag value is encoded as 2 * x
     assert!(
         val.zigzag()
             == U256::from_words(
-                27742317777372353535851937790883648492,
-                21267647932558653966460912964485513216
+                27_742_317_777_372_353_535_851_937_790_883_648_492,
+                21_267_647_932_558_653_966_460_912_964_485_513_216
             )
     );
 }
@@ -72,8 +72,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
 ) {
     // x = (p + 1) / 2 (p is the ristretto group order)
     let val: Curve25519Scalar = (&U256::from_words(
-        0xa6f7cef517bce6b2c09318d2e7ae9f7,
-        0x8000000000000000000000000000000,
+        0x0a6f_7cef_517b_ce6b_2c09_318d_2e7a_e9f7,
+        0x0800_0000_0000_0000_0000_0000_0000_0000,
     ))
         .into();
 
@@ -82,8 +82,8 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
     assert!(
         val.zigzag()
             == U256::from_words(
-                27742317777372353535851937790883648491,
-                21267647932558653966460912964485513216
+                27_742_317_777_372_353_535_851_937_790_883_648_491,
+                21_267_647_932_558_653_966_460_912_964_485_513_216
             )
     );
 
@@ -94,5 +94,5 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_encoded_as_
         high: 0x1_u128,
     })
         .into();
-    assert!((-val).zigzag() == U256::from_words(0xffffffffffffffffffffffffffffffff_u128, 0x1_u128));
+    assert!((-val).zigzag() == U256::from_words(0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_u128, 0x1_u128));
 }

@@ -22,20 +22,20 @@ pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
 
     // we keep writing until we get a value that has the MSB not set.
     // a MSB not set implies that we have reached the end of the number.
-    while zig_x.high != 0 || zig_x.low >= 0b10000000 {
+    while zig_x.high != 0 || zig_x.low >= 0b1000_0000 {
         // we read the next 7 bits from `zig_x` casting to u8 and setting
         // the 8-th bit to 1 to indicate that we still need to write more bytes to buf
-        buf[pos] = (zig_x.low as u8) | 0b10000000;
+        buf[pos] = (zig_x.low as u8) | 0b1000_0000;
         pos += 1;
 
         // we shift the whole `zig_x` number 7 bits to right
-        zig_x.low = (zig_x.low >> 7) | ((zig_x.high & 0b01111111) << 121);
+        zig_x.low = (zig_x.low >> 7) | ((zig_x.high & 0b0111_1111) << 121);
         zig_x.high >>= 7;
     }
 
     // we write the last byte to buf with the MSB not set.
     // that indicates that the number has no continuation.
-    buf[pos] = (zig_x.low & 0b01111111) as u8;
+    buf[pos] = (zig_x.low & 0b0111_1111) as u8;
 
     pos + 1
 }
@@ -75,13 +75,13 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
         // we write the `next 7 bits` at the [shift_amount..shift_amount + 7)
         // bit positions of val u256 number
         match shift_amount.cmp(&126_u32) {
-            Ordering::Less => val.low |= ((*next_byte & 0b01111111) as u128) << shift_amount,
+            Ordering::Less => val.low |= ((*next_byte & 0b0111_1111) as u128) << shift_amount,
             Ordering::Equal => {
-                val.low |= ((*next_byte & 0b00000011) as u128) << shift_amount;
-                val.high |= ((*next_byte & 0b01111100) as u128) >> 2;
+                val.low |= ((*next_byte & 0b0000_0011) as u128) << shift_amount;
+                val.high |= ((*next_byte & 0b0111_1100) as u128) >> 2;
             }
             Ordering::Greater => {
-                val.high |= ((*next_byte & 0b01111111) as u128) << (shift_amount - 128);
+                val.high |= ((*next_byte & 0b0111_1111) as u128) << (shift_amount - 128);
             }
         }
 
