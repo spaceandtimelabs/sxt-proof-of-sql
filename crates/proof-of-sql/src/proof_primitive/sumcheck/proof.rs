@@ -87,7 +87,7 @@ impl<S: Scalar> SumcheckProof<S> {
             let start_index = round_index * (polynomial_info.max_multiplicands + 1);
             transcript.extend_scalars_as_be(
                 &self.coefficients
-                    [start_index..start_index + polynomial_info.max_multiplicands + 1],
+                    [start_index..=(start_index + polynomial_info.max_multiplicands)],
             );
             let round_evaluation_point = transcript.scalar_challenge_as_be();
             evaluation_point.push(round_evaluation_point);
@@ -95,7 +95,7 @@ impl<S: Scalar> SumcheckProof<S> {
             let mut actual_sum = round_evaluation
                 + self.coefficients[start_index + polynomial_info.max_multiplicands];
             for coefficient_index in
-                start_index + 1..start_index + polynomial_info.max_multiplicands + 1
+                (start_index + 1)..=(start_index + polynomial_info.max_multiplicands)
             {
                 round_evaluation *= round_evaluation_point;
                 round_evaluation += self.coefficients[coefficient_index];
