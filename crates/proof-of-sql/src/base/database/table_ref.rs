@@ -14,22 +14,26 @@ pub struct TableRef {
 
 impl TableRef {
     /// Creates a new table reference from a resource id
-    #[must_use] pub fn new(resource_id: ResourceId) -> Self {
+    #[must_use]
+    pub fn new(resource_id: ResourceId) -> Self {
         Self { resource_id }
     }
 
     /// Returns the identifier of the schema
-    #[must_use] pub fn schema_id(&self) -> Identifier {
+    #[must_use]
+    pub fn schema_id(&self) -> Identifier {
         self.resource_id.schema()
     }
 
     /// Returns the identifier of the table
-    #[must_use] pub fn table_id(&self) -> Identifier {
+    #[must_use]
+    pub fn table_id(&self) -> Identifier {
         self.resource_id.object_name()
     }
 
     /// Returns the underlying resource id of the table
-    #[must_use] pub fn resource_id(&self) -> ResourceId {
+    #[must_use]
+    pub fn resource_id(&self) -> ResourceId {
         self.resource_id
     }
 }

@@ -17,7 +17,8 @@ pub struct SelectPostprocessing {
 
 impl SelectPostprocessing {
     /// Create a new `SelectPostprocessing` node.
-    #[must_use] pub fn new(aliased_result_exprs: Vec<AliasedResultExpr>) -> Self {
+    #[must_use]
+    pub fn new(aliased_result_exprs: Vec<AliasedResultExpr>) -> Self {
         Self {
             aliased_result_exprs,
         }
