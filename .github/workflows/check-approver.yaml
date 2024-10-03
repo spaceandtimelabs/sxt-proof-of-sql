@@ -1,8 +1,8 @@
 name: Check Approver
 
 on:
-  pull_request:
-    types: [opened, edited, synchronize]
+  pull_request_review:
+    types: [submitted]
 
 permissions: read-all
 
