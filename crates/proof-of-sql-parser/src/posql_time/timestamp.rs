@@ -5,6 +5,7 @@ use core::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// Represents a fully parsed timestamp with detailed time unit and timezone information
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PoSQLTimestamp {
     /// The datetime representation in UTC.
@@ -19,21 +20,24 @@ pub struct PoSQLTimestamp {
 
 impl PoSQLTimestamp {
     /// Returns the combined date and time with time zone.
+    #[must_use]
     pub fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
     }
 
-    /// Returns the [PoSQLTimeUnit] for this timestamp
+    /// Returns the [`PoSQLTimeUnit`] for this timestamp
+    #[must_use]
     pub fn timeunit(&self) -> PoSQLTimeUnit {
         self.timeunit
     }
 
-    /// Returns the [PoSQLTimeZone] for this timestamp
+    /// Returns the [`PoSQLTimeZone`] for this timestamp
+    #[must_use]
     pub fn timezone(&self) -> PoSQLTimeZone {
         self.timezone
     }
 
-    /// Attempts to parse a timestamp string into an [PoSQLTimestamp] structure.
+    /// Attempts to parse a timestamp string into an [`PoSQLTimestamp`] structure.
     /// This function supports two primary formats:
     ///
     /// 1. **RFC 3339 Parsing**:
@@ -44,6 +48,13 @@ impl PoSQLTimestamp {
     /// 2. **Timezone Parsing and Conversion**:
     ///    - The `from_offset` method is used to determine whether the timezone should be represented
     ///      as `Utc` or `FixedOffset`. This function simplifies the decision based on the offset value.
+    ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Parsing Error**: Returns `PoSQLTimestampError::ParsingError` if the input string does not conform
+    ///   to the RFC 3339 format or if the timestamp cannot be parsed due to invalid formatting.
+    ///   This error includes the original parsing error message for further details.
     ///
     /// # Examples
     /// ```
@@ -94,6 +105,17 @@ impl PoSQLTimestamp {
     ///    - Since Unix epoch timestamps don't inherently carry timezone information,
     ///      any Unix time parsed directly from an integer is assumed to be in UTC.
     ///
+    /// # Errors
+    /// This function returns a `PoSQLTimestampError` in the following cases:
+    ///
+    /// - **Ambiguous Time**: Returns `PoSQLTimestampError::Ambiguous` if the provided epoch time
+    ///   corresponds to a time that is ambiguous (e.g., during a daylight saving time change where
+    ///   the local time could correspond to two different UTC times).
+    ///
+    /// - **Non-Existent Local Time**: Returns `PoSQLTimestampError::LocalTimeDoesNotExist` if the
+    ///   provided epoch time corresponds to a time that does not exist in the local time zone (e.g.,
+    ///   during a daylight saving time change where a certain local time is skipped).
+    ///
     /// # Examples
     /// ```
     /// use chrono::{DateTime, Utc};
@@ -112,7 +134,7 @@ impl PoSQLTimestamp {
                 timezone: PoSQLTimeZone::Utc,
             }),
             LocalResult::Ambiguous(earliest, latest) => Err(PoSQLTimestampError::Ambiguous{ error:
-                format!("The local time is ambiguous because there is a fold in the local time: earliest: {} latest: {} ", earliest, latest),
+                format!("The local time is ambiguous because there is a fold in the local time: earliest: {earliest} latest: {latest} "),
         }),
             LocalResult::None => Err(PoSQLTimestampError::LocalTimeDoesNotExist),
         }

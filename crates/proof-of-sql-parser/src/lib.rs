@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
+#![allow(clippy::missing_panics_doc)] // Fixed in Issue #163
 extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
@@ -34,9 +35,9 @@ pub mod resource_id;
 pub use resource_id::ResourceId;
 
 // lalrpop-generated code is not clippy-compliant
-lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items)] pub sql);
+lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items, clippy::pedantic)] pub sql);
 
-/// Implement Deserialize through FromStr to avoid invalid identifiers.
+/// Implement [`Deserialize`] through [`FromStr`] to avoid invalid identifiers.
 #[macro_export]
 macro_rules! impl_serde_from_str {
     ($type:ty) => {
