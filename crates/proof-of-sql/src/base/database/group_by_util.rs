@@ -17,7 +17,7 @@ use snafu::Snafu;
 #[derive(Debug)]
 pub struct AggregatedColumns<'a, S: Scalar> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
-    /// This is effectively just the original group_by columns filtered by the selection.
+    /// This is effectively just the original `group_by` columns filtered by the selection.
     pub group_by_columns: Vec<Column<'a, S>>,
     /// Resulting sums of the groups for the columns in `sum_columns_in`.
     pub sum_columns: Vec<&'a [S]>,
@@ -43,8 +43,8 @@ pub enum AggregateColumnsError {
 ///         WHERE selection GROUP BY <group_by[0]>, <group_by[1]>, ...
 /// ```
 ///
-/// This function takes a selection vector and a set of group_by and sum columns and returns
-/// the given columns aggregated by the group_by columns only for the selected rows.
+/// This function takes a selection vector and a set of `group_by` and sum columns and returns
+/// the given columns aggregated by the `group_by` columns only for the selected rows.
 pub fn aggregate_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     group_by_columns_in: &[Column<'a, S>],
@@ -67,13 +67,12 @@ pub fn aggregate_columns<'a, S: Scalar>(
 
     // `filtered_indexes` is a vector of indexes of the rows that are selected. We sort this vector
     // so that all the rows in the same group are next to each other.
-    let mut filtered_indexes = Vec::from_iter(
-        selection_column_in
-            .iter()
-            .enumerate()
-            .filter(|&(_, &b)| b)
-            .map(|(i, _)| i),
-    );
+    let mut filtered_indexes: Vec<_> = selection_column_in
+        .iter()
+        .enumerate()
+        .filter(|&(_, &b)| b)
+        .map(|(i, _)| i)
+        .collect();
     if_rayon!(
         filtered_indexes.par_sort_unstable_by(|&a, &b| compare_indexes_by_columns(
             group_by_columns_in,
@@ -96,25 +95,33 @@ pub fn aggregate_columns<'a, S: Scalar>(
             compare_indexes_by_columns(group_by_columns_in, a, b) == Ordering::Equal
         })
         .multiunzip();
-    let group_by_columns_out = Vec::from_iter(
-        group_by_columns_in
-            .iter()
-            .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes)),
-    );
+    let group_by_columns_out: Vec<_> = group_by_columns_in
+        .iter()
+        .map(|column| filter_column_by_index(alloc, column, &group_by_result_indexes))
+        .collect();
 
     // This calls the `sum_aggregate_column_by_index_counts` function on each column in `sum_columns`
     // and gives a vector of `S` slices
-    let sum_columns_out = Vec::from_iter(sum_columns_in.iter().map(|column| {
-        sum_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let sum_columns_out: Vec<_> = sum_columns_in
+        .iter()
+        .map(|column| {
+            sum_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
-    let max_columns_out = Vec::from_iter(max_columns_in.iter().map(|column| {
-        max_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let max_columns_out: Vec<_> = max_columns_in
+        .iter()
+        .map(|column| {
+            max_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
-    let min_columns_out = Vec::from_iter(min_columns_in.iter().map(|column| {
-        min_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
-    }));
+    let min_columns_out: Vec<_> = min_columns_in
+        .iter()
+        .map(|column| {
+            min_aggregate_column_by_index_counts(alloc, column, &counts, &filtered_indexes)
+        })
+        .collect();
 
     // Cast the counts to something compatible with BigInt.
     let count_column_out = alloc.alloc_slice_fill_iter(counts.into_iter().map(|c| c as i64));
@@ -296,7 +303,7 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .max_by(|x, y| x.signed_cmp(y))
+            .max_by(super::super::scalar::Scalar::signed_cmp)
     }))
 }
 
@@ -337,12 +344,12 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .min_by(|x, y| x.signed_cmp(y))
+            .min_by(super::super::scalar::Scalar::signed_cmp)
     }))
 }
 
-/// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
-/// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
+/// Compares the tuples (`group_by`[0][i], `group_by`[1][i], ...) and
+/// (`group_by`[0][j], `group_by`[1][j], ...) in lexicographic order.
 pub(crate) fn compare_indexes_by_columns<S: Scalar>(
     group_by: &[Column<S>],
     i: usize,
@@ -365,10 +372,10 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
         .unwrap_or(Ordering::Equal)
 }
 
-/// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
-/// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
+/// Compares the tuples (`group_by`[0][i], `group_by`[1][i], ...) and
+/// (`group_by`[0][j], `group_by`[1][j], ...) in lexicographic order.
 ///
-/// Identical in functionality to [compare_indexes_by_columns]
+/// Identical in functionality to [`compare_indexes_by_columns`]
 pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
     group_by: &[&OwnedColumn<S>],
     i: usize,

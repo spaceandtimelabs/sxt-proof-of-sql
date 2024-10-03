@@ -27,7 +27,7 @@ pub trait MetadataAccessor {
 ///
 /// Verifier uses this information to process a query.
 ///
-/// In pseudo-code, here is a sketch of how CommitmentAccessor fits in
+/// In pseudo-code, here is a sketch of how `CommitmentAccessor` fits in
 /// with the verification workflow:
 ///
 /// ```ignore
@@ -57,7 +57,7 @@ pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
 ///
 /// Prover uses this information to process a query.
 ///
-/// In pseudo-code, here is a sketch of how DataAccessor fits in
+/// In pseudo-code, here is a sketch of how `DataAccessor` fits in
 /// with the prove workflow:
 ///
 /// ```ignore
@@ -90,8 +90,8 @@ pub trait DataAccessor<S: Scalar>: MetadataAccessor {
 /// Access tables and their schemas in a database.
 ///
 /// This accessor should be implemented by both the prover and verifier
-/// and then used by the Proof of SQL code to convert an IntermediateAst
-/// into a ProofPlan.
+/// and then used by the Proof of SQL code to convert an `IntermediateAst`
+/// into a `ProofPlan`.
 pub trait SchemaAccessor {
     /// Lookup the column's data type in the specified table
     ///

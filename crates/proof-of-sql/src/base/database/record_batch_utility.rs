@@ -150,7 +150,7 @@ string_to_arrow_array!(
     arrow::array::StringArray
 );
 
-/// Utility macro to simplify the creation of RecordBatches
+/// Utility macro to simplify the creation of `RecordBatches`
 #[macro_export]
 macro_rules! record_batch {
     ($($col_name:expr => $slice:expr), + $(,)?) => {

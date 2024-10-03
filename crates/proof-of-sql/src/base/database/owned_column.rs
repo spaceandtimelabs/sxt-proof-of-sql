@@ -22,7 +22,7 @@ use proof_of_sql_parser::{
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
-/// Supported types for OwnedColumn
+/// Supported types for `OwnedColumn`
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
@@ -46,6 +46,7 @@ pub enum OwnedColumn<S: Scalar> {
 
 impl<S: Scalar> OwnedColumn<S> {
     /// Returns the length of the column.
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),
@@ -80,6 +81,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns the sliced column.
+    #[must_use]
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
             OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
@@ -99,6 +101,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Returns true if the column is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
             OwnedColumn::Boolean(col) => col.is_empty(),
@@ -113,6 +116,7 @@ impl<S: Scalar> OwnedColumn<S> {
         }
     }
     /// Returns the type of the column.
+    #[must_use]
     pub fn column_type(&self) -> ColumnType {
         match self {
             OwnedColumn::Boolean(_) => ColumnType::Boolean,
@@ -289,7 +293,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
             Column::VarChar((col, _)) => {
-                OwnedColumn::VarChar(col.iter().map(|s| s.to_string()).collect())
+                OwnedColumn::VarChar(col.iter().map(|s| (*s).to_string()).collect())
             }
             Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
             Column::Decimal75(precision, scale, col) => {
@@ -301,8 +305,8 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
-/// Compares the tuples (order_by_pairs[0][i], order_by_pairs[1][i], ...) and
-/// (order_by_pairs[0][j], order_by_pairs[1][j], ...) in lexicographic order.
+/// Compares the tuples (`order_by_pairs`[0][i], `order_by_pairs`[1][i], ...) and
+/// (`order_by_pairs`[0][j], `order_by_pairs`[1][j], ...) in lexicographic order.
 /// Note that direction flips the ordering.
 pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
     order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],
@@ -362,7 +366,7 @@ mod test {
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
             ["b", "b", "a", "b", "a"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| (*s).to_string())
                 .collect(),
         );
         let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
@@ -397,7 +401,7 @@ mod test {
         assert_eq!(
             compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
             Ordering::Less
-        )
+        );
     }
 
     #[test]
@@ -434,7 +438,11 @@ mod test {
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>())
+            OwnedColumn::VarChar(
+                strs.iter()
+                    .map(|s| (*s).to_string())
+                    .collect::<Vec<String>>()
+            )
         );
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);

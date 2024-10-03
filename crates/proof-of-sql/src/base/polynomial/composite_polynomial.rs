@@ -3,7 +3,7 @@ use alloc::{rc::Rc, vec::Vec};
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use core::cmp::max;
 #[cfg(test)]
@@ -17,12 +17,12 @@ use itertools::Itertools;
 ///
 /// This data structure of the polynomial is a list of list of `(coefficient, DenseMultilinearExtension)`.
 /// * Number of products n = `self.products.len()`,
-/// * Number of multiplicands of ith product m_i = `self.products[i].1.len()`,
-/// * Coefficient of ith product c_i = `self.products[i].0`
+/// * Number of multiplicands of ith product `m_i` = `self.products[i].1.len()`,
+/// * Coefficient of ith product `c_i` = `self.products[i].0`
 ///
 /// The resulting polynomial is
 ///
-/// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
+/// $$\sum_{`i=0}^{n}C_i\cdot\prod`_{`j=0}^{m_i}P`_{ij}$$
 ///
 /// The result polynomial is used as the prover key.
 #[derive(Clone, Debug)]
@@ -78,7 +78,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         for m in product {
             let m_ptr: *const Vec<S> = Rc::as_ptr(&m);
             if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
-                indexed_product.push(*index)
+                indexed_product.push(*index);
             } else {
                 let curr_index = self.flattened_ml_extensions.len();
                 self.flattened_ml_extensions.push(m.clone());

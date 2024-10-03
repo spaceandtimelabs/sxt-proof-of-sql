@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// This differs from the [`FilterExec`] in that the result is not a sparse table.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
+pub struct OstensibleFilterExecution<C: Commitment, H: ProverHonestyMarker> {
     pub(super) aliased_results: Vec<AliasedDynProofExpr<C>>,
     pub(super) table: TableExpr,
     /// TODO: add docs
@@ -40,7 +40,7 @@ pub struct OstensibleFilterExec<C: Commitment, H: ProverHonestyMarker> {
     phantom: PhantomData<H>,
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
+impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExecution<C, H> {
     /// Creates a new filter expression.
     pub fn new(
         aliased_results: Vec<AliasedDynProofExpr<C>>,
@@ -56,9 +56,9 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
     }
 }
 
-impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
+impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExecution<C, H>
 where
-    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExecution<C, H>: ProverEvaluate<C::Scalar>,
 {
     fn count(
         &self,
@@ -66,7 +66,7 @@ where
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
@@ -95,12 +95,11 @@ where
         // 1. selection
         let selection_eval = self.where_clause.verifier_evaluate(builder, accessor)?;
         // 2. columns
-        let columns_evals = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
-                .collect::<Result<Vec<_>, _>>()?,
-        );
+        let columns_evals: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
+            .collect::<Result<Vec<_>, _>>()?;
         // 3. indexes
         let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
             ProofError::VerificationError {
@@ -108,9 +107,9 @@ where
             },
         )?;
         // 4. filtered_columns
-        let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        );
+        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_result_mle())
+            .take(self.aliased_results.len())
+            .collect();
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -135,7 +134,7 @@ where
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         let mut columns = IndexSet::default();
 
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 
@@ -146,7 +145,7 @@ where
 }
 
 /// Alias for a filter expression with a honest prover.
-pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
+pub type FilterExec<C> = OstensibleFilterExecution<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
@@ -165,11 +164,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
@@ -194,11 +198,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
 

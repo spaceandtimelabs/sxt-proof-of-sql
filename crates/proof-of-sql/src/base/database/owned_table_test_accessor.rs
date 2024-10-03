@@ -9,7 +9,7 @@ use crate::base::{
 use bumpalo::Bump;
 use proof_of_sql_parser::Identifier;
 
-/// A test accessor that uses OwnedTable as the underlying table type.
+/// A test accessor that uses `OwnedTable` as the underlying table type.
 /// Note: this is not optimized for performance, so should not be used for benchmarks.
 pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
     tables: IndexMap<TableRef, (OwnedTable<CP::Scalar>, usize)>,
@@ -56,7 +56,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
             .unwrap()
             .0
             .column_names()
-            .map(|id| id.as_str())
+            .map(proof_of_sql_parser::Identifier::as_str)
             .collect()
     }
 
@@ -87,7 +87,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             OwnedColumn::VarChar(col) => {
                 let col: &mut [&str] = self
                     .alloc
-                    .alloc_slice_fill_iter(col.iter().map(|s| s.as_str()));
+                    .alloc_slice_fill_iter(col.iter().map(std::string::String::as_str));
                 let scals: &mut [_] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));

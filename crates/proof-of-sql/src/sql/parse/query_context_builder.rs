@@ -95,6 +95,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }
@@ -212,6 +213,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    #[allow(clippy::unused_self)]
     fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
         match literal {
             Literal::Boolean(_) => Ok(ColumnType::Boolean),

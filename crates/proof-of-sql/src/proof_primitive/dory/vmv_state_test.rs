@@ -108,7 +108,7 @@ fn we_can_create_vmv_states_from_random_vmv_and_get_correct_sizes() {
         assert_eq!(vmv.L.len(), 1 << nu);
         assert_eq!(vmv.R.len(), 1 << nu);
         assert_eq!(vmv.M.len(), 1 << nu);
-        for row in vmv.M.iter() {
+        for row in &vmv.M {
             assert_eq!(row.len(), 1 << nu);
         }
 

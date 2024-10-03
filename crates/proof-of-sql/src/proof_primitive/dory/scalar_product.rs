@@ -2,7 +2,7 @@
 use super::{pairings, DoryMessages, ProverState, VerifierSetup, VerifierState};
 use crate::base::proof::Transcript;
 
-/// This is the prover side of the Scalar-Product algorithm in section 3.1 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the prover side of the Scalar-Product algorithm in section 3.1 of <https://eprint.iacr.org/2020/1274.pdf>.
 pub fn scalar_product_prove(
     messages: &mut DoryMessages,
     transcript: &mut impl Transcript,

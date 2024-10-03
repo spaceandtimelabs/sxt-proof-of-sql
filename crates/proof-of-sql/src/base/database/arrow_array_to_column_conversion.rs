@@ -47,7 +47,7 @@ pub enum ArrowArrayToColumnConversionError {
         /// The out of bounds index requested
         index: usize,
     },
-    /// Using TimeError to handle all time-related errors
+    /// Using `TimeError` to handle all time-related errors
     #[snafu(transparent)]
     TimestampConversionError {
         /// The underlying source error
@@ -55,9 +55,9 @@ pub enum ArrowArrayToColumnConversionError {
     },
 }
 
-/// This trait is used to provide utility functions to convert ArrayRefs into proof types (Column, Scalars, etc.)
+/// This trait is used to provide utility functions to convert `ArrayRefs` into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
-    /// Convert an ArrayRef into a Proof of SQL Vec<Scalar>
+    /// Convert an `ArrayRef` into a Proof of SQL Vec<Scalar>
     ///
     /// Note: this function must not be called from unsupported arrays or arrays with nulls.
     /// It should only be used during testing.
@@ -67,16 +67,16 @@ pub trait ArrayRefExt {
         &self,
     ) -> Result<Vec<crate::base::scalar::Curve25519Scalar>, ArrowArrayToColumnConversionError>;
 
-    /// Convert an ArrayRef into a Proof of SQL Column type
+    /// Convert an `ArrayRef` into a Proof of SQL Column type
     ///
     /// Parameters:
     /// - `alloc`: used to allocate a slice of data when necessary
-    ///    (vide StringArray into Column::HashedBytes((_,_)).
+    ///    (vide `StringArray` into `Column::HashedBytes`((_,_)).
     ///
-    /// - `range`: used to get a subslice out of ArrayRef.
+    /// - `range`: used to get a subslice out of `ArrayRef`.
     ///
-    /// - `scals`: scalar representation of each element in the ArrayRef.
-    ///    Some types don't require this slice (see Column::BigInt). But for types requiring it,
+    /// - `scals`: scalar representation of each element in the `ArrayRef`.
+    ///    Some types don't require this slice (see `Column::BigInt`). But for types requiring it,
     ///    `scals` must be provided and have a length equal to `range.len()`.
     ///
     /// Note: this function must not be called from unsupported or nullable arrays as it will panic.
@@ -178,14 +178,14 @@ impl ArrayRefExt for ArrayRef {
         })
     }
 
-    /// Converts the given ArrowArray into a `Column` data type based on its `DataType`. Returns an
+    /// Converts the given `ArrowArray` into a `Column` data type based on its `DataType`. Returns an
     /// empty `Column` for any empty tange if it is in-bounds.
     ///
     /// # Parameters
     /// - `alloc`: Reference to a `Bump` allocator used for memory allocation during the conversion.
     /// - `range`: Reference to a `Range<usize>` specifying the slice of the array to convert.
     /// - `precomputed_scals`: Optional reference to a slice of `Curve25519Scalar` values.
-    ///    VarChar columns store hashes to their values as scalars, which can be provided here.
+    ///    `VarChar` columns store hashes to their values as scalars, which can be provided here.
     ///
     /// # Supported types
     /// - For `DataType::Int64` and `DataType::Decimal128(38, 0)`, it slices the array
@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn we_can_convert_timestamp_array_normal_range() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
             Some("Z"),
@@ -401,7 +401,7 @@ mod tests {
     #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_timestamp() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
             Some("+00:00"),
@@ -419,7 +419,7 @@ mod tests {
     #[test]
     fn we_can_convert_timestamp_array_empty_range() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
             Some("+0:00"),
@@ -435,7 +435,7 @@ mod tests {
     #[test]
     fn we_cannot_convert_timestamp_array_oob_range() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000, 1625083200];
+        let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200];
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
             Some("Utc"),
@@ -451,7 +451,7 @@ mod tests {
     #[test]
     fn we_can_convert_timestamp_array_with_nulls() {
         let alloc = Bump::new();
-        let data = vec![Some(1625072400), None, Some(1625083200)];
+        let data = vec![Some(1_625_072_400), None, Some(1_625_083_200)];
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.into(),
             Some("00:00"),
@@ -537,7 +537,7 @@ mod tests {
 
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(76, 0).unwrap());
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
-        assert!(result.is_err())
+        assert!(result.is_err());
     }
 
     #[test]
@@ -903,7 +903,10 @@ mod tests {
     #[test]
     fn we_can_build_an_empty_column_from_an_empty_range_decimal128() {
         let alloc = Bump::new();
-        let decimal_values = vec![12345678901234567890_i128, -12345678901234567890_i128];
+        let decimal_values = vec![
+            12_345_678_901_234_567_890_i128,
+            -12_345_678_901_234_567_890_i128,
+        ];
         let array: ArrayRef = Arc::new(
             Decimal128Array::from(decimal_values)
                 .with_precision_and_scale(38, 0)
@@ -984,7 +987,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
@@ -1010,7 +1013,7 @@ mod tests {
     #[test]
     fn we_can_convert_valid_timestamp_array_refs_into_valid_columns() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
             Some("UTC"),
@@ -1072,7 +1075,7 @@ mod tests {
     fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_smaller_than_arrays(
     ) {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000, 1625083200]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000, 1_625_083_200]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
             Some("Utc"),
@@ -1092,7 +1095,7 @@ mod tests {
     {
         let alloc = Bump::new();
         let data = ["ab", "-f34", "ehfh43"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
         assert_eq!(
@@ -1107,7 +1110,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
@@ -1131,7 +1134,7 @@ mod tests {
     #[test]
     fn we_can_convert_valid_timestamp_array_refs_into_valid_columns_using_ranges_with_zero_size() {
         let alloc = Bump::new();
-        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
             Some("Utc"),
@@ -1153,14 +1156,14 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }
 
     #[test]
     fn we_can_convert_valid_timestamp_array_refs_into_valid_vec_scalars() {
-        let data = vec![1625072400, 1625076000]; // Example Unix timestamps
+        let data = vec![1_625_072_400, 1_625_076_000]; // Example Unix timestamps
         let array: ArrayRef = Arc::new(TimestampSecondArray::with_timezone_opt(
             data.clone().into(),
             Some("Utc"),
@@ -1184,7 +1187,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
 
@@ -1194,7 +1197,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
 
@@ -1204,7 +1207,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }
@@ -1217,7 +1220,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }

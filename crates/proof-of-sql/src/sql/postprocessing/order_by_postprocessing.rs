@@ -19,6 +19,7 @@ pub struct OrderByPostprocessing {
 
 impl OrderByPostprocessing {
     /// Create a new `OrderByPostprocessing` node.
+    #[must_use]
     pub fn new(by_exprs: Vec<OrderBy>) -> Self {
         Self { by_exprs }
     }

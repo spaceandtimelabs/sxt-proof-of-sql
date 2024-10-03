@@ -49,6 +49,7 @@ impl<'a> DynProofExprBuilder<'a> {
     }
 }
 
+#[allow(clippy::match_wildcard_for_single_variants)]
 // Private interface
 impl DynProofExprBuilder<'_> {
     fn visit_expr<C: Commitment>(
@@ -62,7 +63,7 @@ impl DynProofExprBuilder<'_> {
             Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
             Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
-                error: format!("Expression {:?} is not supported yet", expr),
+                error: format!("Expression {expr:?} is not supported yet"),
             }),
         }
     }
@@ -80,6 +81,7 @@ impl DynProofExprBuilder<'_> {
         )))
     }
 
+    #[allow(clippy::unused_self)]
     fn visit_literal<C: Commitment>(
         &self,
         lit: &Literal,
@@ -189,7 +191,7 @@ impl DynProofExprBuilder<'_> {
                 DynProofExpr::try_new_multiply(left?, right?)
             }
             BinaryOperator::Division => Err(ConversionError::Unprovable {
-                error: format!("Binary operator {:?} is not supported at this location", op),
+                error: format!("Binary operator {op:?} is not supported at this location"),
             }),
         }
     }
@@ -211,15 +213,11 @@ impl DynProofExprBuilder<'_> {
             }
             (AggregationOperator::Sum, false) => Err(ConversionError::InvalidExpression {
                 expression: format!(
-                    "Aggregation operator {:?} doesn't work with non-numeric types",
-                    op
+                    "Aggregation operator {op:?} doesn't work with non-numeric types"
                 ),
             }),
             _ => Err(ConversionError::Unprovable {
-                error: format!(
-                    "Aggregation operator {:?} is not supported at this location",
-                    op
-                ),
+                error: format!("Aggregation operator {op:?} is not supported at this location"),
             }),
         }
     }

@@ -112,7 +112,7 @@ fn check_and_get_aggregation_and_remainder(
     let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
-        .cloned()
+        .copied()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
         return Err(PostprocessingError::NestedAggregationInGroupByClause {
@@ -169,16 +169,19 @@ impl GroupByPostprocessing {
     }
 
     /// Get group by identifiers
+    #[must_use]
     pub fn group_by(&self) -> &[Identifier] {
         &self.group_by_identifiers
     }
 
     /// Get remainder expressions for SELECT
+    #[must_use]
     pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
         &self.remainder_exprs
     }
 
     /// Get aggregation expressions
+    #[must_use]
     pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
         &self.aggregation_exprs
     }
@@ -222,31 +225,28 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         let selection_in = vec![true; owned_table.num_rows()];
         let (sum_ids, sum_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Sum)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (max_ids, max_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Max)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (min_ids, min_ins): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Min)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,
@@ -364,7 +364,7 @@ mod tests {
 
         // a + b + 1
         let expr = add(add(col("a"), col("b")), lit(1));
-        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -372,7 +372,7 @@ mod tests {
         let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
         let expected: IndexSet<Identifier> = [ident("a"), ident("b"), ident("c")]
             .iter()
-            .cloned()
+            .copied()
             .collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
@@ -385,7 +385,7 @@ mod tests {
 
         // (COUNT(a + b) + c) * d
         let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
-        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
     }

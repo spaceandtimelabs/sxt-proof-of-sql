@@ -211,7 +211,7 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
     ];
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(8, &a, &b),
-        Curve25519Scalar::from(123880u32)
+        Curve25519Scalar::from(123_880_u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(7, &a, &b),
@@ -262,7 +262,7 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
     ];
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(8, &a, &b),
-        Curve25519Scalar::from(123880u32)
+        Curve25519Scalar::from(123_880_u32)
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(7, &a, &b),
@@ -305,7 +305,7 @@ fn compute_truncated_lagrange_basis_inner_product_gives_correct_values_with_3_va
     let b: Vec<i32> = vec![3, 11, 13];
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(8, &a, &b),
-        123880
+        123_880
     );
     assert_eq!(
         compute_truncated_lagrange_basis_inner_product(7, &a, &b),

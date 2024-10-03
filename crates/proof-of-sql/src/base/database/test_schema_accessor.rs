@@ -16,7 +16,7 @@ impl TestSchemaAccessor {
 
 impl SchemaAccessor for TestSchemaAccessor {
     fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
-        self.schemas.get(&table_ref)?.get(&column_id).cloned()
+        self.schemas.get(&table_ref)?.get(&column_id).copied()
     }
 
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {

@@ -1,4 +1,4 @@
-use super::{filter_exec::prove_filter, OstensibleFilterExec};
+use super::{filter_exec::prove_filter, OstensibleFilterExecution};
 use crate::base::database::owned_table_utility::*;
 use crate::{
     base::{
@@ -27,7 +27,7 @@ use num_traits::One;
 #[derive(Debug, PartialEq)]
 struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
-type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
+type DishonestFilterExec<C> = OstensibleFilterExecution<C, Dishonest>;
 
 impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     #[tracing::instrument(
@@ -49,11 +49,15 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .as_boolean()
             .expect("selection is not boolean");
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
@@ -82,11 +86,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .as_boolean()
             .expect("selection is not boolean");
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
@@ -113,7 +117,7 @@ fn tamper_column<'a>(
     alloc: &'a Bump,
     mut columns: Vec<Column<'a, Curve25519Scalar>>,
 ) -> Vec<Column<'a, Curve25519Scalar>> {
-    for column in columns.iter_mut() {
+    for column in &mut columns {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);

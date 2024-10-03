@@ -19,7 +19,7 @@ impl<S: Scalar> OwnedTable<S> {
             Expression::Binary { op, left, right } => self.evaluate_binary_expr(*op, left, right),
             Expression::Unary { op, expr } => self.evaluate_unary_expr(*op, expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
-                expression: format!("Expression {:?} is not supported yet", expr),
+                expression: format!("Expression {expr:?} is not supported yet"),
             }),
         }
     }

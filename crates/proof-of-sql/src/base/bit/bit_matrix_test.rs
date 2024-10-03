@@ -29,7 +29,7 @@ fn we_can_compute_the_bit_matrix_for_data_with_a_single_varying_bit() {
     let matrix = compute_varying_bit_matrix(&alloc, &data, &dist);
     assert_eq!(matrix.len(), 1);
     let slice1 = vec![true, false];
-    assert_eq!(matrix[0], slice1)
+    assert_eq!(matrix[0], slice1);
 }
 
 #[test]
@@ -40,7 +40,7 @@ fn we_can_compute_the_bit_matrix_for_data_with_a_varying_sign_bit() {
     let matrix = compute_varying_bit_matrix(&alloc, &data, &dist);
     assert_eq!(matrix.len(), 1);
     let slice1 = vec![false, true];
-    assert_eq!(matrix[0], slice1)
+    assert_eq!(matrix[0], slice1);
 }
 
 #[test]

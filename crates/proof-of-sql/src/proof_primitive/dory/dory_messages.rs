@@ -6,6 +6,7 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use num_traits::Zero;
 
 #[derive(Default, Clone, CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug)]
+#[allow(clippy::struct_field_names)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
 ///
@@ -86,6 +87,8 @@ impl DoryMessages {
         transcript.extend_canonical_serialize_as_le(&message);
         message
     }
+
+    #[allow(clippy::unused_self)]
     /// This is the F message that the verifier sends to the prover.
     /// This message is produces as a challenge from the transcript.
     ///
@@ -93,7 +96,7 @@ impl DoryMessages {
     pub(super) fn verifier_F_message(&mut self, transcript: &mut impl Transcript) -> (F, F) {
         let mut message = F::zero();
         while message.is_zero() {
-            message = transcript.scalar_challenge_as_be::<DoryScalar>().0
+            message = transcript.scalar_challenge_as_be::<DoryScalar>().0;
         }
         let message_inv = message.inverse().unwrap();
         (message, message_inv)

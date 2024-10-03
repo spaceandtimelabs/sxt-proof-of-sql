@@ -70,7 +70,7 @@ pub enum TableCommitmentArithmeticError {
         /// The underlying source error
         source: ColumnCommitmentsMismatch,
     },
-    /// Cannot perform TableCommitment arithmetic that would result in a negative range.
+    /// Cannot perform `TableCommitment` arithmetic that would result in a negative range.
     #[snafu(transparent)]
     NegativeRange {
         /// The underlying source error
@@ -170,21 +170,25 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a reference to this type's internal [`ColumnCommitments`].
+    #[must_use]
     pub fn column_commitments(&self) -> &ColumnCommitments<C> {
         &self.column_commitments
     }
 
     /// Returns a reference to the range of rows this type commits to.
+    #[must_use]
     pub fn range(&self) -> &Range<usize> {
         &self.range
     }
 
     /// Returns the number of columns in the committed table.
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.column_commitments.len()
     }
 
     /// Returns the number of rows that have been committed to.
+    #[must_use]
     pub fn num_rows(&self) -> usize {
         self.range.len()
     }
@@ -735,7 +739,7 @@ mod tests {
         table_commitment_clone
             .append_owned_table(&append_columns, &())
             .unwrap();
-        assert_eq!(table_commitment, table_commitment_clone)
+        assert_eq!(table_commitment, table_commitment_clone);
     }
 
     #[test]

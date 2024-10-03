@@ -10,7 +10,7 @@ pub(crate) mod test_utility;
 mod filter_exec;
 pub(crate) use filter_exec::FilterExec;
 #[cfg(test)]
-pub(crate) use filter_exec::OstensibleFilterExec;
+pub(crate) use filter_exec::OstensibleFilterExecution;
 #[cfg(all(test, feature = "blitzar"))]
 mod filter_exec_test;
 #[cfg(all(test, feature = "blitzar"))]

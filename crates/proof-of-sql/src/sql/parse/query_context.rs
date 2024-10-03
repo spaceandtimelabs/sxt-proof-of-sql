@@ -114,6 +114,7 @@ impl QueryContext {
         }
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
@@ -161,7 +162,7 @@ impl QueryContext {
             if self
                 .res_aliased_exprs
                 .iter()
-                .map(|c| (c.alias == col.alias) as u64)
+                .map(|c| u64::from(c.alias == col.alias))
                 .sum::<u64>()
                 != 1
             {

@@ -138,7 +138,7 @@ fn we_can_use_int128_columns_inside_order_by_in_asc_order() {
 #[test]
 fn we_can_do_order_by_with_random_i128_data() {
     let mut rng = rand::thread_rng();
-    let range: Vec<i128> = (-300000..300000).collect();
+    let range: Vec<i128> = (-300_000..300_000).collect();
     let table: Vec<i128> = range
         .iter()
         .map(|_| rng.gen_range(i128::MIN..i128::MAX))

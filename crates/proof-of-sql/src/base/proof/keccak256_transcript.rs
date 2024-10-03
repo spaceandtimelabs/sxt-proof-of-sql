@@ -21,7 +21,7 @@ impl TranscriptCore for Keccak256Transcript {
         Self(Keccak::v256())
     }
     fn raw_append(&mut self, message: &[u8]) {
-        self.0.update(message)
+        self.0.update(message);
     }
     fn raw_challenge(&mut self) -> [u8; 32] {
         let mut result = [0; 32];
@@ -42,14 +42,14 @@ mod tests {
     use super::{super::transcript_core::test_util::*, Keccak256Transcript};
     #[test]
     fn we_get_equivalent_challenges_with_equivalent_keccak256_transcripts() {
-        we_get_equivalent_challenges_with_equivalent_transcripts::<Keccak256Transcript>()
+        we_get_equivalent_challenges_with_equivalent_transcripts::<Keccak256Transcript>();
     }
     #[test]
     fn we_get_different_challenges_with_different_keccak256_transcripts() {
-        we_get_different_challenges_with_different_transcripts::<Keccak256Transcript>()
+        we_get_different_challenges_with_different_transcripts::<Keccak256Transcript>();
     }
     #[test]
     fn we_get_different_nontrivial_consecutive_challenges_from_keccak256_transcript() {
-        we_get_different_nontrivial_consecutive_challenges_from_transcript::<Keccak256Transcript>()
+        we_get_different_nontrivial_consecutive_challenges_from_transcript::<Keccak256Transcript>();
     }
 }

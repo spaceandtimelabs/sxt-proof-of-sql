@@ -1,7 +1,7 @@
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use super::interpolate::*;
 use crate::base::scalar::{Curve25519Scalar, Curve25519Scalar as S};

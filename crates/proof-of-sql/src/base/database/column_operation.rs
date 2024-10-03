@@ -40,15 +40,15 @@ pub fn try_add_subtract_column_types(
         Ok(ColumnType::Scalar)
     } else {
         let left_precision_value =
-            lhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(lhs.precision_value().expect("Numeric types have precision"));
         let right_precision_value =
-            rhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(rhs.precision_value().expect("Numeric types have precision"));
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.max(right_scale);
-        let precision_value: i16 = scale as i16
-            + (left_precision_value - left_scale as i16)
-                .max(right_precision_value - right_scale as i16)
+        let precision_value: i16 = i16::from(scale)
+            + (left_precision_value - i16::from(left_scale))
+                .max(right_precision_value - i16::from(right_scale))
             + 1_i16;
         let precision = u8::try_from(precision_value)
             .map_err(|_| ColumnOperationError::DecimalConversionError {
@@ -95,8 +95,7 @@ pub fn try_multiply_column_types(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: format!(
-                        "Required precision {} is beyond what we can support",
-                        precision_value
+                        "Required precision {precision_value} is beyond what we can support"
                     ),
                 },
             }
@@ -106,7 +105,7 @@ pub fn try_multiply_column_types(
         let scale = left_scale.checked_add(right_scale).ok_or(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidScale {
-                    scale: left_scale as i16 + right_scale as i16,
+                    scale: i16::from(left_scale) + i16::from(right_scale),
                 },
             },
         )?;
@@ -136,10 +135,12 @@ pub fn try_divide_column_types(
         // We can unwrap here because we know that both types are integers
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
-    let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;
-    let right_precision_value = rhs.precision_value().expect("Numeric types have precision") as i16;
-    let left_scale = lhs.scale().expect("Numeric types have scale") as i16;
-    let right_scale = rhs.scale().expect("Numeric types have scale") as i16;
+    let left_precision_value =
+        i16::from(lhs.precision_value().expect("Numeric types have precision"));
+    let right_precision_value =
+        i16::from(rhs.precision_value().expect("Numeric types have precision"));
+    let left_scale = i16::from(lhs.scale().expect("Numeric types have scale"));
+    let right_scale = i16::from(rhs.scale().expect("Numeric types have scale"));
     let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
     let scale =
@@ -242,7 +243,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_add(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                    error: format!("Overflow in integer addition {l:?} + {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -260,7 +261,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_sub(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -278,7 +279,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_mul(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                    error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -375,7 +376,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_add(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                    error: format!("Overflow in integer addition {l:?} + {r:?}"),
                 },
             )
         })
@@ -398,7 +399,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_sub(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 },
             )
         })
@@ -421,7 +422,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             l.checked_sub(&Into::<LargerType>::into(*r)).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 },
             )
         })
@@ -445,7 +446,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_mul(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                    error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
                 },
             )
         })
@@ -841,8 +842,8 @@ where
 /// 2. We use floor division for rounding.
 /// 3. If division by zero occurs, we return an error.
 /// 4. Precision and scale follow T-SQL rules. That is,
-///   - new_scale = max(6, right_precision + left_scale + 1)
-///   - new_precision = left_precision - left_scale + right_scale + new_scale
+///   - `new_scale` = max(6, `right_precision` + `left_scale` + 1)
+///   - `new_precision` = `left_precision` - `left_scale` + `right_scale` + `new_scale`
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -866,7 +867,7 @@ where
         .scale()
         .expect("numeric columns have scale");
     let applied_scale = rhs_scale - lhs_scale + new_scale;
-    let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
+    let applied_scale_factor = BigInt::from(10).pow(u32::from(applied_scale.unsigned_abs()));
     let res: Vec<S> = lhs
         .iter()
         .zip(rhs)
@@ -1427,7 +1428,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71_i64, 150000, -20000]
+        let rhs = [71_i64, 150_000, -20000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1438,7 +1439,7 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
-        let lhs = [71_i64, 150000, -20000]
+        let lhs = [71_i64, 150_000, -20000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1457,7 +1458,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71_i64, 150000, -20000]
+        let rhs = [71_i64, 150_000, -20000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1548,7 +1549,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71_i64, 150000, -30000]
+        let rhs = [71_i64, 150_000, -30000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1559,7 +1560,7 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
-        let lhs = [71_i64, 150000, -19000]
+        let lhs = [71_i64, 150_000, -19000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1578,7 +1579,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71000_i64, 150000, -21000]
+        let rhs = [71000_i64, 150_000, -21000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1669,7 +1670,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71_i64, 150000, -30000]
+        let rhs = [71_i64, 150_000, -30000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1680,7 +1681,7 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is decimal with nonnegative scale and rhs is decimal with negative scale
-        let lhs = [71_i64, 150000, -19000]
+        let lhs = [71_i64, 150_000, -19000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1699,7 +1700,7 @@ mod test {
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
-        let rhs = [71000_i64, 150000, -21000]
+        let rhs = [71000_i64, 150_000, -21000]
             .into_iter()
             .map(Curve25519Scalar::from)
             .collect::<Vec<_>>();
@@ -1838,9 +1839,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(400071),
-            Curve25519Scalar::from(1499918),
-            Curve25519Scalar::from(-199977),
+            Curve25519Scalar::from(400_071),
+            Curve25519Scalar::from(1_499_918),
+            Curve25519Scalar::from(-199_977),
         ];
         let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -2000,9 +2001,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(399929),
-            Curve25519Scalar::from(1500082),
-            Curve25519Scalar::from(-200023),
+            Curve25519Scalar::from(399_929),
+            Curve25519Scalar::from(1_500_082),
+            Curve25519Scalar::from(-200_023),
         ];
         let expected = (Precision::new(75).unwrap(), 3, expected_scalars);
         assert_eq!(expected, actual);
@@ -2246,8 +2247,8 @@ mod test {
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             Curve25519Scalar::from(0_i64),
-            Curve25519Scalar::from(40000000_i64),
-            Curve25519Scalar::from(150000000_i64),
+            Curve25519Scalar::from(40_000_000_i64),
+            Curve25519Scalar::from(150_000_000_i64),
         ];
         let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2263,9 +2264,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(5633802),
-            Curve25519Scalar::from(-18292682),
-            Curve25519Scalar::from(-8695652),
+            Curve25519Scalar::from(5_633_802),
+            Curve25519Scalar::from(-18_292_682),
+            Curve25519Scalar::from(-8_695_652),
         ];
         let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2284,9 +2285,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(1333333),
-            Curve25519Scalar::from(-400000),
-            Curve25519Scalar::from(-285714),
+            Curve25519Scalar::from(1_333_333),
+            Curve25519Scalar::from(-400_000),
+            Curve25519Scalar::from(-285_714),
         ];
         let expected = (Precision::new(10).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2305,9 +2306,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(5633802816_i128),
-            Curve25519Scalar::from(-18292682926_i128),
-            Curve25519Scalar::from(-8695652173_i128),
+            Curve25519Scalar::from(5_633_802_816_i128),
+            Curve25519Scalar::from(-18_292_682_926_i128),
+            Curve25519Scalar::from(-8_695_652_173_i128),
         ];
         let expected = (Precision::new(13).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2326,9 +2327,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(563380),
-            Curve25519Scalar::from(-1829268),
-            Curve25519Scalar::from(-869565),
+            Curve25519Scalar::from(563_380),
+            Curve25519Scalar::from(-1_829_268),
+            Curve25519Scalar::from(-869_565),
         ];
         let expected = (Precision::new(9).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);

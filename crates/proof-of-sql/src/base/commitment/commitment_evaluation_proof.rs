@@ -26,7 +26,7 @@ pub trait CommitmentEvaluationProof {
     type VerifierPublicSetup<'a>: Copy;
     /// Create a new proof.
     ///
-    /// Note: b_point must have length `nu`, where `2^nu` is at least the length of `a`.
+    /// Note: `b_point` must have length `nu`, where `2^nu` is at least the length of `a`.
     /// `b_point` are the values for the variables that are being evaluated.
     /// The resulting evaluation is the the inner product of `a` and `b`, where `b` is the expanded vector form of `b_point`.
     fn new(
@@ -38,7 +38,7 @@ pub trait CommitmentEvaluationProof {
     ) -> Self;
     /// Verify a proof.
     ///
-    /// Note: b_point must have length `nu`, where `2^nu` is at least the length of `a`.
+    /// Note: `b_point` must have length `nu`, where `2^nu` is at least the length of `a`.
     /// `b_point` are the values for the variables that are being evaluated.
     /// The resulting evaluation is the the inner product of `a` and `b`, where `b` is the expanded vector form of `b_point`.
     #[allow(clippy::too_many_arguments)]

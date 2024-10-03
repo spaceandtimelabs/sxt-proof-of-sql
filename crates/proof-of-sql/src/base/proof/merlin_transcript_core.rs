@@ -3,7 +3,7 @@ impl super::transcript_core::TranscriptCore for merlin::Transcript {
         merlin::Transcript::new(b"TranscriptCore::new")
     }
     fn raw_append(&mut self, message: &[u8]) {
-        self.append_message(b"TranscriptCore::raw_append", message)
+        self.append_message(b"TranscriptCore::raw_append", message);
     }
     fn raw_challenge(&mut self) -> [u8; 32] {
         let mut result = [0u8; 32];

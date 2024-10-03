@@ -116,7 +116,7 @@ enum Commands {
 }
 
 fn start_timer(message: &str) -> Instant {
-    print!("{}...", message);
+    print!("{message}...");
     stdout().flush().unwrap();
     Instant::now()
 }

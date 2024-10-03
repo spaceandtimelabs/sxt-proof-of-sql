@@ -7,7 +7,7 @@ use crate::base::{
 /**
  * Adopted from arkworks
  *
- * See third_party/license/arkworks.LICENSE
+ * See `third_party/license/arkworks.LICENSE`
  */
 use crate::proof_primitive::sumcheck::proof::*;
 use alloc::rc::Rc;
@@ -84,7 +84,7 @@ fn random_product(
 ) -> (Vec<Rc<Vec<Curve25519Scalar>>>, Curve25519Scalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
-        multiplicands.push(Vec::with_capacity(1 << nv))
+        multiplicands.push(Vec::with_capacity(1 << nv));
     }
     let mut sum = Curve25519Scalar::zero();
 

@@ -19,7 +19,7 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     lhs: &[S],
     rhs: &[S],
     table_length: usize,
-) -> ConversionResult<&'a [S]> {
+) -> &'a [S] {
     let res = alloc.alloc_slice_fill_default(table_length);
     if_rayon!(res.par_iter_mut(), res.iter_mut())
         .zip(lhs)
@@ -27,7 +27,7 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
         .for_each(|((a, l), r)| {
             *a = *l - *r;
         });
-    Ok(res)
+    res
 }
 
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
@@ -85,10 +85,10 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
             }
         })?;
     }
-    unchecked_subtract_impl(
+    Ok(unchecked_subtract_impl(
         alloc,
         &lhs.to_scalar_with_scaling(lhs_upscale),
         &rhs.to_scalar_with_scaling(rhs_upscale),
         lhs_len,
-    )
+    ))
 }
