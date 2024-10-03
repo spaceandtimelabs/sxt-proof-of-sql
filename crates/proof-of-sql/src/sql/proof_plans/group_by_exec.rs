@@ -75,11 +75,11 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for expr in self.group_by_exprs.iter() {
+        for expr in &self.group_by_exprs {
             expr.count(builder)?;
             builder.count_result_columns(1);
         }
-        for aliased_expr in self.sum_expr.iter() {
+        for aliased_expr in &self.sum_expr {
             aliased_expr.expr.count(builder)?;
             builder.count_result_columns(1);
         }
@@ -194,10 +194,10 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         let mut columns = IndexSet::default();
 
-        for col in self.group_by_exprs.iter() {
+        for col in &self.group_by_exprs {
             columns.insert(col.get_column_reference());
         }
-        for aliased_expr in self.sum_expr.iter() {
+        for aliased_expr in &self.sum_expr {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 

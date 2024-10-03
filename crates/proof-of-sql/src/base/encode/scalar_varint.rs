@@ -71,7 +71,7 @@ pub fn read_u256_varint(buf: &[u8]) -> Option<(U256, usize)> {
 
     // we keep reading until we find a byte with the MSB equal to zero,
     // which implies that we have read the whole varint number
-    for next_byte in buf.iter() {
+    for next_byte in buf {
         // we write the `next 7 bits` at the [shift_amount..shift_amount + 7)
         // bit positions of val u256 number
         match shift_amount.cmp(&126_u32) {
