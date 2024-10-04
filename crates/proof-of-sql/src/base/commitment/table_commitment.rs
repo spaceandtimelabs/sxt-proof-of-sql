@@ -133,7 +133,10 @@ where
 
 impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
-    #[allow(clippy::missing_panics_doc, reason = "The assertion ensures that from_accessor should not create columns with a negative range")]
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures that from_accessor should not create columns with a negative range"
+    )]
     pub fn from_accessor_with_max_bounds(
         table_ref: TableRef,
         columns: &[ColumnField],
@@ -226,7 +229,10 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
-    #[allow(clippy::missing_panics_doc, reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers")]
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers"
+    )]
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,

@@ -102,7 +102,10 @@ impl<'a> QueryContextBuilder<'a> {
 
 // Private interface
 impl<'a> QueryContextBuilder<'a> {
-    #[allow(clippy::missing_panics_doc, reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval.")]
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."
+    )]
     fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
         let table_ref = self.context.get_table_ref();
         let columns = self.schema_accessor.lookup_schema(*table_ref);

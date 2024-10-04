@@ -1,7 +1,10 @@
 use crate::base::{database::Column, math::decimal::scale_scalar, scalar::Scalar};
 use bumpalo::Bump;
 
-#[allow(clippy::missing_panics_doc, reason = "lhs and rhs are guaranteed to have the same length by design, ensuring no panic occurs")]
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "lhs and rhs are guaranteed to have the same length by design, ensuring no panic occurs"
+)]
 /// Add or subtract two columns together.
 pub(crate) fn add_subtract_columns<'a, S: Scalar>(
     lhs: Column<'a, S>,
@@ -49,7 +52,10 @@ pub(crate) fn multiply_columns<'a, S: Scalar>(
     })
 }
 
-#[allow(clippy::missing_panics_doc, reason = "scaling factor is guaranteed to not be negative based on input validation prior to calling this function")]
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "scaling factor is guaranteed to not be negative based on input validation prior to calling this function"
+)]
 /// The counterpart of `add_subtract_columns` for evaluating decimal expressions.
 pub(crate) fn scale_and_add_subtract_eval<S: Scalar>(
     lhs_eval: S,

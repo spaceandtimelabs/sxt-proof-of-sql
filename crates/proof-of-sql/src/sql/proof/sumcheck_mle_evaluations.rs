@@ -33,7 +33,10 @@ pub struct SumcheckMleEvaluations<'a, S: Scalar> {
     pub result_evaluations: &'a [S],
 }
 
-#[allow(clippy::missing_panics_doc, reason = "Assertions ensure preconditions are met, eliminating the possibility of panic.")]
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
+)]
 impl<'a, S: Scalar> SumcheckMleEvaluations<'a, S> {
     /// Constructs the evaluations for the sumcheck MLEs.
     ///

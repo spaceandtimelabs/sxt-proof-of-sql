@@ -18,7 +18,10 @@ pub fn is_within_acceptable_range(dist: &BitDistribution) -> bool {
     dist.most_significant_abs_bit() <= 128
 }
 
-#[allow(clippy::missing_panics_doc, reason = "All assertions check for validity within the context, ensuring no panic can occur")]
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "All assertions check for validity within the context, ensuring no panic can occur"
+)]
 /// Given a bit distribution for a column of data with a constant sign, the evaluation of a column
 /// of ones, the constant column's evaluation, and the evaluation of varying absolute bits, verify
 /// that the bit distribution is correct.
@@ -52,7 +55,10 @@ pub fn verify_constant_sign_decomposition<S: Scalar>(
     }
 }
 
-#[allow(clippy::missing_panics_doc, reason = "The assertion checks ensure that conditions are valid, preventing panics")]
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "The assertion checks ensure that conditions are valid, preventing panics"
+)]
 pub fn verify_constant_abs_decomposition<S: Scalar>(
     dist: &BitDistribution,
     eval: S,
