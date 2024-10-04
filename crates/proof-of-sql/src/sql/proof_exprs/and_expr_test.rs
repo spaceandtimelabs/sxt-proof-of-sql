@@ -1,11 +1,13 @@
 use crate::{
     base::{
-        commitment::InnerProductProof,
+        commitment::{test_evaluation_proof::TestEvaluationProof, InnerProductProof},
         database::{owned_table_utility::*, Column, OwnedTableTestAccessor},
     },
     sql::{
         proof::{exercise_verification, VerifiableQueryResult},
-        proof_exprs::{test_utility::*, DynProofExpr, ProofExpr},
+        proof_exprs::{
+            proof_expr_test_plan::ProofExprTestPlan, test_utility::*, DynProofExpr, ProofExpr,
+        },
         proof_plans::test_utility::*,
     },
 };
@@ -17,6 +19,27 @@ use rand::{
     rngs::StdRng,
 };
 use rand_core::SeedableRng;
+
+#[test]
+fn we_can_prove_a_simple_and_expr() {
+    let data = owned_table([
+        boolean("a", [false, true, false, true]),
+        boolean("b", [false, false, true, true]),
+    ]);
+    let t = "sxt.t".parse().unwrap();
+    let accessor = OwnedTableTestAccessor::<TestEvaluationProof>::new_from_table(t, data, 0, ());
+    let ast = ProofExprTestPlan {
+        expr: and(column(t, "a", &accessor), column(t, "b", &accessor)),
+        table: t,
+        result_name: "c".parse().unwrap(),
+    };
+    let verifiable_res = VerifiableQueryResult::<TestEvaluationProof>::new(&ast, &accessor, &());
+    let res = verifiable_res.verify(&ast, &accessor, &()).unwrap().table;
+    assert_eq!(
+        res,
+        owned_table([boolean("c", [false, false, false, true])])
+    );
+}
 
 #[test]
 fn we_can_prove_a_simple_and_query() {

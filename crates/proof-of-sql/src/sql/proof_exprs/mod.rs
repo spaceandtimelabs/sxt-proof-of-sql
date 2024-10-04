@@ -84,3 +84,6 @@ mod column_expr_test;
 
 #[allow(dead_code, unused_variables)]
 mod range_check;
+
+#[cfg(test)]
+mod proof_expr_test_plan;
