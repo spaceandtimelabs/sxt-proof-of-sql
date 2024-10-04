@@ -146,18 +146,17 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 
 3. Follow our [Coding Rules](#rules).
 
-4. Run the entire test suite to ensure tests are passing.
+4. <a name="test-suite"></a>Run the entire test suite to ensure tests are passing.
 
     ```shell
     cargo test --all-features
     ```
 
-5. Run the following code quality checks locally so that the code is not only correct but also clean.
+5. <a name="code-quality-checks"></a>Run the following code quality checks locally so that the code is not only correct but also clean.
 
     ```shell
     cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
     cargo clippy --all-targets --all-features -- -D warnings
-    cargo +nightly udeps --all-targets
     ```
 
 6. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
@@ -180,7 +179,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 
 Our proof of SQL repository triggers automatically a workflow to test the code whenever a Pull Request is submitted or a commit is pushed to an existing PR. Before closing the PR, always verify that those tests are indeed passing.
 
-NOTE: **We will not review a PR if CI (except for `Check Approver` since this requires a review) doesn't pass. We are happy to help you if you can't figure out how to get the CI to pass but it is your responsibility to make sure they pass.**
+NOTE: <a name="ci-review-note"></a>**We will not review a PR if CI (except for `Check Approver` since this requires a review) doesn't pass. We are happy to help you if you can't figure out how to get the CI to pass but it is your responsibility to make sure they pass.**
 
 Also, to ease this process of using git, you can try to use [vscode](https://code.visualstudio.com/). Vscode has some nice extensions to manage your git workflow.
 
@@ -190,9 +189,9 @@ If we ask for changes via code reviews then:
 
 1. Make the required updates to the code.
 
-2. Re-run the entire test suite to ensure tests are still passing.
+2. [Re-run the entire test suite](#test-suite) to ensure tests are still passing.
 
-3. Re-run the code quality checks above to ensure that the code is still clean.
+3. [Re-run the code quality checks](#code-quality-checks) to ensure that the code is still clean.
 
 4. Create a fixup commit and push to your GitHub repository (this will update your Pull Request):
 
@@ -211,7 +210,7 @@ If we ask for changes via code reviews then:
 
     For more info on working with fixup commits see [here](https://github.com/angular/angular/blob/main/docs/FIXUP_COMMITS.md).
 
-5. When merging the PR, try to choose the squashed merge version as it does not pollute the main branch with many commit messages.
+5. In order to ensure that we do not pollute the main branch with poorly written commit messages, before the PR can be merged, we require that the commits in your branch be clean. In particular, this means that you should rebase instead of merge in order to catch up to main. Additionally, any commits of the variety `address review comments` should be turned into a fixup commit instead.
 
 ### <a name="updating-commit-message"></a> Updating the commit message
 
