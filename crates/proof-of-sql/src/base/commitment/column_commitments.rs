@@ -75,26 +75,31 @@ impl<C: Commitment> ColumnCommitments<C> {
     }
 
     /// Returns a reference to the stored commitments.
+    #[must_use]
     pub fn commitments(&self) -> &Vec<C> {
         &self.commitments
     }
 
     /// Returns a reference to the stored column metadata.
+    #[must_use]
     pub fn column_metadata(&self) -> &ColumnCommitmentMetadataMap {
         &self.column_metadata
     }
 
     /// Returns the number of columns.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.column_metadata.len()
     }
 
     /// Returns true if there are no columns.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.column_metadata.is_empty()
     }
 
     /// Returns the commitment with the given identifier.
+    #[must_use]
     pub fn get_commitment(&self, identifier: &Identifier) -> Option<C> {
         self.column_metadata
             .get_index_of(identifier)
@@ -102,6 +107,7 @@ impl<C: Commitment> ColumnCommitments<C> {
     }
 
     /// Returns the metadata for the commitment with the given identifier.
+    #[must_use]
     pub fn get_metadata(&self, identifier: &Identifier) -> Option<&ColumnCommitmentMetadata> {
         self.column_metadata.get(identifier)
     }

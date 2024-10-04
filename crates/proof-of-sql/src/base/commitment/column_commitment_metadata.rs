@@ -68,6 +68,7 @@ impl ColumnCommitmentMetadata {
     }
 
     /// Construct a [`ColumnCommitmentMetadata`] with widest possible bounds for the column type.
+    #[must_use]
     pub fn from_column_type_with_max_bounds(column_type: ColumnType) -> Self {
         let bounds = match column_type {
             ColumnType::SmallInt => ColumnBounds::SmallInt(super::Bounds::Bounded(
@@ -101,16 +102,19 @@ impl ColumnCommitmentMetadata {
     }
 
     /// Immutable reference to this column's type.
+    #[must_use]
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
 
     /// Immutable reference to this column's bounds.
+    #[must_use]
     pub fn bounds(&self) -> &ColumnBounds {
         &self.bounds
     }
 
     /// Contruct a [`ColumnCommitmentMetadata`] by analyzing a column.
+    #[must_use]
     pub fn from_column(column: &CommittableColumn) -> ColumnCommitmentMetadata {
         ColumnCommitmentMetadata {
             column_type: column.column_type(),

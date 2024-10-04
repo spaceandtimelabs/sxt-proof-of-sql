@@ -85,6 +85,7 @@ impl Precision {
     }
 
     /// Gets the precision as a u8 for this decimal
+    #[must_use]
     pub fn value(&self) -> u8 {
         self.0
     }
