@@ -131,7 +131,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
     let column = ColumnRef::new(table_ref_1, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
-        accessor.get_commitment(column),
+        accessor.get_commitment(column.clone()),
         RistrettoPoint::compute_commitments(
             &[CommittableColumn::from(&[4i64, 5, 6][..])],
             0_usize,
@@ -144,7 +144,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
     let column = ColumnRef::new(table_ref_1, "a".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
-        accessor.get_commitment(column),
+        accessor.get_commitment(column.clone()),
         RistrettoPoint::compute_commitments(
             &[CommittableColumn::from(&[1i64, 2, 3][..])],
             0_usize,
@@ -154,7 +154,7 @@ fn we_can_access_the_commitments_of_table_columns() {
 
     let column = ColumnRef::new(table_ref_2, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
-        accessor.get_commitment(column),
+        accessor.get_commitment(column.clone()),
         RistrettoPoint::compute_commitments(
             &[CommittableColumn::from(&[4i64, 5, 6, 5][..])],
             0_usize,
@@ -236,13 +236,13 @@ fn we_can_correctly_update_offsets() {
 
     let column = ColumnRef::new(table_ref, "a".parse().unwrap(), ColumnType::BigInt);
     assert_ne!(
-        accessor1.get_commitment(column),
-        accessor2.get_commitment(column)
+        accessor1.get_commitment(column.clone()),
+        accessor2.get_commitment(column.clone())
     );
     let column = ColumnRef::new(table_ref, "b".parse().unwrap(), ColumnType::BigInt);
     assert_ne!(
-        accessor1.get_commitment(column),
-        accessor2.get_commitment(column)
+        accessor1.get_commitment(column.clone()),
+        accessor2.get_commitment(column.clone())
     );
 
     assert_eq!(accessor1.get_offset(table_ref), 0);
@@ -252,13 +252,13 @@ fn we_can_correctly_update_offsets() {
 
     let column = ColumnRef::new(table_ref, "a".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
-        accessor1.get_commitment(column),
-        accessor2.get_commitment(column)
+        accessor1.get_commitment(column.clone()),
+        accessor2.get_commitment(column.clone())
     );
     let column = ColumnRef::new(table_ref, "b".parse().unwrap(), ColumnType::BigInt);
     assert_eq!(
-        accessor1.get_commitment(column),
-        accessor2.get_commitment(column)
+        accessor1.get_commitment(column.clone()),
+        accessor2.get_commitment(column.clone())
     );
 
     assert_eq!(accessor1.get_offset(table_ref), offset);

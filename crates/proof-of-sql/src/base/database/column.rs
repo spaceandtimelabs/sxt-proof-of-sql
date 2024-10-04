@@ -208,7 +208,7 @@ impl<'a, S: Scalar> Column<'a, S> {
 ///
 /// See `<https://ignite.apache.org/docs/latest/sql-reference/data-types>` for
 /// a description of the native types used by Apache Ignite.
-#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize, Copy)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
@@ -237,30 +237,38 @@ pub enum ColumnType {
     /// Mapped to Curve25519Scalar
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
+
+    /// Nullable version of the column type
+    #[serde(alias = "NULLABLE", alias = "nullable")]
+    Nullable(Box<ColumnType>),
 }
 
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
     #[must_use]
     pub fn is_numeric(&self) -> bool {
-        matches!(
-            self,
+        match self {
+            ColumnType::Nullable(v) => v.is_numeric(),
             ColumnType::SmallInt
-                | ColumnType::Int
-                | ColumnType::BigInt
-                | ColumnType::Int128
-                | ColumnType::Scalar
-                | ColumnType::Decimal75(_, _)
-        )
+            | ColumnType::Int
+            | ColumnType::BigInt
+            | ColumnType::Int128
+            | ColumnType::Scalar
+            | ColumnType::Decimal75(_, _) => true,
+            _ => false,
+        }
     }
 
     /// Returns true if this column is an integer and false otherwise
     #[must_use]
     pub fn is_integer(&self) -> bool {
-        matches!(
-            self,
-            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
-        )
+        match self {
+            ColumnType::Nullable(v) => v.is_integer(),
+            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128 => {
+                true
+            }
+            _ => false,
+        }
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
@@ -270,6 +278,7 @@ impl ColumnType {
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
             ColumnType::Int128 => Some(128),
+            ColumnType::Nullable(v) => v.to_integer_bits(),
             _ => None,
         }
     }
@@ -296,8 +305,9 @@ impl ColumnType {
         if !self.is_integer() || !other.is_integer() {
             return None;
         }
-        self.to_integer_bits().and_then(|self_bits| {
+        self.clone().to_integer_bits().and_then(|self_bits| {
             other
+                .clone()
                 .to_integer_bits()
                 .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits)))
         })
@@ -317,6 +327,7 @@ impl ColumnType {
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
             Self::Boolean | Self::VarChar => None,
+            ColumnType::Nullable(val) => val.precision_value(),
         }
     }
     /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
@@ -332,6 +343,7 @@ impl ColumnType {
                 PoSQLTimeUnit::Microsecond => Some(6),
                 PoSQLTimeUnit::Nanosecond => Some(9),
             },
+            ColumnType::Nullable(val) => val.scale(),
         }
     }
 
@@ -345,6 +357,7 @@ impl ColumnType {
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
             Self::Int128 => size_of::<i128>(),
             Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+            ColumnType::Nullable(val) => val.byte_size(),
         }
     }
 
@@ -362,8 +375,50 @@ impl ColumnType {
                 true
             }
             Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+            ColumnType::Nullable(val) => val.is_signed(),
         }
     }
+
+    /// Check if the column type is nullable
+    pub fn is_nullable(&self) -> bool {
+        matches!(self, ColumnType::Nullable(_))
+    }
+
+    /// Convert a column type to its nullable variant
+    pub fn into_nullable(self) -> ColumnType {
+        match self {
+            ColumnType::Nullable(_) => self,
+            val => ColumnType::Nullable(Box::new(val)),
+        }
+    }
+
+    /// Get the inner column type if nullable
+    pub fn unwrap_nullable(&self) -> Option<&ColumnType> {
+        if let ColumnType::Nullable(inner) = self {
+            Some(&*inner)
+        } else {
+            None
+        }
+    }
+
+    /*
+    TODO: remove unused code
+    pub fn into_owned_col<S: Scalar>(self) -> OwnedColumn<S> {
+            match self{
+                ColumnType::Boolean => OwnedColumn::Boolean(vec![]),
+                ColumnType::SmallInt => OwnedColumn::SmallInt(vec![]),
+                ColumnType::Int => OwnedColumn::Int(vec![]),
+                ColumnType::BigInt => OwnedColumn::BigInt(vec![]),
+                ColumnType::Int128 => OwnedColumn::Int128(vec![]),
+                ColumnType::Decimal75(precision, scale) => {
+                    OwnedColumn::Decimal75(precision, scale, vec![])
+                }
+                ColumnType::Scalar => OwnedColumn::Scalar(vec![]),
+                ColumnType::VarChar => OwnedColumn::VarChar(vec![]),
+                ColumnType::TimestampTZ(tu, tz) => OwnedColumn::TimestampTZ(tu, tz, vec![]),
+                ColumnType::Nullable(val) => val.into_owned_col()
+            }
+        }*/
 }
 
 /// Convert ColumnType values to some arrow DataType
@@ -391,6 +446,7 @@ impl From<&ColumnType> for DataType {
                 };
                 DataType::Timestamp(arrow_timeunit, arrow_timezone)
             }
+            ColumnType::Nullable(val) => val.as_ref().into(),
         }
     }
 }
@@ -449,12 +505,13 @@ impl Display for ColumnType {
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
             }
+            ColumnType::Nullable(val) => val.fmt(f),
         }
     }
 }
 
 /// Reference of a SQL column
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct ColumnRef {
     column_id: Identifier,
     table_ref: TableRef,
@@ -495,7 +552,7 @@ impl ColumnRef {
 /// of a column in a table. Namely: it's name and type.
 ///
 /// This is the analog of a `Field` in Apache Arrow.
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct ColumnField {
     name: Identifier,
     data_type: ColumnType,
@@ -517,7 +574,7 @@ impl ColumnField {
     /// Returns the type of the column
     #[must_use]
     pub fn data_type(&self) -> ColumnType {
-        self.data_type
+        self.data_type.clone()
     }
 }
 

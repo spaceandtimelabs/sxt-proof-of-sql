@@ -32,12 +32,15 @@ impl<C: Commitment> ColumnExpr<C> {
 
     /// Return the column referenced by this ColumnExpr
     pub fn get_column_reference(&self) -> ColumnRef {
-        self.column_ref
+        self.column_ref.clone()
     }
 
     /// Wrap the column output name and its type within the ColumnField
     pub fn get_column_field(&self) -> ColumnField {
-        ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
+        ColumnField::new(
+            self.column_ref.column_id(),
+            self.column_ref.column_type().clone(),
+        )
     }
 
     /// Get the column identifier
@@ -55,7 +58,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
 
     /// Get the data type of the expression
     fn data_type(&self) -> ColumnType {
-        *self.get_column_reference().column_type()
+        self.get_column_reference().column_type().clone()
     }
 
     /// Evaluate the column expression and
@@ -66,7 +69,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let column = accessor.get_column(self.column_ref);
+        let column = accessor.get_column(self.column_ref.clone());
         assert_eq!(column.len(), table_length);
         column
     }
@@ -79,7 +82,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let column = accessor.get_column(self.column_ref);
+        let column = accessor.get_column(self.column_ref.clone());
         builder.produce_anchored_mle(column);
         column
     }
@@ -91,7 +94,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let col_commit = accessor.get_commitment(self.column_ref);
+        let col_commit = accessor.get_commitment(self.column_ref.clone());
         Ok(builder.consume_anchored_mle(col_commit))
     }
 
@@ -99,6 +102,6 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// references in the BoolExpr or forwards the call to some
     /// subsequent bool_expr
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+        columns.insert(self.column_ref.clone());
     }
 }

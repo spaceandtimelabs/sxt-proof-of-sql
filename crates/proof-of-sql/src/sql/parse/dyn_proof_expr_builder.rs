@@ -72,11 +72,12 @@ impl DynProofExprBuilder<'_> {
         identifier: Identifier,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            *self.column_mapping.get(&identifier).ok_or(
-                ConversionError::MissingColumnWithoutTable {
+            self.column_mapping
+                .get(&identifier)
+                .ok_or(ConversionError::MissingColumnWithoutTable {
                     identifier: Box::new(identifier),
-                },
-            )?,
+                })?
+                .clone(),
         )))
     }
 
@@ -110,7 +111,7 @@ impl DynProofExprBuilder<'_> {
                 let timestamp = match its.timeunit() {
                     PoSQLTimeUnit::Nanosecond => {
                         its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
-                                PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range: 
+                                PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range:
                                 Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
                                 and 2262-04-11T23:47:16.854775807.".to_owned()
                         }

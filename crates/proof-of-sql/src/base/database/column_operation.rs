@@ -25,6 +25,8 @@ pub fn try_add_subtract_column_types(
     rhs: ColumnType,
     operator: BinaryOperator,
 ) -> ColumnOperationResult<ColumnType> {
+    let is_nullable = lhs.is_nullable() || rhs.is_nullable();
+
     if !lhs.is_numeric() || !rhs.is_numeric() {
         return Err(ColumnOperationError::BinaryOperationInvalidColumnType {
             operator,
@@ -34,10 +36,19 @@ pub fn try_add_subtract_column_types(
     }
     if lhs.is_integer() && rhs.is_integer() {
         // We can unwrap here because we know that both types are integers
-        return Ok(lhs.max_integer_type(&rhs).unwrap());
+        let result = lhs.max_integer_type(&rhs).unwrap();
+        return if is_nullable {
+            Ok(result.into_nullable())
+        } else {
+            Ok(result)
+        };
     }
     if lhs == ColumnType::Scalar || rhs == ColumnType::Scalar {
-        Ok(ColumnType::Scalar)
+        return if is_nullable {
+            Ok(ColumnType::Scalar.into_nullable())
+        } else {
+            Ok(ColumnType::Scalar)
+        };
     } else {
         let left_precision_value =
             lhs.precision_value().expect("Numeric types have precision") as i16;
@@ -63,7 +74,11 @@ pub fn try_add_subtract_column_types(
                     },
                 })
             })?;
-        Ok(ColumnType::Decimal75(precision, scale))
+        if is_nullable {
+            Ok(ColumnType::Decimal75(precision, scale).into_nullable())
+        } else {
+            Ok(ColumnType::Decimal75(precision, scale))
+        }
     }
 }
 
@@ -705,8 +720,11 @@ where
     T0: Copy,
     T1: Copy,
 {
-    let new_column_type =
-        try_add_subtract_column_types(left_column_type, right_column_type, BinaryOperator::Add)?;
+    let new_column_type = try_add_subtract_column_types(
+        left_column_type.clone(),
+        right_column_type.clone(),
+        BinaryOperator::Add,
+    )?;
     let new_precision_value = new_column_type
         .precision_value()
         .expect("numeric columns have precision");
@@ -760,8 +778,8 @@ where
     T1: Copy,
 {
     let new_column_type = try_add_subtract_column_types(
-        left_column_type,
-        right_column_type,
+        left_column_type.clone(),
+        right_column_type.clone(),
         BinaryOperator::Subtract,
     )?;
     let new_precision_value = new_column_type
@@ -853,7 +871,8 @@ where
     T0: Copy + Debug + Into<BigInt>,
     T1: Copy + Debug + Into<BigInt>,
 {
-    let new_column_type = try_divide_column_types(left_column_type, right_column_type)?;
+    let new_column_type =
+        try_divide_column_types(left_column_type.clone(), right_column_type.clone())?;
     let new_precision_value = new_column_type
         .precision_value()
         .expect("numeric columns have precision");
@@ -952,6 +971,13 @@ mod test {
         let rhs = ColumnType::Decimal75(Precision::new(15).unwrap(), -14);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
         let expected = ColumnType::Decimal75(Precision::new(75).unwrap(), -13);
+        assert_eq!(expected, actual);
+
+        // check if any of them are nullable
+        let lhs = ColumnType::Nullable(Box::new(ColumnType::SmallInt));
+        let rhs = ColumnType::Int;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::Nullable(Box::new(ColumnType::Int));
         assert_eq!(expected, actual);
     }
 

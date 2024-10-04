@@ -243,7 +243,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
                         identifier: Box::new(*expr),
                         resource_id: Box::new(resource_id),
                     })
-                    .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
+                    .map(|column_ref| ColumnExpr::<C>::new(column_ref.clone()))
             })
             .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:

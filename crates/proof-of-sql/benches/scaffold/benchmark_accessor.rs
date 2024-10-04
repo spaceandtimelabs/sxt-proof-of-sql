@@ -82,7 +82,7 @@ impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
 }
 impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
     fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
-        self.column_types.get(&(table_ref, column_id)).copied()
+        self.column_types.get(&(table_ref, column_id)).cloned()
     }
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.table_schemas.get(&table_ref).unwrap().clone()
