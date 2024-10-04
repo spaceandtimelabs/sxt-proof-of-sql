@@ -302,7 +302,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
                 .clone()
                 .into_iter()
                 .chain(sum_result_columns_iter)
-                .chain(std::iter::once(Column::BigInt(count_column))),
+                .chain(core::iter::once(Column::BigInt(count_column))),
         );
         // 5. Produce MLEs
         res.iter().cloned().for_each(|column| {
