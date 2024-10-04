@@ -7,6 +7,7 @@
 
 The following guideline is heavily based on the [Angular Project Guideline](https://github.com/angular/angular/blob/main/CONTRIBUTING.md). As a contributor, here are the rules we would like you to follow:
 
+ - [Getting Started](#getting-started)
  - [Submission Guidelines](#submit)
    - [Submitting a Pull Request (PR)](#submit-pr)
    - [Addressing review feedback](#address-review)
@@ -23,6 +24,53 @@ The following guideline is heavily based on the [Angular Project Guideline](http
    - [Revert Commits](#revert)
    - [Commit Examples](#commit-examples)
    - [Automatic Semantic Release](#semantic-release)
+
+## <a name="getting-started"></a> Getting Started
+To contribute to this project, you'll need to have Rust installed on your machine. Follow the steps below to install Rust and set up your development environment:
+
+1. Install Rust.
+   - Rust's official installer is called `rustup`, which makes it easy to install and manage Rust versions.
+   - To install Rust, open your terminal and run the following command:
+     ```bash
+     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+     ```
+   - Follow the on-screen instructions to complete the installation.
+
+2. Verify your installation.
+   - Once Rust is installed, verify the installation by checking the version:
+     ```bash
+     rustc --version
+     ```
+   - This should display the version of Rust that was installed.
+
+3. Set up your environment.
+   - After installation, `rustup` will configure your environment automatically, adding Rust to your system's PATH. If needed, you can reload your shell with:
+     ```bash
+     source $HOME/.cargo/env
+     ```
+
+4. Update Rust.
+   - To ensure you are using the latest version of Rust, you can update Rust at any time by running:
+     ```bash
+     rustup update
+     ```
+
+5. Additional tools.
+   - You may also want to install some common tools used in Rust development, like `cargo` (Rust’s package manager and build system) and `rustfmt` (code formatting):
+     ```bash
+     rustup component add rustfmt
+     rustup component add clippy
+     ```
+
+6. Start building.
+   - With Rust installed, you're now ready to start developing! You can create a new project by running:
+     ```bash
+     cargo new my_project
+     cd my_project
+     ```
+
+If you run into any issues, please refer to the [official Rust documentation](https://www.rust-lang.org/learn/get-started) for troubleshooting and more detailed installation instructions.
+
 
 
 ## <a name="submit"></a> Submission Guidelines
@@ -78,7 +126,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     cargo +nightly udeps --all-targets
     ```
 
-5. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
+6. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
 
      ```shell
      git add <modified files>
@@ -88,15 +136,17 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     Note: Only add relevant files. Avoid adding binary files, as they frequently waste storage resources. Consider adding only text files (.rs, .cc, .json, .toml, etc). Files that should NOT be committed should instead be added
     to `.gitignore`.
 
-6.  Push your branch to GitHub:
+7.  Push your branch to GitHub:
 
     ```shell
     git push origin my-feature-branch
     ```
 
-7.  In GitHub, send a pull request to `sxt-proof-of-sql:main`.
+8.  In GitHub, send a pull request to `sxt-proof-of-sql:main`.
 
 Our proof of SQL repository triggers automatically a workflow to test the code whenever a Pull Request is submitted or a commit is pushed to an existing PR. Before closing the PR, always verify that those tests are indeed passing.
+
+NOTE: **We will not review a PR if CI (except for `Check Approver` since this requires a review) doesn't pass. We are happy to help you if you can't figure out how to get the CI to pass but it is your responsibility to make sure they pass.**
 
 Also, to ease this process of using git, you can try to use [vscode](https://code.visualstudio.com/). Vscode has some nice extensions to manage your git workflow.
 
@@ -242,7 +292,7 @@ The `footer` is optional. The [Commit Message Footer](#commit-footer) format des
   └─⫸ Commit Type: feat|feat!|fix|fix!|perf|perf!|refactor|refactor!|test|bench|build|ci|docs|style|chore
 ```
 
-Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version.
+Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version. For Rust please refer to [SemVer Compatibility in the Cargo book](https://doc.rust-lang.org/cargo/reference/semver.html) for what constitutes a breaking change.
 
 #### <a name="type"></a> Type
 
