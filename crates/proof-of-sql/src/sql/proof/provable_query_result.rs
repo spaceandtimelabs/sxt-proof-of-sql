@@ -62,12 +62,12 @@ impl ProvableQueryResult {
     #[must_use]
     pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.num_bytes(indexes);
         }
         let mut data = vec![0u8; sz];
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.write(&mut data[sz..], indexes);
         }
         ProvableQueryResult {
