@@ -105,7 +105,7 @@ impl<T: MontConfig<4>> Debug for MontScalar<T> {
 impl<T: MontConfig<4>> Eq for MontScalar<T> {}
 impl<T: MontConfig<4>> Hash for MontScalar<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        self.0.hash(state);
     }
 }
 impl<T: MontConfig<4>> Ord for MontScalar<T> {

@@ -19,5 +19,5 @@ where
     .zip(to_mul_add)
     .for_each(|(res_i, &data_i)| {
         *res_i += multiplier * data_i.into();
-    })
+    });
 }

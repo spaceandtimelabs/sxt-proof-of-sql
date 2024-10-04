@@ -135,7 +135,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
     ) where
         COL: Into<CommittableColumn<'a>>,
     {
-        self.extend(Self::from_columns_with_offset(columns, offset, setup))
+        self.extend(Self::from_columns_with_offset(columns, offset, setup));
     }
 
     fn try_add(self, other: Self) -> Result<Self, NumColumnsMismatch>

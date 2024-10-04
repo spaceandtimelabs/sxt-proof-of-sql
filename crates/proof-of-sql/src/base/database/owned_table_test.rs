@@ -158,7 +158,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
-            [1625072400],
+            [1_625_072_400],
         ),
     ]);
     let owned_table_b: OwnedTable<DoryScalar> = owned_table([
@@ -170,7 +170,7 @@ fn we_get_inequality_between_tables_with_differing_data() {
             "time_stamp",
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
-            [1625076000],
+            [1_625_076_000],
         ),
     ]);
     assert_ne!(owned_table_a, owned_table_b);

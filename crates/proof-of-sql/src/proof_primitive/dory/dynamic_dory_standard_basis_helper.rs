@@ -30,7 +30,7 @@ pub(super) fn compute_dynamic_standard_basis_vecs(point: &[F], lo_vec: &mut [F],
     point.iter().skip(1).enumerate().for_each(|(i, v)| {
         let p = i / 2;
         let o = 2 + i % 2;
-        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= v)
+        (o << p..(o + 1) << p).for_each(|k| hi_vec[k] *= v);
     });
 }
 

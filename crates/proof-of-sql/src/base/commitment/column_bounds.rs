@@ -107,9 +107,8 @@ where
             (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Sharp(bounds_a.union(bounds_b))
             }
-            (Bounds::Bounded(bounds_a), Bounds::Bounded(bounds_b))
-            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b)) => {
+            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Bounded(bounds_a.union(bounds_b))
             }
             (bounds, Bounds::Empty) | (Bounds::Empty, bounds) => bounds,
@@ -128,14 +127,13 @@ where
         match (self, other) {
             (Bounds::Empty, _) => Bounds::Empty,
             (bounds, Bounds::Empty) => bounds,
-            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b) | Bounds::Bounded(bounds_b))
                 if bounds_a.max() < bounds_b.min() || bounds_b.max() < bounds_a.min() =>
             {
                 // source collections must be disjoint, so no rows are removed
                 Bounds::Sharp(bounds_a)
             }
-            (Bounds::Bounded(bounds), _) | (Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
+            (Bounds::Bounded(bounds) | Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
         }
     }
 

@@ -83,7 +83,7 @@ mod tests {
         );
         assert_eq!(
             log2_up_bytes(&[0, 0, 0, 1]),
-            16777216f32.log2().ceil() as usize
+            16_777_216_f32.log2().ceil() as usize
         );
 
         // Bytes are non-trivial powers of 2
@@ -111,11 +111,11 @@ mod tests {
         );
         assert_eq!(
             log2_up_bytes(&[6, 5, 3, 0]),
-            197894f32.log2().ceil() as usize
+            197_894_f32.log2().ceil() as usize
         );
         assert_eq!(
             log2_up_bytes(&[255, 255, 255, 255]),
-            4294967295f32.log2().ceil() as usize
+            4_294_967_295_f32.log2().ceil() as usize
         );
     }
 }
