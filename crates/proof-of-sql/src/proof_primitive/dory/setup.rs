@@ -72,7 +72,7 @@ impl<'a> ProverSetup<'a> {
         element_num_bytes: u32,
         scalars: &[u8],
     ) {
-        self.blitzar_handle.msm(res, element_num_bytes, scalars)
+        self.blitzar_handle.msm(res, element_num_bytes, scalars);
     }
 
     #[cfg(feature = "blitzar")]
@@ -84,7 +84,7 @@ impl<'a> ProverSetup<'a> {
         scalars: &[u8],
     ) {
         self.blitzar_handle
-            .packed_msm(res, output_bit_table, scalars)
+            .packed_msm(res, output_bit_table, scalars);
     }
 }
 

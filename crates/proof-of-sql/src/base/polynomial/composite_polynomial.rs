@@ -78,7 +78,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         for m in product {
             let m_ptr: *const Vec<S> = Rc::as_ptr(&m);
             if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
-                indexed_product.push(*index)
+                indexed_product.push(*index);
             } else {
                 let curr_index = self.flattened_ml_extensions.len();
                 self.flattened_ml_extensions.push(m.clone());

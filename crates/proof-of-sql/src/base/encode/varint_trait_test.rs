@@ -24,14 +24,14 @@ fn test_required_space() {
     assert_eq!(1_u32.required_space(), 1);
     assert_eq!(128_u32.required_space(), 2);
     assert_eq!(16384_u32.required_space(), 3);
-    assert_eq!(2097151_u32.required_space(), 3);
-    assert_eq!(2097152_u32.required_space(), 4);
+    assert_eq!(2_097_151_u32.required_space(), 3);
+    assert_eq!(2_097_152_u32.required_space(), 4);
 }
 
 #[test]
 fn test_encode_u64() {
-    assert_eq!(0_u32.encode_var_vec(), vec![0b00000000]);
-    assert_eq!(300_u32.encode_var_vec(), vec![0b10101100, 0b00000010]);
+    assert_eq!(0_u32.encode_var_vec(), vec![0b0000_0000]);
+    assert_eq!(300_u32.encode_var_vec(), vec![0b1010_1100, 0b0000_0010]);
 }
 
 #[test]
@@ -65,8 +65,8 @@ fn test_encode_i64() {
     assert_eq!(150_i64.encode_var_vec(), 300_u32.encode_var_vec());
     assert_eq!((-150_i64).encode_var_vec(), 299_u32.encode_var_vec());
     assert_eq!(
-        (-2147483648_i64).encode_var_vec(),
-        4294967295_u64.encode_var_vec()
+        (-2_147_483_648_i64).encode_var_vec(),
+        4_294_967_295_u64.encode_var_vec()
     );
     assert_eq!(
         i64::MAX.encode_var_vec(),
@@ -150,7 +150,7 @@ fn test_decode_extra_bytes_i64() {
 
 #[test]
 fn test_regression_22() {
-    let encoded: Vec<u8> = 0x112233_u64.encode_var_vec();
+    let encoded: Vec<u8> = 0x0011_2233_u64.encode_var_vec();
     assert!(i8::decode_var(&encoded).is_none());
 }
 
@@ -319,8 +319,17 @@ fn we_can_encode_and_decode_large_positive_u128() {
     let value: u128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_0011100;
     let expected_result: &[u8] = &[
-        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1100,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1001_0101,
+        0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);
@@ -335,8 +344,17 @@ fn we_can_encode_and_decode_large_positive_i128() {
     let value: i128 =
         0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[
-        0b10011100, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1100,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1001_0101,
+        0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);
@@ -351,8 +369,17 @@ fn we_can_encode_and_decode_large_negative_i128() {
     let value: i128 =
         -1 - 0b110_0010101_1111111_1111111_1111111_1111111_1111111_1111111_1111111_1111111_001110;
     let expected_result: &[u8] = &[
-        0b10011101, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111, 0b11111111,
-        0b11111111, 0b11111111, 0b10010101, 0b00000110,
+        0b1001_1101,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1111_1111,
+        0b1001_0101,
+        0b0000_0110,
     ];
     let result: &mut [u8] = &mut [0; 11];
     assert_eq!(value.required_space(), 11);

@@ -53,7 +53,7 @@ fn test_curve25519_scalar_serialization() {
         Curve25519Scalar::from(12345),
         Curve25519Scalar::from(2357),
         Curve25519Scalar::from(999),
-        Curve25519Scalar::from(123456789),
+        Curve25519Scalar::from(123_456_789),
     ];
     let serialized = serde_json::to_string(&s).unwrap();
     let deserialized: [Curve25519Scalar; 10] = serde_json::from_str(&serialized).unwrap();
@@ -64,35 +64,35 @@ fn test_curve25519_scalar_serialization() {
 fn test_curve25519_scalar_display() {
     assert_eq!(
         "0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{}", Curve25519Scalar::from(0xABC123))
+        format!("{}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5C4A12CA",
-        format!("{}", Curve25519Scalar::from(-0xABC123))
+        format!("{}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "0x0000...C123",
-        format!("{:#}", Curve25519Scalar::from(0xABC123))
+        format!("{:#}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "0x1000...12CA",
-        format!("{:#}", Curve25519Scalar::from(-0xABC123))
+        format!("{:#}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(0xABC123))
+        format!("{:+}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0000000000000000000000000000000000000000000000000000000000ABC123",
-        format!("{:+}", Curve25519Scalar::from(-0xABC123))
+        format!("{:+}", Curve25519Scalar::from(-0x00AB_C123))
     );
     assert_eq!(
         "+0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(0xABC123))
+        format!("{:+#}", Curve25519Scalar::from(0x00AB_C123))
     );
     assert_eq!(
         "-0x0000...C123",
-        format!("{:+#}", Curve25519Scalar::from(-0xABC123))
+        format!("{:+#}", Curve25519Scalar::from(-0x00AB_C123))
     );
 }
 

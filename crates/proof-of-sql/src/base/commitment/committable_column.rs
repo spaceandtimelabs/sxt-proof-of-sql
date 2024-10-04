@@ -428,7 +428,7 @@ mod tests {
         );
 
         // non-empty case
-        let timestamps = [1625072400, 1625076000, 1625083200];
+        let timestamps = [1_625_072_400, 1_625_076_000, 1_625_083_200];
         let from_borrowed_column =
             CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
                 PoSQLTimeUnit::Second,
@@ -610,7 +610,7 @@ mod tests {
         );
 
         // non-empty case
-        let timestamps = vec![1625072400, 1625076000, 1625083200];
+        let timestamps = vec![1_625_072_400, 1_625_076_000, 1_625_083_200];
         let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -937,7 +937,7 @@ mod tests {
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // Non-empty case
-        let timestamps = [1625072400, 1625076000, 1625083200];
+        let timestamps = [1_625_072_400, 1_625_076_000, 1_625_083_200];
         let committable_column =
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps);
 

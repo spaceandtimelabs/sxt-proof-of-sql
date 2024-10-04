@@ -256,9 +256,9 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     let mut res = ProvableQueryResult::new_from_raw_data(
         1,
         Indexes::Sparse(vec![0]),
-        vec![0b11111111_u8; 38],
+        vec![0b1111_1111_u8; 38],
     );
-    res.data_mut()[37] = 0b00000001_u8;
+    res.data_mut()[37] = 0b0000_0001_u8;
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),

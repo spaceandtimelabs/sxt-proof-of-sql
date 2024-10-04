@@ -71,6 +71,6 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        self.expr.get_column_references(columns)
+        self.expr.get_column_references(columns);
     }
 }
