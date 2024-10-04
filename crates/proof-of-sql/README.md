@@ -10,7 +10,7 @@ Proof of SQL is a high performance zero knowledge (ZK) prover developed by the [
 
 As the first sub-second ZK prover, the protocol can execute analytic queries over 100k-row tables in less than a second on a single GPU (see benchmarks below). It can aggregate over millions of rows of indexed data within Ethereum block time on a single NVIDIA T4. The protocol is designed to support both onchain and offchain verification, leveraging a novel commitment scheme which significantly lowers gas fees with onchain verification.
 
-Using Proof of SQL, developers can compute over both onchain and offchain datasets in a trustless manner, proving the result back to their smart contract (or offchain verifier) just-in-time during a transaction to power more sophisticated `DeFi` protocols with data-driven contracts. Proof of SQL can be integrated into any SQL database (such as [Google BigQuery](https://cloud.google.com/blog/topics/partners/how-space-and-times-proof-of-sql-integrates-with-bigquery)), centralized or decentralized, and is already securing some of the most prominent Web3 apps, financial institutions, and enterprises.
+Using Proof of SQL, developers can compute over both onchain and offchain datasets in a trustless manner, proving the result back to their smart contract (or offchain verifier) just-in-time during a transaction to power more sophisticated DeFi protocols with data-driven contracts. Proof of SQL can be integrated into any SQL database (such as [Google BigQuery](https://cloud.google.com/blog/topics/partners/how-space-and-times-proof-of-sql-integrates-with-bigquery)), centralized or decentralized, and is already securing some of the most prominent Web3 apps, financial institutions, and enterprises.
 
 ## Contributing
 
