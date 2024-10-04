@@ -3,8 +3,10 @@
  *
  * See third_party/license/arkworks.LICENSE
  */
-use crate::base::scalar::Scalar;
-use crate::{base::if_rayon, proof_primitive::sumcheck::ProverState};
+use crate::{
+    base::{if_rayon, scalar::Scalar},
+    proof_primitive::sumcheck::ProverState,
+};
 use alloc::{vec, vec::Vec};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
