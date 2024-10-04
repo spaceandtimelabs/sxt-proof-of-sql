@@ -145,7 +145,7 @@ An example result for the 3rd query looks like this:
 
 <p align="center">
 
-b | `sum_a` | c
+`b` | `sum_a` | `c`
 ---|---|---
 1 | -45585 | 301
 2 | -137574, | 300

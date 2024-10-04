@@ -27,7 +27,7 @@ pub enum CommittableColumn<'a> {
     Boolean(&'a [bool]),
     /// Borrowed `SmallInt` column, mapped to `i16`.
     SmallInt(&'a [i16]),
-    /// Borrowed `SmallInt` column, mapped to `i32`.
+    /// Borrowed `Int` column, mapped to `i32`.
     Int(&'a [i32]),
     /// Borrowed `BigInt` column, mapped to `i64`.
     BigInt(&'a [i64]),

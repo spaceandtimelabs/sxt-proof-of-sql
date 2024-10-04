@@ -15,10 +15,10 @@ use num_traits::{Inv, One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
-/**
+/*
  * Adapted from arkworks
  *
- * See `third_party/license/arkworks.LICENSE`
+ * See third_party/license/arkworks.LICENSE
  */
 
 /// Given a vector of field elements `{v_i}`, compute the vector `{v_i^(-1)}` using Montgomery's trick.

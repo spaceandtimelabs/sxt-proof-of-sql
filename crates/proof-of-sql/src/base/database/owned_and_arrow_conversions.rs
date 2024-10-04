@@ -5,8 +5,8 @@
 //! `Boolean` <-> `Boolean`
 //! `BigInt` <-> `Int64`
 //! `VarChar` <-> `Utf8/String`
-//! Int128 <-> Decimal128(38,0)
-//! Decimal75 <-> S
+//! `Int128` <-> `Decimal128(38,0)`
+//! `Decimal75` <-> `S`
 //!
 //! Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
 //! This is because there is no `Int128` type in Arrow.

@@ -5,8 +5,8 @@ use crate::base::{
 use alloc::vec::Vec;
 use bumpalo::Bump;
 
-/// Let x1, ..., xn denote the values of a data column. Let
-/// b1, ..., bk denote the bit positions of abs(x1), ..., abs(xn)
+/// Let `x1, ..., xn` denote the values of a data column. Let
+/// `b1, ..., bk` denote the bit positions of `abs(x1), ..., abs(xn)`
 /// that vary.
 ///
 /// `compute_varying_bit_matrix` returns the matrix M where

@@ -1,7 +1,7 @@
-/**
- * Adopted from arkworks
+/*
+ * Adapted from arkworks
  *
- * See `third_party/license/arkworks.LICENSE`
+ * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::Scalar;
 use crate::{base::if_rayon, proof_primitive::sumcheck::ProverState};

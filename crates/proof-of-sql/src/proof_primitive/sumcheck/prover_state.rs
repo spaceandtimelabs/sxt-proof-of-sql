@@ -1,8 +1,8 @@
 use crate::base::polynomial::CompositePolynomial;
-/**
- * Adopted from arkworks
+/*
+ * Adapted from arkworks
  *
- * See `third_party/license/arkworks.LICENSE`
+ * See third_party/license/arkworks.LICENSE
  */
 use crate::base::scalar::Scalar;
 use alloc::vec::Vec;
