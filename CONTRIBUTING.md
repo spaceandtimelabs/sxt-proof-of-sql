@@ -8,6 +8,8 @@
 The following guideline is heavily based on the [Angular Project Guideline](https://github.com/angular/angular/blob/main/CONTRIBUTING.md). As a contributor, here are the rules we would like you to follow:
 
  - [Getting Started](#getting-started)
+   - [Install Rust](#install-rust)
+   - [Fork the Repository](#fork-the-repository)
  - [Submission Guidelines](#submit)
    - [Submitting a Pull Request (PR)](#submit-pr)
    - [Addressing review feedback](#address-review)
@@ -26,6 +28,7 @@ The following guideline is heavily based on the [Angular Project Guideline](http
    - [Automatic Semantic Release](#semantic-release)
 
 ## <a name="getting-started"></a> Getting Started
+### <a name="install-rust"></a> Install Rust
 To contribute to this project, you'll need to have Rust installed on your machine. Follow the steps below to install Rust and set up your development environment:
 
 1. Install Rust.
@@ -71,7 +74,38 @@ To contribute to this project, you'll need to have Rust installed on your machin
 
 If you run into any issues, please refer to the [official Rust documentation](https://www.rust-lang.org/learn/get-started) for troubleshooting and more detailed installation instructions.
 
+### <a name="fork-the-repository"></a> Fork the Repository
+In order to contribute it is necessary to fork the repository. Follow the steps below to do so:
 
+1. Navigate to the repository.
+   - Go to the main page of the repository on GitHub at https://github.com/spaceandtimelabs/sxt-proof-of-sql.
+
+2. Fork the repository.
+   - Click the "Fork" button in the upper-right corner of the repository page. This will create a copy of the repository under your GitHub account.
+
+3. Clone your forked repository.
+   - Once the fork is complete, you need to clone it to your local machine. Run the following command in your terminal:
+     ```bash
+     git clone https://github.com/YOUR_USERNAME/sxt-proof-of-sql.git
+     ```
+   - Replace `YOUR_USERNAME` with your GitHub username.
+
+4. Navigate to the repository's directory.
+   - Change into the newly cloned repository directory:
+     ```bash
+     cd sxt-proof-of-sql
+     ```
+
+5. Add the original repository as a remote (optional but recommended).
+   - This allows you to keep your fork up to date with changes from the original repository:
+     ```bash
+     git remote add upstream https://github.com/spaceandtimelabs/sxt-proof-of-sql.git
+     git remote add origin https://github.com/YOUR_USERNAME/sxt-proof-of-sql.git
+     ```
+   - Replace `YOUR_USERNAME` with your GitHub username.
+
+6. Start making your changes.
+   - Now you are ready to create a new branch and make your contributions!
 
 ## <a name="submit"></a> Submission Guidelines
 
