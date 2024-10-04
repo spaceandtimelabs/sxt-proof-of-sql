@@ -423,7 +423,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
-            _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
+            _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
 }

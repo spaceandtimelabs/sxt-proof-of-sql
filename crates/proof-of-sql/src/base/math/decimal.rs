@@ -75,8 +75,7 @@ impl Precision {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
             Err(DecimalError::InvalidPrecision {
                 error: format!(
-                    "Failed to parse precision. Value of {} exceeds max supported precision of {}",
-                    value, MAX_SUPPORTED_PRECISION
+                    "Failed to parse precision. Value of {value} exceeds max supported precision of {MAX_SUPPORTED_PRECISION}"
                 ),
             })
         } else {

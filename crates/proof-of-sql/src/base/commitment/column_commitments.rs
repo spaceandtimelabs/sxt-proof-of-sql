@@ -7,7 +7,6 @@ use crate::base::{
     map::IndexSet,
 };
 use alloc::{
-    borrow::ToOwned,
     string::{String, ToString},
     vec,
     vec::Vec,
@@ -206,7 +205,7 @@ impl<C: Commitment> ColumnCommitments<C> {
             identifiers.into_iter().zip(committable_columns.iter()),
         );
 
-        self.column_metadata = self.column_metadata.to_owned().try_union(column_metadata)?;
+        self.column_metadata = self.column_metadata.clone().try_union(column_metadata)?;
 
         self.commitments
             .try_append_rows_with_offset(committable_columns, offset, setup)

@@ -157,7 +157,7 @@ impl VarInt for u64 {
         let mut shift = 0;
 
         let mut success = false;
-        for b in src.iter() {
+        for b in src {
             let msb_dropped = b & DROP_MSB;
             result |= (msb_dropped as u64) << shift;
             shift += 7;

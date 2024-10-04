@@ -95,8 +95,7 @@ pub fn try_multiply_column_types(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidPrecision {
                     error: format!(
-                        "Required precision {} is beyond what we can support",
-                        precision_value
+                        "Required precision {precision_value} is beyond what we can support"
                     ),
                 },
             }
@@ -242,7 +241,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_add(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                    error: format!("Overflow in integer addition {l:?} + {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -260,7 +259,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_sub(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -278,7 +277,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<T> {
             l.checked_mul(r)
                 .ok_or(ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                    error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
                 })
         })
         .collect::<ColumnOperationResult<Vec<T>>>()
@@ -375,7 +374,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_add(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer addition {:?} + {:?}", l, r),
+                    error: format!("Overflow in integer addition {l:?} + {r:?}"),
                 },
             )
         })
@@ -398,7 +397,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_sub(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 },
             )
         })
@@ -421,7 +420,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             l.checked_sub(&Into::<LargerType>::into(*r)).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer subtraction {:?} - {:?}", l, r),
+                    error: format!("Overflow in integer subtraction {l:?} - {r:?}"),
                 },
             )
         })
@@ -445,7 +444,7 @@ where
         .map(|(l, r)| -> ColumnOperationResult<LargerType> {
             Into::<LargerType>::into(*l).checked_mul(r).ok_or(
                 ColumnOperationError::IntegerOverflow {
-                    error: format!("Overflow in integer multiplication {:?} * {:?}", l, r),
+                    error: format!("Overflow in integer multiplication {l:?} * {r:?}"),
                 },
             )
         })
