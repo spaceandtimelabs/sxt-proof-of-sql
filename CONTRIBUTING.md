@@ -123,7 +123,7 @@ The most relevant fields in the issue are: `assignees`, `projects`, `milestone`,
 
 4. In the case of many commit messages to your branch, force the Pull Request to merge as a squashed merge.
 
-5. After the merge is done, delete your branch from the repository and check that the related issue was indeed closed.
+5. <a name="delete-merged-branch-and-check-related-issues"></a>After the merge is done, delete your branch from the repository and check that related issues were indeed closed.
 
 ### <a name="submit-pr"></a> Submitting a Pull Request (PR)
 

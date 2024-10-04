@@ -19,4 +19,6 @@ We typically require tests for all PRs in order to:
 2. Serve as another way to document the expected behavior of the code
 
 If tests are not included in your PR, please explain why (for example, are they covered by existing tests)?
+
+Please make sure to [delete the branch and close all related issues](https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md#delete-merged-branch-and-check-related-issues) after the merge is done.
 -->
