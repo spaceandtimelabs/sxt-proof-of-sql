@@ -174,7 +174,7 @@ fn verifier_const_sign_evaluate<S: Scalar>(
 }
 
 fn prove_bits_are_binary<'a, S: Scalar>(builder: &mut ProofBuilder<'a, S>, bits: &[&'a [bool]]) {
-    for &seq in bits.iter() {
+    for &seq in bits {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -190,7 +190,7 @@ fn verify_bits_are_binary<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     bit_evals: &[C::Scalar],
 ) {
-    for bit_eval in bit_evals.iter() {
+    for bit_eval in bit_evals {
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,

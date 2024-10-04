@@ -52,10 +52,10 @@ where
             // Batch invert in parallel, without copying the vector
             v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
                 serial_batch_inversion_and_mul(chunk, coeff);
-            })
+            });
         },
         serial_batch_inversion_and_mul(v, coeff)
-    )
+    );
 }
 
 /// # Panics

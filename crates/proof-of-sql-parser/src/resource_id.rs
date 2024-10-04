@@ -17,7 +17,8 @@ pub struct ResourceId {
 }
 
 impl ResourceId {
-    /// Constructor for [ResourceId]s.
+    /// Constructor for [`ResourceId`]s.
+    #[must_use]
     pub fn new(schema: Identifier, object_name: Identifier) -> Self {
         Self {
             schema,
@@ -25,10 +26,10 @@ impl ResourceId {
         }
     }
 
-    /// Constructor for [ResourceId]s.
+    /// Constructor for [`ResourceId`]s.
     ///
     /// # Errors
-    /// Fails if the provided schema/object_name strings aren't valid postgres-style
+    /// Fails if the provided `schema/object_name` strings aren't valid postgres-style
     /// identifiers (excluding dollar signs).
     /// These identifiers are defined here:
     /// <https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS>.
@@ -42,27 +43,30 @@ impl ResourceId {
         })
     }
 
-    /// The schema identifier of this [ResourceId].
+    /// The schema identifier of this [`ResourceId`].
+    #[must_use]
     pub fn schema(&self) -> Identifier {
         self.schema
     }
 
-    /// The object_name identifier of this [ResourceId].
+    /// The `object_name` identifier of this [`ResourceId`].
+    #[must_use]
     pub fn object_name(&self) -> Identifier {
         self.object_name
     }
 
-    /// Conversion to string in the format used in KeyDB.
+    /// Conversion to string in the format used in `KeyDB`.
     ///
     /// Space and time APIs accept a `.` separator in resource ids.
-    /// However, when a resource id is stored in KeyDB, or used as a key, a `:` separator is used.
-    /// This method differs from [ResourceId::to_string] by using the latter format.
+    /// However, when a resource id is stored in `KeyDB`, or used as a key, a `:` separator is used.
+    /// This method differs from [`ResourceId::to_string`] by using the latter format.
     ///
     /// Furthermore, while space and time APIs accept lowercase resource identifiers,
     /// all resource identifiers are stored internally in uppercase.
     /// This method performs that transformation as well.
     /// For more information, see
     /// <https://space-and-time.atlassian.net/wiki/spaces/SE/pages/4947974/Gateway+Storage+Overview#Database-Resources>.
+    #[must_use]
     pub fn storage_format(&self) -> String {
         let ResourceId {
             schema,
@@ -93,7 +97,7 @@ impl FromStr for ResourceId {
     fn from_str(string: &str) -> ParseResult<Self> {
         let (schema, object_name) = ResourceIdParser::new().parse(string).map_err(|e| {
             ParseError::ResourceIdParseError {
-                error: format!("{:?}", e),
+                error: format!("{e:?}"),
             }
         })?;
 

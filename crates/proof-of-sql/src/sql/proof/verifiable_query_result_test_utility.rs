@@ -52,7 +52,10 @@ pub fn exercise_verification(
 
     // try changing intermediate commitments
     let commit_p = RistrettoPoint::compute_commitments(
-        &[CommittableColumn::BigInt(&[353453245i64, 93402346i64])],
+        &[CommittableColumn::BigInt(&[
+            353_453_245_i64,
+            93_402_346_i64,
+        ])],
         0_usize,
         &(),
     )[0];

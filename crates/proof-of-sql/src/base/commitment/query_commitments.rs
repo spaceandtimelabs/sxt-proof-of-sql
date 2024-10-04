@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 

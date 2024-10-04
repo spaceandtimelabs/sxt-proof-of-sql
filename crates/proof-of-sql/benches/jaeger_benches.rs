@@ -7,6 +7,8 @@
 //! ```
 //! Then, navigate to http://localhost:16686 to view the traces.
 
+#[cfg(feature = "test")]
+use ark_std::test_rng;
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 #[cfg(feature = "test")]
 use proof_of_sql::proof_primitive::dory::{
@@ -51,8 +53,7 @@ fn main() {
         #[cfg(feature = "test")]
         "Dory" => {
             // Run 3 times to ensure that warm-up of the GPU has occurred.
-            let pp =
-                PublicParameters::rand(10, &mut proof_of_sql::proof_primitive::dory::test_rng());
+            let pp = PublicParameters::test_rand(10, &mut test_rng());
             let ps = ProverSetup::from(&pp);
             let prover_setup = DoryProverPublicSetup::new(&ps, 10);
             let vs = VerifierSetup::from(&pp);

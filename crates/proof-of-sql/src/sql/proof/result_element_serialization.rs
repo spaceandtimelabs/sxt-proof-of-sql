@@ -417,7 +417,7 @@ mod tests {
 
         assert!(<i64>::decode(&out[..]).is_ok());
 
-        out[..].clone_from_slice(&vec![0b11111111; value.required_bytes()]);
+        out[..].clone_from_slice(&vec![0b1111_1111; value.required_bytes()]);
 
         assert!(<i64>::decode(&out[..]).is_err());
     }

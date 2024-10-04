@@ -51,7 +51,7 @@ impl<'a> ProverSetup<'a> {
         let blitzar_handle = blitzar::compute::MsmHandle::new(&Vec::from_iter(
             Gamma_1.iter().copied().map(Into::into),
         ));
-        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..max_nu + 1)
+        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..=max_nu)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
         ProverSetup {
@@ -74,7 +74,7 @@ impl<'a> ProverSetup<'a> {
         element_num_bytes: u32,
         scalars: &[u8],
     ) {
-        self.blitzar_handle.msm(res, element_num_bytes, scalars)
+        self.blitzar_handle.msm(res, element_num_bytes, scalars);
     }
 
     #[cfg(feature = "blitzar")]
@@ -86,7 +86,7 @@ impl<'a> ProverSetup<'a> {
         scalars: &[u8],
     ) {
         self.blitzar_handle
-            .packed_msm(res, output_bit_table, scalars)
+            .packed_msm(res, output_bit_table, scalars);
     }
 }
 
@@ -156,8 +156,7 @@ impl VerifierSetup {
     ) -> Self {
         assert_eq!(Gamma_1_nu.len(), 1 << max_nu);
         assert_eq!(Gamma_2_nu.len(), 1 << max_nu);
-        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..max_nu
-            + 1)
+        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..=max_nu)
             .map(|k| {
                 if k == 0 {
                     (

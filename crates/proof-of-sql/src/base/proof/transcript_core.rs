@@ -33,8 +33,8 @@ impl<T: TranscriptCore> Transcript for T {
         messages.into_iter().for_each(|mut message| {
             let bytes = message.as_bytes_mut();
             bytes.reverse();
-            self.raw_append(bytes)
-        })
+            self.raw_append(bytes);
+        });
     }
     fn extend_as_le_from_refs<'a, M: AsBytes + 'a + ?Sized>(
         &mut self,
@@ -42,13 +42,13 @@ impl<T: TranscriptCore> Transcript for T {
     ) {
         messages
             .into_iter()
-            .for_each(|message| self.raw_append(message.as_bytes()))
+            .for_each(|message| self.raw_append(message.as_bytes()));
     }
     fn extend_scalars_as_be<'a, S: Scalar + 'a>(
         &mut self,
         messages: impl IntoIterator<Item = &'a S>,
     ) {
-        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into))
+        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
         receive_challenge_as_be::<[u64; 4]>(self).into()

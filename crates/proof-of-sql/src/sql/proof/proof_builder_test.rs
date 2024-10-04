@@ -126,7 +126,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     );
     let random_point = [
         Curve25519Scalar::from(123u64),
-        Curve25519Scalar::from(101112u64),
+        Curve25519Scalar::from(101_112_u64),
     ];
     let eval = poly.evaluate(&random_point);
     let expected_eval = expected_poly.evaluate(&random_point);

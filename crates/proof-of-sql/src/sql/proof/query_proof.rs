@@ -151,7 +151,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         // validate bit decompositions
-        for dist in self.bit_distributions.iter() {
+        for dist in &self.bit_distributions {
             if !dist.is_valid() {
                 Err(ProofError::VerificationError {
                     error: "invalid bit distributions",

@@ -75,8 +75,7 @@ impl Precision {
         if value > MAX_SUPPORTED_PRECISION || value == 0 {
             Err(DecimalError::InvalidPrecision {
                 error: format!(
-                    "Failed to parse precision. Value of {} exceeds max supported precision of {}",
-                    value, MAX_SUPPORTED_PRECISION
+                    "Failed to parse precision. Value of {value} exceeds max supported precision of {MAX_SUPPORTED_PRECISION}"
                 ),
             })
         } else {
@@ -85,6 +84,7 @@ impl Precision {
     }
 
     /// Gets the precision as a u8 for this decimal
+    #[must_use]
     pub fn value(&self) -> u8 {
         self.0
     }

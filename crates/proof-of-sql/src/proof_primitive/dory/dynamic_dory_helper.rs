@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn we_can_compute_dynamic_T_vec_prime() {
-        let public_parameters = PublicParameters::rand(5, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
 
         let a: Vec<F> = (100..109).map(Into::into).collect();

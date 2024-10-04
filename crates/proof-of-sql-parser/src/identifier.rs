@@ -12,9 +12,9 @@ pub struct Identifier {
 impl Identifier {
     /// Constructor for [Identifier]
     ///
-    /// Note: this constructor should be private within the proof_of_sql_parser crate.
+    /// Note: this constructor should be private within the `proof_of_sql_parser` crate.
     /// This is necessary to guarantee that no one outside the crate
-    /// can create Names, thus securing that ResourceIds and Identifiers
+    /// can create Names, thus securing that [`ResourceId`]s and [`Identifier`]s
     /// are always valid postgresql identifiers.
     ///
     /// # Panics
@@ -27,18 +27,25 @@ impl Identifier {
         }
     }
 
-    /// An alias for [Identifier::from_str], provided for convenience.
+    /// An alias for [`Identifier::from_str`], provided for convenience.
+    ///
+    /// # Errors
+    /// Returns a `ParseResult::Err` if the input string does not meet the requirements for a valid identifier.
+    /// This may include errors such as invalid characters or incorrect formatting based on the specific rules
+    /// that `Identifier::from_str` enforces.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
+    #[must_use]
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
-    /// An alias for [Identifier::name], provided for convenience.
+    /// An alias for [`Identifier::name`], provided for convenience.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         self.name()
     }
@@ -51,7 +58,7 @@ impl FromStr for Identifier {
         let name = IdentifierParser::new()
             .parse(string)
             .map_err(|e| ParseError::IdentifierParseError{ error:
-                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {:?}", e)})?;
+                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {e:?}")})?;
 
         Ok(Identifier::new(name))
     }

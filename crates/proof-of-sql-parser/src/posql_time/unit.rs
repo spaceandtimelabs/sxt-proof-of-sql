@@ -3,6 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate type representing the time units from a parsed query
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PoSQLTimeUnit {
     /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"

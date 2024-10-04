@@ -13,7 +13,7 @@ fn we_combine_single_degree_fr_multiplicands() {
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 1);
     assert_eq!(p.flattened_ml_extensions.len(), 2);
-    let pt = [Curve25519Scalar::from(9268764u64)];
+    let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];
     let eval1 = Curve25519Scalar::from(mle1[0]) * m0 + Curve25519Scalar::from(mle1[1]) * m1;
@@ -34,7 +34,7 @@ fn we_dont_duplicate_repeated_mles() {
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3);
     assert_eq!(p.flattened_ml_extensions.len(), 4);
-    let pt = [Curve25519Scalar::from(9268764u64)];
+    let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];
     let eval1 = Curve25519Scalar::from(mle1[0]) * m0 + Curve25519Scalar::from(mle1[1]) * m1;
@@ -60,7 +60,7 @@ fn we_can_combine_identity_with_zero_sum_polynomials() {
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3); //1 for the linear term, 1 for the fr multiplicand, 1 for the zerosum multiplicand
     assert_eq!(p.flattened_ml_extensions.len(), 6); //1 for fr, 1 for the linear term, and 4 for mle1-4
-    let pt = [Curve25519Scalar::from(9268764u64)];
+    let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];
     let eval1 = Curve25519Scalar::from(mle1[0]) * m0 + Curve25519Scalar::from(mle1[1]) * m1;
@@ -80,7 +80,7 @@ fn we_can_handle_only_an_empty_fr_multiplicand() {
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 1); //1 for the fr multiplicand
     assert_eq!(p.flattened_ml_extensions.len(), 2); //1 for fr, 1 for the linear term
-    let pt = [Curve25519Scalar::from(9268764u64)];
+    let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];
     let eval1 = (m0 + m1) * Curve25519Scalar::from(17);
@@ -106,7 +106,7 @@ fn we_can_handle_empty_terms_with_other_terms() {
     let p = builder.make_composite_polynomial();
     assert_eq!(p.products.len(), 3); //1 for the linear term, 1 for the fr multiplicand, 1 for the zerosum multiplicand
     assert_eq!(p.flattened_ml_extensions.len(), 6); //1 for fr, 1 for the linear term, and 4 for mle1-4
-    let pt = [Curve25519Scalar::from(9268764u64)];
+    let pt = [Curve25519Scalar::from(9_268_764_u64)];
     let m0 = Curve25519Scalar::one() - pt[0];
     let m1 = pt[0];
     let eval1 = Curve25519Scalar::from(mle1[0]) * m0 + Curve25519Scalar::from(mle1[1]) * m1;

@@ -195,9 +195,7 @@ fn offset_column(
 ) {
     assert!(
         offset < num_matrix_commitment_columns,
-        "offset {} must be less than the number of columns {}",
-        offset,
-        num_matrix_commitment_columns
+        "offset {offset} must be less than the number of columns {num_matrix_commitment_columns}"
     );
 
     assert!(

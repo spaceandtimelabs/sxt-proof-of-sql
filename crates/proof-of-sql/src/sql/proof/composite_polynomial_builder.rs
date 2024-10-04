@@ -101,14 +101,14 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             ],
             One::one(),
         );
-        for (mult, terms) in self.fr_multiplicands_rest.iter() {
+        for (mult, terms) in &self.fr_multiplicands_rest {
             let fr_iter = iter::once(self.fr.clone());
             let terms_iter = terms.iter().cloned();
-            res.add_product(fr_iter.chain(terms_iter), *mult)
+            res.add_product(fr_iter.chain(terms_iter), *mult);
         }
-        for (mult, terms) in self.zerosum_multiplicands.iter() {
+        for (mult, terms) in &self.zerosum_multiplicands {
             let terms_iter = terms.iter().cloned();
-            res.add_product(terms_iter, *mult)
+            res.add_product(terms_iter, *mult);
         }
 
         res.annotate_trace();

@@ -39,7 +39,7 @@ impl BitDistribution {
 
     pub fn num_varying_bits(&self) -> usize {
         let mut res = 0_usize;
-        for xi in self.vary_mask.iter() {
+        for xi in &self.vary_mask {
             res += xi.count_ones() as usize;
         }
         res

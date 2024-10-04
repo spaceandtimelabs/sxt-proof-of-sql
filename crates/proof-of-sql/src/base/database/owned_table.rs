@@ -39,10 +39,12 @@ impl<S: Scalar> OwnedTable<S> {
         Self::try_new(IndexMap::from_iter(iter))
     }
     /// Number of columns in the table.
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.table.len()
     }
     /// Number of rows in the table.
+    #[must_use]
     pub fn num_rows(&self) -> usize {
         if self.table.is_empty() {
             0
@@ -51,14 +53,17 @@ impl<S: Scalar> OwnedTable<S> {
         }
     }
     /// Whether the table has no columns.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
     }
     /// Returns the columns of this table as an IndexMap
+    #[must_use]
     pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
     /// Returns the columns of this table as an IndexMap
+    #[must_use]
     pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table
     }
