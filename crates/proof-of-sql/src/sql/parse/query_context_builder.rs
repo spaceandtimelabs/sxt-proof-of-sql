@@ -29,7 +29,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    #[allow(clippy::vec_box)]
+    #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
         table_expr: Vec<Box<TableExpression>>,
@@ -102,6 +102,7 @@ impl<'a> QueryContextBuilder<'a> {
 
 // Private interface
 impl<'a> QueryContextBuilder<'a> {
+    #[allow(clippy::missing_panics_doc, reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval.")]
     fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
         let table_ref = self.context.get_table_ref();
         let columns = self.schema_accessor.lookup_schema(*table_ref);
@@ -135,6 +136,8 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    /// # Panics
+    /// Panics if the expression is not a column expression.
     fn visit_column_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         let identifier = match expr {
             Expression::Column(identifier) => *identifier,

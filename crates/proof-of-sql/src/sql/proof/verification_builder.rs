@@ -29,6 +29,7 @@ pub struct VerificationBuilder<'a, C: Commitment> {
 }
 
 impl<'a, C: Commitment> VerificationBuilder<'a, C> {
+    #[allow(clippy::missing_panics_doc, reason = "The only possible panic is from the assertion comparing lengths, which is clear from context.")]
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
@@ -121,24 +122,29 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.produced_subpolynomials += 1;
     }
 
+    #[allow(clippy::missing_panics_doc, reason = "The panic condition is clear due to the assertion that checks if the computation is completed.")]
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
     pub fn sumcheck_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
         self.sumcheck_evaluation
     }
 
+    #[allow(clippy::missing_panics_doc, reason = "Panic conditions are straightforward as they rely on the completion assertion.")]
     /// Get the commitments of pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn pcs_proof_commitments(&self) -> &[C] {
         assert!(self.completed());
         &self.pcs_proof_commitments
     }
+
+    #[allow(clippy::missing_panics_doc, reason = "Panic conditions are self-evident from the completed assertion.")]
     /// Get folding factors for the pre-result commitments
     pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
         assert!(self.completed());
         self.inner_product_multipliers
     }
 
+    #[allow(clippy::missing_panics_doc, reason = "The panic condition is evident due to the assertion ensuring completion.")]
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn folded_pcs_proof_evaluation(&self) -> C::Scalar {

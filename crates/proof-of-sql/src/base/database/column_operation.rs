@@ -128,7 +128,7 @@ pub fn try_multiply_column_types(
 /// to multiply the two input types. If the types are not compatible, return
 /// an error.
 ///
-// # Panics
+/// # Panics
 ///
 /// - Panics if `lhs` or `rhs` does not have a precision or scale when they are expected to be numeric types.
 /// - Panics if `lhs` or `rhs` is an integer, and `lhs.max_integer_type(&rhs)` returns `None`.
@@ -513,6 +513,9 @@ where
 /// Check whether a numerical slice is equal to a decimal one.
 ///
 /// Note that we do not check for length equality here.
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn eq_decimal_columns<S, T>(
     lhs: &[T],
     rhs: &[S],
@@ -570,6 +573,9 @@ where
 /// Check whether a numerical slice is less than or equal to a decimal one.
 ///
 /// Note that we do not check for length equality here.
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn le_decimal_columns<S, T>(
     lhs: &[T],
     rhs: &[S],
@@ -640,6 +646,9 @@ where
 /// Check whether a numerical slice is greater than or equal to a decimal one.
 ///
 /// Note that we do not check for length equality here.
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn ge_decimal_columns<S, T>(
     lhs: &[T],
     rhs: &[S],
@@ -710,6 +719,9 @@ where
 /// Add two numerical slices as decimals.
 ///
 /// We do not check for length equality here
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn try_add_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -764,6 +776,9 @@ where
 /// Subtract one numerical slice from another as decimals.
 ///
 /// We do not check for length equality here
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn try_subtract_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -821,6 +836,9 @@ where
 /// Multiply two numerical slices as decimals.
 ///
 /// We do not check for length equality here
+/// # Panics
+/// This function requires that `lhs` and `rhs` have the same length.
+/// This function requires that `left_column_type` and `right_column_type` have the same precision and scale.
 pub(super) fn try_multiply_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],
@@ -858,6 +876,7 @@ where
 /// 4. Precision and scale follow T-SQL rules. That is,
 ///   - new_scale = max(6, right_precision + left_scale + 1)
 ///   - new_precision = left_precision - left_scale + right_scale + new_scale
+#[allow(clippy::missing_panics_doc)]
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],

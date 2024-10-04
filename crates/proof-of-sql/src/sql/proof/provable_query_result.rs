@@ -74,6 +74,7 @@ impl ProvableQueryResult {
         }
     }
 
+    #[allow(clippy::missing_panics_doc, reason = "Assertions ensure preconditions are met, eliminating the possibility of panic.")]
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
     ///
@@ -134,6 +135,7 @@ impl ProvableQueryResult {
         Ok(res)
     }
 
+    #[allow(clippy::missing_panics_doc, reason = "Assertions ensure preconditions are met, eliminating the possibility of panic.")]
     /// Convert the intermediate query result into a final query result
     ///
     /// The result is essentially an `OwnedTable` type.

@@ -66,6 +66,7 @@ impl ColumnCommitmentMetadata {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     /// Construct a [`ColumnCommitmentMetadata`] with widest possible bounds for the column type.
     pub fn from_column_type_with_max_bounds(column_type: ColumnType) -> Self {
         let bounds = match column_type {
@@ -120,6 +121,7 @@ impl ColumnCommitmentMetadata {
     /// Combine two [`ColumnCommitmentMetadata`] as if their source collections are being unioned.
     ///
     /// Can error if the two metadatas are mismatched.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_union(
         self,
         other: ColumnCommitmentMetadata,
@@ -146,6 +148,7 @@ impl ColumnCommitmentMetadata {
     ///
     /// This should be interpreted as the set difference of the two collections.
     /// The result would be the rows in self that are not also rows in other.
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_difference(
         self,
         other: ColumnCommitmentMetadata,

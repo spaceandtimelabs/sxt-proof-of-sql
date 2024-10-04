@@ -49,6 +49,7 @@ impl BitDistribution {
         self.vary_mask[3] & (1 << 63) != 0
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn sign_bit(&self) -> bool {
         assert!(!self.has_varying_sign_bit());
         self.or_all[3] & (1 << 63) != 0
@@ -126,8 +127,8 @@ impl BitDistribution {
     }
 
     /// Return the position of the most significant bit of the absolute values
-    ///
-    /// Panic if no bits are set to 1
+    /// # Panics
+    /// Panics if no bits are set to 1 in the bit representation of `or_all`.
     pub fn most_significant_abs_bit(&self) -> usize {
         let mask = self.or_all[3] & !(1 << 63);
         if mask != 0 {

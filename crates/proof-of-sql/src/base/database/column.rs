@@ -72,6 +72,8 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns the length of the column.
+    /// # Panics
+    /// this function requires that `col` and `scals` have the same length.
     pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
@@ -184,6 +186,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     }
 
     /// Convert a column to a vector of Scalar values with scaling
+    #[allow(clippy::missing_panics_doc)]
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {

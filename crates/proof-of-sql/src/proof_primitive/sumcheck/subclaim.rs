@@ -13,6 +13,11 @@ pub struct Subclaim<S: Scalar> {
 }
 
 impl<S: Scalar> Subclaim<S> {
+    /// # Panics
+    /// Panics if `max_multiplicands` is less than or equal to 0.
+    /// Panics if the length of `evaluation_point` does not match the length of `evaluations`.
+    /// Panics if any round evaluation does not match the expected length of `max_multiplicands + 1`.
+    /// Panics if the claimed sum does not match the sum of the first two evaluations in the round.
     pub(super) fn create(
         evaluation_point: Vec<S>,
         evaluations: &[Vec<S>],

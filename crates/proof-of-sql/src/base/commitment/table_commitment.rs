@@ -133,6 +133,7 @@ where
 
 impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
+    #[allow(clippy::missing_panics_doc, reason = "The assertion ensures that from_accessor should not create columns with a negative range")]
     pub fn from_accessor_with_max_bounds(
         table_ref: TableRef,
         columns: &[ColumnField],
@@ -221,6 +222,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
+    #[allow(clippy::missing_panics_doc, reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers")]
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,
@@ -268,6 +270,9 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    /// # Panics
+    /// Panics if `owned_table` has duplicate identifiers.
+    /// Panics if `owned_table` contains columns of mixed length.
     pub fn append_owned_table<S>(
         &mut self,
         owned_table: &OwnedTable<S>,
@@ -390,6 +395,7 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
     #[cfg(feature = "arrow")]
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
@@ -425,6 +431,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
+    #[allow(clippy::missing_panics_doc)]
     #[cfg(feature = "arrow")]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,
