@@ -67,7 +67,15 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 4. Run the entire test suite to ensure tests are passing.
 
     ```shell
-    cargo test
+    cargo test --all-features
+    ```
+
+5. Run the following code quality checks locally so that the code is not only correct but also clean.
+
+    ```shell
+    cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+    cargo clippy --all-targets --all-features -- -D warnings
+    cargo +nightly udeps --all-targets
     ```
 
 5. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
@@ -77,7 +85,8 @@ Before you submit your Pull Request (PR) consider the following guidelines:
      git commit
      ```
 
-    Note: Only add relevant files. Avoid adding binary files, as they frequently waste storage resources. Consider adding only text files (.rs, .cc, .json, .toml, etc).
+    Note: Only add relevant files. Avoid adding binary files, as they frequently waste storage resources. Consider adding only text files (.rs, .cc, .json, .toml, etc). Files that should NOT be committed should instead be added
+    to `.gitignore`.
 
 6.  Push your branch to GitHub:
 
@@ -99,7 +108,9 @@ If we ask for changes via code reviews then:
 
 2. Re-run the entire test suite to ensure tests are still passing.
 
-3. Create a fixup commit and push to your GitHub repository (this will update your Pull Request):
+3. Re-run the code quality checks above to ensure that the code is still clean.
+
+4. Create a fixup commit and push to your GitHub repository (this will update your Pull Request):
 
     ```shell
     # Create a fixup commit to fix up the last commit on the branch:
@@ -116,7 +127,7 @@ If we ask for changes via code reviews then:
 
     For more info on working with fixup commits see [here](https://github.com/angular/angular/blob/main/docs/FIXUP_COMMITS.md).
 
-4. When merging the PR, try to choose the squashed merge version as it does not pollute the main branch with many commit messages.
+5. When merging the PR, try to choose the squashed merge version as it does not pollute the main branch with many commit messages.
 
 ### <a name="updating-commit-message"></a> Updating the commit message
 
