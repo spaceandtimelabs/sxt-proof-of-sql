@@ -179,6 +179,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         ))
     }
 
+    #[allow(clippy::redundant_closure_for_method_calls)]
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         self.group_by_exprs
             .iter()
