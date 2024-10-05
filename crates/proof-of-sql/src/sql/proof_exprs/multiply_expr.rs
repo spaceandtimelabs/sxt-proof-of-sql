@@ -1,11 +1,9 @@
 use super::{DynProofExpr, ProofExpr};
+use crate::base::database::ColumnOperation;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{
-            try_multiply_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
-        },
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         map::IndexSet,
         proof::ProofError,
     },
@@ -44,7 +42,9 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
     }
 
     fn data_type(&self) -> ColumnType {
-        try_multiply_column_types(self.lhs.data_type(), self.rhs.data_type())
+        self.lhs
+            .data_type()
+            .try_multiply_column_types(self.rhs.data_type())
             .expect("Failed to multiply column types")
     }
 

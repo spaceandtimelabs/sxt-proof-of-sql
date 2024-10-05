@@ -1,11 +1,9 @@
 use super::{add_subtract_columns, scale_and_add_subtract_eval, DynProofExpr, ProofExpr};
+use crate::base::database::ColumnOperation;
 use crate::{
     base::{
         commitment::Commitment,
-        database::{
-            try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
-            DataAccessor,
-        },
+        database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
         map::IndexSet,
         proof::ProofError,
     },
@@ -48,7 +46,9 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
         } else {
             BinaryOperator::Add
         };
-        try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type(), operator)
+        self.lhs
+            .data_type()
+            .try_add_subtract_column_types(self.rhs.data_type(), operator)
             .expect("Failed to add/subtract column types")
     }
 

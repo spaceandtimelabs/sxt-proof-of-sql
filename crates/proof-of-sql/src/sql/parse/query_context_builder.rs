@@ -1,9 +1,7 @@
 use super::{ConversionError, ConversionResult, QueryContext};
+use crate::base::database::ColumnOperation;
 use crate::base::{
-    database::{
-        try_add_subtract_column_types, try_multiply_column_types, ColumnRef, ColumnType,
-        SchemaAccessor, TableRef,
-    },
+    database::{ColumnRef, ColumnType, SchemaAccessor, TableRef},
     math::decimal::Precision,
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};
@@ -294,14 +292,15 @@ pub(crate) fn type_check_binary_operation(
                         | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                 )
         }
-        BinaryOperator::Add => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Add).is_ok()
-        }
-        BinaryOperator::Subtract => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Subtract)
-                .is_ok()
-        }
-        BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
+        BinaryOperator::Add => (*left_dtype)
+            .try_add_subtract_column_types(*right_dtype, BinaryOperator::Add)
+            .is_ok(),
+        BinaryOperator::Subtract => (*left_dtype)
+            .try_add_subtract_column_types(*right_dtype, BinaryOperator::Subtract)
+            .is_ok(),
+        BinaryOperator::Multiply => (*left_dtype)
+            .try_multiply_column_types(*right_dtype)
+            .is_ok(),
         BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
     }
 }
