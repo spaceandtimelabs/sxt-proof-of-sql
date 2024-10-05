@@ -1,1 +1,2 @@
 missing-docs-in-crate-items = true
+doc-valid-idents = ["DeFi"]

@@ -25,11 +25,11 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 pub enum CommittableColumn<'a> {
     /// Borrowed Bool column, mapped to `bool`.
     Boolean(&'a [bool]),
-    /// Borrowed SmallInt column, mapped to `i16`.
+    /// Borrowed `SmallInt` column, mapped to `i16`.
     SmallInt(&'a [i16]),
-    /// Borrowed SmallInt column, mapped to `i32`.
+    /// Borrowed `Int` column, mapped to `i32`.
     Int(&'a [i32]),
-    /// Borrowed BigInt column, mapped to `i64`.
+    /// Borrowed `BigInt` column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
@@ -37,11 +37,11 @@ pub enum CommittableColumn<'a> {
     Decimal75(Precision, i8, Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
-    /// Column of limbs for committing to scalars, hashed from a VarChar column.
+    /// Column of limbs for committing to scalars, hashed from a `VarChar` column.
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
-    /// Borrowed byte column, mapped to `u8`. This is not a PoSQL
+    /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
 }

@@ -1,4 +1,4 @@
-//! Dory is the commitment scheme described in https://eprint.iacr.org/2020/1274.pdf.
+//! Dory is the commitment scheme described in <https://eprint.iacr.org/2020/1274.pdf>.
 //!
 //! This module contains the implementation of the Dory inner product argument for the BLS12-381 curve.
 //!

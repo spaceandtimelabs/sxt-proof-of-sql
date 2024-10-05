@@ -5,7 +5,7 @@ use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-/// Indexes of a table for use in the ProvableQueryResult
+/// Indexes of a table for use in the [`ProvableQueryResult`](crate::sql::proof::ProvableQueryResult)
 pub enum Indexes {
     /// Sparse indexes. (i.e. explicitly specified indexes)
     Sparse(Vec<u64>),

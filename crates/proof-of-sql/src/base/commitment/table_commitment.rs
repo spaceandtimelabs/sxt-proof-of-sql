@@ -70,7 +70,7 @@ pub enum TableCommitmentArithmeticError {
         /// The underlying source error
         source: ColumnCommitmentsMismatch,
     },
-    /// Cannot perform TableCommitment arithmetic that would result in a negative range.
+    /// Cannot perform [`TableCommitment`] arithmetic that would result in a negative range.
     #[snafu(transparent)]
     NegativeRange {
         /// The underlying source error

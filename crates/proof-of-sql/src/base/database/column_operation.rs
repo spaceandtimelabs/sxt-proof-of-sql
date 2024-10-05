@@ -840,8 +840,8 @@ where
 /// 2. We use floor division for rounding.
 /// 3. If division by zero occurs, we return an error.
 /// 4. Precision and scale follow T-SQL rules. That is,
-///   - new_scale = max(6, right_precision + left_scale + 1)
-///   - new_precision = left_precision - left_scale + right_scale + new_scale
+///   - `new_scale = max(6, right_precision + left_scale + 1)`
+///   - `new_precision = left_precision - left_scale + right_scale + new_scale`
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
     rhs: &[T1],

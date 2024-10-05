@@ -39,15 +39,15 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
 
     /// Compute the evaluation of a multilinear extension from this expression
     /// at the random sumcheck point and adds components needed to verify the expression to
-    /// VerificationBuilder
+    /// [`VerificationBuilder`]
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError>;
 
-    /// Insert in the IndexSet `columns` all the column
-    /// references in the BoolExpr or forwards the call to some
-    /// subsequent bool_expr
+    /// Insert in the [`IndexSet`] `columns` all the column
+    /// references in the `BoolExpr` or forwards the call to some
+    /// subsequent `bool_expr`
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>);
 }

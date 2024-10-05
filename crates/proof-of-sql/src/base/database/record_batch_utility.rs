@@ -5,11 +5,11 @@ use arrow::array::{
 };
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 
-/// Extension trait for Vec<T> to convert it to an Arrow array
+/// Extension trait for `Vec<T>` to convert it to an Arrow array
 pub trait ToArrow {
     /// Returns the equivalent Arrow type
     fn to_type(&self) -> arrow::datatypes::DataType;
-    /// Converts the Vec<T> to an Arrow `ArrayRef`.
+    /// Converts the `Vec<T>` to an Arrow `ArrayRef`.
     fn to_array(self) -> Arc<dyn arrow::array::Array>;
 }
 
@@ -150,7 +150,7 @@ string_to_arrow_array!(
     arrow::array::StringArray
 );
 
-/// Utility macro to simplify the creation of RecordBatches
+/// Utility macro to simplify the creation of [`RecordBatch`](arrow::record_batch::RecordBatch) instances
 #[macro_export]
 macro_rules! record_batch {
     ($($col_name:expr => $slice:expr), + $(,)?) => {

@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec};
-/**
+/*
  * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
@@ -70,9 +70,9 @@ where
     sum * product
 }
 
-/// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
-/// The output of this function is the vector of coefficients of f, leading coefficient first.
-/// That is, `f(x) = evals[j]*x^(d-j)``.
+/// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
+/// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
+/// That is, `f(x) = evals[j] * x^(d - j)`.
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
     S: Zero

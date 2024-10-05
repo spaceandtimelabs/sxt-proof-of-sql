@@ -31,7 +31,7 @@ Get started with Proof of SQL by using the published crate on [crates.io](https:
 
 ### Prerequisites
 
-* Linux x86_64 (NOTE: Most of the codebase _should_ work for most rust targets. However, proofs are accelerated using NVIDIA GPUs, so other targets would run very slowly and may require modification.)
+* Linux `x86_64` (NOTE: Most of the codebase _should_ work for most rust targets. However, proofs are accelerated using NVIDIA GPUs, so other targets would run very slowly and may require modification.)
 * NVIDIA GPU & Drivers (Strongly Recommended)
 * lld (`sudo apt install lld`)
 * clang (`sudo apt install clang`)
@@ -145,7 +145,7 @@ An example result for the 3rd query looks like this:
 
 <p align="center">
 
-b | sum_a | c
+`b` | `sum_a` | `c`
 ---|---|---
 1 | -45585 | 301
 2 | -137574, | 300

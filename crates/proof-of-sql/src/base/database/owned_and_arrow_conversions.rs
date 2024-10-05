@@ -1,12 +1,12 @@
 //! This module provide `From` and `TryFrom` implementations to go between arrow and owned types
 //! The mapping is as follows:
-//! OwnedType <-> Array/ArrayRef
-//! OwnedTable <-> RecordBatch
-//! Boolean <-> Boolean
-//! BigInt <-> Int64
-//! VarChar <-> Utf8/String
-//! Int128 <-> Decimal128(38,0)
-//! Decimal75 <-> S
+//! `OwnedType` <-> `Array/ArrayRef`
+//! `OwnedTable` <-> `RecordBatch`
+//! `Boolean` <-> `Boolean`
+//! `BigInt` <-> `Int64`
+//! `VarChar` <-> `Utf8/String`
+//! `Int128` <-> `Decimal128(38,0)`
+//! `Decimal75` <-> `S`
 //!
 //! Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
 //! This is because there is no `Int128` type in Arrow.
@@ -69,7 +69,7 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an Arrow array with nulls.
     #[snafu(display("null values are not supported in OwnedColumn yet"))]
     NullNotSupportedYet,
-    /// Using TimeError to handle all time-related errors
+    /// Using `TimeError` to handle all time-related errors
     #[snafu(transparent)]
     TimestampConversionError {
         /// The underlying source error

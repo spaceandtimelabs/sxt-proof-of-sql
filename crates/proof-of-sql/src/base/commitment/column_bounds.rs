@@ -75,7 +75,7 @@ where
     /// The source collection is empty so has no bounds.
     #[default]
     Empty,
-    /// After some operation (like [`Bounds::difference`]), the bounds cannot be determined exactly.
+    /// After some operation (like `Bounds::difference`), the bounds cannot be determined exactly.
     ///
     /// Instead, this variant underestimates the minimum and overestimates the maximum.
     Bounded(BoundsInner<T>),
@@ -203,11 +203,11 @@ pub struct ColumnBoundsMismatch {
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
-    /// The bounds of a SmallInt column.
+    /// The bounds of a `SmallInt` column.
     SmallInt(Bounds<i16>),
     /// The bounds of an Int column.
     Int(Bounds<i32>),
-    /// The bounds of a BigInt column.
+    /// The bounds of a `BigInt` column.
     BigInt(Bounds<i64>),
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
