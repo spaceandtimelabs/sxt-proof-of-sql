@@ -128,6 +128,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     assert_eq!(evals, expected_evals);
 }
 
+#[allow(clippy::similar_names)]
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let indexes = Indexes::Sparse(vec![0, 2]);

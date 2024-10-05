@@ -64,7 +64,7 @@ mod time_unit_tests {
         let invalid_precisions = [
             "1", "2", "4", "5", "7", "8", "10", "zero", "three", "cat", "-1", "-2",
         ]; // Testing all your various invalid inputs
-        for &value in invalid_precisions.iter() {
+        for &value in &invalid_precisions {
             let result = PoSQLTimeUnit::try_from(value);
             assert!(matches!(
                 result,
@@ -88,7 +88,7 @@ mod time_unit_tests {
     #[test]
     fn test_rfc3339_timestamp_with_microseconds() {
         let input = "2023-06-26T12:34:56.123456Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
+        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123_456);
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit(), PoSQLTimeUnit::Microsecond);
         assert_eq!(
@@ -99,7 +99,7 @@ mod time_unit_tests {
     #[test]
     fn test_rfc3339_timestamp_with_nanoseconds() {
         let input = "2023-06-26T12:34:56.123456789Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
+        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123_456_789);
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit(), PoSQLTimeUnit::Nanosecond);
         assert_eq!(

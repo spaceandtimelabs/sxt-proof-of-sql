@@ -64,4 +64,16 @@ zerocopy = { version = "0.7.34" }
 missing_docs = "warn"
 
 [workspace.lints.clippy]
-missing_panics_doc = "warn"
+missing_panics_doc = "deny"
+doc_markdown = "deny"
+match_same_arms = "deny"
+similar_names = "deny"
+many_single_char_names = "deny"
+explicit_iter_loop = "deny"
+implicit_clone = "deny"
+uninlined_format_args = "deny"
+semicolon_if_nothing_returned = "deny"
+unnested_or_patterns = "deny"
+unreadable_literal = "deny"
+must_use_candidate = "deny"
+range_plus_one = "deny"

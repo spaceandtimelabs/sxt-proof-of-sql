@@ -29,7 +29,7 @@ use rand::Rng;
 use std::ops::Deref;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of
-/// commitments. Chose the number of columns to randomly generate across supported PoSQL
+/// commitments. Chose the number of columns to randomly generate across supported `PoSQL`
 /// data types, and choose the number of rows to append at a time.
 ///
 /// ```text
@@ -72,7 +72,8 @@ fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     });
 }
 
-/// Generates a random OwnedTable with a specified number of columns
+/// Generates a random [`OwnedTable`] with a specified number of columns
+#[must_use]
 pub fn generate_random_owned_table<S: Scalar>(
     num_columns: usize,
     num_rows: usize,

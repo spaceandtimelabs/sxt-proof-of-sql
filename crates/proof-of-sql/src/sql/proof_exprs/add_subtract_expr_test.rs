@@ -287,7 +287,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         .multiunzip();
         let expected_result = owned_table([varchar("d", expected_d), int128("f", expected_f)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 

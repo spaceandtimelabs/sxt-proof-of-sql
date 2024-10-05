@@ -21,12 +21,12 @@ impl<C: Commitment + Serialize + for<'a> Deserialize<'a>> CommitAccessor<C> {
         table_ref: &TableRef,
         commit: &TableCommitment<C>,
     ) -> Result<(), Box<dyn Error>> {
-        let path = self.base_path.join(format!("{}.commit", table_ref));
+        let path = self.base_path.join(format!("{table_ref}.commit"));
         fs::write(path, postcard::to_allocvec(commit)?)?;
         Ok(())
     }
     pub fn load_commit(&mut self, table_ref: TableRef) -> Result<(), Box<dyn Error>> {
-        let path = self.base_path.join(format!("{}.commit", table_ref));
+        let path = self.base_path.join(format!("{table_ref}.commit"));
         let commit = postcard::from_bytes(&fs::read(path)?)?;
         self.inner.insert(table_ref, commit);
         Ok(())

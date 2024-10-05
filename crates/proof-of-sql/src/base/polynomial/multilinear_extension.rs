@@ -115,7 +115,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
         match self {
             Column::Boolean(c) => c.mul_add(res, multiplier),
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
-                c.mul_add(res, multiplier)
+                c.mul_add(res, multiplier);
             }
             Column::TinyInt(c) => c.mul_add(res, multiplier),
             Column::SmallInt(c) => c.mul_add(res, multiplier),
@@ -160,7 +160,7 @@ impl<S: Scalar> MultilinearExtension<S> for Column<'_, S> {
     }
 
     fn mul_add(&self, res: &mut [S], multiplier: &S) {
-        (&self).mul_add(res, multiplier)
+        (&self).mul_add(res, multiplier);
     }
 
     fn to_sumcheck_term(&self, num_vars: usize) -> Rc<Vec<S>> {

@@ -57,7 +57,7 @@ pub enum ArrowArrayToColumnConversionError {
 
 /// This trait is used to provide utility functions to convert [`ArrayRef`]s into proof types (Column, Scalars, etc.)
 pub trait ArrayRefExt {
-    /// Convert an ArrayRef into a Proof of SQL Vec<Scalar>
+    /// Convert an [`ArrayRef`] into a Proof of SQL Vec<Scalar>
     ///
     /// Note: this function must not be called from unsupported arrays or arrays with nulls.
     /// It should only be used during testing.
@@ -546,7 +546,7 @@ mod tests {
 
         let array: ArrayRef = Arc::new(builder.finish().with_precision_and_scale(76, 0).unwrap());
         let result = array.to_column::<Curve25519Scalar>(&alloc, &(1..3), None);
-        assert!(result.is_err())
+        assert!(result.is_err());
     }
 
     #[test]

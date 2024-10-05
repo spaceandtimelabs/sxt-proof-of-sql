@@ -651,15 +651,11 @@ mod tests {
         for ((bound_a, name_a), (bound_b, name_b)) in bounds.iter().tuple_combinations() {
             assert!(
                 bound_a.try_union(*bound_b).is_err(),
-                "Expected error when trying to union {} with {}",
-                name_a,
-                name_b
+                "Expected error when trying to union {name_a} with {name_b}"
             );
             assert!(
                 bound_b.try_union(*bound_a).is_err(),
-                "Expected error when trying to union {} with {}",
-                name_b,
-                name_a
+                "Expected error when trying to union {name_b} with {name_a}"
             );
         }
     }

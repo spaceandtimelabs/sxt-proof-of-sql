@@ -28,7 +28,7 @@ pub trait Transcript {
     /// Request a challenge. Returns the raw, unreversed, bytes. (i.e. littleendian form)
     fn challenge_as_le(&mut self) -> [u8; 32];
 
-    /// Appends a type that implements [serde::Serialize] by appending the raw bytes (i.e. assuming the message is littleendian)
+    /// Appends a type that implements [`serde::Serialize`] by appending the raw bytes (i.e. assuming the message is littleendian)
     ///
     /// # Panics
     /// - Panics if `postcard::to_allocvec(message)` fails to serialize the message.

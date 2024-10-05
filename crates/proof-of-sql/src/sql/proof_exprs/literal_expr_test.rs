@@ -69,7 +69,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
             bigint("c", expected_c),
         ]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 
