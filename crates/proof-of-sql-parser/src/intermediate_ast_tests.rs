@@ -1108,7 +1108,7 @@ fn we_cannot_parse_queries_with_long_identifiers() {
 }
 
 ////////////////////////////////
-/// Tests for the GroupByClause
+/// Tests for the `GroupByClause`
 ////////////////////////////////
 #[test]
 fn we_can_parse_a_simple_group_by_clause() {

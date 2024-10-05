@@ -14,7 +14,7 @@ use std::{
 ///
 /// Will panic if flushing the output fails, which can happen due to issues with the underlying output stream.
 fn start_timer(message: &str) -> Instant {
-    print!("{}...", message);
+    print!("{message}...");
     stdout().flush().unwrap();
     Instant::now()
 }
@@ -70,7 +70,7 @@ fn main() {
             println!("Query result: {:?}", result.table);
         }
         Err(e) => {
-            println!("Error: {:?}", e);
+            println!("Error: {e:?}");
         }
     }
 }

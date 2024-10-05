@@ -195,11 +195,10 @@ mod tests {
             "to_timestamp",
         ];
 
-        for keyword in keywords.iter() {
+        for keyword in &keywords {
             assert!(
                 Identifier::from_str(keyword).is_err(),
-                "Should not parse keyword as identifier: {}",
-                keyword
+                "Should not parse keyword as identifier: {keyword}"
             );
         }
     }
