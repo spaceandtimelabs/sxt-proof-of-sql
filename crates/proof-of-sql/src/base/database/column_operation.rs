@@ -866,7 +866,7 @@ where
         .expect("numeric columns have scale");
     let applied_scale = rhs_scale - lhs_scale + new_scale;
     let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
-    let res: Vec<S> = lhs
+    let result: Vec<S> = lhs
         .iter()
         .zip(rhs)
         .map(|(l, r)| -> ColumnOperationResult<S> {
@@ -886,7 +886,7 @@ where
     Ok((
         Precision::new(new_precision_value).expect("Precision value is valid"),
         new_scale,
-        res,
+        result,
     ))
 }
 

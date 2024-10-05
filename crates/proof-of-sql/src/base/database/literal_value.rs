@@ -59,9 +59,8 @@ impl<S: Scalar> LiteralValue<S> {
             Self::SmallInt(i) => i.into(),
             Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),
-            Self::VarChar((_, s)) => *s,
+            Self::VarChar((_, s)) | Self::Decimal75(_, _, s) => *s,
             Self::Int128(i) => i.into(),
-            Self::Decimal75(_, _, s) => *s,
             Self::Scalar(scalar) => *scalar,
             Self::TimeStampTZ(_, _, time) => time.into(),
         }

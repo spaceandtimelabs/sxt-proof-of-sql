@@ -79,15 +79,13 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Boolean(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
-            Self::BigInt(col) => col.len(),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => col.len(),
             Self::VarChar((col, scals)) => {
                 assert_eq!(col.len(), scals.len());
                 col.len()
             }
             Self::Int128(col) => col.len(),
-            Self::Scalar(col) => col.len(),
-            Self::Decimal75(_, _, col) => col.len(),
-            Self::TimestampTZ(_, _, col) => col.len(),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
@@ -169,6 +167,23 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of scalars
+    pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
+        match self {
+            Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::SmallInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Scalar(col) => col,
+            Self::Decimal75(_, _, col) => col,
+            Self::VarChar((_, scals)) => scals,
+            Self::TimestampTZ(_, _, col) => {
+                alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
+            }
+        }
+    }
+
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
@@ -177,12 +192,10 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Boolean(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
-            Self::BigInt(col) => S::from(col[index]),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
             Self::Int128(col) => S::from(col[index]),
-            Self::Scalar(col) => col[index],
-            Self::Decimal75(_, _, col) => col[index],
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
-            Self::TimestampTZ(_, _, col) => S::from(col[index]),
         })
     }
 
@@ -192,7 +205,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
-            Self::VarChar((_, scals)) => slice_cast_with(scals, |s| *s * scale_factor),
+            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
@@ -309,8 +322,7 @@ impl ColumnType {
         match self {
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
-            Self::BigInt => Some(19_u8),
-            Self::TimestampTZ(_, _) => Some(19_u8),
+            Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
             Self::Int128 => Some(39_u8),
             Self::Decimal75(precision, _) => Some(precision.value()),
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0

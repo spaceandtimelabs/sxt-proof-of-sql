@@ -354,12 +354,11 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Boolean(col) => col[i].cmp(&col[j]),
             Column::SmallInt(col) => col[i].cmp(&col[j]),
             Column::Int(col) => col[i].cmp(&col[j]),
-            Column::BigInt(col) => col[i].cmp(&col[j]),
+            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
-            Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -380,12 +379,11 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
             OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
             OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
             OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-            OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
             OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
             OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
             OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-            OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
