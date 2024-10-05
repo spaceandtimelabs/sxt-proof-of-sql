@@ -342,7 +342,7 @@ mod tests {
     }
 
     fn encode_multiple_rows<'a, T: ProvableResultElement<'a>>(data: &[T]) -> Vec<u8> {
-        let total_len = data.iter().map(|v| v.required_bytes()).sum::<usize>();
+        let total_len = data.iter().map(super::ProvableResultElement::required_bytes).sum::<usize>();
 
         let mut offset = 0;
         let mut out = vec![0_u8; total_len];

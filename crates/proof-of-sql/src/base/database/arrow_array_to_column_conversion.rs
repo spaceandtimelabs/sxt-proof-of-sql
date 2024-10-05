@@ -1068,7 +1068,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
@@ -1184,7 +1184,7 @@ mod tests {
     {
         let alloc = Bump::new();
         let data = ["ab", "-f34", "ehfh43"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
 
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.to_vec()));
         assert_eq!(
@@ -1199,7 +1199,7 @@ mod tests {
     fn we_can_convert_valid_string_array_refs_into_valid_columns_using_precomputed_scalars() {
         let alloc = Bump::new();
         let data = vec!["ab", "-f34"];
-        let scals: Vec<_> = data.iter().map(|v| v.into()).collect();
+        let scals: Vec<_> = data.iter().map(std::convert::Into::into).collect();
         let array: ArrayRef = Arc::new(arrow::array::StringArray::from(data.clone()));
         assert_eq!(
             array
@@ -1245,7 +1245,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }
@@ -1276,7 +1276,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
 
@@ -1286,7 +1286,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
 
@@ -1296,7 +1296,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }
@@ -1309,7 +1309,7 @@ mod tests {
             array.to_curve25519_scalars(),
             Ok(data
                 .iter()
-                .map(|v| v.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<Curve25519Scalar>>())
         );
     }

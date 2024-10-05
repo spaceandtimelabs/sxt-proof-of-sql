@@ -586,7 +586,7 @@ mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
     use alloc::{
-        string::{String, ToString},
+        string::String,
         vec,
     };
 
@@ -1015,7 +1015,7 @@ mod tests {
         ];
         let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
         let owned_col =
-            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>());
+            OwnedColumn::VarChar(strs.iter().map(std::string::ToString::to_string).collect::<Vec<String>>());
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::VarChar((&strs, &scalars)));
         let new_owned_col = (&col).into();

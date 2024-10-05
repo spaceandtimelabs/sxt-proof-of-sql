@@ -79,7 +79,7 @@ fn we_can_access_the_columns_of_a_table() {
     };
 
     let col_slice: Vec<_> = vec!["a", "bc", "d", "e"];
-    let col_scalars: Vec<_> = ["a", "bc", "d", "e"].iter().map(|v| v.into()).collect();
+    let col_scalars: Vec<_> = ["a", "bc", "d", "e"].iter().map(std::convert::Into::into).collect();
     let column = ColumnRef::new(table_ref_2, "varchar".parse().unwrap(), ColumnType::VarChar);
     match accessor.get_column(column) {
         Column::VarChar((col, scals)) => {

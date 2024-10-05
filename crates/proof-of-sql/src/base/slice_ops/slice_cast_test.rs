@@ -15,7 +15,7 @@ fn test_slice_map_to_vec() {
 fn test_slice_cast_with_from_curve25519_scalar_to_dalek_scalar() {
     let a: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
     let b: Vec<Scalar> = vec![Scalar::from(1u64), Scalar::from(2u64)];
-    let a: Vec<Scalar> = slice_cast_with(&a, |s| s.into());
+    let a: Vec<Scalar> = slice_cast_with(&a, std::convert::Into::into);
     assert_eq!(a, b);
 }
 
