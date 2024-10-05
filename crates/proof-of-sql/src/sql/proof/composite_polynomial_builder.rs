@@ -74,18 +74,18 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         &mut self,
         terms: &[Box<dyn MultilinearExtension<S> + '_>],
     ) -> Vec<Rc<Vec<S>>> {
-        let mut terms_p = Vec::with_capacity(terms.len());
+        let mut deduplicated_terms = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
-            if let Some(term_p) = self.mles.get(&id) {
-                terms_p.push(term_p.clone());
+            if let Some(cached_term) = self.mles.get(&id) {
+                deduplicated_terms.push(cached_term.clone());
             } else {
-                let term_p = term.to_sumcheck_term(self.num_sumcheck_variables);
-                self.mles.insert(id, term_p.clone());
-                terms_p.push(term_p);
+                let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
+                self.mles.insert(id, new_term.clone());
+                deduplicated_terms.push(new_term);
             }
         }
-        terms_p
+        deduplicated_terms
     }
 
     /// Create a composite polynomial that is the sum of all of the

@@ -264,7 +264,7 @@ fn verify_filter<C: Commitment>(
     Ok(c_evals)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,

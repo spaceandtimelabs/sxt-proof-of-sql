@@ -192,7 +192,7 @@ impl<'a, S: Scalar> Column<'a, S> {
         match self {
             Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
             Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
-            Self::VarChar((_, scals)) => slice_cast_with(scals, |s| *s * scale_factor),
+            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
             Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
