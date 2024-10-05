@@ -1,5 +1,8 @@
 use super::Indexes;
-use crate::base::{polynomial::compute_evaluation_vector, scalar::{Curve25519Scalar, MontScalar}};
+use crate::base::{
+    polynomial::compute_evaluation_vector,
+    scalar::{Curve25519Scalar, MontScalar},
+};
 use num_traits::Zero;
 
 #[test]

@@ -19,12 +19,12 @@ pub(super) fn build_vmv_prover_state(
     VMVProverState {
         v_vec,
         T_vec_prime,
-        L_vec,
-        R_vec,
         #[cfg(test)]
         l_tensor,
         #[cfg(test)]
         r_tensor,
+        L_vec,
+        R_vec,
         nu,
     }
 }

@@ -100,10 +100,10 @@ impl VMV {
         compute_evaluation_vector(&mut R, &r_tensor);
         Self {
             M,
-            L,
-            R,
             l_tensor,
             r_tensor,
+            L,
+            R,
             nu,
         }
     }

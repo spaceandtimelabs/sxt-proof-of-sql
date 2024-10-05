@@ -2,7 +2,8 @@ use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_eva
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder
+        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+        VerificationBuilder,
     },
 };
 use bumpalo::Bump;
