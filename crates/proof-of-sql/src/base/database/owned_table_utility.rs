@@ -48,6 +48,27 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
+/// Creates a (Identifier, `OwnedColumn`) pair for a tinyint column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// let result = owned_table::<Curve25519Scalar>([
+///     tinyint("a", [1_i8, 2, 3]),
+/// ]);
+///```
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+pub fn tinyint<S: Scalar>(
+    name: impl Deref<Target = str>,
+    data: impl IntoIterator<Item = impl Into<i8>>,
+) -> (Identifier, OwnedColumn<S>) {
+    (
+        name.parse().unwrap(),
+        OwnedColumn::TinyInt(data.into_iter().map(Into::into).collect()),
+    )
+}
+
 /// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example

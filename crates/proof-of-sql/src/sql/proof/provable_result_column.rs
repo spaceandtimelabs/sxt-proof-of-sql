@@ -35,6 +35,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn num_bytes(&self, selection: &Indexes) -> usize {
         match self {
             Column::Boolean(col) => col.num_bytes(selection),
+            Column::TinyInt(col) => col.num_bytes(selection),
             Column::SmallInt(col) => col.num_bytes(selection),
             Column::Int(col) => col.num_bytes(selection),
             Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.num_bytes(selection),
@@ -47,6 +48,7 @@ impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
     fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
         match self {
             Column::Boolean(col) => col.write(out, selection),
+            Column::TinyInt(col) => col.write(out, selection),
             Column::SmallInt(col) => col.write(out, selection),
             Column::Int(col) => col.write(out, selection),
             Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.write(out, selection),

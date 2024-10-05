@@ -103,6 +103,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
                 c.inner_product(evaluation_vec)
             }
+            Column::TinyInt(c) => c.inner_product(evaluation_vec),
             Column::SmallInt(c) => c.inner_product(evaluation_vec),
             Column::Int(c) => c.inner_product(evaluation_vec),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.inner_product(evaluation_vec),
@@ -116,6 +117,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
                 c.mul_add(res, multiplier);
             }
+            Column::TinyInt(c) => c.mul_add(res, multiplier),
             Column::SmallInt(c) => c.mul_add(res, multiplier),
             Column::Int(c) => c.mul_add(res, multiplier),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.mul_add(res, multiplier),
@@ -129,6 +131,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
                 c.to_sumcheck_term(num_vars)
             }
+            Column::TinyInt(c) => c.to_sumcheck_term(num_vars),
             Column::SmallInt(c) => c.to_sumcheck_term(num_vars),
             Column::Int(c) => c.to_sumcheck_term(num_vars),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => c.to_sumcheck_term(num_vars),
@@ -142,6 +145,7 @@ impl<S: Scalar> MultilinearExtension<S> for &Column<'_, S> {
             Column::Scalar(c) | Column::VarChar((_, c)) | Column::Decimal75(_, _, c) => {
                 MultilinearExtension::<S>::id(c)
             }
+            Column::TinyInt(c) => MultilinearExtension::<S>::id(c),
             Column::SmallInt(c) => MultilinearExtension::<S>::id(c),
             Column::Int(c) => MultilinearExtension::<S>::id(c),
             Column::BigInt(c) | Column::TimestampTZ(_, _, c) => MultilinearExtension::<S>::id(c),
