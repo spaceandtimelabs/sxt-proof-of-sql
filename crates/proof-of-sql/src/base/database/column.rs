@@ -177,8 +177,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
             Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
             Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
-            Self::Scalar(col) => col,
-            Self::Decimal75(_, _, col) => col,
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col,
             Self::VarChar((_, scals)) => scals,
             Self::TimestampTZ(_, _, col) => {
                 alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))

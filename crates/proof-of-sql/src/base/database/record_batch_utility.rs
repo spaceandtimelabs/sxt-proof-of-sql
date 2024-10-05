@@ -118,7 +118,7 @@ impl ToArrow for Vec<i128> {
     ///
     /// # Panics
     ///
-    /// Will panic if the conversion to a Decimal128Array fails, which can happen if the data exceeds the specified precision and scale (38, 0). Ensure that all values are within the valid range for the Decimal128 type.
+    /// Will panic if the conversion to a [`Decimal128Array`](arrow::array::Decimal128Array) fails, which can happen if the data exceeds the specified precision and scale (38, 0). Ensure that all values are within the valid range for the Decimal128 type.
     fn to_array(self) -> Arc<dyn arrow::array::Array> {
         Arc::new(
             arrow::array::Decimal128Array::from(self)
