@@ -822,6 +822,7 @@ mod tests {
         assert_eq!(table_commitment.column_commitments(), &column_commitments);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_cannot_append_columns_of_mixed_length_to_table_commitment() {
         let column_id_a: Identifier = "column_a".parse().unwrap();

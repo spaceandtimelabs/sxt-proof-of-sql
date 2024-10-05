@@ -834,7 +834,7 @@ mod tests {
         let precision = 10;
         let scale = 2;
 
-        let scals = [
+        let scalar_values = [
             Curve25519Scalar::from(1),
             Curve25519Scalar::from(2),
             Curve25519Scalar::from(3),
@@ -857,7 +857,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::VarChar((&["a", "b", "c"], &scals));
+        let column = Column::VarChar((&["a", "b", "c"], &scalar_values));
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -865,7 +865,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::Scalar(&scals);
+        let column = Column::Scalar(&scalar_values);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -984,17 +984,17 @@ mod tests {
         assert_eq!(column.column_type().byte_size(), 16);
         assert_eq!(column.column_type().bit_size(), 128);
 
-        let scals = [
+        let scalar_values = [
             Curve25519Scalar::from(1),
             Curve25519Scalar::from(2),
             Curve25519Scalar::from(3),
         ];
 
-        let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scals));
+        let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scalar_values));
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 
-        let column = Column::Scalar(&scals);
+        let column = Column::Scalar(&scalar_values);
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 
