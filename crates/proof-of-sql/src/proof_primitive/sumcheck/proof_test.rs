@@ -4,7 +4,7 @@ use crate::base::{
     proof::Transcript as _,
     scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
 };
-/**
+/*
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
@@ -84,7 +84,7 @@ fn random_product(
 ) -> (Vec<Rc<Vec<Curve25519Scalar>>>, Curve25519Scalar) {
     let mut multiplicands = Vec::with_capacity(num_multiplicands);
     for _ in 0..num_multiplicands {
-        multiplicands.push(Vec::with_capacity(1 << nv))
+        multiplicands.push(Vec::with_capacity(1 << nv));
     }
     let mut sum = Curve25519Scalar::zero();
 
@@ -210,7 +210,7 @@ fn we_can_verify_many_random_test_cases() {
             assert_ne!(
                 subclaim.evaluation_point, evaluation_point,
                 "either verification should fail or we should have a different evaluation point with a different transcript"
-            )
+            );
         }
 
         let mut transcript = Transcript::new(b"sumchecktest");

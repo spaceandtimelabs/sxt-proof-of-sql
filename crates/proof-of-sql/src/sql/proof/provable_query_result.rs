@@ -50,6 +50,7 @@ impl ProvableQueryResult {
     }
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
+    #[must_use]
     pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
         Self {
             num_columns,
@@ -118,6 +119,7 @@ impl ProvableQueryResult {
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
+                    ColumnType::TinyInt => decode_and_convert::<i8, S>(&self.data[offset..]),
                     ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
                     ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
                     ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
@@ -170,6 +172,11 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Boolean(col)))
+                    }
+                    ColumnType::TinyInt => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::TinyInt(col)))
                     }
                     ColumnType::SmallInt => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;

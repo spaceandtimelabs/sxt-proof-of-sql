@@ -199,6 +199,7 @@ mod tests {
         assert_eq!(query_commitments.get_length(no_rows_id), 0);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
@@ -248,6 +249,7 @@ mod tests {
         );
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
@@ -322,6 +324,7 @@ mod tests {
         assert_eq!(query_commitments.lookup_schema(no_columns_id), vec![]);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
         let public_parameters = PublicParameters::test_rand(4, &mut test_rng());

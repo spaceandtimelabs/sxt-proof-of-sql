@@ -152,7 +152,7 @@ mod tests {
                         _ => row[0]
                             .expect("Every row except 1 should have a value in the 0th position."),
                     }
-                )
+                );
             }
         }
     }
@@ -178,8 +178,7 @@ mod tests {
             let width_of_row = full_width_of_row(row);
             assert_eq!(
                 width_of_row, *width,
-                "row: {} does not produce expected width",
-                row
+                "row: {row} does not produce expected width"
             );
         }
     }
@@ -266,16 +265,12 @@ mod tests {
                 if valid_pairs.contains(&(row, column)) {
                     assert!(
                         index.is_some(),
-                        "Valid pair ({}, {}) generated no index",
-                        row,
-                        column
+                        "Valid pair ({row}, {column}) generated no index"
                     );
                 } else {
                     assert!(
                         index.is_none(),
-                        "Invalid pair ({}, {}) generated a valid index",
-                        row,
-                        column
+                        "Invalid pair ({row}, {column}) generated a valid index"
                     );
                 }
             }

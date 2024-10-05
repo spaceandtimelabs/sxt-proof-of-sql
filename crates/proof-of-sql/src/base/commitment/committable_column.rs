@@ -25,6 +25,8 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 pub enum CommittableColumn<'a> {
     /// Borrowed Bool column, mapped to `bool`.
     Boolean(&'a [bool]),
+    /// Borrowed `TinyInt` column, mapped to `i8`.
+    TinyInt(&'a [i8]),
     /// Borrowed `SmallInt` column, mapped to `i16`.
     SmallInt(&'a [i16]),
     /// Borrowed `Int` column, mapped to `i32`.
@@ -51,6 +53,7 @@ impl<'a> CommittableColumn<'a> {
     #[must_use]
     pub fn len(&self) -> usize {
         match self {
+            CommittableColumn::TinyInt(col) => col.len(),
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
             CommittableColumn::BigInt(col) | CommittableColumn::TimestampTZ(_, _, col) => col.len(),
@@ -79,6 +82,7 @@ impl<'a> CommittableColumn<'a> {
 impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
+            CommittableColumn::TinyInt(_) => ColumnType::TinyInt,
             CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
             CommittableColumn::Int(_) => ColumnType::Int,
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
@@ -101,6 +105,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
+            Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),
@@ -129,6 +134,7 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
+            OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
@@ -160,6 +166,11 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
 impl<'a> From<&'a [u8]> for CommittableColumn<'a> {
     fn from(value: &'a [u8]) -> Self {
         CommittableColumn::RangeCheckWord(value)
+    }
+}
+impl<'a> From<&'a [i8]> for CommittableColumn<'a> {
+    fn from(value: &'a [i8]) -> Self {
+        CommittableColumn::TinyInt(value)
     }
 }
 impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
@@ -199,6 +210,7 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
+            CommittableColumn::TinyInt(ints) => Sequence::from(*ints),
             CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
@@ -239,7 +251,7 @@ mod tests {
                 .into(),
         );
 
-        assert_eq!(res_committable_column, test_committable_column)
+        assert_eq!(res_committable_column, test_committable_column);
     }
 
     #[test]
@@ -264,6 +276,26 @@ mod tests {
         assert_eq!(
             committable_column.column_type(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
+        );
+    }
+
+    #[test]
+    fn we_can_get_type_and_length_of_tinyint_column() {
+        // empty case
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[]);
+        assert_eq!(tinyint_committable_column.len(), 0);
+        assert!(tinyint_committable_column.is_empty());
+        assert_eq!(
+            tinyint_committable_column.column_type(),
+            ColumnType::TinyInt
+        );
+
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[12, 34, 56]);
+        assert_eq!(tinyint_committable_column.len(), 3);
+        assert!(!tinyint_committable_column.is_empty());
+        assert_eq!(
+            tinyint_committable_column.column_type(),
+            ColumnType::TinyInt
         );
     }
 
@@ -462,6 +494,21 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_borrowing_tinyint_column() {
+        // empty case
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::TinyInt(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[12, 34, 56]));
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::TinyInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
     fn we_can_convert_from_borrowing_smallint_column() {
         // empty case
         let from_borrowed_column =
@@ -583,6 +630,18 @@ mod tests {
         let owned_column = OwnedColumn::<Curve25519Scalar>::BigInt(vec![12, 34, 56]);
         let from_owned_column = CommittableColumn::from(&owned_column);
         assert_eq!(from_owned_column, CommittableColumn::BigInt(&[12, 34, 56]));
+    }
+
+    #[test]
+    fn we_can_convert_from_owned_tinyint_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[]));
+
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(vec![12, 34, 56]);
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[12, 34, 56]));
     }
 
     #[test]
@@ -738,6 +797,30 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::RangeCheckWord(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_tinyint_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::TinyInt(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::TinyInt(&values);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());

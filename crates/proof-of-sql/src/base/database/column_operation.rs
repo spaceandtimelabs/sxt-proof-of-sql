@@ -932,6 +932,12 @@ mod test {
     #[test]
     fn we_can_add_numeric_types() {
         // lhs and rhs are integers with the same precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::TinyInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::TinyInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
@@ -939,6 +945,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::SmallInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::SmallInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
@@ -946,6 +958,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a scalar
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Scalar;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::Scalar;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Scalar;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
@@ -953,6 +971,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
+        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::TinyInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
@@ -967,6 +991,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add).unwrap();
@@ -991,6 +1021,13 @@ mod test {
 
     #[test]
     fn we_cannot_add_non_numeric_types() {
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::VarChar;
         assert!(matches!(
@@ -1030,6 +1067,12 @@ mod test {
     #[test]
     fn we_can_subtract_numeric_types() {
         // lhs and rhs are integers with the same precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::TinyInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
+        let expected = ColumnType::TinyInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
@@ -1037,6 +1080,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::SmallInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
+        let expected = ColumnType::SmallInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
@@ -1044,6 +1093,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a scalar
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Scalar;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
+        let expected = ColumnType::Scalar;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Scalar;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
@@ -1051,6 +1106,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
+        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::TinyInt;
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(11).unwrap(), 2);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
@@ -1065,6 +1126,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(13).unwrap(), 0);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let actual = try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract).unwrap();
@@ -1089,6 +1156,13 @@ mod test {
 
     #[test]
     fn we_cannot_subtract_non_numeric_types() {
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::VarChar;
         assert!(matches!(
@@ -1128,6 +1202,12 @@ mod test {
     #[test]
     fn we_can_multiply_numeric_types() {
         // lhs and rhs are integers with the same precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::TinyInt;
+        let actual = try_multiply_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::TinyInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
@@ -1135,6 +1215,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::SmallInt;
+        let actual = try_multiply_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::SmallInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
@@ -1142,6 +1228,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a scalar
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Scalar;
+        let actual = try_multiply_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Scalar;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Scalar;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
@@ -1149,6 +1241,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is a decimal and rhs is an integer
+        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::TinyInt;
+        let actual = try_multiply_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 2);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
@@ -1163,6 +1261,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = try_multiply_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), -2);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let actual = try_multiply_column_types(lhs, rhs).unwrap();
@@ -1187,6 +1291,13 @@ mod test {
 
     #[test]
     fn we_cannot_multiply_non_numeric_types() {
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_multiply_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::VarChar;
         assert!(matches!(
@@ -1246,6 +1357,12 @@ mod test {
     #[test]
     fn we_can_divide_numeric_types() {
         // lhs and rhs are integers with the same precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::TinyInt;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::TinyInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::SmallInt;
         let actual = try_divide_column_types(lhs, rhs).unwrap();
@@ -1253,6 +1370,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs and rhs are integers with different precision
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::SmallInt;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::SmallInt;
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Int;
         let actual = try_divide_column_types(lhs, rhs).unwrap();
@@ -1261,12 +1384,24 @@ mod test {
 
         // lhs is a decimal with nonnegative scale and rhs is an integer
         let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let rhs = ColumnType::TinyInt;
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(14).unwrap(), 6);
+        assert_eq!(expected, actual);
+
+        let lhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
         let rhs = ColumnType::SmallInt;
         let actual = try_divide_column_types(lhs, rhs).unwrap();
         let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 8);
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with nonnegative scale
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(16).unwrap(), 11);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
@@ -1281,6 +1416,12 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is an integer and rhs is a decimal with negative scale
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let actual = try_divide_column_types(lhs, rhs).unwrap();
+        let expected = ColumnType::Decimal75(Precision::new(12).unwrap(), 11);
+        assert_eq!(expected, actual);
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
         let actual = try_divide_column_types(lhs, rhs).unwrap();
@@ -1305,6 +1446,13 @@ mod test {
 
     #[test]
     fn we_cannot_divide_non_numeric_or_scalar_types() {
+        let lhs = ColumnType::TinyInt;
+        let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
         let lhs = ColumnType::SmallInt;
         let rhs = ColumnType::VarChar;
         assert!(matches!(
@@ -1417,6 +1565,17 @@ mod test {
     #[test]
     fn we_can_eq_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [100_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = eq_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, false];
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
@@ -1538,6 +1697,17 @@ mod test {
     #[test]
     fn we_can_le_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [100_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = le_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, true, false];
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
@@ -1659,6 +1829,17 @@ mod test {
     #[test]
     fn we_can_ge_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [100_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual = ge_decimal_columns(&lhs, &rhs, left_column_type, right_column_type);
+        let expected = vec![true, false, true];
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [100_i16, 5, -2]
             .into_iter()
@@ -1800,6 +1981,23 @@ mod test {
     #[test]
     fn we_can_try_add_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [4_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_add_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(104),
+            Curve25519Scalar::from(-195),
+            Curve25519Scalar::from(298),
+        ];
+        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
@@ -1962,6 +2160,23 @@ mod test {
     #[test]
     fn we_can_try_subtract_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [4_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_subtract_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(96),
+            Curve25519Scalar::from(-205),
+            Curve25519Scalar::from(302),
+        ];
+        let expected = (Precision::new(11).unwrap(), 2, expected_scalars);
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
@@ -2105,6 +2320,23 @@ mod test {
     #[test]
     fn we_can_try_multiply_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [1_i8, -2, 3];
+        let rhs = [4_i8, 5, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_multiply_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(4),
+            Curve25519Scalar::from(-10),
+            Curve25519Scalar::from(-6),
+        ];
+        let expected = (Precision::new(14).unwrap(), 2, expected_scalars);
+        assert_eq!(expected, actual);
+
         let lhs = [1_i16, -2, 3];
         let rhs = [4_i16, 5, -2]
             .into_iter()
@@ -2268,6 +2500,23 @@ mod test {
     #[test]
     fn we_can_try_divide_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
+        let lhs = [0_i8, 2, 3];
+        let rhs = [4_i8, 5, 2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let left_column_type = ColumnType::TinyInt;
+        let right_column_type = ColumnType::Decimal75(Precision::new(3).unwrap(), 2);
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(0_i64),
+            Curve25519Scalar::from(40_000_000_i64),
+            Curve25519Scalar::from(150_000_000_i64),
+        ];
+        let expected = (Precision::new(11).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
         let lhs = [0_i16, 2, 3];
         let rhs = [4_i16, 5, 2]
             .into_iter()
@@ -2286,6 +2535,23 @@ mod test {
         assert_eq!(expected, actual);
 
         // lhs is decimal with negative scale and rhs is integer
+        let lhs = [4_i8, 15, -2]
+            .into_iter()
+            .map(Curve25519Scalar::from)
+            .collect::<Vec<_>>();
+        let rhs = [71_i64, -82, 23];
+        let left_column_type = ColumnType::Decimal75(Precision::new(10).unwrap(), -2);
+        let right_column_type = ColumnType::TinyInt;
+        let actual: (Precision, i8, Vec<Curve25519Scalar>) =
+            try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
+        let expected_scalars = vec![
+            Curve25519Scalar::from(5_633_802),
+            Curve25519Scalar::from(-18_292_682),
+            Curve25519Scalar::from(-8_695_652),
+        ];
+        let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
+        assert_eq!(expected, actual);
+
         let lhs = [4_i16, 15, -2]
             .into_iter()
             .map(Curve25519Scalar::from)

@@ -83,19 +83,19 @@ mod timezone_parsing_tests {
     #[test]
     fn test_display_fixed_offset_positive() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
-        assert_eq!(format!("{}", timezone), "+01:15");
+        assert_eq!(format!("{timezone}"), "+01:15");
     }
 
     #[test]
     fn test_display_fixed_offset_negative() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
-        assert_eq!(format!("{}", timezone), "-01:03");
+        assert_eq!(format!("{timezone}"), "-01:03");
     }
 
     #[test]
     fn test_display_utc() {
         let timezone = timezone::PoSQLTimeZone::Utc;
-        assert_eq!(format!("{}", timezone), "+00:00");
+        assert_eq!(format!("{timezone}"), "+00:00");
     }
 }
 

@@ -665,7 +665,7 @@ fn we_can_convert_an_ast_without_any_filter() {
 }
 
 /////////////////////////
-/// OrderBy
+/// `OrderBy`
 /////////////////////////
 #[test]
 fn we_can_parse_order_by_with_a_single_column() {
@@ -1908,7 +1908,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         let query = query!(
             select: perm_cols,
             group: group_cols.clone(),
-            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
+            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{c} {o}"))
         );
         let expected_query = QueryExpr::new(
             filter(perm_col_plans, tab(t), const_bool(true)),
@@ -1921,7 +1921,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     }
 }
 
-/// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
+/// Creates a new [`QueryExpr`], with the given select statement and a sample schema accessor.
 fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
@@ -1936,7 +1936,7 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
 }
 
-/// Serializes and deserializes QueryExpr with flexbuffers and asserts that it remains the same.
+/// Serializes and deserializes [`QueryExpr`] with flexbuffers and asserts that it remains the same.
 fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr<RistrettoPoint>) {
     let serialized = flexbuffers::to_vec(&query_expr).unwrap();
     let deserialized: QueryExpr<RistrettoPoint> =

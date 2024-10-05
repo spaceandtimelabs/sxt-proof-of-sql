@@ -71,7 +71,7 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         _result: Option<&OwnedTable<<C as Commitment>::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let _ = std::iter::repeat_with(|| {
-            assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO)
+            assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
         })
         .take(self.columns)
         .collect::<Vec<_>>();

@@ -1,4 +1,4 @@
-/**
+/*
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE

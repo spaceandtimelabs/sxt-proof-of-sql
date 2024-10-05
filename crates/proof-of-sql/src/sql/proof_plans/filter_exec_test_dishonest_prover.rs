@@ -117,7 +117,7 @@ fn tamper_column<'a>(
     alloc: &'a Bump,
     mut columns: Vec<Column<'a, Curve25519Scalar>>,
 ) -> Vec<Column<'a, Curve25519Scalar>> {
-    for column in columns.iter_mut() {
+    for column in &mut columns {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);
