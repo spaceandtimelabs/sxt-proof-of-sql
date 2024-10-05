@@ -1,11 +1,13 @@
 use super::{G1Affine, G2Affine};
 use alloc::vec::Vec;
 use ark_ff::UniformRand;
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
-};
+#[cfg(feature = "std")]
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError, Valid};
+#[cfg(feature = "std")]
+use ark_serialize::{Compress, Validate};
 use ark_std::rand::{CryptoRng, Rng};
 use core::iter;
+#[cfg(feature = "std")]
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Read, Write},
@@ -58,27 +60,32 @@ impl PublicParameters {
             Gamma_2_fin,
         }
     }
-
-    /// Function to save PublicParameters to a file in binary form
+    #[cfg(feature = "std")]
+    /// Function to save `PublicParameters` to a file in binary form
     pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
         // Create or open the file at the specified path
+
+        use std::io;
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
 
         // Serialize the PublicParameters struct into the file
         let mut serialized_data = Vec::new();
         self.serialize_with_mode(&mut serialized_data, Compress::No)
-            .expect("Failed to serialize PublicParameters");
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
 
         // Write serialized bytes to the file
         writer.write_all(&serialized_data)?;
         writer.flush()?;
         Ok(())
     }
-
-    /// Function to load PublicParameters from a file in binary form
+    #[cfg(feature = "std")]
+    /// Function to load `PublicParameters` from a file in binary form
     pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
         // Open the file at the specified path
+
+        use std::io;
+
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
 
@@ -87,19 +94,18 @@ impl PublicParameters {
         reader.read_to_end(&mut serialized_data)?;
 
         // Deserialize the data into a PublicParameters instance
-        let params = PublicParameters::deserialize_with_mode(
+        PublicParameters::deserialize_with_mode(
             &mut &serialized_data[..],
             Compress::No,
             Validate::Yes,
         )
-        .expect("Failed to deserialize PublicParameters");
-
-        Ok(params)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))
     }
 }
 
+#[cfg(feature = "std")]
 impl CanonicalSerialize for PublicParameters {
-    fn serialize_with_mode<W: std::io::Write>(
+    fn serialize_with_mode<W: ark_serialize::Write>(
         &self,
         mut writer: W,
         compress: ark_serialize::Compress,
@@ -161,8 +167,9 @@ impl CanonicalSerialize for PublicParameters {
     }
 }
 
+#[cfg(feature = "std")]
 impl CanonicalDeserialize for PublicParameters {
-    fn deserialize_with_mode<R: std::io::Read>(
+    fn deserialize_with_mode<R: ark_serialize::Read>(
         mut reader: R,
         compress: ark_serialize::Compress,
         validate: ark_serialize::Validate,
@@ -213,6 +220,7 @@ impl CanonicalDeserialize for PublicParameters {
     // Remove unnecessary methods if they're not overridden
 }
 
+#[cfg(feature = "std")]
 // Implement the Valid trait to perform validation on deserialized data
 impl Valid for PublicParameters {
     fn check(&self) -> Result<(), SerializationError> {
@@ -232,6 +240,7 @@ impl Valid for PublicParameters {
 }
 
 #[cfg(test)]
+#[cfg(feature = "std")]
 mod tests {
     use super::*;
     use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -273,19 +282,20 @@ mod tests {
             .expect("Deserialized parameters are not valid");
     }
 
-    // Observed proof size vs nu:
-    // nu = 4  |  0.005 MB  | ▏
-    // nu = 10 |  0.282 MB  | ███▏
-    // nu = 12 |  1.125 MB  | █████████
-    // nu = 14 |  4.500 MB  | ████████████████████████████
-    // nu = 15 |  9.000 MB  | ██████████████████████████████████████████████
+    // 13th Gen Intel® Core™ i9-13900H × 20
+    // nu vs proof size & time:
+    // nu = 4  |  0.005 MB  | 287.972567ms
+    // nu = 10 |  0.282 MB  | 16.130250627s
+    // nu = 12 |  1.125 MB  | 64.036526973s
+    // nu = 14 |  4.500 MB  | 254.316791697s
+    // nu = 15 |  9.000 MB  | 504.351756724s
     #[test]
     fn we_can_read_and_write_a_file_round_trip() {
-        let nu_values = vec![18];
+        let nu_values = vec![1, 2, 4];
 
         // Loop through each nu value
         for &nu in &nu_values {
-            dbg!("\nTesting with nu = {}", nu);
+            println!("\nTesting with nu = {nu}");
 
             let start_time = std::time::Instant::now();
 
@@ -294,7 +304,7 @@ mod tests {
             let original_params = PublicParameters::rand(nu, &mut rng);
 
             // File path in the current working directory
-            let file_name = format!("public_params_{}.bin", nu);
+            let file_name = format!("public_params_{nu}.bin");
             let file_path = Path::new(&file_name);
 
             original_params
@@ -316,11 +326,11 @@ mod tests {
             // Record the file size in bytes
             let metadata = std::fs::metadata(file_path).expect("Failed to get file metadata");
             let file_size = metadata.len(); // Get the file size in bytes
-            dbg!("File size for nu = {}: {} bytes", nu, file_size);
+            println!("File size for nu = {nu}: {file_size} bytes");
 
             // Record the time taken and print it
             let elapsed_time = start_time.elapsed();
-            dbg!("Time taken for nu = {}: {:?}", nu, elapsed_time);
+            println!("Time taken for nu = {nu}: {elapsed_time:?}");
 
             // Clean up the test file after the test runs
             std::fs::remove_file(file_path).expect("Failed to remove test file");
