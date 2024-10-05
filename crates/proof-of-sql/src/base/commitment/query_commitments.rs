@@ -52,12 +52,11 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
                     table_ref,
                     TableCommitment::from_accessor_with_max_bounds(
                         table_ref,
-                        &Vec::from_iter(
-                            accessor
-                                .lookup_schema(table_ref)
-                                .iter()
-                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied()),
-                        ),
+                        &accessor
+                            .lookup_schema(table_ref)
+                            .iter()
+                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied())
+                            .collect::<Vec<_>>(),
                         accessor,
                     ),
                 )
