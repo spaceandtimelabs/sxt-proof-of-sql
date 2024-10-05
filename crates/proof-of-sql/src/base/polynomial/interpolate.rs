@@ -73,7 +73,6 @@ where
     sum * product
 }
 
-
 /// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
 /// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
 /// That is, `f(x) = evals[j] * x^(d - j)`.
