@@ -1,4 +1,5 @@
 use core::error::Error;
+use indexmap::IndexMap;
 use proof_of_sql::base::{
     commitment::{Commitment, QueryCommitments, TableCommitment},
     database::{CommitmentAccessor, MetadataAccessor, SchemaAccessor, TableRef},
@@ -13,7 +14,7 @@ impl<C: Commitment + Serialize + for<'a> Deserialize<'a>> CommitAccessor<C> {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path,
-            inner: Default::default(),
+            inner: IndexMap::default(),
         }
     }
     pub fn write_commit(
