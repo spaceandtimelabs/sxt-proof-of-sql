@@ -48,12 +48,10 @@ pub fn generate_random_columns<'a, S: Scalar>(
                             let len = rng
                                 .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
                             alloc.alloc_str(
-                                String::from_iter(
-                                    rng.sample_iter(&rand::distributions::Alphanumeric)
-                                        .take(len)
-                                        .map(char::from),
-                                )
-                                .as_str(),
+                                &rng.sample_iter(&rand::distributions::Alphanumeric)
+                                    .take(len)
+                                    .map(char::from)
+                                    .collect::<String>(),
                             ) as &str
                         });
                         Column::VarChar((
