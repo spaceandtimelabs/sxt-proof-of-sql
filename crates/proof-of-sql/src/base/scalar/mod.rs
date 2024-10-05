@@ -38,6 +38,7 @@ pub trait Scalar:
     + num_traits::Zero
     + for<'a> core::convert::From<&'a Self> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a bool> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> core::convert::From<&'a i8> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i16> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i32> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
@@ -67,6 +68,7 @@ pub trait Scalar:
     + core::convert::From<i64>
     + core::convert::From<i32>
     + core::convert::From<i16>
+    + core::convert::From<i8>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
     + TryFrom<BigInt, Error = ScalarConversionError>

@@ -29,6 +29,7 @@ fn we_can_prove_a_basic_query_containing_rfc3339_timestamp_with_dory() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -126,8 +127,8 @@ mod tests {
 
     #[test]
     fn test_basic_timestamp_query() {
-        let test_timestamps = vec![1609459200, 1612137600, 1614556800];
-        let expected_timestamps = vec![1609459200];
+        let test_timestamps = vec![1_609_459_200, 1_612_137_600, 1_614_556_800];
+        let expected_timestamps = vec![1_609_459_200];
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = timestamp '2021-01-01T00:00:00Z';",
@@ -235,8 +236,8 @@ mod tests {
     // and the gateway.
     #[test]
     fn test_timestamp_queries_match_postgresql_and_gateway() {
-        let test_timestamps = vec![1230995705, 1230992105, 1230999305, 1230995705];
-        let expected_timestamps = vec![1230995705, 1230995705];
+        let test_timestamps = vec![1_230_995_705, 1_230_992_105, 1_230_999_305, 1_230_995_705];
+        let expected_timestamps = vec![1_230_995_705, 1_230_995_705];
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = timestamp '2009-01-03T19:15:05+04:00'",
@@ -250,8 +251,8 @@ mod tests {
         // Unix time for 1998-12-31T23:59:59 UTC is 915148799
         // Assuming leap second at 1998-12-31T23:59:60 UTC is recognized, it would be 915148799
         // Unix time for 1999-01-01T00:00:00 UTC is 915148800
-        let test_timestamps = vec![915148799, 915148800, 915148801];
-        let expected_timestamps = [915148799, 915148800, 915148801]; // Expect the leap second to be parsed and matched
+        let test_timestamps = vec![915_148_799, 915_148_800, 915_148_801];
+        let expected_timestamps = [915_148_799, 915_148_800, 915_148_801]; // Expect the leap second to be parsed and matched
 
         // Test the query to select the leap second
         run_timestamp_query_test(
@@ -351,8 +352,8 @@ mod tests {
     #[test]
     fn test_unix_epoch_daylight_saving() {
         // Timestamps just before and after DST change in spring
-        let test_timestamps = vec![1583651999, 1583652000]; // Spring forward at 2 AM
-        let expected_timestamps = vec![1583651999]; // Only the time before the DST jump should match
+        let test_timestamps = vec![1_583_651_999, 1_583_652_000]; // Spring forward at 2 AM
+        let expected_timestamps = vec![1_583_651_999]; // Only the time before the DST jump should match
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1583651999)",
@@ -363,8 +364,8 @@ mod tests {
 
     #[test]
     fn test_unix_epoch_leap_year() {
-        let test_timestamps = vec![1582934400]; // 2020-02-29T00:00:00Z
-        let expected_timestamps = vec![1582934400];
+        let test_timestamps = vec![1_582_934_400]; // 2020-02-29T00:00:00Z
+        let expected_timestamps = vec![1_582_934_400];
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1582934400);",
@@ -376,10 +377,10 @@ mod tests {
     #[test]
     fn test_unix_epoch_time_zone_handling() {
         let test_timestamps = vec![
-            1603587600, // 2020-10-25T01:00:00Z in UTC, corresponds to 2 AM in UTC+1 before DST ends
-            1603591200, // Corresponds to 2 AM in UTC+1 after DST ends (1 hour later)
+            1_603_587_600, // 2020-10-25T01:00:00Z in UTC, corresponds to 2 AM in UTC+1 before DST ends
+            1_603_591_200, // Corresponds to 2 AM in UTC+1 after DST ends (1 hour later)
         ];
-        let expected_timestamps = vec![1603587600];
+        let expected_timestamps = vec![1_603_587_600];
 
         run_timestamp_query_test(
             "SELECT * FROM table WHERE times = to_timestamp(1603587600)",
@@ -413,7 +414,7 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                     0,
                     1,
                     -2,
-                    1231006505000000000, // bitcoin genesis block time
+                    1_231_006_505_000_000_000, // bitcoin genesis block time
                     i64::MAX,
                 ],
             ),
@@ -421,7 +422,16 @@ fn we_can_prove_timestamp_inequality_queries_with_multiple_columns() {
                 "b",
                 PoSQLTimeUnit::Nanosecond,
                 PoSQLTimeZone::Utc,
-                [i64::MAX, -2, -1, -1231006505000000000, 0, 1, 2, i64::MIN],
+                [
+                    i64::MAX,
+                    -2,
+                    -1,
+                    -1_231_006_505_000_000_000,
+                    0,
+                    1,
+                    2,
+                    i64::MIN,
+                ],
             ),
         ]),
         0,

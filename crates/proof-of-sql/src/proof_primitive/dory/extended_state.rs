@@ -70,7 +70,7 @@ impl ExtendedProverState {
     }
     /// Calculate the verifier state from the prover state and setup information.
     /// This is basically the commitment computation of the witness.
-    /// See the beginning of section 4 of https://eprint.iacr.org/2020/1274.pdf for details.
+    /// See the beginning of section 4 of <https://eprint.iacr.org/2020/1274.pdf> for details.
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> ExtendedVerifierState {
         let E_1: G1Affine = G1Projective::msm_unchecked(&self.base_state.v1, &self.s2).into();

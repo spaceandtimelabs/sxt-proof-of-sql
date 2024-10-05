@@ -181,7 +181,7 @@ fn verify_fails_if_counts_dont_match() {
 }
 
 /// prove and verify an artificial query where
-///     res_i = x_i * x_i
+///     `res_i = x_i * x_i`
 /// where the commitment for x is known
 #[derive(Debug, Serialize)]
 struct SquareTestProofPlan {

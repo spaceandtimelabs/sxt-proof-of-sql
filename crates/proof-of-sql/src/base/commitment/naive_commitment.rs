@@ -44,7 +44,7 @@ impl Neg for NaiveCommitment {
 
 impl SubAssign for NaiveCommitment {
     fn sub_assign(&mut self, rhs: Self) {
-        self.add_assign(rhs.neg())
+        self.add_assign(rhs.neg());
     }
 }
 
@@ -121,6 +121,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::Boolean(bool_vec) => {
                         bool_vec.iter().map(|b| b.into()).collect()
                     }
+                    CommittableColumn::TinyInt(tiny_int_vec) => {
+                        tiny_int_vec.iter().map(|b| b.into()).collect()
+                    }
                     CommittableColumn::SmallInt(small_int_vec) => {
                         small_int_vec.iter().map(|b| b.into()).collect()
                     }
@@ -154,6 +157,7 @@ impl Commitment for NaiveCommitment {
     }
 }
 
+#[allow(clippy::similar_names)]
 #[test]
 fn we_can_compute_commitments_from_commitable_columns() {
     let column_a = [1i64, 10, -5, 0, 10];

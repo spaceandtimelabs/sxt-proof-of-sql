@@ -29,7 +29,7 @@ pub fn is_pow2_bytes<const N: usize>(data: &[u8; N]) -> bool {
     }
 }
 
-/// Calculate the floored log_2 of the (unsigned) bytes data.
+/// Calculate the floored `log_2` of the (unsigned) bytes data.
 ///
 /// The first byte in the array should represent the smallest digit.
 /// If the data is 0, returns 0 instead of panicking.
@@ -44,7 +44,7 @@ pub fn log2_down_bytes<const N: usize>(data: &[u8; N]) -> usize {
     }
 }
 
-/// Calculate the ceiled log_2 of the (unsigned) bytes data.
+/// Calculate the ceiled `log_2` of the (unsigned) bytes data.
 ///
 /// The first byte in the array should represent the smallest digit.
 /// If the data is 0, returns 0 instead of panicking.

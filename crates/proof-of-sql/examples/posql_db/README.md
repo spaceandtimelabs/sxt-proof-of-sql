@@ -1,4 +1,4 @@
-# posql_db
+# `posql_db`
 
 Example demonstrating an implementation of a simple csv-backed database with Proof of SQL capabilities.
 
