@@ -127,7 +127,9 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::SmallInt(small_int_vec) => {
                         small_int_vec.iter().map(std::convert::Into::into).collect()
                     }
-                    CommittableColumn::Int(int_vec) => int_vec.iter().map(std::convert::Into::into).collect(),
+                    CommittableColumn::Int(int_vec) => {
+                        int_vec.iter().map(std::convert::Into::into).collect()
+                    }
                     CommittableColumn::BigInt(big_int_vec) => {
                         big_int_vec.iter().map(std::convert::Into::into).collect()
                     }
