@@ -112,9 +112,10 @@ impl ProvableQueryResult {
                     ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
                     ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
                     ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
+                    ColumnType::Decimal75(_, _) | ColumnType::Scalar => {
+                        decode_and_convert::<S, S>(&self.data[offset..])
+                    }
 
-                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
