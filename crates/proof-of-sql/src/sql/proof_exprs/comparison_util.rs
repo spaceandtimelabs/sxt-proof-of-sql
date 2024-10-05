@@ -20,14 +20,14 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     rhs: &[S],
     table_length: usize,
 ) -> ConversionResult<&'a [S]> {
-    let res = alloc.alloc_slice_fill_default(table_length);
-    if_rayon!(res.par_iter_mut(), res.iter_mut())
+    let result = alloc.alloc_slice_fill_default(table_length);
+    if_rayon!(result.par_iter_mut(), result.iter_mut())
         .zip(lhs)
         .zip(rhs)
         .for_each(|((a, l), r)| {
             *a = *l - *r;
         });
-    Ok(res)
+    Ok(result)
 }
 
 #[allow(

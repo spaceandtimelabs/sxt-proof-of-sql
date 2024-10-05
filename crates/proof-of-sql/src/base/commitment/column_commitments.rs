@@ -23,7 +23,7 @@ pub struct DuplicateIdentifiers {
     id: String,
 }
 
-/// Errors that can occur when attempting to append rows to ColumnCommitments.
+/// Errors that can occur when attempting to append rows to [`ColumnCommitments`].
 #[derive(Debug, Snafu)]
 pub enum AppendColumnCommitmentsError {
     /// Metadata between new and old columns are mismatched.

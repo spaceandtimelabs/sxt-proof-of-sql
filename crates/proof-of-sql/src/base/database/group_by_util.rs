@@ -17,7 +17,7 @@ use snafu::Snafu;
 #[derive(Debug)]
 pub struct AggregatedColumns<'a, S: Scalar> {
     /// The columns that are being grouped by. These are all unique and correspond to each group.
-    /// This is effectively just the original group_by columns filtered by the selection.
+    /// This is effectively just the original `group_by` columns filtered by the selection.
     pub group_by_columns: Vec<Column<'a, S>>,
     /// Resulting sums of the groups for the columns in `sum_columns_in`.
     pub sum_columns: Vec<&'a [S]>,
@@ -43,8 +43,8 @@ pub enum AggregateColumnsError {
 ///         WHERE selection GROUP BY <group_by[0]>, <group_by[1]>, ...
 /// ```
 ///
-/// This function takes a selection vector and a set of group_by and sum columns and returns
-/// the given columns aggregated by the group_by columns only for the selected rows.
+/// This function takes a selection vector and a set of `group_by` and sum columns and returns
+/// the given columns aggregated by the `group_by` columns only for the selected rows.
 pub fn aggregate_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     group_by_columns_in: &[Column<'a, S>],
@@ -341,8 +341,8 @@ where
     }))
 }
 
-/// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
-/// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
+/// Compares the tuples `(group_by[0][i], group_by[1][i], ...)` and
+/// `(group_by[0][j], group_by[1][j], ...)` in lexicographic order.
 pub(crate) fn compare_indexes_by_columns<S: Scalar>(
     group_by: &[Column<S>],
     i: usize,
@@ -354,21 +354,20 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Boolean(col) => col[i].cmp(&col[j]),
             Column::SmallInt(col) => col[i].cmp(&col[j]),
             Column::Int(col) => col[i].cmp(&col[j]),
-            Column::BigInt(col) => col[i].cmp(&col[j]),
+            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
             Column::Int128(col) => col[i].cmp(&col[j]),
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
-            Column::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
 }
 
-/// Compares the tuples (group_by[0][i], group_by[1][i], ...) and
-/// (group_by[0][j], group_by[1][j], ...) in lexicographic order.
+/// Compares the tuples `(group_by[0][i], group_by[1][i], ...)` and
+/// `(group_by[0][j], group_by[1][j], ...)` in lexicographic order.
 ///
-/// Identical in functionality to [compare_indexes_by_columns]
+/// Identical in functionality to [`compare_indexes_by_columns`]
 pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
     group_by: &[&OwnedColumn<S>],
     i: usize,
@@ -380,12 +379,11 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
             OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
             OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
             OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-            OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
             OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
             OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
             OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-            OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

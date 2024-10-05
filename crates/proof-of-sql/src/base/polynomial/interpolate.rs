@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec};
-/**
+/*
  * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
@@ -73,10 +73,10 @@ where
     sum * product
 }
 
-/// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
-/// The output of this function is the vector of coefficients of f, leading coefficient first.
-/// That is, `f(x) = evals[j]*x^(d-j)``.
-#[allow(dead_code)]
+
+/// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
+/// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
+/// That is, `f(x) = evals[j] * x^(d - j)`.
 #[allow(clippy::missing_panics_doc)]
 // This function is guaranteed not to panic because:
 // - The product in `inv()` will never be zero, as the numbers being multiplied are all non-zero by construction.

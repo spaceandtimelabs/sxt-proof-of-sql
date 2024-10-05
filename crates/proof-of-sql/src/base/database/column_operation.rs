@@ -873,8 +873,8 @@ where
 /// 2. We use floor division for rounding.
 /// 3. If division by zero occurs, we return an error.
 /// 4. Precision and scale follow T-SQL rules. That is,
-///   - new_scale = max(6, right_precision + left_scale + 1)
-///   - new_precision = left_precision - left_scale + right_scale + new_scale
+///   - `new_scale = max(6, right_precision + left_scale + 1)`
+///   - `new_precision = left_precision - left_scale + right_scale + new_scale`
 #[allow(clippy::missing_panics_doc)]
 pub(crate) fn try_divide_decimal_columns<S, T0, T1>(
     lhs: &[T0],
@@ -900,7 +900,7 @@ where
         .expect("numeric columns have scale");
     let applied_scale = rhs_scale - lhs_scale + new_scale;
     let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
-    let res: Vec<S> = lhs
+    let result: Vec<S> = lhs
         .iter()
         .zip(rhs)
         .map(|(l, r)| -> ColumnOperationResult<S> {
@@ -920,7 +920,7 @@ where
     Ok((
         Precision::new(new_precision_value).expect("Precision value is valid"),
         new_scale,
-        res,
+        result,
     ))
 }
 

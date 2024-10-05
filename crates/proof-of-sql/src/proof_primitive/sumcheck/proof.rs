@@ -9,8 +9,8 @@ use crate::{
     },
     proof_primitive::sumcheck::{prove_round, ProverState},
 };
-/**
- * Adopted from arkworks
+/*
+ * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */

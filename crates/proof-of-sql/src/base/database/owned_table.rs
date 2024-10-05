@@ -14,13 +14,13 @@ pub enum OwnedTableError {
 /// where columns order matters.
 /// This is primarily used as an internal result that is used before
 /// converting to the final result in either Arrow format or JSON.
-/// This is the analog of an arrow RecordBatch.
+/// This is the analog of an arrow [`RecordBatch`](arrow::record_batch::RecordBatch).
 #[derive(Debug, Clone, Eq)]
 pub struct OwnedTable<S: Scalar> {
     table: IndexMap<Identifier, OwnedColumn<S>>,
 }
 impl<S: Scalar> OwnedTable<S> {
-    /// Creates a new OwnedTable.
+    /// Creates a new [`OwnedTable`].
     pub fn try_new(table: IndexMap<Identifier, OwnedColumn<S>>) -> Result<Self, OwnedTableError> {
         if table.is_empty() {
             return Ok(Self { table });
@@ -32,7 +32,7 @@ impl<S: Scalar> OwnedTable<S> {
             Ok(Self { table })
         }
     }
-    /// Creates a new OwnedTable.
+    /// Creates a new [`OwnedTable`].
     pub fn try_from_iter<T: IntoIterator<Item = (Identifier, OwnedColumn<S>)>>(
         iter: T,
     ) -> Result<Self, OwnedTableError> {
@@ -57,12 +57,12 @@ impl<S: Scalar> OwnedTable<S> {
     pub fn is_empty(&self) -> bool {
         self.table.is_empty()
     }
-    /// Returns the columns of this table as an IndexMap
+    /// Returns the columns of this table as an `IndexMap`
     #[must_use]
     pub fn into_inner(self) -> IndexMap<Identifier, OwnedColumn<S>> {
         self.table
     }
-    /// Returns the columns of this table as an IndexMap
+    /// Returns the columns of this table as an `IndexMap`
     #[must_use]
     pub fn inner_table(&self) -> &IndexMap<Identifier, OwnedColumn<S>> {
         &self.table

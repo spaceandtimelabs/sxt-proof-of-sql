@@ -22,7 +22,7 @@ use proof_of_sql_parser::{
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
-/// Supported types for OwnedColumn
+/// Supported types for [`OwnedColumn`]
 pub enum OwnedColumn<S: Scalar> {
     /// Boolean columns
     Boolean(Vec<bool>),
@@ -52,12 +52,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => col.len(),
             OwnedColumn::SmallInt(col) => col.len(),
             OwnedColumn::Int(col) => col.len(),
-            OwnedColumn::BigInt(col) => col.len(),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.len(),
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
-            OwnedColumn::Decimal75(_, _, col) => col.len(),
-            OwnedColumn::Scalar(col) => col.len(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.len(),
+            OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.len(),
         }
     }
 
@@ -107,12 +105,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Boolean(col) => col.is_empty(),
             OwnedColumn::SmallInt(col) => col.is_empty(),
             OwnedColumn::Int(col) => col.is_empty(),
-            OwnedColumn::BigInt(col) => col.is_empty(),
+            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
-            OwnedColumn::Scalar(col) => col.is_empty(),
-            OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
+            OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -305,8 +301,8 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     }
 }
 
-/// Compares the tuples (order_by_pairs[0][i], order_by_pairs[1][i], ...) and
-/// (order_by_pairs[0][j], order_by_pairs[1][j], ...) in lexicographic order.
+/// Compares the tuples `(order_by_pairs[0][i], order_by_pairs[1][i], ...)` and
+/// `(order_by_pairs[0][j], order_by_pairs[1][j], ...)` in lexicographic order.
 /// Note that direction flips the ordering.
 pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
     order_by_pairs: &[(OwnedColumn<S>, OrderByDirection)],
@@ -320,12 +316,12 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
                 OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-                OwnedColumn::BigInt(col) => col[i].cmp(&col[j]),
+                OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+                    col[i].cmp(&col[j])
+                }
                 OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, col) => col[i].cmp(&col[j]),
-                OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
+                OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
-                OwnedColumn::TimestampTZ(_, _, col) => col[i].cmp(&col[j]),
             };
             match direction {
                 OrderByDirection::Asc => ordering,

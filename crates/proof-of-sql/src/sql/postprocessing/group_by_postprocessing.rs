@@ -230,7 +230,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .collect::<PostprocessingResult<Vec<_>>>()?;
         // TODO: Allow a filter
         let selection_in = vec![true; owned_table.num_rows()];
-        let (sum_ids, sum_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (sum_identifiers, sum_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Sum)
             .map(|tuple| {
                 tuple
@@ -239,7 +239,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                     .unzip()
             })
             .unwrap_or((vec![], vec![]));
-        let (max_ids, max_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (max_identifiers, max_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Max)
             .map(|tuple| {
                 tuple
@@ -248,7 +248,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                     .unzip()
             })
             .unwrap_or((vec![], vec![]));
-        let (min_ids, min_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (min_identifiers, min_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Min)
             .map(|tuple| {
                 tuple
@@ -260,9 +260,9 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,
-            &sum_ins,
-            &max_ins,
-            &min_ins,
+            &sum_columns,
+            &max_columns,
+            &min_columns,
             &selection_in,
         )?;
         // Finally do another round of evaluation to get the final result
@@ -272,27 +272,39 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .iter()
             .zip(self.group_by_identifiers.iter())
             .map(|(column, id)| Ok((*id, OwnedColumn::from(column))));
-        let sum_outs =
-            izip!(aggregation_results.sum_columns, sum_ids, sum_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
-                ))
-            });
-        let max_outs =
-            izip!(aggregation_results.max_columns, max_ids, max_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
-                ))
-            });
-        let min_outs =
-            izip!(aggregation_results.min_columns, min_ids, min_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
-                ))
-            });
+        let sum_outs = izip!(
+            aggregation_results.sum_columns,
+            sum_identifiers,
+            sum_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
+            ))
+        });
+        let max_outs = izip!(
+            aggregation_results.max_columns,
+            max_identifiers,
+            max_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+            ))
+        });
+        let min_outs = izip!(
+            aggregation_results.min_columns,
+            min_identifiers,
+            min_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+            ))
+        });
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
         let count_column = OwnedColumn::BigInt(aggregation_results.count_column.to_vec());
         let count_outs = evaluated_columns
@@ -314,7 +326,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         } else {
             new_owned_table
         };
-        let res = self
+        let result = self
             .remainder_exprs
             .iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
@@ -322,7 +334,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 Ok((aliased_expr.alias, column))
             })
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;
-        Ok(res)
+        Ok(result)
     }
 }
 

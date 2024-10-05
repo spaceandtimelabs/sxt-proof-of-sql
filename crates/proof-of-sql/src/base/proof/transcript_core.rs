@@ -14,7 +14,7 @@ pub(super) trait TranscriptCore {
     fn raw_challenge(&mut self) -> [u8; 32];
 }
 
-/// private method to facilitate recieving challenges and reversing them. Undefined behavior if the size_of `M` is not 32 bytes.
+/// private method to facilitate recieving challenges and reversing them. Undefined behavior if the size of `M` is not 32 bytes.
 ///
 /// # Panics
 /// - Panics if `M::read_from(&bytes)` fails to read the bytes into the type `M`.

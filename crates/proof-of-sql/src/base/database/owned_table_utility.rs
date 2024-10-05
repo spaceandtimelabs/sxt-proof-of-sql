@@ -1,4 +1,4 @@
-//! Utility functions for creating OwnedTables and OwnedColumns.
+//! Utility functions for creating [`OwnedTable`]s and [`OwnedColumn`]s.
 //! These functions are primarily intended for use in tests.
 //!
 //! # Example
@@ -22,10 +22,10 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
-/// Creates an OwnedTable from a list of (Identifier, OwnedColumn) pairs.
-/// This is a convenience wrapper around OwnedTable::try_from_iter primarily for use in tests and
+/// Creates an [`OwnedTable`] from a list of `(Identifier, OwnedColumn)` pairs.
+/// This is a convenience wrapper around [`OwnedTable::try_from_iter`] primarily for use in tests and
 /// intended to be used along with the other methods in this module (e.g. [bigint], [boolean], etc).
-/// The function will panic under a variety of conditions. See [OwnedTable::try_from_iter] for more details.
+/// The function will panic under a variety of conditions. See [`OwnedTable::try_from_iter`] for more details.
 ///
 /// # Example
 /// ```
@@ -48,8 +48,8 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a smallint column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
@@ -68,8 +68,8 @@ pub fn smallint<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for an int column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for an int column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
@@ -88,8 +88,8 @@ pub fn int<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a bigint column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a bigint column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ``` use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
@@ -107,8 +107,8 @@ pub fn bigint<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a boolean column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a boolean column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
@@ -129,8 +129,8 @@ pub fn boolean<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a int128 column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a int128 column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
@@ -151,8 +151,8 @@ pub fn int128<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a scalar column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a scalar column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
@@ -173,8 +173,8 @@ pub fn scalar<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a varchar column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a varchar column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
@@ -195,8 +195,8 @@ pub fn varchar<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a decimal75 column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a decimal75 column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
@@ -224,8 +224,8 @@ pub fn decimal75<S: Scalar>(
     )
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a timestamp column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a `(Identifier, OwnedColumn)` pair for a timestamp column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 ///
 /// # Parameters
 /// - `name`: The name of the column.

@@ -25,11 +25,11 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 pub enum CommittableColumn<'a> {
     /// Borrowed Bool column, mapped to `bool`.
     Boolean(&'a [bool]),
-    /// Borrowed SmallInt column, mapped to `i16`.
+    /// Borrowed `SmallInt` column, mapped to `i16`.
     SmallInt(&'a [i16]),
-    /// Borrowed SmallInt column, mapped to `i32`.
+    /// Borrowed `Int` column, mapped to `i32`.
     Int(&'a [i32]),
-    /// Borrowed BigInt column, mapped to `i64`.
+    /// Borrowed `BigInt` column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
@@ -37,11 +37,11 @@ pub enum CommittableColumn<'a> {
     Decimal75(Precision, i8, Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
-    /// Column of limbs for committing to scalars, hashed from a VarChar column.
+    /// Column of limbs for committing to scalars, hashed from a `VarChar` column.
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
-    /// Borrowed byte column, mapped to `u8`. This is not a PoSQL
+    /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
 }
@@ -53,13 +53,12 @@ impl<'a> CommittableColumn<'a> {
         match self {
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
-            CommittableColumn::BigInt(col) => col.len(),
+            CommittableColumn::BigInt(col) | CommittableColumn::TimestampTZ(_, _, col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
-            CommittableColumn::Decimal75(_, _, col) => col.len(),
-            CommittableColumn::Scalar(col) => col.len(),
-            CommittableColumn::VarChar(col) => col.len(),
+            CommittableColumn::Decimal75(_, _, col)
+            | CommittableColumn::Scalar(col)
+            | CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
-            CommittableColumn::TimestampTZ(_, _, col) => col.len(),
             CommittableColumn::RangeCheckWord(col) => col.len(),
         }
     }
@@ -117,6 +116,12 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
         }
+    }
+}
+
+impl<'a, S: Scalar> From<Column<'a, S>> for CommittableColumn<'a> {
+    fn from(value: Column<'a, S>) -> Self {
+        (&value).into()
     }
 }
 
@@ -198,9 +203,9 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
-            CommittableColumn::Decimal75(_, _, limbs) => Sequence::from(limbs),
-            CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
-            CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
+            CommittableColumn::Decimal75(_, _, limbs)
+            | CommittableColumn::Scalar(limbs)
+            | CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),

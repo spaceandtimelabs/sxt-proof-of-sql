@@ -2,7 +2,7 @@ use core::ops::{Add, Mul, Sub};
 use num_traits::{One, Zero};
 
 /// Given the points a and b with length nu, we can evaluate the lagrange basis of length 2^nu at the two points.
-/// This is what [super::compute_evaluation_vector] does.
+/// This is what [`super::compute_evaluation_vector`] does.
 /// Call the resulting evaluation vectors A and B. This function computes `sum A[i] * B[i] for i in 0..length`. That is:
 /// ```text
 /// (1-a[0])(1-a[1])...(1-a[nu-1]) * (1-b[0])(1-b[1])...(1-b[nu-1]) +
@@ -73,7 +73,7 @@ where
 }
 
 /// Given the point `point` (or `a`) with length nu, we can evaluate the lagrange basis of length 2^nu at that point.
-/// This is what [super::compute_evaluation_vector] does.
+/// This is what [`super::compute_evaluation_vector`] does.
 /// Call the resulting evaluation vector A. This function computes `sum A[i] for i in 0..length`. That is:
 /// ```text
 /// (1-a[0])(1-a[1])...(1-a[nu-1]) +

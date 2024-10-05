@@ -4,8 +4,8 @@ use core::{ops::Range, slice};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
-/// Indexes of a table for use in the ProvableQueryResult
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Indexes of a table for use in the [`ProvableQueryResult`](crate::sql::proof::ProvableQueryResult)
 pub enum Indexes {
     /// Sparse indexes. (i.e. explicitly specified indexes)
     Sparse(Vec<u64>),
@@ -93,6 +93,9 @@ impl Indexes {
             Indexes::Dense(range) => {
                 if range.is_empty() {
                     Some(Zero::zero())
+                } else if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
+                    // This only happens when the indexes are tampered with.
+                    None
                 } else {
                     Some(
                         compute_truncated_lagrange_basis_sum(range.end as usize, evaluation_point)

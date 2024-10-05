@@ -30,12 +30,12 @@ impl<C: Commitment> ColumnExpr<C> {
         }
     }
 
-    /// Return the column referenced by this ColumnExpr
+    /// Return the column referenced by this [`ColumnExpr`]
     pub fn get_column_reference(&self) -> ColumnRef {
         self.column_ref
     }
 
-    /// Wrap the column output name and its type within the ColumnField
+    /// Wrap the column output name and its type within the [`ColumnField`]
     pub fn get_column_field(&self) -> ColumnField {
         ColumnField::new(self.column_ref.column_id(), *self.column_ref.column_type())
     }
@@ -59,7 +59,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     }
 
     /// Evaluate the column expression and
-    /// add the result to the ResultBuilder
+    /// add the result to the [`ResultBuilder`](crate::sql::proof::ResultBuilder)
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -95,9 +95,9 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         Ok(builder.consume_anchored_mle(col_commit))
     }
 
-    /// Insert in the IndexSet `columns` all the column
-    /// references in the BoolExpr or forwards the call to some
-    /// subsequent bool_expr
+    /// Insert in the [`IndexSet`] `columns` all the column
+    /// references in the `BoolExpr` or forwards the call to some
+    /// subsequent `bool_expr`
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
         columns.insert(self.column_ref);
     }
