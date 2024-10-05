@@ -237,8 +237,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i64], panicking if it is not.
     pub fn i64_iter(&self) -> impl Iterator<Item = &i64> {
         match self {
-            OwnedColumn::BigInt(col) => col.iter(),
-            OwnedColumn::TimestampTZ(_, _, col) => col.iter(),
+            OwnedColumn::TimestampTZ(_, _, col) | OwnedColumn::BigInt(col) => col.iter(),
             _ => panic!("Expected TimestampTZ or BigInt column"),
         }
     }
@@ -265,8 +264,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is a [Scalar], panicking if it is not.
     pub fn scalar_iter(&self) -> impl Iterator<Item = &S> {
         match self {
-            OwnedColumn::Scalar(col) => col.iter(),
-            OwnedColumn::Decimal75(_, _, col) => col.iter(),
+            OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.iter(),
             _ => panic!("Expected Scalar or Decimal75 column"),
         }
     }
