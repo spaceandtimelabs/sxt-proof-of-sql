@@ -150,8 +150,10 @@ pub fn try_divide_column_types(
         // We can unwrap here because we know that both types are integers
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
-    let left_precision_value = i16::from(lhs.precision_value().expect("Numeric types have precision"));
-    let right_precision_value = i16::from(rhs.precision_value().expect("Numeric types have precision"));
+    let left_precision_value =
+        i16::from(lhs.precision_value().expect("Numeric types have precision"));
+    let right_precision_value =
+        i16::from(rhs.precision_value().expect("Numeric types have precision"));
     let left_scale = i16::from(lhs.scale().expect("Numeric types have scale"));
     let right_scale = i16::from(rhs.scale().expect("Numeric types have scale"));
     let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
