@@ -480,11 +480,7 @@ impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
     pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
-        Self {
-            column_id,
-            column_type,
-            table_ref,
-        }
+        Self { column_id, table_ref, column_type }
     }
 
     /// Returns the table reference of this column
