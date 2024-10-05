@@ -58,7 +58,13 @@ impl<C: Commitment> GroupByExec<C> {
         table: TableExpr,
         where_clause: DynProofExpr<C>,
     ) -> Self {
-        Self { group_by_exprs, sum_expr, count_alias, table, where_clause }
+        Self {
+            group_by_exprs,
+            sum_expr,
+            count_alias,
+            table,
+            where_clause,
+        }
     }
 }
 

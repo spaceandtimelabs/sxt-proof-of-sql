@@ -44,19 +44,19 @@ impl CommitmentEvaluationProof for DoryEvaluationProof {
         if generators_offset != 0 {
             // TODO: support offsets other than 0.
             // Note: this will always result in a verification error.
-            return Default::default();
+            return DoryMessages::default();
         }
         let a: &[F] = bytemuck::TransparentWrapper::peel_slice(a);
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
         let prover_setup = setup.prover_setup();
         let nu = compute_nu(b_point.len(), setup.sigma());
         if nu > prover_setup.max_nu {
-            return Default::default(); // Note: this will always result in a verification error.
+            return DoryMessages::default(); // Note: this will always result in a verification error.
         }
         let T_vec_prime = compute_T_vec_prime(a, setup.sigma(), nu, prover_setup);
         let state = build_vmv_prover_state(a, b_point, T_vec_prime, setup.sigma(), nu);
 
-        let mut messages = Default::default();
+        let mut messages = DoryMessages::default();
         let extended_state = eval_vmv_re_prove(&mut messages, transcript, state, prover_setup);
         extended_dory_inner_product_prove(&mut messages, transcript, extended_state, prover_setup);
         messages

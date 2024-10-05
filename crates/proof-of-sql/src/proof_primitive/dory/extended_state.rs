@@ -6,6 +6,7 @@ use super::{G1Affine, G1Projective, G2Projective, ProverSetup};
 use alloc::{vec, vec::Vec};
 #[cfg(test)]
 use ark_ec::VariableBaseMSM;
+use ark_ff::Fp;
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
 /// `base_state` is the state of the prover during the Dory proof generation with the original algorithm.
@@ -127,8 +128,8 @@ impl ExtendedVerifierState {
             E_2,
             s1_tensor,
             s2_tensor,
-            alphas: vec![Default::default(); nu],
-            alpha_invs: vec![Default::default(); nu],
+            alphas: vec![Fp::default(); nu],
+            alpha_invs: vec![Fp::default(); nu],
         }
     }
 }

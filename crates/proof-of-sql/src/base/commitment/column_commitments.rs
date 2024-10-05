@@ -271,7 +271,10 @@ impl<C: Commitment> ColumnCommitments<C> {
             .try_add(other.commitments)
             .expect("we've already checked that self and other have equal column counts");
 
-        Ok(ColumnCommitments { commitments, column_metadata })
+        Ok(ColumnCommitments {
+            commitments,
+            column_metadata,
+        })
     }
 
     /// Subtract two [`ColumnCommitments`].
@@ -289,7 +292,10 @@ impl<C: Commitment> ColumnCommitments<C> {
             .try_sub(other.commitments)
             .expect("we've already checked that self and other have equal column counts");
 
-        Ok(ColumnCommitments { commitments, column_metadata })
+        Ok(ColumnCommitments {
+            commitments,
+            column_metadata,
+        })
     }
 }
 

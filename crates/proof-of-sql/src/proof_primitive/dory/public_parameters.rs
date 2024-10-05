@@ -41,6 +41,13 @@ impl PublicParameters {
         let (H_1, H_2) = (G1Affine::rand(rng), G2Affine::rand(rng));
         let Gamma_2_fin = G2Affine::rand(rng);
 
-        Self { Gamma_1, Gamma_2, H_1, H_2, Gamma_2_fin, max_nu }
+        Self {
+            Gamma_1,
+            Gamma_2,
+            H_1,
+            H_2,
+            Gamma_2_fin,
+            max_nu,
+        }
     }
 }
