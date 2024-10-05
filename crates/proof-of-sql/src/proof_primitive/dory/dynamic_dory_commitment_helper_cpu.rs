@@ -51,9 +51,7 @@ fn compute_dory_commitment(
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::VarChar(column)
-        | CommittableColumn::Scalar(column)
-        | CommittableColumn::Decimal75(_, _, column) => {
+        CommittableColumn::VarChar(column) | CommittableColumn::Decimal75(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
