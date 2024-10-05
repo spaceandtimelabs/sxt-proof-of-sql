@@ -1,5 +1,5 @@
 use super::Indexes;
-use crate::base::{polynomial::compute_evaluation_vector, scalar::Curve25519Scalar};
+use crate::base::{polynomial::compute_evaluation_vector, scalar::{Curve25519Scalar, MontScalar}};
 use num_traits::Zero;
 
 #[test]
@@ -169,7 +169,7 @@ fn we_can_evaluate_indexes_at_an_evaluation_point() {
         Curve25519Scalar::from(5u64),
         Curve25519Scalar::from(7u64),
     ];
-    let mut evaluation_vector = vec![Default::default(); 8];
+    let mut evaluation_vector = vec![MontScalar::default(); 8];
     compute_evaluation_vector(&mut evaluation_vector, &evaluation_point);
 
     let ix = Indexes::Sparse(vec![0, 1, 1]);

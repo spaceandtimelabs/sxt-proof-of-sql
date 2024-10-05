@@ -92,9 +92,10 @@ impl VMV {
         nu: usize,
     ) -> Self {
         use crate::base::polynomial::compute_evaluation_vector;
+        use ark_ff::Fp;
 
-        let mut L = vec![Default::default(); 1 << l_tensor.len()];
-        let mut R = vec![Default::default(); 1 << r_tensor.len()];
+        let mut L = vec![Fp::default(); 1 << l_tensor.len()];
+        let mut R = vec![Fp::default(); 1 << r_tensor.len()];
         compute_evaluation_vector(&mut L, &l_tensor);
         compute_evaluation_vector(&mut R, &r_tensor);
         Self {

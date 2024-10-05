@@ -2,8 +2,7 @@ use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_eva
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-        VerificationBuilder,
+        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder
     },
 };
 use bumpalo::Bump;
@@ -62,7 +61,7 @@ fn we_can_verify_a_constant_decomposition() {
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Default::default(),
+        &Indexes::default(),
     );
     let one_eval = sumcheck_evaluations.one_evaluation;
 
@@ -86,7 +85,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Default::default(),
+        &Indexes::default(),
     );
     let one_eval = sumcheck_evaluations.one_evaluation;
 

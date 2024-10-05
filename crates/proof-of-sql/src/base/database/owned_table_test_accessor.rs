@@ -20,7 +20,7 @@ pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
 impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<'_, CP> {
     fn default() -> Self {
         Self {
-            tables: Default::default(),
+            tables: IndexMap::default(),
             alloc: Bump::new(),
             setup: None,
         }
@@ -43,7 +43,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     type Table = OwnedTable<CP::Scalar>;
 
     fn new_empty() -> Self {
-        Default::default()
+        OwnedTableTestAccessor::default()
     }
 
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {

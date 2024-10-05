@@ -2,7 +2,7 @@ use super::test_cases::sumcheck_test_cases;
 use crate::base::{
     polynomial::{CompositePolynomial, CompositePolynomialInfo},
     proof::Transcript as _,
-    scalar::{test_scalar::TestScalar, Curve25519Scalar, Scalar},
+    scalar::{test_scalar::TestScalar, Curve25519Scalar, MontScalar, Scalar},
 };
 /**
  * Adopted from arkworks
@@ -168,7 +168,7 @@ fn we_can_verify_many_random_test_cases() {
 
     for test_case in sumcheck_test_cases::<TestScalar>(&mut rng) {
         let mut transcript = Transcript::new(b"sumchecktest");
-        let mut evaluation_point = vec![Default::default(); test_case.num_vars];
+        let mut evaluation_point = vec![MontScalar::default(); test_case.num_vars];
         let proof = SumcheckProof::create(
             &mut transcript,
             &mut evaluation_point,
