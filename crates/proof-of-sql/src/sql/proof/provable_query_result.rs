@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
     indexes: Indexes,
@@ -85,7 +85,9 @@ impl ProvableQueryResult {
         table_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Result<Vec<S>, QueryError> {
-        assert_eq!(self.num_columns as usize, column_result_fields.len());
+        if self.num_columns as usize != column_result_fields.len() {
+            return Err(QueryError::InvalidColumnCount);
+        }
 
         if !self.indexes.valid(table_length) {
             return Err(QueryError::InvalidIndexes);
@@ -141,7 +143,9 @@ impl ProvableQueryResult {
         &self,
         column_result_fields: &[ColumnField],
     ) -> Result<OwnedTable<S>, QueryError> {
-        assert_eq!(column_result_fields.len(), self.num_columns());
+        if column_result_fields.len() != self.num_columns() {
+            return Err(QueryError::InvalidColumnCount);
+        }
 
         let n = self.indexes.len();
         let mut offset: usize = 0;

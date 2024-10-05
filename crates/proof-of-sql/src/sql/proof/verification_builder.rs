@@ -14,7 +14,6 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     bit_distributions: &'a [BitDistribution],
     pcs_proof_commitments: Vec<C>,
     folded_pcs_proof_evaluation: C::Scalar,
-    consumed_result_mles: usize,
     consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
@@ -52,7 +51,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             sumcheck_evaluation: C::Scalar::zero(),
             pcs_proof_commitments: Vec::with_capacity(inner_product_multipliers.len()),
             folded_pcs_proof_evaluation: C::Scalar::zero(),
-            consumed_result_mles: 0,
             consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
@@ -96,13 +94,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         let commitment = self.intermediate_commitments[self.consumed_intermediate_mles].clone();
         self.consumed_intermediate_mles += 1;
         self.consume_anchored_mle(commitment)
-    }
-
-    /// Consume the evaluation of the MLE for a result column used in sumcheck
-    pub fn consume_result_mle(&mut self) -> C::Scalar {
-        let index = self.consumed_result_mles;
-        self.consumed_result_mles += 1;
-        self.mle_evaluations.result_evaluations[index]
     }
 
     /// Produce the evaluation of a subpolynomial used in sumcheck
@@ -152,7 +143,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
             && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
-            && self.consumed_result_mles == self.mle_evaluations.result_evaluations.len()
             && self.post_result_challenges.is_empty()
     }
 

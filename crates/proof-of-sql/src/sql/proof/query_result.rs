@@ -39,6 +39,9 @@ pub enum QueryError {
         /// The underlying source error
         source: OwnedTableError,
     },
+    /// The number of columns in the table was invalid.
+    #[snafu(display("Invalid number of columns"))]
+    InvalidColumnCount,
 }
 
 /// The verified results of a query along with metadata produced by verification

@@ -68,7 +68,7 @@ where
         self.where_clause.count(builder)?;
         for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(3);
@@ -109,8 +109,9 @@ where
         )?;
         // 4. filtered_columns
         let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
+            repeat_with(|| builder.consume_intermediate_mle()).take(self.aliased_results.len()),
         );
+        assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -119,10 +120,11 @@ where
             builder,
             alpha,
             beta,
-            columns_evals,
+            &columns_evals,
             selection_eval,
-            filtered_columns_evals,
-        )
+            &filtered_columns_evals,
+        )?;
+        Ok(filtered_columns_evals)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -201,6 +203,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         );
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // 3. Produce MLEs
+        filtered_columns.iter().cloned().for_each(|column| {
+            builder.produce_intermediate_mle(column);
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -223,10 +229,10 @@ fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
     beta: C::Scalar,
-    c_evals: Vec<C::Scalar>,
+    c_evals: &[C::Scalar],
     s_eval: C::Scalar,
-    d_evals: Vec<C::Scalar>,
-) -> Result<Vec<C::Scalar>, ProofError> {
+    d_evals: &[C::Scalar],
+) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
 
     let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
@@ -238,8 +244,8 @@ fn verify_filter<C: Commitment>(
         }
     };
 
-    let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
-    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);
+    let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
+    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
     let d_star_eval = builder.consume_intermediate_mle();
 
@@ -261,7 +267,7 @@ fn verify_filter<C: Commitment>(
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
-    Ok(c_evals)
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]

@@ -90,6 +90,10 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
+        // 3. Produce MLEs
+        filtered_columns.iter().cloned().for_each(|column| {
+            builder.produce_intermediate_mle(column);
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
