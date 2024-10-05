@@ -313,7 +313,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
             Column::VarChar((col, _)) => {
-                OwnedColumn::VarChar(col.iter().map(std::string::ToString::to_string).collect())
+                OwnedColumn::VarChar(col.iter().map(ToString::to_string).collect())
             }
             Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
             Column::Decimal75(precision, scale, col) => {
