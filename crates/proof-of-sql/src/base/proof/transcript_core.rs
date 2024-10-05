@@ -15,6 +15,9 @@ pub(super) trait TranscriptCore {
 }
 
 /// private method to facilitate recieving challenges and reversing them. Undefined behavior if the size of `M` is not 32 bytes.
+///
+/// # Panics
+/// - Panics if `M::read_from(&bytes)` fails to read the bytes into the type `M`.
 fn receive_challenge_as_be<M: FromBytes>(slf: &mut impl TranscriptCore) -> M {
     debug_assert_eq!(32, core::mem::size_of::<M>());
     let mut bytes = slf.raw_challenge();

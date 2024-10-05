@@ -62,3 +62,6 @@ zerocopy = { version = "0.7.34" }
 
 [workspace.lints.rust]
 missing_docs = "warn"
+
+[workspace.lints.clippy]
+missing_panics_doc = "warn"

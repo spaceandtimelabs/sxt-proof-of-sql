@@ -18,6 +18,9 @@ pub struct BenchmarkAccessor<'a, C: Commitment> {
 }
 
 impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
+    /// # Panics
+    ///
+    /// Will panic if the length of the columns does not match after insertion or if the commitment computation fails.
     pub fn insert_table(
         &mut self,
         table_ref: TableRef,
@@ -63,11 +66,17 @@ impl<'a, C: Commitment> BenchmarkAccessor<'a, C> {
 }
 
 impl<C: Commitment> DataAccessor<C::Scalar> for BenchmarkAccessor<'_, C> {
+    /// # Panics
+    ///
+    /// Will panic if the column reference does not exist in the accessor.
     fn get_column(&self, column: ColumnRef) -> Column<C::Scalar> {
         *self.columns.get(&column).unwrap()
     }
 }
 impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
+    /// # Panics
+    ///
+    /// Will panic if the table reference does not exist in the lengths map.
     fn get_length(&self, table_ref: TableRef) -> usize {
         *self.lengths.get(&table_ref).unwrap()
     }
@@ -76,6 +85,9 @@ impl<C: Commitment> MetadataAccessor for BenchmarkAccessor<'_, C> {
     }
 }
 impl<C: Commitment> CommitmentAccessor<C> for BenchmarkAccessor<'_, C> {
+    /// # Panics
+    ///
+    /// Will panic if the column reference does not exist in the commitments map.
     fn get_commitment(&self, column: ColumnRef) -> C {
         self.commitments.get(&column).unwrap().clone()
     }
@@ -84,6 +96,9 @@ impl<C: Commitment> SchemaAccessor for BenchmarkAccessor<'_, C> {
     fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
         self.column_types.get(&(table_ref, column_id)).copied()
     }
+    /// # Panics
+    ///
+    /// Will panic if the table reference does not exist in the table schemas map.
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.table_schemas.get(&table_ref).unwrap().clone()
     }

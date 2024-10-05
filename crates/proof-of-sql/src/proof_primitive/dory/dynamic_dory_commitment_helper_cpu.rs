@@ -6,6 +6,12 @@ use crate::base::commitment::CommittableColumn;
 use alloc::{vec, vec::Vec};
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
+/// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
+/// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,

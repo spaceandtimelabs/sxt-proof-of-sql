@@ -30,6 +30,10 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     Ok(result)
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "precision and scale are validated prior to calling this function, ensuring no panic occurs"
+)]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
 pub(crate) fn scale_and_subtract<'a, S: Scalar>(

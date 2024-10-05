@@ -15,6 +15,10 @@ pub fn group_by_postprocessing(
     )
 }
 
+///
+/// # Panics
+///
+/// This function may panic if the internal structures cannot be created properly, although this is unlikely under normal circumstances.
 pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_select(SelectPostprocessing::new(result_exprs.to_vec()))
 }

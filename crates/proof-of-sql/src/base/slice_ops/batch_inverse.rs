@@ -24,6 +24,10 @@ use rayon::prelude::*;
 /// Given a vector of field elements `{v_i}`, compute the vector `{v_i^(-1)}` using Montgomery's trick.
 /// The vector is modified in place.
 /// Any zero elements in the vector are left unchanged.
+///
+/// # Panics
+/// - Panics if the inversion of `tmp` fails, which can happen if `tmp` is zero,
+///   although this case is guaranteed to be non-zero based on the preceding logic.
 pub fn batch_inversion<F>(v: &mut [F])
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,
@@ -54,6 +58,10 @@ where
     );
 }
 
+/// # Panics
+/// * This function panics if the inversion operation (`inv()`) fails, which can happen if the slice
+///   contains any zero elements. However, zero elements are skipped, so this unwrap is guaranteed
+///   to succeed unless all elements are zero.
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Copy,

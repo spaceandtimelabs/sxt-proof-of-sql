@@ -20,6 +20,9 @@ where
 // The returned value from this function is (part, full).
 // The full value is what the result would be if it were not truncated. (In other words, if length==2^nu.)
 // This can be iteratively used to compute the actual result.
+/// # Panics
+/// this function requires that `a` and `b` have the same length.
+/// This function requires that `length` is less than or equal to `1 << nu` where `nu` is the length of `a` and `b`.
 fn compute_truncated_lagrange_basis_inner_product_impl<F>(
     part_length: usize,
     a: &[F],
@@ -78,6 +81,11 @@ where
 /// (1-a[0])(a[1])...(1-a[nu-1]) +
 /// (a[0])(a[1])...(1-a[nu-1]) + ...
 /// ```
+/// # Panics
+/// Panics if:
+/// - The length is greater than `1` when `point` is empty.
+/// - The length is greater than the maximum allowed for the given number of points, which is `2^(nu - 1)`
+///   where `nu` is the number of elements in `point`.
 pub fn compute_truncated_lagrange_basis_sum<F>(length: usize, point: &[F]) -> F
 where
     F: One + Zero + Mul<Output = F> + Add<Output = F> + Sub<Output = F> + Copy,

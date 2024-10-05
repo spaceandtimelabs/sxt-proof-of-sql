@@ -35,6 +35,8 @@ pub struct ProverSetup<'a> {
 
 impl<'a> ProverSetup<'a> {
     /// Create a new `ProverSetup` from the public parameters.
+    /// # Panics
+    /// Panics if the length of `Gamma_1` or `Gamma_2` is not equal to `2^max_nu`.
     pub(super) fn new(
         Gamma_1: &'a [G1Affine],
         Gamma_2: &'a [G2Affine],
@@ -141,6 +143,9 @@ impl_serde_for_ark_serde_unchecked!(VerifierSetup);
 
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.
+    /// # Panics
+    /// Panics if the length of `Gamma_1_nu` is not equal to `2^max_nu`.
+    /// Panics if the length of `Gamma_2_nu` is not equal to `2^max_nu`.
     pub(super) fn new(
         Gamma_1_nu: &[G1Affine],
         Gamma_2_nu: &[G2Affine],

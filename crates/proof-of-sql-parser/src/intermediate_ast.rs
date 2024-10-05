@@ -232,6 +232,10 @@ impl Expression {
         })
     }
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
+    /// # Panics
+    ///
+    /// This function will panic if the provided `alias` cannot be parsed into an `Identifier`.
+    /// It will also panic if `self` cannot be boxed.
     #[must_use]
     pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {

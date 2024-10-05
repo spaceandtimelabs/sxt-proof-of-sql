@@ -39,6 +39,9 @@ use proof_of_sql_parser::{
 ///     decimal75("f", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if converting the iterator into an `OwnedTable<S>` fails.
 pub fn owned_table<S: Scalar>(
     iter: impl IntoIterator<Item = (Identifier, OwnedColumn<S>)>,
 ) -> OwnedTable<S> {
@@ -48,11 +51,13 @@ pub fn owned_table<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
+///```
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn smallint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i16>>,
@@ -66,11 +71,13 @@ pub fn smallint<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for an int column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
+///```
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i32>>,
@@ -84,11 +91,12 @@ pub fn int<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for a bigint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ```
-/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ``` use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
+///]```
+#[allow(clippy::missing_panics_doc)]
 pub fn bigint<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i64>>,
@@ -108,6 +116,9 @@ pub fn bigint<S: Scalar>(
 ///     boolean("a", [true, false, true]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn boolean<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<bool>>,
@@ -127,6 +138,9 @@ pub fn boolean<S: Scalar>(
 ///     int128("a", [1, 2, 3]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int128<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<i128>>,
@@ -146,6 +160,9 @@ pub fn int128<S: Scalar>(
 ///     scalar("a", [1, 2, 3]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn scalar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<S>>,
@@ -165,6 +182,9 @@ pub fn scalar<S: Scalar>(
 ///     varchar("a", ["a", "b", "c"]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn varchar<S: Scalar>(
     name: impl Deref<Target = str>,
     data: impl IntoIterator<Item = impl Into<String>>,
@@ -184,6 +204,10 @@ pub fn varchar<S: Scalar>(
 ///     decimal75("a", 12, 1, [1, 2, 3]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+/// - Panics if creating the `Precision` from the specified precision value fails.
 pub fn decimal75<S: Scalar>(
     name: impl Deref<Target = str>,
     precision: u8,
@@ -221,6 +245,9 @@ pub fn decimal75<S: Scalar>(
 ///     timestamptz("event_time", PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, vec![1625072400, 1625076000, 1625079600]),
 /// ]);
 /// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn timestamptz<S: Scalar>(
     name: impl Deref<Target = str>,
     time_unit: PoSQLTimeUnit,

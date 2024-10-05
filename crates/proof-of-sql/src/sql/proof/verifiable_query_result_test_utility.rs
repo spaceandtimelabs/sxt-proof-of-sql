@@ -19,6 +19,14 @@ use serde::Serialize;
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.
+///
+/// # Panics
+///
+/// Will panic if:
+/// - The verification of `res` does not succeed, causing the assertion `assert!(res.verify(...).is_ok())` to fail.
+/// - `res.proof` is `None`, causing `res.proof.as_ref().unwrap()` to panic.
+/// - Attempting to modify `pcs_proof_evaluations` or `commitments` if `res_p.proof` is `None`, leading to a panic on `unwrap()`.
+/// - `fake_accessor.update_offset` fails, causing a panic if it is designed to do so in the implementation.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
@@ -113,6 +121,15 @@ fn tamper_empty_result(
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }
 
+/// # Panics
+///
+/// Will panic if:
+/// - `res.provable_result` is `None`, which leads to calling `unwrap()` on it in the subsequent
+///   code and may cause an unexpected behavior.
+/// - The `provable_res.indexes()` returns an empty vector, which leads to attempting to modify an
+///   index of an empty result, causing an invalid state.
+/// - The assertion `assert!(res_p.verify(expr, accessor, &()).is_err())` fails, indicating that the
+///   verification did not fail as expected after tampering.
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),

@@ -99,6 +99,10 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         );
         Ok(vec![C::Scalar::ZERO])
     }
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `ColumnField` cannot be created from the provided column name (e.g., if the name parsing fails).
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }

@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![no_std]
-#![allow(clippy::missing_panics_doc)] // Fixed in Issue #163
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 extern crate alloc;
 
 /// Module for handling an intermediate decimal type received from the lexer.
@@ -35,7 +35,7 @@ pub mod resource_id;
 pub use resource_id::ResourceId;
 
 // lalrpop-generated code is not clippy-compliant
-lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items, clippy::pedantic)] pub sql);
+lalrpop_mod!(#[allow(clippy::all, missing_docs, clippy::missing_docs_in_private_items, clippy::pedantic, clippy::missing_panics_doc)] pub sql);
 
 /// Implement [`Deserialize`](serde::Deserialize) through [`FromStr`](core::str::FromStr) to avoid invalid identifiers.
 #[macro_export]

@@ -174,6 +174,9 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
+    /// # Panics
+    ///
+    /// Will panic if there are no post-result challenges available to pop from the stack.
     pub fn consume_post_result_challenge(&mut self) -> S {
         self.post_result_challenges.pop().unwrap()
     }

@@ -19,6 +19,9 @@ pub struct ProverState {
 
 impl ProverState {
     /// Create a new `ProverState` from the witness.
+    /// # Panics
+    /// Panics if the length of `v1` is not equal to `2^nu`.
+    /// Panics if the length of `v2` is not equal to `2^nu`.
     pub fn new(v1: Vec<G1Affine>, v2: Vec<G2Affine>, nu: usize) -> Self {
         assert_eq!(v1.len(), 1 << nu);
         assert_eq!(v2.len(), 1 << nu);

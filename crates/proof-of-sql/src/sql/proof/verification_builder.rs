@@ -28,6 +28,10 @@ pub struct VerificationBuilder<'a, C: Commitment> {
 }
 
 impl<'a, C: Commitment> VerificationBuilder<'a, C> {
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
+    )]
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
@@ -112,24 +116,41 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.produced_subpolynomials += 1;
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
+    )]
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
     pub fn sumcheck_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
         self.sumcheck_evaluation
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Panic conditions are straightforward as they rely on the completion assertion."
+    )]
     /// Get the commitments of pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn pcs_proof_commitments(&self) -> &[C] {
         assert!(self.completed());
         &self.pcs_proof_commitments
     }
+
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Panic conditions are self-evident from the completed assertion."
+    )]
     /// Get folding factors for the pre-result commitments
     pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
         assert!(self.completed());
         self.inner_product_multipliers
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is evident due to the assertion ensuring completion."
+    )]
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn folded_pcs_proof_evaluation(&self) -> C::Scalar {
@@ -152,6 +173,13 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
+    ///
+    /// # Panics
+    /// This function will panic if there are no post-result challenges available to pop from the stack.
+    ///
+    /// # Panics
+    /// This function will panic if `post_result_challenges` is empty,
+    /// as it attempts to pop an element from the vector and unwraps the result.
     pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
         self.post_result_challenges.pop().unwrap()
     }

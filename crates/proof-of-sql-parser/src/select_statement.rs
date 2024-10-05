@@ -69,6 +69,11 @@ impl FromStr for SelectStatement {
     }
 }
 
+/// # Panics
+///
+/// This function will panic in the following cases:
+/// - If `ResourceId::try_new` fails to create a valid `ResourceId`,
+///   the `.unwrap()` call will cause a panic.
 fn convert_table_expr_to_resource_id_vector(
     table_expressions: &[Box<TableExpression>],
     default_schema: Identifier,

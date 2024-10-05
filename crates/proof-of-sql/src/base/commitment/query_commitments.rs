@@ -80,6 +80,9 @@ impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
     }
 }
 
+/// # Panics
+///
+/// Panics if the commitment for the table or column cannot be found.
 impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
         let table_commitment = self.get(&column.table_ref()).unwrap();
@@ -105,6 +108,9 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
             .map(|column_metadata| *column_metadata.column_type())
     }
 
+    /// # Panics
+    ///
+    /// Panics if the column metadata cannot be found.
     fn lookup_schema(
         &self,
         table_ref: crate::base::database::TableRef,

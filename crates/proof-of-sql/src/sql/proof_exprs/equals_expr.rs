@@ -91,6 +91,10 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "table_length is guaranteed to match lhs.len()"
+)]
 pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,

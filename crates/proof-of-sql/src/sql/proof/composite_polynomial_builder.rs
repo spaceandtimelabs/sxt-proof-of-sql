@@ -21,6 +21,10 @@ pub struct CompositePolynomialBuilder<S: Scalar> {
 }
 
 impl<S: Scalar> CompositePolynomialBuilder<S> {
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures that the length of 'fr' does not exceed the allowable range based on 'num_sumcheck_variables', making the panic clear from context."
+    )]
     pub fn new(num_sumcheck_variables: usize, fr: &[S]) -> Self {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {
@@ -58,6 +62,10 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
     }
     /// Produce a polynomial term of the form
     ///    mult * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion guarantees that terms are not empty, which is inherently clear from the context of this function."
+    )]
     pub fn produce_zerosum_multiplicand(
         &mut self,
         mult: &S,

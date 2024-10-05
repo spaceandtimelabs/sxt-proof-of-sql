@@ -64,6 +64,10 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
 /// The idea here is to recursively traverse the expression tree and collect all the aggregation expressions
 /// and then label them as new columns post-aggregation and replace them with these new columns so that
 /// the post-aggregation expression tree doesn't contain any aggregation expressions and can be simply evaluated.
+/// # Panics
+///
+/// Will panic if the key for an aggregation expression cannot be parsed as a valid identifier
+/// or if there are issues retrieving an identifier from the map.
 fn get_aggregate_and_remainder_expressions(
     expr: Expression,
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
@@ -104,6 +108,9 @@ fn get_aggregate_and_remainder_expressions(
 }
 
 /// Given an `AliasedResultExpr`, check if it is legitimate and if so grab the relevant aggregation expression
+/// # Panics
+///
+/// Will panic if there is an issue retrieving the first element from the difference of free identifiers and group-by identifiers, indicating a logical inconsistency in the identifiers.
 fn check_and_get_aggregation_and_remainder(
     expr: AliasedResultExpr,
     group_by_identifiers: &[Identifier],

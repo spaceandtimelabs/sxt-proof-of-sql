@@ -39,6 +39,9 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
 
 /// Compute the sign bit for a column of scalars.
 ///
+/// # Panics
+/// Panics if `bits.last()` is `None` or if `result.len()` does not match `table_length`.
+///
 /// todo! make this more efficient and targeted at just the sign bit rather than all bits to create a proof
 pub fn result_evaluate_sign<'a, S: Scalar>(
     table_length: usize,
@@ -66,6 +69,9 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
 }
 
 /// Prove the sign decomposition for a column of scalars.
+///
+/// # Panics
+/// Panics if `bits.last()` is `None`.
 ///
 /// If x1, ..., xn denotes the data, prove the column of
 /// booleans, i.e. sign bits, s1, ..., sn where si == 1 if xi > MID and
@@ -108,10 +114,14 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
         prove_bit_decomposition(builder, alloc, expr, &bits, &dist);
     }
 
+    // This might panic if `bits.last()` returns `None`.
     bits.last().unwrap()
 }
 
 /// Verify the sign decomposition for a column of scalars.
+///
+/// # Panics
+/// Panics if `bit_evals.last()` is `None`.
 ///
 /// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<C: Commitment>(
@@ -188,6 +198,10 @@ fn verify_bits_are_binary<C: Commitment>(
     }
 }
 
+/// # Panics
+/// Panics if `bits.last()` returns `None`.
+///
+/// This function generates subpolynomial terms for sumcheck, involving the scalar expression and its bit decomposition.
 fn prove_bit_decomposition<'a, S: Scalar>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
@@ -221,6 +235,10 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
 }
 
+/// # Panics
+/// Panics if `bit_evals.last()` returns `None`.
+///
+/// This function checks the consistency of the bit evaluations with the expression evaluation.
 fn verify_bit_decomposition<C: Commitment>(
     builder: &mut VerificationBuilder<'_, C>,
     expr_eval: C::Scalar,

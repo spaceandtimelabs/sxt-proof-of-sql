@@ -70,6 +70,7 @@ impl<S: Scalar> CompositePolynomial<S> {
 
     /// Add a list of multilinear extensions that is meant to be multiplied together.
     /// The resulting polynomial will be multiplied by the scalar `coefficient`.
+    #[allow(clippy::missing_panics_doc)]
     pub fn add_product(&mut self, product: impl IntoIterator<Item = Rc<Vec<S>>>, coefficient: S) {
         let product: Vec<Rc<Vec<S>>> = product.into_iter().collect();
         let mut indexed_product = Vec::with_capacity(product.len());

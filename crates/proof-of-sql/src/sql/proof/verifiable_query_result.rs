@@ -108,7 +108,12 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
     ///
-    /// Note: This does NOT transform the result!
+    /// Note: This does NOT transform the result!4
+    /// # Panics
+    /// - Panics if:
+    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa.
+    ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
+    ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(
         &self,
         expr: &(impl ProofPlan<CP::Commitment> + Serialize),
@@ -136,7 +141,6 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
                 error: "non-zero sumcheck variables but empty result",
             })?;
         }
-
         self.proof.as_ref().unwrap().verify(
             expr,
             accessor,

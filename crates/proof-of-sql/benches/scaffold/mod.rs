@@ -12,6 +12,13 @@ pub mod querys;
 mod random_util;
 use random_util::{generate_random_columns, OptionalRandBound};
 
+/// # Panics
+///
+/// Will panic if:
+/// - The table reference cannot be parsed from the string.
+/// - The columns generated from `generate_random_columns` lead to a failure in `insert_table`.
+/// - The query string cannot be parsed into a `QueryExpr`.
+/// - The creation of the `VerifiableQueryResult` fails due to invalid proof expressions.
 fn scaffold<'a, CP: CommitmentEvaluationProof>(
     query: &str,
     columns: &[(&str, ColumnType, OptionalRandBound)],
@@ -36,6 +43,11 @@ fn scaffold<'a, CP: CommitmentEvaluationProof>(
     level = "debug",
     skip(query, columns, size, prover_setup, verifier_setup)
 )]
+/// # Panics
+///
+/// Will panic if:
+/// - The call to `scaffold` results in a panic due to invalid inputs.
+/// - The `verify` method of `VerifiableQueryResult` fails, indicating an invalid proof.
 pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
     title: &str,
     query: &str,

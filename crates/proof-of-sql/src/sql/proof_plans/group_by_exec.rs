@@ -363,6 +363,10 @@ fn verify_group_by<C: Commitment>(
     Ok(())
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "alpha is guaranteed to not be zero in this context"
+)]
 pub fn prove_group_by<'a, S: Scalar>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,

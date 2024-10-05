@@ -106,6 +106,8 @@ pub fn prove_round<S: Scalar>(prover_state: &mut ProverState<S>, r_maybe: &Optio
 ///                    `ark_impl`: `multiplicand.ark_impl.fix_variables(&[r_as_field])`,
 ///                };
 /// Only it does it in place
+/// # Panics
+/// Panics if `num_vars` is less than or equal to 0, indicating an invalid size of the partial point.
 fn in_place_fix_variable<S: Scalar>(multiplicand: &mut [S], r_as_field: S, num_vars: usize) {
     assert!(num_vars > 0, "invalid size of partial point");
     for b in 0..(1 << num_vars) {
