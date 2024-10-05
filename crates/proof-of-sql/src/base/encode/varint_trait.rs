@@ -70,10 +70,12 @@ fn zigzag_decode(from: u64) -> i64 {
 macro_rules! impl_varint {
     ($t:ty, unsigned) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as u64).required_space()
             }
 
+            #[allow(clippy::cast_lossless)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = u64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -84,6 +86,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as u64).encode_var(dst)
             }
@@ -91,10 +94,12 @@ macro_rules! impl_varint {
     };
     ($t:ty, signed) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as i64).required_space()
             }
 
+            #[allow(clippy::cast_lossless)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = i64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -105,6 +110,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as i64).encode_var(dst)
             }
