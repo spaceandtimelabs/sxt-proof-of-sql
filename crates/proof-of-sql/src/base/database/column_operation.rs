@@ -2511,8 +2511,8 @@ mod test {
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
             Curve25519Scalar::from(0_i64),
-            Curve25519Scalar::from(40000000_i64),
-            Curve25519Scalar::from(150000000_i64),
+            Curve25519Scalar::from(40_000_000_i64),
+            Curve25519Scalar::from(150_000_000_i64),
         ];
         let expected = (Precision::new(11).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);
@@ -2545,9 +2545,9 @@ mod test {
         let actual: (Precision, i8, Vec<Curve25519Scalar>) =
             try_divide_decimal_columns(&lhs, &rhs, left_column_type, right_column_type).unwrap();
         let expected_scalars = vec![
-            Curve25519Scalar::from(5633802),
-            Curve25519Scalar::from(-18292682),
-            Curve25519Scalar::from(-8695652),
+            Curve25519Scalar::from(5_633_802),
+            Curve25519Scalar::from(-18_292_682),
+            Curve25519Scalar::from(-8_695_652),
         ];
         let expected = (Precision::new(18).unwrap(), 6, expected_scalars);
         assert_eq!(expected, actual);

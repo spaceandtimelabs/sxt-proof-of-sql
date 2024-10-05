@@ -48,8 +48,8 @@ pub fn owned_table<S: Scalar>(
     OwnedTable::try_from_iter(iter).unwrap()
 }
 
-/// Creates a (Identifier, OwnedColumn) pair for a tinyint column.
-/// This is primarily intended for use in conjunction with [owned_table].
+/// Creates a (Identifier, `OwnedColumn`) pair for a tinyint column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
 /// ```
 /// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};

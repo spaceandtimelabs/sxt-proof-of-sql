@@ -2258,7 +2258,7 @@ mod test {
         let rhs =
             OwnedColumn::<Curve25519Scalar>::Decimal75(Precision::new(3).unwrap(), 2, rhs_scalars);
         let result = (lhs / rhs).unwrap();
-        let expected_scalars = [-400000000, 250000000, 100000000]
+        let expected_scalars = [-400_000_000, 250_000_000, 100_000_000]
             .iter()
             .map(Curve25519Scalar::from)
             .collect();
