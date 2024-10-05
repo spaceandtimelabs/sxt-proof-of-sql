@@ -752,7 +752,7 @@ mod tests {
         table_commitment_clone
             .append_owned_table(&append_columns, &())
             .unwrap();
-        assert_eq!(table_commitment, table_commitment_clone)
+        assert_eq!(table_commitment, table_commitment_clone);
     }
 
     #[test]

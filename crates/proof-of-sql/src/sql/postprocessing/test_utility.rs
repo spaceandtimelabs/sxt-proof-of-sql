@@ -5,7 +5,7 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
-pub fn group_by_postprocessing(
+#[must_use] pub fn group_by_postprocessing(
     cols: &[&str],
     result_exprs: &[AliasedResultExpr],
 ) -> OwnedTablePostprocessing {
@@ -19,15 +19,15 @@ pub fn group_by_postprocessing(
 /// # Panics
 ///
 /// This function may panic if the internal structures cannot be created properly, although this is unlikely under normal circumstances.
-pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
+#[must_use] pub fn select_expr(result_exprs: &[AliasedResultExpr]) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_select(SelectPostprocessing::new(result_exprs.to_vec()))
 }
 
-pub fn slice(limit: Option<u64>, offset: Option<i64>) -> OwnedTablePostprocessing {
+#[must_use] pub fn slice(limit: Option<u64>, offset: Option<i64>) -> OwnedTablePostprocessing {
     OwnedTablePostprocessing::new_slice(SlicePostprocessing::new(limit, offset))
 }
 
-pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> OwnedTablePostprocessing {
+#[must_use] pub fn orders(cols: &[&str], directions: &[OrderByDirection]) -> OwnedTablePostprocessing {
     let by_exprs = cols
         .iter()
         .zip(directions.iter())

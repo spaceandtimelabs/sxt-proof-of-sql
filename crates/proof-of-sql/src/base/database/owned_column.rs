@@ -397,7 +397,7 @@ mod test {
         assert_eq!(
             compare_indexes_by_owned_columns_with_direction(&order_by_pairs, 1, 4),
             Ordering::Less
-        )
+        );
     }
 
     #[test]

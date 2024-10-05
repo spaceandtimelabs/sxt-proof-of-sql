@@ -10,7 +10,7 @@ fn test_slice_map_to_vec() {
     assert_eq!(a, b);
 }
 
-/// add tests for slice_cast_with
+/// add tests for [`slice_cast_with`]
 #[test]
 fn test_slice_cast_with_from_curve25519_scalar_to_dalek_scalar() {
     let a: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
@@ -19,7 +19,7 @@ fn test_slice_cast_with_from_curve25519_scalar_to_dalek_scalar() {
     assert_eq!(a, b);
 }
 
-/// add tests for slice_cast
+/// add tests for [`slice_cast`]
 #[test]
 fn test_slice_cast_from_curve25519_scalar_to_dalek_scalar() {
     let a: Vec<Curve25519Scalar> = vec![Curve25519Scalar::from(1u64), Curve25519Scalar::from(2u64)];
@@ -28,7 +28,7 @@ fn test_slice_cast_from_curve25519_scalar_to_dalek_scalar() {
     assert_eq!(a, b);
 }
 
-/// random test for slice_cast_with
+/// random test for [`slice_cast_with`]
 #[test]
 fn test_slice_cast_with_random() {
     use rand::Rng;
@@ -70,7 +70,7 @@ fn test_slice_cast_mut() {
     assert_eq!(b, slice_cast_with(&a, |&x| x as u64));
 }
 
-/// random test for slice_cast_mut_with
+/// random test for [`slice_cast_mut_with`]
 #[test]
 fn test_slice_cast_mut_with_random() {
     use rand::Rng;
@@ -81,7 +81,7 @@ fn test_slice_cast_mut_with_random() {
     assert_eq!(b, slice_cast_with(&a, |&x| x as u64));
 }
 
-/// random test for slice_cast_mut_with
+/// random test for [`slice_cast_mut_with`]
 #[test]
 fn test_slice_cast_mut_random() {
     use rand::Rng;

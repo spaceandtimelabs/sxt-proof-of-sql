@@ -11,7 +11,7 @@ use crate::{
     },
 };
 
-/// select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+/// `select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a`
 #[test]
 fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     let data = owned_table([
@@ -40,7 +40,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     assert_eq!(res, expected);
 }
 
-/// select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+/// `select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a`
 #[test]
 fn we_can_prove_a_group_by_with_bigint_columns() {
     let data = owned_table([

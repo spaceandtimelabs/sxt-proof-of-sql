@@ -112,7 +112,7 @@ impl<S: Scalar> CompositePolynomial<S> {
     }
 
     #[cfg(test)]
-    /// Returns the product of the flattened_ml_extensions with referenced (as usize) by `terms` at the index `i`.
+    /// Returns the product of the `flattened_ml_extensions` with referenced (as usize) by `terms` at the index `i`.
     fn term_product(&self, terms: &[usize], i: usize) -> S {
         terms
             .iter()

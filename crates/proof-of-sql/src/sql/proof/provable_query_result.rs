@@ -50,7 +50,7 @@ impl ProvableQueryResult {
     }
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
-    pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
+    #[must_use] pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
         Self {
             num_columns,
             indexes,

@@ -44,7 +44,7 @@ impl Neg for NaiveCommitment {
 
 impl SubAssign for NaiveCommitment {
     fn sub_assign(&mut self, rhs: Self) {
-        self.add_assign(rhs.neg())
+        self.add_assign(rhs.neg());
     }
 }
 
