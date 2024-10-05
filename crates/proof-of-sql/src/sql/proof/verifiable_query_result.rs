@@ -18,11 +18,11 @@ use serde::{Deserialize, Serialize};
 /// intermediate form allows us to handle overflow and certain cases where the final
 /// result might use floating point numbers (e.g. `SELECT STDDEV(A) FROM T WHERE B = 0`).
 ///
-/// Below we demonstrate typical usage of VerifiableQueryResult with pseudo-code.
+/// Below we demonstrate typical usage of [`VerifiableQueryResult`] with pseudo-code.
 ///
 /// Here we assume that a verifier only has access to the commitments of database columns. To
 /// process a query, the verifier forwards the query to an untrusted
-/// prover. The prover has full access to the database and constructs a VerifiableQueryResult that
+/// prover. The prover has full access to the database and constructs a [`VerifiableQueryResult`] that
 /// it sends back to the verifier. The verifier checks that the result is valid using its
 /// commitments, and constructs the finalized form of the query result.
 ///
@@ -108,7 +108,12 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
     /// Note: a verified result can still respresent an error (e.g. overflow), but it is a verified
     /// error.
     ///
-    /// Note: This does NOT transform the result!
+    /// Note: This does NOT transform the result!4
+    /// # Panics
+    /// - Panics if:
+    ///   - `self.provable_result` is `None` but `self.proof` is `Some()`, or vice versa.
+    ///   - `self.proof.as_ref().unwrap()` is called but `self.proof` is `None`.
+    ///   - `self.provable_result.as_ref().unwrap()` is called but `self.provable_result` is `None`.
     pub fn verify(
         &self,
         expr: &(impl ProofPlan<CP::Commitment> + Serialize),
@@ -136,7 +141,6 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
                 error: "non-zero sumcheck variables but empty result",
             })?;
         }
-
         self.proof.as_ref().unwrap().verify(
             expr,
             accessor,

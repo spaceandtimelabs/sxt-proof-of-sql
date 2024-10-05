@@ -46,7 +46,7 @@ impl ResultBuilder {
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
     ///
-    /// Note: this must be matched with the same count in the CountBuilder.
+    /// Note: this must be matched with the same count in the [`CountBuilder`](crate::sql::proof::CountBuilder).
     pub fn request_post_result_challenges(&mut self, cnt: usize) {
         self.num_post_result_challenges += cnt;
     }

@@ -45,6 +45,10 @@ impl<C: Commitment> FilterExecBuilder<C> {
         Ok(self)
     }
 
+    /// # Panics
+    ///
+    /// Will panic if:
+    /// - `self.column_mapping.get(alias)` returns `None`, which can occur if the alias is not found in the column mapping.
     pub fn add_result_columns(mut self, columns: &[EnrichedExpr<C>]) -> Self {
         // If a column is provable, add it to the filter result expression list
         // If at least one column is non-provable, add all columns from the column mapping to the filter result expression list
@@ -59,6 +63,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
                 has_nonprovable_column = true;
             }
         }
+
         if has_nonprovable_column {
             // Has to keep them sorted to have deterministic order for tests
             for alias in self.column_mapping.keys().sorted() {
@@ -72,6 +77,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
         self
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn build(self) -> FilterExec<C> {
         FilterExec::new(
             self.filter_result_expr_list,

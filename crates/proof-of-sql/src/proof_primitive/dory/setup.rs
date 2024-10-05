@@ -8,7 +8,7 @@ use num_traits::One;
 
 /// The transparent setup information that the prover must know to create a proof.
 /// This is public knowledge and must match with the verifier's setup information.
-/// See Section 3.3 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See Section 3.3 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 ///
 ///
 /// Note:
@@ -19,15 +19,15 @@ pub struct ProverSetup<'a> {
     pub(super) Gamma_1: Vec<&'a [G1Affine]>,
     /// `Gamma_2[k]` = Γ_2,(m-k) in the Dory paper.
     pub(super) Gamma_2: Vec<&'a [G2Affine]>,
-    /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    /// `H_1` = `H_1` in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_1: G1Affine,
-    /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    /// `H_2` = `H_2` in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_2: G2Affine,
-    /// `Gamma_2_fin` = Gamma_2,fin in the Dory paper.
+    /// `Gamma_2_fin` = `Gamma_2,fin` in the Dory paper.
     pub(super) Gamma_2_fin: G2Affine,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
-    /// The handle to the `blitzar` Gamma_1 instances.
+    /// The handle to the `blitzar` `Gamma_1` instances.
     #[cfg(feature = "blitzar")]
     blitzar_handle:
         blitzar::compute::MsmHandle<blitzar::compute::ElementP2<ark_bls12_381::g1::Config>>,
@@ -35,6 +35,8 @@ pub struct ProverSetup<'a> {
 
 impl<'a> ProverSetup<'a> {
     /// Create a new `ProverSetup` from the public parameters.
+    /// # Panics
+    /// Panics if the length of `Gamma_1` or `Gamma_2` is not equal to `2^max_nu`.
     pub(super) fn new(
         Gamma_1: &'a [G1Affine],
         Gamma_2: &'a [G2Affine],
@@ -49,7 +51,7 @@ impl<'a> ProverSetup<'a> {
         let blitzar_handle = blitzar::compute::MsmHandle::new(&Vec::from_iter(
             Gamma_1.iter().copied().map(Into::into),
         ));
-        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..max_nu + 1)
+        let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..=max_nu)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
         ProverSetup {
@@ -72,7 +74,7 @@ impl<'a> ProverSetup<'a> {
         element_num_bytes: u32,
         scalars: &[u8],
     ) {
-        self.blitzar_handle.msm(res, element_num_bytes, scalars)
+        self.blitzar_handle.msm(res, element_num_bytes, scalars);
     }
 
     #[cfg(feature = "blitzar")]
@@ -84,7 +86,7 @@ impl<'a> ProverSetup<'a> {
         scalars: &[u8],
     ) {
         self.blitzar_handle
-            .packed_msm(res, output_bit_table, scalars)
+            .packed_msm(res, output_bit_table, scalars);
     }
 }
 
@@ -103,7 +105,7 @@ impl<'a> From<&'a PublicParameters> for ProverSetup<'a> {
 
 /// The transparent setup information that the verifier must know to verify a proof.
 /// This is public knowledge and must match with the prover's setup information.
-/// See Section 3.3 of https://eprint.iacr.org/2020/1274.pdf for details.
+/// See Section 3.3 of <https://eprint.iacr.org/2020/1274.pdf> for details.
 ///
 ///
 /// Note:
@@ -121,17 +123,17 @@ pub struct VerifierSetup {
     pub(super) Delta_2R: Vec<GT>,
     /// `chi[k]` = χ,(m-k) in the Dory paper.
     pub(super) chi: Vec<GT>,
-    /// `Gamma_1_0` is the Γ_1 used in Scalar-Product algorithm in the Dory paper.
+    /// `Gamma_1_0` is the `Γ_1` used in Scalar-Product algorithm in the Dory paper.
     pub(super) Gamma_1_0: G1Affine,
-    /// `Gamma_2_0` is the Γ_2 used in Scalar-Product algorithm in the Dory paper.
+    /// `Gamma_2_0` is the `Γ_2` used in Scalar-Product algorithm in the Dory paper.
     pub(super) Gamma_2_0: G2Affine,
-    /// `H_1` = H_1 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    /// `H_1` = `H_1` in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_1: G1Affine,
-    /// `H_2` = H_2 in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
+    /// `H_2` = `H_2` in the Dory paper. This could be used for blinding, but is currently only used in the Fold-Scalars algorithm.
     pub(super) H_2: G2Affine,
-    /// `H_T` = H_T in the Dory paper.
+    /// `H_T` = `H_T` in the Dory paper.
     pub(super) H_T: GT,
-    /// `Gamma_2_fin` = Gamma_2,fin in the Dory paper.
+    /// `Gamma_2_fin` = `Gamma_2,fin` in the Dory paper.
     pub(super) Gamma_2_fin: G2Affine,
     /// `max_nu` is the maximum nu that this setup will work for
     pub(super) max_nu: usize,
@@ -141,6 +143,9 @@ impl_serde_for_ark_serde_unchecked!(VerifierSetup);
 
 impl VerifierSetup {
     /// Create a new `VerifierSetup` from the public parameters.
+    /// # Panics
+    /// Panics if the length of `Gamma_1_nu` is not equal to `2^max_nu`.
+    /// Panics if the length of `Gamma_2_nu` is not equal to `2^max_nu`.
     pub(super) fn new(
         Gamma_1_nu: &[G1Affine],
         Gamma_2_nu: &[G2Affine],
@@ -151,8 +156,7 @@ impl VerifierSetup {
     ) -> Self {
         assert_eq!(Gamma_1_nu.len(), 1 << max_nu);
         assert_eq!(Gamma_2_nu.len(), 1 << max_nu);
-        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..max_nu
-            + 1)
+        let (Delta_1L_2L, Delta_1R, Delta_2R, chi): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = (0..=max_nu)
             .map(|k| {
                 if k == 0 {
                     (

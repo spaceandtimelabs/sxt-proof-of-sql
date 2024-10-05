@@ -1,5 +1,5 @@
-//! These functions are adapted from arkworks. https://github.com/arkworks-rs/algebra/blob/ab13aa09ae3c11cde0224028dee7b878bbcf9246/ff/src/fields/mod.rs#L347-L410
-//! See third_party/license/arkworks.LICENSE
+//! These functions are adapted from arkworks. <https://github.com/arkworks-rs/algebra/blob/ab13aa09ae3c11cde0224028dee7b878bbcf9246/ff/src/fields/mod.rs#L347-L410>
+//! See `third_party/license/arkworks.LICENSE`
 //!
 //! They differ in that they don't rely on the `Field` trait, but instead use `core::ops` and `crate::base::scalar` traits.
 //! This results in minor modifications.
@@ -15,15 +15,19 @@ use num_traits::{Inv, One, Zero};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
-/**
+/*
  * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
 
-/// Given a vector of field elements {v_i}, compute the vector {v_i^(-1)} using Montgomery's trick.
+/// Given a vector of field elements `{v_i}`, compute the vector `{v_i^(-1)}` using Montgomery's trick.
 /// The vector is modified in place.
 /// Any zero elements in the vector are left unchanged.
+///
+/// # Panics
+/// - Panics if the inversion of `tmp` fails, which can happen if `tmp` is zero,
+///   although this case is guaranteed to be non-zero based on the preceding logic.
 pub fn batch_inversion<F>(v: &mut [F])
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Send + Sync + Copy,
@@ -48,12 +52,16 @@ where
             // Batch invert in parallel, without copying the vector
             v.par_chunks_mut(num_elem_per_thread).for_each(|chunk| {
                 serial_batch_inversion_and_mul(chunk, coeff);
-            })
+            });
         },
         serial_batch_inversion_and_mul(v, coeff)
-    )
+    );
 }
 
+/// # Panics
+/// * This function panics if the inversion operation (`inv()`) fails, which can happen if the slice
+///   contains any zero elements. However, zero elements are skipped, so this unwrap is guaranteed
+///   to succeed unless all elements are zero.
 fn serial_batch_inversion_and_mul<F>(v: &mut [F], coeff: F)
 where
     F: One + Zero + MulAssign + Inv<Output = Option<F>> + Mul<Output = F> + Copy,

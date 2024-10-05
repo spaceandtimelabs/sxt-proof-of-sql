@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 pub struct BitDistribution {
     /// We use two arrays to track which bits vary
     /// and the constant bit values. If
-    /// {x_1, ..., x_n} represents the values BitDistribution describes, then
-    ///   or_all = abs(x_1) | abs(x_2) | ... | abs(x_n)
-    ///   vary_mask & (1 << i) =
-    ///              1 if x_s & (1 << i) != x_t & (1 << i) for some s != t
+    /// `{x_1, ..., x_n}` represents the values [`BitDistribution`] describes, then:
+    ///   `or_all = abs(x_1) | abs(x_2) | ... | abs(x_n)`
+    ///   `vary_mask & (1 << i) =`
+    ///              `1` if `x_s & (1 << i) != x_t & (1 << i)` for some `s != t`
     ///              0 otherwise
     pub or_all: [u64; 4],
     pub vary_mask: [u64; 4],
@@ -39,7 +39,7 @@ impl BitDistribution {
 
     pub fn num_varying_bits(&self) -> usize {
         let mut res = 0_usize;
-        for xi in self.vary_mask.iter() {
+        for xi in &self.vary_mask {
             res += xi.count_ones() as usize;
         }
         res
@@ -49,13 +49,14 @@ impl BitDistribution {
         self.vary_mask[3] & (1 << 63) != 0
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn sign_bit(&self) -> bool {
         assert!(!self.has_varying_sign_bit());
         self.or_all[3] & (1 << 63) != 0
     }
 
-    /// Check if this instance represents a valid bit distribution. is_valid
-    /// can be used after deserializing a BitDistribution from an untrusted
+    /// Check if this instance represents a valid bit distribution. `is_valid`
+    /// can be used after deserializing a [`BitDistribution`] from an untrusted
     /// source.
     pub fn is_valid(&self) -> bool {
         for (m, o) in self.vary_mask.iter().zip(self.or_all) {
@@ -66,8 +67,8 @@ impl BitDistribution {
         true
     }
 
-    /// If {b_i} represents the non-varying 1-bits of the absolute values, return the value
-    ///    sum_i b_i 2 ^ i
+    /// If `{b_i}` represents the non-varying 1-bits of the absolute values, return the value
+    ///    `sum_i b_i 2 ^ i`
     pub fn constant_part(&self) -> [u64; 4] {
         let mut val = [0; 4];
         self.for_each_abs_constant_bit(|i: usize, bit: usize| {
@@ -126,8 +127,8 @@ impl BitDistribution {
     }
 
     /// Return the position of the most significant bit of the absolute values
-    ///
-    /// Panic if no bits are set to 1
+    /// # Panics
+    /// Panics if no bits are set to 1 in the bit representation of `or_all`.
     pub fn most_significant_abs_bit(&self) -> usize {
         let mask = self.or_all[3] & !(1 << 63);
         if mask != 0 {

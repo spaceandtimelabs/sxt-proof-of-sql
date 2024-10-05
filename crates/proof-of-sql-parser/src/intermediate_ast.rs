@@ -13,7 +13,7 @@ use core::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Representation of a SetExpression, a collection of rows, each having one or more columns.
+/// Representation of a `SetExpression`, a collection of rows, each having one or more columns.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum SetExpression {
     /// Query result as `SetExpression`
@@ -50,6 +50,7 @@ pub struct AliasedResultExpr {
 
 impl AliasedResultExpr {
     /// Create a new `AliasedResultExpr`
+    #[must_use]
     pub fn new(expr: Expression, alias: Identifier) -> Self {
         Self {
             expr: Box::new(expr),
@@ -59,6 +60,7 @@ impl AliasedResultExpr {
 
     /// Try to get the identifier of the expression if it is a column
     /// Otherwise return None
+    #[must_use]
     pub fn try_as_identifier(&self) -> Option<&Identifier> {
         match self.expr.as_ref() {
             Expression::Column(column) => Some(column),
@@ -185,7 +187,8 @@ pub enum Expression {
 }
 
 impl Expression {
-    /// Create a new SUM()
+    /// Create a new `SUM()`
+    #[must_use]
     pub fn sum(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Sum,
@@ -193,7 +196,8 @@ impl Expression {
         })
     }
 
-    /// Create a new MAX()
+    /// Create a new `MAX()`
+    #[must_use]
     pub fn max(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Max,
@@ -201,7 +205,8 @@ impl Expression {
         })
     }
 
-    /// Create a new MIN()
+    /// Create a new `MIN()`
+    #[must_use]
     pub fn min(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Min,
@@ -209,7 +214,8 @@ impl Expression {
         })
     }
 
-    /// Create a new COUNT()
+    /// Create a new `COUNT()`
+    #[must_use]
     pub fn count(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::Count,
@@ -217,7 +223,8 @@ impl Expression {
         })
     }
 
-    /// Create a new FIRST()
+    /// Create a new `FIRST()`
+    #[must_use]
     pub fn first(self) -> Box<Self> {
         Box::new(Expression::Aggregation {
             op: AggregationOperator::First,
@@ -225,6 +232,11 @@ impl Expression {
         })
     }
     /// Create an `AliasedResultExpr` from an `Expression` using the provided alias.
+    /// # Panics
+    ///
+    /// This function will panic if the provided `alias` cannot be parsed into an `Identifier`.
+    /// It will also panic if `self` cannot be boxed.
+    #[must_use]
     pub fn alias(self, alias: &str) -> AliasedResultExpr {
         AliasedResultExpr {
             expr: Box::new(self),
@@ -277,7 +289,7 @@ impl core::ops::Sub<Box<Expression>> for Box<Expression> {
     }
 }
 
-/// OrderBy
+/// `OrderBy`
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct OrderBy {
     /// which column to order by
@@ -286,7 +298,7 @@ pub struct OrderBy {
     pub direction: OrderByDirection,
 }
 
-/// OrderByDirection values
+/// `OrderByDirection` values
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderByDirection {
     /// Ascending
@@ -310,7 +322,7 @@ impl Display for OrderByDirection {
 pub struct Slice {
     /// number of rows to return
     ///
-    /// if u64::MAX, specify all rows
+    /// if `u64::MAX`, specify all rows
     pub number_rows: u64,
 
     /// number of rows to skip
@@ -349,7 +361,7 @@ macro_rules! impl_int_to_literal {
     ($tt:ty) => {
         impl From<$tt> for Literal {
             fn from(val: $tt) -> Self {
-                Literal::BigInt(val as i64)
+                Literal::BigInt(i64::from(val))
             }
         }
     };

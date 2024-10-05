@@ -1,5 +1,5 @@
 use alloc::{vec, vec::Vec};
-/**
+/*
  * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
@@ -10,10 +10,12 @@ use num_traits::{Inv, One, Zero};
 
 /// Interpolate a uni-variate degree-`polynomial.len()-1` polynomial and evaluate this
 /// polynomial at `x`:
-///
 /// For any polynomial, `f(x)`, with degree less than or equal to `d`, we have that:
 /// `f(x) = sum_{i=0}^{d} (-1)^(d-i) * (f(i) / (i! * (d-i)! * (x-i))) * prod_{i=0}^{d} (x-i)`
+// Allow missing panics documentation because the function should not panic under normal conditions.
 /// unless x is one of 0,1,...,d, in which case, f(x) is already known.
+#[allow(dead_code, clippy::missing_panics_doc)]
+
 pub fn interpolate_uni_poly<F>(polynomial: &[F], x: F) -> F
 where
     F: Copy
@@ -55,7 +57,9 @@ where
         let new_term = polynomial[i]
             * (factorials[i] * factorials[degree - i] * x_minus_i)
                 .inv()
-                .unwrap(); // This unwrap is safe because we are guarenteed that x-i is not zero, and factorials are never zero.
+                .expect(
+                    "Inverse computation failed unexpectedly. This should not happen as `x != i`.",
+                );
 
         // This handles the (-1)^(d-i) sign.
         if (degree - i) % 2 == 0 {
@@ -69,10 +73,13 @@ where
     sum * product
 }
 
-/// Let d be the evals.len() - 1 and let f be the polynomial such that f(i) = evals[i].
-/// The output of this function is the vector of coefficients of f, leading coefficient first.
-/// That is, `f(x) = evals[j]*x^(d-j)``.
-#[allow(dead_code)]
+/// Let `d` be `evals.len() - 1` and let `f` be the polynomial such that `f(i) = evals[i]`.
+/// The output of this function is the vector of coefficients of `f`, with the leading coefficient first.
+/// That is, `f(x) = evals[j] * x^(d - j)`.
+#[allow(clippy::missing_panics_doc)]
+// This function is guaranteed not to panic because:
+// - The product in `inv()` will never be zero, as the numbers being multiplied are all non-zero by construction.
+// - If there are no elements to reduce, `unwrap_or(vec![])` provides an empty vector as a safe fallback.
 pub fn interpolate_evaluations_to_reverse_coefficients<S>(evals: &[S]) -> Vec<S>
 where
     S: Zero
@@ -96,7 +103,7 @@ where
                 .map(S::from)
                 .product::<S>()
                 .inv()
-                .unwrap()
+                .expect("Product will never be zero because the terms being multiplied are non-zero by construction.")
                 * eval_i;
             // Then multiply by the appropriate linear terms:
             // for j in 0..=n if j != i {

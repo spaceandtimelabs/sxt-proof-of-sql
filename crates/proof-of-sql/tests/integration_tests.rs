@@ -1,4 +1,5 @@
 #![cfg(feature = "test")]
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 use ark_std::test_rng;
 use curve25519_dalek::RistrettoPoint;
 #[cfg(feature = "blitzar")]

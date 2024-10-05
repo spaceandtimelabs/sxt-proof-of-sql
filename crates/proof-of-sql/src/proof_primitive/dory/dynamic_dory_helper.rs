@@ -51,6 +51,8 @@ pub(super) fn compute_dynamic_nu(num_vars: usize) -> usize {
 
 /// Compute the hi and lo vectors (or L and R) that are derived from `point`.
 /// L and R are the vectors such that LMR is exactly the evaluation of `a` at the point `point`.
+/// # Panics
+/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`.
 pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
     let nu = point.len() / 2 + 1;
     let mut lo_vec = vec![F::ZERO; 1 << nu];
@@ -72,8 +74,10 @@ pub(super) fn compute_dynamic_vecs(point: &[F]) -> (Vec<F>, Vec<F>) {
 
 /// Folds the `s1` and `s2` tensors:
 ///
-/// This is the analogous function of the non-dynamic folding function [extended_dory_reduce_verify_fold_s_vecs](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
+/// This is the analogous function of the non-dynamic folding function [`extended_dory_reduce_verify_fold_s_vecs`](super::extended_dory_reduce_helper::extended_dory_reduce_verify_fold_s_vecs).
 /// See that method for more details.
+/// # Panics
+/// This function requires that `point` has length at least as big as the number of rows in `M` that is created by `a`. In practice, `point` is normally length `1 << nu`.      
 pub(super) fn fold_dynamic_tensors(state: &ExtendedVerifierState) -> (F, F) {
     let point = &state.s1_tensor;
     let nu = point.len() / 2 + 1;

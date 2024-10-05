@@ -49,7 +49,11 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
         self.tables.insert(table_ref, (data, table_offset));
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating
+    /// that an invalid reference was provided.
     fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
         self.tables
             .get(&table_ref)
@@ -60,10 +64,21 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
             .collect()
     }
 
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
+
+///
+/// # Panics
+///
+/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if
+/// the `column.column_id()` is not found in the inner table for that reference,
+/// indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<'_, CP> {
     fn get_column(&self, column: ColumnRef) -> Column<CP::Scalar> {
         match self
@@ -98,6 +113,11 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
         }
     }
 }
+
+///
+/// # Panics
+///
+/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if the `column.column_id()` is not found in the inner table for that reference,indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     for OwnedTableTestAccessor<'_, CP>
 {
@@ -113,10 +133,17 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     }
 }
 impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_length(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_offset(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().1
     }
@@ -132,7 +159,10 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_
                 .column_type(),
         )
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.tables
             .get(&table_ref)

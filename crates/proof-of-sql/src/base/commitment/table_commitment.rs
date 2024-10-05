@@ -70,7 +70,7 @@ pub enum TableCommitmentArithmeticError {
         /// The underlying source error
         source: ColumnCommitmentsMismatch,
     },
-    /// Cannot perform TableCommitment arithmetic that would result in a negative range.
+    /// Cannot perform [`TableCommitment`] arithmetic that would result in a negative range.
     #[snafu(transparent)]
     NegativeRange {
         /// The underlying source error
@@ -133,6 +133,10 @@ where
 
 impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures that from_accessor should not create columns with a negative range"
+    )]
     pub fn from_accessor_with_max_bounds(
         table_ref: TableRef,
         columns: &[ColumnField],
@@ -170,21 +174,25 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a reference to this type's internal [`ColumnCommitments`].
+    #[must_use]
     pub fn column_commitments(&self) -> &ColumnCommitments<C> {
         &self.column_commitments
     }
 
     /// Returns a reference to the range of rows this type commits to.
+    #[must_use]
     pub fn range(&self) -> &Range<usize> {
         &self.range
     }
 
     /// Returns the number of columns in the committed table.
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.column_commitments.len()
     }
 
     /// Returns the number of rows that have been committed to.
+    #[must_use]
     pub fn num_rows(&self) -> usize {
         self.range.len()
     }
@@ -221,6 +229,10 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers"
+    )]
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,
@@ -268,6 +280,9 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    /// # Panics
+    /// Panics if `owned_table` has duplicate identifiers.
+    /// Panics if `owned_table` contains columns of mixed length.
     pub fn append_owned_table<S>(
         &mut self,
         owned_table: &OwnedTable<S>,
@@ -390,6 +405,7 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
     #[cfg(feature = "arrow")]
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
@@ -425,6 +441,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
+    #[allow(clippy::missing_panics_doc)]
     #[cfg(feature = "arrow")]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,

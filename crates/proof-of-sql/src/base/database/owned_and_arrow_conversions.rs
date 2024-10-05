@@ -1,12 +1,12 @@
 //! This module provide `From` and `TryFrom` implementations to go between arrow and owned types
 //! The mapping is as follows:
-//! OwnedType <-> Array/ArrayRef
-//! OwnedTable <-> RecordBatch
-//! Boolean <-> Boolean
-//! BigInt <-> Int64
-//! VarChar <-> Utf8/String
-//! Int128 <-> Decimal128(38,0)
-//! Decimal75 <-> S
+//! `OwnedType` <-> `Array/ArrayRef`
+//! `OwnedTable` <-> `RecordBatch`
+//! `Boolean` <-> `Boolean`
+//! `BigInt` <-> `Int64`
+//! `VarChar` <-> `Utf8/String`
+//! `Int128` <-> `Decimal128(38,0)`
+//! `Decimal75` <-> `S`
 //!
 //! Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
 //! This is because there is no `Int128` type in Arrow.
@@ -69,7 +69,7 @@ pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an Arrow array with nulls.
     #[snafu(display("null values are not supported in OwnedColumn yet"))]
     NullNotSupportedYet,
-    /// Using TimeError to handle all time-related errors
+    /// Using `TimeError` to handle all time-related errors
     #[snafu(transparent)]
     TimestampConversionError {
         /// The underlying source error
@@ -77,6 +77,11 @@ pub enum OwnedArrowConversionError {
     },
 }
 
+/// # Panics
+///
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Int128`.
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Decimal75`.
+/// Will panic if trying to convert `OwnedColumn::Scalar`, as this conversion is not implemented
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
@@ -135,6 +140,16 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 }
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
+    /// # Panics
+    ///
+    /// Will panic if downcasting fails for the following types:
+    /// - `BooleanArray` when converting from `DataType::Boolean`.
+    /// - `Int16Array` when converting from `DataType::Int16`.
+    /// - `Int32Array` when converting from `DataType::Int32`.
+    /// - `Int64Array` when converting from `DataType::Int64`.
+    /// - `Decimal128Array` when converting from `DataType::Decimal128(38, 0)`.
+    /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
+    /// - `StringArray` when converting from `DataType::Utf8`.
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
             // Arrow uses a bit-packed representation for booleans.

@@ -4,6 +4,7 @@ on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -132,6 +133,8 @@ jobs:
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run clippy::pedantic for proof-of-sql-parser
+        run: cargo clippy --lib -p proof-of-sql-parser -- -D clippy::pedantic
 
   # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
   format:

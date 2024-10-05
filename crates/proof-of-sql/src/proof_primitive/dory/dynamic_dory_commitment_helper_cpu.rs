@@ -6,6 +6,12 @@ use crate::base::commitment::CommittableColumn;
 use alloc::{vec, vec::Vec};
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
+/// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
+/// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -45,10 +51,11 @@ fn compute_dory_commitment(
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::Decimal75(_, _, column) => {
+        CommittableColumn::VarChar(column)
+        | CommittableColumn::Scalar(column)
+        | CommittableColumn::Decimal75(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
-        CommittableColumn::VarChar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)

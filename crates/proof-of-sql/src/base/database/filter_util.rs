@@ -8,6 +8,8 @@ use bumpalo::Bump;
 ///
 /// The function returns a tuple of the filtered columns and the number of
 /// rows in the filtered columns.
+/// # Panics
+/// This function requires that `columns` and `selection` have the same length.
 pub fn filter_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     columns: &[Column<'a, S>],

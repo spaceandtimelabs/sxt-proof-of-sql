@@ -35,11 +35,13 @@ pub struct QueryContext {
 }
 
 impl QueryContext {
+    #[allow(clippy::missing_panics_doc)]
     pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
         self.table = Some(table);
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn get_table_ref(&self) -> &TableRef {
         self.table
             .as_ref()
@@ -66,6 +68,7 @@ impl QueryContext {
         self.in_result_scope
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn set_in_agg_scope(&mut self, in_agg_scope: bool) -> ConversionResult<()> {
         if !in_agg_scope {
             assert!(
@@ -114,6 +117,7 @@ impl QueryContext {
         }
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
@@ -153,6 +157,10 @@ impl QueryContext {
             })
     }
 
+    /// # Panics
+    ///
+    /// Will panic if:
+    /// - `self.res_aliased_exprs` is empty, triggering the assertion `assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs")`.
     pub fn get_aliased_result_exprs(&self) -> ConversionResult<&[AliasedResultExpr]> {
         assert!(!self.res_aliased_exprs.is_empty(), "empty aliased exprs");
 

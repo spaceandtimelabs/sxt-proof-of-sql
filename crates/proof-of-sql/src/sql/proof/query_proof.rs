@@ -151,7 +151,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         // validate bit decompositions
-        for dist in self.bit_distributions.iter() {
+        for dist in &self.bit_distributions {
             if !dist.is_valid() {
                 Err(ProofError::VerificationError {
                     error: "invalid bit distributions",
@@ -167,7 +167,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }?;
 
         // verify sizes
-        if !self.validate_sizes(&counts, result) {
+        if !self.validate_sizes(&counts) {
             Err(ProofError::VerificationError {
                 error: "invalid proof size",
             })?;
@@ -224,20 +224,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let column_result_fields = expr.get_column_result_fields();
 
-        // compute the evaluation of the result MLEs
-        let result_evaluations = result.evaluate(
-            &subclaim.evaluation_point,
-            table_length,
-            &column_result_fields[..],
-        )?;
-
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
             table_length,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
-            &result_evaluations,
             result.indexes(),
         );
         let mut builder = VerificationBuilder::new(
@@ -250,7 +242,20 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
             post_result_challenges,
         );
         let owned_table_result = result.to_owned_table(&column_result_fields[..])?;
-        expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result))?;
+        let verifier_evaluations =
+            expr.verifier_evaluate(&mut builder, accessor, Some(&owned_table_result))?;
+        // compute the evaluation of the result MLEs
+        let result_evaluations = result.evaluate(
+            &subclaim.evaluation_point,
+            table_length,
+            &column_result_fields[..],
+        )?;
+        // check the evaluation of the result MLEs
+        if verifier_evaluations != result_evaluations {
+            Err(ProofError::VerificationError {
+                error: "result evaluation check failed",
+            })?;
+        }
 
         // perform the evaluation check of the sumcheck polynomial
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
@@ -283,9 +288,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         })
     }
 
-    fn validate_sizes(&self, counts: &ProofCounts, result: &ProvableQueryResult) -> bool {
-        result.num_columns() == counts.result_columns
-            && self.commitments.len() == counts.intermediate_mles
+    fn validate_sizes(&self, counts: &ProofCounts) -> bool {
+        self.commitments.len() == counts.intermediate_mles
             && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
     }
 }

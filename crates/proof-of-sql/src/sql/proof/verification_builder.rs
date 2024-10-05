@@ -14,7 +14,6 @@ pub struct VerificationBuilder<'a, C: Commitment> {
     bit_distributions: &'a [BitDistribution],
     pcs_proof_commitments: Vec<C>,
     folded_pcs_proof_evaluation: C::Scalar,
-    consumed_result_mles: usize,
     consumed_pcs_proof_mles: usize,
     consumed_intermediate_mles: usize,
     produced_subpolynomials: usize,
@@ -29,6 +28,10 @@ pub struct VerificationBuilder<'a, C: Commitment> {
 }
 
 impl<'a, C: Commitment> VerificationBuilder<'a, C> {
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The only possible panic is from the assertion comparing lengths, which is clear from context."
+    )]
     pub fn new(
         generator_offset: usize,
         mle_evaluations: SumcheckMleEvaluations<'a, C::Scalar>,
@@ -52,7 +55,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             sumcheck_evaluation: C::Scalar::zero(),
             pcs_proof_commitments: Vec::with_capacity(inner_product_multipliers.len()),
             folded_pcs_proof_evaluation: C::Scalar::zero(),
-            consumed_result_mles: 0,
             consumed_pcs_proof_mles: 0,
             consumed_intermediate_mles: 0,
             produced_subpolynomials: 0,
@@ -98,13 +100,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.consume_anchored_mle(commitment)
     }
 
-    /// Consume the evaluation of the MLE for a result column used in sumcheck
-    pub fn consume_result_mle(&mut self) -> C::Scalar {
-        let index = self.consumed_result_mles;
-        self.consumed_result_mles += 1;
-        self.mle_evaluations.result_evaluations[index]
-    }
-
     /// Produce the evaluation of a subpolynomial used in sumcheck
     pub fn produce_sumcheck_subpolynomial_evaluation(
         &mut self,
@@ -121,24 +116,41 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
         self.produced_subpolynomials += 1;
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is clear due to the assertion that checks if the computation is completed."
+    )]
     /// Get the evaluation of the sumcheck polynomial at its randomly selected point
     pub fn sumcheck_evaluation(&self) -> C::Scalar {
         assert!(self.completed());
         self.sumcheck_evaluation
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Panic conditions are straightforward as they rely on the completion assertion."
+    )]
     /// Get the commitments of pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn pcs_proof_commitments(&self) -> &[C] {
         assert!(self.completed());
         &self.pcs_proof_commitments
     }
+
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Panic conditions are self-evident from the completed assertion."
+    )]
     /// Get folding factors for the pre-result commitments
     pub fn inner_product_multipliers(&self) -> &[C::Scalar] {
         assert!(self.completed());
         self.inner_product_multipliers
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The panic condition is evident due to the assertion ensuring completion."
+    )]
     /// Get the evaluation of the folded pre-result MLE vectors used in a verifiable query's
     /// bulletproof
     pub fn folded_pcs_proof_evaluation(&self) -> C::Scalar {
@@ -152,7 +164,6 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
             && self.produced_subpolynomials == self.subpolynomial_multipliers.len()
             && self.consumed_intermediate_mles == self.intermediate_commitments.len()
             && self.consumed_pcs_proof_mles == self.mle_evaluations.pcs_proof_evaluations.len()
-            && self.consumed_result_mles == self.mle_evaluations.result_evaluations.len()
             && self.post_result_challenges.is_empty()
     }
 
@@ -162,6 +173,13 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
+    ///
+    /// # Panics
+    /// This function will panic if there are no post-result challenges available to pop from the stack.
+    ///
+    /// # Panics
+    /// This function will panic if `post_result_challenges` is empty,
+    /// as it attempts to pop an element from the vector and unwraps the result.
     pub fn consume_post_result_challenge(&mut self) -> C::Scalar {
         self.post_result_challenges.pop().unwrap()
     }

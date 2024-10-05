@@ -28,7 +28,7 @@ pub const MSB: u8 = 0b1000_0000;
 const DROP_MSB: u8 = 0b0111_1111;
 
 /// Varint (variable length integer) encoding, as described in
-/// https://developers.google.com/protocol-buffers/docs/encoding.
+/// <https://developers.google.com/protocol-buffers/docs/encoding>.
 ///
 /// Uses zigzag encoding (also described there) for signed integer representation.
 pub trait VarInt: Sized + Copy {
@@ -157,7 +157,7 @@ impl VarInt for u64 {
         let mut shift = 0;
 
         let mut success = false;
-        for b in src.iter() {
+        for b in src {
             let msb_dropped = b & DROP_MSB;
             result |= (msb_dropped as u64) << shift;
             shift += 7;

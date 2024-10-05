@@ -135,7 +135,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
     ) where
         COL: Into<CommittableColumn<'a>>,
     {
-        self.extend(Self::from_columns_with_offset(columns, offset, setup))
+        self.extend(Self::from_columns_with_offset(columns, offset, setup));
     }
 
     fn try_add(self, other: Self) -> Result<Self, NumColumnsMismatch>
@@ -185,7 +185,7 @@ mod tests {
     fn we_can_convert_from_columns() {
         // empty case
         let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
-            &Vec::<Column<Curve25519Scalar>>::new(),
+            Vec::<Column<Curve25519Scalar>>::new(),
             0,
             &(),
         );

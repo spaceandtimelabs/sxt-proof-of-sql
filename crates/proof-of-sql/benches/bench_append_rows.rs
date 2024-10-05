@@ -38,6 +38,12 @@ use std::ops::Deref;
 /// append 10 rows to 10 cols in 100 tables = 1.1382 seconds
 /// append 1000 rows to 10 cols in 1 table = 652ms
 /// ```
+///
+/// # Panics
+///
+/// Will panic if the creation of the table commitment fails due to invalid column data or an incorrect prover setup.
+///
+/// Will panic if the row appending operation fails due to invalid data or if the local commitment has reached an invalid state.
 fn bench_append_rows(c: &mut Criterion, cols: usize, rows: usize) {
     let public_parameters = PublicParameters::test_rand(10, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);

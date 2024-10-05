@@ -61,6 +61,8 @@ pub fn multi_pairing_4<P: Pairing>(
 ) {
     multi_pairing_4_impl((a0, b0), (a1, b1), (a2, b2), (a3, b3))
 }
+/// # Panics
+/// This function may panic if the final exponentiation fails due to invalid inputs, or if the multi-pairing operation encounters an error with the provided elements.
 fn multi_pairing_impl<P: Pairing>(
     a: impl IntoIterator<Item = impl Into<P::G1Prepared> + Send>,
     b: impl IntoIterator<Item = impl Into<P::G2Prepared> + Send>,

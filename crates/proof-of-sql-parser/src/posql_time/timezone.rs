@@ -8,12 +8,13 @@ use serde::{Deserialize, Serialize};
 pub enum PoSQLTimeZone {
     /// Default variant for UTC timezone
     Utc,
-    /// TImezone offset in seconds
+    /// `TImezone` offset in seconds
     FixedOffset(i32),
 }
 
 impl PoSQLTimeZone {
     /// Parse a timezone from a count of seconds
+    #[must_use]
     pub fn from_offset(offset: i32) -> Self {
         if offset == 0 {
             PoSQLTimeZone::Utc
@@ -67,7 +68,7 @@ impl fmt::Display for PoSQLTimeZone {
                 if seconds < 0 {
                     write!(f, "-{:02}:{:02}", hours.abs(), minutes)
                 } else {
-                    write!(f, "+{:02}:{:02}", hours, minutes)
+                    write!(f, "+{hours:02}:{minutes:02}")
                 }
             }
         }

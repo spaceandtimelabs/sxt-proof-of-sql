@@ -21,6 +21,7 @@ pub struct SlicePostprocessing {
 
 impl SlicePostprocessing {
     /// Create a new `SlicePostprocessing` with the given `number_rows` and `offset`.
+    #[must_use]
     pub fn new(number_rows: Option<u64>, offset_value: Option<i64>) -> Self {
         Self {
             number_rows,

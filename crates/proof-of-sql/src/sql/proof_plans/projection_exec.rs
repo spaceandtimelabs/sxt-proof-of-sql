@@ -47,9 +47,9 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         builder: &mut CountBuilder,
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         Ok(())
     }
@@ -74,7 +74,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
+            repeat_with(|| builder.consume_intermediate_mle()).take(self.aliased_results.len()),
         ))
     }
 
@@ -119,10 +119,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        Vec::from_iter(
+        // 1. Evaluate result expressions
+        let res = Vec::from_iter(
             self.aliased_results
                 .iter()
                 .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        )
+        );
+        // 2. Produce MLEs
+        res.clone().into_iter().for_each(|column| {
+            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        });
+        res
     }
 }

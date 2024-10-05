@@ -10,6 +10,11 @@ use tracing::{span, Level};
     level = "debug",
     skip_all
 )]
+/// # Panics
+///
+/// Will panic if:
+/// - `Gamma_2.last()` returns `None` during the computation of the gamma_2 slice.
+/// - The slice indexing in `gamma_2.last().unwrap()` is out of bounds, which can happen if `gamma_2_offset + num_sub_commits` exceeds the length of `Gamma_2`.
 fn compute_dory_commitments_packed_impl(
     committable_columns: &[CommittableColumn],
     offset: usize,

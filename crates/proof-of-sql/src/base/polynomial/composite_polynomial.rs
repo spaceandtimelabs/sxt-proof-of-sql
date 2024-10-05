@@ -1,7 +1,7 @@
 use crate::base::{map::IndexMap, scalar::Scalar};
 use alloc::{rc::Rc, vec::Vec};
-/**
- * Adopted from arkworks
+/*
+ * Adapted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
  */
@@ -17,12 +17,12 @@ use itertools::Itertools;
 ///
 /// This data structure of the polynomial is a list of list of `(coefficient, DenseMultilinearExtension)`.
 /// * Number of products n = `self.products.len()`,
-/// * Number of multiplicands of ith product m_i = `self.products[i].1.len()`,
-/// * Coefficient of ith product c_i = `self.products[i].0`
+/// * Number of multiplicands of `i`th product `m_i = self.products[i].1.len()`,
+/// * Coefficient of `i`th product `c_i = self.products[i].0`
 ///
 /// The resulting polynomial is
 ///
-/// $$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$
+/// `$$\sum_{i=0}^{n}C_i\cdot\prod_{j=0}^{m_i}P_{ij}$$`
 ///
 /// The result polynomial is used as the prover key.
 #[derive(Clone, Debug)]
@@ -70,6 +70,7 @@ impl<S: Scalar> CompositePolynomial<S> {
 
     /// Add a list of multilinear extensions that is meant to be multiplied together.
     /// The resulting polynomial will be multiplied by the scalar `coefficient`.
+    #[allow(clippy::missing_panics_doc)]
     pub fn add_product(&mut self, product: impl IntoIterator<Item = Rc<Vec<S>>>, coefficient: S) {
         let product: Vec<Rc<Vec<S>>> = product.into_iter().collect();
         let mut indexed_product = Vec::with_capacity(product.len());
@@ -78,7 +79,7 @@ impl<S: Scalar> CompositePolynomial<S> {
         for m in product {
             let m_ptr: *const Vec<S> = Rc::as_ptr(&m);
             if let Some(index) = self.raw_pointers_lookup_table.get(&m_ptr) {
-                indexed_product.push(*index)
+                indexed_product.push(*index);
             } else {
                 let curr_index = self.flattened_ml_extensions.len();
                 self.flattened_ml_extensions.push(m.clone());

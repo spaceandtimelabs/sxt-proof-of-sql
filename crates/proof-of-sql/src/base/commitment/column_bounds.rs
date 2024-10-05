@@ -75,7 +75,7 @@ where
     /// The source collection is empty so has no bounds.
     #[default]
     Empty,
-    /// After some operation (like [`Bounds::difference`]), the bounds cannot be determined exactly.
+    /// After some operation (like `Bounds::difference`), the bounds cannot be determined exactly.
     ///
     /// Instead, this variant underestimates the minimum and overestimates the maximum.
     Bounded(BoundsInner<T>),
@@ -107,9 +107,8 @@ where
             (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Sharp(bounds_a.union(bounds_b))
             }
-            (Bounds::Bounded(bounds_a), Bounds::Bounded(bounds_b))
-            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b)) => {
+            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Bounded(bounds_a.union(bounds_b))
             }
             (bounds, Bounds::Empty) | (Bounds::Empty, bounds) => bounds,
@@ -128,14 +127,13 @@ where
         match (self, other) {
             (Bounds::Empty, _) => Bounds::Empty,
             (bounds, Bounds::Empty) => bounds,
-            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b) | Bounds::Bounded(bounds_b))
                 if bounds_a.max() < bounds_b.min() || bounds_b.max() < bounds_a.min() =>
             {
                 // source collections must be disjoint, so no rows are removed
                 Bounds::Sharp(bounds_a)
             }
-            (Bounds::Bounded(bounds), _) | (Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
+            (Bounds::Bounded(bounds) | Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
         }
     }
 
@@ -205,13 +203,13 @@ pub struct ColumnBoundsMismatch {
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
-    /// The bounds of a TinyInt column.
+    /// The bounds of a `TinyInt` column.
     TinyInt(Bounds<i8>),
-    /// The bounds of a SmallInt column.
+    /// The bounds of a `SmallInt` column.
     SmallInt(Bounds<i16>),
     /// The bounds of an Int column.
     Int(Bounds<i32>),
-    /// The bounds of a BigInt column.
+    /// The bounds of a `BigInt` column.
     BigInt(Bounds<i64>),
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
@@ -223,6 +221,7 @@ impl ColumnBounds {
     /// Construct a [`ColumnBounds`] from a column by reference.
     ///
     /// If the column variant has order, only the minimum and maximum value will be copied.
+    #[must_use]
     pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
             CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
@@ -236,8 +235,8 @@ impl ColumnBounds {
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
-            | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
-            CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
+            | CommittableColumn::VarChar(_)
+            | CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
         }
     }
 

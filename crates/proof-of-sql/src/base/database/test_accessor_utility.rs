@@ -39,6 +39,15 @@ impl Default for RandomTestAccessorDescriptor {
 }
 
 /// Generate a DataFrame with random data
+///
+/// # Panics
+///
+/// This function may panic in the following cases:
+/// - If `Precision::new(7)` fails when creating a `Decimal75` column type, which would occur
+///   if the precision is invalid.
+/// - When calling `.unwrap()` on the result of `RecordBatch::try_new(schema, columns)`, which
+///   will panic if the schema and columns do not align correctly or if there are any other
+///   underlying errors.
 #[allow(dead_code)]
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,

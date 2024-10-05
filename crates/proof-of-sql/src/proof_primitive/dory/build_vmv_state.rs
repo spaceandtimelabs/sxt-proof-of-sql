@@ -4,7 +4,7 @@ use super::{
 };
 use alloc::vec::Vec;
 
-/// Builds a VMVProverState from the given parameters.
+/// Builds a [`VMVProverState`] from the given parameters.
 pub(super) fn build_vmv_prover_state(
     a: &[F],
     b_point: &[F],
@@ -29,7 +29,7 @@ pub(super) fn build_vmv_prover_state(
     }
 }
 
-/// Builds a VMVVerifierState from the given parameters.
+/// Builds a [`VMVVerifierState`] from the given parameters.
 pub(super) fn build_vmv_verifier_state(
     y: F,
     b_point: &[F],

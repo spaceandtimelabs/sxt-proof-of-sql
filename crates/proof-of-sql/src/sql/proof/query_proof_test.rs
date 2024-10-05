@@ -60,6 +60,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
+        builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![(S::ONE, vec![Box::new(col as &[_])])],
@@ -74,7 +75,7 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         builder.count_degree(2);
-        builder.count_result_columns(1);
+        builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
@@ -91,13 +92,17 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         _accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
-        assert_eq!(builder.consume_result_mle(), C::Scalar::ZERO);
+        assert_eq!(builder.consume_intermediate_mle(), C::Scalar::ZERO);
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::ZeroSum,
             C::Scalar::from(self.evaluation),
         );
         Ok(vec![C::Scalar::ZERO])
     }
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `ColumnField` cannot be created from the provided column name (e.g., if the name parsing fails).
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
@@ -163,24 +168,6 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
 }
 
 #[test]
-fn veriy_fails_if_result_mle_evaluation_fails() {
-    // prove and try to verify an artificial polynomial where we prove
-    // that every entry in the result is zero
-    let expr = TrivialTestProofPlan {
-        ..Default::default()
-    };
-    let accessor = UnimplementedTestAccessor::new_empty();
-    let (proof, mut result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
-    match result.indexes_mut() {
-        Indexes::Sparse(ref mut indexes) => {
-            indexes.pop();
-        }
-        _ => panic!("unexpected indexes type"),
-    }
-    assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
-}
-
-#[test]
 fn verify_fails_if_counts_dont_match() {
     // prove and verify an artificial polynomial where we try to prove
     // that every entry in the result is zero
@@ -234,6 +221,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         ));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         builder.produce_anchored_mle(x);
+        builder.produce_intermediate_mle(res);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
@@ -251,7 +239,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         builder.count_degree(3);
-        builder.count_result_columns(1);
+        builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(1);
         Ok(())
@@ -268,7 +256,6 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         accessor: &dyn CommitmentAccessor<C>,
         _result: Option<&OwnedTable<C::Scalar>>,
     ) -> Result<Vec<C::Scalar>, ProofError> {
-        let res_eval = builder.consume_result_mle();
         let x_commit = C::Scalar::from(self.anchored_commit_multiplier)
             * accessor.get_commitment(ColumnRef::new(
                 "sxt.test".parse().unwrap(),
@@ -276,6 +263,7 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
                 ColumnType::BigInt,
             ));
         let x_eval = builder.consume_anchored_mle(x_commit);
+        let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             res_eval - x_eval * x_eval,
@@ -434,6 +422,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
                 (-S::ONE, vec![Box::new(z), Box::new(z)]),
             ],
         );
+        builder.produce_intermediate_mle(res);
         vec![Column::BigInt(res)]
     }
 }
@@ -444,10 +433,9 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         builder.count_degree(3);
-        builder.count_result_columns(1);
+        builder.count_intermediate_mles(2);
         builder.count_subpolynomials(2);
         builder.count_anchored_mles(1);
-        builder.count_intermediate_mles(1);
         Ok(())
     }
     fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
@@ -467,9 +455,9 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
             "x".parse().unwrap(),
             ColumnType::BigInt,
         ));
-        let res_eval = builder.consume_result_mle();
         let x_eval = builder.consume_anchored_mle(x_commit);
         let z_eval = builder.consume_intermediate_mle();
+        let res_eval = builder.consume_intermediate_mle();
 
         // poly1
         builder.produce_sumcheck_subpolynomial_evaluation(
@@ -627,6 +615,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
         builder.produce_anchored_mle(x);
+        builder.produce_intermediate_mle(res);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
             vec![
@@ -644,7 +633,7 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         builder.count_degree(3);
-        builder.count_result_columns(1);
+        builder.count_intermediate_mles(1);
         builder.count_subpolynomials(1);
         builder.count_anchored_mles(1);
         builder.count_post_result_challenges(2);
@@ -664,13 +653,13 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
     ) -> Result<Vec<C::Scalar>, ProofError> {
         let alpha = builder.consume_post_result_challenge();
         let _beta = builder.consume_post_result_challenge();
-        let res_eval = builder.consume_result_mle();
         let x_commit = accessor.get_commitment(ColumnRef::new(
             "sxt.test".parse().unwrap(),
             "x".parse().unwrap(),
             ColumnType::BigInt,
         ));
         let x_eval = builder.consume_anchored_mle(x_commit);
+        let res_eval = builder.consume_intermediate_mle();
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             alpha * res_eval - alpha * x_eval * x_eval,

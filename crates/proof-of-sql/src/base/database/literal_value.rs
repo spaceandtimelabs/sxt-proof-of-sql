@@ -24,16 +24,16 @@ pub enum LiteralValue<S: Scalar> {
 
     /// String literals
     ///  - the first element maps to the str value.
-    ///  - the second element maps to the str hash (see [crate::base::scalar::Scalar]).
+    ///  - the second element maps to the str hash (see [`crate::base::scalar::Scalar`]).
     VarChar((String, S)),
     /// i128 literals
     Int128(i128),
     /// Decimal literals with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::Curve25519Scalar]
+    ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
     Decimal75(Precision, i8, S),
     /// Scalar literals
     Scalar(S),
-    /// TimeStamp defined over a unit (s, ms, ns, etc) and timezone with backing store
+    /// `TimeStamp` defined over a unit (s, ms, ns, etc) and timezone with backing store
     /// mapped to i64, which is time units since unix epoch
     TimeStampTZ(PoSQLTimeUnit, PoSQLTimeZone, i64),
 }
@@ -63,9 +63,8 @@ impl<S: Scalar> LiteralValue<S> {
             Self::SmallInt(i) => i.into(),
             Self::Int(i) => i.into(),
             Self::BigInt(i) => i.into(),
-            Self::VarChar((_, s)) => *s,
+            Self::VarChar((_, s)) | Self::Decimal75(_, _, s) => *s,
             Self::Int128(i) => i.into(),
-            Self::Decimal75(_, _, s) => *s,
             Self::Scalar(scalar) => *scalar,
             Self::TimeStampTZ(_, _, time) => time.into(),
         }

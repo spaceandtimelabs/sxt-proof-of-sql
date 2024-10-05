@@ -5,7 +5,8 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelI
 
 /// This operation does `result[i] += multiplier * to_mul_add[i]` for `i` in `0..to_mul_add.len()`.
 ///
-/// It panics if `result.len() < to_mul_add.len()`.
+/// # Panics
+/// Panics if the length of `result` is less than the length of `to_mul_add`.
 pub fn mul_add_assign<T, S>(result: &mut [T], multiplier: T, to_mul_add: &[S])
 where
     T: Send + Sync + Mul<Output = T> + AddAssign + Copy,
@@ -19,5 +20,5 @@ where
     .zip(to_mul_add)
     .for_each(|(res_i, &data_i)| {
         *res_i += multiplier * data_i.into();
-    })
+    });
 }

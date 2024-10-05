@@ -1,4 +1,5 @@
 #![cfg(feature = "test")]
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 #[cfg(feature = "blitzar")]
 use blitzar::proof::InnerProductProof;
 #[cfg(feature = "blitzar")]

@@ -21,6 +21,10 @@ pub struct CompositePolynomialBuilder<S: Scalar> {
 }
 
 impl<S: Scalar> CompositePolynomialBuilder<S> {
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures that the length of 'fr' does not exceed the allowable range based on 'num_sumcheck_variables', making the panic clear from context."
+    )]
     pub fn new(num_sumcheck_variables: usize, fr: &[S]) -> Self {
         assert!(1 << num_sumcheck_variables >= fr.len());
         Self {
@@ -34,8 +38,8 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
     }
 
     /// Produce a polynomial term of the form
-    ///    mult * f_r(X1, .., Xr) * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
-    /// where f_r is an MLE of random scalars
+    ///    `mult * f_r(X1, .., Xr) * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)`
+    /// where `f_r` is an MLE of random scalars
     pub fn produce_fr_multiplicand(
         &mut self,
         mult: &S,
@@ -58,6 +62,10 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
     }
     /// Produce a polynomial term of the form
     ///    mult * term1(X1, ..., Xr) * ... * termK(X1, ..., Xr)
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion guarantees that terms are not empty, which is inherently clear from the context of this function."
+    )]
     pub fn produce_zerosum_multiplicand(
         &mut self,
         mult: &S,
@@ -74,18 +82,18 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
         &mut self,
         terms: &[Box<dyn MultilinearExtension<S> + '_>],
     ) -> Vec<Rc<Vec<S>>> {
-        let mut terms_p = Vec::with_capacity(terms.len());
+        let mut deduplicated_terms = Vec::with_capacity(terms.len());
         for term in terms {
             let id = term.id();
-            if let Some(term_p) = self.mles.get(&id) {
-                terms_p.push(term_p.clone());
+            if let Some(cached_term) = self.mles.get(&id) {
+                deduplicated_terms.push(cached_term.clone());
             } else {
-                let term_p = term.to_sumcheck_term(self.num_sumcheck_variables);
-                self.mles.insert(id, term_p.clone());
-                terms_p.push(term_p);
+                let new_term = term.to_sumcheck_term(self.num_sumcheck_variables);
+                self.mles.insert(id, new_term.clone());
+                deduplicated_terms.push(new_term);
             }
         }
-        terms_p
+        deduplicated_terms
     }
 
     /// Create a composite polynomial that is the sum of all of the
@@ -99,14 +107,14 @@ impl<S: Scalar> CompositePolynomialBuilder<S> {
             ],
             One::one(),
         );
-        for (mult, terms) in self.fr_multiplicands_rest.iter() {
+        for (mult, terms) in &self.fr_multiplicands_rest {
             let fr_iter = iter::once(self.fr.clone());
             let terms_iter = terms.iter().cloned();
-            res.add_product(fr_iter.chain(terms_iter), *mult)
+            res.add_product(fr_iter.chain(terms_iter), *mult);
         }
-        for (mult, terms) in self.zerosum_multiplicands.iter() {
+        for (mult, terms) in &self.zerosum_multiplicands {
             let terms_iter = terms.iter().cloned();
-            res.add_product(terms_iter, *mult)
+            res.add_product(terms_iter, *mult);
         }
 
         res.annotate_trace();

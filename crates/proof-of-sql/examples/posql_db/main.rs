@@ -115,6 +115,10 @@ enum Commands {
     },
 }
 
+/// # Panics
+///
+/// Will panic if the call to `stdout().flush()` fails, indicating that the
+/// standard output stream could not be flushed
 fn start_timer(message: &str) -> Instant {
     print!("{}...", message);
     stdout().flush().unwrap();
@@ -125,6 +129,21 @@ fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }
 
+/// # Panics
+///
+/// This function can panic under the following circumstances:
+///
+/// - **GPU Initialization Failure**: The program will panic if the GPU backend initialization fails.
+/// - **Commit Load Failure**: Panics if the commit cannot be loaded from the specified path.
+/// - **Table Commitment Creation Failure**: Panics if the table commitment creation fails.
+/// - **Commit Write Failure**: Panics if writing the commit to storage fails.
+/// - **CSV Write Failure**: Panics if writing the table or batch data to the CSV accessor fails.
+/// - **CSV Read Failure**: Panics if reading a CSV file into a record batch fails.
+/// - **Query Parsing Failure**: Panics if parsing the query expression fails.
+/// - **Proof Generation Failure**: Panics if generating the cryptographic proof fails.
+/// - **Proof Verification Failure**: Panics if the proof verification process fails.
+/// - **Serialization/Deserialization Failure**: Panics if the proof cannot be serialized or deserialized.
+/// - **Record Batch Conversion Failure**: Panics if the query result cannot be converted into a `RecordBatch`.
 fn main() {
     let args = CliArgs::parse();
     println!("Warming up GPU...");

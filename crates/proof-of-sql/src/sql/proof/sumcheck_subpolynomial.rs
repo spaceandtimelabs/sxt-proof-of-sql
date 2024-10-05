@@ -17,8 +17,8 @@ pub type SumcheckSubpolynomialTerm<'a, S> = (S, Vec<Box<dyn MultilinearExtension
 /// A polynomial that can be used to check a contraint and can be aggregated
 /// into a single sumcheck polynomial.
 /// There are two types of subpolynomials:
-/// 1. Identity: the subpolynomial should be zero at every entry/row
-/// 2. ZeroSum: the subpolynomial should sum to zero across every entry/row
+/// 1. [`Identity`](SumcheckSubpolynomialType::Identity): the subpolynomial should be zero at every entry/row
+/// 2. [`ZeroSum`](SumcheckSubpolynomialType::ZeroSum): the subpolynomial should sum to zero across every entry/row
 ///
 /// The subpolynomial is represented as a sum of terms, where each term is a
 /// product of multilinear extensions and a constant.
@@ -45,10 +45,10 @@ impl<'a, S: Scalar> SumcheckSubpolynomial<'a, S> {
         composite_polynomial: &mut CompositePolynomialBuilder<S>,
         group_multiplier: S,
     ) {
-        for (mult, term) in self.terms.iter() {
+        for (mult, term) in &self.terms {
             match self.subpolynomial_type {
                 SumcheckSubpolynomialType::Identity => {
-                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term)
+                    composite_polynomial.produce_fr_multiplicand(&(*mult * group_multiplier), term);
                 }
                 SumcheckSubpolynomialType::ZeroSum => composite_polynomial
                     .produce_zerosum_multiplicand(&(*mult * group_multiplier), term),
