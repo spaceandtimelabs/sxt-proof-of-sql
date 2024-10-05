@@ -239,7 +239,7 @@ mod tests {
                 .into(),
         );
 
-        assert_eq!(res_committable_column, test_committable_column)
+        assert_eq!(res_committable_column, test_committable_column);
     }
 
     #[test]

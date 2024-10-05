@@ -425,7 +425,7 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
         0,
     );
     let large_decimal = format!("0.{}", "1".repeat(75));
-    let query_string = format!("SELECT d0 + {} as res FROM table;", large_decimal);
+    let query_string = format!("SELECT d0 + {large_decimal} as res FROM table;");
     assert!(matches!(
         QueryExpr::<RistrettoPoint>::try_new(
             query_string.parse().unwrap(),
@@ -472,7 +472,7 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         bigint("t", [-5]),
         decimal75("g", 3, 1, [457]),
         boolean("h", [true]),
-        decimal75("dr", 26, 6, [1400006]),
+        decimal75("dr", 26, 6, [1_400_006]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -524,7 +524,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         decimal75("res", 22, 1, [25]),
         bigint("g", [32]),
         boolean("h", [true]),
-        decimal75("res2", 46, 4, [129402]),
+        decimal75("res2", 46, 4, [129_402]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }

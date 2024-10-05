@@ -2,7 +2,7 @@ use alloy_sol_types::{private::primitives::Bytes, SolValue};
 use snafu::Snafu;
 use std::{ffi::OsStr, io, process::Command};
 
-/// Error type returned by [ForgeScript] functions.
+/// Error type returned by [`ForgeScript`] functions.
 #[derive(Debug, Snafu)]
 pub enum ForgeScriptError<'a> {
     /// The script failed to run. This is usually because `forge` is not installed.
@@ -13,7 +13,7 @@ pub enum ForgeScriptError<'a> {
     SolidityError { underlying_command: &'a Command },
 }
 
-/// [ForgeScript] enables running solidity from within rust. Ultimately this type calls `forge script`.
+/// [`ForgeScript`] enables running solidity from within rust. Ultimately this type calls `forge script`.
 /// As a result, `forge` must be installed.
 /// See <https://book.getfoundry.sh/getting-started/installation> for instructions.
 pub struct ForgeScript {

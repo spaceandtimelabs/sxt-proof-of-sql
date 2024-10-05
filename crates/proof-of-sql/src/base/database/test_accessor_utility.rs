@@ -15,11 +15,11 @@ use rand::{
 };
 use std::sync::Arc;
 
-/// Specify what form a randomly generated TestAccessor can take
+/// Specify what form a randomly generated `TestAccessor` can take
 pub struct RandomTestAccessorDescriptor {
-    /// The minimum number of rows in the generated RecordBatch
+    /// The minimum number of rows in the generated `RecordBatch`
     pub min_rows: usize,
-    /// The maximum number of rows in the generated RecordBatch
+    /// The maximum number of rows in the generated `RecordBatch`
     pub max_rows: usize,
     /// The minimum value of the generated data
     pub min_value: i64,
@@ -38,7 +38,7 @@ impl Default for RandomTestAccessorDescriptor {
     }
 }
 
-/// Generate a DataFrame with random data
+/// Generate a `DataFrame` with random data
 ///
 /// # Panics
 ///
@@ -88,7 +88,7 @@ pub fn make_random_test_accessor_data(
             }
             ColumnType::BigInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int64, false));
-                let values: Vec<i64> = values.to_vec();
+                let values: Vec<i64> = values.clone();
                 columns.push(Arc::new(Int64Array::from(values)));
             }
             ColumnType::Int128 => {
@@ -96,7 +96,7 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
                 columns.push(Arc::new(
-                    Decimal128Array::from(values.to_vec())
+                    Decimal128Array::from(values.clone())
                         .with_precision_and_scale(38, 0)
                         .unwrap(),
                 ));
@@ -110,7 +110,7 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
                 columns.push(Arc::new(
-                    Decimal256Array::from(values.to_vec())
+                    Decimal256Array::from(values.clone())
                         .with_precision_and_scale(precision.value(), *scale)
                         .unwrap(),
                 ));
@@ -143,15 +143,15 @@ pub fn make_random_test_accessor_data(
                 ));
                 // Create the correct timestamp array based on the time unit
                 let timestamp_array: Arc<dyn Array> = match tu {
-                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
+                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.clone())),
                     PoSQLTimeUnit::Millisecond => {
-                        Arc::new(TimestampMillisecondArray::from(values.to_vec()))
+                        Arc::new(TimestampMillisecondArray::from(values.clone()))
                     }
                     PoSQLTimeUnit::Microsecond => {
-                        Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
+                        Arc::new(TimestampMicrosecondArray::from(values.clone()))
                     }
                     PoSQLTimeUnit::Nanosecond => {
-                        Arc::new(TimestampNanosecondArray::from(values.to_vec()))
+                        Arc::new(TimestampNanosecondArray::from(values.clone()))
                     }
                 };
                 columns.push(timestamp_array);

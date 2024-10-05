@@ -29,7 +29,7 @@ impl ProverState {
     }
     /// Calculate the verifier state from the prover state and setup information.
     /// This is basically the commitment computation of the witness.
-    /// See the beginning of section 3 of https://eprint.iacr.org/2020/1274.pdf for details.
+    /// See the beginning of section 3 of <https://eprint.iacr.org/2020/1274.pdf> for details.
     #[cfg(test)]
     pub fn calculate_verifier_state(&self, setup: &ProverSetup) -> VerifierState {
         assert!(setup.max_nu >= self.nu);

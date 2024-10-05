@@ -15,7 +15,7 @@ use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
 
-/// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
+/// This function takes a valid `verifiable_result`, copies it, tweaks it, and checks that
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.

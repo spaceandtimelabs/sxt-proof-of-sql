@@ -120,7 +120,7 @@ enum Commands {
 /// Will panic if the call to `stdout().flush()` fails, indicating that the
 /// standard output stream could not be flushed
 fn start_timer(message: &str) -> Instant {
-    print!("{}...", message);
+    print!("{message}...");
     stdout().flush().unwrap();
     Instant::now()
 }

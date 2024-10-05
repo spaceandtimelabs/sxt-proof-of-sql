@@ -51,11 +51,12 @@ pub fn owned_table<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for a smallint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ```rust
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     smallint("a", [1_i16, 2, 3]),
 /// ]);
-///```
+/// ```
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn smallint<S: Scalar>(
@@ -71,11 +72,12 @@ pub fn smallint<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for an int column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ```use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ```rust
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     int("a", [1, 2, 3]),
 /// ]);
-///```
+/// ```
 /// # Panics
 /// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
 pub fn int<S: Scalar>(
@@ -91,11 +93,12 @@ pub fn int<S: Scalar>(
 /// Creates a `(Identifier, OwnedColumn)` pair for a bigint column.
 /// This is primarily intended for use in conjunction with [`owned_table`].
 /// # Example
-/// ``` use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
+/// ```rust
+/// use proof_of_sql::base::{database::owned_table_utility::*, scalar::Curve25519Scalar};
 /// let result = owned_table::<Curve25519Scalar>([
 ///     bigint("a", [1, 2, 3]),
 /// ]);
-///]```
+/// ```
 #[allow(clippy::missing_panics_doc)]
 pub fn bigint<S: Scalar>(
     name: impl Deref<Target = str>,

@@ -44,7 +44,7 @@ impl Neg for NaiveCommitment {
 
 impl SubAssign for NaiveCommitment {
     fn sub_assign(&mut self, rhs: Self) {
-        self.add_assign(rhs.neg())
+        self.add_assign(rhs.neg());
     }
 }
 
@@ -154,6 +154,7 @@ impl Commitment for NaiveCommitment {
     }
 }
 
+#[allow(clippy::similar_names)]
 #[test]
 fn we_can_compute_commitments_from_commitable_columns() {
     let column_a = [1i64, 10, -5, 0, 10];
