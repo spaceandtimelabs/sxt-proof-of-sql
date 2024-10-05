@@ -50,7 +50,7 @@ pub fn log2_down_bytes<const N: usize>(data: &[u8; N]) -> usize {
 /// If the data is 0, returns 0 instead of panicking.
 #[cfg(test)]
 pub fn log2_up_bytes<const N: usize>(data: &[u8; N]) -> usize {
-    let is_not_pow_2 = !is_pow2_bytes(data) as usize;
+    let is_not_pow_2 = usize::from(!is_pow2_bytes(data));
     log2_down_bytes(data) + is_not_pow_2
 }
 
