@@ -204,7 +204,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
-        filtered_columns.iter().cloned().for_each(|column| {
+        filtered_columns.iter().copied().for_each(|column| {
             builder.produce_intermediate_mle(column);
         });
 

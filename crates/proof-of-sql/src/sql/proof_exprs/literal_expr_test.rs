@@ -56,9 +56,9 @@ fn test_random_tables_with_given_offset(offset: usize) {
         // Calculate/compare expected result
         let (expected_a, expected_b, expected_c): (Vec<bool>, Vec<String>, Vec<i64>) = if lit {
             (
-                data["a"].bool_iter().cloned().collect(),
+                data["a"].bool_iter().copied().collect(),
                 data["b"].string_iter().cloned().collect(),
-                data["c"].i64_iter().cloned().collect(),
+                data["c"].i64_iter().copied().collect(),
             )
         } else {
             (vec![], vec![], vec![])

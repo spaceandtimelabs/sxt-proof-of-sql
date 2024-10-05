@@ -305,7 +305,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
                 .chain(core::iter::once(Column::BigInt(count_column))),
         );
         // 5. Produce MLEs
-        res.iter().cloned().for_each(|column| {
+        res.iter().copied().for_each(|column| {
             builder.produce_intermediate_mle(column);
         });
         // 6. Prove group by
