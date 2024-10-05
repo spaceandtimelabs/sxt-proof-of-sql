@@ -124,7 +124,7 @@ impl_varint!(i8, signed);
 
 impl VarInt for bool {
     fn required_space(self) -> usize {
-        (self as u64).required_space()
+        u64::from(self).required_space()
     }
 
     fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
@@ -138,7 +138,7 @@ impl VarInt for bool {
     }
 
     fn encode_var(self, dst: &mut [u8]) -> usize {
-        (self as u64).encode_var(dst)
+        u64::from(self).encode_var(dst)
     }
 }
 
@@ -159,7 +159,7 @@ impl VarInt for u64 {
         let mut success = false;
         for b in src {
             let msb_dropped = b & DROP_MSB;
-            result |= (msb_dropped as u64) << shift;
+            result |= u64::from(msb_dropped) << shift;
             shift += 7;
 
             if shift > (9 * 7) {

@@ -11,7 +11,7 @@ pub fn is_pow2<T: PrimInt + Unsigned>(x: T) -> bool {
 }
 
 pub fn log2_up<T: PrimInt + Unsigned>(x: T) -> usize {
-    let is_not_pow_2 = !is_pow2(x) as usize;
+    let is_not_pow_2 = usize::from(!is_pow2(x));
     log2_down(x) + is_not_pow_2
 }
 

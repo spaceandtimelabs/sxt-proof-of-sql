@@ -17,7 +17,7 @@ pub fn convert_scalar_to_i256<S: Scalar>(val: &S) -> i256 {
     let limbs: [u64; 4] = abs_scalar.into();
 
     let low = (limbs[0] as u128) | ((limbs[1] as u128) << 64);
-    let high = (limbs[2] as i128) | ((limbs[3] as i128) << 64);
+    let high = i128::from(limbs[2]) | (i128::from(limbs[3]) << 64);
 
     let abs_i256 = i256::from_parts(low, high);
     if is_negative {
