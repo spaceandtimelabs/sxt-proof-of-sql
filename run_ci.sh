@@ -16,8 +16,8 @@ if [ ! -f "$YAML_FILE" ]; then
 fi
 
 # Extract all lines that contain 'cargo' commands from the YAML file, 
-# excluding ones with '--ignored' or 'test'
-cargo_commands=$(grep -E '^\s*run:.*cargo' "$YAML_FILE" | grep -v -- '--ignored' | grep -v 'test' | sed -E 's/^\s*run:\s*//')
+# excluding ones with '--ignored', 'test', or 'rustup'
+cargo_commands=$(grep -E '^\s*run:.*cargo' "$YAML_FILE" | grep -v -- '--ignored' | grep -v 'test' | grep -v 'rustup' | sed -E 's/^\s*run:\s*//')
 
 if [ -z "$cargo_commands" ]; then
     echo "No cargo commands (other than tests) found in the YAML file."
@@ -40,4 +40,3 @@ while IFS= read -r cmd; do
 done <<< "$cargo_commands"
 
 echo "All CI checks (excluding tests) have completed successfully."
-
