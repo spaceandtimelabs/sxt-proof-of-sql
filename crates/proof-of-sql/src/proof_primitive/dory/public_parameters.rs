@@ -63,9 +63,8 @@ impl PublicParameters {
     #[cfg(feature = "std")]
     /// Function to save `PublicParameters` to a file in binary form
     pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
-        // Create or open the file at the specified path
-
         use std::io;
+        // Create or open the file at the specified path
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
 
@@ -82,10 +81,8 @@ impl PublicParameters {
     #[cfg(feature = "std")]
     /// Function to load `PublicParameters` from a file in binary form
     pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
-        // Open the file at the specified path
-
         use std::io;
-
+        // Open the file at the specified path
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
 
