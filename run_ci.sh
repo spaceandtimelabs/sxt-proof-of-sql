@@ -3,6 +3,9 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# Display a help text
+[ "$1" = "-h" -o "$1" = "--help" ] && echo "Runs all CI checks (excluding tests)." && exit
+
 # The path to the YAML file that defines the CI workflows
 YAML_FILE=".github/workflows/lint-and-test.yml"
 
