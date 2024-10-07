@@ -2,9 +2,9 @@ use super::{G1Affine, G2Affine};
 use alloc::vec::Vec;
 use ark_ff::UniformRand;
 #[cfg(feature = "std")]
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError, Valid};
-#[cfg(feature = "std")]
-use ark_serialize::{Compress, Validate};
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
 use ark_std::rand::{CryptoRng, Rng};
 use core::iter;
 #[cfg(feature = "std")]
