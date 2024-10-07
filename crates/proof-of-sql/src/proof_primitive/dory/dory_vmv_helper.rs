@@ -145,6 +145,7 @@ pub(super) fn compute_l_r_tensors(b_point: &[F], sigma: usize, nu: usize) -> (Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Fp;
     use ark_std::UniformRand;
     use core::iter::repeat_with;
 
@@ -163,7 +164,7 @@ mod tests {
     }
     /// This is the naive inner product. It is used to check the correctness of the `compute_LMR` method.
     fn compute_ab_inner_product(a: &[F], b_point: &[F]) -> F {
-        let mut b = vec![Default::default(); a.len()];
+        let mut b = vec![Fp::default(); a.len()];
         compute_evaluation_vector(&mut b, b_point);
         a.iter().zip(b.iter()).map(|(a, b)| a * b).sum()
     }
@@ -177,8 +178,8 @@ mod tests {
         assert_eq!(LMR, ab);
     }
     fn check_L_R_vecs_with_l_r_tensors(L: &[F], R: &[F], l: &[F], r: &[F]) {
-        let mut l_vec = vec![Default::default(); 1 << l.len()];
-        let mut r_vec = vec![Default::default(); 1 << r.len()];
+        let mut l_vec = vec![Fp::default(); 1 << l.len()];
+        let mut r_vec = vec![Fp::default(); 1 << r.len()];
         compute_evaluation_vector(&mut l_vec, l);
         compute_evaluation_vector(&mut r_vec, r);
         assert_eq!(l_vec, L);

@@ -94,7 +94,7 @@ impl<T: MontConfig<4>> PartialEq for MontScalar<T> {
 }
 impl<T: MontConfig<4>> Default for MontScalar<T> {
     fn default() -> Self {
-        Self(Default::default())
+        Self(Fp::default())
     }
 }
 impl<T: MontConfig<4>> Debug for MontScalar<T> {

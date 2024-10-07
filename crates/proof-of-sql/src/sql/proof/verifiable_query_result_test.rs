@@ -14,7 +14,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{QueryData, ResultBuilder},
+    sql::proof::{ProvableQueryResult, QueryData, ResultBuilder},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -113,7 +113,7 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
     };
     let accessor = UnimplementedTestAccessor::new_empty();
     let res = VerifiableQueryResult::<InnerProductProof> {
-        provable_result: Some(Default::default()),
+        provable_result: Some(ProvableQueryResult::default()),
         proof: None,
     };
     assert!(res.verify(&expr, &accessor, &()).is_err());

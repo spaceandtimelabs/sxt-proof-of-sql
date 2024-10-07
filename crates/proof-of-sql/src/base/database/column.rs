@@ -515,8 +515,8 @@ impl ColumnRef {
     pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
         Self {
             column_id,
-            column_type,
             table_ref,
+            column_type,
         }
     }
 

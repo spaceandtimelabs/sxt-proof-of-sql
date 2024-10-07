@@ -44,10 +44,10 @@ impl PublicParameters {
         Self {
             Gamma_1,
             Gamma_2,
-            max_nu,
             H_1,
             H_2,
             Gamma_2_fin,
+            max_nu,
         }
     }
 }

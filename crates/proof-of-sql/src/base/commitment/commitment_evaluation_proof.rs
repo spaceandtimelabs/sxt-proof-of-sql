@@ -93,7 +93,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
         _setup: &Self::ProverPublicSetup<'_>,
     ) -> Self {
         assert!(!a.is_empty());
-        let b = &mut vec![Default::default(); a.len()];
+        let b = &mut vec![MontScalar::default(); a.len()];
         if b_point.is_empty() {
             assert_eq!(b.len(), 1);
             b[0] = Self::Scalar::ONE;
@@ -124,7 +124,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
         _setup: &Self::VerifierPublicSetup<'_>,
     ) -> Result<(), Self::Error> {
         assert!(table_length > 0);
-        let b = &mut vec![Default::default(); table_length];
+        let b = &mut vec![MontScalar::default(); table_length];
         if b_point.is_empty() {
             assert_eq!(b.len(), 1);
             b[0] = Self::Scalar::ONE;
@@ -140,7 +140,7 @@ impl CommitmentEvaluationProof for InnerProductProof {
                     .iter()
                     .zip(batching_factors.iter())
                     .map(|(c, m)| *m * c)
-                    .fold(Default::default(), |mut a, c| {
+                    .fold(RistrettoPoint::default(), |mut a, c| {
                         a += c;
                         a
                     }),
