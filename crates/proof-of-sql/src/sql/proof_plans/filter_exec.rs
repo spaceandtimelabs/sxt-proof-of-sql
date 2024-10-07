@@ -108,9 +108,9 @@ where
             },
         )?;
         // 4. filtered_columns
-        let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_intermediate_mle()).take(self.aliased_results.len()),
-        );
+        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.aliased_results.len())
+            .collect();
         assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
@@ -167,11 +167,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
@@ -196,15 +201,15 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
-        filtered_columns.iter().cloned().for_each(|column| {
+        filtered_columns.iter().copied().for_each(|column| {
             builder.produce_intermediate_mle(column);
         });
 

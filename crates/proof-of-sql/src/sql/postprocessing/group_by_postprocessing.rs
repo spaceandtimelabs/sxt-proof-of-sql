@@ -119,7 +119,7 @@ fn check_and_get_aggregation_and_remainder(
     let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
-        .cloned()
+        .copied()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
         return Err(PostprocessingError::NestedAggregationInGroupByClause {
@@ -386,7 +386,7 @@ mod tests {
 
         // a + b + 1
         let expr = add(add(col("a"), col("b")), lit(1));
-        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -394,7 +394,7 @@ mod tests {
         let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
         let expected: IndexSet<Identifier> = [ident("a"), ident("b"), ident("c")]
             .iter()
-            .cloned()
+            .copied()
             .collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
@@ -407,7 +407,7 @@ mod tests {
 
         // (COUNT(a + b) + c) * d
         let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
-        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
     }

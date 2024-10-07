@@ -102,9 +102,8 @@ impl Commitment for RistrettoPoint {
     ) -> Vec<Self> {
         use curve25519_dalek::ristretto::CompressedRistretto;
 
-        let sequences = Vec::from_iter(committable_columns.iter().map(Into::into));
-        let mut compressed_commitments =
-            vec![CompressedRistretto::default(); committable_columns.len()];
+        let sequences: Vec<_> = committable_columns.iter().map(Into::into).collect();
+        let mut compressed_commitments = vec![CompressedRistretto::default(); committable_columns.len()];
         blitzar::compute::compute_curve25519_commitments(
             &mut compressed_commitments,
             &sequences,
