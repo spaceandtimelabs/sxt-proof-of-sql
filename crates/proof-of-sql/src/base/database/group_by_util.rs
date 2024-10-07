@@ -306,7 +306,7 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .max_by(|x, y| x.signed_cmp(y))
+            .max_by(super::super::scalar::Scalar::signed_cmp)
     }))
 }
 
@@ -347,7 +347,7 @@ where
         indexes[start..index]
             .iter()
             .map(|i| S::from(&slice[*i]))
-            .min_by(|x, y| x.signed_cmp(y))
+            .min_by(super::super::scalar::Scalar::signed_cmp)
     }))
 }
 

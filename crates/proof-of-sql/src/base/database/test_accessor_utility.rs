@@ -127,7 +127,7 @@ pub fn make_random_test_accessor_data(
                     .iter()
                     .map(|v| "s".to_owned() + &v.to_string()[..])
                     .collect::<Vec<String>>()[..];
-                let col: Vec<_> = col.iter().map(|v| v.as_str()).collect();
+                let col: Vec<_> = col.iter().map(String::as_str).collect();
 
                 column_fields.push(Field::new(*col_name, DataType::Utf8, false));
 

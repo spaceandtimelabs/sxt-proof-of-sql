@@ -313,7 +313,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             Column::Int(col) => OwnedColumn::Int(col.to_vec()),
             Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
             Column::VarChar((col, _)) => {
-                OwnedColumn::VarChar(col.iter().map(|s| s.to_string()).collect())
+                OwnedColumn::VarChar(col.iter().map(ToString::to_string).collect())
             }
             Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
             Column::Decimal75(precision, scale, col) => {
@@ -387,7 +387,7 @@ mod test {
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
             ["b", "b", "a", "b", "a"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
@@ -459,7 +459,11 @@ mod test {
         let owned_col: OwnedColumn<Curve25519Scalar> = (&col).into();
         assert_eq!(
             owned_col,
-            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>())
+            OwnedColumn::VarChar(
+                strs.iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+            )
         );
         let new_col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, new_col);
