@@ -42,6 +42,35 @@ fn max_matrix_size(committable_columns: &[CommittableColumn], offset: usize) -> 
         })
 }
 
+/// Returns a single element worth of bit values for the bit table with offsets needed to handle the
+/// signed columns. Note, the signed bits are handled naively. For each committable column,
+/// a signed bit offset entry is added to the bit table. This means every signed and unsigned
+/// committable column will have an additional byte for the signed offset. Also, multiple redundant
+/// commitments of `1`'s are calculated.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `signed_offset_length` - The length of the signed offset.
+///
+/// # Returns
+///
+/// A vector containing the bit sizes of each committable column with a corresponding offset for
+/// a single entry in the bit table.
+fn populate_single_bit_array_with_offsets(
+    committable_columns: &[CommittableColumn],
+    signed_offset_length: usize,
+) -> Vec<u32> {
+    let mut bit_sizes: Vec<u32> = committable_columns
+        .iter()
+        .map(|column| column.column_type().bit_size())
+        .collect();
+
+    bit_sizes.extend(std::iter::repeat(BYTE_SIZE).take(signed_offset_length));
+
+    bit_sizes
+}
+
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
 ///
@@ -262,5 +291,51 @@ mod tests {
 
         let offset = 60;
         assert_eq!(max_matrix_size(&committable_columns, offset), (13, 16));
+    }
+
+    #[test]
+    fn we_can_populate_single_bit_array_with_offsets() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[0]),
+            CommittableColumn::SmallInt(&[0, 1]),
+            CommittableColumn::Int(&[0, 1, 2]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+            CommittableColumn::Int128(&[0, 1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+                [4, 0, 0, 0],
+            ]),
+            CommittableColumn::VarChar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+            ]),
+            CommittableColumn::Boolean(&[true, false, true]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[0, 1]),
+        ];
+
+        let signed_offset_length = committable_columns.len();
+        let single_bit_table_entry =
+            populate_single_bit_array_with_offsets(&committable_columns, signed_offset_length);
+        assert_eq!(
+            single_bit_table_entry,
+            vec![8, 16, 32, 64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+        );
     }
 }
