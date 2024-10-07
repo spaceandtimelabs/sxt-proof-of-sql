@@ -9,6 +9,21 @@ set -e
 # The path to the YAML file that defines the CI workflows
 YAML_FILE=".github/workflows/lint-and-test.yml"
 
+# Initialize the directory we're searching from (current directory)
+current_dir=$(pwd)
+
+# Traverse upwards to find the root directory, assuming it exists somewhere above
+while [[ ! -f "$current_dir/sxt-proof-of-sql/.github/workflows/lint-and-test.yml" ]]; do
+  # Move up one directory
+  current_dir=$(dirname "$current_dir")
+  
+  # If we reach the root directory (i.e., /), stop to prevent an infinite loop
+  if [[ "$current_dir" == "/" ]]; then
+    echo "Could not find file."
+    exit 1
+  fi
+done
+
 # Check if the YAML file exists
 if [ ! -f "$YAML_FILE" ]; then
     echo "YAML file $YAML_FILE does not exist."
