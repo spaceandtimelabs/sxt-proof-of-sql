@@ -2,8 +2,11 @@ use super::{
     dynamic_dory_structure::{full_width_of_row, matrix_size, row_and_column_from_index},
     pairings, DoryScalar, DynamicDoryCommitment, G1Affine, G1Projective, ProverSetup,
 };
-use crate::base::commitment::CommittableColumn;
+use crate::{base::commitment::CommittableColumn, proof_primitive::dory::pack_scalars::min_as_f};
 use alloc::{vec, vec::Vec};
+use ark_ec::CurveGroup;
+use ark_std::ops::Mul;
+use rayon::prelude::*;
 
 const BYTE_SIZE: u32 = 8;
 
@@ -133,6 +136,48 @@ fn cumulative_byte_length_table(bit_table: &[u32]) -> Vec<usize> {
             *acc += (x / BYTE_SIZE) as usize;
             Some(*acc)
         }))
+        .collect()
+}
+
+/// Modifies the sub commits by adding the signed offset to the signed sub commits.
+///
+/// # Arguments
+///
+/// * `all_sub_commits` - A reference to the sub commits.
+/// * `committable_columns` - A reference to the committable columns.
+///
+/// # Returns
+///
+/// A vector containing the modified sub commits to be used by the dynamic Dory commitment computation.
+#[tracing::instrument(name = "modify_commits", level = "debug", skip_all)]
+fn modify_commits(
+    all_sub_commits: &Vec<G1Affine>,
+    committable_columns: &[CommittableColumn],
+) -> Vec<G1Affine> {
+    let mut signed_sub_commits: Vec<G1Affine> = Vec::new();
+    let mut offset_sub_commits: Vec<G1Affine> = Vec::new();
+    let mut counter = 0;
+
+    // Every sub_commit has a corresponding offset sub_commit committable_columns.len() away.
+    // The commits and respective signed offset commits are interleaved in the all_sub_commits vector.
+    for commit in all_sub_commits {
+        if counter < committable_columns.len() {
+            signed_sub_commits.push(*commit);
+        } else {
+            let min =
+                min_as_f(committable_columns[counter - committable_columns.len()].column_type());
+            offset_sub_commits.push(commit.mul(min).into_affine());
+        }
+        counter += 1;
+        if counter == 2 * committable_columns.len() {
+            counter = 0;
+        }
+    }
+
+    signed_sub_commits
+        .into_par_iter()
+        .zip(offset_sub_commits.into_par_iter())
+        .map(|(signed, offset)| (signed + offset).into())
         .collect()
 }
 
