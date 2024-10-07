@@ -55,7 +55,6 @@ pub(crate) const fn row_and_column_from_index(index: usize) -> (usize, usize) {
 }
 
 /// Returns the index of data where the (row, column) belongs.
-#[allow(dead_code)]
 pub(crate) fn index_from_row_and_column(row: usize, column: usize) -> Option<usize> {
     let width_of_row = full_width_of_row(row);
     (column < width_of_row && (row, column) != (1, 0))

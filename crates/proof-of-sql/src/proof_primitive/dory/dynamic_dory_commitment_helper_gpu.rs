@@ -1,12 +1,17 @@
 use super::{
-    dynamic_dory_structure::{full_width_of_row, matrix_size, row_and_column_from_index},
-    pairings, DoryScalar, DynamicDoryCommitment, G1Affine, G1Projective, ProverSetup,
+    dynamic_dory_structure::{full_width_of_row, index_from_row_and_column, matrix_size},
+    pairings, DynamicDoryCommitment, G1Affine, ProverSetup,
 };
-use crate::{base::commitment::CommittableColumn, proof_primitive::dory::pack_scalars::min_as_f};
-use alloc::{vec, vec::Vec};
+use crate::{
+    base::{commitment::CommittableColumn, slice_ops::slice_cast},
+    proof_primitive::dory::{offset_to_bytes::OffsetToBytes, pack_scalars::min_as_f},
+};
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
+use blitzar::compute::ElementP2;
 use rayon::prelude::*;
+use std::sync::Mutex;
+use tracing::{span, Level};
 
 const BYTE_SIZE: u32 = 8;
 
@@ -181,74 +186,201 @@ fn modify_commits(
         .collect()
 }
 
-#[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// Computes the dynamic Dory commitment using the GPU implementation of the `vlen_msm` algorithm.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `setup` - A reference to the prover setup.
+///
+/// # Returns
+///
+/// A vector containing the dynamic Dory commitments.
+///
 /// # Panics
 ///
-/// Will panic if:
-/// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
-/// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
-/// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
-fn compute_dory_commitment_impl<'a, T>(
-    column: &'a [T],
+/// Panics if the number of sub commits is not a multiple of the number of committable columns.
+#[tracing::instrument(
+    name = "compute_dory_commitment_impl_gpu (vlen_msm gpu)",
+    level = "debug",
+    skip_all
+)]
+fn compute_dory_commitment_impl_gpu(
+    committable_columns: &[CommittableColumn],
     offset: usize,
     setup: &ProverSetup,
-) -> DynamicDoryCommitment
-where
-    &'a T: Into<DoryScalar>,
-    T: Sync,
-{
-    let Gamma_1 = setup.Gamma_1.last().unwrap();
+) -> Vec<DynamicDoryCommitment> {
     let Gamma_2 = setup.Gamma_2.last().unwrap();
-    let (first_row, _) = row_and_column_from_index(offset);
-    let (last_row, _) = row_and_column_from_index(offset + column.len() - 1);
-    let row_commits = column.iter().enumerate().fold(
-        vec![G1Projective::from(G1Affine::identity()); last_row - first_row + 1],
-        |mut row_commits, (i, v)| {
-            let (row, col) = row_and_column_from_index(i + offset);
-            row_commits[row - first_row] += Gamma_1[col] * v.into().0;
-            row_commits
-        },
-    );
-    DynamicDoryCommitment(pairings::multi_pairing(
-        row_commits,
-        &Gamma_2[first_row..=last_row],
-    ))
-}
 
-fn compute_dory_commitment(
-    committable_column: &CommittableColumn,
-    offset: usize,
-    setup: &ProverSetup,
-) -> DynamicDoryCommitment {
-    match committable_column {
-        CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::TinyInt(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::VarChar(column) | CommittableColumn::Decimal75(_, _, column) => {
-            compute_dory_commitment_impl(column, offset, setup)
+    // The maximum matrix size will be used to create the scalars vector.
+    let (max_height, max_width) = max_matrix_size(committable_columns, offset);
+
+    // Find the single packed byte size of all committable columns.
+    let single_packed_byte_size = single_packed_byte_size(committable_columns);
+
+    // Get a single bit table entry with offsets of all committable columns.
+    let signed_offset_length = committable_columns.len();
+    let single_packed_byte_with_offset_size = single_packed_byte_size + signed_offset_length;
+    let single_bit_table_entry =
+        populate_single_bit_array_with_offsets(committable_columns, signed_offset_length);
+
+    // Create the full bit table vector to be used by Blitzar's vlen_msm algorithm.
+    let bit_table = populate_bit_table(&single_bit_table_entry, max_height);
+
+    // Create the full length vector to be used by Blitzar's vlen_msm algorithm.
+    let length_table = populate_length_table(bit_table.len(), single_bit_table_entry.len());
+
+    // Create a cumulative length table to be used when packing the scalar vector.
+    let cumulative_byte_length_table: Vec<usize> = cumulative_byte_length_table(&bit_table);
+
+    // Create scalars array. Note, scalars need to be stored in a column-major order.
+    let num_scalar_rows = max_width;
+    let num_scalar_columns = single_packed_byte_with_offset_size * max_height;
+    let scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
+
+    // Populate the scalars array.
+    let span = span!(Level::INFO, "pack_vlen_scalars_array").entered();
+    let scalars = Mutex::new(scalars);
+    (0..num_scalar_rows).into_par_iter().for_each(|scalar_row| {
+        // Get a mutable slice of the scalars array that represents one full row of the scalars array.
+        let mut scalars = scalars.lock().unwrap();
+        let scalar_row_slice =
+            &mut scalars[scalar_row * num_scalar_columns..(scalar_row + 1) * num_scalar_columns];
+
+        // Iterate over the columns and populate the scalars array.
+        for scalar_col in 0..max_height {
+            // Find index in the committable columns. Note, the scalar is in
+            // column major order, that is why the (row, col) arguments are flipped.
+            let committable_column_idx = index_from_row_and_column(scalar_col, scalar_row);
+
+            // If the index is in the committable columns and above the offset, populate the scalars array.
+            if committable_column_idx.is_some() && committable_column_idx.unwrap() >= offset {
+                let index: usize = committable_column_idx.unwrap() - offset;
+
+                // Iterate over each committable column.
+                for i in 0..committable_columns.len() {
+                    if index < committable_columns[i].len() {
+                        let start = cumulative_byte_length_table
+                            [i + scalar_col * single_bit_table_entry.len()];
+                        let end = start + (single_bit_table_entry[i] / BYTE_SIZE) as usize;
+
+                        // For signed offset
+                        let offset_idx = i
+                            + scalar_col * single_packed_byte_with_offset_size
+                            + single_packed_byte_size;
+
+                        let column = &committable_columns[i];
+                        match column {
+                            CommittableColumn::Boolean(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+                            }
+                            CommittableColumn::TinyInt(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+
+                                scalar_row_slice[offset_idx] = 1_u8;
+                            }
+                            CommittableColumn::SmallInt(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+
+                                scalar_row_slice[offset_idx] = 1_u8;
+                            }
+                            CommittableColumn::Int(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+
+                                scalar_row_slice[offset_idx] = 1_u8;
+                            }
+                            CommittableColumn::BigInt(column)
+                            | CommittableColumn::TimestampTZ(_, _, column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+
+                                scalar_row_slice[offset_idx] = 1_u8;
+                            }
+                            CommittableColumn::Int128(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+
+                                scalar_row_slice[offset_idx] = 1_u8;
+                            }
+                            CommittableColumn::Scalar(column)
+                            | CommittableColumn::Decimal75(_, _, column)
+                            | CommittableColumn::VarChar(column) => {
+                                scalar_row_slice[start..end]
+                                    .copy_from_slice(&column[index].offset_to_bytes());
+                            }
+                            CommittableColumn::RangeCheckWord(_) => todo!(),
+                        }
+                    }
+                }
+            }
         }
-        CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::TimestampTZ(_, _, column) => {
-            compute_dory_commitment_impl(column, offset, setup)
-        }
-        CommittableColumn::RangeCheckWord(column) => {
-            compute_dory_commitment_impl(column, offset, setup)
-        }
+    });
+    span.exit();
+
+    // Initialize sub commits.
+    let mut sub_commits_from_blitzar =
+        vec![ElementP2::<ark_bls12_381::g1::Config>::default(); bit_table.len()];
+
+    // Get sub commits from Blitzar's vlen_msm algorithm.
+    if !bit_table.is_empty() {
+        let scalars_guard = scalars.lock().unwrap();
+        setup.blitzar_vlen_msm(
+            &mut sub_commits_from_blitzar,
+            &bit_table,
+            &length_table,
+            scalars_guard.as_slice(),
+        );
     }
+
+    // Modify the sub commits to include the signed offset.
+    let all_sub_commits: Vec<G1Affine> = slice_cast(&sub_commits_from_blitzar);
+    let sub_commits = modify_commits(&all_sub_commits, committable_columns);
+
+    // Calculate the dynamic Dory commitments.
+    assert!(
+        sub_commits.len() % committable_columns.len() == 0,
+        "Invalid number of sub commits"
+    );
+    let num_commits = sub_commits.len() / committable_columns.len();
+
+    let span = span!(Level::INFO, "multi_pairing").entered();
+    let ddc: Vec<DynamicDoryCommitment> = (0..committable_columns.len())
+        .into_par_iter()
+        .map(|i| {
+            let sub_slice = sub_commits[i..]
+                .iter()
+                .step_by(committable_columns.len())
+                .take(num_commits);
+            DynamicDoryCommitment(pairings::multi_pairing(sub_slice, &Gamma_2[..num_commits]))
+        })
+        .collect();
+    span.exit();
+
+    ddc
 }
 
+/// Computes the dynamic Dory commitments using the GPU implementation of the `vlen_msm` algorithm.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+/// * `setup` - A reference to the prover setup.
+///
+/// # Returns
+///
+/// A vector containing the dynamic Dory commitments.
 pub(super) fn compute_dynamic_dory_commitments(
     committable_columns: &[CommittableColumn],
     offset: usize,
     setup: &ProverSetup,
 ) -> Vec<DynamicDoryCommitment> {
-    committable_columns
-        .iter()
-        .map(|column| compute_dory_commitment(column, offset, setup))
-        .collect()
+    compute_dory_commitment_impl_gpu(committable_columns, offset, setup)
 }
 
 #[cfg(test)]
