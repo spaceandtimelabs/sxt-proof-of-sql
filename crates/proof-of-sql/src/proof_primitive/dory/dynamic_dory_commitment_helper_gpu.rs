@@ -9,7 +9,6 @@ use crate::{
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::compute::ElementP2;
-use rayon::prelude::*;
 use std::sync::Mutex;
 use tracing::{span, Level};
 
@@ -180,8 +179,8 @@ fn modify_commits(
     }
 
     signed_sub_commits
-        .into_par_iter()
-        .zip(offset_sub_commits.into_par_iter())
+        .into_iter()
+        .zip(offset_sub_commits.into_iter())
         .map(|(signed, offset)| (signed + offset).into())
         .collect()
 }
@@ -242,7 +241,7 @@ fn compute_dory_commitment_impl_gpu(
     // Populate the scalars array.
     let span = span!(Level::INFO, "pack_vlen_scalars_array").entered();
     let scalars = Mutex::new(scalars);
-    (0..num_scalar_rows).into_par_iter().for_each(|scalar_row| {
+    (0..num_scalar_rows).for_each(|scalar_row| {
         // Get a mutable slice of the scalars array that represents one full row of the scalars array.
         let mut scalars = scalars.lock().unwrap();
         let scalar_row_slice =
@@ -350,7 +349,6 @@ fn compute_dory_commitment_impl_gpu(
 
     let span = span!(Level::INFO, "multi_pairing").entered();
     let ddc: Vec<DynamicDoryCommitment> = (0..committable_columns.len())
-        .into_par_iter()
         .map(|i| {
             let sub_slice = sub_commits[i..]
                 .iter()
