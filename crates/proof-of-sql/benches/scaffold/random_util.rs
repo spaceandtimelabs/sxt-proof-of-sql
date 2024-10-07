@@ -40,7 +40,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::Int128, Some(b)) => {
                         Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| {
-                            rng.gen_range((-b(num_rows) as i128)..=(b(num_rows) as i128))
+                            rng.gen_range((i128::from(-b(num_rows)))..=(i128::from(b(num_rows))))
                         }))
                     }
                     (ColumnType::VarChar, _) => {
