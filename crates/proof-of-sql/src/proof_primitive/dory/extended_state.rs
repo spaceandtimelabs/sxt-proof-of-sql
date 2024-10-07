@@ -6,6 +6,7 @@ use super::{G1Affine, G1Projective, G2Projective, ProverSetup};
 use alloc::{vec, vec::Vec};
 #[cfg(test)]
 use ark_ec::VariableBaseMSM;
+use ark_ff::Fp;
 
 /// The state of the prover during the Dory proof generation with the extended algorithm.
 /// `base_state` is the state of the prover during the Dory proof generation with the original algorithm.
@@ -53,8 +54,8 @@ impl ExtendedProverState {
         use crate::base::polynomial::compute_evaluation_vector;
         assert_eq!(s1_tensor.len(), nu);
         assert_eq!(s2_tensor.len(), nu);
-        let mut s1 = vec![Default::default(); 1 << nu];
-        let mut s2 = vec![Default::default(); 1 << nu];
+        let mut s1 = vec![Fp::default(); 1 << nu];
+        let mut s2 = vec![Fp::default(); 1 << nu];
         compute_evaluation_vector(&mut s1, &s1_tensor);
         compute_evaluation_vector(&mut s2, &s2_tensor);
         ExtendedProverState {
@@ -80,8 +81,8 @@ impl ExtendedProverState {
             E_2: E_2.into(),
             s1_tensor: self.s1_tensor.clone(),
             s2_tensor: self.s2_tensor.clone(),
-            alphas: vec![Default::default(); self.base_state.nu],
-            alpha_invs: vec![Default::default(); self.base_state.nu],
+            alphas: vec![Fp::default(); self.base_state.nu],
+            alpha_invs: vec![Fp::default(); self.base_state.nu],
         }
     }
 }
@@ -127,8 +128,8 @@ impl ExtendedVerifierState {
             E_2,
             s1_tensor,
             s2_tensor,
-            alphas: vec![Default::default(); nu],
-            alpha_invs: vec![Default::default(); nu],
+            alphas: vec![Fp::default(); nu],
+            alpha_invs: vec![Fp::default(); nu],
         }
     }
 }

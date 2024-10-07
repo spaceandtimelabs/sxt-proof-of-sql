@@ -61,8 +61,8 @@ impl<C: Commitment> GroupByExec<C> {
         Self {
             group_by_exprs,
             sum_expr,
-            table,
             count_alias,
+            table,
             where_clause,
         }
     }

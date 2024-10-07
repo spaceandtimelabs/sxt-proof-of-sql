@@ -222,7 +222,7 @@ mod tests {
                     D_2: DeferredMSM::new([], []),
                     nu,
                 },
-                s2_tensor: Default::default(),
+                s2_tensor: Vec::default(),
             };
             let (lo_fold, hi_fold) = fold_dynamic_tensors(&state);
 

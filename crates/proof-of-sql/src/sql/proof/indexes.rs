@@ -15,7 +15,7 @@ pub enum Indexes {
 
 impl Default for Indexes {
     fn default() -> Self {
-        Self::Sparse(Default::default())
+        Self::Sparse(Vec::default())
     }
 }
 

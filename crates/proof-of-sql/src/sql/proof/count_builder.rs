@@ -14,7 +14,7 @@ impl<'a> CountBuilder<'a> {
     pub fn new(bit_distributions: &'a [BitDistribution]) -> Self {
         Self {
             bit_distributions,
-            counts: Default::default(),
+            counts: ProofCounts::default(),
         }
     }
 

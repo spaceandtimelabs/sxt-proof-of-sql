@@ -44,7 +44,7 @@ impl CsvDataAccessor {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path,
-            inner: Default::default(),
+            inner: RecordBatchAccessor::default(),
         }
     }
     pub fn load_table(

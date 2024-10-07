@@ -46,18 +46,18 @@ impl CommitmentEvaluationProof for DynamicDoryEvaluationProof {
         if generators_offset != 0 {
             // TODO: support offsets other than 0.
             // Note: this will always result in a verification error.
-            return Default::default();
+            return DynamicDoryEvaluationProof::default();
         }
         let a: &[F] = bytemuck::TransparentWrapper::peel_slice(a);
         let b_point: &[F] = bytemuck::TransparentWrapper::peel_slice(b_point);
         let nu = compute_dynamic_nu(b_point.len());
         if nu > setup.max_nu {
-            return Default::default(); // Note: this will always result in a verification error.
+            return DynamicDoryEvaluationProof::default(); // Note: this will always result in a verification error.
         }
         let T_vec_prime = compute_dynamic_T_vec_prime(a, nu, setup);
         let state = build_dynamic_vmv_prover_state(a, b_point, T_vec_prime, nu);
 
-        let mut messages = Default::default();
+        let mut messages = DoryMessages::default();
         let extended_state = eval_vmv_re_prove(&mut messages, transcript, state, setup);
         extended_dory_inner_product_prove(&mut messages, transcript, extended_state, setup);
         Self(messages)
