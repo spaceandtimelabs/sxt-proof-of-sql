@@ -11,7 +11,7 @@ pub fn is_pow2<T: PrimInt + Unsigned>(x: T) -> bool {
 }
 
 pub fn log2_up<T: PrimInt + Unsigned>(x: T) -> usize {
-    let is_not_pow_2 = !is_pow2(x) as usize;
+    let is_not_pow_2 = usize::from(!is_pow2(x));
     log2_down(x) + is_not_pow_2
 }
 
@@ -50,7 +50,7 @@ pub fn log2_down_bytes<const N: usize>(data: &[u8; N]) -> usize {
 /// If the data is 0, returns 0 instead of panicking.
 #[cfg(test)]
 pub fn log2_up_bytes<const N: usize>(data: &[u8; N]) -> usize {
-    let is_not_pow_2 = !is_pow2_bytes(data) as usize;
+    let is_not_pow_2 = usize::from(!is_pow2_bytes(data));
     log2_down_bytes(data) + is_not_pow_2
 }
 

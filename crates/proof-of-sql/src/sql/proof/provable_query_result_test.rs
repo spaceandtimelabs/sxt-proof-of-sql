@@ -277,7 +277,8 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 #[test]
 fn evaluation_fails_if_integer_overflow_happens() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[i32::MAX as i64 + 1_i64, 11, 12])];
+    let binding = [i64::from(i32::MAX) + 1_i64, 11, 12];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&binding)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),

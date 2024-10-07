@@ -70,10 +70,12 @@ fn zigzag_decode(from: u64) -> i64 {
 macro_rules! impl_varint {
     ($t:ty, unsigned) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as u64).required_space()
             }
 
+            #[allow(clippy::cast_lossless)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = u64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -84,6 +86,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as u64).encode_var(dst)
             }
@@ -91,10 +94,12 @@ macro_rules! impl_varint {
     };
     ($t:ty, signed) => {
         impl VarInt for $t {
+            #[allow(clippy::cast_lossless)]
             fn required_space(self) -> usize {
                 (self as i64).required_space()
             }
 
+            #[allow(clippy::cast_lossless)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = i64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -105,6 +110,7 @@ macro_rules! impl_varint {
                 }
             }
 
+            #[allow(clippy::cast_lossless)]
             fn encode_var(self, dst: &mut [u8]) -> usize {
                 (self as i64).encode_var(dst)
             }
@@ -124,7 +130,7 @@ impl_varint!(i8, signed);
 
 impl VarInt for bool {
     fn required_space(self) -> usize {
-        (self as u64).required_space()
+        u64::from(self).required_space()
     }
 
     fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
@@ -138,7 +144,7 @@ impl VarInt for bool {
     }
 
     fn encode_var(self, dst: &mut [u8]) -> usize {
-        (self as u64).encode_var(dst)
+        u64::from(self).encode_var(dst)
     }
 }
 
@@ -159,7 +165,7 @@ impl VarInt for u64 {
         let mut success = false;
         for b in src {
             let msb_dropped = b & DROP_MSB;
-            result |= (msb_dropped as u64) << shift;
+            result |= u64::from(msb_dropped) << shift;
             shift += 7;
 
             if shift > (9 * 7) {

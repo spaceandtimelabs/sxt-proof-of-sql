@@ -211,7 +211,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 ) {
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
-        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * i32::from(sign_mle[i]));
     let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
 
     // expr

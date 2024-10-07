@@ -110,18 +110,20 @@ impl VMV {
     pub(super) fn calculate_prover_state(&self, setup: &super::ProverSetup) -> VMVProverState {
         use super::G1Projective;
         use ark_ec::VariableBaseMSM;
-        let v_vec = Vec::from_iter((0..self.R.len()).map(|i| {
-            self.L
-                .iter()
-                .zip(self.M.iter())
-                .map(|(l, row)| row[i] * l)
-                .sum()
-        }));
-        let T_vec_prime = Vec::from_iter(
-            self.M
-                .iter()
-                .map(|row| G1Projective::msm_unchecked(setup.Gamma_1[self.nu], row).into()),
-        );
+        let v_vec: Vec<_> = (0..self.R.len())
+            .map(|i| {
+                self.L
+                    .iter()
+                    .zip(self.M.iter())
+                    .map(|(l, row)| row[i] * l)
+                    .sum()
+            })
+            .collect();
+        let T_vec_prime: Vec<_> = self
+            .M
+            .iter()
+            .map(|row| G1Projective::msm_unchecked(setup.Gamma_1[self.nu], row).into())
+            .collect();
         VMVProverState {
             v_vec,
             T_vec_prime,

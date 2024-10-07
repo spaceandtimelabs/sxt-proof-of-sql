@@ -48,9 +48,9 @@ impl<'a> ProverSetup<'a> {
         assert_eq!(Gamma_1.len(), 1 << max_nu);
         assert_eq!(Gamma_2.len(), 1 << max_nu);
         #[cfg(feature = "blitzar")]
-        let blitzar_handle = blitzar::compute::MsmHandle::new(&Vec::from_iter(
-            Gamma_1.iter().copied().map(Into::into),
-        ));
+        let blitzar_handle = blitzar::compute::MsmHandle::new(
+            &Gamma_1.iter().copied().map(Into::into).collect::<Vec<_>>(),
+        );
         let (Gamma_1, Gamma_2): (Vec<_>, Vec<_>) = (0..=max_nu)
             .map(|k| (&Gamma_1[..1 << k], &Gamma_2[..1 << k]))
             .unzip();
