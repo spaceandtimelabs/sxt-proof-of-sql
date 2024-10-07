@@ -4,7 +4,7 @@
 set -e
 
 # Display a help text
-[ "$1" = "-h" -o "$1" = "--help" ] && echo "Runs all CI checks (excluding tests)." && exit
+[ "$1" = "-h" -o "$1" = "--help" ] && echo "Runs all CI checks (excluding tests and udeps)." && exit
 
 # The path to the YAML file that defines the CI workflows
 YAML_FILE=".github/workflows/lint-and-test.yml"
@@ -16,8 +16,8 @@ if [ ! -f "$YAML_FILE" ]; then
 fi
 
 # Extract all lines that contain 'cargo' commands from the YAML file, 
-# excluding ones with '--ignored', 'test', or 'rustup'
-cargo_commands=$(grep -E '^\s*run:.*cargo' "$YAML_FILE" | grep -v -- '--ignored' | grep -v 'test' | grep -v 'rustup' | sed -E 's/^\s*run:\s*//')
+# excluding ones with '--ignored', 'test', 'rustup', or 'udeps'
+cargo_commands=$(grep -E '^\s*run:.*cargo' "$YAML_FILE" | grep -v -- '--ignored' | grep -v 'test' | grep -v 'rustup' | grep -v 'udeps' | sed -E 's/^\s*run:\s*//')
 
 if [ -z "$cargo_commands" ]; then
     echo "No cargo commands (other than tests) found in the YAML file."
@@ -25,7 +25,7 @@ if [ -z "$cargo_commands" ]; then
 fi
 
 # Run each cargo command, ignoring tests which should be handled separately
-echo "Extracted cargo commands (excluding test commands and --ignored tests):"
+echo "Extracted cargo commands (excluding test commands, --ignored tests, and udeps):"
 echo "$cargo_commands"
 echo "========================="
 
@@ -39,4 +39,4 @@ while IFS= read -r cmd; do
     fi
 done <<< "$cargo_commands"
 
-echo "All CI checks (excluding tests) have completed successfully."
+echo "All CI checks (excluding tests and udeps) have completed successfully."
