@@ -128,12 +128,13 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         )?;
         // 4. filtered_columns
 
-        let group_by_result_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_intermediate_mle()).take(self.group_by_exprs.len()),
-        );
-        let sum_result_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_intermediate_mle()).take(self.sum_expr.len()),
-        );
+        let group_by_result_columns_evals: Vec<_> =
+            repeat_with(|| builder.consume_intermediate_mle())
+                .take(self.group_by_exprs.len())
+                .collect();
+        let sum_result_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.sum_expr.len())
+            .collect();
         let count_column_eval = builder.consume_intermediate_mle();
 
         let alpha = builder.consume_post_result_challenge();
@@ -171,12 +172,11 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             None => todo!("GroupByExec currently only supported at top level of query plan."),
         }
 
-        Ok(Vec::from_iter(
-            group_by_result_columns_evals
-                .into_iter()
-                .chain(sum_result_columns_evals)
-                .chain(iter::once(count_column_eval)),
-        ))
+        Ok(group_by_result_columns_evals
+            .into_iter()
+            .chain(sum_result_columns_evals)
+            .chain(iter::once(count_column_eval))
+            .collect::<Vec<_>>())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -227,16 +227,20 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let group_by_columns = Vec::from_iter(
-            self.group_by_exprs
-                .iter()
-                .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor)),
-        );
-        let sum_columns = Vec::from_iter(self.sum_expr.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let group_by_columns = self
+            .group_by_exprs
+            .iter()
+            .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor))
+            .collect::<Vec<_>>();
+        let sum_columns = self
+            .sum_expr
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect::<Vec<_>>();
         // Compute filtered_columns and indexes
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
@@ -249,12 +253,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
         builder.request_post_result_challenges(2);
-        Vec::from_iter(
-            group_by_result_columns
-                .into_iter()
-                .chain(sum_result_columns_iter)
-                .chain(iter::once(Column::BigInt(count_column))),
-        )
+        group_by_result_columns
+            .into_iter()
+            .chain(sum_result_columns_iter)
+            .chain(iter::once(Column::BigInt(count_column)))
+            .collect::<Vec<_>>()
     }
 
     #[tracing::instrument(name = "GroupByExec::prover_evaluate", level = "debug", skip_all)]
@@ -273,16 +276,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let group_by_columns = Vec::from_iter(
-            self.group_by_exprs
-                .iter()
-                .map(|expr| expr.prover_evaluate(builder, alloc, accessor)),
-        );
-        let sum_columns = Vec::from_iter(
-            self.sum_expr
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let group_by_columns = self
+            .group_by_exprs
+            .iter()
+            .map(|expr| expr.prover_evaluate(builder, alloc, accessor))
+            .collect::<Vec<_>>();
+        let sum_columns = self
+            .sum_expr
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect::<Vec<_>>();
         // 3. Compute filtered_columns and indexes
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
@@ -297,15 +300,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
 
         // 4. Tally results
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        let res = Vec::from_iter(
-            group_by_result_columns
-                .clone()
-                .into_iter()
-                .chain(sum_result_columns_iter)
-                .chain(core::iter::once(Column::BigInt(count_column))),
-        );
+        let res = group_by_result_columns
+            .clone()
+            .into_iter()
+            .chain(sum_result_columns_iter)
+            .chain(core::iter::once(Column::BigInt(count_column)))
+            .collect::<Vec<_>>();
         // 5. Produce MLEs
-        res.iter().cloned().for_each(|column| {
+        res.iter().copied().for_each(|column| {
             builder.produce_intermediate_mle(column);
         });
         // 6. Prove group by
