@@ -118,6 +118,24 @@ fn populate_length_table(bit_table_len: usize, single_bit_table_entry_len: usize
         .collect()
 }
 
+/// Returns a cumulative byte length table to be used when packing the scalar vector.
+///
+/// # Arguments
+///
+/// * `bit_table` - A reference to the bit table.
+///
+/// # Returns
+///
+/// A vector containing the cumulative byte length of the bit table.
+fn cumulative_byte_length_table(bit_table: &[u32]) -> Vec<usize> {
+    std::iter::once(0)
+        .chain(bit_table.iter().scan(0usize, |acc, &x| {
+            *acc += (x / BYTE_SIZE) as usize;
+            Some(*acc)
+        }))
+        .collect()
+}
+
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
 ///
@@ -456,6 +474,25 @@ mod tests {
                 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
                 4, 4, 4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 8
             ]
+        );
+    }
+
+    #[test]
+    fn we_can_create_a_cumulative_byte_table() {
+        assert_eq!(
+            cumulative_byte_length_table(&Vec::new()),
+            vec![0],
+            "Empty bit table returned incorrect value"
+        );
+        assert_eq!(
+            cumulative_byte_length_table(&[8, 8, 8, 8, 8]),
+            vec![0, 1, 2, 3, 4, 5],
+            "Simple bit table returned incorrect value"
+        );
+        assert_eq!(
+            cumulative_byte_length_table(&[256, 128, 64, 32, 16, 8]),
+            vec![0, 32, 48, 56, 60, 62, 63],
+            "Complex bit table returned incorrect value"
         );
     }
 }
