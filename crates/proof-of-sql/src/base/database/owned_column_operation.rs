@@ -1548,13 +1548,13 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let result = lhs.element_wise_eq(&rhs);
@@ -1774,7 +1774,7 @@ mod test {
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);
@@ -1787,7 +1787,7 @@ mod test {
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);
@@ -1829,13 +1829,13 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);
@@ -1856,7 +1856,7 @@ mod test {
         let lhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(ToString::to_string)
                 .collect(),
         );
         let rhs = OwnedColumn::<Curve25519Scalar>::Scalar(vec![
