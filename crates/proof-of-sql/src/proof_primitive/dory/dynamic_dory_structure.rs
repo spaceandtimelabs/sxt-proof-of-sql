@@ -66,7 +66,6 @@ pub(crate) fn index_from_row_and_column(row: usize, column: usize) -> Option<usi
 /// Returns a matrix size, (height, width), that can hold the given number of data points being committed with respect to an offset.
 ///
 /// Note: when `data_len = 0` and `offset = 0`, this function returns an empty matrix with size (0, 0).
-#[allow(dead_code)]
 pub(crate) const fn matrix_size(data_len: usize, offset: usize) -> (usize, usize) {
     if data_len == 0 && offset == 0 {
         return (0, 0);

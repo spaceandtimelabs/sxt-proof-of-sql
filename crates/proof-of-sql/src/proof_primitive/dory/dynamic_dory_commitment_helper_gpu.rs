@@ -1,6 +1,6 @@
 use super::{
-    dynamic_dory_structure::row_and_column_from_index, pairings, DoryScalar, DynamicDoryCommitment,
-    G1Affine, G1Projective, ProverSetup,
+    dynamic_dory_structure::{matrix_size, row_and_column_from_index},
+    pairings, DoryScalar, DynamicDoryCommitment, G1Affine, G1Projective, ProverSetup,
 };
 use crate::base::commitment::CommittableColumn;
 use alloc::{vec, vec::Vec};
@@ -20,6 +20,26 @@ fn single_packed_byte_size(committable_columns: &[CommittableColumn]) -> usize {
     committable_columns
         .iter()
         .fold(0, |acc, x| acc + x.column_type().byte_size())
+}
+
+/// Returns the size of the matrix that can hold the longest committable column in a dynamic Dory structure.
+///
+/// # Arguments
+///
+/// * `committable_columns` - A reference to the committable columns.
+/// * `offset` - The offset to the data.
+///
+/// # Returns
+///
+/// A tuple containing the maximum (height, width) needed to store the longest committable column in
+/// a dynamic Dory structure.
+fn max_matrix_size(committable_columns: &[CommittableColumn], offset: usize) -> (usize, usize) {
+    committable_columns
+        .iter()
+        .map(|column| matrix_size(column.len(), offset))
+        .fold((0, 0), |(acc_height, acc_width), (height, width)| {
+            (acc_height.max(height), acc_width.max(width))
+        })
 }
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
@@ -138,5 +158,109 @@ mod tests {
         let single_packed_byte_size = single_packed_byte_size(&committable_columns);
         let full_byte_size = (8 + 16 + 32 + 64 + 128 + 256 + 256 + 256 + 8 + 64) / 8;
         assert_eq!(single_packed_byte_size, full_byte_size);
+    }
+
+    #[test]
+    fn we_can_get_max_matrix_size() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[0]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+        ];
+
+        let offset = 0;
+        assert_eq!(max_matrix_size(&committable_columns, offset), (3, 2));
+    }
+
+    #[test]
+    fn we_can_get_max_matrix_size_mixed_columns() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[0]),
+            CommittableColumn::SmallInt(&[0, 1]),
+            CommittableColumn::Int(&[0, 1, 2]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+            CommittableColumn::Int128(&[0, 1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+                [4, 0, 0, 0],
+            ]),
+            CommittableColumn::VarChar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+            ]),
+            CommittableColumn::Boolean(&[true, false, true]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[0, 1]),
+        ];
+
+        let offset = 0;
+        assert_eq!(max_matrix_size(&committable_columns, offset), (4, 4));
+    }
+
+    #[test]
+    fn we_can_get_max_matrix_size_with_offset() {
+        let committable_columns = [
+            CommittableColumn::BigInt(&[0]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+        ];
+
+        let offset = 15;
+        assert_eq!(max_matrix_size(&committable_columns, offset), (7, 8));
+    }
+
+    #[test]
+    fn we_can_get_max_matrix_size_mixed_columns_with_offset() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[0]),
+            CommittableColumn::SmallInt(&[0, 1]),
+            CommittableColumn::Int(&[0, 1, 2]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+            CommittableColumn::Int128(&[0, 1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+                [4, 0, 0, 0],
+            ]),
+            CommittableColumn::VarChar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+            ]),
+            CommittableColumn::Boolean(&[true, false, true]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[0, 1]),
+        ];
+
+        let offset = 60;
+        assert_eq!(max_matrix_size(&committable_columns, offset), (13, 16));
     }
 }
