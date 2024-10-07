@@ -155,8 +155,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 5. <a name="code-quality-checks"></a>Run the following code quality checks locally so that the code is not only correct but also clean.
 
     ```shell
-    cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
-    cargo clippy --all-targets --all-features -- -D warnings
+    source scripts/run_ci_checks.sh
     ```
 
 6. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
