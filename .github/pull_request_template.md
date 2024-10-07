@@ -1,4 +1,9 @@
 Please be sure to look over the pull request guidelines here: https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md#submit-pr.
+
+# Please go through the following checklist
+- [ ] The PR title and commit messages adhere to guidelines here: https://github.com/spaceandtimelabs/sxt-proof-of-sql/blob/main/CONTRIBUTING.md. In particular `!` is used if and only if at least one breaking change has been introduced.
+- [ ] I have run the ci check script with `source scripts/run_ci_checks.sh`.
+
 # Rationale for this change
 
 <!--
@@ -25,7 +30,6 @@ Example:
 -->
 
 # Are these changes tested?
-
 <!--
 We typically require tests for all PRs in order to:
 1. Prevent the code from being accidentally broken by subsequent changes
