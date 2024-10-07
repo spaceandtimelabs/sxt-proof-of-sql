@@ -10,7 +10,7 @@ use core::iter;
 #[cfg(feature = "std")]
 use std::{
     fs::File,
-    io::{BufReader, BufWriter, Read, Write},
+    io::{BufReader, BufWriter, Error, ErrorKind, Read, Write},
     path::Path,
 };
 
@@ -63,7 +63,6 @@ impl PublicParameters {
     #[cfg(feature = "std")]
     /// Function to save `PublicParameters` to a file in binary form
     pub fn save_to_file(&self, path: &Path) -> std::io::Result<()> {
-        use std::io;
         // Create or open the file at the specified path
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
@@ -71,7 +70,7 @@ impl PublicParameters {
         // Serialize the PublicParameters struct into the file
         let mut serialized_data = Vec::new();
         self.serialize_with_mode(&mut serialized_data, Compress::No)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+            .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))?;
 
         // Write serialized bytes to the file
         writer.write_all(&serialized_data)?;
@@ -81,7 +80,6 @@ impl PublicParameters {
     #[cfg(feature = "std")]
     /// Function to load `PublicParameters` from a file in binary form
     pub fn load_from_file(path: &Path) -> std::io::Result<Self> {
-        use std::io;
         // Open the file at the specified path
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
@@ -96,7 +94,7 @@ impl PublicParameters {
             Compress::No,
             Validate::Yes,
         )
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))
+        .map_err(|e| Error::new(ErrorKind::Other, format!("{e}")))
     }
 }
 
