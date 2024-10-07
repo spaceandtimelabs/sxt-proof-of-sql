@@ -169,7 +169,7 @@ impl QueryContext {
             if self
                 .res_aliased_exprs
                 .iter()
-                .map(|c| (c.alias == col.alias) as u64)
+                .map(|c| u64::from(c.alias == col.alias))
                 .sum::<u64>()
                 != 1
             {

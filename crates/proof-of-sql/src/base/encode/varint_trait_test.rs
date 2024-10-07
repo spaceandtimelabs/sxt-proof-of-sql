@@ -294,10 +294,10 @@ fn we_can_encode_and_decode_i32_and_i64_the_same() {
     test_encode_and_decode_types_align::<i32, i64>(
         &rng.gen::<[_; 32]>(),
         &[
-            i32::MAX as i64 + 1,
-            i32::MIN as i64 - 1,
-            i32::MAX as i64 * 1000,
-            i32::MIN as i64 * 1000,
+            i64::from(i32::MAX) + 1,
+            i64::from(i32::MIN) - 1,
+            i64::from(i32::MAX) * 1000,
+            i64::from(i32::MIN) * 1000,
         ],
         100,
     );
@@ -308,7 +308,7 @@ fn we_can_encode_and_decode_u32_and_u64_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<u32, u64>(
         &rng.gen::<[_; 32]>(),
-        &[u32::MAX as u64 + 1, u32::MAX as u64 * 1000],
+        &[u64::from(u32::MAX) + 1, u64::from(u32::MAX) * 1000],
         100,
     );
 }
@@ -423,10 +423,10 @@ fn we_can_encode_and_decode_i64_and_i128_the_same() {
     test_encode_and_decode_types_align::<i64, i128>(
         &rng.gen::<[_; 32]>(),
         &[
-            i64::MAX as i128 + 1,
-            i64::MIN as i128 - 1,
-            i64::MAX as i128 * 1000,
-            i64::MIN as i128 * 1000,
+            i128::from(i64::MAX) + 1,
+            i128::from(i64::MIN) - 1,
+            i128::from(i64::MAX) * 1000,
+            i128::from(i64::MIN) * 1000,
         ],
         100,
     );

@@ -101,7 +101,7 @@ pub fn make_random_test_accessor_data(
             ColumnType::Int128 => {
                 column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
 
-                let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
+                let values: Vec<i128> = values.iter().map(|x| i128::from(*x)).collect();
                 columns.push(Arc::new(
                     Decimal128Array::from(values.clone())
                         .with_precision_and_scale(38, 0)

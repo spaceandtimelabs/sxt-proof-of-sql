@@ -46,7 +46,7 @@ impl<T: MontConfig<4>> ZigZag<U256> for MontScalar<T> {
             let (low_val, carry_low) = y.low.overflowing_sub(1_u128);
 
             y.low = low_val;
-            y.high -= carry_low as u128; // we should never expect overflow here
+            y.high -= u128::from(carry_low); // we should never expect overflow here
 
             // effectively encoding a ZigZag y
             y
@@ -93,7 +93,7 @@ impl<T: MontConfig<4>> ZigZag<MontScalar<T>> for U256 {
             let (low_val, carry_low) = zig_val.low.overflowing_add(1_u128);
 
             zig_val.low = low_val;
-            zig_val.high += carry_low as u128; // we should never expect overflow here
+            zig_val.high += u128::from(carry_low); // we should never expect overflow here
 
             // even though the encoding represented a -y,
             // zig_val actually represents a `y` (we simply divided self by 2).
