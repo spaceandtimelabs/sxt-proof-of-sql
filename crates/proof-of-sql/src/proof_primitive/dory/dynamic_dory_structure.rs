@@ -33,7 +33,6 @@
 /// Returns the full width of a row in the matrix.
 ///
 /// Note: when row = 1, this correctly returns 2, even though no data belongs at position 0.
-#[allow(dead_code)]
 pub(crate) const fn full_width_of_row(row: usize) -> usize {
     ((2 * row + 4) / 3).next_power_of_two()
 }

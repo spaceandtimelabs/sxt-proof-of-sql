@@ -1,5 +1,5 @@
 use super::{
-    dynamic_dory_structure::{matrix_size, row_and_column_from_index},
+    dynamic_dory_structure::{full_width_of_row, matrix_size, row_and_column_from_index},
     pairings, DoryScalar, DynamicDoryCommitment, G1Affine, G1Projective, ProverSetup,
 };
 use crate::base::commitment::CommittableColumn;
@@ -87,6 +87,34 @@ fn populate_bit_table(single_bit_table_entry: &[u32], max_height: usize) -> Vec<
         .copied()
         .cycle()
         .take(single_bit_table_entry.len() * max_height)
+        .collect()
+}
+
+/// Returns a bit table to be used by the `vlen_msm` algorithm in Blitzar.
+///
+/// # Arguments
+///
+/// * `bit_table_len` - The length of the bit table used to call Blitzar's `vlen_msm` algorithm.
+/// * `single_bit_table_entry_len` - The length of a single bit table entry.
+///
+/// # Returns
+///
+/// A vector containing the length of entries from the dynamic Dory structure that
+/// are being used in the commitment computation.
+///
+/// # Panics
+///
+/// Panics if `bit_table_len` is not a multiple of `single_bit_table_entry_len`.
+fn populate_length_table(bit_table_len: usize, single_bit_table_entry_len: usize) -> Vec<u32> {
+    assert!(
+        bit_table_len % single_bit_table_entry_len == 0,
+        "bit_table_len must be a multiple of single_bit_table_entry_len"
+    );
+
+    (0..bit_table_len / single_bit_table_entry_len)
+        .flat_map(|i| {
+            std::iter::repeat(full_width_of_row(i) as u32).take(single_bit_table_entry_len)
+        })
         .collect()
 }
 
@@ -407,6 +435,26 @@ mod tests {
                 64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 32, 64, 128,
                 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 32, 64, 128, 256, 256,
                 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+            ]
+        );
+    }
+
+    #[test]
+    fn we_can_populate_a_length_table() {
+        let committable_column_len = 3;
+        let signed_value_offset = committable_column_len;
+        let num_of_rows = 7;
+
+        let bit_table_len = (committable_column_len + signed_value_offset) * num_of_rows;
+        let single_bit_table_entry_len = committable_column_len + signed_value_offset;
+
+        let length_table = populate_length_table(bit_table_len, single_bit_table_entry_len);
+
+        assert_eq!(
+            length_table,
+            vec![
+                1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                4, 4, 4, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 8
             ]
         );
     }
