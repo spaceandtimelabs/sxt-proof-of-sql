@@ -94,7 +94,7 @@ impl<T: MontConfig<4>> PartialEq for MontScalar<T> {
 }
 impl<T: MontConfig<4>> Default for MontScalar<T> {
     fn default() -> Self {
-        Self(Default::default())
+        Self(Fp::default())
     }
 }
 impl<T: MontConfig<4>> Debug for MontScalar<T> {
@@ -392,7 +392,7 @@ where
                 error: format!("{value} is too large to fit in an i8"),
             });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         match val {
             0 => Ok(false),
             1 => Ok(true),
@@ -420,7 +420,7 @@ where
                 error: format!("{value} is too large to fit in an i8"),
             });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         val.try_into().map_err(|_| ScalarConversionError::Overflow {
             error: format!("{value} is too large to fit in an i8"),
         })
@@ -444,7 +444,7 @@ where
                 error: format!("{value} is too large to fit in an i16"),
             });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         val.try_into().map_err(|_| ScalarConversionError::Overflow {
             error: format!("{value} is too large to fit in an i16"),
         })
@@ -468,7 +468,7 @@ where
                 error: format!("{value} is too large to fit in an i32"),
             });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         val.try_into().map_err(|_| ScalarConversionError::Overflow {
             error: format!("{value} is too large to fit in an i32"),
         })
@@ -492,7 +492,7 @@ where
                 error: format!("{value} is too large to fit in an i64"),
             });
         }
-        let val: i128 = sign * abs[0] as i128;
+        let val: i128 = sign * i128::from(abs[0]);
         val.try_into().map_err(|_| ScalarConversionError::Overflow {
             error: format!("{value} is too large to fit in an i64"),
         })

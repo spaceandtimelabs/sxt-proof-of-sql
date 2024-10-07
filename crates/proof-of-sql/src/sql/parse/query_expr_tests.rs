@@ -1886,7 +1886,10 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     let (t, accessor) = get_test_accessor();
     let base_cols: [&str; N] = ["i", "i0", "i1", "s"]; // sorted because of `select: [cols = ... ]`
     let base_ordering = [Asc, Desc, Asc, Desc];
-    for (idx, perm_cols) in IndexSet::from_iter(base_cols.into_iter().permutations(N))
+    for (idx, perm_cols) in base_cols
+        .into_iter()
+        .permutations(N)
+        .collect::<IndexSet<_>>()
         .into_iter()
         .enumerate()
     {

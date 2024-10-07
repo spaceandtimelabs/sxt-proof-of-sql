@@ -26,7 +26,10 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(Vec::<i64>::new()))]).unwrap();
@@ -277,7 +280,8 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 #[test]
 fn evaluation_fails_if_integer_overflow_happens() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[i32::MAX as i64 + 1_i64, 11, 12])];
+    let binding = [i64::from(i32::MAX) + 1_i64, 11, 12];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&binding)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -324,7 +328,10 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
@@ -342,7 +349,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
         schema,
@@ -376,7 +386,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(
@@ -428,7 +441,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
         schema,

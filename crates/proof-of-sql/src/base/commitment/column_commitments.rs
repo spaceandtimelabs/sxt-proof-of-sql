@@ -272,8 +272,8 @@ impl<C: Commitment> ColumnCommitments<C> {
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(ColumnCommitments {
-            column_metadata,
             commitments,
+            column_metadata,
         })
     }
 
@@ -293,8 +293,8 @@ impl<C: Commitment> ColumnCommitments<C> {
             .expect("we've already checked that self and other have equal column counts");
 
         Ok(ColumnCommitments {
-            column_metadata,
             commitments,
+            column_metadata,
         })
     }
 }

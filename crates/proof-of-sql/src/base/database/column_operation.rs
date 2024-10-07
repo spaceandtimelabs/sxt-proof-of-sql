@@ -45,15 +45,15 @@ pub fn try_add_subtract_column_types(
         Ok(ColumnType::Scalar)
     } else {
         let left_precision_value =
-            lhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(lhs.precision_value().expect("Numeric types have precision"));
         let right_precision_value =
-            rhs.precision_value().expect("Numeric types have precision") as i16;
+            i16::from(rhs.precision_value().expect("Numeric types have precision"));
         let left_scale = lhs.scale().expect("Numeric types have scale");
         let right_scale = rhs.scale().expect("Numeric types have scale");
         let scale = left_scale.max(right_scale);
-        let precision_value: i16 = scale as i16
-            + (left_precision_value - left_scale as i16)
-                .max(right_precision_value - right_scale as i16)
+        let precision_value: i16 = i16::from(scale)
+            + (left_precision_value - i16::from(left_scale))
+                .max(right_precision_value - i16::from(right_scale))
             + 1_i16;
         let precision = u8::try_from(precision_value)
             .map_err(|_| ColumnOperationError::DecimalConversionError {
@@ -115,7 +115,7 @@ pub fn try_multiply_column_types(
         let scale = left_scale.checked_add(right_scale).ok_or(
             ColumnOperationError::DecimalConversionError {
                 source: DecimalError::InvalidScale {
-                    scale: left_scale as i16 + right_scale as i16,
+                    scale: i16::from(left_scale) + i16::from(right_scale),
                 },
             },
         )?;
@@ -150,10 +150,12 @@ pub fn try_divide_column_types(
         // We can unwrap here because we know that both types are integers
         return Ok(lhs.max_integer_type(&rhs).unwrap());
     }
-    let left_precision_value = lhs.precision_value().expect("Numeric types have precision") as i16;
-    let right_precision_value = rhs.precision_value().expect("Numeric types have precision") as i16;
-    let left_scale = lhs.scale().expect("Numeric types have scale") as i16;
-    let right_scale = rhs.scale().expect("Numeric types have scale") as i16;
+    let left_precision_value =
+        i16::from(lhs.precision_value().expect("Numeric types have precision"));
+    let right_precision_value =
+        i16::from(rhs.precision_value().expect("Numeric types have precision"));
+    let left_scale = i16::from(lhs.scale().expect("Numeric types have scale"));
+    let right_scale = i16::from(rhs.scale().expect("Numeric types have scale"));
     let raw_scale = (left_scale + right_precision_value + 1_i16).max(6_i16);
     let precision_value: i16 = left_precision_value - left_scale + right_scale + raw_scale;
     let scale =
@@ -899,7 +901,7 @@ where
         .scale()
         .expect("numeric columns have scale");
     let applied_scale = rhs_scale - lhs_scale + new_scale;
-    let applied_scale_factor = BigInt::from(10).pow(applied_scale.unsigned_abs() as u32);
+    let applied_scale_factor = BigInt::from(10).pow(u32::from(applied_scale.unsigned_abs()));
     let result: Vec<S> = lhs
         .iter()
         .zip(rhs)

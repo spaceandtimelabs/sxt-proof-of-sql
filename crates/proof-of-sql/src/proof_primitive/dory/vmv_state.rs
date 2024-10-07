@@ -92,17 +92,18 @@ impl VMV {
         nu: usize,
     ) -> Self {
         use crate::base::polynomial::compute_evaluation_vector;
+        use ark_ff::Fp;
 
-        let mut L = vec![Default::default(); 1 << l_tensor.len()];
-        let mut R = vec![Default::default(); 1 << r_tensor.len()];
+        let mut L = vec![Fp::default(); 1 << l_tensor.len()];
+        let mut R = vec![Fp::default(); 1 << r_tensor.len()];
         compute_evaluation_vector(&mut L, &l_tensor);
         compute_evaluation_vector(&mut R, &r_tensor);
         Self {
             M,
-            L,
-            R,
             l_tensor,
             r_tensor,
+            L,
+            R,
             nu,
         }
     }
@@ -110,18 +111,20 @@ impl VMV {
     pub(super) fn calculate_prover_state(&self, setup: &super::ProverSetup) -> VMVProverState {
         use super::G1Projective;
         use ark_ec::VariableBaseMSM;
-        let v_vec = Vec::from_iter((0..self.R.len()).map(|i| {
-            self.L
-                .iter()
-                .zip(self.M.iter())
-                .map(|(l, row)| row[i] * l)
-                .sum()
-        }));
-        let T_vec_prime = Vec::from_iter(
-            self.M
-                .iter()
-                .map(|row| G1Projective::msm_unchecked(setup.Gamma_1[self.nu], row).into()),
-        );
+        let v_vec: Vec<_> = (0..self.R.len())
+            .map(|i| {
+                self.L
+                    .iter()
+                    .zip(self.M.iter())
+                    .map(|(l, row)| row[i] * l)
+                    .sum()
+            })
+            .collect();
+        let T_vec_prime: Vec<_> = self
+            .M
+            .iter()
+            .map(|row| G1Projective::msm_unchecked(setup.Gamma_1[self.nu], row).into())
+            .collect();
         VMVProverState {
             v_vec,
             T_vec_prime,

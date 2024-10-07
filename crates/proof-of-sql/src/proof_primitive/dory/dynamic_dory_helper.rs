@@ -175,8 +175,9 @@ mod tests {
         use ark_std::UniformRand;
         let mut rng = ark_std::test_rng();
         for num_vars in 0..20 {
-            let point =
-                Vec::from_iter(core::iter::repeat_with(|| F::rand(&mut rng)).take(num_vars));
+            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect();
             let (lo_vec, hi_vec) = compute_dynamic_vecs(&point);
             let mut eval_vec = vec![F::ZERO; 1 << num_vars];
             compute_evaluation_vector(&mut eval_vec, &point);
@@ -194,8 +195,9 @@ mod tests {
         let mut rng = test_rng();
         for num_vars in 0..10 {
             let nu = num_vars / 2 + 1;
-            let point =
-                Vec::from_iter(core::iter::repeat_with(|| F::rand(&mut rng)).take(num_vars));
+            let point: Vec<_> = core::iter::repeat_with(|| F::rand(&mut rng))
+                .take(num_vars)
+                .collect();
             let alphas = core::iter::repeat_with(|| F::rand(&mut rng))
                 .take(nu)
                 .collect_vec();
@@ -220,7 +222,7 @@ mod tests {
                     D_2: DeferredMSM::new([], []),
                     nu,
                 },
-                s2_tensor: Default::default(),
+                s2_tensor: Vec::default(),
             };
             let (lo_fold, hi_fold) = fold_dynamic_tensors(&state);
 

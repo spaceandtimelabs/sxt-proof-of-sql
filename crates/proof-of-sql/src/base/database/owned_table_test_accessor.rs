@@ -20,7 +20,7 @@ pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
 impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<'_, CP> {
     fn default() -> Self {
         Self {
-            tables: Default::default(),
+            tables: IndexMap::default(),
             alloc: Bump::new(),
             setup: None,
         }
@@ -43,7 +43,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     type Table = OwnedTable<CP::Scalar>;
 
     fn new_empty() -> Self {
-        Default::default()
+        OwnedTableTestAccessor::default()
     }
 
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
@@ -60,7 +60,7 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
             .unwrap()
             .0
             .column_names()
-            .map(|id| id.as_str())
+            .map(proof_of_sql_parser::Identifier::as_str)
             .collect()
     }
 
@@ -103,7 +103,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             OwnedColumn::VarChar(col) => {
                 let col: &mut [&str] = self
                     .alloc
-                    .alloc_slice_fill_iter(col.iter().map(|s| s.as_str()));
+                    .alloc_slice_fill_iter(col.iter().map(String::as_str));
                 let scals: &mut [_] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
