@@ -71,6 +71,25 @@ fn populate_single_bit_array_with_offsets(
     bit_sizes
 }
 
+/// Returns a bit table to be used by the `vlen_msm` algorithm in Blitzar.
+///
+/// # Arguments
+///
+/// * `single_bit_table_entry` - A reference to the single bit table entry.
+/// * `max_height` - The maximum height of the dynamic Dory matrix.
+///
+/// # Returns
+///
+/// A vector containing the bit sizes needed by Blitzar's `vlen_msm` algorithm.
+fn populate_bit_table(single_bit_table_entry: &[u32], max_height: usize) -> Vec<u32> {
+    single_bit_table_entry
+        .iter()
+        .copied()
+        .cycle()
+        .take(single_bit_table_entry.len() * max_height)
+        .collect()
+}
+
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
 ///
@@ -336,6 +355,59 @@ mod tests {
         assert_eq!(
             single_bit_table_entry,
             vec![8, 16, 32, 64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+        );
+    }
+
+    #[test]
+    fn we_can_populate_a_bit_table() {
+        let committable_columns = [
+            CommittableColumn::TinyInt(&[0]),
+            CommittableColumn::SmallInt(&[0, 1]),
+            CommittableColumn::Int(&[0, 1, 2]),
+            CommittableColumn::BigInt(&[0, 1, 2, 3]),
+            CommittableColumn::Int128(&[0, 1, 2, 3, 4]),
+            CommittableColumn::Decimal75(
+                Precision::new(1).unwrap(),
+                0,
+                vec![
+                    [0, 0, 0, 0],
+                    [1, 0, 0, 0],
+                    [2, 0, 0, 0],
+                    [3, 0, 0, 0],
+                    [4, 0, 0, 0],
+                    [5, 0, 0, 0],
+                ],
+            ),
+            CommittableColumn::Scalar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+                [4, 0, 0, 0],
+            ]),
+            CommittableColumn::VarChar(vec![
+                [0, 0, 0, 0],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                [3, 0, 0, 0],
+            ]),
+            CommittableColumn::Boolean(&[true, false, true]),
+            CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[0, 1]),
+        ];
+
+        let max_height = 4;
+        let signed_offset_length = committable_columns.len();
+        let single_bit_table_entry =
+            populate_single_bit_array_with_offsets(&committable_columns, signed_offset_length);
+        let bit_table = populate_bit_table(&single_bit_table_entry, max_height);
+        assert_eq!(
+            bit_table,
+            vec![
+                8, 16, 32, 64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 32,
+                64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 32, 64, 128,
+                256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 16, 32, 64, 128, 256, 256,
+                256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+            ]
         );
     }
 }
