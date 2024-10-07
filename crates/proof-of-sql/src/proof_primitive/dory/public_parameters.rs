@@ -105,19 +105,18 @@ impl CanonicalSerialize for PublicParameters {
         mut writer: W,
         compress: ark_serialize::Compress,
     ) -> Result<(), SerializationError> {
-        // Serialize max_nu (usize as u64) first
-        let max_nu_u64 = self.max_nu as u64;
-        max_nu_u64.serialize_with_mode(&mut writer, compress)?;
+        // Serialize max_nu (usize as u64)
+        (self.max_nu as u64).serialize_with_mode(&mut writer, compress)?;
 
         // Serialize Gamma_1 (Vec<G1Affine>)
-        for g1 in &self.Gamma_1 {
-            g1.serialize_with_mode(&mut writer, compress)?;
-        }
+        self.Gamma_1
+            .iter()
+            .try_for_each(|g1| g1.serialize_with_mode(&mut writer, compress))?;
 
         // Serialize Gamma_2 (Vec<G2Affine>)
-        for g2 in &self.Gamma_2 {
-            g2.serialize_with_mode(&mut writer, compress)?;
-        }
+        self.Gamma_2
+            .iter()
+            .try_for_each(|g2| g2.serialize_with_mode(&mut writer, compress))?;
 
         // Serialize H_1 (G1Affine)
         self.H_1.serialize_with_mode(&mut writer, compress)?;
@@ -134,31 +133,34 @@ impl CanonicalSerialize for PublicParameters {
 
     // Update serialized_size accordingly
     fn serialized_size(&self, compress: ark_serialize::Compress) -> usize {
-        let mut size = 0;
+        // Size of max_nu (u64 is 8 bytes)
+        let max_nu_size = 8;
 
-        // Size of max_nu
-        size += 8; // u64 is 8 bytes
+        // Size of Gamma_1 (Vec<G1Affine>)
+        let gamma_1_size: usize = self
+            .Gamma_1
+            .iter()
+            .map(|g1| g1.serialized_size(compress))
+            .sum();
 
-        // Calculate size of Gamma_1 (Vec<G1Affine>)
-        for g1 in &self.Gamma_1 {
-            size += g1.serialized_size(compress);
-        }
+        // Size of Gamma_2 (Vec<G2Affine>)
+        let gamma_2_size: usize = self
+            .Gamma_2
+            .iter()
+            .map(|g2| g2.serialized_size(compress))
+            .sum();
 
-        // Calculate size of Gamma_2 (Vec<G2Affine>)
-        for g2 in &self.Gamma_2 {
-            size += g2.serialized_size(compress);
-        }
+        // Size of H_1 (G1Affine)
+        let h1_size = self.H_1.serialized_size(compress);
 
-        // Calculate size of H_1 (G1Affine)
-        size += self.H_1.serialized_size(compress);
+        // Size of H_2 (G2Affine)
+        let h2_size = self.H_2.serialized_size(compress);
 
-        // Calculate size of H_2 (G2Affine)
-        size += self.H_2.serialized_size(compress);
+        // Size of Gamma_2_fin (G2Affine)
+        let gamma_2_fin_size = self.Gamma_2_fin.serialized_size(compress);
 
-        // Calculate size of Gamma_2_fin (G2Affine)
-        size += self.Gamma_2_fin.serialized_size(compress);
-
-        size
+        // Sum everything to get the total size
+        max_nu_size + gamma_1_size + gamma_2_size + h1_size + h2_size + gamma_2_fin_size
     }
 }
 
@@ -174,24 +176,14 @@ impl CanonicalDeserialize for PublicParameters {
         let max_nu = max_nu_u64 as usize;
 
         // Deserialize Gamma_1 (Vec<G1Affine>)
-        let mut Gamma_1 = Vec::with_capacity(1 << max_nu);
-        for _ in 0..(1 << max_nu) {
-            Gamma_1.push(G1Affine::deserialize_with_mode(
-                &mut reader,
-                compress,
-                validate,
-            )?);
-        }
+        let Gamma_1: Vec<G1Affine> = (0..(1 << max_nu))
+            .map(|_| G1Affine::deserialize_with_mode(&mut reader, compress, validate))
+            .collect::<Result<_, _>>()?;
 
         // Deserialize Gamma_2 (Vec<G2Affine>)
-        let mut Gamma_2 = Vec::with_capacity(1 << max_nu);
-        for _ in 0..(1 << max_nu) {
-            Gamma_2.push(G2Affine::deserialize_with_mode(
-                &mut reader,
-                compress,
-                validate,
-            )?);
-        }
+        let Gamma_2: Vec<G2Affine> = (0..(1 << max_nu))
+            .map(|_| G2Affine::deserialize_with_mode(&mut reader, compress, validate))
+            .collect::<Result<_, _>>()?;
 
         // Deserialize H_1 (G1Affine)
         let H_1 = G1Affine::deserialize_with_mode(&mut reader, compress, validate)?;
@@ -220,12 +212,13 @@ impl CanonicalDeserialize for PublicParameters {
 impl Valid for PublicParameters {
     fn check(&self) -> Result<(), SerializationError> {
         // Check that all G1Affine and G2Affine elements are valid
-        for g1 in &self.Gamma_1 {
-            g1.check()?;
-        }
-        for g2 in &self.Gamma_2 {
-            g2.check()?;
-        }
+        self.Gamma_1
+            .iter()
+            .try_for_each(ark_serialize::Valid::check)?;
+        self.Gamma_2
+            .iter()
+            .try_for_each(ark_serialize::Valid::check)?;
+
         self.H_1.check()?;
         self.H_2.check()?;
         self.Gamma_2_fin.check()?;
