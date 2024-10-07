@@ -148,6 +148,10 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             &filtered_columns,
             result_len,
         );
+        // 3. Produce MLEs
+        filtered_columns.iter().for_each(|column| {
+            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        });
         filtered_columns
     }
 }

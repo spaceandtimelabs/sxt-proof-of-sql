@@ -266,6 +266,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // perform the evaluation check of the sumcheck polynomial
+        println!("sumcheck evaluation: {:?}", builder.sumcheck_evaluation());
+        println!("expected evaluation: {:?}", subclaim.expected_evaluation);
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
             Err(ProofError::VerificationError {
                 error: "sumcheck evaluation check failed",
@@ -297,6 +299,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     }
 
     fn validate_sizes(&self, counts: &ProofCounts) -> bool {
+        println!("intermediate mles: {:?}", counts.intermediate_mles);
+        println!("anchored mles: {:?}", counts.anchored_mles);
+        println!("commitments: {:?}", self.commitments.len());
+        println!(
+            "pcs_proof_evaluations: {:?}",
+            self.pcs_proof_evaluations.len()
+        );
         self.commitments.len() == counts.intermediate_mles
             && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
     }
