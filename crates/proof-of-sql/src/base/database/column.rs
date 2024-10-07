@@ -1013,7 +1013,7 @@ mod tests {
         let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
         let owned_col = OwnedColumn::VarChar(
             strs.iter()
-                .map(std::string::ToString::to_string)
+                .map(ToString::to_string)
                 .collect::<Vec<String>>(),
         );
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);

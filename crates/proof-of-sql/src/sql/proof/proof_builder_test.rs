@@ -150,7 +150,10 @@ fn we_can_form_the_provable_query_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(std::convert::Into::into).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(

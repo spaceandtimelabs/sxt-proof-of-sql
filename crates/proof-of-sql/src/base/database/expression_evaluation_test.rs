@@ -69,7 +69,7 @@ fn we_can_evaluate_a_simple_column() {
     let expected_column = OwnedColumn::VarChar(
         ["John", "Juan", "João", "Jean", "Jean"]
             .iter()
-            .map(std::string::ToString::to_string)
+            .map(ToString::to_string)
             .collect(),
     );
     assert_eq!(actual_column, expected_column);

@@ -387,7 +387,7 @@ mod test {
         let col2: OwnedColumn<Curve25519Scalar> = OwnedColumn::VarChar(
             ["b", "b", "a", "b", "a"]
                 .iter()
-                .map(std::string::ToString::to_string)
+                .map(ToString::to_string)
                 .collect(),
         );
         let col3: OwnedColumn<Curve25519Scalar> = OwnedColumn::Decimal75(
@@ -461,7 +461,7 @@ mod test {
             owned_col,
             OwnedColumn::VarChar(
                 strs.iter()
-                    .map(std::string::ToString::to_string)
+                    .map(ToString::to_string)
                     .collect::<Vec<String>>()
             )
         );

@@ -33,7 +33,7 @@ fn we_can_aggregate_columns_with_empty_group_by_and_no_rows_selected() {
     let slice_c = &[100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111];
     let slice_d = &[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211];
     let selection = &[false; 12];
-    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(std::convert::Into::into).collect();
+    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
     let column_c = Column::Int128(slice_c);
     let column_d = Column::Scalar(&scals_d);
     let group_by = &[];
@@ -69,7 +69,7 @@ fn we_can_aggregate_columns_with_empty_group_by() {
     let selection = &[
         false, true, true, true, true, true, true, true, true, true, true, true,
     ];
-    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(std::convert::Into::into).collect();
+    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
     let column_c = Column::Int128(slice_c);
     let column_d = Column::Scalar(&scals_d);
     let group_by = &[];
@@ -122,8 +122,8 @@ fn we_can_aggregate_columns() {
     let selection = &[
         false, true, true, true, true, true, true, true, true, true, true, true,
     ];
-    let scals_b: Vec<Curve25519Scalar> = slice_b.iter().map(std::convert::Into::into).collect();
-    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(std::convert::Into::into).collect();
+    let scals_b: Vec<Curve25519Scalar> = slice_b.iter().map(core::convert::Into::into).collect();
+    let scals_d: Vec<Curve25519Scalar> = slice_d.iter().map(core::convert::Into::into).collect();
     let column_a = Column::BigInt(slice_a);
     let column_b = Column::VarChar((slice_b, &scals_b));
     let column_c = Column::Int128(slice_c);
@@ -258,7 +258,7 @@ fn we_can_compare_indexes_by_columns_for_mixed_columns() {
     let slice_a = &["55", "44", "66", "66", "66", "77", "66", "66", "66", "66"];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(std::convert::Into::into).collect();
+    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(core::convert::Into::into).collect();
     let column_a = Column::VarChar((slice_a, &scals_a));
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
@@ -368,7 +368,7 @@ fn we_can_compare_indexes_by_columns_for_scalar_columns() {
     let slice_a = &[55, 44, 66, 66, 66, 77, 66, 66, 66, 66];
     let slice_b = &[22, 44, 11, 44, 33, 22, 22, 11, 22, 22];
     let slice_c = &[11, 55, 11, 44, 77, 11, 22, 55, 11, 22];
-    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(std::convert::Into::into).collect();
+    let scals_a: Vec<Curve25519Scalar> = slice_a.iter().map(core::convert::Into::into).collect();
     let column_a = Column::Scalar(&scals_a);
     let column_b = Column::Int128(slice_b);
     let column_c = Column::BigInt(slice_c);
@@ -493,7 +493,7 @@ fn we_can_sum_aggregate_columns_by_counts() {
     let slice_c = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
-    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(std::convert::Into::into).collect();
+    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
     let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
     let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
     let columns_c = Column::Scalar(&scals_c);
@@ -612,7 +612,7 @@ fn we_can_max_aggregate_columns_by_counts() {
     let slice_c = &[
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
     ];
-    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(std::convert::Into::into).collect();
+    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
     let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
     let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
     let columns_c = Column::Scalar(&scals_c);
@@ -732,7 +732,7 @@ fn we_can_min_aggregate_columns_by_counts() {
     let slice_c = &[
         100, -101, 102, -103, 104, -105, 106, -107, 108, -109, 110, -111, 112, -113, 114, -115,
     ];
-    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(std::convert::Into::into).collect();
+    let scals_c: Vec<Curve25519Scalar> = slice_c.iter().map(core::convert::Into::into).collect();
     let column_a = Column::BigInt::<Curve25519Scalar>(slice_a);
     let columns_b = Column::Int128::<Curve25519Scalar>(slice_b);
     let columns_c = Column::Scalar(&scals_c);

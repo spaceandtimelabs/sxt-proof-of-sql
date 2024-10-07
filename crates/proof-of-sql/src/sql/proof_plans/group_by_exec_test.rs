@@ -82,19 +82,19 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         333, 333,
     ]
     .iter()
-    .map(std::convert::Into::into)
+    .map(core::convert::Into::into)
     .collect();
     let scalar_group_data: Vec<Curve25519Scalar> =
         [5, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 5]
             .iter()
-            .map(std::convert::Into::into)
+            .map(core::convert::Into::into)
             .collect();
     let scalar_sum_data: Vec<Curve25519Scalar> = [
         119, 522, 100, 325, 501, 447, 759, 375, 212, 532, 459, 616, 579, 179, 695, 963, 532, 868,
         331, 830,
     ]
     .iter()
-    .map(std::convert::Into::into)
+    .map(core::convert::Into::into)
     .collect();
     let data = owned_table([
         bigint(
