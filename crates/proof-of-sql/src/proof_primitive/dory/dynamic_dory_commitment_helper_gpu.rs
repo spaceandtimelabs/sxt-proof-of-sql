@@ -10,7 +10,6 @@ use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::compute::ElementP2;
 use core::iter;
-use std::sync::Mutex;
 use tracing::{span, Level};
 
 const BYTE_SIZE: u32 = 8;
@@ -239,14 +238,12 @@ pub(super) fn compute_dynamic_dory_commitments(
     // Create scalars array. Note, scalars need to be stored in a column-major order.
     let num_scalar_rows = max_width;
     let num_scalar_columns = single_packed_byte_with_offset_size * max_height;
-    let scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
+    let mut scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
 
     // Populate the scalars array.
     let span = span!(Level::INFO, "pack_vlen_scalars_array").entered();
-    let scalars = Mutex::new(scalars);
     (0..num_scalar_rows).for_each(|scalar_row| {
         // Get a mutable slice of the scalars array that represents one full row of the scalars array.
-        let mut scalars = scalars.lock().unwrap();
         let scalar_row_slice =
             &mut scalars[scalar_row * num_scalar_columns..(scalar_row + 1) * num_scalar_columns];
 
@@ -330,12 +327,11 @@ pub(super) fn compute_dynamic_dory_commitments(
 
     // Get sub commits from Blitzar's vlen_msm algorithm.
     if !bit_table.is_empty() {
-        let scalars_guard = scalars.lock().unwrap();
         setup.blitzar_vlen_msm(
             &mut sub_commits_from_blitzar,
             &bit_table,
             &length_table,
-            scalars_guard.as_slice(),
+            scalars.as_slice(),
         );
     }
 
