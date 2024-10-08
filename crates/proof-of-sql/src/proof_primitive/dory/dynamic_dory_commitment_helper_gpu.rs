@@ -9,6 +9,7 @@ use crate::{
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 use blitzar::compute::ElementP2;
+use core::iter;
 use std::sync::Mutex;
 use tracing::{span, Level};
 
@@ -73,14 +74,11 @@ fn populate_single_bit_array_with_offsets(
     committable_columns: &[CommittableColumn],
     signed_offset_length: usize,
 ) -> Vec<u32> {
-    let mut bit_sizes: Vec<u32> = committable_columns
+    committable_columns
         .iter()
         .map(|column| column.column_type().bit_size())
-        .collect();
-
-    bit_sizes.extend(std::iter::repeat(BYTE_SIZE).take(signed_offset_length));
-
-    bit_sizes
+        .chain(iter::repeat(BYTE_SIZE).take(signed_offset_length))
+        .collect()
 }
 
 /// Returns a bit table to be used by the `vlen_msm` algorithm in Blitzar.
