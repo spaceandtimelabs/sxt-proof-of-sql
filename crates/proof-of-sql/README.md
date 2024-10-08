@@ -37,27 +37,23 @@ Get started with Proof of SQL by using the published crate on [crates.io](https:
 * clang (`sudo apt install clang`)
 * [Rust 1.81.0](https://www.rust-lang.org/tools/install)
 
-<!-- TDDO: add this in when we put it on crates.io
+<details>
+<summary>
+Workaround for non-Linux and/or non-GPU machines.
+</summary>
 
-### Setup
+* Workaround #1: enable the CPU version of Blitzar by setting the `BLITZAR_BACKEND` environment variable. Example:
+    ```bash
+    export BLITZAR_BACKEND=cpu
+    cargo test --all-features --all-targets
+    ```
+* Workaround #2: disable the `blitzar` feature in the repo. Example
+    ```bash
+    cargo test --no-default-features --features="arrow rayon ark-ec/parallel ark-poly/parallel ark-ff/asm"
+    ```
 
-To use Proof of SQL, add it as a dependency in your `Cargo.toml` file:
+</details>
 
-```toml
-[dependencies]
-proof-of-sql = "x.x.x"
-```
-
-Replace `x.x.x` with the version number you want to use. You can now use Proof of SQL in your Rust project. Import the necessary modules using `proof-of-sql::prelude::*` and start using the library's features in your code:
-
-```rust
-use proof-of-sql::prelude::*;
-
-fn main() {
-    // Your code here
-}
-```
--->
 
 ## Examples
 
