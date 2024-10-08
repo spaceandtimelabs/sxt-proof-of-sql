@@ -54,29 +54,28 @@ fn max_matrix_size(committable_columns: &[CommittableColumn], offset: usize) -> 
     matrix_size(max_column_len, offset)
 }
 
-/// Returns a single element worth of bit values for the bit table with offsets needed to handle the
-/// signed columns. Note, the signed bits are handled naively. For each committable column,
-/// a signed bit offset entry is added to the bit table. This means every signed and unsigned
-/// committable column will have an additional byte for the signed offset. Also, multiple redundant
-/// commitments of `1`'s are calculated.
+/// Returns a single element worth of bit values for the bit table with entries needed to handle the
+/// signed columns. Note, the signed bits are handled naively. Each committable column will have an
+/// additional byte to handle signed values, regardless if the committable column is singed or unsigned.
+/// Additionally, multiple redundant sub commitments of `1`'s are calculated.
 ///
 /// # Arguments
 ///
 /// * `committable_columns` - A reference to the committable columns.
-/// * `signed_offset_length` - The length of the signed offset.
+/// * `signed_ones_length` - The length of the ones entry to handle signed columns.
 ///
 /// # Returns
 ///
-/// A vector containing the bit sizes of each committable column with a corresponding offset for
-/// a single entry in the bit table.
-fn populate_single_bit_array_with_offsets(
+/// A vector containing the bit sizes of each committable column with a corresponding entry for
+/// handling signed values in the bit table.
+fn populate_single_bit_array_with_ones(
     committable_columns: &[CommittableColumn],
-    signed_offset_length: usize,
+    signed_ones_length: usize,
 ) -> Vec<u32> {
     committable_columns
         .iter()
         .map(|column| column.column_type().bit_size())
-        .chain(iter::repeat(BYTE_SIZE).take(signed_offset_length))
+        .chain(iter::repeat(BYTE_SIZE).take(signed_ones_length))
         .collect()
 }
 
@@ -145,7 +144,7 @@ fn cumulative_byte_length_table(bit_table: &[u32]) -> Vec<usize> {
         .collect()
 }
 
-/// Modifies the sub commits by adding the signed offset to the signed sub commits.
+/// Modifies the sub commits by adding the minimum commitment of the column type to the signed sub commits.
 ///
 /// # Arguments
 ///
@@ -155,24 +154,24 @@ fn cumulative_byte_length_table(bit_table: &[u32]) -> Vec<usize> {
 /// # Returns
 ///
 /// A vector containing the modified sub commits to be used by the dynamic Dory commitment computation.
-#[tracing::instrument(name = "modify_commits", level = "debug", skip_all)]
-fn modify_commits(
+#[tracing::instrument(name = "signed_commits", level = "debug", skip_all)]
+fn signed_commits(
     all_sub_commits: &Vec<G1Affine>,
     committable_columns: &[CommittableColumn],
 ) -> Vec<G1Affine> {
-    let mut signed_sub_commits: Vec<G1Affine> = Vec::new();
-    let mut offset_sub_commits: Vec<G1Affine> = Vec::new();
+    let mut unsigned_sub_commits: Vec<G1Affine> = Vec::new();
+    let mut min_sub_commits: Vec<G1Affine> = Vec::new();
     let mut counter = 0;
 
     // Every sub_commit has a corresponding offset sub_commit committable_columns.len() away.
-    // The commits and respective signed offset commits are interleaved in the all_sub_commits vector.
+    // The commits and respective ones commits are interleaved in the all_sub_commits vector.
     for commit in all_sub_commits {
         if counter < committable_columns.len() {
-            signed_sub_commits.push(*commit);
+            unsigned_sub_commits.push(*commit);
         } else {
             let min =
                 min_as_f(committable_columns[counter - committable_columns.len()].column_type());
-            offset_sub_commits.push(commit.mul(min).into_affine());
+            min_sub_commits.push(commit.mul(min).into_affine());
         }
         counter += 1;
         if counter == 2 * committable_columns.len() {
@@ -180,10 +179,10 @@ fn modify_commits(
         }
     }
 
-    signed_sub_commits
+    unsigned_sub_commits
         .into_iter()
-        .zip(offset_sub_commits.into_iter())
-        .map(|(signed, offset)| (signed + offset).into())
+        .zip(min_sub_commits.into_iter())
+        .map(|(unsigned, min)| (unsigned + min).into())
         .collect()
 }
 
@@ -196,14 +195,14 @@ fn modify_commits(
 /// * `start` - The start index of the slice.
 /// * `end` - The end index of the slice.
 /// * `index` - The index of the column.
-/// * `offset_idx` - The index of the signed offset.
+/// * `ones_index` - The index of the one used for signed columns.
 fn copy_column_data_to_slice(
     column: &CommittableColumn,
     scalar_row_slice: &mut [u8],
     start: usize,
     end: usize,
     index: usize,
-    offset_idx: usize,
+    ones_index: usize,
 ) {
     match column {
         CommittableColumn::Boolean(column) => {
@@ -212,27 +211,27 @@ fn copy_column_data_to_slice(
         CommittableColumn::TinyInt(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
 
-            scalar_row_slice[offset_idx] = 1_u8;
+            scalar_row_slice[ones_index] = 1_u8;
         }
         CommittableColumn::SmallInt(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
 
-            scalar_row_slice[offset_idx] = 1_u8;
+            scalar_row_slice[ones_index] = 1_u8;
         }
         CommittableColumn::Int(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
 
-            scalar_row_slice[offset_idx] = 1_u8;
+            scalar_row_slice[ones_index] = 1_u8;
         }
         CommittableColumn::BigInt(column) | CommittableColumn::TimestampTZ(_, _, column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
 
-            scalar_row_slice[offset_idx] = 1_u8;
+            scalar_row_slice[ones_index] = 1_u8;
         }
         CommittableColumn::Int128(column) => {
             scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
 
-            scalar_row_slice[offset_idx] = 1_u8;
+            scalar_row_slice[ones_index] = 1_u8;
         }
         CommittableColumn::Scalar(column)
         | CommittableColumn::Decimal75(_, _, column)
@@ -276,11 +275,11 @@ pub(super) fn compute_dynamic_dory_commitments(
     // Find the single packed byte size of all committable columns.
     let single_packed_byte_size = single_packed_byte_size(committable_columns);
 
-    // Get a single bit table entry with offsets of all committable columns.
-    let signed_offset_length = committable_columns.len();
-    let single_packed_byte_with_offset_size = single_packed_byte_size + signed_offset_length;
+    // Get a single bit table entry with ones added for all committable columns that are signed.
+    let signed_ones_length = committable_columns.len();
+    let single_packed_byte_with_ones_size = single_packed_byte_size + signed_ones_length;
     let single_bit_table_entry =
-        populate_single_bit_array_with_offsets(committable_columns, signed_offset_length);
+        populate_single_bit_array_with_ones(committable_columns, signed_ones_length);
 
     // Create the full bit table vector to be used by Blitzar's vlen_msm algorithm.
     let bit_table = populate_bit_table(&single_bit_table_entry, max_height);
@@ -293,7 +292,7 @@ pub(super) fn compute_dynamic_dory_commitments(
 
     // Create scalars array. Note, scalars need to be stored in a column-major order.
     let num_scalar_rows = max_width;
-    let num_scalar_columns = single_packed_byte_with_offset_size * max_height;
+    let num_scalar_columns = single_packed_byte_with_ones_size * max_height;
     let mut scalars = vec![0u8; num_scalar_rows * num_scalar_columns];
 
     // Populate the scalars array.
@@ -319,9 +318,9 @@ pub(super) fn compute_dynamic_dory_commitments(
                                 [i + scalar_col * single_bit_table_entry.len()];
                             let end = start + (single_bit_table_entry[i] / BYTE_SIZE) as usize;
 
-                            // For signed offset
-                            let offset_idx = i
-                                + scalar_col * single_packed_byte_with_offset_size
+                            // For signed ones
+                            let ones_index = i
+                                + scalar_col * single_packed_byte_with_ones_size
                                 + single_packed_byte_size;
 
                             copy_column_data_to_slice(
@@ -330,7 +329,7 @@ pub(super) fn compute_dynamic_dory_commitments(
                                 start,
                                 end,
                                 index,
-                                offset_idx,
+                                ones_index,
                             );
                         }
                     }
@@ -355,19 +354,19 @@ pub(super) fn compute_dynamic_dory_commitments(
 
     // Modify the sub commits to include the signed offset.
     let all_sub_commits: Vec<G1Affine> = slice_cast(&sub_commits_from_blitzar);
-    let sub_commits = modify_commits(&all_sub_commits, committable_columns);
+    let signed_sub_commits = signed_commits(&all_sub_commits, committable_columns);
 
     // Calculate the dynamic Dory commitments.
     assert!(
-        sub_commits.len() % committable_columns.len() == 0,
+        signed_sub_commits.len() % committable_columns.len() == 0,
         "Invalid number of sub commits"
     );
-    let num_commits = sub_commits.len() / committable_columns.len();
+    let num_commits = signed_sub_commits.len() / committable_columns.len();
 
     let span = span!(Level::INFO, "multi_pairing").entered();
     let ddc: Vec<DynamicDoryCommitment> = (0..committable_columns.len())
         .map(|i| {
-            let sub_slice = sub_commits[i..]
+            let sub_slice = signed_sub_commits[i..]
                 .iter()
                 .step_by(committable_columns.len())
                 .take(num_commits);
@@ -532,7 +531,7 @@ mod tests {
     }
 
     #[test]
-    fn we_can_populate_single_bit_array_with_offsets() {
+    fn we_can_populate_single_bit_array_with_ones() {
         let committable_columns = [
             CommittableColumn::TinyInt(&[0]),
             CommittableColumn::SmallInt(&[0, 1]),
@@ -568,9 +567,9 @@ mod tests {
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &[0, 1]),
         ];
 
-        let signed_offset_length = committable_columns.len();
+        let signed_ones_length = committable_columns.len();
         let single_bit_table_entry =
-            populate_single_bit_array_with_offsets(&committable_columns, signed_offset_length);
+            populate_single_bit_array_with_ones(&committable_columns, signed_ones_length);
         assert_eq!(
             single_bit_table_entry,
             vec![8, 16, 32, 64, 128, 256, 256, 256, 8, 64, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
@@ -615,9 +614,9 @@ mod tests {
         ];
 
         let max_height = 4;
-        let signed_offset_length = committable_columns.len();
+        let signed_ones_length = committable_columns.len();
         let single_bit_table_entry =
-            populate_single_bit_array_with_offsets(&committable_columns, signed_offset_length);
+            populate_single_bit_array_with_ones(&committable_columns, signed_ones_length);
         let bit_table = populate_bit_table(&single_bit_table_entry, max_height);
         assert_eq!(
             bit_table,
@@ -633,11 +632,11 @@ mod tests {
     #[test]
     fn we_can_populate_a_length_table() {
         let committable_column_len = 3;
-        let signed_value_offset = committable_column_len;
+        let ones = committable_column_len;
         let num_of_rows = 7;
 
-        let bit_table_len = (committable_column_len + signed_value_offset) * num_of_rows;
-        let single_bit_table_entry_len = committable_column_len + signed_value_offset;
+        let bit_table_len = (committable_column_len + ones) * num_of_rows;
+        let single_bit_table_entry_len = committable_column_len + ones;
 
         let length_table = populate_length_table(bit_table_len, single_bit_table_entry_len);
 
