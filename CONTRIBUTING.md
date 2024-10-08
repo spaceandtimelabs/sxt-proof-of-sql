@@ -65,13 +65,6 @@ To contribute to this project, you'll need to have Rust installed on your machin
      rustup component add clippy
      ```
 
-6. Start building.
-   - With Rust installed, you're now ready to start developing! You can create a new project by running:
-     ```bash
-     cargo new my_project
-     cd my_project
-     ```
-
 If you run into any issues, please refer to the [official Rust documentation](https://www.rust-lang.org/learn/get-started) for troubleshooting and more detailed installation instructions.
 
 ### <a name="fork-the-repository"></a> Fork the Repository
@@ -151,6 +144,23 @@ Before you submit your Pull Request (PR) consider the following guidelines:
     ```shell
     cargo test --all-features
     ```
+
+    <details>
+    <summary>
+    Workaround for non-Linux and/or non-GPU machines.
+    </summary>
+
+    * Workaround #1: enable the CPU version of Blitzar by setting the `BLITZAR_BACKEND` environment variable. Example:
+        ```bash
+        export BLITZAR_BACKEND=cpu
+        cargo test --all-features
+        ```
+    * Workaround #2: disable the `blitzar` feature in the repo. Example
+        ```bash
+        cargo test --no-default-features --features="arrow rayon ark-ec/parallel ark-poly/parallel ark-ff/asm"
+        ```
+
+    </details>
 
 5. <a name="code-quality-checks"></a>Run the following code quality checks locally so that the code is not only correct but also clean.
 
