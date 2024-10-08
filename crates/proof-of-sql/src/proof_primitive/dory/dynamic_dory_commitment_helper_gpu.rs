@@ -120,9 +120,7 @@ fn populate_length_table(bit_table_len: usize, single_bit_table_entry_len: usize
     );
 
     (0..bit_table_len / single_bit_table_entry_len)
-        .flat_map(|i| {
-            std::iter::repeat(full_width_of_row(i) as u32).take(single_bit_table_entry_len)
-        })
+        .flat_map(|i| itertools::repeat_n(full_width_of_row(i) as u32, single_bit_table_entry_len))
         .collect()
 }
 
@@ -136,7 +134,7 @@ fn populate_length_table(bit_table_len: usize, single_bit_table_entry_len: usize
 ///
 /// A vector containing the cumulative byte length of the bit table.
 fn cumulative_byte_length_table(bit_table: &[u32]) -> Vec<usize> {
-    std::iter::once(0)
+    iter::once(0)
         .chain(bit_table.iter().scan(0usize, |acc, &x| {
             *acc += (x / BYTE_SIZE) as usize;
             Some(*acc)
