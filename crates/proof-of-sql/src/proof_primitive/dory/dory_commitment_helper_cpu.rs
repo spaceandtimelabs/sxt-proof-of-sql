@@ -76,6 +76,7 @@ fn compute_dory_commitment(
         CommittableColumn::RangeCheckWord(column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
+        CommittableColumn::FixedSizeBinary(_, _) => todo!(),
     }
 }
 

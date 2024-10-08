@@ -16,6 +16,7 @@
 use super::{OwnedColumn, OwnedTable};
 use crate::base::scalar::Scalar;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::ops::Deref;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
