@@ -196,7 +196,7 @@ pub struct ColumnBoundsMismatch {
 
 /// Column metadata storing the bounds for column types that have order.
 ///
-/// Other Ord column variants do exist (like Scalar/Boolean).
+/// Other Ord column variants do exist (like Scalar/Boolean, FixedSizeBinary, etc).
 /// However, bounding these is useless unless we are performing indexing on these columns.
 /// This functionality only be considered after we support them in the user-facing sql.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -236,7 +236,8 @@ impl ColumnBounds {
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
             | CommittableColumn::VarChar(_)
-            | CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
+            | CommittableColumn::RangeCheckWord(_)
+            | CommittableColumn::FixedSizeBinary(_, _) => ColumnBounds::NoOrder,
         }
     }
 

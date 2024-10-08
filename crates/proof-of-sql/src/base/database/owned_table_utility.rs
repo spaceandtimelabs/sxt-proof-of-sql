@@ -283,3 +283,53 @@ pub fn timestamptz<S: Scalar>(
         OwnedColumn::TimestampTZ(time_unit, timezone, data.into_iter().collect()),
     )
 }
+
+/// Creates a `(Identifier, OwnedColumn)` pair for a fixed-size binary column.
+/// This is primarily intended for use in conjunction with [`owned_table`].
+///
+/// # Parameters
+/// - `name`: The name of the column.
+/// - `byte_width`: The fixed byte width for each binary entry.
+/// - `data`: The data for the column, provided as an iterator over byte slices.
+///
+/// # Example
+/// ```
+/// use proof_of_sql::base::{database::owned_table_utility::*,
+///     scalar::Curve25519Scalar,
+/// };
+///
+/// let result = owned_table::<Curve25519Scalar>([
+///     fixed_size_binary("binary_data", 16, vec![
+///         vec![0u8; 16], // Example 16-byte entries
+///         vec![1u8; 16],
+///         vec![2u8; 16],
+///     ]),
+/// ]);
+/// ```
+///
+/// # Panics
+/// - Panics if `name.parse()` fails to convert the name into an `Identifier`.
+/// - Panics if any data entry does not match the specified `byte_width`.
+pub fn fixed_size_binary<S: Scalar>(
+    name: impl Deref<Target = str>,
+    byte_width: usize,
+    data: impl IntoIterator<Item = impl AsRef<[u8]>>,
+) -> (Identifier, OwnedColumn<S>) {
+    let binary_data: Vec<u8> = data
+        .into_iter()
+        .flat_map(|entry| {
+            let bytes = entry.as_ref();
+            assert_eq!(
+                bytes.len(),
+                byte_width,
+                "Data entry does not match byte width"
+            );
+            bytes.to_vec()
+        })
+        .collect();
+
+    (
+        name.parse().unwrap(),
+        OwnedColumn::FixedSizeBinary(byte_width as i32, binary_data),
+    )
+}

@@ -54,7 +54,8 @@ impl ColumnCommitmentMetadata {
                 ColumnType::Boolean
                 | ColumnType::VarChar
                 | ColumnType::Scalar
-                | ColumnType::Decimal75(..),
+                | ColumnType::Decimal75(..)
+                | ColumnType::FixedSizeBinary(_),
                 ColumnBounds::NoOrder,
             ) => Ok(ColumnCommitmentMetadata {
                 column_type,
@@ -286,6 +287,18 @@ mod tests {
                 bounds: ColumnBounds::NoOrder
             }
         );
+
+        assert_eq!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::FixedSizeBinary(16),
+                ColumnBounds::NoOrder
+            )
+            .unwrap(),
+            ColumnCommitmentMetadata {
+                column_type: ColumnType::FixedSizeBinary(16),
+                bounds: ColumnBounds::NoOrder
+            }
+        );
     }
 
     #[test]
@@ -373,6 +386,21 @@ mod tests {
             ),
             Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
         ));
+
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::FixedSizeBinary(16),
+                ColumnBounds::BigInt(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
+        ));
+        assert!(matches!(
+            ColumnCommitmentMetadata::try_new(
+                ColumnType::FixedSizeBinary(16),
+                ColumnBounds::Int128(Bounds::Empty)
+            ),
+            Err(InvalidColumnCommitmentMetadata::TypeBoundsMismatch { .. })
+        ));
     }
 
     #[test]
@@ -426,6 +454,26 @@ mod tests {
         let varchar_metadata = ColumnCommitmentMetadata::from_column(&committable_varchar_column);
         assert_eq!(varchar_metadata.column_type(), &ColumnType::VarChar);
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
+
+        let byte_width = 16;
+        let fixed_size_binary_data = vec![
+            vec![0u8; byte_width],
+            vec![1u8; byte_width],
+            vec![2u8; byte_width],
+        ];
+        let fixed_size_binary_column = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width as i32,
+            fixed_size_binary_data.concat(),
+        );
+        let committable_fixed_size_binary_column =
+            CommittableColumn::from(&fixed_size_binary_column);
+        let fixed_size_binary_metadata =
+            ColumnCommitmentMetadata::from_column(&committable_fixed_size_binary_column);
+        assert_eq!(
+            fixed_size_binary_metadata.column_type(),
+            &ColumnType::FixedSizeBinary(byte_width as i32)
+        );
+        assert_eq!(fixed_size_binary_metadata.bounds(), &ColumnBounds::NoOrder);
 
         let bigint_column = OwnedColumn::<Curve25519Scalar>::BigInt([1, 2, 3, 1, 0].to_vec());
         let committable_bigint_column = CommittableColumn::from(&bigint_column);
@@ -996,6 +1044,135 @@ mod tests {
             .is_err());
         assert!(timestamp_tz_metadata_b
             .try_difference(timestamp_tz_metadata_a)
+            .is_err());
+
+        let fixed_size_binary_metadata = ColumnCommitmentMetadata {
+            column_type: ColumnType::FixedSizeBinary(16), // Example byte width
+            bounds: ColumnBounds::NoOrder,
+        };
+
+        // Ensure FixedSizeBinary cannot be unioned with other types
+        assert!(fixed_size_binary_metadata
+            .try_union(boolean_metadata)
+            .is_err());
+        assert!(boolean_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(varchar_metadata)
+            .is_err());
+        assert!(varchar_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(scalar_metadata)
+            .is_err());
+        assert!(scalar_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(tinyint_metadata)
+            .is_err());
+        assert!(tinyint_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(smallint_metadata)
+            .is_err());
+        assert!(smallint_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata.try_union(int_metadata).is_err());
+        assert!(int_metadata.try_union(fixed_size_binary_metadata).is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(bigint_metadata)
+            .is_err());
+        assert!(bigint_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(int128_metadata)
+            .is_err());
+        assert!(int128_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_union(decimal75_metadata)
+            .is_err());
+        assert!(decimal75_metadata
+            .try_union(fixed_size_binary_metadata)
+            .is_err());
+
+        // Ensure FixedSizeBinary cannot be differenced with other types
+        assert!(fixed_size_binary_metadata
+            .try_difference(boolean_metadata)
+            .is_err());
+        assert!(boolean_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(varchar_metadata)
+            .is_err());
+        assert!(varchar_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(scalar_metadata)
+            .is_err());
+        assert!(scalar_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(tinyint_metadata)
+            .is_err());
+        assert!(tinyint_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(smallint_metadata)
+            .is_err());
+        assert!(smallint_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(int_metadata)
+            .is_err());
+        assert!(int_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(bigint_metadata)
+            .is_err());
+        assert!(bigint_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(int128_metadata)
+            .is_err());
+        assert!(int128_metadata
+            .try_difference(fixed_size_binary_metadata)
+            .is_err());
+
+        assert!(fixed_size_binary_metadata
+            .try_difference(decimal75_metadata)
+            .is_err());
+        assert!(decimal75_metadata
+            .try_difference(fixed_size_binary_metadata)
             .is_err());
     }
 }

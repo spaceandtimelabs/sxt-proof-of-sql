@@ -2,9 +2,9 @@ use super::scalar_and_i256_conversions::convert_i256_to_scalar;
 use crate::base::{database::Column, math::decimal::Precision, scalar::Scalar};
 use arrow::{
     array::{
-        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray,
+        Array, ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray,
+        Int16Array, Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
+        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, TimeUnit as ArrowTimeUnit},
 };
@@ -368,6 +368,18 @@ impl ArrayRefExt for ArrayRef {
                     };
 
                     Ok(Column::VarChar((vals, scals)))
+                } else {
+                    Err(ArrowArrayToColumnConversionError::UnsupportedType {
+                        datatype: self.data_type().clone(),
+                    })
+                }
+            }
+            DataType::FixedSizeBinary(byte_width) => {
+                if let Some(array) = self.as_any().downcast_ref::<FixedSizeBinaryArray>() {
+                    let start_byte = range.start * *byte_width as usize;
+                    let end_byte = range.end * *byte_width as usize;
+                    let byte_slice = &array.values()[start_byte..end_byte];
+                    Ok(Column::FixedSizeBinary(*byte_width, byte_slice))
                 } else {
                     Err(ArrowArrayToColumnConversionError::UnsupportedType {
                         datatype: self.data_type().clone(),

@@ -16,6 +16,17 @@ pub enum ColumnOperationError {
         len_b: usize,
     },
 
+    /// Mismatched byte sizes in FixedSizeBinary columns
+    #[snafu(display(
+        "FixedSizeBinary columns have different byte sizes: {byte_size_a} != {byte_size_b}"
+    ))]
+    FixedSizeBinaryByteSizeMismatch {
+        /// Byte size of the first column
+        byte_size_a: i32,
+        /// Byte size of the second column
+        byte_size_b: i32,
+    },
+
     /// Incorrect `ColumnType` in binary operations
     #[snafu(display("{operator:?}(lhs: {left_type:?}, rhs: {right_type:?}) is not supported"))]
     BinaryOperationInvalidColumnType {

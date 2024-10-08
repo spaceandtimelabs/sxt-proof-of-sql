@@ -13,8 +13,8 @@ use proof_of_sql::{
         commitment::TableCommitment,
         database::{
             owned_table_utility::{
-                bigint, boolean, decimal75, int, int128, owned_table, scalar, smallint,
-                timestamptz, tinyint, varchar,
+                bigint, boolean, decimal75, fixed_size_binary, int, int128, owned_table, scalar,
+                smallint, timestamptz, tinyint, varchar,
             },
             OwnedTable,
         },
@@ -90,6 +90,7 @@ pub fn generate_random_owned_table<S: Scalar>(
         "smallint",
         "int",
         "timestamptz",
+        "fixed_size_binary",
     ];
 
     let mut columns = Vec::new();
@@ -131,6 +132,13 @@ pub fn generate_random_owned_table<S: Scalar>(
                 PoSQLTimeZone::Utc,
                 vec![rng.gen::<i64>(); num_rows],
             )),
+            "fixedsizebinary" => {
+                let byte_width = 16;
+                let data: Vec<Vec<u8>> = (0..num_rows)
+                    .map(|_| (0..byte_width).map(|_| rng.gen::<u8>()).collect())
+                    .collect();
+                columns.push(fixed_size_binary(identifier.deref(), byte_width, data));
+            }
             _ => unreachable!(),
         }
     }

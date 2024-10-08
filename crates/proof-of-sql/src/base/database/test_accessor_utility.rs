@@ -1,9 +1,9 @@
 use crate::base::database::ColumnType;
 use arrow::{
     array::{
-        Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray,
+        Array, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray, Int16Array,
+        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
+        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Field, Schema, TimeUnit},
     record_batch::RecordBatch,
@@ -162,6 +162,25 @@ pub fn make_random_test_accessor_data(
                     }
                 };
                 columns.push(timestamp_array);
+            }
+            ColumnType::FixedSizeBinary(byte_width) => {
+                column_fields.push(Field::new(
+                    *col_name,
+                    DataType::FixedSizeBinary(*byte_width),
+                    false,
+                ));
+
+                // Generate random binary data
+                let binary_values: Vec<Vec<u8>> = (0..n)
+                    .map(|_| (0..*byte_width).map(|_| rng.gen::<u8>()).collect())
+                    .collect();
+
+                let flat_binary_values: Vec<u8> = binary_values.iter().flatten().cloned().collect();
+
+                columns.push(Arc::new(
+                    FixedSizeBinaryArray::try_from_iter(flat_binary_values.chunks(*byte_width))
+                        .unwrap(),
+                ));
             }
         }
     }

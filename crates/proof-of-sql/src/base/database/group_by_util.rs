@@ -157,7 +157,10 @@ pub(crate) fn sum_aggregate_column_by_index_counts<'a, S: Scalar>(
         }
         Column::Scalar(col) => sum_aggregate_slice_by_index_counts(alloc, col, counts, indexes),
         // The following should never be reached because the `SUM` function can only be applied to numeric types.
-        Column::VarChar(_) | Column::TimestampTZ(_, _, _) | Column::Boolean(_) => {
+        Column::VarChar(_)
+        | Column::TimestampTZ(_, _, _)
+        | Column::Boolean(_)
+        | Column::FixedSizeBinary(_, _) => {
             unreachable!("SUM can not be applied to non-numeric types")
         }
     }
@@ -192,6 +195,9 @@ pub(crate) fn max_aggregate_column_by_index_counts<'a, S: Scalar>(
         Column::VarChar(_) => {
             unreachable!("MAX can not be applied to varchar")
         }
+        Column::FixedSizeBinary(_, _) => {
+            unreachable!("MAX can not be applied to fixed size binary")
+        }
     }
 }
 
@@ -223,6 +229,9 @@ pub(crate) fn min_aggregate_column_by_index_counts<'a, S: Scalar>(
         // The following should never be reached because the `MIN` function can't be applied to varchar.
         Column::VarChar(_) => {
             unreachable!("MIN can not be applied to varchar")
+        }
+        Column::FixedSizeBinary(_, _) => {
+            unreachable!("MIN can not be applied to fixed size binary")
         }
     }
 }
@@ -370,6 +379,7 @@ pub(crate) fn compare_indexes_by_columns<S: Scalar>(
             Column::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             Column::Scalar(col) => col[i].cmp(&col[j]),
             Column::VarChar((col, _)) => col[i].cmp(col[j]),
+            Column::FixedSizeBinary(_, _) => unreachable!("FixedSizeBinary can't be ordered"),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)
@@ -396,6 +406,7 @@ pub(crate) fn compare_indexes_by_owned_columns<S: Scalar>(
             OwnedColumn::Decimal75(_, _, col) => col[i].signed_cmp(&col[j]),
             OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
             OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+            OwnedColumn::FixedSizeBinary(_, _) => unreachable!("FixedSizeBinary can't be ordered"),
         })
         .find(|&ord| ord != Ordering::Equal)
         .unwrap_or(Ordering::Equal)

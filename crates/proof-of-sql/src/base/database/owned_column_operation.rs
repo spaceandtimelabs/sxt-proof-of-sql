@@ -584,6 +584,15 @@ impl<S: Scalar> OwnedColumn<S> {
             }
             (Self::Boolean(lhs), Self::Boolean(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
             (Self::Scalar(lhs), Self::Scalar(rhs)) => Ok(Self::Boolean(slice_ge(lhs, rhs))),
+            (Self::FixedSizeBinary(lhs_width, lhs), Self::FixedSizeBinary(rhs_width, rhs)) => {
+                if lhs_width != rhs_width {
+                    return Err(ColumnOperationError::FixedSizeBinaryByteSizeMismatch {
+                        byte_size_a: *lhs_width,
+                        byte_size_b: *rhs_width,
+                    });
+                }
+                Ok(Self::Boolean(slice_eq(lhs, rhs)))
+            }
             (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
                 todo!("Implement inequality check for TimeStampTZ")
             }
@@ -779,6 +788,15 @@ impl<S: Scalar> Add for OwnedColumn<S> {
                     rhs.column_type(),
                 )?;
                 Ok(Self::Decimal75(new_precision, new_scale, new_values))
+            }
+            (Self::FixedSizeBinary(lhs_width, lhs), Self::FixedSizeBinary(rhs_width, rhs)) => {
+                if lhs_width != rhs_width {
+                    return Err(ColumnOperationError::FixedSizeBinaryByteSizeMismatch {
+                        byte_size_a: *lhs_width,
+                        byte_size_b: *rhs_width,
+                    });
+                }
+                Ok(Self::Boolean(slice_le(lhs, rhs)))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::Add,
@@ -1615,6 +1633,40 @@ mod test {
                 true, false, true
             ]))
         );
+
+        let byte_width = 16;
+        let lhs_data = vec![
+            vec![0u8; byte_width],
+            vec![1u8; byte_width],
+            vec![2u8; byte_width],
+        ];
+        let rhs_data = vec![
+            vec![0u8; byte_width],
+            vec![2u8; byte_width],
+            vec![2u8; byte_width],
+        ];
+
+        // Concatenate the data to match the expected format
+        let lhs_concatenated: Vec<u8> = lhs_data.concat();
+        let rhs_concatenated: Vec<u8> = rhs_data.concat();
+
+        // Create OwnedColumn instances
+        let lhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width as i32,
+            lhs_concatenated.clone(),
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width as i32,
+            rhs_concatenated.clone(),
+        );
+
+        let result = lhs.element_wise_eq(&rhs);
+        assert_eq!(
+            result,
+            Ok(OwnedColumn::<Curve25519Scalar>::Boolean(vec![
+                true, false, true
+            ]))
+        );
     }
 
     #[test]
@@ -1849,6 +1901,51 @@ mod test {
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
+
+        let byte_width = 16;
+        let lhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width,
+            vec![0u8; byte_width as usize * 3],
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::TinyInt(vec![1, 2, 3]);
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let rhs = OwnedColumn::<Curve25519Scalar>::Int(vec![1, 2, 3]);
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
+            ["Space", "and", "Time"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let lhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width,
+            vec![0u8; byte_width as usize * 3],
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width + 1,
+            vec![0u8; (byte_width as usize + 1) * 3],
+        );
+        let result = lhs.element_wise_le(&rhs);
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::FixedSizeBinaryByteSizeMismatch { .. })
+        ));
     }
 
     #[test]
@@ -1864,6 +1961,43 @@ mod test {
             Curve25519Scalar::from(2),
             Curve25519Scalar::from(3),
         ]);
+        let result = lhs.clone() + rhs.clone();
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.clone() - rhs.clone();
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs.clone() * rhs.clone();
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let result = lhs / rhs;
+        assert!(matches!(
+            result,
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let byte_width = 16; // Example byte width
+
+        // FixedSizeBinary cannot be used in arithmetic operations
+        let lhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
+            byte_width,
+            vec![0u8; byte_width as usize * 3],
+        );
+        let rhs = OwnedColumn::<Curve25519Scalar>::Scalar(vec![
+            Curve25519Scalar::from(1),
+            Curve25519Scalar::from(2),
+            Curve25519Scalar::from(3),
+        ]);
+
         let result = lhs.clone() + rhs.clone();
         assert!(matches!(
             result,

@@ -384,6 +384,56 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
 }
 
 #[test]
+#[cfg(feature = "blitzar")]
+fn we_can_prove_a_basic_equality_with_out_of_order_results_with_fixed_size_binary() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    let byte_width = 16;
+
+    // Add a table with a FixedSizeBinary column
+    accessor.add_table(
+        "public.test_table".parse().unwrap(),
+        owned_table([
+            fixed_size_binary(
+                "binary_data",
+                [vec![0u8; byte_width], vec![1u8; byte_width]],
+            ),
+            int128("amount", [115, -79]),
+        ]),
+        0,
+    );
+
+    // Query to select rows where binary_data matches a specific pattern
+    let query = QueryExpr::try_new(
+        "select binary_data, amount from public.test_table where binary_data = ?;"
+            .parse()
+            .unwrap(),
+        "public".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+
+    // Assuming you have a way to set the parameter for the query
+    query.set_parameter(0, vec![1u8; byte_width]);
+
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let transformed_result: OwnedTable<Curve25519Scalar> =
+        apply_postprocessing_steps(owned_table_result, query.postprocessing()).unwrap();
+
+    // Expected result with the matching FixedSizeBinary entry
+    let expected_result = owned_table([
+        fixed_size_binary("binary_data", [vec![1u8; byte_width]]),
+        int128("amount", [-79]),
+    ]);
+
+    assert_eq!(transformed_result, expected_result);
+}
+
+#[test]
 fn we_can_prove_a_basic_inequality_query_with_dory() {
     let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);

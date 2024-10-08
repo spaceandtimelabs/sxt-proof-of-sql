@@ -1043,6 +1043,13 @@ mod test {
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
+
+        let lhs = ColumnType::FixedSizeBinary(10);
+        let rhs = ColumnType::FixedSizeBinary(10);
+        assert!(matches!(
+            try_add_subtract_column_types(lhs, rhs, BinaryOperator::Add),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
     }
 
     #[test]
@@ -1178,6 +1185,13 @@ mod test {
             try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
         ));
+
+        let lhs = ColumnType::FixedSizeBinary(10);
+        let rhs = ColumnType::FixedSizeBinary(10);
+        assert!(matches!(
+            try_add_subtract_column_types(lhs, rhs, BinaryOperator::Subtract),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
     }
 
     #[test]
@@ -1309,6 +1323,13 @@ mod test {
 
         let lhs = ColumnType::VarChar;
         let rhs = ColumnType::VarChar;
+        assert!(matches!(
+            try_multiply_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let lhs = ColumnType::FixedSizeBinary(10);
+        let rhs = ColumnType::FixedSizeBinary(10);
         assert!(matches!(
             try_multiply_column_types(lhs, rhs),
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
@@ -1471,6 +1492,13 @@ mod test {
 
         let lhs = ColumnType::Scalar;
         let rhs = ColumnType::Scalar;
+        assert!(matches!(
+            try_divide_column_types(lhs, rhs),
+            Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
+        ));
+
+        let lhs = ColumnType::FixedSizeBinary(10);
+        let rhs = ColumnType::FixedSizeBinary(10);
         assert!(matches!(
             try_divide_column_types(lhs, rhs),
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })

@@ -46,6 +46,9 @@ pub enum CommittableColumn<'a> {
     /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
+    /// Borrowed FixedSizeBinary column, mapped to a slice of bytes.
+    /// - The i32 specifies the number of bytes per value.
+    FixedSizeBinary(i32, &'a [u8]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -63,6 +66,10 @@ impl<'a> CommittableColumn<'a> {
             | CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::RangeCheckWord(col) => col.len(),
+            CommittableColumn::FixedSizeBinary(byte_width, col) => {
+                assert!(*byte_width > 0, "Byte width must be greater than zero");
+                col.len() / *byte_width as usize
+            }
         }
     }
 
@@ -94,6 +101,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
             CommittableColumn::RangeCheckWord(_) => {
                 unimplemented!("Range check words are not a column type.")
             }
@@ -120,6 +128,9 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 CommittableColumn::VarChar(as_limbs)
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
+            Column::FixedSizeBinary(byte_width, bytes) => {
+                CommittableColumn::FixedSizeBinary(*byte_width, bytes)
+            }
         }
     }
 }
@@ -158,6 +169,9 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             ),
             OwnedColumn::TimestampTZ(tu, tz, times) => {
                 CommittableColumn::TimestampTZ(*tu, *tz, times as &[_])
+            }
+            OwnedColumn::FixedSizeBinary(byte_width, bytes) => {
+                CommittableColumn::FixedSizeBinary(*byte_width, bytes)
             }
         }
     }
@@ -221,6 +235,8 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
+            // FIXME: Is this the correct way to convert a FixedSizeBinary column to a Sequence?
+            CommittableColumn::FixedSizeBinary(_, bytes) => Sequence::from(*bytes),
         }
     }
 }
@@ -403,6 +419,37 @@ mod tests {
         assert_eq!(bigint_committable_column.len(), 3);
         assert!(!bigint_committable_column.is_empty());
         assert_eq!(bigint_committable_column.column_type(), ColumnType::VarChar);
+    }
+
+    #[test]
+    fn we_can_get_type_and_length_of_fixed_size_binary_column() {
+        let byte_width = 16; // Example byte width
+
+        // Empty case
+        let fixed_size_binary_committable_column =
+            CommittableColumn::FixedSizeBinary(byte_width, &[]);
+        assert_eq!(fixed_size_binary_committable_column.len(), 0);
+        assert!(fixed_size_binary_committable_column.is_empty());
+        assert_eq!(
+            fixed_size_binary_committable_column.column_type(),
+            ColumnType::FixedSizeBinary(byte_width)
+        );
+
+        // Non-empty case
+        let fixed_size_binary_data = vec![
+            vec![0u8; byte_width as usize],
+            vec![1u8; byte_width as usize],
+            vec![2u8; byte_width as usize],
+        ];
+        let concatenated_data: Vec<u8> = fixed_size_binary_data.concat();
+        let fixed_size_binary_committable_column =
+            CommittableColumn::FixedSizeBinary(byte_width, &concatenated_data);
+        assert_eq!(fixed_size_binary_committable_column.len(), 3);
+        assert!(!fixed_size_binary_committable_column.is_empty());
+        assert_eq!(
+            fixed_size_binary_committable_column.column_type(),
+            ColumnType::FixedSizeBinary(byte_width)
+        );
     }
 
     #[test]
@@ -591,6 +638,35 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_borrowing_fixed_size_binary_column() {
+        let byte_width = 16;
+
+        // Empty case
+        let from_borrowed_column = CommittableColumn::from(
+            &Column::<Curve25519Scalar>::FixedSizeBinary(byte_width, &[]),
+        );
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::FixedSizeBinary(byte_width, &[])
+        );
+
+        // Non-empty case
+        let fixed_size_binary_data = vec![
+            vec![0u8; byte_width as usize],
+            vec![1u8; byte_width as usize],
+            vec![2u8; byte_width as usize],
+        ];
+        let concatenated_data: Vec<u8> = fixed_size_binary_data.concat();
+        let from_borrowed_column = CommittableColumn::from(
+            &Column::<Curve25519Scalar>::FixedSizeBinary(byte_width, &concatenated_data),
+        );
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::FixedSizeBinary(byte_width, &concatenated_data)
+        );
+    }
+
+    #[test]
     fn we_can_convert_from_borrowing_scalar_column() {
         // empty case
         let from_borrowed_column =
@@ -729,6 +805,34 @@ mod tests {
                     .map(<[u64; 4]>::from)
                     .into()
             )
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_owned_fixed_size_binary_column() {
+        let byte_width = 16;
+
+        // Empty case
+        let owned_column = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(byte_width, Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(
+            from_owned_column,
+            CommittableColumn::FixedSizeBinary(byte_width, &[])
+        );
+
+        // Non-empty case
+        let fixed_size_binary_data = vec![
+            vec![0u8; byte_width as usize],
+            vec![1u8; byte_width as usize],
+            vec![2u8; byte_width as usize],
+        ];
+        let concatenated_data: Vec<u8> = fixed_size_binary_data.concat();
+        let owned_column =
+            OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(byte_width, concatenated_data.clone());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(
+            from_owned_column,
+            CommittableColumn::FixedSizeBinary(byte_width, &concatenated_data)
         );
     }
 
@@ -955,6 +1059,37 @@ mod tests {
         let sequence_actual = Sequence::from(&committable_column);
         let scalars = values.map(Curve25519Scalar::from).map(<[u64; 4]>::from);
         let sequence_expected = Sequence::from(scalars.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_fixed_size_binary_column_through_committable_column() {
+        let byte_width = 16;
+
+        // Empty case
+        let committable_column = CommittableColumn::FixedSizeBinary(byte_width, &[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // Non-empty case
+        let fixed_size_binary_data = vec![
+            vec![0u8; byte_width as usize],
+            vec![1u8; byte_width as usize],
+            vec![2u8; byte_width as usize],
+        ];
+        let concatenated_data: Vec<u8> = fixed_size_binary_data.concat();
+        let committable_column = CommittableColumn::FixedSizeBinary(byte_width, &concatenated_data);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(concatenated_data.as_slice());
         let mut commitment_buffer = [CompressedRistretto::default(); 2];
         compute_curve25519_commitments(
             &mut commitment_buffer,

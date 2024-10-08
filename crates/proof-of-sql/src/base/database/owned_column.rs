@@ -44,6 +44,9 @@ pub enum OwnedColumn<S: Scalar> {
     Scalar(Vec<S>),
     /// Timestamp columns
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, Vec<i64>),
+    /// Fixed size binary columns
+    /// - the i32 specifies the number of bytes per value
+    FixedSizeBinary(i32, Vec<u8>),
 }
 
 impl<S: Scalar> OwnedColumn<S> {
@@ -59,6 +62,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::VarChar(col) => col.len(),
             OwnedColumn::Int128(col) => col.len(),
             OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.len(),
+            OwnedColumn::FixedSizeBinary(byte_width, col) => {
+                assert!(*byte_width > 0, "Byte width must be greater than zero");
+                col.len() / *byte_width as usize
+            }
         }
     }
 
@@ -78,6 +85,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::Scalar(col) => OwnedColumn::Scalar(permutation.try_apply(col)?),
             OwnedColumn::TimestampTZ(tu, tz, col) => {
                 OwnedColumn::TimestampTZ(*tu, *tz, permutation.try_apply(col)?)
+            }
+            OwnedColumn::FixedSizeBinary(byte_width, col) => {
+                // FIXME: Would that work for all FixedSizeBinary cases?
+                OwnedColumn::FixedSizeBinary(*byte_width, permutation.try_apply(col)?)
             }
         })
     }
@@ -100,6 +111,11 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(tu, tz, col) => {
                 OwnedColumn::TimestampTZ(*tu, *tz, col[start..end].to_vec())
             }
+            OwnedColumn::FixedSizeBinary(byte_width, col) => {
+                let start_byte = start * *byte_width as usize;
+                let end_byte = end * *byte_width as usize;
+                OwnedColumn::FixedSizeBinary(*byte_width, col[start_byte..end_byte].to_vec())
+            }
         }
     }
 
@@ -115,6 +131,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::VarChar(col) => col.is_empty(),
             OwnedColumn::Int128(col) => col.is_empty(),
             OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
+            OwnedColumn::FixedSizeBinary(_, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
@@ -133,6 +150,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 ColumnType::Decimal75(*precision, *scale)
             }
             OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            OwnedColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
         }
     }
 
@@ -207,6 +225,11 @@ impl<S: Scalar> OwnedColumn<S> {
                     })?;
                 Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
             }
+            // Can not convert scalars to FixedSizeBinary
+            ColumnType::FixedSizeBinary(byte_width) => Err(OwnedColumnError::TypeCastError {
+                from_type: ColumnType::Scalar,
+                to_type: ColumnType::FixedSizeBinary(byte_width),
+            }),
             // Can not convert scalars to VarChar
             ColumnType::VarChar => Err(OwnedColumnError::TypeCastError {
                 from_type: ColumnType::Scalar,
@@ -321,6 +344,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
             }
             Column::Scalar(col) => OwnedColumn::Scalar(col.to_vec()),
             Column::TimestampTZ(tu, tz, col) => OwnedColumn::TimestampTZ(*tu, *tz, col.to_vec()),
+            Column::FixedSizeBinary(size, col) => OwnedColumn::FixedSizeBinary(*size, col.to_vec()),
         }
     }
 }
@@ -347,6 +371,7 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
                 OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
                 OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
                 OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+                OwnedColumn::FixedSizeBinary(_, col) => col[i].cmp(&col[j]),
             };
             match direction {
                 OrderByDirection::Asc => ordering,

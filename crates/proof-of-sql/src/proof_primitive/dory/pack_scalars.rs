@@ -65,7 +65,8 @@ const fn min_as_f(column_type: ColumnType) -> F {
         ColumnType::Decimal75(_, _)
         | ColumnType::Scalar
         | ColumnType::VarChar
-        | ColumnType::Boolean => MontFp!("0"),
+        | ColumnType::Boolean
+        | ColumnType::FixedSizeBinary(_) => MontFp!("0"),
     }
 }
 
@@ -462,6 +463,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     cumulative_bit_sum_table[i],
                     offset,
                     committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
+            CommittableColumn::FixedSizeBinary(byte_width, column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
+                    *byte_width as usize,
                     bit_table_full_sum_in_bytes,
                     num_matrix_commitment_columns,
                 );
