@@ -46,7 +46,7 @@ pub enum CommittableColumn<'a> {
     /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
-    /// Borrowed FixedSizeBinary column, mapped to a slice of bytes.
+    /// Borrowed `FixedSizeBinary` column, mapped to a slice of bytes.
     /// - The i32 specifies the number of bytes per value.
     FixedSizeBinary(i32, &'a [u8]),
 }
@@ -54,6 +54,7 @@ pub enum CommittableColumn<'a> {
 impl<'a> CommittableColumn<'a> {
     /// Returns the length of the column.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn len(&self) -> usize {
         match self {
             CommittableColumn::TinyInt(col) => col.len(),
@@ -436,7 +437,7 @@ mod tests {
         );
 
         // Non-empty case
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width as usize],
             vec![1u8; byte_width as usize],
             vec![2u8; byte_width as usize],
@@ -651,7 +652,7 @@ mod tests {
         );
 
         // Non-empty case
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width as usize],
             vec![1u8; byte_width as usize],
             vec![2u8; byte_width as usize],
@@ -821,7 +822,7 @@ mod tests {
         );
 
         // Non-empty case
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width as usize],
             vec![1u8; byte_width as usize],
             vec![2u8; byte_width as usize],
@@ -1080,7 +1081,7 @@ mod tests {
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // Non-empty case
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width as usize],
             vec![1u8; byte_width as usize],
             vec![2u8; byte_width as usize],

@@ -16,7 +16,7 @@ pub enum ColumnOperationError {
         len_b: usize,
     },
 
-    /// Mismatched byte sizes in FixedSizeBinary columns
+    /// Mismatched byte sizes in `FixedSizeBinary` columns
     #[snafu(display(
         "FixedSizeBinary columns have different byte sizes: {byte_size_a} != {byte_size_b}"
     ))]

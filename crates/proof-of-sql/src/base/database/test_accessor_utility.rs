@@ -12,6 +12,7 @@ use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
 use rand::{
     distributions::{Distribution, Uniform},
     rngs::StdRng,
+    Rng,
 };
 use std::sync::Arc;
 
@@ -175,11 +176,13 @@ pub fn make_random_test_accessor_data(
                     .map(|_| (0..*byte_width).map(|_| rng.gen::<u8>()).collect())
                     .collect();
 
-                let flat_binary_values: Vec<u8> = binary_values.iter().flatten().cloned().collect();
+                let flat_binary_values: Vec<u8> = binary_values.iter().flatten().copied().collect();
 
                 columns.push(Arc::new(
-                    FixedSizeBinaryArray::try_from_iter(flat_binary_values.chunks(*byte_width))
-                        .unwrap(),
+                    FixedSizeBinaryArray::try_from_iter(
+                        flat_binary_values.chunks(*byte_width as usize),
+                    )
+                    .unwrap(),
                 ));
             }
         }

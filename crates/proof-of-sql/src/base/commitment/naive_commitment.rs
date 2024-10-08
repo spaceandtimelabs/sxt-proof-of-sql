@@ -156,7 +156,7 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::FixedSizeBinary(byte_width, bytes) => bytes
                         // Chunk the bytes into `byte_width`-sized chunks and convert each chunk into a scalar
                         .chunks(*byte_width as usize)
-                        .map(|chunk| TestScalar::from(chunk))
+                        .map(TestScalar::from)
                         .collect(),
                 };
                 vectors.append(&mut existing_scalars);

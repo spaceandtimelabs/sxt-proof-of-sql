@@ -52,6 +52,7 @@ pub enum OwnedColumn<S: Scalar> {
 impl<S: Scalar> OwnedColumn<S> {
     /// Returns the length of the column.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn len(&self) -> usize {
         match self {
             OwnedColumn::Boolean(col) => col.len(),

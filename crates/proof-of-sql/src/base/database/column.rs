@@ -1024,7 +1024,7 @@ mod tests {
         assert!(!column.is_empty());
 
         let byte_width = 16;
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width],
             vec![1u8; byte_width],
             vec![2u8; byte_width],
@@ -1130,7 +1130,7 @@ mod tests {
 
         // FixedSizeBinary
         let byte_width = 16;
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width],
             vec![1u8; byte_width],
             vec![2u8; byte_width],
@@ -1206,7 +1206,7 @@ mod tests {
         assert_eq!(column.column_type().bit_size(), 64);
 
         let byte_width: usize = 16;
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width],
             vec![1u8; byte_width],
             vec![2u8; byte_width],

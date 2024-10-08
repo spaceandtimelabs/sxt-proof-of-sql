@@ -1635,12 +1635,12 @@ mod test {
         );
 
         let byte_width = 16;
-        let lhs_data = vec![
+        let lhs_data = [
             vec![0u8; byte_width],
             vec![1u8; byte_width],
             vec![2u8; byte_width],
         ];
-        let rhs_data = vec![
+        let rhs_data = [
             vec![0u8; byte_width],
             vec![2u8; byte_width],
             vec![2u8; byte_width],
@@ -1924,7 +1924,7 @@ mod test {
         let rhs = OwnedColumn::<Curve25519Scalar>::VarChar(
             ["Space", "and", "Time"]
                 .iter()
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .collect(),
         );
         let result = lhs.element_wise_le(&rhs);

@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(varchar_metadata.bounds(), &ColumnBounds::NoOrder);
 
         let byte_width = 16;
-        let fixed_size_binary_data = vec![
+        let fixed_size_binary_data = [
             vec![0u8; byte_width],
             vec![1u8; byte_width],
             vec![2u8; byte_width],

@@ -395,6 +395,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_fixed_size_binar
         owned_table([
             fixed_size_binary(
                 "binary_data",
+                byte_width,
                 [vec![0u8; byte_width], vec![1u8; byte_width]],
             ),
             int128("amount", [115, -79]),
@@ -402,18 +403,18 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_fixed_size_binar
         0,
     );
 
-    // Query to select rows where binary_data matches a specific pattern
+    // Directly include the binary pattern in the query
+    let binary_pattern = vec![1u8; byte_width];
+    let query_string = format!(
+        "select binary_data, amount from public.test_table where binary_data = {binary_pattern:?};"
+    );
+
     let query = QueryExpr::try_new(
-        "select binary_data, amount from public.test_table where binary_data = ?;"
-            .parse()
-            .unwrap(),
+        query_string.parse().unwrap(),
         "public".parse().unwrap(),
         &accessor,
     )
     .unwrap();
-
-    // Assuming you have a way to set the parameter for the query
-    query.set_parameter(0, vec![1u8; byte_width]);
 
     let (proof, serialized_result) =
         QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
@@ -426,7 +427,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_fixed_size_binar
 
     // Expected result with the matching FixedSizeBinary entry
     let expected_result = owned_table([
-        fixed_size_binary("binary_data", [vec![1u8; byte_width]]),
+        fixed_size_binary("binary_data", byte_width, [vec![1u8; byte_width]]),
         int128("amount", [-79]),
     ]);
 
