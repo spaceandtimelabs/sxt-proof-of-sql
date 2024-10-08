@@ -26,7 +26,8 @@ const BYTE_SIZE: u32 = 8;
 fn single_packed_byte_size(committable_columns: &[CommittableColumn]) -> usize {
     committable_columns
         .iter()
-        .fold(0, |acc, x| acc + x.column_type().byte_size())
+        .map(|column| column.column_type().byte_size())
+        .sum()
 }
 
 /// Returns the size of the matrix that can hold the longest committable column in a dynamic Dory structure.
