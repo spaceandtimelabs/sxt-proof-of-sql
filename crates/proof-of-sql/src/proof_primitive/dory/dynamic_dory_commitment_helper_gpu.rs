@@ -202,11 +202,11 @@ fn modify_commits(
 ///
 /// Panics if the number of sub commits is not a multiple of the number of committable columns.
 #[tracing::instrument(
-    name = "compute_dory_commitment_impl_gpu (vlen_msm gpu)",
+    name = "compute_dynamic_dory_commitments (gpu)",
     level = "debug",
     skip_all
 )]
-fn compute_dory_commitment_impl_gpu(
+pub(super) fn compute_dynamic_dory_commitments(
     committable_columns: &[CommittableColumn],
     offset: usize,
     setup: &ProverSetup,
@@ -361,25 +361,6 @@ fn compute_dory_commitment_impl_gpu(
     span.exit();
 
     ddc
-}
-
-/// Computes the dynamic Dory commitments using the GPU implementation of the `vlen_msm` algorithm.
-///
-/// # Arguments
-///
-/// * `committable_columns` - A reference to the committable columns.
-/// * `offset` - The offset to the data.
-/// * `setup` - A reference to the prover setup.
-///
-/// # Returns
-///
-/// A vector containing the dynamic Dory commitments.
-pub(super) fn compute_dynamic_dory_commitments(
-    committable_columns: &[CommittableColumn],
-    offset: usize,
-    setup: &ProverSetup,
-) -> Vec<DynamicDoryCommitment> {
-    compute_dory_commitment_impl_gpu(committable_columns, offset, setup)
 }
 
 #[cfg(test)]
