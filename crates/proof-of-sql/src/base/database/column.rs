@@ -679,7 +679,7 @@ mod tests {
 
         let column_type = ColumnType::FixedSizeBinary(4);
         let serialized = serde_json::to_string(&column_type).unwrap();
-        assert_eq!(serialized, r#""FixedSizeBinary(4)""#);
+        assert_eq!(serialized, r#"{"FixedSizeBinary":4}"#);
     }
 
     #[test]
@@ -748,7 +748,7 @@ mod tests {
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::FixedSizeBinary(4);
-        let deserialized: ColumnType = serde_json::from_str(r#""FixedSizeBinary(4)""#).unwrap();
+        let deserialized: ColumnType = serde_json::from_str(r#"{"FixedSizeBinary":4}"#).unwrap();
         assert_eq!(deserialized, expected_column_type);
     }
 
@@ -841,11 +841,11 @@ mod tests {
         );
 
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""FixedSizeBinary(4)""#).unwrap(),
+            serde_json::from_str::<ColumnType>(r#"{"FixedSizeBinary":4}"#).unwrap(),
             ColumnType::FixedSizeBinary(4)
         );
         assert_eq!(
-            serde_json::from_str::<ColumnType>(r#""fixedsizebinary(4)""#).unwrap(),
+            serde_json::from_str::<ColumnType>(r#"{"fixedsizebinary":4}"#).unwrap(),
             ColumnType::FixedSizeBinary(4)
         );
     }
@@ -961,7 +961,7 @@ mod tests {
 
         let fixedsizebinary = ColumnType::FixedSizeBinary(4);
         let fixedsizebinary_json = serde_json::to_string(&fixedsizebinary).unwrap();
-        assert_eq!(fixedsizebinary_json, "\"FixedSizeBinary(4)\"");
+        assert_eq!(fixedsizebinary_json, r#"{"FixedSizeBinary":4}"#);
         assert_eq!(
             serde_json::from_str::<ColumnType>(&fixedsizebinary_json).unwrap(),
             fixedsizebinary

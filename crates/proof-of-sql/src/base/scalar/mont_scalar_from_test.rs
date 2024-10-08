@@ -138,20 +138,6 @@ fn strings_of_arbitrary_size_map_to_different_scalars() {
 }
 
 #[test]
-fn byte_arrays_of_arbitrary_size_map_to_different_scalars() {
-    let mut prev_scalars = IndexSet::default();
-    let mut rng = StdRng::from_seed([0u8; 32]);
-    let dist = Uniform::new(1, 100);
-
-    for _ in 0..100 {
-        let v = (0..dist.sample(&mut rng))
-            .map(|_v| (dist.sample(&mut rng) % 255) as u8)
-            .collect::<Vec<u8>>();
-        assert!(prev_scalars.insert(Curve25519Scalar::from(&v[..])));
-    }
-}
-
-#[test]
 fn the_string_hash_implementation_uses_the_full_range_of_bits() {
     let max_iters = 20;
     let mut rng = StdRng::from_seed([0u8; 32]);

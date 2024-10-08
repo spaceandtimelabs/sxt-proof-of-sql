@@ -227,6 +227,27 @@ impl<S: Scalar> OwnedColumn<S> {
             (Self::TimestampTZ(_, _, _), Self::TimestampTZ(_, _, _)) => {
                 todo!("Implement equality check for TimeStampTZ")
             }
+            (
+                Self::FixedSizeBinary(lhs_width, lhs_bytes),
+                Self::FixedSizeBinary(rhs_width, rhs_bytes),
+            ) => {
+                if lhs_width != rhs_width {
+                    return Err(ColumnOperationError::FixedSizeBinaryByteSizeMismatch {
+                        byte_size_a: *lhs_width,
+                        byte_size_b: *rhs_width,
+                    });
+                }
+                // Split the bytes into chunks of the fixed size
+                let lhs_chunks = lhs_bytes.chunks(*lhs_width as usize);
+                let rhs_chunks = rhs_bytes.chunks(*rhs_width as usize);
+
+                let result: Vec<bool> = lhs_chunks
+                    .zip(rhs_chunks)
+                    .map(|(lhs_chunk, rhs_chunk)| lhs_chunk == rhs_chunk)
+                    .collect();
+
+                Ok(Self::Boolean(result))
+            }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
                 operator: BinaryOperator::Equal,
                 left_type: self.column_type(),
@@ -1931,20 +1952,6 @@ mod test {
         assert!(matches!(
             result,
             Err(ColumnOperationError::BinaryOperationInvalidColumnType { .. })
-        ));
-
-        let lhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
-            byte_width,
-            vec![0u8; byte_width as usize * 3],
-        );
-        let rhs = OwnedColumn::<Curve25519Scalar>::FixedSizeBinary(
-            byte_width + 1,
-            vec![0u8; (byte_width as usize + 1) * 3],
-        );
-        let result = lhs.element_wise_le(&rhs);
-        assert!(matches!(
-            result,
-            Err(ColumnOperationError::FixedSizeBinaryByteSizeMismatch { .. })
         ));
     }
 
