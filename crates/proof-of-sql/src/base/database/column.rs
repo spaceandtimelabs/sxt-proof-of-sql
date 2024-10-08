@@ -54,6 +54,9 @@ pub enum Column<'a, S: Scalar> {
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
+    /// Fixed size binary columns
+    /// - the i32 specifies the number of bytes per value
+    FixedSizeBinary(i32, &'a [u8]),
 }
 
 impl<'a, S: Scalar> Column<'a, S> {
@@ -73,6 +76,7 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(time_unit, timezone, _) => {
                 ColumnType::TimestampTZ(*time_unit, *timezone)
             }
+            Self::FixedSizeBinary(byte_width, _) => ColumnType::FixedSizeBinary(*byte_width),
         }
     }
     /// Returns the length of the column.
@@ -92,6 +96,11 @@ impl<'a, S: Scalar> Column<'a, S> {
             }
             Self::Int128(col) => col.len(),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
+            Self::FixedSizeBinary(byte_width, col) => {
+                // The length of the column is the length of the byte array divided by the byte width
+                assert!(*byte_width > 0, "Byte width must be greater than zero");
+                col.len() / *byte_width as usize
+            }
         }
     }
     /// Returns `true` if the column has no elements.
@@ -166,6 +175,9 @@ impl<'a, S: Scalar> Column<'a, S> {
                 ))
             }
             OwnedColumn::TimestampTZ(tu, tz, col) => Column::TimestampTZ(*tu, *tz, col.as_slice()),
+            OwnedColumn::FixedSizeBinary(byte_width, col) => {
+                Column::FixedSizeBinary(*byte_width, col.as_slice())
+            }
         }
     }
 
@@ -191,6 +203,16 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::TimestampTZ(_, _, col) => {
                 alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
             }
+            Self::FixedSizeBinary(byte_width, col) => {
+                // The length of the column is the length of the byte array divided by the byte width
+                let num_elements = col.len() / *byte_width as usize;
+                // Create a slice of scalars from the byte array
+                alloc.alloc_slice_fill_with(num_elements, |i| {
+                    let start = i * *byte_width as usize;
+                    let end = start + *byte_width as usize;
+                    S::from(&col[start..end])
+                })
+            }
         }
     }
 
@@ -207,6 +229,11 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => S::from(col[index]),
             Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
+            Self::FixedSizeBinary(byte_width, col) => {
+                let start = index * *byte_width as usize;
+                let end = start + *byte_width as usize;
+                S::from(&col[start..end])
+            }
         })
     }
 
@@ -225,6 +252,16 @@ impl<'a, S: Scalar> Column<'a, S> {
             Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
             Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::FixedSizeBinary(byte_width, col) => {
+                let num_elements = col.len() / byte_width as usize;
+                (0..num_elements)
+                    .map(|i| {
+                        let start = i * byte_width as usize;
+                        let end = start + byte_width as usize;
+                        S::from(&col[start..end]) * scale_factor
+                    })
+                    .collect()
+            }
         }
     }
 }
@@ -266,6 +303,9 @@ pub enum ColumnType {
     /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
+    /// Mapped to fixed size binary
+    #[serde(alias = "FIXEDSIZEBINARY", alias = "fixedsizebinary")]
+    FixedSizeBinary(i32),
 }
 
 impl ColumnType {
@@ -352,7 +392,7 @@ impl ColumnType {
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
             // so that they do not cause errors when used in comparisons.
             Self::Scalar => Some(0_u8),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::FixedSizeBinary(_) => None,
         }
     }
     /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
@@ -366,7 +406,7 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::Scalar => Some(0),
-            Self::Boolean | Self::VarChar => None,
+            Self::Boolean | Self::VarChar | Self::FixedSizeBinary(_) => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
                 PoSQLTimeUnit::Millisecond => Some(3),
@@ -387,6 +427,7 @@ impl ColumnType {
             Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
             Self::Int128 => size_of::<i128>(),
             Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
+            Self::FixedSizeBinary(byte_width) => *byte_width as usize,
         }
     }
 
@@ -406,7 +447,11 @@ impl ColumnType {
             | Self::BigInt
             | Self::Int128
             | Self::TimestampTZ(_, _) => true,
-            Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
+            Self::Decimal75(_, _)
+            | Self::Scalar
+            | Self::VarChar
+            | Self::Boolean
+            | Self::FixedSizeBinary(_) => false,
         }
     }
 }
@@ -437,6 +482,7 @@ impl From<&ColumnType> for DataType {
                 };
                 DataType::Timestamp(arrow_timeunit, arrow_timezone)
             }
+            ColumnType::FixedSizeBinary(byte_width) => DataType::FixedSizeBinary(*byte_width),
         }
     }
 }
@@ -470,6 +516,7 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
+            DataType::FixedSizeBinary(byte_width) => Ok(ColumnType::FixedSizeBinary(byte_width)),
             _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
@@ -497,6 +544,7 @@ impl Display for ColumnType {
             ColumnType::TimestampTZ(timeunit, timezone) => {
                 write!(f, "TIMESTAMP(TIMEUNIT: {timeunit}, TIMEZONE: {timezone})")
             }
+            ColumnType::FixedSizeBinary(byte_width) => write!(f, "FIXEDSIZEBINARY({byte_width})"),
         }
     }
 }

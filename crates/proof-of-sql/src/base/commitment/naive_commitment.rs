@@ -149,6 +149,11 @@ impl Commitment for NaiveCommitment {
                     CommittableColumn::RangeCheckWord(u8_scalar_vec) => {
                         u8_scalar_vec.iter().map(|b| b.into()).collect()
                     }
+                    CommittableColumn::FixedSizeBinary(byte_width, bytes) => bytes
+                        // Chunk the bytes into `byte_width`-sized chunks and convert each chunk into a scalar
+                        .chunks(*byte_width as usize)
+                        .map(|chunk| TestScalar::from(chunk))
+                        .collect(),
                 };
                 vectors.append(&mut existing_scalars);
                 NaiveCommitment(vectors)

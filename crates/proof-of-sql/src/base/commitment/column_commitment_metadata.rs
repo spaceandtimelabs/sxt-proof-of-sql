@@ -54,7 +54,8 @@ impl ColumnCommitmentMetadata {
                 ColumnType::Boolean
                 | ColumnType::VarChar
                 | ColumnType::Scalar
-                | ColumnType::Decimal75(..),
+                | ColumnType::Decimal75(..)
+                | ColumnType::FixedSizeBinary(_),
                 ColumnBounds::NoOrder,
             ) => Ok(ColumnCommitmentMetadata {
                 column_type,

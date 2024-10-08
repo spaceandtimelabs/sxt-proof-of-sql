@@ -46,6 +46,9 @@ pub enum CommittableColumn<'a> {
     /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
+    /// Borrowed FixedSizeBinary column, mapped to a slice of bytes.
+    /// - The i32 specifies the number of bytes per value.
+    FixedSizeBinary(i32, &'a [u8]),
 }
 
 impl<'a> CommittableColumn<'a> {
@@ -63,6 +66,10 @@ impl<'a> CommittableColumn<'a> {
             | CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
             CommittableColumn::RangeCheckWord(col) => col.len(),
+            CommittableColumn::FixedSizeBinary(byte_width, col) => {
+                assert!(*byte_width > 0, "Byte width must be greater than zero");
+                col.len() / *byte_width as usize
+            }
         }
     }
 
@@ -94,6 +101,7 @@ impl<'a> From<&CommittableColumn<'a>> for ColumnType {
             CommittableColumn::VarChar(_) => ColumnType::VarChar,
             CommittableColumn::Boolean(_) => ColumnType::Boolean,
             CommittableColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            CommittableColumn::FixedSizeBinary(size, _) => ColumnType::FixedSizeBinary(*size),
             CommittableColumn::RangeCheckWord(_) => {
                 unimplemented!("Range check words are not a column type.")
             }
@@ -120,6 +128,9 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
                 CommittableColumn::VarChar(as_limbs)
             }
             Column::TimestampTZ(tu, tz, times) => CommittableColumn::TimestampTZ(*tu, *tz, times),
+            Column::FixedSizeBinary(byte_width, bytes) => {
+                CommittableColumn::FixedSizeBinary(*byte_width, bytes)
+            }
         }
     }
 }
@@ -158,6 +169,9 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
             ),
             OwnedColumn::TimestampTZ(tu, tz, times) => {
                 CommittableColumn::TimestampTZ(*tu, *tz, times as &[_])
+            }
+            OwnedColumn::FixedSizeBinary(byte_width, bytes) => {
+                CommittableColumn::FixedSizeBinary(*byte_width, bytes)
             }
         }
     }
@@ -221,6 +235,8 @@ impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
+            // FIXME: Is this the correct way to convert a FixedSizeBinary column to a Sequence?
+            CommittableColumn::FixedSizeBinary(_, bytes) => Sequence::from(*bytes),
         }
     }
 }

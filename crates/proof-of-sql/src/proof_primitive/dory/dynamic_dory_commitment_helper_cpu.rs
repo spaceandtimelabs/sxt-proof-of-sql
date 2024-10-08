@@ -61,6 +61,11 @@ fn compute_dory_commitment(
         CommittableColumn::RangeCheckWord(column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
+        CommittableColumn::FixedSizeBinary(_byte_width, column) => {
+            // FIXME: Is this interpretation correct? or should we chunk the bytes
+            // into `byte_width`-sized chunks and convert each chunk into a scalar?
+            compute_dory_commitment_impl(column, offset, setup)
+        }
     }
 }
 

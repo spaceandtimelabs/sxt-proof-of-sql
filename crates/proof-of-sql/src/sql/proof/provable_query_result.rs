@@ -132,6 +132,9 @@ impl ProvableQueryResult {
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
+                    ColumnType::FixedSizeBinary(_) => {
+                        unimplemented!("FixedSizeBinary not supported in evaluation")
+                    }
                 }?;
                 val += evaluation_vec[index as usize] * x;
                 offset += sz;
@@ -217,6 +220,9 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::TimestampTZ(tu, tz, col)))
+                    }
+                    ColumnType::FixedSizeBinary(_) => {
+                        unimplemented!("FixedSizeBinary not supported in evaluation")
                     }
                 })
                 .collect::<Result<_, QueryError>>()?,
