@@ -193,7 +193,7 @@ fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns() {
     let setup = ProverSetup::from(&public_parameters);
     let res = compute_dynamic_dory_commitments(
         &[
-            CommittableColumn::BigInt(&[0, 1]),
+            CommittableColumn::TinyInt(&[0, 1]),
             CommittableColumn::BigInt(&[2, 3]),
             CommittableColumn::Int(&[4, 5, 10]),
             CommittableColumn::SmallInt(&[6, 7]),
@@ -268,7 +268,7 @@ fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_
     let setup = ProverSetup::from(&public_parameters);
     let res = compute_dynamic_dory_commitments(
         &[
-            CommittableColumn::BigInt(&[0, 1]),
+            CommittableColumn::TinyInt(&[0, 1]),
             CommittableColumn::BigInt(&[2, 3]),
             CommittableColumn::Int(&[4, 5, 10]),
             CommittableColumn::SmallInt(&[6, 7]),
@@ -343,7 +343,7 @@ fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_
     let setup = ProverSetup::from(&public_parameters);
     let res = compute_dynamic_dory_commitments(
         &[
-            CommittableColumn::BigInt(&[-2, -1, 0, 1, 2]),
+            CommittableColumn::TinyInt(&[-2, -1, 0, 1, 2]),
             CommittableColumn::BigInt(&[-3, -2, 2, 3]),
             CommittableColumn::Int(&[-6, -5, -4, 4, 5, 6]),
             CommittableColumn::SmallInt(&[-7, -6, 6, 7]),
@@ -431,7 +431,7 @@ fn we_can_compute_a_dynamic_dory_commitment_with_mixed_committable_columns_with_
     let setup = ProverSetup::from(&public_parameters);
     let res = compute_dynamic_dory_commitments(
         &[
-            CommittableColumn::BigInt(&[-2, -1, 0, 1, 2]),
+            CommittableColumn::TinyInt(&[-2, -1, 0, 1, 2]),
             CommittableColumn::BigInt(&[-3, -2, 2, 3]),
             CommittableColumn::Int(&[-6, -5, -4, 4, 5, 6]),
             CommittableColumn::SmallInt(&[-7, -6, 6, 7]),
