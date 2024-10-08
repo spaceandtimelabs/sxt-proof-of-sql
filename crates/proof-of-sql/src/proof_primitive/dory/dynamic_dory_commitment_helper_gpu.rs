@@ -187,6 +187,62 @@ fn modify_commits(
         .collect()
 }
 
+/// Copies the column data to the scalar row slice.
+///
+/// # Arguments
+///
+/// * `column` - A reference to the committable column.
+/// * `scalar_row_slice` - A mutable reference to the scalar row slice.
+/// * `start` - The start index of the slice.
+/// * `end` - The end index of the slice.
+/// * `index` - The index of the column.
+/// * `offset_idx` - The index of the signed offset.
+fn copy_column_data_to_slice(
+    column: &CommittableColumn,
+    scalar_row_slice: &mut [u8],
+    start: usize,
+    end: usize,
+    index: usize,
+    offset_idx: usize,
+) {
+    match column {
+        CommittableColumn::Boolean(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::TinyInt(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+
+            scalar_row_slice[offset_idx] = 1_u8;
+        }
+        CommittableColumn::SmallInt(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+
+            scalar_row_slice[offset_idx] = 1_u8;
+        }
+        CommittableColumn::Int(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+
+            scalar_row_slice[offset_idx] = 1_u8;
+        }
+        CommittableColumn::BigInt(column) | CommittableColumn::TimestampTZ(_, _, column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+
+            scalar_row_slice[offset_idx] = 1_u8;
+        }
+        CommittableColumn::Int128(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+
+            scalar_row_slice[offset_idx] = 1_u8;
+        }
+        CommittableColumn::Scalar(column)
+        | CommittableColumn::Decimal75(_, _, column)
+        | CommittableColumn::VarChar(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::RangeCheckWord(_) => todo!(),
+    }
+}
+
 /// Computes the dynamic Dory commitment using the GPU implementation of the `vlen_msm` algorithm.
 ///
 /// # Arguments
@@ -242,83 +298,45 @@ pub(super) fn compute_dynamic_dory_commitments(
 
     // Populate the scalars array.
     let span = span!(Level::INFO, "pack_vlen_scalars_array").entered();
-    (0..num_scalar_rows).for_each(|scalar_row| {
-        // Get a mutable slice of the scalars array that represents one full row of the scalars array.
-        let scalar_row_slice =
-            &mut scalars[scalar_row * num_scalar_columns..(scalar_row + 1) * num_scalar_columns];
+    scalars
+        .chunks_exact_mut(num_scalar_columns)
+        .enumerate()
+        .for_each(|(scalar_row, scalar_row_slice)| {
+            // Iterate over the columns and populate the scalars array.
+            for scalar_col in 0..max_height {
+                // Find index in the committable columns. Note, the scalar is in
+                // column major order, that is why the (row, col) arguments are flipped.
+                let committable_column_idx = index_from_row_and_column(scalar_col, scalar_row);
 
-        // Iterate over the columns and populate the scalars array.
-        for scalar_col in 0..max_height {
-            // Find index in the committable columns. Note, the scalar is in
-            // column major order, that is why the (row, col) arguments are flipped.
-            let committable_column_idx = index_from_row_and_column(scalar_col, scalar_row);
+                // If the index is in the committable columns and above the offset, populate the scalars array.
+                if committable_column_idx.is_some() && committable_column_idx.unwrap() >= offset {
+                    let index: usize = committable_column_idx.unwrap() - offset;
 
-            // If the index is in the committable columns and above the offset, populate the scalars array.
-            if committable_column_idx.is_some() && committable_column_idx.unwrap() >= offset {
-                let index: usize = committable_column_idx.unwrap() - offset;
+                    // Iterate over each committable column.
+                    for i in 0..committable_columns.len() {
+                        if index < committable_columns[i].len() {
+                            let start = cumulative_byte_length_table
+                                [i + scalar_col * single_bit_table_entry.len()];
+                            let end = start + (single_bit_table_entry[i] / BYTE_SIZE) as usize;
 
-                // Iterate over each committable column.
-                for i in 0..committable_columns.len() {
-                    if index < committable_columns[i].len() {
-                        let start = cumulative_byte_length_table
-                            [i + scalar_col * single_bit_table_entry.len()];
-                        let end = start + (single_bit_table_entry[i] / BYTE_SIZE) as usize;
+                            // For signed offset
+                            let offset_idx = i
+                                + scalar_col * single_packed_byte_with_offset_size
+                                + single_packed_byte_size;
 
-                        // For signed offset
-                        let offset_idx = i
-                            + scalar_col * single_packed_byte_with_offset_size
-                            + single_packed_byte_size;
-
-                        let column = &committable_columns[i];
-                        match column {
-                            CommittableColumn::Boolean(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-                            }
-                            CommittableColumn::TinyInt(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-
-                                scalar_row_slice[offset_idx] = 1_u8;
-                            }
-                            CommittableColumn::SmallInt(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-
-                                scalar_row_slice[offset_idx] = 1_u8;
-                            }
-                            CommittableColumn::Int(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-
-                                scalar_row_slice[offset_idx] = 1_u8;
-                            }
-                            CommittableColumn::BigInt(column)
-                            | CommittableColumn::TimestampTZ(_, _, column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-
-                                scalar_row_slice[offset_idx] = 1_u8;
-                            }
-                            CommittableColumn::Int128(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-
-                                scalar_row_slice[offset_idx] = 1_u8;
-                            }
-                            CommittableColumn::Scalar(column)
-                            | CommittableColumn::Decimal75(_, _, column)
-                            | CommittableColumn::VarChar(column) => {
-                                scalar_row_slice[start..end]
-                                    .copy_from_slice(&column[index].offset_to_bytes());
-                            }
-                            CommittableColumn::RangeCheckWord(_) => todo!(),
+                            copy_column_data_to_slice(
+                                &committable_columns[i],
+                                scalar_row_slice,
+                                start,
+                                end,
+                                index,
+                                offset_idx,
+                            );
                         }
                     }
                 }
             }
-        }
-    });
+        });
     span.exit();
 
     // Initialize sub commits.
