@@ -41,13 +41,17 @@ fn single_packed_byte_size(committable_columns: &[CommittableColumn]) -> usize {
 ///
 /// A tuple containing the maximum (height, width) needed to store the longest committable column in
 /// a dynamic Dory structure.
+///
+/// # Panics
+///
+/// Panics if the committable columns are empty.
 fn max_matrix_size(committable_columns: &[CommittableColumn], offset: usize) -> (usize, usize) {
-    committable_columns
+    let max_column_len = committable_columns
         .iter()
-        .map(|column| matrix_size(column.len(), offset))
-        .fold((0, 0), |(acc_height, acc_width), (height, width)| {
-            (acc_height.max(height), acc_width.max(width))
-        })
+        .map(CommittableColumn::len)
+        .max()
+        .unwrap();
+    matrix_size(max_column_len, offset)
 }
 
 /// Returns a single element worth of bit values for the bit table with offsets needed to handle the
