@@ -18,7 +18,6 @@ use itertools::Itertools;
 ///
 /// This function requires that `hi_vec` has length at least as big as the number of rows in `M` that is created by `a`.
 /// In practice, `hi_vec` is normally length `1 << nu`.
-#[tracing::instrument(level = "debug", skip_all)]
 pub(super) fn compute_dynamic_v_vec(a: &[F], hi_vec: &[F], nu: usize) -> Vec<F> {
     a.iter()
         .enumerate()
@@ -30,7 +29,6 @@ pub(super) fn compute_dynamic_v_vec(a: &[F], hi_vec: &[F], nu: usize) -> Vec<F> 
 }
 
 /// Compute the commitments to the rows of the matrix M that is derived from `a`.
-#[tracing::instrument(level = "debug", skip_all)]
 pub(super) fn compute_dynamic_T_vec_prime(
     a: &[F],
     nu: usize,
