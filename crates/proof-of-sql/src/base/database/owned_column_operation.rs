@@ -3,6 +3,7 @@ use crate::base::{
     database::{column_operation::*, OwnedColumn},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use core::ops::{Add, Div, Mul, Sub};
 use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
 
