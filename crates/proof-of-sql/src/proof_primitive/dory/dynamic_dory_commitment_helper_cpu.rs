@@ -1,9 +1,10 @@
 use super::{
     dynamic_dory_structure::row_and_column_from_index, pairings, DoryScalar, DynamicDoryCommitment,
-    G1Affine, G1Projective, ProverSetup,
+    G1Affine, G1Projective, ProverSetup, GT,
 };
 use crate::base::commitment::CommittableColumn;
 use alloc::{vec, vec::Vec};
+use num_traits::Zero;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
@@ -71,6 +72,11 @@ pub(super) fn compute_dynamic_dory_commitments(
 ) -> Vec<DynamicDoryCommitment> {
     committable_columns
         .iter()
-        .map(|column| compute_dory_commitment(column, offset, setup))
+        .map(|column| {
+            column
+                .is_empty()
+                .then(|| DynamicDoryCommitment(GT::zero()))
+                .unwrap_or_else(|| compute_dory_commitment(column, offset, setup))
+        })
         .collect()
 }
