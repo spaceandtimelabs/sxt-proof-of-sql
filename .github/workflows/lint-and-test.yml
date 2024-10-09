@@ -149,12 +149,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang lld
       - uses: taiki-e/install-action@cargo-llvm-cov
       - name: Run Tests to Generate Coverage Data
-        run: cargo test --workspace --features ${{ matrix.features }}
-      - name: Generate Human-Readable Coverage Report
-        run: cargo llvm-cov report --workspace --text --fail-under-lines 90
+        run: cargo llvm-cov test --workspace --features ${{ matrix.features }}
       - name: Generate LCOV Report
-        run: cargo llvm-cov report --workspace --lcov --output-path lcov.info
-        
+        run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 90
+
   # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
   format:
     name: Format
