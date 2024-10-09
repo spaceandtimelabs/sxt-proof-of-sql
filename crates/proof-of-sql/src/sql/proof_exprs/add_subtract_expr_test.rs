@@ -107,7 +107,7 @@ fn decimal_column_type_issues_error_out_when_producing_provable_ast() {
     let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(t, data, 0, ());
     assert!(matches!(
         DynProofExpr::try_new_add(column(t, "a", &accessor), const_bigint::<RistrettoPoint>(1)),
-        Err(ConversionError::DataTypeMismatch(..))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -279,7 +279,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         ))
         .filter_map(|(a, b, c, d)| {
             if b == &filter_val1 && c == &filter_val2 {
-                Some(((*a + *c - 4) as i128, d.clone()))
+                Some((i128::from(*a + *c - 4), d.clone()))
             } else {
                 None
             }
@@ -287,7 +287,7 @@ fn test_random_tables_with_given_offset(offset: usize) {
         .multiunzip();
         let expected_result = owned_table([varchar("d", expected_d), int128("f", expected_f)]);
 
-        assert_eq!(expected_result, res)
+        assert_eq!(expected_result, res);
     }
 }
 

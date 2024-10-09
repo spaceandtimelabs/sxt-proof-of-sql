@@ -8,82 +8,115 @@ use crate::base::{
     database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 #[cfg(feature = "arrow")]
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
+use core::ops::Range;
 use proof_of_sql_parser::{Identifier, ParseError};
 use serde::{Deserialize, Serialize};
-use std::ops::Range;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot create a [`TableCommitment`] with a negative range.
-#[derive(Debug, Error)]
-#[error("cannot create a TableCommitment with a negative range")]
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create a TableCommitment with a negative range"))]
 pub struct NegativeRange;
 
 /// Cannot create a [`TableCommitment`] from columns of mixed length.
-#[derive(Debug, Error)]
-#[error("cannot create a TableCommitment from columns of mixed length")]
+#[derive(Debug, Snafu)]
+#[snafu(display("cannot create a TableCommitment from columns of mixed length"))]
 pub struct MixedLengthColumns;
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from columns.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum TableCommitmentFromColumnsError {
     /// Cannot construct [`TableCommitment`] from columns of mixed length.
-    #[error(transparent)]
-    MixedLengthColumns(#[from] MixedLengthColumns),
+    #[snafu(transparent)]
+    MixedLengthColumns {
+        /// The underlying source error
+        source: MixedLengthColumns,
+    },
     /// Cannot construct [`TableCommitment`] from columns with duplicate identifiers.
-    #[error(transparent)]
-    DuplicateIdentifiers(#[from] DuplicateIdentifiers),
+    #[snafu(transparent)]
+    DuplicateIdentifiers {
+        /// The underlying source error
+        source: DuplicateIdentifiers,
+    },
 }
 
 /// Errors that can occur when attempting to append rows to a [`TableCommitment`].
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendTableCommitmentError {
     /// Cannot append columns of mixed length to existing [`TableCommitment`].
-    #[error(transparent)]
-    MixedLengthColumns(#[from] MixedLengthColumns),
+    #[snafu(transparent)]
+    MixedLengthColumns {
+        /// The underlying source error
+        source: MixedLengthColumns,
+    },
     /// Encountered error when appending internal [`ColumnCommitments`].
-    #[error(transparent)]
-    AppendColumnCommitments(#[from] AppendColumnCommitmentsError),
+    #[snafu(transparent)]
+    AppendColumnCommitments {
+        /// The underlying source error
+        source: AppendColumnCommitmentsError,
+    },
 }
 
 /// Errors that can occur when performing arithmetic on [`TableCommitment`]s.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum TableCommitmentArithmeticError {
     /// Cannot perform arithmetic on columns with mismatched metadata.
-    #[error(transparent)]
-    ColumnMismatch(#[from] ColumnCommitmentsMismatch),
-    /// Cannot perform TableCommitment arithmetic that would result in a negative range.
-    #[error(transparent)]
-    NegativeRange(#[from] NegativeRange),
+    #[snafu(transparent)]
+    ColumnMismatch {
+        /// The underlying source error
+        source: ColumnCommitmentsMismatch,
+    },
+    /// Cannot perform [`TableCommitment`] arithmetic that would result in a negative range.
+    #[snafu(transparent)]
+    NegativeRange {
+        /// The underlying source error
+        source: NegativeRange,
+    },
     /// Cannot perform arithmetic for noncontiguous table commitments.
-    #[error("cannot perform table commitment arithmetic for noncontiguous table commitments")]
+    #[snafu(display(
+        "cannot perform table commitment arithmetic for noncontiguous table commitments"
+    ))]
     NonContiguous,
 }
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
 #[cfg(feature = "arrow")]
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum RecordBatchToColumnsError {
     /// Error converting from arrow array
-    #[error(transparent)]
-    ArrowArrayToColumnConversionError(#[from] ArrowArrayToColumnConversionError),
-    #[error(transparent)]
+    #[snafu(transparent)]
+    ArrowArrayToColumnConversionError {
+        /// The underlying source error
+        source: ArrowArrayToColumnConversionError,
+    },
+    #[snafu(transparent)]
     /// This error occurs when convering from a record batch name to an identifier fails. (Which may be impossible.)
-    FieldParseFail(#[from] ParseError),
+    FieldParseFail {
+        /// The underlying source error
+        source: ParseError,
+    },
 }
 
 /// Errors that can occur when attempting to append a record batch to a [`TableCommitment`].
 #[cfg(feature = "arrow")]
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum AppendRecordBatchTableCommitmentError {
     /// During commitment operation, metadata indicates that operand tables cannot be the same.
-    #[error(transparent)]
-    ColumnCommitmentsMismatch(#[from] ColumnCommitmentsMismatch),
+    #[snafu(transparent)]
+    ColumnCommitmentsMismatch {
+        /// The underlying source error
+        source: ColumnCommitmentsMismatch,
+    },
     /// Error converting from arrow array
-    #[error(transparent)]
-    ArrowBatchToColumnError(#[from] RecordBatchToColumnsError),
+    #[snafu(transparent)]
+    ArrowBatchToColumnError {
+        /// The underlying source error
+        source: RecordBatchToColumnsError,
+    },
 }
 
 /// Commitment for an entire table, with column and table metadata.
@@ -100,6 +133,10 @@ where
 
 impl<C: Commitment> TableCommitment<C> {
     /// Create a new [`TableCommitment`] for a table from a commitment accessor.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures that from_accessor should not create columns with a negative range"
+    )]
     pub fn from_accessor_with_max_bounds(
         table_ref: TableRef,
         columns: &[ColumnField],
@@ -137,21 +174,25 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a reference to this type's internal [`ColumnCommitments`].
+    #[must_use]
     pub fn column_commitments(&self) -> &ColumnCommitments<C> {
         &self.column_commitments
     }
 
     /// Returns a reference to the range of rows this type commits to.
+    #[must_use]
     pub fn range(&self) -> &Range<usize> {
         &self.range
     }
 
     /// Returns the number of columns in the committed table.
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.column_commitments.len()
     }
 
     /// Returns the number of rows that have been committed to.
+    #[must_use]
     pub fn num_rows(&self) -> usize {
         self.range.len()
     }
@@ -188,6 +229,10 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided table with the given row offset.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "since OwnedTables cannot have columns of mixed length or duplicate identifiers"
+    )]
     pub fn from_owned_table_with_offset<S>(
         owned_table: &OwnedTable<S>,
         offset: usize,
@@ -235,6 +280,9 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches.
     /// See [`ColumnCommitmentsMismatch`] for an enumeration of these errors.
+    /// # Panics
+    /// Panics if `owned_table` has duplicate identifiers.
+    /// Panics if `owned_table` contains columns of mixed length.
     pub fn append_owned_table<S>(
         &mut self,
         owned_table: &OwnedTable<S>,
@@ -245,13 +293,13 @@ impl<C: Commitment> TableCommitment<C> {
     {
         self.try_append_rows(owned_table.inner_table(), setup)
             .map_err(|e| match e {
-                AppendTableCommitmentError::AppendColumnCommitments(e) => match e {
-                    AppendColumnCommitmentsError::Mismatch(e) => e,
-                    AppendColumnCommitmentsError::DuplicateIdentifiers(_) => {
+                AppendTableCommitmentError::AppendColumnCommitments { source: e } => match e {
+                    AppendColumnCommitmentsError::Mismatch { source: e } => e,
+                    AppendColumnCommitmentsError::DuplicateIdentifiers { .. } => {
                         panic!("OwnedTables cannot have duplicate identifiers");
                     }
                 },
-                AppendTableCommitmentError::MixedLengthColumns(_) => {
+                AppendTableCommitmentError::MixedLengthColumns { .. } => {
                     panic!("OwnedTables cannot have columns of mixed length");
                 }
             })
@@ -357,6 +405,7 @@ impl<C: Commitment> TableCommitment<C> {
     ///
     /// Will error on a variety of mismatches, or if the provided columns have mixed length.
     #[cfg(feature = "arrow")]
+    #[allow(clippy::missing_panics_doc)]
     pub fn try_append_record_batch(
         &mut self,
         batch: &RecordBatch,
@@ -369,17 +418,17 @@ impl<C: Commitment> TableCommitment<C> {
             setup,
         ) {
             Ok(()) => Ok(()),
-            Err(AppendTableCommitmentError::MixedLengthColumns(_)) => {
+            Err(AppendTableCommitmentError::MixedLengthColumns { .. }) => {
                 panic!("RecordBatches cannot have columns of mixed length")
             }
-            Err(AppendTableCommitmentError::AppendColumnCommitments(
-                AppendColumnCommitmentsError::DuplicateIdentifiers(_),
-            )) => {
+            Err(AppendTableCommitmentError::AppendColumnCommitments {
+                source: AppendColumnCommitmentsError::DuplicateIdentifiers { .. },
+            }) => {
                 panic!("RecordBatches cannot have duplicate identifiers")
             }
-            Err(AppendTableCommitmentError::AppendColumnCommitments(
-                AppendColumnCommitmentsError::Mismatch(e),
-            )) => Err(e)?,
+            Err(AppendTableCommitmentError::AppendColumnCommitments {
+                source: AppendColumnCommitmentsError::Mismatch { source: e },
+            }) => Err(e)?,
         }
     }
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`].
@@ -392,6 +441,7 @@ impl<C: Commitment> TableCommitment<C> {
     }
 
     /// Returns a [`TableCommitment`] to the provided arrow [`RecordBatch`] with the given row offset.
+    #[allow(clippy::missing_panics_doc)]
     #[cfg(feature = "arrow")]
     pub fn try_from_record_batch_with_offset(
         batch: &RecordBatch,
@@ -406,10 +456,10 @@ impl<C: Commitment> TableCommitment<C> {
             setup,
         ) {
             Ok(commitment) => Ok(commitment),
-            Err(TableCommitmentFromColumnsError::MixedLengthColumns(_)) => {
+            Err(TableCommitmentFromColumnsError::MixedLengthColumns { .. }) => {
                 panic!("RecordBatches cannot have columns of mixed length")
             }
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_)) => {
+            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. }) => {
                 panic!("RecordBatches cannot have duplicate identifiers")
             }
         }
@@ -458,12 +508,12 @@ mod tests {
     use crate::{
         base::{
             database::{owned_table_utility::*, OwnedColumn},
+            map::IndexMap,
             scalar::Curve25519Scalar,
         },
         record_batch,
     };
     use curve25519_dalek::RistrettoPoint;
-    use indexmap::IndexMap;
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)]
@@ -478,7 +528,7 @@ mod tests {
     fn we_can_construct_table_commitment_from_columns_and_identifiers() {
         // no-columns case
         let mut empty_columns_iter: IndexMap<Identifier, OwnedColumn<Curve25519Scalar>> =
-            IndexMap::new();
+            IndexMap::default();
         let empty_table_commitment =
             TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
                 &empty_columns_iter,
@@ -559,7 +609,7 @@ mod tests {
         );
         assert!(matches!(
             from_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
+            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
         ));
 
         let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
@@ -577,7 +627,7 @@ mod tests {
             table_commitment.try_extend_columns([(&duplicate_identifier_a, &empty_column)], &());
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
+            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
         ));
 
         let extend_columns_result = table_commitment.try_extend_columns(
@@ -589,7 +639,7 @@ mod tests {
         );
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers(_))
+            Err(TableCommitmentFromColumnsError::DuplicateIdentifiers { .. })
         ));
 
         // make sure the commitment wasn't mutated
@@ -616,7 +666,7 @@ mod tests {
         );
         assert!(matches!(
             from_columns_result,
-            Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
+            Err(TableCommitmentFromColumnsError::MixedLengthColumns { .. })
         ));
 
         let mut table_commitment = TableCommitment::<RistrettoPoint>::try_from_columns_with_offset(
@@ -631,7 +681,7 @@ mod tests {
             table_commitment.try_extend_columns([(&column_id_b, &two_row_column)], &());
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
+            Err(TableCommitmentFromColumnsError::MixedLengthColumns { .. })
         ));
 
         let extend_columns_result = table_commitment.try_extend_columns(
@@ -643,7 +693,7 @@ mod tests {
         );
         assert!(matches!(
             extend_columns_result,
-            Err(TableCommitmentFromColumnsError::MixedLengthColumns(_))
+            Err(TableCommitmentFromColumnsError::MixedLengthColumns { .. })
         ));
 
         // make sure the commitment wasn't mutated
@@ -702,7 +752,7 @@ mod tests {
         table_commitment_clone
             .append_owned_table(&append_columns, &())
             .unwrap();
-        assert_eq!(table_commitment, table_commitment_clone)
+        assert_eq!(table_commitment, table_commitment_clone);
     }
 
     #[test]
@@ -725,11 +775,11 @@ mod tests {
         ]);
         assert!(matches!(
             table_commitment.try_append_rows(table_diff_type.inner_table(), &()),
-            Err(AppendTableCommitmentError::AppendColumnCommitments(
-                AppendColumnCommitmentsError::Mismatch(
-                    ColumnCommitmentsMismatch::ColumnCommitmentMetadata(_)
-                )
-            ))
+            Err(AppendTableCommitmentError::AppendColumnCommitments {
+                source: AppendColumnCommitmentsError::Mismatch {
+                    source: ColumnCommitmentsMismatch::ColumnCommitmentMetadata { .. }
+                }
+            })
         ));
 
         // make sure the commitment wasn't mutated
@@ -762,9 +812,9 @@ mod tests {
         );
         assert!(matches!(
             append_column_result,
-            Err(AppendTableCommitmentError::AppendColumnCommitments(
-                AppendColumnCommitmentsError::DuplicateIdentifiers(_)
-            ))
+            Err(AppendTableCommitmentError::AppendColumnCommitments {
+                source: AppendColumnCommitmentsError::DuplicateIdentifiers { .. }
+            })
         ));
 
         // make sure the commitment wasn't mutated
@@ -772,6 +822,7 @@ mod tests {
         assert_eq!(table_commitment.column_commitments(), &column_commitments);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_cannot_append_columns_of_mixed_length_to_table_commitment() {
         let column_id_a: Identifier = "column_a".parse().unwrap();
@@ -802,7 +853,7 @@ mod tests {
         );
         assert!(matches!(
             append_result,
-            Err(AppendTableCommitmentError::MixedLengthColumns(_))
+            Err(AppendTableCommitmentError::MixedLengthColumns { .. })
         ));
 
         // make sure the commitment wasn't mutated
@@ -926,7 +977,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             table_commitment.try_add(table_commitment_diff_type),
-            Err(TableCommitmentArithmeticError::ColumnMismatch(_))
+            Err(TableCommitmentArithmeticError::ColumnMismatch { .. })
         ));
     }
 
@@ -1079,7 +1130,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             table_commitment.try_sub(table_commitment_diff_type),
-            Err(TableCommitmentArithmeticError::ColumnMismatch(_))
+            Err(TableCommitmentArithmeticError::ColumnMismatch { .. })
         ));
     }
 
@@ -1201,7 +1252,7 @@ mod tests {
             table_commitment_low.try_sub(table_commitment_all.clone());
         assert!(matches!(
             try_negative_high_difference_result,
-            Err(TableCommitmentArithmeticError::NegativeRange(_))
+            Err(TableCommitmentArithmeticError::NegativeRange { .. })
         ));
 
         // try to subtract the total commitment off the high to get the "negative" low commitment
@@ -1209,7 +1260,7 @@ mod tests {
             table_commitment_high.try_sub(table_commitment_all);
         assert!(matches!(
             try_negative_low_difference_result,
-            Err(TableCommitmentArithmeticError::NegativeRange(_))
+            Err(TableCommitmentArithmeticError::NegativeRange { .. })
         ));
     }
 

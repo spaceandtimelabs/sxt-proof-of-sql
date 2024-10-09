@@ -8,13 +8,13 @@ use crate::{
     },
     sql::proof::Indexes,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{Decimal128Array, Decimal256Array, Int64Array, StringArray},
     datatypes::{i256, Field, Schema},
     record_batch::RecordBatch,
 };
 use num_traits::Zero;
-use std::sync::Arc;
 
 #[test]
 fn we_can_convert_an_empty_provable_result_to_a_final_result() {
@@ -26,7 +26,10 @@ fn we_can_convert_an_empty_provable_result_to_a_final_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(Vec::<i64>::new()))]).unwrap();
@@ -128,6 +131,7 @@ fn we_can_evaluate_multiple_result_columns_as_mles_with_128_bits() {
     assert_eq!(evals, expected_evals);
 }
 
+#[allow(clippy::similar_names)]
 #[test]
 fn we_can_evaluate_multiple_result_columns_as_mles_with_scalar_columns() {
     let indexes = Indexes::Sparse(vec![0, 2]);
@@ -256,9 +260,9 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
     let mut res = ProvableQueryResult::new_from_raw_data(
         1,
         Indexes::Sparse(vec![0]),
-        vec![0b11111111_u8; 38],
+        vec![0b1111_1111_u8; 38],
     );
-    res.data_mut()[37] = 0b00000001_u8;
+    res.data_mut()[37] = 0b0000_0001_u8;
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
         Curve25519Scalar::from(100u64),
@@ -276,7 +280,8 @@ fn evaluation_fails_if_the_result_cant_be_decoded() {
 #[test]
 fn evaluation_fails_if_integer_overflow_happens() {
     let indexes = Indexes::Sparse(vec![0, 2]);
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[i32::MAX as i64 + 1_i64, 11, 12])];
+    let binding = [i64::from(i32::MAX) + 1_i64, 11, 12];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&binding)];
     let res = ProvableQueryResult::new(&indexes, &cols);
     let evaluation_point = [
         Curve25519Scalar::from(10u64),
@@ -323,7 +328,10 @@ fn we_can_convert_a_provable_result_to_a_final_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res =
         RecordBatch::try_new(schema, vec![Arc::new(Int64Array::from(vec![10, 12]))]).unwrap();
@@ -341,7 +349,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_128_bits() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
         schema,
@@ -375,7 +386,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_252_bits() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(
@@ -427,7 +441,10 @@ fn we_can_convert_a_provable_result_to_a_final_result_with_mixed_data_types() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
     let expected_res = RecordBatch::try_new(
         schema,

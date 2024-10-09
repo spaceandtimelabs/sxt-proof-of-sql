@@ -2,12 +2,14 @@ use super::{
     Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, MetadataAccessor, OwnedColumn,
     OwnedTable, SchemaAccessor, TableRef, TestAccessor,
 };
-use crate::base::commitment::{CommitmentEvaluationProof, VecCommitmentExt};
+use crate::base::{
+    commitment::{CommitmentEvaluationProof, VecCommitmentExt},
+    map::IndexMap,
+};
 use bumpalo::Bump;
-use indexmap::IndexMap;
 use proof_of_sql_parser::Identifier;
 
-/// A test accessor that uses OwnedTable as the underlying table type.
+/// A test accessor that uses [`OwnedTable`] as the underlying table type.
 /// Note: this is not optimized for performance, so should not be used for benchmarks.
 pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
     tables: IndexMap<TableRef, (OwnedTable<CP::Scalar>, usize)>,
@@ -18,7 +20,7 @@ pub struct OwnedTableTestAccessor<'a, CP: CommitmentEvaluationProof> {
 impl<CP: CommitmentEvaluationProof> Default for OwnedTableTestAccessor<'_, CP> {
     fn default() -> Self {
         Self {
-            tables: Default::default(),
+            tables: IndexMap::default(),
             alloc: Bump::new(),
             setup: None,
         }
@@ -41,27 +43,42 @@ impl<CP: CommitmentEvaluationProof> TestAccessor<CP::Commitment>
     type Table = OwnedTable<CP::Scalar>;
 
     fn new_empty() -> Self {
-        Default::default()
+        OwnedTableTestAccessor::default()
     }
 
     fn add_table(&mut self, table_ref: TableRef, data: Self::Table, table_offset: usize) {
         self.tables.insert(table_ref, (data, table_offset));
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating
+    /// that an invalid reference was provided.
     fn get_column_names(&self, table_ref: TableRef) -> Vec<&str> {
         self.tables
             .get(&table_ref)
             .unwrap()
             .0
             .column_names()
-            .map(|id| id.as_str())
+            .map(proof_of_sql_parser::Identifier::as_str)
             .collect()
     }
 
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn update_offset(&mut self, table_ref: TableRef, new_offset: usize) {
         self.tables.get_mut(&table_ref).unwrap().1 = new_offset;
     }
 }
+
+///
+/// # Panics
+///
+/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if
+/// the `column.column_id()` is not found in the inner table for that reference,
+/// indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestAccessor<'_, CP> {
     fn get_column(&self, column: ColumnRef) -> Column<CP::Scalar> {
         match self
@@ -74,6 +91,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             .unwrap()
         {
             OwnedColumn::Boolean(col) => Column::Boolean(col),
+            OwnedColumn::TinyInt(col) => Column::TinyInt(col),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col),
             OwnedColumn::Int(col) => Column::Int(col),
             OwnedColumn::BigInt(col) => Column::BigInt(col),
@@ -85,7 +103,7 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
             OwnedColumn::VarChar(col) => {
                 let col: &mut [&str] = self
                     .alloc
-                    .alloc_slice_fill_iter(col.iter().map(|s| s.as_str()));
+                    .alloc_slice_fill_iter(col.iter().map(String::as_str));
                 let scals: &mut [_] = self
                     .alloc
                     .alloc_slice_fill_iter(col.iter().map(|s| (*s).into()));
@@ -95,6 +113,11 @@ impl<CP: CommitmentEvaluationProof> DataAccessor<CP::Scalar> for OwnedTableTestA
         }
     }
 }
+
+///
+/// # Panics
+///
+/// Will panic if the `column.table_ref()` is not found in `self.tables`, or if the `column.column_id()` is not found in the inner table for that reference,indicating that an invalid column reference was provided.
 impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     for OwnedTableTestAccessor<'_, CP>
 {
@@ -110,10 +133,17 @@ impl<CP: CommitmentEvaluationProof> CommitmentAccessor<CP::Commitment>
     }
 }
 impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<'_, CP> {
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_length(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().0.num_rows()
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn get_offset(&self, table_ref: TableRef) -> usize {
         self.tables.get(&table_ref).unwrap().1
     }
@@ -129,7 +159,10 @@ impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_
                 .column_type(),
         )
     }
-
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the `table_ref` is not found in `self.tables`, indicating that an invalid reference was provided.
     fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
         self.tables
             .get(&table_ref)

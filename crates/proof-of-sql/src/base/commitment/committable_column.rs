@@ -4,6 +4,7 @@ use crate::base::{
     ref_into::RefInto,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 #[cfg(feature = "blitzar")]
 use blitzar::sequence::Sequence;
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
@@ -24,11 +25,13 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 pub enum CommittableColumn<'a> {
     /// Borrowed Bool column, mapped to `bool`.
     Boolean(&'a [bool]),
-    /// Borrowed SmallInt column, mapped to `i16`.
+    /// Borrowed `TinyInt` column, mapped to `i8`.
+    TinyInt(&'a [i8]),
+    /// Borrowed `SmallInt` column, mapped to `i16`.
     SmallInt(&'a [i16]),
-    /// Borrowed SmallInt column, mapped to `i32`.
+    /// Borrowed `Int` column, mapped to `i32`.
     Int(&'a [i32]),
-    /// Borrowed BigInt column, mapped to `i64`.
+    /// Borrowed `BigInt` column, mapped to `i64`.
     BigInt(&'a [i64]),
     /// Borrowed Int128 column, mapped to `i128`.
     Int128(&'a [i128]),
@@ -36,38 +39,41 @@ pub enum CommittableColumn<'a> {
     Decimal75(Precision, i8, Vec<[u64; 4]>),
     /// Column of big ints for committing to, montgomery-reduced from a Scalar column.
     Scalar(Vec<[u64; 4]>),
-    /// Column of limbs for committing to scalars, hashed from a VarChar column.
+    /// Column of limbs for committing to scalars, hashed from a `VarChar` column.
     VarChar(Vec<[u64; 4]>),
     /// Borrowed Timestamp column with Timezone, mapped to `i64`.
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
-    /// Borrowed byte column, mapped to `u8`. This is not a PoSQL
+    /// Borrowed byte column, mapped to `u8`. This is not a `PoSQL`
     /// type, we need this to commit to words in the range check.
     RangeCheckWord(&'a [u8]),
 }
 
 impl<'a> CommittableColumn<'a> {
     /// Returns the length of the column.
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
+            CommittableColumn::TinyInt(col) => col.len(),
             CommittableColumn::SmallInt(col) => col.len(),
             CommittableColumn::Int(col) => col.len(),
-            CommittableColumn::BigInt(col) => col.len(),
+            CommittableColumn::BigInt(col) | CommittableColumn::TimestampTZ(_, _, col) => col.len(),
             CommittableColumn::Int128(col) => col.len(),
-            CommittableColumn::Decimal75(_, _, col) => col.len(),
-            CommittableColumn::Scalar(col) => col.len(),
-            CommittableColumn::VarChar(col) => col.len(),
+            CommittableColumn::Decimal75(_, _, col)
+            | CommittableColumn::Scalar(col)
+            | CommittableColumn::VarChar(col) => col.len(),
             CommittableColumn::Boolean(col) => col.len(),
-            CommittableColumn::TimestampTZ(_, _, col) => col.len(),
             CommittableColumn::RangeCheckWord(col) => col.len(),
         }
     }
 
     /// Returns true if the column is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns the type of the column.
+    #[must_use]
     pub fn column_type(&self) -> ColumnType {
         self.into()
     }
@@ -76,6 +82,7 @@ impl<'a> CommittableColumn<'a> {
 impl<'a> From<&CommittableColumn<'a>> for ColumnType {
     fn from(value: &CommittableColumn<'a>) -> Self {
         match value {
+            CommittableColumn::TinyInt(_) => ColumnType::TinyInt,
             CommittableColumn::SmallInt(_) => ColumnType::SmallInt,
             CommittableColumn::Int(_) => ColumnType::Int,
             CommittableColumn::BigInt(_) => ColumnType::BigInt,
@@ -98,6 +105,7 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     fn from(value: &Column<'a, S>) -> Self {
         match value {
             Column::Boolean(bools) => CommittableColumn::Boolean(bools),
+            Column::TinyInt(ints) => CommittableColumn::TinyInt(ints),
             Column::SmallInt(ints) => CommittableColumn::SmallInt(ints),
             Column::Int(ints) => CommittableColumn::Int(ints),
             Column::BigInt(ints) => CommittableColumn::BigInt(ints),
@@ -116,10 +124,17 @@ impl<'a, S: Scalar> From<&Column<'a, S>> for CommittableColumn<'a> {
     }
 }
 
+impl<'a, S: Scalar> From<Column<'a, S>> for CommittableColumn<'a> {
+    fn from(value: Column<'a, S>) -> Self {
+        (&value).into()
+    }
+}
+
 impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
     fn from(value: &'a OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(bools) => CommittableColumn::Boolean(bools),
+            OwnedColumn::TinyInt(ints) => (ints as &[_]).into(),
             OwnedColumn::SmallInt(ints) => (ints as &[_]).into(),
             OwnedColumn::Int(ints) => (ints as &[_]).into(),
             OwnedColumn::BigInt(ints) => (ints as &[_]).into(),
@@ -151,6 +166,11 @@ impl<'a, S: Scalar> From<&'a OwnedColumn<S>> for CommittableColumn<'a> {
 impl<'a> From<&'a [u8]> for CommittableColumn<'a> {
     fn from(value: &'a [u8]) -> Self {
         CommittableColumn::RangeCheckWord(value)
+    }
+}
+impl<'a> From<&'a [i8]> for CommittableColumn<'a> {
+    fn from(value: &'a [i8]) -> Self {
+        CommittableColumn::TinyInt(value)
     }
 }
 impl<'a> From<&'a [i16]> for CommittableColumn<'a> {
@@ -190,13 +210,14 @@ impl<'a> From<&'a [bool]> for CommittableColumn<'a> {
 impl<'a, 'b> From<&'a CommittableColumn<'b>> for Sequence<'a> {
     fn from(value: &'a CommittableColumn<'b>) -> Self {
         match value {
+            CommittableColumn::TinyInt(ints) => Sequence::from(*ints),
             CommittableColumn::SmallInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int(ints) => Sequence::from(*ints),
             CommittableColumn::BigInt(ints) => Sequence::from(*ints),
             CommittableColumn::Int128(ints) => Sequence::from(*ints),
-            CommittableColumn::Decimal75(_, _, limbs) => Sequence::from(limbs),
-            CommittableColumn::Scalar(limbs) => Sequence::from(limbs),
-            CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
+            CommittableColumn::Decimal75(_, _, limbs)
+            | CommittableColumn::Scalar(limbs)
+            | CommittableColumn::VarChar(limbs) => Sequence::from(limbs),
             CommittableColumn::Boolean(bools) => Sequence::from(*bools),
             CommittableColumn::TimestampTZ(_, _, times) => Sequence::from(*times),
             CommittableColumn::RangeCheckWord(words) => Sequence::from(*words),
@@ -230,7 +251,7 @@ mod tests {
                 .into(),
         );
 
-        assert_eq!(res_committable_column, test_committable_column)
+        assert_eq!(res_committable_column, test_committable_column);
     }
 
     #[test]
@@ -255,6 +276,26 @@ mod tests {
         assert_eq!(
             committable_column.column_type(),
             ColumnType::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc)
+        );
+    }
+
+    #[test]
+    fn we_can_get_type_and_length_of_tinyint_column() {
+        // empty case
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[]);
+        assert_eq!(tinyint_committable_column.len(), 0);
+        assert!(tinyint_committable_column.is_empty());
+        assert_eq!(
+            tinyint_committable_column.column_type(),
+            ColumnType::TinyInt
+        );
+
+        let tinyint_committable_column = CommittableColumn::TinyInt(&[12, 34, 56]);
+        assert_eq!(tinyint_committable_column.len(), 3);
+        assert!(!tinyint_committable_column.is_empty());
+        assert_eq!(
+            tinyint_committable_column.column_type(),
+            ColumnType::TinyInt
         );
     }
 
@@ -424,7 +465,7 @@ mod tests {
         );
 
         // non-empty case
-        let timestamps = [1625072400, 1625076000, 1625083200];
+        let timestamps = [1_625_072_400, 1_625_076_000, 1_625_083_200];
         let from_borrowed_column =
             CommittableColumn::from(&Column::<Curve25519Scalar>::TimestampTZ(
                 PoSQLTimeUnit::Second,
@@ -449,6 +490,21 @@ mod tests {
         assert_eq!(
             from_borrowed_column,
             CommittableColumn::BigInt(&[12, 34, 56])
+        );
+    }
+
+    #[test]
+    fn we_can_convert_from_borrowing_tinyint_column() {
+        // empty case
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[]));
+        assert_eq!(from_borrowed_column, CommittableColumn::TinyInt(&[]));
+
+        let from_borrowed_column =
+            CommittableColumn::from(&Column::<Curve25519Scalar>::TinyInt(&[12, 34, 56]));
+        assert_eq!(
+            from_borrowed_column,
+            CommittableColumn::TinyInt(&[12, 34, 56])
         );
     }
 
@@ -577,6 +633,18 @@ mod tests {
     }
 
     #[test]
+    fn we_can_convert_from_owned_tinyint_column() {
+        // empty case
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(Vec::new());
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[]));
+
+        let owned_column = OwnedColumn::<DoryScalar>::TinyInt(vec![12, 34, 56]);
+        let from_owned_column = CommittableColumn::from(&owned_column);
+        assert_eq!(from_owned_column, CommittableColumn::TinyInt(&[12, 34, 56]));
+    }
+
+    #[test]
     fn we_can_convert_from_owned_smallint_column() {
         // empty case
         let owned_column = OwnedColumn::<DoryScalar>::SmallInt(Vec::new());
@@ -606,7 +674,7 @@ mod tests {
         );
 
         // non-empty case
-        let timestamps = vec![1625072400, 1625076000, 1625083200];
+        let timestamps = vec![1_625_072_400, 1_625_076_000, 1_625_083_200];
         let owned_column = OwnedColumn::<Curve25519Scalar>::TimestampTZ(
             PoSQLTimeUnit::Second,
             PoSQLTimeZone::Utc,
@@ -729,6 +797,30 @@ mod tests {
         // nonempty case
         let values = [12, 34, 56];
         let committable_column = CommittableColumn::RangeCheckWord(&values);
+
+        let sequence_actual = Sequence::from(&committable_column);
+        let sequence_expected = Sequence::from(values.as_slice());
+        let mut commitment_buffer = [CompressedRistretto::default(); 2];
+        compute_curve25519_commitments(
+            &mut commitment_buffer,
+            &[sequence_actual, sequence_expected],
+            0,
+        );
+        assert_eq!(commitment_buffer[0], commitment_buffer[1]);
+    }
+
+    #[test]
+    fn we_can_commit_to_tinyint_column_through_committable_column() {
+        // empty case
+        let committable_column = CommittableColumn::TinyInt(&[]);
+        let sequence = Sequence::from(&committable_column);
+        let mut commitment_buffer = [CompressedRistretto::default()];
+        compute_curve25519_commitments(&mut commitment_buffer, &[sequence], 0);
+        assert_eq!(commitment_buffer[0], CompressedRistretto::default());
+
+        // nonempty case
+        let values = [12, 34, 56];
+        let committable_column = CommittableColumn::TinyInt(&values);
 
         let sequence_actual = Sequence::from(&committable_column);
         let sequence_expected = Sequence::from(values.as_slice());
@@ -933,7 +1025,7 @@ mod tests {
         assert_eq!(commitment_buffer[0], CompressedRistretto::default());
 
         // Non-empty case
-        let timestamps = [1625072400, 1625076000, 1625083200];
+        let timestamps = [1_625_072_400, 1_625_076_000, 1_625_083_200];
         let committable_column =
             CommittableColumn::TimestampTZ(PoSQLTimeUnit::Second, PoSQLTimeZone::Utc, &timestamps);
 

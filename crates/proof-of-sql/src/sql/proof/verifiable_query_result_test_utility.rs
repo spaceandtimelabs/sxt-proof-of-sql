@@ -4,8 +4,9 @@ use super::{
 };
 use crate::{
     base::{
+        commitment::{Commitment, CommittableColumn},
         database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::Curve25519Scalar,
     },
     sql::proof::Indexes,
 };
@@ -14,17 +15,28 @@ use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
 use num_traits::One;
 use serde::Serialize;
 
-/// This function takes a valid verifiable_result, copies it, tweaks it, and checks that
+/// This function takes a valid `verifiable_result`, copies it, tweaks it, and checks that
 /// verification fails.
 ///
 /// It's useful as a tool for testing proof code.
+///
+/// # Panics
+///
+/// Will panic if:
+/// - The verification of `res` does not succeed, causing the assertion `assert!(res.verify(...).is_ok())` to fail.
+/// - `res.proof` is `None`, causing `res.proof.as_ref().unwrap()` to panic.
+/// - Attempting to modify `pcs_proof_evaluations` or `commitments` if `res_p.proof` is `None`, leading to a panic on `unwrap()`.
+/// - `fake_accessor.update_offset` fails, causing a panic if it is designed to do so in the implementation.
 pub fn exercise_verification(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),
     accessor: &impl TestAccessor<RistrettoPoint>,
     table_ref: TableRef,
 ) {
-    assert!(res.verify(expr, accessor, &()).is_ok());
+    let verification_result = res.verify(expr, accessor, &());
+    if verification_result.is_err() {
+        panic!("Verification failed: {:?}", verification_result.err());
+    }
 
     // try changing the result
     tamper_result(res, expr, accessor);
@@ -42,10 +54,15 @@ pub fn exercise_verification(
     }
 
     // try changing intermediate commitments
-    let commit_p = compute_commitment_for_testing(
-        &[353453245u64, 93402346u64][..], // some arbitrary values
+    let commit_p = RistrettoPoint::compute_commitments(
+        &[CommittableColumn::BigInt(&[
+            353_453_245_i64,
+            93_402_346_i64,
+        ])],
         0_usize,
-    );
+        &(),
+    )[0];
+
     for i in 0..proof.commitments.len() {
         let mut res_p = res.clone();
         res_p.proof.as_mut().unwrap().commitments[i] = commit_p;
@@ -104,6 +121,15 @@ fn tamper_empty_result(
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }
 
+/// # Panics
+///
+/// Will panic if:
+/// - `res.provable_result` is `None`, which leads to calling `unwrap()` on it in the subsequent
+///   code and may cause an unexpected behavior.
+/// - The `provable_res.indexes()` returns an empty vector, which leads to attempting to modify an
+///   index of an empty result, causing an invalid state.
+/// - The assertion `assert!(res_p.verify(expr, accessor, &()).is_err())` fails, indicating that the
+///   verification did not fail as expected after tampering.
 fn tamper_result(
     res: &VerifiableQueryResult<InnerProductProof>,
     expr: &(impl ProofPlan<RistrettoPoint> + Serialize),

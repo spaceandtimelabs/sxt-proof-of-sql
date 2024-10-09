@@ -1,4 +1,4 @@
-//! Dory is the commitment scheme described in https://eprint.iacr.org/2020/1274.pdf.
+//! Dory is the commitment scheme described in <https://eprint.iacr.org/2020/1274.pdf>.
 //!
 //! This module contains the implementation of the Dory inner product argument for the BLS12-381 curve.
 //!
@@ -25,9 +25,9 @@ type GT = ark_ec::pairing::PairingOutput<ark_bls12_381::Bls12_381>;
 mod rand_util;
 #[cfg(test)]
 use rand_util::rand_F_tensors;
-#[cfg(any(test, feature = "test"))]
+#[cfg(test)]
 use rand_util::rand_G_vecs;
-#[cfg(any(test, feature = "test"))]
+#[cfg(test)]
 pub use rand_util::test_rng;
 
 mod dory_messages;

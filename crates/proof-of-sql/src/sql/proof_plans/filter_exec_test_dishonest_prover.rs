@@ -49,11 +49,15 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .as_boolean()
             .expect("selection is not boolean");
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
@@ -82,14 +86,18 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .as_boolean()
             .expect("selection is not boolean");
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
+        // 3. Produce MLEs
+        filtered_columns.iter().copied().for_each(|column| {
+            builder.produce_intermediate_mle(column);
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -113,7 +121,7 @@ fn tamper_column<'a>(
     alloc: &'a Bump,
     mut columns: Vec<Column<'a, Curve25519Scalar>>,
 ) -> Vec<Column<'a, Curve25519Scalar>> {
-    for column in columns.iter_mut() {
+    for column in &mut columns {
         if let Column::Scalar(tampered_column) = column {
             if !tampered_column.is_empty() {
                 let tampered_column = alloc.alloc_slice_copy(tampered_column);
@@ -147,6 +155,8 @@ fn we_fail_to_verify_a_basic_filter_with_a_dishonest_prover() {
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(matches!(
         res.verify(&expr, &accessor, &()),
-        Err(QueryError::ProofError(ProofError::VerificationError(_)))
+        Err(QueryError::ProofError {
+            source: ProofError::VerificationError { .. }
+        })
     ));
 }

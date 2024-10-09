@@ -10,9 +10,9 @@ use crate::{
         proof_plans::{DynProofPlan, GroupByExec},
     },
 };
+use alloc::{fmt, vec, vec::Vec};
 use proof_of_sql_parser::{intermediate_ast::SetExpression, Identifier, SelectStatement};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 #[derive(PartialEq, Serialize, Deserialize)]
 /// A `QueryExpr` represents a Proof of SQL query that can be executed against a database.

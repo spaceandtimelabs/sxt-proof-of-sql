@@ -1,6 +1,7 @@
 use crate::{sql::IdentifierParser, ParseError, ParseResult};
+use alloc::{format, string::ToString};
 use arrayvec::ArrayString;
-use std::{cmp::Ordering, fmt, str::FromStr};
+use core::{cmp::Ordering, fmt, ops::Deref, str::FromStr};
 
 /// Top-level unique identifier.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Ord, PartialOrd, Copy)]
@@ -11,28 +12,40 @@ pub struct Identifier {
 impl Identifier {
     /// Constructor for [Identifier]
     ///
-    /// Note: this constructor should be private within the proof_of_sql_parser crate.
+    /// Note: this constructor should be private within the `proof_of_sql_parser` crate.
     /// This is necessary to guarantee that no one outside the crate
-    /// can create Names, thus securing that ResourceIds and Identifiers
+    /// can create Names, thus securing that [`ResourceId`]s and [`Identifier`]s
     /// are always valid postgresql identifiers.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if:
+    /// - The provided string is too long to fit into the internal `ArrayString`.
     pub(crate) fn new<S: AsRef<str>>(string: S) -> Self {
         Self {
             name: ArrayString::from(&string.as_ref().to_lowercase()).expect("Identifier too long"),
         }
     }
 
-    /// An alias for [Identifier::from_str], provided for convenience.
+    /// An alias for [`Identifier::from_str`], provided for convenience.
+    ///
+    /// # Errors
+    /// Returns a `ParseResult::Err` if the input string does not meet the requirements for a valid identifier.
+    /// This may include errors such as invalid characters or incorrect formatting based on the specific rules
+    /// that `Identifier::from_str` enforces.
     pub fn try_new<S: AsRef<str>>(string: S) -> ParseResult<Self> {
         Self::from_str(string.as_ref())
     }
 
     /// The name of this [Identifier]
     /// It already implements [Deref] to [str], so this method is not necessary for most use cases.
+    #[must_use]
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
-    /// An alias for [Identifier::name], provided for convenience.
+    /// An alias for [`Identifier::name`], provided for convenience.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         self.name()
     }
@@ -44,8 +57,8 @@ impl FromStr for Identifier {
     fn from_str(string: &str) -> ParseResult<Self> {
         let name = IdentifierParser::new()
             .parse(string)
-            .map_err(|e| ParseError::IdentifierParseError(
-                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {:?}", e)))?;
+            .map_err(|e| ParseError::IdentifierParseError{ error:
+                format!("failed to parse identifier, (you may have used a reserved keyword as an ID, i.e. 'timestamp') {e:?}")})?;
 
         Ok(Identifier::new(name))
     }
@@ -70,7 +83,7 @@ impl PartialOrd<str> for Identifier {
     }
 }
 
-impl std::ops::Deref for Identifier {
+impl Deref for Identifier {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -87,6 +100,7 @@ impl AsRef<str> for Identifier {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::{borrow::ToOwned, vec, vec::Vec};
 
     #[test]
     fn from_str_identifier() {
@@ -181,11 +195,10 @@ mod tests {
             "to_timestamp",
         ];
 
-        for keyword in keywords.iter() {
+        for keyword in &keywords {
             assert!(
                 Identifier::from_str(keyword).is_err(),
-                "Should not parse keyword as identifier: {}",
-                keyword
+                "Should not parse keyword as identifier: {keyword}"
             );
         }
     }

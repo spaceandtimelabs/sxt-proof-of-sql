@@ -1,12 +1,14 @@
 use super::{ProofBuilder, ProvableQueryResult, SumcheckRandomScalars};
 use crate::{
     base::{
+        commitment::{Commitment, CommittableColumn},
         database::{Column, ColumnField, ColumnType},
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
-        scalar::{compute_commitment_for_testing, Curve25519Scalar},
+        scalar::Curve25519Scalar,
     },
     sql::proof::{Indexes, SumcheckSubpolynomialType},
 };
+use alloc::sync::Arc;
 #[cfg(feature = "arrow")]
 use arrow::{
     array::Int64Array,
@@ -15,7 +17,6 @@ use arrow::{
 };
 use curve25519_dalek::RistrettoPoint;
 use num_traits::{One, Zero};
-use std::sync::Arc;
 
 #[test]
 fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
@@ -28,7 +29,11 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&mle2[..])],
+            offset_generators,
+            &()
+        )[0]]
     );
 }
 
@@ -43,7 +48,11 @@ fn we_can_compute_commitments_for_intermediate_mles_using_a_non_zero_offset() {
     let commitments: Vec<RistrettoPoint> = builder.commit_intermediate_mles(offset_generators, &());
     assert_eq!(
         commitments,
-        [compute_commitment_for_testing(&mle2, offset_generators)]
+        [RistrettoPoint::compute_commitments(
+            &[CommittableColumn::from(&mle2[..])],
+            offset_generators,
+            &()
+        )[0]]
     );
 }
 
@@ -117,7 +126,7 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
     );
     let random_point = [
         Curve25519Scalar::from(123u64),
-        Curve25519Scalar::from(101112u64),
+        Curve25519Scalar::from(101_112_u64),
     ];
     let eval = poly.evaluate(&random_point);
     let expected_eval = expected_poly.evaluate(&random_point);
@@ -141,7 +150,10 @@ fn we_can_form_the_provable_query_result() {
             .unwrap(),
     )
     .unwrap();
-    let column_fields: Vec<Field> = column_fields.iter().map(|v| v.into()).collect();
+    let column_fields: Vec<Field> = column_fields
+        .iter()
+        .map(core::convert::Into::into)
+        .collect();
     let schema = Arc::new(Schema::new(column_fields));
 
     let expected_res = RecordBatch::try_new(

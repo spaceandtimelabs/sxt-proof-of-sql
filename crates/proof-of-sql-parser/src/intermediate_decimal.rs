@@ -6,27 +6,36 @@
 //! A decimal must have a decimal point. The lexer does not route
 //! whole integers to this contructor.
 use crate::intermediate_decimal::IntermediateDecimalError::{LossyCast, OutOfRange, ParseError};
+use alloc::string::String;
 use bigdecimal::{num_bigint::BigInt, BigDecimal, ParseBigDecimalError, ToPrimitive};
-use core::hash::Hash;
+use core::{fmt, hash::Hash, str::FromStr};
 use serde::{Deserialize, Serialize};
-use std::{fmt, str::FromStr};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Errors related to the processing of decimal values in proof-of-sql
-#[derive(Error, Debug, PartialEq)]
+#[allow(clippy::module_name_repetitions)]
+#[derive(Snafu, Debug, PartialEq)]
 pub enum IntermediateDecimalError {
     /// Represents an error encountered during the parsing of a decimal string.
-    #[error(transparent)]
-    ParseError(#[from] ParseBigDecimalError),
+    #[snafu(display("{error}"))]
+    ParseError {
+        /// The underlying error
+        error: ParseBigDecimalError,
+    },
     /// Error occurs when this decimal cannot fit in a primitive.
-    #[error("Value out of range for target type")]
+    #[snafu(display("Value out of range for target type"))]
     OutOfRange,
     /// Error occurs when this decimal cannot be losslessly cast into a primitive.
-    #[error("Fractional part of decimal is non-zero")]
+    #[snafu(display("Fractional part of decimal is non-zero"))]
     LossyCast,
     /// Cannot cast this decimal to a big integer
-    #[error("Conversion to integer failed")]
+    #[snafu(display("Conversion to integer failed"))]
     ConversionFailure,
+}
+impl From<ParseBigDecimalError> for IntermediateDecimalError {
+    fn from(value: ParseBigDecimalError) -> Self {
+        IntermediateDecimalError::ParseError { error: value }
+    }
 }
 
 impl Eq for IntermediateDecimalError {}
@@ -39,22 +48,34 @@ pub struct IntermediateDecimal {
 
 impl IntermediateDecimal {
     /// Get the integer part of the fixed-point representation of this intermediate decimal.
+    #[must_use]
     pub fn value(&self) -> BigDecimal {
         self.value.clone()
     }
 
     /// Get the precision of the fixed-point representation of this intermediate decimal.
+    #[must_use]
     pub fn precision(&self) -> u8 {
-        self.value.digits() as u8
+        match u8::try_from(self.value.digits()) {
+            Ok(v) => v,
+            Err(_) => u8::MAX, // Returning u8::MAX on truncation
+        }
     }
 
     /// Get the scale of the fixed-point representation of this intermediate decimal.
+    #[must_use]
     pub fn scale(&self) -> i8 {
-        self.value.fractional_digit_count() as i8
+        match i8::try_from(self.value.fractional_digit_count()) {
+            Ok(v) => v,
+            Err(_) => i8::MAX, // Returning i8::MAX on truncation
+        }
     }
 
     /// Attempts to convert the decimal to `BigInt` while adjusting it to the specified precision and scale.
     /// Returns an error if the conversion cannot be performed due to precision or scale constraints.
+    ///
+    /// # Errors
+    /// Returns an `IntermediateDecimalError::LossyCast` error if the number of digits in the scaled decimal exceeds the specified precision.
     pub fn try_into_bigint_with_precision_and_scale(
         &self,
         precision: u8,
@@ -83,7 +104,7 @@ impl FromStr for IntermediateDecimal {
             .map(|value| IntermediateDecimal {
                 value: value.normalized(),
             })
-            .map_err(ParseError)
+            .map_err(|err| ParseError { error: err })
     }
 }
 
@@ -152,6 +173,7 @@ impl TryFrom<IntermediateDecimal> for i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
 
     #[test]
     fn test_valid_decimal_simple() {
@@ -188,7 +210,7 @@ mod tests {
         };
         assert_eq!(
             i128::try_from(valid_decimal),
-            Ok(170141183460469231731687303715884105727i128)
+            Ok(170_141_183_460_469_231_731_687_303_715_884_105_727_i128)
         );
 
         let valid_decimal = IntermediateDecimal {
@@ -206,7 +228,7 @@ mod tests {
         };
         assert_eq!(
             i128::try_from(valid_decimal_negative),
-            Ok(-170141183460469231731687303715884105728i128)
+            Ok(-170_141_183_460_469_231_731_687_303_715_884_105_728_i128)
         );
 
         let non_integer = IntermediateDecimal {
@@ -220,7 +242,10 @@ mod tests {
         let valid_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("9223372036854775807").unwrap(),
         };
-        assert_eq!(i64::try_from(valid_decimal), Ok(9223372036854775807i64));
+        assert_eq!(
+            i64::try_from(valid_decimal),
+            Ok(9_223_372_036_854_775_807_i64)
+        );
 
         let valid_decimal = IntermediateDecimal {
             value: BigDecimal::from_str("123.000").unwrap(),
@@ -237,7 +262,7 @@ mod tests {
         };
         assert_eq!(
             i64::try_from(valid_decimal_negative),
-            Ok(-9223372036854775808i64)
+            Ok(-9_223_372_036_854_775_808_i64)
         );
 
         let non_integer = IntermediateDecimal {

@@ -1,8 +1,9 @@
 use super::{FilterExec, GroupByExec, ProjectionExec};
 use crate::{
-    base::{commitment::Commitment, database::Column},
+    base::{commitment::Commitment, database::Column, map::IndexSet},
     sql::proof::{ProofPlan, ProverEvaluate},
 };
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query
@@ -81,7 +82,7 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_column_references(&self) -> indexmap::IndexSet<crate::base::database::ColumnRef> {
+    fn get_column_references(&self) -> IndexSet<crate::base::database::ColumnRef> {
         match self {
             DynProofPlan::Projection(expr) => expr.get_column_references(),
             DynProofPlan::GroupBy(expr) => expr.get_column_references(),

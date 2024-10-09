@@ -1,10 +1,11 @@
 use super::Commitment;
 use crate::base::commitment::committable_column::CommittableColumn;
-use thiserror::Error;
+use alloc::vec::Vec;
+use snafu::Snafu;
 
 /// Cannot update commitment collections with different column counts
-#[derive(Error, Debug)]
-#[error("cannot update commitment collections with different column counts")]
+#[derive(Snafu, Debug)]
+#[snafu(display("cannot update commitment collections with different column counts"))]
 pub struct NumColumnsMismatch;
 
 /// Extension trait intended for collections of commitments.
@@ -101,10 +102,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
         offset: usize,
         setup: &Self::CommitmentPublicSetup<'_>,
     ) -> Self {
-        let mut commitments = vec![C::default(); committable_columns.len()];
-        C::compute_commitments(&mut commitments, committable_columns, offset, setup);
-
-        commitments
+        C::compute_commitments(committable_columns, offset, setup)
     }
 
     fn try_append_rows_with_offset<'a, COL>(
@@ -123,8 +121,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
             return Err(NumColumnsMismatch);
         }
 
-        let partial_commitments =
-            Self::from_commitable_columns_with_offset(&committable_columns, offset, setup);
+        let partial_commitments = C::compute_commitments(&committable_columns, offset, setup);
         unsafe_add_assign(self, &partial_commitments);
 
         Ok(())
@@ -138,7 +135,7 @@ impl<C: Commitment> VecCommitmentExt for Vec<C> {
     ) where
         COL: Into<CommittableColumn<'a>>,
     {
-        self.extend(Self::from_columns_with_offset(columns, offset, setup))
+        self.extend(Self::from_columns_with_offset(columns, offset, setup));
     }
 
     fn try_add(self, other: Self) -> Result<Self, NumColumnsMismatch>
@@ -188,7 +185,7 @@ mod tests {
     fn we_can_convert_from_columns() {
         // empty case
         let commitments = Vec::<RistrettoPoint>::from_columns_with_offset(
-            &Vec::<Column<Curve25519Scalar>>::new(),
+            Vec::<Column<Curve25519Scalar>>::new(),
             0,
             &(),
         );
@@ -220,9 +217,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
-
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
         assert_eq!(commitments, expected_commitments);
     }
 
@@ -261,8 +259,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -346,8 +346,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }
@@ -387,9 +389,10 @@ mod tests {
             ],
             0,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
-
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
         assert_eq!(commitments, expected_commitments);
     }
 
@@ -463,8 +466,10 @@ mod tests {
             ],
             3,
         );
-        let expected_commitments =
-            Vec::from_iter(expected_commitments.iter().map(|c| c.decompress().unwrap()));
+        let expected_commitments: Vec<_> = expected_commitments
+            .iter()
+            .map(|c| c.decompress().unwrap())
+            .collect();
 
         assert_eq!(commitments, expected_commitments);
     }

@@ -1,4 +1,5 @@
 #![cfg(feature = "test")]
+#![cfg_attr(test, allow(clippy::missing_panics_doc))]
 use ark_std::test_rng;
 use curve25519_dalek::RistrettoPoint;
 #[cfg(feature = "blitzar")]
@@ -46,7 +47,7 @@ fn we_can_prove_a_minimal_filter_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_minimal_filter_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -82,7 +83,7 @@ fn we_can_prove_a_minimal_filter_query_with_dory() {
 
 #[test]
 fn we_can_prove_a_minimal_filter_query_with_dynamic_dory() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
@@ -144,7 +145,7 @@ fn we_can_prove_a_basic_equality_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_equality_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -210,6 +211,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -230,6 +232,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
         .unwrap()
         .table;
     let expected_result = owned_table([
+        tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
         smallint("smallint", [i16::MIN, 0, i16::MAX]),
         int("int", [i32::MIN, 0, i32::MAX]),
         bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -241,7 +244,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_curve25519() {
 #[test]
 #[cfg(feature = "blitzar")]
 fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -251,6 +254,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
     accessor.add_table(
         "sxt.table".parse().unwrap(),
         owned_table([
+            tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
             smallint("smallint", [i16::MIN, 0, i16::MAX]),
             int("int", [i32::MIN, 0, i32::MAX]),
             bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -276,6 +280,7 @@ fn we_can_prove_a_basic_query_containing_extrema_with_dory() {
         .unwrap()
         .table;
     let expected_result = owned_table([
+        tinyint("tinyint", [i8::MIN, 0, i8::MAX]),
         smallint("smallint", [i16::MIN, 0, i16::MAX]),
         int("int", [i32::MIN, 0, i32::MAX]),
         bigint("bigint", [i64::MIN, 0, i64::MAX]),
@@ -313,7 +318,7 @@ fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_arithmetic_in_where_clause_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -380,7 +385,7 @@ fn we_can_prove_a_basic_equality_with_out_of_order_results_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_basic_inequality_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -424,14 +429,14 @@ fn decimal_type_issues_should_cause_provable_ast_to_fail() {
         0,
     );
     let large_decimal = format!("0.{}", "1".repeat(75));
-    let query_string = format!("SELECT d0 + {} as res FROM table;", large_decimal);
+    let query_string = format!("SELECT d0 + {large_decimal} as res FROM table;");
     assert!(matches!(
         QueryExpr::<RistrettoPoint>::try_new(
             query_string.parse().unwrap(),
             "sxt".parse().unwrap(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(..))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -471,14 +476,14 @@ fn we_can_prove_a_complex_query_with_curve25519() {
         bigint("t", [-5]),
         decimal75("g", 3, 1, [457]),
         boolean("h", [true]),
-        decimal75("dr", 26, 6, [1400006]),
+        decimal75("dr", 26, 6, [1_400_006]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
 
 #[test]
 fn we_can_prove_a_complex_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -523,7 +528,7 @@ fn we_can_prove_a_complex_query_with_dory() {
         decimal75("res", 22, 1, [25]),
         bigint("g", [32]),
         boolean("h", [true]),
-        decimal75("res2", 46, 4, [129402]),
+        decimal75("res2", 46, 4, [129_402]),
     ]);
     assert_eq!(owned_table_result, expected_result);
 }
@@ -659,7 +664,7 @@ fn we_can_prove_a_cat_group_by_query_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
 
@@ -738,7 +743,7 @@ fn we_can_prove_a_cat_group_by_query_with_dynamic_dory() {
 
 #[test]
 fn we_can_prove_a_basic_group_by_query_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -808,7 +813,7 @@ fn we_can_prove_a_query_with_overflow_with_curve25519() {
 
 #[test]
 fn we_can_prove_a_query_with_overflow_with_dory() {
-    let public_parameters = PublicParameters::rand(4, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
@@ -838,4 +843,35 @@ fn we_can_prove_a_query_with_overflow_with_dory() {
         ),
         Err(QueryError::Overflow)
     ));
+}
+
+#[test]
+#[cfg(feature = "blitzar")]
+fn we_can_perform_arithmetic_and_conditional_operations_on_tinyint() {
+    let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
+    accessor.add_table(
+        "sxt.table".parse().unwrap(),
+        owned_table([
+            tinyint("a", [3_i8, 5, 2, 1]),
+            tinyint("b", [2_i8, 1, 3, 4]),
+            tinyint("c", [1_i8, 4, 5, 2]),
+        ]),
+        0,
+    );
+    let query = QueryExpr::try_new(
+        "SELECT a*b+b+c as result FROM table WHERE a>b OR c=4"
+            .parse()
+            .unwrap(),
+        "sxt".parse().unwrap(),
+        &accessor,
+    )
+    .unwrap();
+    let (proof, serialized_result) =
+        QueryProof::<InnerProductProof>::new(query.proof_expr(), &accessor, &());
+    let owned_table_result = proof
+        .verify(query.proof_expr(), &accessor, &serialized_result, &())
+        .unwrap()
+        .table;
+    let expected_result = owned_table([tinyint("result", [9_i8, 10])]);
+    assert_eq!(owned_table_result, expected_result);
 }

@@ -1,4 +1,5 @@
 use crate::base::{polynomial::compute_evaluation_vector, scalar::Scalar};
+use alloc::{vec, vec::Vec};
 
 /// Accessor for the random scalars used to form the sumcheck polynomial of a query proof
 pub struct SumcheckRandomScalars<'a, S: Scalar> {

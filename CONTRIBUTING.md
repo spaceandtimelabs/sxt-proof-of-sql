@@ -7,6 +7,9 @@
 
 The following guideline is heavily based on the [Angular Project Guideline](https://github.com/angular/angular/blob/main/CONTRIBUTING.md). As a contributor, here are the rules we would like you to follow:
 
+ - [Getting Started](#getting-started)
+   - [Install Rust](#install-rust)
+   - [Fork the Repository](#fork-the-repository)
  - [Submission Guidelines](#submit)
    - [Submitting a Pull Request (PR)](#submit-pr)
    - [Addressing review feedback](#address-review)
@@ -24,6 +27,78 @@ The following guideline is heavily based on the [Angular Project Guideline](http
    - [Commit Examples](#commit-examples)
    - [Automatic Semantic Release](#semantic-release)
 
+## <a name="getting-started"></a> Getting Started
+### <a name="install-rust"></a> Install Rust
+To contribute to this project, you'll need to have Rust installed on your machine. Follow the steps below to install Rust and set up your development environment:
+
+1. Install Rust.
+   - Rust's official installer is called `rustup`, which makes it easy to install and manage Rust versions.
+   - To install Rust, open your terminal and run the following command:
+     ```bash
+     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+     ```
+   - Follow the on-screen instructions to complete the installation.
+
+2. Verify your installation.
+   - Once Rust is installed, verify the installation by checking the version:
+     ```bash
+     rustc --version
+     ```
+   - This should display the version of Rust that was installed.
+
+3. Set up your environment.
+   - After installation, `rustup` will configure your environment automatically, adding Rust to your system's PATH. If needed, you can reload your shell with:
+     ```bash
+     source $HOME/.cargo/env
+     ```
+
+4. Update Rust.
+   - To ensure you are using the latest version of Rust, you can update Rust at any time by running:
+     ```bash
+     rustup update
+     ```
+
+5. Additional tools.
+   - You may also want to install some common tools used in Rust development, like `cargo` (Rust’s package manager and build system) and `rustfmt` (code formatting):
+     ```bash
+     rustup component add rustfmt
+     rustup component add clippy
+     ```
+
+If you run into any issues, please refer to the [official Rust documentation](https://www.rust-lang.org/learn/get-started) for troubleshooting and more detailed installation instructions.
+
+### <a name="fork-the-repository"></a> Fork the Repository
+In order to contribute it is necessary to fork the repository. Follow the steps below to do so:
+
+1. Navigate to the repository.
+   - Go to the main page of the repository on GitHub at https://github.com/spaceandtimelabs/sxt-proof-of-sql.
+
+2. Fork the repository.
+   - Click the "Fork" button in the upper-right corner of the repository page. This will create a copy of the repository under your GitHub account.
+
+3. Clone your forked repository.
+   - Once the fork is complete, you need to clone it to your local machine. Run the following command in your terminal:
+     ```bash
+     git clone https://github.com/YOUR_USERNAME/sxt-proof-of-sql.git
+     ```
+   - Replace `YOUR_USERNAME` with your GitHub username.
+
+4. Navigate to the repository's directory.
+   - Change into the newly cloned repository directory:
+     ```bash
+     cd sxt-proof-of-sql
+     ```
+
+5. Add the original repository as a remote (optional but recommended).
+   - This allows you to keep your fork up to date with changes from the original repository:
+     ```bash
+     git remote add upstream https://github.com/spaceandtimelabs/sxt-proof-of-sql.git
+     git remote add origin https://github.com/YOUR_USERNAME/sxt-proof-of-sql.git
+     ```
+   - Replace `YOUR_USERNAME` with your GitHub username.
+
+6. Start making your changes.
+   - Now you are ready to create a new branch and make your contributions!
 
 ## <a name="submit"></a> Submission Guidelines
 
@@ -37,29 +112,11 @@ The most relevant fields in the issue are: `assignees`, `projects`, `milestone`,
 
 2. From the created issue panel, use the `main` branch to generate a new branch that will be tied with the issue. In this case, when a Pull Request tied with the branch is merged, the issue will be automatically closed.
 
-3. As a convention, you can append the related problem you are trying to solve to the branch name. It's paramount that you append the 'PROOF-<jira issue key>' in your branch name so that it's automatically linked with Jira. See [here](https://space-and-time.atlassian.net/wiki/spaces/SE/pages/12812378/SxT+Engineering+Team+Standards) for more informations. For example:
+3. Whenever you are done implementing the modifications in your branch, make a Pull Request to merge your changes into the main branch. Try to always assign someone to review your Pull Request. Since we are using an automatic release process to version our code, you should follow a strict pattern in your commit messages (below for more descriptions). It is advised that you name your Pull Request according to our semantic release rules, given that the commit message is automatically the same as the Pull Request title. For instance, name the PR as "feat: add hadamard product" and do not name the PR as "Adding hadamard product". Always test your code locally before any pull request is submitted.
 
-```
-feat/compute-commitments-PROOF-<jira issue key number>
-```
+4. In the case of many commit messages to your branch, force the Pull Request to merge as a squashed merge.
 
-```
-fix/compute-commitments-PROOF-<jira issue key number>
-```
-
-```
-docs/compute-commitments-PROOF-<jira issue key number>
-```
-
-```
-ci/set-up-environment-PROOF-<jira issue key number>
-```
-
-4. Whenever you are done implementing the modifications in your branch, make a Pull Request to merge your changes into the main branch. Try to always assign someone to review your Pull Request. Since we are using an automatic release process to version our code, you should follow a strict pattern in your commit messages (below for more descriptions). It is advised that you name your Pull Request according to our semantic release rules, given that the commit message is automatically the same as the Pull Request title. For instance, name the PR as "feat: add hadamard product" and do not name the PR as "Adding hadamard product". Always test your code locally before any pull request is submitted.
-
-5. In the case of many commit messages to your branch, force the Pull Request to merge as a squashed merge.
-
-6. After the merge is done, delete your branch from the repository and check that the related issue was indeed closed.
+5. <a name="delete-merged-branch-and-check-related-issues"></a>After the merge is done, delete your branch from the repository and check that related issues were indeed closed.
 
 ### <a name="submit-pr"></a> Submitting a Pull Request (PR)
 
@@ -82,30 +139,56 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 
 3. Follow our [Coding Rules](#rules).
 
-4. Run the entire test suite to ensure tests are passing.
+4. <a name="test-suite"></a>Run the entire test suite to ensure tests are passing.
 
     ```shell
-    cargo test
+    cargo test --all-features
     ```
 
-5. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
+    <details>
+    <summary>
+    Workaround for non-Linux and/or non-GPU machines.
+    </summary>
+
+    * Workaround #1: enable the CPU version of Blitzar by setting the `BLITZAR_BACKEND` environment variable. Example:
+        ```bash
+        export BLITZAR_BACKEND=cpu
+        cargo test --all-features
+        ```
+    * Workaround #2: disable the `blitzar` feature in the repo. Example
+        ```bash
+        cargo test --no-default-features --features="arrow rayon ark-ec/parallel ark-poly/parallel ark-ff/asm"
+        ```
+
+    </details>
+
+5. <a name="code-quality-checks"></a>Run the following code quality checks locally so that the code is not only correct but also clean.
+
+    ```shell
+    source scripts/run_ci_checks.sh
+    ```
+
+6. Commit your changes using a descriptive commit message that follows our [commit message conventions](#commit). Adherence to these conventions is necessary because release notes are automatically generated from these messages.
 
      ```shell
      git add <modified files>
      git commit
      ```
 
-    Note: Only add relevant files. Avoid adding binary files, as they frequently waste storage resources. Consider adding only text files (.rs, .cc, .json, .toml, etc).
+    Note: Only add relevant files. Avoid adding binary files, as they frequently waste storage resources. Consider adding only text files (.rs, .cc, .json, .toml, etc). Files that should NOT be committed should instead be added
+    to `.gitignore`.
 
-6.  Push your branch to GitHub:
+7.  Push your branch to GitHub:
 
     ```shell
     git push origin my-feature-branch
     ```
 
-7.  In GitHub, send a pull request to `sxt-proof-of-sql:main`.
+8.  In GitHub, send a pull request to `sxt-proof-of-sql:main`.
 
 Our proof of SQL repository triggers automatically a workflow to test the code whenever a Pull Request is submitted or a commit is pushed to an existing PR. Before closing the PR, always verify that those tests are indeed passing.
+
+NOTE: <a name="ci-review-note"></a>**We will not review a PR if CI (except for `Check Approver` since this requires a review) doesn't pass. We are happy to help you if you can't figure out how to get the CI to pass but it is your responsibility to make sure they pass.**
 
 Also, to ease this process of using git, you can try to use [vscode](https://code.visualstudio.com/). Vscode has some nice extensions to manage your git workflow.
 
@@ -115,9 +198,11 @@ If we ask for changes via code reviews then:
 
 1. Make the required updates to the code.
 
-2. Re-run the entire test suite to ensure tests are still passing.
+2. [Re-run the entire test suite](#test-suite) to ensure tests are still passing.
 
-3. Create a fixup commit and push to your GitHub repository (this will update your Pull Request):
+3. [Re-run the code quality checks](#code-quality-checks) to ensure that the code is still clean.
+
+4. Create a fixup commit and push to your GitHub repository (this will update your Pull Request):
 
     ```shell
     # Create a fixup commit to fix up the last commit on the branch:
@@ -134,7 +219,7 @@ If we ask for changes via code reviews then:
 
     For more info on working with fixup commits see [here](https://github.com/angular/angular/blob/main/docs/FIXUP_COMMITS.md).
 
-4. When merging the PR, try to choose the squashed merge version as it does not pollute the main branch with many commit messages.
+5. In order to ensure that we do not pollute the main branch with poorly written commit messages, before the PR can be merged, we require that the commits in your branch be clean. In particular, this means that you should rebase instead of merge in order to catch up to main. Additionally, any commits of the variety `address review comments` should be turned into a fixup commit instead.
 
 ### <a name="updating-commit-message"></a> Updating the commit message
 
@@ -238,10 +323,10 @@ The `footer` is optional. The [Commit Message Footer](#commit-footer) format des
 #### <a name="commit-header"></a>Commit Message Header
 
 ```
-<type>: <short summary> ( PROOF-<jira issue key number> )
-  │           │                         |
-  |           |                         └─⫸ The JIRA issue key number associated with the commit message.
-  |           |                           
+<type>: <short summary>
+  │           │
+  |           |
+  |           |
   |           |
   │           └─⫸ Summary in present tense. Not capitalized. No period at the end.
   │
@@ -249,7 +334,7 @@ The `footer` is optional. The [Commit Message Footer](#commit-footer) format des
   └─⫸ Commit Type: feat|feat!|fix|fix!|perf|perf!|refactor|refactor!|test|bench|build|ci|docs|style|chore
 ```
 
-Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version. Also, we always reference the JIRA issue in the commit message. See [here](https://space-and-time.atlassian.net/wiki/spaces/SE/pages/12812378/SxT+Engineering+Team+Standards) for more information.
+Both `<type>` and `<summary>` fields are mandatory. `Type` must always be followed by a `:`, a space, then the `summary`. Optionally, you can add a `!` before the `:` so that the release analyzer can be aware of a breaking change, thus allowing the bump of the major version. For Rust please refer to [SemVer Compatibility in the Cargo book](https://doc.rust-lang.org/cargo/reference/semver.html) for what constitutes a breaking change.
 
 #### <a name="type"></a> Type
 

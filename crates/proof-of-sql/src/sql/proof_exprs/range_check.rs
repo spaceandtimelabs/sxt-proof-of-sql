@@ -1,4 +1,5 @@
 use crate::base::{scalar::Scalar, slice_ops};
+use alloc::vec::Vec;
 use bytemuck::cast_slice;
 
 // Decomposes a scalar to requisite words, additionally tracks the total
@@ -169,7 +170,7 @@ mod tests {
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
         let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
             .iter_mut()
-            .map(|col| col.as_mut_slice())
+            .map(Vec::as_mut_slice)
             .collect();
 
         get_logarithmic_derivative(&word_slices, alpha, &mut word_columns_from_log_deriv);
@@ -258,7 +259,7 @@ mod tests {
         // Convert Vec<Vec<S>> into Vec<&mut [S]> for use in get_logarithmic_derivative
         let mut word_columns_from_log_deriv: Vec<&mut [S]> = inverted_word_columns_plus_alpha
             .iter_mut()
-            .map(|col| col.as_mut_slice())
+            .map(Vec::as_mut_slice)
             .collect();
 
         get_logarithmic_derivative(&word_slices, alpha, &mut word_columns_from_log_deriv);

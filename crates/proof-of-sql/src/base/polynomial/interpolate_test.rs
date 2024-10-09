@@ -1,4 +1,4 @@
-/**
+/*
  * Adopted from arkworks
  *
  * See third_party/license/arkworks.LICENSE
@@ -6,6 +6,7 @@
 use super::interpolate::*;
 use crate::base::scalar::{Curve25519Scalar, Curve25519Scalar as S};
 use ark_std::UniformRand;
+use core::iter;
 use num_traits::{Inv, Zero};
 
 #[test]
@@ -15,7 +16,7 @@ fn test_interpolate_uni_poly_for_random_polynomials() {
     let num_points = vec![0, 1, 2, 3, 4, 5, 10, 20, 32, 33, 64, 65];
 
     for n in num_points {
-        let poly = std::iter::repeat_with(|| Curve25519Scalar::rand(&mut prng))
+        let poly = iter::repeat_with(|| Curve25519Scalar::rand(&mut prng))
             .take(n)
             .collect::<Vec<_>>();
         let evals = (0..n)

@@ -2,7 +2,7 @@ use crate::{
     base::{bit::BitDistribution, proof::ProofError},
     sql::proof::ProofCounts,
 };
-use std::cmp::max;
+use core::cmp::max;
 
 /// Track the number of components expected for in a query's proof
 pub struct CountBuilder<'a> {
@@ -14,7 +14,7 @@ impl<'a> CountBuilder<'a> {
     pub fn new(bit_distributions: &'a [BitDistribution]) -> Self {
         Self {
             bit_distributions,
-            counts: Default::default(),
+            counts: ProofCounts::default(),
         }
     }
 
@@ -24,9 +24,9 @@ impl<'a> CountBuilder<'a> {
     /// pass of verification.
     pub fn consume_bit_distribution(&mut self) -> Result<BitDistribution, ProofError> {
         if self.bit_distributions.is_empty() {
-            Err(ProofError::VerificationError(
-                "expected prover to provide bit distribution",
-            ))
+            Err(ProofError::VerificationError {
+                error: "expected prover to provide bit distribution",
+            })
         } else {
             let res = self.bit_distributions[0].clone();
             self.bit_distributions = &self.bit_distributions[1..];
@@ -57,9 +57,9 @@ impl<'a> CountBuilder<'a> {
 
     pub fn counts(&self) -> Result<ProofCounts, ProofError> {
         if !self.bit_distributions.is_empty() {
-            return Err(ProofError::VerificationError(
-                "incorrect number of bit distributions provided",
-            ));
+            return Err(ProofError::VerificationError {
+                error: "incorrect number of bit distributions provided",
+            });
         }
         Ok(self.counts)
     }

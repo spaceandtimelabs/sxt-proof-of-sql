@@ -2,17 +2,22 @@ use super::{LiteralValue, OwnedColumn, TableRef};
 use crate::base::{
     math::decimal::{scale_scalar, Precision},
     scalar::Scalar,
+    slice_ops::slice_cast_with,
 };
+use alloc::{sync::Arc, vec::Vec};
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use bumpalo::Bump;
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    mem::size_of,
+};
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
     Identifier,
 };
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -25,6 +30,8 @@ use std::sync::Arc;
 pub enum Column<'a, S: Scalar> {
     /// Boolean columns
     Boolean(&'a [bool]),
+    /// i8 columns
+    TinyInt(&'a [i8]),
     /// i16 columns
     SmallInt(&'a [i16]),
     /// i32 columns
@@ -34,16 +41,16 @@ pub enum Column<'a, S: Scalar> {
     /// i128 columns
     Int128(&'a [i128]),
     /// Decimal columns with a max width of 252 bits
-    ///  - the backing store maps to the type [crate::base::scalar::Curve25519Scalar]
+    ///  - the backing store maps to the type [`crate::base::scalar::Curve25519Scalar`]
     Decimal75(Precision, i8, &'a [S]),
     /// Scalar columns
     Scalar(&'a [S]),
     /// String columns
     ///  - the first element maps to the str values.
-    ///  - the second element maps to the str hashes (see [crate::base::scalar::Scalar]).
+    ///  - the second element maps to the str hashes (see [`crate::base::scalar::Scalar`]).
     VarChar((&'a [&'a str], &'a [S])),
     /// Timestamp columns with timezone
-    /// - the first element maps to the stored [`TimeUnit`]
+    /// - the first element maps to the stored `TimeUnit`
     /// - the second element maps to a timezone
     /// - the third element maps to columns of timeunits since unix epoch
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone, &'a [i64]),
@@ -51,9 +58,11 @@ pub enum Column<'a, S: Scalar> {
 
 impl<'a, S: Scalar> Column<'a, S> {
     /// Provides the column type associated with the column
+    #[must_use]
     pub fn column_type(&self) -> ColumnType {
         match self {
             Self::Boolean(_) => ColumnType::Boolean,
+            Self::TinyInt(_) => ColumnType::TinyInt,
             Self::SmallInt(_) => ColumnType::SmallInt,
             Self::Int(_) => ColumnType::Int,
             Self::BigInt(_) => ColumnType::BigInt,
@@ -67,23 +76,26 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
     /// Returns the length of the column.
+    /// # Panics
+    /// this function requires that `col` and `scals` have the same length.
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             Self::Boolean(col) => col.len(),
+            Self::TinyInt(col) => col.len(),
             Self::SmallInt(col) => col.len(),
             Self::Int(col) => col.len(),
-            Self::BigInt(col) => col.len(),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => col.len(),
             Self::VarChar((col, scals)) => {
                 assert_eq!(col.len(), scals.len());
                 col.len()
             }
             Self::Int128(col) => col.len(),
-            Self::Scalar(col) => col.len(),
-            Self::Decimal75(_, _, col) => col.len(),
-            Self::TimestampTZ(_, _, col) => col.len(),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col.len(),
         }
     }
     /// Returns `true` if the column has no elements.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -97,6 +109,9 @@ impl<'a, S: Scalar> Column<'a, S> {
         match literal {
             LiteralValue::Boolean(value) => {
                 Column::Boolean(alloc.alloc_slice_fill_copy(length, *value))
+            }
+            LiteralValue::TinyInt(value) => {
+                Column::TinyInt(alloc.alloc_slice_fill_copy(length, *value))
             }
             LiteralValue::SmallInt(value) => {
                 Column::SmallInt(alloc.alloc_slice_fill_copy(length, *value))
@@ -130,6 +145,7 @@ impl<'a, S: Scalar> Column<'a, S> {
     pub fn from_owned_column(owned_column: &'a OwnedColumn<S>, alloc: &'a Bump) -> Self {
         match owned_column {
             OwnedColumn::Boolean(col) => Column::Boolean(col.as_slice()),
+            OwnedColumn::TinyInt(col) => Column::TinyInt(col.as_slice()),
             OwnedColumn::SmallInt(col) => Column::SmallInt(col.as_slice()),
             OwnedColumn::Int(col) => Column::Int(col.as_slice()),
             OwnedColumn::BigInt(col) => Column::BigInt(col.as_slice()),
@@ -161,64 +177,54 @@ impl<'a, S: Scalar> Column<'a, S> {
         }
     }
 
+    /// Returns the column as a slice of scalars
+    pub(crate) fn as_scalar(&self, alloc: &'a Bump) -> &'a [S] {
+        match self {
+            Self::Boolean(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::TinyInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::SmallInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::BigInt(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Int128(col) => alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i])),
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col,
+            Self::VarChar((_, scals)) => scals,
+            Self::TimestampTZ(_, _, col) => {
+                alloc.alloc_slice_fill_with(col.len(), |i| S::from(col[i]))
+            }
+        }
+    }
+
     /// Returns element at index as scalar
     ///
     /// Note that if index is out of bounds, this function will return None
     pub(crate) fn scalar_at(&self, index: usize) -> Option<S> {
         (index < self.len()).then_some(match self {
             Self::Boolean(col) => S::from(col[index]),
+            Self::TinyInt(col) => S::from(col[index]),
             Self::SmallInt(col) => S::from(col[index]),
             Self::Int(col) => S::from(col[index]),
-            Self::BigInt(col) => S::from(col[index]),
+            Self::BigInt(col) | Self::TimestampTZ(_, _, col) => S::from(col[index]),
             Self::Int128(col) => S::from(col[index]),
-            Self::Scalar(col) => col[index],
-            Self::Decimal75(_, _, col) => col[index],
+            Self::Scalar(col) | Self::Decimal75(_, _, col) => col[index],
             Self::VarChar((_, scals)) => scals[index],
-            Self::TimestampTZ(_, _, col) => S::from(col[index]),
         })
     }
 
     /// Convert a column to a vector of Scalar values with scaling
+    #[allow(clippy::missing_panics_doc)]
     pub(crate) fn to_scalar_with_scaling(self, scale: i8) -> Vec<S> {
         let scale_factor = scale_scalar(S::ONE, scale).expect("Invalid scale factor");
         match self {
-            Self::Boolean(col) => col
-                .par_iter()
-                .map(|b| S::from(b) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Decimal75(_, _, col) => col
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::VarChar((_, scals)) => scals
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-
-            Self::SmallInt(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Int(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::BigInt(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Int128(col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::Scalar(col) => col
-                .par_iter()
-                .map(|s| *s * scale_factor)
-                .collect::<Vec<_>>(),
-            Self::TimestampTZ(_, _, col) => col
-                .par_iter()
-                .map(|i| S::from(i) * scale_factor)
-                .collect::<Vec<_>>(),
+            Self::Boolean(col) => slice_cast_with(col, |b| S::from(b) * scale_factor),
+            Self::Decimal75(_, _, col) => slice_cast_with(col, |s| *s * scale_factor),
+            Self::VarChar((_, values)) => slice_cast_with(values, |s| *s * scale_factor),
+            Self::TinyInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::SmallInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::BigInt(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Int128(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::Scalar(col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
+            Self::TimestampTZ(_, _, col) => slice_cast_with(col, |i| S::from(i) * scale_factor),
         }
     }
 }
@@ -233,6 +239,9 @@ pub enum ColumnType {
     /// Mapped to bool
     #[serde(alias = "BOOLEAN", alias = "boolean")]
     Boolean,
+    /// Mapped to i8
+    #[serde(alias = "TINYINT", alias = "tinyint")]
+    TinyInt,
     /// Mapped to i16
     #[serde(alias = "SMALLINT", alias = "smallint")]
     SmallInt,
@@ -254,17 +263,19 @@ pub enum ColumnType {
     /// Mapped to i64
     #[serde(alias = "TIMESTAMP", alias = "timestamp")]
     TimestampTZ(PoSQLTimeUnit, PoSQLTimeZone),
-    /// Mapped to Curve25519Scalar
+    /// Mapped to [`Curve25519Scalar`](crate::base::scalar::Curve25519Scalar)
     #[serde(alias = "SCALAR", alias = "scalar")]
     Scalar,
 }
 
 impl ColumnType {
     /// Returns true if this column is numeric and false otherwise
+    #[must_use]
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
-            ColumnType::SmallInt
+            ColumnType::TinyInt
+                | ColumnType::SmallInt
                 | ColumnType::Int
                 | ColumnType::BigInt
                 | ColumnType::Int128
@@ -274,16 +285,22 @@ impl ColumnType {
     }
 
     /// Returns true if this column is an integer and false otherwise
+    #[must_use]
     pub fn is_integer(&self) -> bool {
         matches!(
             self,
-            ColumnType::SmallInt | ColumnType::Int | ColumnType::BigInt | ColumnType::Int128
+            ColumnType::TinyInt
+                | ColumnType::SmallInt
+                | ColumnType::Int
+                | ColumnType::BigInt
+                | ColumnType::Int128
         )
     }
 
     /// Returns the number of bits in the integer type if it is an integer type. Otherwise, return None.
     fn to_integer_bits(self) -> Option<usize> {
         match self {
+            ColumnType::TinyInt => Some(8),
             ColumnType::SmallInt => Some(16),
             ColumnType::Int => Some(32),
             ColumnType::BigInt => Some(64),
@@ -292,11 +309,12 @@ impl ColumnType {
         }
     }
 
-    /// Returns the ColumnType of the integer type with the given number of bits if it is a valid integer type.
+    /// Returns the [`ColumnType`] of the integer type with the given number of bits if it is a valid integer type.
     ///
     /// Otherwise, return None.
     fn from_integer_bits(bits: usize) -> Option<Self> {
         match bits {
+            8 => Some(ColumnType::TinyInt),
             16 => Some(ColumnType::SmallInt),
             32 => Some(ColumnType::Int),
             64 => Some(ColumnType::BigInt),
@@ -305,28 +323,30 @@ impl ColumnType {
         }
     }
 
-    /// Returns the larger integer type of two ColumnTypes if they are both integers.
+    /// Returns the larger integer type of two [`ColumnType`]s if they are both integers.
     ///
     /// If either of the columns is not an integer, return None.
+    #[must_use]
     pub fn max_integer_type(&self, other: &Self) -> Option<Self> {
         // If either of the columns is not an integer, return None
         if !self.is_integer() || !other.is_integer() {
             return None;
         }
         self.to_integer_bits().and_then(|self_bits| {
-            other.to_integer_bits().and_then(|other_bits| {
-                Self::from_integer_bits(std::cmp::max(self_bits, other_bits))
-            })
+            other
+                .to_integer_bits()
+                .and_then(|other_bits| Self::from_integer_bits(self_bits.max(other_bits)))
         })
     }
 
-    /// Returns the precision of a ColumnType if it is converted to a decimal wrapped in Some(). If it can not be converted to a decimal, return None.
+    /// Returns the precision of a [`ColumnType`] if it is converted to a decimal wrapped in `Some()`. If it can not be converted to a decimal, return None.
+    #[must_use]
     pub fn precision_value(&self) -> Option<u8> {
         match self {
+            Self::TinyInt => Some(3_u8),
             Self::SmallInt => Some(5_u8),
             Self::Int => Some(10_u8),
-            Self::BigInt => Some(19_u8),
-            Self::TimestampTZ(_, _) => Some(19_u8),
+            Self::BigInt | Self::TimestampTZ(_, _) => Some(19_u8),
             Self::Int128 => Some(39_u8),
             Self::Decimal75(precision, _) => Some(precision.value()),
             // Scalars are not in database & are only used for typeless comparisons for testing so we return 0
@@ -335,11 +355,17 @@ impl ColumnType {
             Self::Boolean | Self::VarChar => None,
         }
     }
-    /// Returns scale of a ColumnType if it is convertible to a decimal wrapped in Some(). Otherwise return None.
+    /// Returns scale of a [`ColumnType`] if it is convertible to a decimal wrapped in `Some()`. Otherwise return None.
+    #[must_use]
     pub fn scale(&self) -> Option<i8> {
         match self {
             Self::Decimal75(_, scale) => Some(*scale),
-            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::Scalar => Some(0),
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::Scalar => Some(0),
             Self::Boolean | Self::VarChar => None,
             Self::TimestampTZ(tu, _) => match tu {
                 PoSQLTimeUnit::Second => Some(0),
@@ -351,39 +377,47 @@ impl ColumnType {
     }
 
     /// Returns the byte size of the column type.
+    #[must_use]
     pub fn byte_size(&self) -> usize {
         match self {
-            Self::Boolean => std::mem::size_of::<bool>(),
-            Self::SmallInt => std::mem::size_of::<i16>(),
-            Self::Int => std::mem::size_of::<i32>(),
-            Self::BigInt | Self::TimestampTZ(_, _) => std::mem::size_of::<i64>(),
-            Self::Int128 => std::mem::size_of::<i128>(),
-            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => std::mem::size_of::<[u64; 4]>(),
+            Self::Boolean => size_of::<bool>(),
+            Self::TinyInt => size_of::<i8>(),
+            Self::SmallInt => size_of::<i16>(),
+            Self::Int => size_of::<i32>(),
+            Self::BigInt | Self::TimestampTZ(_, _) => size_of::<i64>(),
+            Self::Int128 => size_of::<i128>(),
+            Self::Scalar | Self::Decimal75(_, _) | Self::VarChar => size_of::<[u64; 4]>(),
         }
     }
 
     /// Returns the bit size of the column type.
+    #[must_use]
     pub fn bit_size(&self) -> u32 {
         self.byte_size() as u32 * 8
     }
 
     /// Returns if the column type supports signed values.
+    #[must_use]
     pub const fn is_signed(&self) -> bool {
         match self {
-            Self::SmallInt | Self::Int | Self::BigInt | Self::Int128 | Self::TimestampTZ(_, _) => {
-                true
-            }
+            Self::TinyInt
+            | Self::SmallInt
+            | Self::Int
+            | Self::BigInt
+            | Self::Int128
+            | Self::TimestampTZ(_, _) => true,
             Self::Decimal75(_, _) | Self::Scalar | Self::VarChar | Self::Boolean => false,
         }
     }
 }
 
-/// Convert ColumnType values to some arrow DataType
+/// Convert [`ColumnType`] values to some arrow [`DataType`]
 #[cfg(feature = "arrow")]
 impl From<&ColumnType> for DataType {
     fn from(column_type: &ColumnType) -> Self {
         match column_type {
             ColumnType::Boolean => DataType::Boolean,
+            ColumnType::TinyInt => DataType::Int8,
             ColumnType::SmallInt => DataType::Int16,
             ColumnType::Int => DataType::Int32,
             ColumnType::BigInt => DataType::Int64,
@@ -407,7 +441,7 @@ impl From<&ColumnType> for DataType {
     }
 }
 
-/// Convert arrow DataType values to some ColumnType
+/// Convert arrow [`DataType`] values to some [`ColumnType`]
 #[cfg(feature = "arrow")]
 impl TryFrom<DataType> for ColumnType {
     type Error = String;
@@ -415,6 +449,7 @@ impl TryFrom<DataType> for ColumnType {
     fn try_from(data_type: DataType) -> Result<Self, Self::Error> {
         match data_type {
             DataType::Boolean => Ok(ColumnType::Boolean),
+            DataType::Int8 => Ok(ColumnType::TinyInt),
             DataType::Int16 => Ok(ColumnType::SmallInt),
             DataType::Int32 => Ok(ColumnType::Int),
             DataType::Int64 => Ok(ColumnType::BigInt),
@@ -435,16 +470,17 @@ impl TryFrom<DataType> for ColumnType {
                 ))
             }
             DataType::Utf8 => Ok(ColumnType::VarChar),
-            _ => Err(format!("Unsupported arrow data type {:?}", data_type)),
+            _ => Err(format!("Unsupported arrow data type {data_type:?}")),
         }
     }
 }
 
 /// Display the column type as a str name (in all caps)
-impl std::fmt::Display for ColumnType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ColumnType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ColumnType::Boolean => write!(f, "BOOLEAN"),
+            ColumnType::TinyInt => write!(f, "TINYINT"),
             ColumnType::SmallInt => write!(f, "SMALLINT"),
             ColumnType::Int => write!(f, "INT"),
             ColumnType::BigInt => write!(f, "BIGINT"),
@@ -475,25 +511,29 @@ pub struct ColumnRef {
 
 impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
+    #[must_use]
     pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
         Self {
             column_id,
-            column_type,
             table_ref,
+            column_type,
         }
     }
 
     /// Returns the table reference of this column
+    #[must_use]
     pub fn table_ref(&self) -> TableRef {
         self.table_ref
     }
 
     /// Returns the column identifier of this column
+    #[must_use]
     pub fn column_id(&self) -> Identifier {
         self.column_id
     }
 
     /// Returns the column type of this column
+    #[must_use]
     pub fn column_type(&self) -> &ColumnType {
         &self.column_type
     }
@@ -511,22 +551,25 @@ pub struct ColumnField {
 
 impl ColumnField {
     /// Create a new `ColumnField` from a name and a type
+    #[must_use]
     pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
         ColumnField { name, data_type }
     }
 
     /// Returns the name of the column
+    #[must_use]
     pub fn name(&self) -> Identifier {
         self.name
     }
 
     /// Returns the type of the column
+    #[must_use]
     pub fn data_type(&self) -> ColumnType {
         self.data_type
     }
 }
 
-/// Convert ColumnField values to arrow Field
+/// Convert [`ColumnField`] values to arrow Field
 #[cfg(feature = "arrow")]
 impl From<&ColumnField> for Field {
     fn from(column_field: &ColumnField) -> Self {
@@ -542,6 +585,7 @@ impl From<&ColumnField> for Field {
 mod tests {
     use super::*;
     use crate::{base::scalar::Curve25519Scalar, proof_primitive::dory::DoryScalar};
+    use alloc::{string::String, vec};
 
     #[test]
     fn column_type_serializes_to_string() {
@@ -552,6 +596,10 @@ mod tests {
         let column_type = ColumnType::Boolean;
         let serialized = serde_json::to_string(&column_type).unwrap();
         assert_eq!(serialized, r#""Boolean""#);
+
+        let column_type = ColumnType::TinyInt;
+        let serialized = serde_json::to_string(&column_type).unwrap();
+        assert_eq!(serialized, r#""TinyInt""#);
 
         let column_type = ColumnType::SmallInt;
         let serialized = serde_json::to_string(&column_type).unwrap();
@@ -594,6 +642,10 @@ mod tests {
         let deserialized: ColumnType = serde_json::from_str(r#""Boolean""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
+        let expected_column_type = ColumnType::TinyInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""TinyInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
         let expected_column_type = ColumnType::SmallInt;
         let deserialized: ColumnType = serde_json::from_str(r#""SmallInt""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
@@ -604,6 +656,10 @@ mod tests {
 
         let expected_column_type = ColumnType::BigInt;
         let deserialized: ColumnType = serde_json::from_str(r#""BigInt""#).unwrap();
+        assert_eq!(deserialized, expected_column_type);
+
+        let expected_column_type = ColumnType::TinyInt;
+        let deserialized: ColumnType = serde_json::from_str(r#""TINYINT""#).unwrap();
         assert_eq!(deserialized, expected_column_type);
 
         let expected_column_type = ColumnType::SmallInt;
@@ -658,6 +714,14 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""BIGINT""#).unwrap(),
             ColumnType::BigInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""TINYINT""#).unwrap(),
+            ColumnType::TinyInt
+        );
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(r#""tinyint""#).unwrap(),
+            ColumnType::TinyInt
         );
         assert_eq!(
             serde_json::from_str::<ColumnType>(r#""SMALLINT""#).unwrap(),
@@ -726,6 +790,9 @@ mod tests {
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""BooLean""#);
         assert!(deserialized.is_err());
 
+        let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Tinyint""#);
+        assert!(deserialized.is_err());
+
         let deserialized: Result<ColumnType, _> = serde_json::from_str(r#""Smallint""#);
         assert!(deserialized.is_err());
 
@@ -760,6 +827,14 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<ColumnType>(&boolean_json).unwrap(),
             boolean
+        );
+
+        let tinyint = ColumnType::TinyInt;
+        let tinyint_json = serde_json::to_string(&tinyint).unwrap();
+        assert_eq!(tinyint_json, "\"TinyInt\"");
+        assert_eq!(
+            serde_json::from_str::<ColumnType>(&tinyint_json).unwrap(),
+            tinyint
         );
 
         let smallint = ColumnType::SmallInt;
@@ -821,7 +896,7 @@ mod tests {
         let precision = 10;
         let scale = 2;
 
-        let scals = [
+        let scalar_values = [
             Curve25519Scalar::from(1),
             Curve25519Scalar::from(2),
             Curve25519Scalar::from(3),
@@ -829,6 +904,10 @@ mod tests {
 
         // Test non-empty columns
         let column = Column::<DoryScalar>::Boolean(&[true, false, true]);
+        assert_eq!(column.len(), 3);
+        assert!(!column.is_empty());
+
+        let column = Column::<DoryScalar>::TinyInt(&[1, 2, 3]);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -844,7 +923,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::VarChar((&["a", "b", "c"], &scals));
+        let column = Column::VarChar((&["a", "b", "c"], &scalar_values));
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -852,7 +931,7 @@ mod tests {
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
-        let column = Column::Scalar(&scals);
+        let column = Column::Scalar(&scalar_values);
         assert_eq!(column.len(), 3);
         assert!(!column.is_empty());
 
@@ -869,6 +948,10 @@ mod tests {
 
         // Test empty columns
         let column = Column::<DoryScalar>::Boolean(&[]);
+        assert_eq!(column.len(), 0);
+        assert!(column.is_empty());
+
+        let column = Column::<DoryScalar>::TinyInt(&[]);
         assert_eq!(column.len(), 0);
         assert!(column.is_empty());
 
@@ -928,8 +1011,11 @@ mod tests {
             "Spazju u Ħin",
         ];
         let scalars = strs.iter().map(Curve25519Scalar::from).collect::<Vec<_>>();
-        let owned_col =
-            OwnedColumn::VarChar(strs.iter().map(|s| s.to_string()).collect::<Vec<String>>());
+        let owned_col = OwnedColumn::VarChar(
+            strs.iter()
+                .map(ToString::to_string)
+                .collect::<Vec<String>>(),
+        );
         let col = Column::<Curve25519Scalar>::from_owned_column(&owned_col, &alloc);
         assert_eq!(col, Column::VarChar((&strs, &scalars)));
         let new_owned_col = (&col).into();
@@ -955,6 +1041,10 @@ mod tests {
         assert_eq!(column.column_type().byte_size(), 1);
         assert_eq!(column.column_type().bit_size(), 8);
 
+        let column = Column::<Curve25519Scalar>::TinyInt(&[1, 2, 3, 4]);
+        assert_eq!(column.column_type().byte_size(), 1);
+        assert_eq!(column.column_type().bit_size(), 8);
+
         let column = Column::<Curve25519Scalar>::SmallInt(&[1, 2, 3, 4]);
         assert_eq!(column.column_type().byte_size(), 2);
         assert_eq!(column.column_type().bit_size(), 16);
@@ -971,17 +1061,17 @@ mod tests {
         assert_eq!(column.column_type().byte_size(), 16);
         assert_eq!(column.column_type().bit_size(), 128);
 
-        let scals = [
+        let scalar_values = [
             Curve25519Scalar::from(1),
             Curve25519Scalar::from(2),
             Curve25519Scalar::from(3),
         ];
 
-        let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scals));
+        let column = Column::VarChar((&["a", "b", "c", "d", "e"], &scalar_values));
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 
-        let column = Column::Scalar(&scals);
+        let column = Column::Scalar(&scalar_values);
         assert_eq!(column.column_type().byte_size(), 32);
         assert_eq!(column.column_type().bit_size(), 256);
 

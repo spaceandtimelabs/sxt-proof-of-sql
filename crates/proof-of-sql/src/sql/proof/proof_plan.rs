@@ -5,12 +5,13 @@ use crate::base::{
         Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
         OwnedTable,
     },
+    map::IndexSet,
     proof::ProofError,
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
-use indexmap::IndexSet;
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 /// Provable nodes in the provable AST.
 pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
@@ -32,7 +33,7 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         self.get_length(accessor) == 0
     }
 
-    /// Form components needed to verify and proof store into VerificationBuilder
+    /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate(
         &self,
         builder: &mut VerificationBuilder<C>,

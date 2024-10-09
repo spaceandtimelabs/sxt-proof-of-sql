@@ -3,13 +3,14 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable logical OR expression
@@ -85,6 +86,10 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     }
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "table_length matches lhs and rhs lengths, ensuring no panic occurs"
+)]
 pub fn result_evaluate_or<'a>(
     table_length: usize,
     alloc: &'a Bump,
@@ -96,6 +101,10 @@ pub fn result_evaluate_or<'a>(
     alloc.alloc_slice_fill_with(table_length, |i| lhs[i] || rhs[i])
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "lhs and rhs are guaranteed to have the same length, ensuring no panic occurs"
+)]
 pub fn prover_evaluate_or<'a, S: Scalar>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,

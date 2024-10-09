@@ -6,6 +6,7 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor, LiteralValue},
+        map::IndexSet,
         proof::ProofError,
     },
     sql::{
@@ -13,11 +14,11 @@ use crate::{
         proof::{CountBuilder, ProofBuilder, VerificationBuilder},
     },
 };
+use alloc::{boxed::Box, string::ToString};
 use bumpalo::Bump;
-use indexmap::IndexSet;
+use core::fmt::Debug;
 use proof_of_sql_parser::intermediate_ast::{AggregationOperator, BinaryOperator};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
 /// Enum of AST column expression types that implement `ProofExpr`. Is itself a `ProofExpr`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -74,10 +75,10 @@ impl<C: Commitment> DynProofExpr<C> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Equal) {
-            Err(ConversionError::DataTypeMismatch(
-                lhs_datatype.to_string(),
-                rhs_datatype.to_string(),
-            ))
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         } else {
             Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
         }
@@ -95,10 +96,10 @@ impl<C: Commitment> DynProofExpr<C> {
             &rhs_datatype,
             BinaryOperator::LessThanOrEqual,
         ) {
-            Err(ConversionError::DataTypeMismatch(
-                lhs_datatype.to_string(),
-                rhs_datatype.to_string(),
-            ))
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         } else {
             Ok(Self::Inequality(InequalityExpr::new(
                 Box::new(lhs),
@@ -113,10 +114,10 @@ impl<C: Commitment> DynProofExpr<C> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Add) {
-            Err(ConversionError::DataTypeMismatch(
-                lhs_datatype.to_string(),
-                rhs_datatype.to_string(),
-            ))
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         } else {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
@@ -131,10 +132,10 @@ impl<C: Commitment> DynProofExpr<C> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Subtract) {
-            Err(ConversionError::DataTypeMismatch(
-                lhs_datatype.to_string(),
-                rhs_datatype.to_string(),
-            ))
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         } else {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
@@ -149,10 +150,10 @@ impl<C: Commitment> DynProofExpr<C> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
         if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Multiply) {
-            Err(ConversionError::DataTypeMismatch(
-                lhs_datatype.to_string(),
-                rhs_datatype.to_string(),
-            ))
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         } else {
             Ok(Self::Multiply(MultiplyExpr::new(
                 Box::new(lhs),

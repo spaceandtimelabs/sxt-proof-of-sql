@@ -11,7 +11,7 @@ use crate::{
     },
 };
 
-/// select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+/// `select a, sum(c) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a`
 #[test]
 fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     let data = owned_table([
@@ -40,7 +40,7 @@ fn we_can_prove_a_simple_group_by_with_bigint_columns() {
     assert_eq!(res, expected);
 }
 
-/// select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a
+/// `select a, sum(c * 2 + 1) as sum_c, count(*) as __count__ from sxt.t where b = 99 group by a`
 #[test]
 fn we_can_prove_a_group_by_with_bigint_columns() {
     let data = owned_table([
@@ -82,19 +82,19 @@ fn we_can_prove_a_complex_group_by_query_with_many_columns() {
         333, 333,
     ]
     .iter()
-    .map(|i| i.into())
+    .map(core::convert::Into::into)
     .collect();
     let scalar_group_data: Vec<Curve25519Scalar> =
         [5, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 5]
             .iter()
-            .map(|i| i.into())
+            .map(core::convert::Into::into)
             .collect();
     let scalar_sum_data: Vec<Curve25519Scalar> = [
         119, 522, 100, 325, 501, 447, 759, 375, 212, 532, 459, 616, 579, 179, 695, 963, 532, 868,
         331, 830,
     ]
     .iter()
-    .map(|i| i.into())
+    .map(core::convert::Into::into)
     .collect();
     let data = owned_table([
         bigint(

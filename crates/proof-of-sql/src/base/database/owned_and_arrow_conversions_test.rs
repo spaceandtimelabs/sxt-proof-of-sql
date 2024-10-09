@@ -2,17 +2,17 @@ use super::{OwnedColumn, OwnedTable};
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedArrowConversionError},
+        map::IndexMap,
         scalar::Curve25519Scalar,
     },
     record_batch,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{ArrayRef, BooleanArray, Decimal128Array, Float32Array, Int64Array, StringArray},
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use indexmap::IndexMap;
-use std::sync::Arc;
 
 fn we_can_convert_between_owned_column_and_array_ref_impl(
     owned_column: OwnedColumn<Curve25519Scalar>,
@@ -76,7 +76,7 @@ fn we_get_an_unsupported_type_error_when_trying_to_convert_from_a_float32_array_
     let array_ref: ArrayRef = Arc::new(Float32Array::from(vec![0.0]));
     assert!(matches!(
         OwnedColumn::<Curve25519Scalar>::try_from(array_ref),
-        Err(OwnedArrowConversionError::UnsupportedType(_))
+        Err(OwnedArrowConversionError::UnsupportedType { .. })
     ));
 }
 
@@ -93,7 +93,7 @@ fn we_can_convert_between_owned_table_and_record_batch_impl(
 #[test]
 fn we_can_convert_between_owned_table_and_record_batch() {
     we_can_convert_between_owned_table_and_record_batch_impl(
-        OwnedTable::<Curve25519Scalar>::try_new(IndexMap::new()).unwrap(),
+        OwnedTable::<Curve25519Scalar>::try_new(IndexMap::default()).unwrap(),
         RecordBatch::new_empty(Arc::new(Schema::empty())),
     );
     we_can_convert_between_owned_table_and_record_batch_impl(

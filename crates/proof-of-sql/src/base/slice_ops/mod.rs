@@ -3,6 +3,7 @@
 //! For example, the inner product will not panic when the two input slices have different lengths.
 //! Instead, it will simply truncate the longer one, which is equivalent to multiply each extra element by zero before summing.
 
+#[cfg(any(feature = "rayon", test))]
 pub const MIN_RAYON_LEN: usize = 1 << 8;
 
 mod inner_product;

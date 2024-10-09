@@ -4,6 +4,7 @@ pub use error::ScalarConversionError;
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
+use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
@@ -15,13 +16,6 @@ mod mont_scalar_from_test;
 pub mod test_scalar;
 #[cfg(test)]
 mod test_scalar_test;
-
-#[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
-mod commitment_utility;
-#[cfg(any(test, feature = "test"))]
-#[cfg(feature = "blitzar")]
-pub use commitment_utility::compute_commitment_for_testing;
 use num_bigint::BigInt;
 
 /// A trait for the scalar field used in Proof of SQL.
@@ -44,6 +38,7 @@ pub trait Scalar:
     + num_traits::Zero
     + for<'a> core::convert::From<&'a Self> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a bool> // Required for `Column` to implement `MultilinearExtension`
+    + for<'a> core::convert::From<&'a i8> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i16> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i32> // Required for `Column` to implement `MultilinearExtension`
     + for<'a> core::convert::From<&'a i64> // Required for `Column` to implement `MultilinearExtension`
@@ -73,6 +68,7 @@ pub trait Scalar:
     + core::convert::From<i64>
     + core::convert::From<i32>
     + core::convert::From<i16>
+    + core::convert::From<i8>
     + core::convert::From<bool>
     + core::convert::Into<BigInt>
     + TryFrom<BigInt, Error = ScalarConversionError>

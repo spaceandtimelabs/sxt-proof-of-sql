@@ -1,16 +1,18 @@
 use crate::{
     base::{
         database::Column,
+        if_rayon,
         math::decimal::{DecimalError, Precision},
         scalar::Scalar,
     },
     sql::parse::{type_check_binary_operation, ConversionError, ConversionResult},
 };
+use alloc::string::ToString;
 use bumpalo::Bump;
+use core::cmp;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+#[cfg(feature = "rayon")]
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 fn unchecked_subtract_impl<'a, S: Scalar>(
     alloc: &'a Bump,
@@ -18,15 +20,20 @@ fn unchecked_subtract_impl<'a, S: Scalar>(
     rhs: &[S],
     table_length: usize,
 ) -> ConversionResult<&'a [S]> {
-    let res = alloc.alloc_slice_fill_default(table_length);
-    res.par_iter_mut()
-        .zip(lhs.par_iter().zip(rhs.par_iter()))
-        .for_each(|(a, (l, r))| {
+    let result = alloc.alloc_slice_fill_default(table_length);
+    if_rayon!(result.par_iter_mut(), result.iter_mut())
+        .zip(lhs)
+        .zip(rhs)
+        .for_each(|((a, l), r)| {
             *a = *l - *r;
         });
-    Ok(res)
+    Ok(result)
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "precision and scale are validated prior to calling this function, ensuring no panic occurs"
+)]
 /// Scale LHS and RHS to the same scale if at least one of them is decimal
 /// and take the difference. This function is used for comparisons.
 pub(crate) fn scale_and_subtract<'a, S: Scalar>(
@@ -40,7 +47,10 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     let lhs_len = lhs.len();
     let rhs_len = rhs.len();
     if lhs_len != rhs_len {
-        return Err(ConversionError::DifferentColumnLength(lhs_len, rhs_len));
+        return Err(ConversionError::DifferentColumnLength {
+            len_a: lhs_len,
+            len_b: rhs_len,
+        });
     }
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
@@ -50,12 +60,12 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         BinaryOperator::LessThanOrEqual
     };
     if !type_check_binary_operation(&lhs_type, &rhs_type, operator) {
-        return Err(ConversionError::DataTypeMismatch(
-            lhs_type.to_string(),
-            rhs_type.to_string(),
-        ));
+        return Err(ConversionError::DataTypeMismatch {
+            left_type: lhs_type.to_string(),
+            right_type: rhs_type.to_string(),
+        });
     }
-    let max_scale = std::cmp::max(lhs_scale, rhs_scale);
+    let max_scale = cmp::max(lhs_scale, rhs_scale);
     let lhs_upscale = max_scale - lhs_scale;
     let rhs_upscale = max_scale - rhs_scale;
     // Only check precision overflow issues if at least one side is decimal
@@ -66,15 +76,17 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
         let rhs_precision_value = rhs_type
             .precision_value()
             .expect("If scale is set, precision must be set");
-        let max_precision_value = std::cmp::max(
+        let max_precision_value = cmp::max(
             lhs_precision_value + (max_scale - lhs_scale) as u8,
             rhs_precision_value + (max_scale - rhs_scale) as u8,
         );
         // Check if the precision is valid
         let _max_precision = Precision::new(max_precision_value).map_err(|_| {
-            ConversionError::DecimalConversionError(DecimalError::InvalidPrecision(
-                max_precision_value.to_string(),
-            ))
+            ConversionError::DecimalConversionError {
+                source: DecimalError::InvalidPrecision {
+                    error: max_precision_value.to_string(),
+                },
+            }
         })?;
     }
     unchecked_subtract_impl(

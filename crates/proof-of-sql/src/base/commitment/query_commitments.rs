@@ -1,9 +1,12 @@
 use super::{Commitment, TableCommitment};
-use crate::base::database::{
-    ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
-    TableRef,
+use crate::base::{
+    database::{
+        ColumnField, ColumnRef, ColumnType, CommitmentAccessor, MetadataAccessor, SchemaAccessor,
+        TableRef,
+    },
+    map::IndexMap,
 };
-use indexmap::IndexMap;
+use alloc::vec::Vec;
 use proof_of_sql_parser::Identifier;
 
 /// The commitments for all of the tables in a query.
@@ -33,25 +36,27 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
     ) -> Self {
         columns
             .into_iter()
-            .fold(IndexMap::<_, Vec<_>>::new(), |mut table_columns, column| {
-                table_columns
-                    .entry(column.table_ref())
-                    .or_default()
-                    .push(ColumnField::new(column.column_id(), *column.column_type()));
-                table_columns
-            })
+            .fold(
+                IndexMap::<_, Vec<_>>::default(),
+                |mut table_columns, column| {
+                    table_columns
+                        .entry(column.table_ref())
+                        .or_default()
+                        .push(ColumnField::new(column.column_id(), *column.column_type()));
+                    table_columns
+                },
+            )
             .into_iter()
             .map(|(table_ref, columns)| {
                 (
                     table_ref,
                     TableCommitment::from_accessor_with_max_bounds(
                         table_ref,
-                        &Vec::from_iter(
-                            accessor
-                                .lookup_schema(table_ref)
-                                .iter()
-                                .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied()),
-                        ),
+                        &accessor
+                            .lookup_schema(table_ref)
+                            .iter()
+                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied())
+                            .collect::<Vec<_>>(),
                         accessor,
                     ),
                 )
@@ -74,6 +79,9 @@ impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
     }
 }
 
+/// # Panics
+///
+/// Panics if the commitment for the table or column cannot be found.
 impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
     fn get_commitment(&self, column: ColumnRef) -> C {
         let table_commitment = self.get(&column.table_ref()).unwrap();
@@ -99,6 +107,9 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
             .map(|column_metadata| *column_metadata.column_type())
     }
 
+    /// # Panics
+    ///
+    /// Panics if the column metadata cannot be found.
     fn lookup_schema(
         &self,
         table_ref: crate::base::database::TableRef,
@@ -188,6 +199,7 @@ mod tests {
         assert_eq!(query_commitments.get_length(no_rows_id), 0);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
@@ -237,6 +249,7 @@ mod tests {
         );
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
         let column_a_id: Identifier = "column_a".parse().unwrap();
@@ -311,9 +324,10 @@ mod tests {
         assert_eq!(query_commitments.lookup_schema(no_columns_id), vec![]);
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_query_commitments_from_accessor() {
-        let public_parameters = PublicParameters::rand(4, &mut test_rng());
+        let public_parameters = PublicParameters::test_rand(4, &mut test_rng());
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 

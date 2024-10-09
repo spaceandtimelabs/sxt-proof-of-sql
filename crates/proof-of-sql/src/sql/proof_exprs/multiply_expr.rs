@@ -6,6 +6,7 @@ use crate::{
             try_multiply_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
             DataAccessor,
         },
+        map::IndexSet,
         proof::ProofError,
     },
     sql::{
@@ -13,8 +14,8 @@ use crate::{
         proof_exprs::multiply_columns,
     },
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use num_traits::One;
 use serde::{Deserialize, Serialize};
 

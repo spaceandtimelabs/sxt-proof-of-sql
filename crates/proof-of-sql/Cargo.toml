@@ -14,6 +14,7 @@ doctest = true
 test = true
 
 [dependencies]
+ahash = { workspace = true }
 ark-bls12-381 = { workspace = true }
 ark-curve25519 = { workspace = true }
 ark-ec = { workspace = true }
@@ -34,35 +35,32 @@ chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 itertools = { workspace = true }
-lazy_static = { workspace = true }
-merlin = { workspace = true }
+merlin = { workspace = true, optional = true }
 num-traits = { workspace = true }
 num-bigint = { workspace = true, default-features = false }
 postcard = { workspace = true, features = ["alloc"] }
 proof-of-sql-parser = { workspace = true }
 rand = { workspace = true, default-features = false, optional = true }
-rayon = { workspace = true }
+rayon = { workspace = true, optional = true }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
+snafu = { workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
 
 [dev-dependencies]
-# alloy-primitives = { workspace = true }
-# alloy-sol-types = { workspace = true }
+alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
 blitzar = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
-# forge-script = { workspace = true }
+merlin = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry-jaeger = { workspace = true }
 rand = { workspace = true, default-features = false }
 rand_core = { workspace = true, default-features = false }
 serde_json = { workspace = true }
-# tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -72,9 +70,13 @@ flexbuffers = { workspace = true }
 development = ["arrow-csv"]
 
 [features]
-default = ["arrow", "blitzar"]
-arrow = ["dep:arrow"]
-test = ["dep:rand"]
+default = ["arrow", "perf"]
+arrow = ["dep:arrow", "std"]
+blitzar = ["dep:blitzar", "dep:merlin", "std"]
+test = ["dep:rand", "std"]
+perf = ["blitzar", "rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
+rayon = ["dep:rayon", "std"]
+std = ["snafu/std"]
 
 [lints]
 workspace = true

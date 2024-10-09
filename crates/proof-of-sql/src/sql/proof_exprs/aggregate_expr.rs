@@ -3,12 +3,13 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
 
@@ -70,6 +71,6 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        self.expr.get_column_references(columns)
+        self.expr.get_column_references(columns);
     }
 }

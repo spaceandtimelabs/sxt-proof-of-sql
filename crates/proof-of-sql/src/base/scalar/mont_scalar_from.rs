@@ -1,4 +1,5 @@
 use crate::base::scalar::MontScalar;
+use alloc::string::String;
 use ark_ff::MontConfig;
 use num_traits::Zero;
 
@@ -20,7 +21,7 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
 
         let hash = blake3::hash(x);
         let mut bytes: [u8; 32] = hash.into();
-        bytes[31] &= 0b00001111_u8;
+        bytes[31] &= 0b0000_1111_u8;
 
         Self::from_le_bytes_mod_order(&bytes)
     }

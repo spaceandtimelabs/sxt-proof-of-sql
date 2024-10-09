@@ -3,14 +3,16 @@ use crate::{
     base::{commitment::CommittableColumn, database::ColumnType},
     proof_primitive::dory::offset_to_bytes::OffsetToBytes,
 };
+use alloc::{vec, vec::Vec};
 use ark_ff::MontFp;
 use ark_std::ops::Mul;
+use core::iter;
 
 const BYTE_SIZE: usize = 8;
 const OFFSET_SIZE: usize = 2;
 
 /// Returns the number of sub commitments needed for
-/// each full commitment in the packed_msm function.
+/// each full commitment in the `packed_msm` function.
 ///
 /// # Arguments
 ///
@@ -55,6 +57,7 @@ fn output_bit_table(
 /// * `column_type` - The type of a committable column.
 const fn min_as_f(column_type: ColumnType) -> F {
     match column_type {
+        ColumnType::TinyInt => MontFp!("-128"),
         ColumnType::SmallInt => MontFp!("-32768"),
         ColumnType::Int => MontFp!("-2147483648"),
         ColumnType::BigInt | ColumnType::TimestampTZ(_, _) => MontFp!("-9223372036854775808"),
@@ -184,6 +187,7 @@ fn pack_bit<const LEN: usize, T: OffsetToBytes<LEN>>(
 /// * `offset` - The offset to the data.
 /// * `num_matrix_commitment_columns` - The number of generators used for msm.
 /// * `buffer` - Pre-allocated offset column buffer.
+#[allow(clippy::missing_panics_doc)]
 fn offset_column(
     committable_columns: &[CommittableColumn],
     offset: usize,
@@ -192,9 +196,7 @@ fn offset_column(
 ) {
     assert!(
         offset < num_matrix_commitment_columns,
-        "offset {} must be less than the number of columns {}",
-        offset,
-        num_matrix_commitment_columns
+        "offset {offset} must be less than the number of columns {num_matrix_commitment_columns}"
     );
 
     assert!(
@@ -283,7 +285,7 @@ fn pack_offsets(
     );
 }
 
-/// Creates a cumulative bit table sum used by the bit_table_and_scalars_for_packed_msm inner loop.
+/// Creates a cumulative bit table sum used by the [`bit_table_and_scalars_for_packed_msm`] inner loop.
 ///
 /// # Arguments
 ///
@@ -311,7 +313,7 @@ fn compute_cumulative_bit_sum_table(
                 .take(sub_commits)
                 .sum::<u32>() as usize;
             num_sub_commits_completed += sub_commits;
-            std::iter::once(current_sum)
+            iter::once(current_sum)
         })
         .collect()
 }
@@ -344,8 +346,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
     let bit_table_sub_commits_sum = bit_table.iter().sum::<u32>() as usize;
 
     // Add offsets to handle signed values to the bit table.
-    bit_table
-        .extend(std::iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
+    bit_table.extend(iter::repeat(BYTE_SIZE as u32).take(OFFSET_SIZE + committable_columns.len()));
     let bit_table_full_sum_in_bytes = bit_table.iter().sum::<u32>() as usize / BYTE_SIZE;
 
     // Create the packed_scalar array.
@@ -375,6 +376,17 @@ pub fn bit_table_and_scalars_for_packed_msm(
         .iter()
         .enumerate()
         .for_each(|(i, column)| match column {
+            CommittableColumn::TinyInt(column) => {
+                pack_bit(
+                    column,
+                    &mut packed_scalars,
+                    cumulative_bit_sum_table[i],
+                    offset,
+                    committable_columns[i].column_type().byte_size(),
+                    bit_table_full_sum_in_bytes,
+                    num_matrix_commitment_columns,
+                );
+            }
             CommittableColumn::SmallInt(column) => {
                 pack_bit(
                     column,
@@ -397,7 +409,7 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     num_matrix_commitment_columns,
                 );
             }
-            CommittableColumn::BigInt(column) => {
+            CommittableColumn::BigInt(column) | CommittableColumn::TimestampTZ(_, _, column) => {
                 pack_bit(
                     column,
                     &mut packed_scalars,
@@ -419,17 +431,6 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     num_matrix_commitment_columns,
                 );
             }
-            CommittableColumn::TimestampTZ(_, _, column) => {
-                pack_bit(
-                    column,
-                    &mut packed_scalars,
-                    cumulative_bit_sum_table[i],
-                    offset,
-                    committable_columns[i].column_type().byte_size(),
-                    bit_table_full_sum_in_bytes,
-                    num_matrix_commitment_columns,
-                );
-            }
             CommittableColumn::Boolean(column) => {
                 pack_bit(
                     column,
@@ -441,29 +442,9 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     num_matrix_commitment_columns,
                 );
             }
-            CommittableColumn::Decimal75(_, _, column) => {
-                pack_bit(
-                    column,
-                    &mut packed_scalars,
-                    cumulative_bit_sum_table[i],
-                    offset,
-                    committable_columns[i].column_type().byte_size(),
-                    bit_table_full_sum_in_bytes,
-                    num_matrix_commitment_columns,
-                );
-            }
-            CommittableColumn::Scalar(column) => {
-                pack_bit(
-                    column,
-                    &mut packed_scalars,
-                    cumulative_bit_sum_table[i],
-                    offset,
-                    committable_columns[i].column_type().byte_size(),
-                    bit_table_full_sum_in_bytes,
-                    num_matrix_commitment_columns,
-                );
-            }
-            CommittableColumn::VarChar(column) => {
+            CommittableColumn::Decimal75(_, _, column)
+            | CommittableColumn::Scalar(column)
+            | CommittableColumn::VarChar(column) => {
                 pack_bit(
                     column,
                     &mut packed_scalars,

@@ -1,10 +1,18 @@
 use super::{
     dynamic_dory_structure::row_and_column_from_index, pairings, DoryScalar, DynamicDoryCommitment,
-    G1Affine, G1Projective, ProverSetup,
+    G1Affine, G1Projective, ProverSetup, GT,
 };
 use crate::base::commitment::CommittableColumn;
+use alloc::{vec, vec::Vec};
+use num_traits::Zero;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
+/// # Panics
+///
+/// Will panic if:
+/// - `setup.Gamma_1.last()` returns `None`, indicating that `Gamma_1` is empty.
+/// - `setup.Gamma_2.last()` returns `None`, indicating that `Gamma_2` is empty.
+/// - The indexing for `Gamma_2` with `first_row..=last_row` goes out of bounds.
 fn compute_dory_commitment_impl<'a, T>(
     column: &'a [T],
     offset: usize,
@@ -39,14 +47,14 @@ fn compute_dory_commitment(
 ) -> DynamicDoryCommitment {
     match committable_column {
         CommittableColumn::Scalar(column) => compute_dory_commitment_impl(column, offset, setup),
+        CommittableColumn::TinyInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::SmallInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::BigInt(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Int128(column) => compute_dory_commitment_impl(column, offset, setup),
-        CommittableColumn::Decimal75(_, _, column) => {
+        CommittableColumn::VarChar(column) | CommittableColumn::Decimal75(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
-        CommittableColumn::VarChar(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::Boolean(column) => compute_dory_commitment_impl(column, offset, setup),
         CommittableColumn::TimestampTZ(_, _, column) => {
             compute_dory_commitment_impl(column, offset, setup)
@@ -64,6 +72,11 @@ pub(super) fn compute_dynamic_dory_commitments(
 ) -> Vec<DynamicDoryCommitment> {
     committable_columns
         .iter()
-        .map(|column| compute_dory_commitment(column, offset, setup))
+        .map(|column| {
+            column
+                .is_empty()
+                .then(|| DynamicDoryCommitment(GT::zero()))
+                .unwrap_or_else(|| compute_dory_commitment(column, offset, setup))
+        })
         .collect()
 }

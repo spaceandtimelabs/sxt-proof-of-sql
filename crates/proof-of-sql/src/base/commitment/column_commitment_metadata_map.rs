@@ -2,28 +2,38 @@ use super::{
     column_commitment_metadata::ColumnCommitmentMetadataMismatch, ColumnCommitmentMetadata,
     CommittableColumn,
 };
-use crate::base::database::ColumnField;
-use indexmap::IndexMap;
+use crate::base::{database::ColumnField, map::IndexMap};
+use alloc::string::{String, ToString};
 use proof_of_sql_parser::Identifier;
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Mapping of column identifiers to column metadata used to associate metadata with commitments.
 pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMetadata>;
 
 /// During commitment operation, metadata indicates that operand tables cannot be the same.
-#[derive(Debug, Error)]
+#[derive(Debug, Snafu)]
 pub enum ColumnCommitmentsMismatch {
     /// Anonymous metadata indicates a column mismatch.
-    #[error(transparent)]
-    ColumnCommitmentMetadata(#[from] ColumnCommitmentMetadataMismatch),
+    #[snafu(transparent)]
+    ColumnCommitmentMetadata {
+        /// The underlying source error
+        source: ColumnCommitmentMetadataMismatch,
+    },
     /// Commitments with different column counts cannot operate with each other.
-    #[error("commitments with different column counts cannot operate with each other")]
+    #[snafu(display("commitments with different column counts cannot operate with each other"))]
     NumColumns,
     /// Columns with mismatched identifiers cannot operate with each other.
     ///
     /// Strings are used here instead of Identifiers to decrease the size of this variant
-    #[error("column with identifier {0} cannot operate with column with identifier {1}")]
-    Identifier(String, String),
+    #[snafu(display(
+        "column with identifier {id_a} cannot operate with column with identifier {id_b}"
+    ))]
+    Identifier {
+        /// The first column identifier
+        id_a: String,
+        /// The second column identifier
+        id_b: String,
+    },
 }
 
 /// Extension trait intended for [`ColumnCommitmentMetadataMap`].
@@ -89,10 +99,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?;
                 }
 
                 Ok((identifier_a, metadata_a.try_union(metadata_b)?))
@@ -112,10 +122,10 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier(
-                        identifier_a.to_string(),
-                        identifier_b.to_string(),
-                    ))?
+                    Err(ColumnCommitmentsMismatch::Identifier {
+                        id_a: identifier_a.to_string(),
+                        id_b: identifier_b.to_string(),
+                    })?;
                 }
 
                 Ok((identifier_a, metadata_a.try_difference(metadata_b)?))
@@ -132,6 +142,7 @@ mod tests {
         database::{owned_table_utility::*, ColumnType, OwnedTable},
         scalar::Curve25519Scalar,
     };
+    use alloc::vec::Vec;
     use itertools::Itertools;
 
     fn metadata_map_from_owned_table(
@@ -315,6 +326,7 @@ mod tests {
         ));
     }
 
+    #[allow(clippy::similar_names)]
     #[test]
     fn we_cannot_perform_arithmetic_on_mismatched_metadata_maps_with_same_column_counts() {
         let id_a = "column_a";

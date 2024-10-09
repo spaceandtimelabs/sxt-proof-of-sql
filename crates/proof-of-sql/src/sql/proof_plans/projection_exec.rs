@@ -5,6 +5,7 @@ use crate::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
             OwnedTable,
         },
+        map::IndexSet,
         proof::ProofError,
     },
     sql::{
@@ -15,9 +16,9 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::iter::repeat_with;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable expressions for queries of the form
@@ -46,9 +47,9 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         builder: &mut CountBuilder,
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         Ok(())
     }
@@ -72,9 +73,9 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        ))
+        Ok(repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.aliased_results.len())
+            .collect::<Vec<_>>())
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -85,7 +86,7 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
         self.aliased_results.iter().for_each(|aliased_expr| {
             aliased_expr.expr.get_column_references(&mut columns);
         });
@@ -101,11 +102,15 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
         builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
         columns
     }
@@ -118,10 +123,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        )
+        // 1. Evaluate result expressions
+        let res: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
+        // 2. Produce MLEs
+        res.clone().into_iter().for_each(|column| {
+            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        });
+        res
     }
 }

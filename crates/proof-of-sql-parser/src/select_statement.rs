@@ -1,7 +1,8 @@
 use super::intermediate_ast::{OrderBy, SetExpression, Slice, TableExpression};
 use crate::{sql::SelectStatementParser, Identifier, ParseError, ParseResult, ResourceId};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
-use std::{fmt, ops::Deref, str::FromStr};
 
 /// Representation of a select statement, that is, the only type of queries allowed.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -28,11 +29,11 @@ impl fmt::Debug for SelectStatement {
 }
 
 impl SelectStatement {
-    /// This function returns the referenced tables in the provided intermediate_ast
+    /// This function returns the referenced tables in the provided `intermediate_ast`
     ///
     /// Note that we provide a `default_schema` in case the table expression
     /// does not have any associated schema. This `default_schema` is
-    /// used to construct the resource_id, as we cannot have this field empty.
+    /// used to construct the `resource_id`, as we cannot have this field empty.
     /// In case the table expression already has an associated schema,
     /// then it's used instead of `default_schema`. Although the DQL endpoint
     /// would require both to be equal, we have chosen to not fail here
@@ -41,6 +42,7 @@ impl SelectStatement {
     ///
     /// Return:
     /// - The vector with all tables referenced by the intermediate ast, encoded as resource ids.
+    #[must_use]
     pub fn get_table_references(&self, default_schema: Identifier) -> Vec<ResourceId> {
         let set_expression: &SetExpression = &(self.expr);
 
@@ -61,25 +63,32 @@ impl FromStr for SelectStatement {
     fn from_str(query: &str) -> ParseResult<Self> {
         SelectStatementParser::new()
             .parse(query)
-            .map_err(|e| ParseError::QueryParseError(e.to_string()))
+            .map_err(|e| ParseError::QueryParseError {
+                error: e.to_string(),
+            })
     }
 }
 
+/// # Panics
+///
+/// This function will panic in the following cases:
+/// - If `ResourceId::try_new` fails to create a valid `ResourceId`,
+///   the `.unwrap()` call will cause a panic.
 fn convert_table_expr_to_resource_id_vector(
     table_expressions: &[Box<TableExpression>],
     default_schema: Identifier,
 ) -> Vec<ResourceId> {
     let mut tables = Vec::new();
 
-    for table_expression in table_expressions.iter() {
-        let table_ref: &TableExpression = table_expression.deref();
+    for table_expression in table_expressions {
+        let table_ref: &TableExpression = table_expression;
 
         match table_ref {
             TableExpression::Named { table, schema } => {
-                let schema = schema
-                    .as_ref()
-                    .map(|schema| schema.as_str())
-                    .unwrap_or_else(|| default_schema.name());
+                let schema = schema.as_ref().map_or_else(
+                    || default_schema.name(),
+                    super::identifier::Identifier::as_str,
+                );
 
                 tables.push(ResourceId::try_new(schema, table.as_str()).unwrap());
             }

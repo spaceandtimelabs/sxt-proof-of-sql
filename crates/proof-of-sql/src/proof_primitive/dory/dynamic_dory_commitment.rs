@@ -27,6 +27,7 @@ use crate::base::{
     commitment::{Commitment, CommittableColumn},
     impl_serde_for_ark_serde_checked,
 };
+use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
@@ -75,13 +76,10 @@ impl Commitment for DynamicDoryCommitment {
     type PublicSetup<'a> = &'a ProverSetup<'a>;
 
     fn compute_commitments(
-        commitments: &mut [Self],
         committable_columns: &[CommittableColumn],
         offset: usize,
         setup: &Self::PublicSetup<'_>,
-    ) {
-        assert_eq!(commitments.len(), committable_columns.len());
-        let c = super::compute_dynamic_dory_commitments(committable_columns, offset, setup);
-        commitments.copy_from_slice(&c);
+    ) -> Vec<Self> {
+        super::compute_dynamic_dory_commitments(committable_columns, offset, setup)
     }
 }

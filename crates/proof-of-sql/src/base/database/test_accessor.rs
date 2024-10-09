@@ -38,7 +38,7 @@ impl TestAccessor<RistrettoPoint> for UnimplementedTestAccessor {
     type Table = ();
 
     fn new_empty() -> Self {
-        Default::default()
+        UnimplementedTestAccessor
     }
 
     fn add_table(&mut self, _table_ref: TableRef, _data: (), _table_offset: usize) {

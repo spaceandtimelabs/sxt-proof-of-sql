@@ -7,6 +7,11 @@ use proof_of_sql_parser::Identifier;
 use rand::Rng;
 
 pub type OptionalRandBound = Option<fn(usize) -> i64>;
+/// # Panics
+///
+/// Will panic if:
+/// - The provided identifier cannot be parsed into an `Identifier` type.
+/// - An unsupported `ColumnType` is encountered, triggering a panic in the `todo!()` macro.
 pub fn generate_random_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     rng: &mut impl Rng,
@@ -35,7 +40,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::Int128, Some(b)) => {
                         Column::Int128(alloc.alloc_slice_fill_with(num_rows, |_| {
-                            rng.gen_range((-b(num_rows) as i128)..=(b(num_rows) as i128))
+                            rng.gen_range((i128::from(-b(num_rows)))..=(i128::from(b(num_rows))))
                         }))
                     }
                     (ColumnType::VarChar, _) => {
@@ -43,12 +48,10 @@ pub fn generate_random_columns<'a, S: Scalar>(
                             let len = rng
                                 .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
                             alloc.alloc_str(
-                                String::from_iter(
-                                    rng.sample_iter(&rand::distributions::Alphanumeric)
-                                        .take(len)
-                                        .map(char::from),
-                                )
-                                .as_str(),
+                                &rng.sample_iter(&rand::distributions::Alphanumeric)
+                                    .take(len)
+                                    .map(char::from)
+                                    .collect::<String>(),
                             ) as &str
                         });
                         Column::VarChar((

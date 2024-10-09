@@ -1,10 +1,11 @@
 use crate::base::{polynomial::compute_truncated_lagrange_basis_sum, scalar::Scalar};
-use core::ops::Range;
+use alloc::vec::Vec;
+use core::{ops::Range, slice};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
-/// Indexes of a table for use in the ProvableQueryResult
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Indexes of a table for use in the [`ProvableQueryResult`](crate::sql::proof::ProvableQueryResult)
 pub enum Indexes {
     /// Sparse indexes. (i.e. explicitly specified indexes)
     Sparse(Vec<u64>),
@@ -14,7 +15,7 @@ pub enum Indexes {
 
 impl Default for Indexes {
     fn default() -> Self {
-        Self::Sparse(Default::default())
+        Self::Sparse(Vec::default())
     }
 }
 
@@ -46,8 +47,8 @@ impl Indexes {
     /// Get an iterator over the indexes
     pub fn iter(&self) -> impl Iterator<Item = u64> + '_ {
         enum Iter<'a> {
-            Sparse(std::slice::Iter<'a, u64>),
-            Dense(std::ops::Range<u64>),
+            Sparse(slice::Iter<'a, u64>),
+            Dense(Range<u64>),
         }
         impl<'a> Iterator for Iter<'a> {
             type Item = u64;
@@ -92,6 +93,9 @@ impl Indexes {
             Indexes::Dense(range) => {
                 if range.is_empty() {
                     Some(Zero::zero())
+                } else if range.end as usize > 2usize.pow(evaluation_point.len() as u32) {
+                    // This only happens when the indexes are tampered with.
+                    None
                 } else {
                     Some(
                         compute_truncated_lagrange_basis_sum(range.end as usize, evaluation_point)

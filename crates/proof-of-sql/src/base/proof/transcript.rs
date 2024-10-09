@@ -1,11 +1,12 @@
 use crate::base::scalar::Scalar;
+use alloc::vec::Vec;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A public-coin transcript.
 ///
 /// This trait contains several method for adding prover messages and computing verifier challenges.
 ///
-/// Implementation note: this is intended to be implemented via [super::transcript_core::TranscriptCore] rather than directly.
+/// Implementation note: this is intended to be implemented via [`super::transcript_core::TranscriptCore`] rather than directly.
 #[allow(dead_code)]
 pub trait Transcript {
     /// Creates a new transcript
@@ -27,11 +28,17 @@ pub trait Transcript {
     /// Request a challenge. Returns the raw, unreversed, bytes. (i.e. littleendian form)
     fn challenge_as_le(&mut self) -> [u8; 32];
 
-    /// Appends a type that implements [serde::Serialize] by appending the raw bytes (i.e. assuming the message is littleendian)
+    /// Appends a type that implements [`serde::Serialize`] by appending the raw bytes (i.e. assuming the message is littleendian)
+    ///
+    /// # Panics
+    /// - Panics if `postcard::to_allocvec(message)` fails to serialize the message.
     fn extend_serialize_as_le(&mut self, message: &(impl serde::Serialize + ?Sized)) {
         self.extend_as_le_from_refs([postcard::to_allocvec(message).unwrap().as_slice()]);
     }
-    /// Appends a type that implements [ark_serialize::CanonicalSerialize] by appending the raw bytes (i.e. assuming the message is littleendian)
+    /// Appends a type that implements [`ark_serialize::CanonicalSerialize`] by appending the raw bytes (i.e. assuming the message is littleendian)
+    ///
+    /// # Panics
+    /// - Panics if `message.serialize_compressed(&mut buf)` fails to serialize the message.
     fn extend_canonical_serialize_as_le(
         &mut self,
         message: &(impl ark_serialize::CanonicalSerialize + ?Sized),
@@ -55,6 +62,7 @@ pub trait Transcript {
 mod tests {
     use super::Transcript;
     use crate::base::proof::Keccak256Transcript;
+    use alloc::{string::ToString, vec};
 
     #[test]
     fn we_can_extend_transcript_with_serialize() {

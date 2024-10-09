@@ -10,17 +10,30 @@ use std::{
     time::Instant,
 };
 
-/// TODO: add docs
+/// # Panics
+///
+/// Will panic if flushing the output fails, which can happen due to issues with the underlying output stream.
 fn start_timer(message: &str) -> Instant {
-    print!("{}...", message);
+    print!("{message}...");
     stdout().flush().unwrap();
     Instant::now()
 }
-/// TODO: add docs
+/// # Panics
+///
+/// This function does not panic under normal circumstances but may panic if the internal printing fails due to issues with the output stream.
 fn end_timer(instant: Instant) {
     println!(" {:?}", instant.elapsed());
 }
 
+/// # Panics
+///
+/// - Will panic if the GPU initialization fails during `init_backend`.
+/// - Will panic if the table reference cannot be parsed in `add_table`.
+/// - Will panic if the offset provided to `add_table` is invalid.
+/// - Will panic if the query string cannot be parsed in `QueryExpr::try_new`.
+/// - Will panic if the table reference cannot be parsed in `QueryExpr::try_new`.
+/// - Will panic if the query expression creation fails.
+/// - Will panic if printing fails during error handling.
 fn main() {
     let timer = start_timer("Warming up GPU");
     init_backend();
@@ -57,7 +70,7 @@ fn main() {
             println!("Query result: {:?}", result.table);
         }
         Err(e) => {
-            println!("Error: {:?}", e);
+            println!("Error: {e:?}");
         }
     }
 }

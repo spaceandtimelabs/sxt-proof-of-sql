@@ -6,6 +6,7 @@ use crate::base::{
     },
     math::decimal::Precision,
 };
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use proof_of_sql_parser::{
     intermediate_ast::{
         AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
@@ -28,7 +29,7 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    #[allow(clippy::vec_box)]
+    #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
         table_expr: Vec<Box<TableExpression>>,
@@ -101,6 +102,10 @@ impl<'a> QueryContextBuilder<'a> {
 
 // Private interface
 impl<'a> QueryContextBuilder<'a> {
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."
+    )]
     fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
         let table_ref = self.context.get_table_ref();
         let columns = self.schema_accessor.lookup_schema(*table_ref);
@@ -134,6 +139,8 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
+    /// # Panics
+    /// Panics if the expression is not a column expression.
     fn visit_column_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
         let identifier = match expr {
             Expression::Column(identifier) => *identifier,
@@ -229,8 +236,9 @@ impl<'a> QueryContextBuilder<'a> {
         let table_ref = self.context.get_table_ref();
         let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
 
-        let column_type = column_type.ok_or_else(|| {
-            ConversionError::MissingColumn(Box::new(column_name), Box::new(table_ref.resource_id()))
+        let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
+            identifier: Box::new(column_name),
+            resource_id: Box::new(table_ref.resource_id()),
         })?;
 
         let column = ColumnRef::new(*table_ref, column_name, column_type);
@@ -306,9 +314,9 @@ fn check_dtypes(
     if type_check_binary_operation(&left_dtype, &right_dtype, binary_operator) {
         Ok(())
     } else {
-        Err(ConversionError::DataTypeMismatch(
-            left_dtype.to_string(),
-            right_dtype.to_string(),
-        ))
+        Err(ConversionError::DataTypeMismatch {
+            left_type: left_dtype.to_string(),
+            right_type: right_dtype.to_string(),
+        })
     }
 }

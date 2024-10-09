@@ -1,17 +1,17 @@
 use super::{PostprocessingError, PostprocessingResult, PostprocessingStep};
 use crate::base::{
     database::{group_by_util::aggregate_columns, Column, OwnedColumn, OwnedTable},
+    map::{indexmap, IndexMap, IndexSet},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
-use indexmap::{indexmap, IndexMap, IndexSet};
 use itertools::{izip, Itertools};
 use proof_of_sql_parser::{
     intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
     Identifier,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -45,9 +45,9 @@ fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
 /// Get identifiers NOT in aggregate functions
 fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
     match expr {
-        Expression::Column(identifier) => IndexSet::from([*identifier]),
+        Expression::Column(identifier) => IndexSet::from_iter([*identifier]),
         Expression::Literal(_) | Expression::Aggregation { .. } | Expression::Wildcard => {
-            IndexSet::new()
+            IndexSet::default()
         }
         Expression::Binary { left, right, .. } => {
             let mut left_identifiers = get_free_identifiers_from_expr(left);
@@ -64,6 +64,10 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
 /// The idea here is to recursively traverse the expression tree and collect all the aggregation expressions
 /// and then label them as new columns post-aggregation and replace them with these new columns so that
 /// the post-aggregation expression tree doesn't contain any aggregation expressions and can be simply evaluated.
+/// # Panics
+///
+/// Will panic if the key for an aggregation expression cannot be parsed as a valid identifier
+/// or if there are issues retrieving an identifier from the map.
 fn get_aggregate_and_remainder_expressions(
     expr: Expression,
     aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
@@ -104,6 +108,9 @@ fn get_aggregate_and_remainder_expressions(
 }
 
 /// Given an `AliasedResultExpr`, check if it is legitimate and if so grab the relevant aggregation expression
+/// # Panics
+///
+/// Will panic if there is an issue retrieving the first element from the difference of free identifiers and group-by identifiers, indicating a logical inconsistency in the identifiers.
 fn check_and_get_aggregation_and_remainder(
     expr: AliasedResultExpr,
     group_by_identifiers: &[Identifier],
@@ -112,12 +119,12 @@ fn check_and_get_aggregation_and_remainder(
     let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
         .iter()
-        .cloned()
+        .copied()
         .collect::<IndexSet<_>>();
     if contains_nested_aggregation(&expr.expr, false) {
-        return Err(PostprocessingError::NestedAggregationInGroupByClause(
-            format!("Nested aggregations found {:?}", expr.expr),
-        ));
+        return Err(PostprocessingError::NestedAggregationInGroupByClause {
+            error: format!("Nested aggregations found {:?}", expr.expr),
+        });
     }
     if free_identifiers.is_subset(&group_by_identifier_set) {
         let remainder = get_aggregate_and_remainder_expressions(*expr.expr, aggregation_expr_map);
@@ -130,7 +137,11 @@ fn check_and_get_aggregation_and_remainder(
             .difference(&group_by_identifier_set)
             .next()
             .unwrap();
-        Err(PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(*diff))
+        Err(
+            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause {
+                column: *diff,
+            },
+        )
     }
 }
 
@@ -141,7 +152,7 @@ impl GroupByPostprocessing {
         aliased_exprs: Vec<AliasedResultExpr>,
     ) -> PostprocessingResult<Self> {
         let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
-            IndexMap::new();
+            IndexMap::default();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
         let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
             .into_iter()
@@ -153,7 +164,7 @@ impl GroupByPostprocessing {
                 )
             })
             .collect::<PostprocessingResult<Vec<AliasedResultExpr>>>()?;
-        let group_by_identifiers = by_ids.into_iter().unique().collect();
+        let group_by_identifiers = Vec::from_iter(IndexSet::from_iter(by_ids));
         Ok(Self {
             remainder_exprs,
             group_by_identifiers,
@@ -165,16 +176,19 @@ impl GroupByPostprocessing {
     }
 
     /// Get group by identifiers
+    #[must_use]
     pub fn group_by(&self) -> &[Identifier] {
         &self.group_by_identifiers
     }
 
     /// Get remainder expressions for SELECT
+    #[must_use]
     pub fn remainder_exprs(&self) -> &[AliasedResultExpr] {
         &self.remainder_exprs
     }
 
     /// Get aggregation expressions
+    #[must_use]
     pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
         &self.aggregation_exprs
     }
@@ -185,29 +199,38 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
     fn apply(&self, owned_table: OwnedTable<S>) -> PostprocessingResult<OwnedTable<S>> {
         // First evaluate all the aggregated columns
         let alloc = Bump::new();
-        let evaluated_columns: HashMap<AggregationOperator, Vec<(Identifier, OwnedColumn<S>)>> =
-            self.aggregation_exprs
-                .iter()
-                .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
-                    let evaluated_owned_column = owned_table.evaluate(expr)?;
-                    Ok((*agg_op, (*id, evaluated_owned_column)))
-                })
-                .process_results(|iter| iter.into_group_map())?;
+        let evaluated_columns = self
+            .aggregation_exprs
+            .iter()
+            .map(|(agg_op, expr, id)| -> PostprocessingResult<_> {
+                let evaluated_owned_column = owned_table.evaluate(expr)?;
+                Ok((*agg_op, (*id, evaluated_owned_column)))
+            })
+            .process_results(|iter| {
+                iter.fold(
+                    IndexMap::<_, Vec<_>>::default(),
+                    |mut lookup, (key, val)| {
+                        lookup.entry(key).or_default().push(val);
+                        lookup
+                    },
+                )
+            })?;
         // Next actually do the GROUP BY
         let group_by_ins = self
             .group_by_identifiers
             .iter()
             .map(|id| {
-                let column = owned_table
-                    .inner_table()
-                    .get(id)
-                    .ok_or(PostprocessingError::ColumnNotFound(id.to_string()))?;
+                let column = owned_table.inner_table().get(id).ok_or(
+                    PostprocessingError::ColumnNotFound {
+                        column: id.to_string(),
+                    },
+                )?;
                 Ok(Column::<S>::from_owned_column(column, &alloc))
             })
             .collect::<PostprocessingResult<Vec<_>>>()?;
         // TODO: Allow a filter
         let selection_in = vec![true; owned_table.num_rows()];
-        let (sum_ids, sum_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (sum_identifiers, sum_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Sum)
             .map(|tuple| {
                 tuple
@@ -216,7 +239,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                     .unzip()
             })
             .unwrap_or((vec![], vec![]));
-        let (max_ids, max_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (max_identifiers, max_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Max)
             .map(|tuple| {
                 tuple
@@ -225,7 +248,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                     .unzip()
             })
             .unwrap_or((vec![], vec![]));
-        let (min_ids, min_ins): (Vec<_>, Vec<_>) = evaluated_columns
+        let (min_identifiers, min_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Min)
             .map(|tuple| {
                 tuple
@@ -237,9 +260,9 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,
-            &sum_ins,
-            &max_ins,
-            &min_ins,
+            &sum_columns,
+            &max_columns,
+            &min_columns,
             &selection_in,
         )?;
         // Finally do another round of evaluation to get the final result
@@ -249,27 +272,39 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
             .iter()
             .zip(self.group_by_identifiers.iter())
             .map(|(column, id)| Ok((*id, OwnedColumn::from(column))));
-        let sum_outs =
-            izip!(aggregation_results.sum_columns, sum_ids, sum_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
-                ))
-            });
-        let max_outs =
-            izip!(aggregation_results.max_columns, max_ids, max_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
-                ))
-            });
-        let min_outs =
-            izip!(aggregation_results.min_columns, min_ids, min_ins,).map(|(c_out, id, c_in)| {
-                Ok((
-                    id,
-                    OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
-                ))
-            });
+        let sum_outs = izip!(
+            aggregation_results.sum_columns,
+            sum_identifiers,
+            sum_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_scalars(c_out, c_in.column_type())?,
+            ))
+        });
+        let max_outs = izip!(
+            aggregation_results.max_columns,
+            max_identifiers,
+            max_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+            ))
+        });
+        let min_outs = izip!(
+            aggregation_results.min_columns,
+            min_identifiers,
+            min_columns,
+        )
+        .map(|(c_out, id, c_in)| {
+            Ok((
+                id,
+                OwnedColumn::try_from_option_scalars(c_out, c_in.column_type())?,
+            ))
+        });
         //TODO: When we have NULLs we need to differentiate between count(1) and count(expression)
         let count_column = OwnedColumn::BigInt(aggregation_results.count_column.to_vec());
         let count_outs = evaluated_columns
@@ -291,7 +326,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         } else {
             new_owned_table
         };
-        let res = self
+        let result = self
             .remainder_exprs
             .iter()
             .map(|aliased_expr| -> PostprocessingResult<_> {
@@ -299,7 +334,7 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
                 Ok((aliased_expr.alias, column))
             })
             .process_results(|iter| OwnedTable::try_from_iter(iter))??;
-        Ok(res)
+        Ok(result)
     }
 }
 
@@ -345,13 +380,13 @@ mod tests {
     fn we_can_get_free_identifiers_from_expr() {
         // Literal
         let expr = lit("Not an identifier");
-        let expected: IndexSet<Identifier> = IndexSet::new();
+        let expected: IndexSet<Identifier> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // a + b + 1
         let expr = add(add(col("a"), col("b")), lit(1));
-        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
@@ -359,20 +394,20 @@ mod tests {
         let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
         let expected: IndexSet<Identifier> = [ident("a"), ident("b"), ident("c")]
             .iter()
-            .cloned()
+            .copied()
             .collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // SUM(a + b) * 2
         let expr = mul(sum(add(col("a"), col("b"))), lit(2));
-        let expected: IndexSet<Identifier> = IndexSet::new();
+        let expected: IndexSet<Identifier> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // (COUNT(a + b) + c) * d
         let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
-        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().cloned().collect();
+        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
     }
@@ -380,7 +415,7 @@ mod tests {
     #[test]
     fn we_can_get_aggregate_and_remainder_expressions() {
         let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
-            IndexMap::new();
+            IndexMap::default();
         // SUM(a) + b
         let expr = add(sum(col("a")), col("b"));
         let remainder_expr =

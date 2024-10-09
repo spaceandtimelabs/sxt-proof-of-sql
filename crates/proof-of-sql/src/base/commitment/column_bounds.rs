@@ -1,10 +1,11 @@
 use super::committable_column::CommittableColumn;
+use alloc::boxed::Box;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use snafu::Snafu;
 
 /// Cannot construct bounds where min is greater than max.
-#[derive(Error, Debug)]
-#[error("cannot construct bounds where min is greater than max")]
+#[derive(Snafu, Debug)]
+#[snafu(display("cannot construct bounds where min is greater than max"))]
 pub struct NegativeBounds;
 
 /// Inner value for [`Bounds::Sharp`] and [`Bounds::Bounded`].
@@ -74,7 +75,7 @@ where
     /// The source collection is empty so has no bounds.
     #[default]
     Empty,
-    /// After some operation (like [`Bounds::difference`]), the bounds cannot be determined exactly.
+    /// After some operation (like `Bounds::difference`), the bounds cannot be determined exactly.
     ///
     /// Instead, this variant underestimates the minimum and overestimates the maximum.
     Bounded(BoundsInner<T>),
@@ -106,9 +107,8 @@ where
             (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Sharp(bounds_a.union(bounds_b))
             }
-            (Bounds::Bounded(bounds_a), Bounds::Bounded(bounds_b))
-            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b)) => {
+            (Bounds::Bounded(bounds_a) | Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            | (Bounds::Bounded(bounds_a), Bounds::Sharp(bounds_b)) => {
                 Bounds::Bounded(bounds_a.union(bounds_b))
             }
             (bounds, Bounds::Empty) | (Bounds::Empty, bounds) => bounds,
@@ -127,14 +127,13 @@ where
         match (self, other) {
             (Bounds::Empty, _) => Bounds::Empty,
             (bounds, Bounds::Empty) => bounds,
-            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b))
-            | (Bounds::Sharp(bounds_a), Bounds::Bounded(bounds_b))
+            (Bounds::Sharp(bounds_a), Bounds::Sharp(bounds_b) | Bounds::Bounded(bounds_b))
                 if bounds_a.max() < bounds_b.min() || bounds_b.max() < bounds_a.min() =>
             {
                 // source collections must be disjoint, so no rows are removed
                 Bounds::Sharp(bounds_a)
             }
-            (Bounds::Bounded(bounds), _) | (Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
+            (Bounds::Bounded(bounds) | Bounds::Sharp(bounds), _) => Bounds::Bounded(bounds),
         }
     }
 
@@ -186,9 +185,14 @@ where
 }
 
 /// Columns with different [`ColumnBounds`] variants cannot operate with each other.
-#[derive(Debug, Error)]
-#[error("column with bounds {0:?} cannot operate with column with bounds {1:?}")]
-pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
+#[derive(Debug, Snafu)]
+#[snafu(display(
+    "column with bounds {bounds_a:?} cannot operate with column with bounds {bounds_b:?}"
+))]
+pub struct ColumnBoundsMismatch {
+    bounds_a: Box<ColumnBounds>,
+    bounds_b: Box<ColumnBounds>,
+}
 
 /// Column metadata storing the bounds for column types that have order.
 ///
@@ -199,11 +203,13 @@ pub struct ColumnBoundsMismatch(Box<ColumnBounds>, Box<ColumnBounds>);
 pub enum ColumnBounds {
     /// Column does not have order.
     NoOrder,
-    /// The bounds of a SmallInt column.
+    /// The bounds of a `TinyInt` column.
+    TinyInt(Bounds<i8>),
+    /// The bounds of a `SmallInt` column.
     SmallInt(Bounds<i16>),
     /// The bounds of an Int column.
     Int(Bounds<i32>),
-    /// The bounds of a BigInt column.
+    /// The bounds of a `BigInt` column.
     BigInt(Bounds<i64>),
     /// The bounds of an Int128 column.
     Int128(Bounds<i128>),
@@ -215,8 +221,10 @@ impl ColumnBounds {
     /// Construct a [`ColumnBounds`] from a column by reference.
     ///
     /// If the column variant has order, only the minimum and maximum value will be copied.
+    #[must_use]
     pub fn from_column(column: &CommittableColumn) -> ColumnBounds {
         match column {
+            CommittableColumn::TinyInt(ints) => ColumnBounds::TinyInt(Bounds::from_iter(*ints)),
             CommittableColumn::SmallInt(ints) => ColumnBounds::SmallInt(Bounds::from_iter(*ints)),
             CommittableColumn::Int(ints) => ColumnBounds::Int(Bounds::from_iter(*ints)),
             CommittableColumn::BigInt(ints) => ColumnBounds::BigInt(Bounds::from_iter(*ints)),
@@ -227,8 +235,8 @@ impl ColumnBounds {
             CommittableColumn::Boolean(_)
             | CommittableColumn::Decimal75(_, _, _)
             | CommittableColumn::Scalar(_)
-            | CommittableColumn::VarChar(_) => ColumnBounds::NoOrder,
-            CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
+            | CommittableColumn::VarChar(_)
+            | CommittableColumn::RangeCheckWord(_) => ColumnBounds::NoOrder,
         }
     }
 
@@ -238,6 +246,9 @@ impl ColumnBounds {
     pub fn try_union(self, other: Self) -> Result<Self, ColumnBoundsMismatch> {
         match (self, other) {
             (ColumnBounds::NoOrder, ColumnBounds::NoOrder) => Ok(ColumnBounds::NoOrder),
+            (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
+                Ok(ColumnBounds::TinyInt(bounds_a.union(bounds_b)))
+            }
             (ColumnBounds::SmallInt(bounds_a), ColumnBounds::SmallInt(bounds_b)) => {
                 Ok(ColumnBounds::SmallInt(bounds_a.union(bounds_b)))
             }
@@ -253,9 +264,10 @@ impl ColumnBounds {
             (ColumnBounds::Int128(bounds_a), ColumnBounds::Int128(bounds_b)) => {
                 Ok(ColumnBounds::Int128(bounds_a.union(bounds_b)))
             }
-            (bounds_a, bounds_b) => {
-                Err(ColumnBoundsMismatch(Box::new(bounds_a), Box::new(bounds_b)))
-            }
+            (bounds_a, bounds_b) => Err(ColumnBoundsMismatch {
+                bounds_a: Box::new(bounds_a),
+                bounds_b: Box::new(bounds_b),
+            }),
         }
     }
 
@@ -266,6 +278,9 @@ impl ColumnBounds {
     pub fn try_difference(self, other: Self) -> Result<Self, ColumnBoundsMismatch> {
         match (self, other) {
             (ColumnBounds::NoOrder, ColumnBounds::NoOrder) => Ok(self),
+            (ColumnBounds::TinyInt(bounds_a), ColumnBounds::TinyInt(bounds_b)) => {
+                Ok(ColumnBounds::TinyInt(bounds_a.difference(bounds_b)))
+            }
             (ColumnBounds::SmallInt(bounds_a), ColumnBounds::SmallInt(bounds_b)) => {
                 Ok(ColumnBounds::SmallInt(bounds_a.difference(bounds_b)))
             }
@@ -281,7 +296,10 @@ impl ColumnBounds {
             (ColumnBounds::TimestampTZ(bounds_a), ColumnBounds::TimestampTZ(bounds_b)) => {
                 Ok(ColumnBounds::TimestampTZ(bounds_a.difference(bounds_b)))
             }
-            (_, _) => Err(ColumnBoundsMismatch(Box::new(self), Box::new(other))),
+            (_, _) => Err(ColumnBoundsMismatch {
+                bounds_a: Box::new(self),
+                bounds_b: Box::new(other),
+            }),
         }
     }
 }
@@ -290,6 +308,7 @@ impl ColumnBounds {
 mod tests {
     use super::*;
     use crate::base::{database::OwnedColumn, math::decimal::Precision, scalar::Curve25519Scalar};
+    use alloc::{string::String, vec};
     use itertools::Itertools;
     use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
@@ -487,6 +506,14 @@ mod tests {
         let varchar_column_bounds = ColumnBounds::from_column(&committable_varchar_column);
         assert_eq!(varchar_column_bounds, ColumnBounds::NoOrder);
 
+        let tinyint_column = OwnedColumn::<Curve25519Scalar>::TinyInt([1, 2, 3, 1, 0].to_vec());
+        let committable_tinyint_column = CommittableColumn::from(&tinyint_column);
+        let tinyint_column_bounds = ColumnBounds::from_column(&committable_tinyint_column);
+        assert_eq!(
+            tinyint_column_bounds,
+            ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 0, max: 3 }))
+        );
+
         let smallint_column = OwnedColumn::<Curve25519Scalar>::SmallInt([1, 2, 3, 1, 0].to_vec());
         let committable_smallint_column = CommittableColumn::from(&smallint_column);
         let smallint_column_bounds = ColumnBounds::from_column(&committable_smallint_column);
@@ -550,6 +577,13 @@ mod tests {
         let no_order = ColumnBounds::NoOrder;
         assert_eq!(no_order.try_union(no_order).unwrap(), no_order);
 
+        let tinyint_a = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let tinyint_b = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        assert_eq!(
+            tinyint_a.try_union(tinyint_b).unwrap(),
+            ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 6 }))
+        );
+
         let smallint_a = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let smallint_b = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
         assert_eq!(
@@ -597,6 +631,7 @@ mod tests {
     #[test]
     fn we_cannot_union_mismatched_column_bounds() {
         let no_order = ColumnBounds::NoOrder;
+        let tinyint = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: -3, max: 3 }));
         let smallint = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: -5, max: 5 }));
         let int = ColumnBounds::Int(Bounds::Sharp(BoundsInner { min: -10, max: 10 }));
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
@@ -605,6 +640,7 @@ mod tests {
 
         let bounds = [
             (no_order, "NoOrder"),
+            (tinyint, "TinyInt"),
             (smallint, "SmallInt"),
             (int, "Int"),
             (bigint, "BigInt"),
@@ -615,15 +651,11 @@ mod tests {
         for ((bound_a, name_a), (bound_b, name_b)) in bounds.iter().tuple_combinations() {
             assert!(
                 bound_a.try_union(*bound_b).is_err(),
-                "Expected error when trying to union {} with {}",
-                name_a,
-                name_b
+                "Expected error when trying to union {name_a} with {name_b}"
             );
             assert!(
                 bound_b.try_union(*bound_a).is_err(),
-                "Expected error when trying to union {} with {}",
-                name_b,
-                name_a
+                "Expected error when trying to union {name_b} with {name_a}"
             );
         }
     }
@@ -632,6 +664,10 @@ mod tests {
     fn we_can_difference_column_bounds_with_matching_variant() {
         let no_order = ColumnBounds::NoOrder;
         assert_eq!(no_order.try_difference(no_order).unwrap(), no_order);
+
+        let tinyint_a = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
+        let tinyint_b = ColumnBounds::TinyInt(Bounds::Empty);
+        assert_eq!(tinyint_a.try_difference(tinyint_b).unwrap(), tinyint_a);
 
         let smallint_a = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let smallint_b = ColumnBounds::SmallInt(Bounds::Empty);
@@ -666,6 +702,7 @@ mod tests {
         let bigint = ColumnBounds::BigInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let int128 = ColumnBounds::Int128(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
         let timestamp = ColumnBounds::TimestampTZ(Bounds::Sharp(BoundsInner { min: 4, max: 6 }));
+        let tinyint = ColumnBounds::TinyInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
         let smallint = ColumnBounds::SmallInt(Bounds::Sharp(BoundsInner { min: 1, max: 3 }));
 
         assert!(no_order.try_difference(bigint).is_err());
@@ -676,6 +713,9 @@ mod tests {
 
         assert!(bigint.try_difference(int128).is_err());
         assert!(int128.try_difference(bigint).is_err());
+
+        assert!(tinyint.try_difference(timestamp).is_err());
+        assert!(timestamp.try_difference(tinyint).is_err());
 
         assert!(smallint.try_difference(timestamp).is_err());
         assert!(timestamp.try_difference(smallint).is_err());

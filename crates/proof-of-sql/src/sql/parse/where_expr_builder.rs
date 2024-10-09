@@ -3,10 +3,11 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{ColumnRef, ColumnType},
+        map::IndexMap,
     },
     sql::proof_exprs::{DynProofExpr, ProofExpr},
 };
-use indexmap::IndexMap;
+use alloc::boxed::Box;
 use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
 
 /// Builder that enables building a `proof_of_sql::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression` that is
@@ -33,9 +34,9 @@ impl<'a> WhereExprBuilder<'a> {
                 // Ensure that the expression is a boolean expression
                 match expr_plan.data_type() {
                     ColumnType::Boolean => Ok(expr_plan),
-                    _ => Err(ConversionError::NonbooleanWhereClause(
-                        expr_plan.data_type(),
-                    )),
+                    _ => Err(ConversionError::NonbooleanWhereClause {
+                        datatype: expr_plan.data_type(),
+                    }),
                 }
             })
             .transpose()

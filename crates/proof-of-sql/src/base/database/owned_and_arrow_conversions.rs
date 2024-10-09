@@ -1,12 +1,12 @@
 //! This module provide `From` and `TryFrom` implementations to go between arrow and owned types
 //! The mapping is as follows:
-//! OwnedType <-> Array/ArrayRef
-//! OwnedTable <-> RecordBatch
-//! Boolean <-> Boolean
-//! BigInt <-> Int64
-//! VarChar <-> Utf8/String
-//! Int128 <-> Decimal128(38,0)
-//! Decimal75 <-> S
+//! `OwnedType` <-> `Array/ArrayRef`
+//! `OwnedTable` <-> `RecordBatch`
+//! `Boolean` <-> `Boolean`
+//! `BigInt` <-> `Int64`
+//! `VarChar` <-> `Utf8/String`
+//! `Int128` <-> `Decimal128(38,0)`
+//! `Decimal75` <-> `S`
 //!
 //! Note: this converts `Int128` values to `Decimal128(38,0)`, which are backed by `i128`.
 //! This is because there is no `Int128` type in Arrow.
@@ -18,55 +18,75 @@ use crate::base::{
         scalar_and_i256_conversions::convert_i256_to_scalar, OwnedColumn, OwnedTable,
         OwnedTableError,
     },
+    map::IndexMap,
     math::decimal::Precision,
     scalar::Scalar,
 };
+use alloc::sync::Arc;
 use arrow::{
     array::{
         ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use indexmap::IndexMap;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
     Identifier, ParseError,
 };
-use std::sync::Arc;
-use thiserror::Error;
+use snafu::Snafu;
 
-#[derive(Error, Debug)]
+#[derive(Snafu, Debug)]
 #[non_exhaustive]
 /// Errors cause by conversions between Arrow and owned types.
 pub enum OwnedArrowConversionError {
     /// This error occurs when trying to convert from an unsupported arrow type.
-    #[error("unsupported type: attempted conversion from ArrayRef of type {0} to OwnedColumn")]
-    UnsupportedType(DataType),
+    #[snafu(display(
+        "unsupported type: attempted conversion from ArrayRef of type {datatype} to OwnedColumn"
+    ))]
+    UnsupportedType {
+        /// The unsupported datatype
+        datatype: DataType,
+    },
     /// This error occurs when trying to convert from a record batch with duplicate identifiers (e.g. `"a"` and `"A"`).
-    #[error("conversion resulted in duplicate identifiers")]
+    #[snafu(display("conversion resulted in duplicate identifiers"))]
     DuplicateIdentifiers,
-    #[error(transparent)]
     /// This error occurs when convering from a record batch name to an identifier fails. (Which may my impossible.)
-    FieldParseFail(#[from] ParseError),
-    #[error(transparent)]
+    #[snafu(transparent)]
+    FieldParseFail {
+        /// The underlying source error
+        source: ParseError,
+    },
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
-    InvalidTable(#[from] OwnedTableError),
+    #[snafu(transparent)]
+    InvalidTable {
+        /// The underlying source error
+        source: OwnedTableError,
+    },
     /// This error occurs when trying to convert from an Arrow array with nulls.
-    #[error("null values are not supported in OwnedColumn yet")]
+    #[snafu(display("null values are not supported in OwnedColumn yet"))]
     NullNotSupportedYet,
-    /// Using TimeError to handle all time-related errors
-    #[error(transparent)]
-    TimestampConversionError(#[from] PoSQLTimestampError),
+    /// Using `TimeError` to handle all time-related errors
+    #[snafu(transparent)]
+    TimestampConversionError {
+        /// The underlying source error
+        source: PoSQLTimestampError,
+    },
 }
 
+/// # Panics
+///
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Int128`.
+/// Will panic if setting precision and scale fails when converting `OwnedColumn::Decimal75`.
+/// Will panic if trying to convert `OwnedColumn::Scalar`, as this conversion is not implemented
 impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
     fn from(value: OwnedColumn<S>) -> Self {
         match value {
             OwnedColumn::Boolean(col) => Arc::new(BooleanArray::from(col)),
+            OwnedColumn::TinyInt(col) => Arc::new(Int8Array::from(col)),
             OwnedColumn::SmallInt(col) => Arc::new(Int16Array::from(col)),
             OwnedColumn::Int(col) => Arc::new(Int32Array::from(col)),
             OwnedColumn::BigInt(col) => Arc::new(Int64Array::from(col)),
@@ -120,6 +140,16 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 }
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
+    /// # Panics
+    ///
+    /// Will panic if downcasting fails for the following types:
+    /// - `BooleanArray` when converting from `DataType::Boolean`.
+    /// - `Int16Array` when converting from `DataType::Int16`.
+    /// - `Int32Array` when converting from `DataType::Int32`.
+    /// - `Int64Array` when converting from `DataType::Int64`.
+    /// - `Decimal128Array` when converting from `DataType::Decimal128(38, 0)`.
+    /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
+    /// - `StringArray` when converting from `DataType::Utf8`.
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
             // Arrow uses a bit-packed representation for booleans.
@@ -132,6 +162,14 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .iter()
                     .collect::<Option<Vec<bool>>>()
                     .ok_or(OwnedArrowConversionError::NullNotSupportedYet)?,
+            )),
+            DataType::Int8 => Ok(Self::TinyInt(
+                value
+                    .as_any()
+                    .downcast_ref::<Int8Array>()
+                    .unwrap()
+                    .values()
+                    .to_vec(),
             )),
             DataType::Int16 => Ok(Self::SmallInt(
                 value
@@ -245,9 +283,9 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     ))
                 }
             },
-            &data_type => Err(OwnedArrowConversionError::UnsupportedType(
-                data_type.clone(),
-            )),
+            &data_type => Err(OwnedArrowConversionError::UnsupportedType {
+                datatype: data_type.clone(),
+            }),
         }
     }
 }

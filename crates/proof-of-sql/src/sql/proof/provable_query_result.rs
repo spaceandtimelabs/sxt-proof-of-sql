@@ -6,12 +6,13 @@ use crate::base::{
     polynomial::compute_evaluation_vector,
     scalar::Scalar,
 };
+use alloc::{vec, vec::Vec};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate form of a query result that can be transformed
 /// to either the finalized query result form or a query error
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
     indexes: Indexes,
@@ -20,10 +21,12 @@ pub struct ProvableQueryResult {
 
 impl ProvableQueryResult {
     /// The number of columns in the result
+    #[must_use]
     pub fn num_columns(&self) -> usize {
         self.num_columns as usize
     }
     /// The indexes in the result.
+    #[must_use]
     pub fn indexes(&self) -> &Indexes {
         &self.indexes
     }
@@ -47,6 +50,7 @@ impl ProvableQueryResult {
     }
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
+    #[must_use]
     pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
         Self {
             num_columns,
@@ -56,14 +60,15 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
+    #[must_use]
     pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.num_bytes(indexes);
         }
         let mut data = vec![0u8; sz];
         let mut sz = 0;
-        for col in columns.iter() {
+        for col in columns {
             sz += col.write(&mut data[sz..], indexes);
         }
         ProvableQueryResult {
@@ -73,15 +78,25 @@ impl ProvableQueryResult {
         }
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
+    )]
     /// Given an evaluation vector, compute the evaluation of the intermediate result
     /// columns as spare multilinear extensions
+    ///
+    /// # Panics
+    /// This function will panic if the length of `evaluation_point` does not match `self.num_columns`.
+    /// It will also panic if the `data` array is not properly formatted for the expected column types.
     pub fn evaluate<S: Scalar>(
         &self,
         evaluation_point: &[S],
         table_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Result<Vec<S>, QueryError> {
-        assert_eq!(self.num_columns as usize, column_result_fields.len());
+        if self.num_columns as usize != column_result_fields.len() {
+            return Err(QueryError::InvalidColumnCount);
+        }
 
         if !self.indexes.valid(table_length) {
             return Err(QueryError::InvalidIndexes);
@@ -104,13 +119,15 @@ impl ProvableQueryResult {
             for index in self.indexes.iter() {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
+                    ColumnType::TinyInt => decode_and_convert::<i8, S>(&self.data[offset..]),
                     ColumnType::SmallInt => decode_and_convert::<i16, S>(&self.data[offset..]),
                     ColumnType::Int => decode_and_convert::<i32, S>(&self.data[offset..]),
                     ColumnType::BigInt => decode_and_convert::<i64, S>(&self.data[offset..]),
                     ColumnType::Int128 => decode_and_convert::<i128, S>(&self.data[offset..]),
-                    ColumnType::Decimal75(_, _) => decode_and_convert::<S, S>(&self.data[offset..]),
+                    ColumnType::Decimal75(_, _) | ColumnType::Scalar => {
+                        decode_and_convert::<S, S>(&self.data[offset..])
+                    }
 
-                    ColumnType::Scalar => decode_and_convert::<S, S>(&self.data[offset..]),
                     ColumnType::VarChar => decode_and_convert::<&str, S>(&self.data[offset..]),
                     ColumnType::TimestampTZ(_, _) => {
                         decode_and_convert::<i64, S>(&self.data[offset..])
@@ -129,6 +146,10 @@ impl ProvableQueryResult {
         Ok(res)
     }
 
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "Assertions ensure preconditions are met, eliminating the possibility of panic."
+    )]
     /// Convert the intermediate query result into a final query result
     ///
     /// The result is essentially an `OwnedTable` type.
@@ -136,7 +157,9 @@ impl ProvableQueryResult {
         &self,
         column_result_fields: &[ColumnField],
     ) -> Result<OwnedTable<S>, QueryError> {
-        assert_eq!(column_result_fields.len(), self.num_columns());
+        if column_result_fields.len() != self.num_columns() {
+            return Err(QueryError::InvalidColumnCount);
+        }
 
         let n = self.indexes.len();
         let mut offset: usize = 0;
@@ -149,6 +172,11 @@ impl ProvableQueryResult {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
                         offset += num_read;
                         Ok((field.name(), OwnedColumn::Boolean(col)))
+                    }
+                    ColumnType::TinyInt => {
+                        let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;
+                        offset += num_read;
+                        Ok((field.name(), OwnedColumn::TinyInt(col)))
                     }
                     ColumnType::SmallInt => {
                         let (col, num_read) = decode_multiple_elements(&self.data[offset..], n)?;

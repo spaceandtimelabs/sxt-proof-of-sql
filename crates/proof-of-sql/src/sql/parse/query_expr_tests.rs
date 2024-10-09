@@ -1,6 +1,9 @@
 use super::ConversionError;
 use crate::{
-    base::database::{ColumnType, TableRef, TestSchemaAccessor},
+    base::{
+        database::{ColumnType, TableRef, TestSchemaAccessor},
+        map::{indexmap, IndexMap, IndexSet},
+    },
     sql::{
         parse::QueryExpr,
         postprocessing::{test_utility::*, PostprocessingError},
@@ -9,7 +12,6 @@ use crate::{
     },
 };
 use curve25519_dalek::RistrettoPoint;
-use indexmap::{indexmap, IndexMap};
 use itertools::Itertools;
 use proof_of_sql_parser::{
     intermediate_ast::OrderByDirection::*,
@@ -21,6 +23,11 @@ use proof_of_sql_parser::{
     Identifier,
 };
 
+/// # Panics
+///
+/// Will panic if:
+/// - The `parse` method of `SelectStatementParser` fails, causing `unwrap()` to panic.
+/// - The `try_new` method of `QueryExpr` fails, causing `unwrap()` to panic.
 fn query_to_provable_ast(
     table: TableRef,
     query: &str,
@@ -658,7 +665,7 @@ fn we_can_convert_an_ast_without_any_filter() {
 }
 
 /////////////////////////
-/// OrderBy
+/// `OrderBy`
 /////////////////////////
 #[test]
 fn we_can_parse_order_by_with_a_single_column() {
@@ -1591,39 +1598,39 @@ fn we_can_parse_arithmetic_expression_within_aggregations_in_the_result_expr() {
 fn we_cannot_use_non_grouped_columns_outside_agg() {
     assert!(matches!(
         query!(select: ["i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["sum(i)", "i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["min(i) + i"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["2 * i", "min(i)"], group: ["s"], should_err: true),
-        ConversionError::PostprocessingError(
-            PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause(_)
-        )
+        ConversionError::PostprocessingError {
+            source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
+        }
     ));
     assert!(matches!(
         query!(select: ["2 * i", "min(i)"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
     assert!(matches!(
         query!(select: ["sum(i)", "i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
     assert!(matches!(
         query!(select: ["max(i) + 2 * i"], should_err: true),
-        ConversionError::InvalidGroupByColumnRef(_)
+        ConversionError::InvalidGroupByColumnRef { .. }
     ));
 }
 
@@ -1631,31 +1638,31 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
 fn varchar_column_is_not_compatible_with_integer_column() {
     assert_eq!(
         query!(select: ["-123 * s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::BigInt.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
     assert_eq!(
         query!(select: ["i - s"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::BigInt.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::BigInt.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' = i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::BigInt.to_string(),
+        }
     );
     assert_eq!(
         query!(select: ["s"], filter: "'abc' != i", should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::BigInt.to_string(),
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::BigInt.to_string(),
+        }
     );
 }
 
@@ -1663,10 +1670,10 @@ fn varchar_column_is_not_compatible_with_integer_column() {
 fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     assert_eq!(
         query!(select: ["s - s1"], should_err: true),
-        ConversionError::DataTypeMismatch(
-            ColumnType::VarChar.to_string(),
-            ColumnType::VarChar.to_string()
-        )
+        ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::VarChar.to_string()
+        }
     );
 }
 
@@ -1866,7 +1873,9 @@ fn nested_aggregations_are_not_supported() {
     for perm_aggs in supported_agg.iter().permutations(2) {
         assert_eq!(
             query!(select: [format!("{}({}(i))", perm_aggs[0], perm_aggs[1])], should_err: true),
-            ConversionError::InvalidExpression("nested aggregations are not supported".to_string())
+            ConversionError::InvalidExpression {
+                expression: "nested aggregations are not supported".to_string()
+            }
         );
     }
 }
@@ -1877,7 +1886,13 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     let (t, accessor) = get_test_accessor();
     let base_cols: [&str; N] = ["i", "i0", "i1", "s"]; // sorted because of `select: [cols = ... ]`
     let base_ordering = [Asc, Desc, Asc, Desc];
-    for (idx, perm_cols) in base_cols.into_iter().permutations(N).unique().enumerate() {
+    for (idx, perm_cols) in base_cols
+        .into_iter()
+        .permutations(N)
+        .collect::<IndexSet<_>>()
+        .into_iter()
+        .enumerate()
+    {
         let perm_col_plans = perm_cols
             .iter()
             .sorted()
@@ -1896,7 +1911,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
         let query = query!(
             select: perm_cols,
             group: group_cols.clone(),
-            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{} {}", c, o))
+            order: order_cols.clone().zip(ordering.clone()).map(|(c, o)| format!("{c} {o}"))
         );
         let expected_query = QueryExpr::new(
             filter(perm_col_plans, tab(t), const_bool(true)),
@@ -1909,7 +1924,7 @@ fn select_group_and_order_by_preserve_the_column_order_reference() {
     }
 }
 
-/// Creates a new QueryExpr, with the given select statement and a sample schema accessor.
+/// Creates a new [`QueryExpr`], with the given select statement and a sample schema accessor.
 fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     let schema_accessor = schema_accessor_from_table_ref_with_schema(
         "test.table".parse().unwrap(),
@@ -1924,7 +1939,7 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
     QueryExpr::try_new(select_statement, default_schema, &schema_accessor).unwrap()
 }
 
-/// Serializes and deserializes QueryExpr with flexbuffers and asserts that it remains the same.
+/// Serializes and deserializes [`QueryExpr`] with flexbuffers and asserts that it remains the same.
 fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr<RistrettoPoint>) {
     let serialized = flexbuffers::to_vec(&query_expr).unwrap();
     let deserialized: QueryExpr<RistrettoPoint> =

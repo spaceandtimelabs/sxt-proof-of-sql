@@ -6,6 +6,7 @@ use crate::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
             DataAccessor, MetadataAccessor, OwnedTable,
         },
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
@@ -18,9 +19,9 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter::repeat_with, marker::PhantomData};
-use indexmap::IndexSet;
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
 
@@ -65,9 +66,9 @@ where
         _accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError> {
         self.where_clause.count(builder)?;
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.count(builder)?;
-            builder.count_result_columns(1);
+            builder.count_intermediate_mles(1);
         }
         builder.count_intermediate_mles(2);
         builder.count_subpolynomials(3);
@@ -101,14 +102,16 @@ where
                 .collect::<Result<Vec<_>, _>>()?,
         );
         // 3. indexes
-        let indexes_eval = builder
-            .mle_evaluations
-            .result_indexes_evaluation
-            .ok_or(ProofError::VerificationError("invalid indexes"))?;
+        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
+            ProofError::VerificationError {
+                error: "invalid indexes",
+            },
+        )?;
         // 4. filtered_columns
-        let filtered_columns_evals = Vec::from_iter(
-            repeat_with(|| builder.consume_result_mle()).take(self.aliased_results.len()),
-        );
+        let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
+            .take(self.aliased_results.len())
+            .collect();
+        assert!(filtered_columns_evals.len() == self.aliased_results.len());
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -117,10 +120,11 @@ where
             builder,
             alpha,
             beta,
-            columns_evals,
+            &columns_evals,
             selection_eval,
-            filtered_columns_evals,
-        )
+            &filtered_columns_evals,
+        )?;
+        Ok(filtered_columns_evals)
     }
 
     fn get_column_result_fields(&self) -> Vec<ColumnField> {
@@ -131,9 +135,9 @@ where
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        let mut columns = IndexSet::new();
+        let mut columns = IndexSet::default();
 
-        for aliased_expr in self.aliased_results.iter() {
+        for aliased_expr in &self.aliased_results {
             aliased_expr.expr.get_column_references(&mut columns);
         }
 
@@ -163,11 +167,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(self.aliased_results.iter().map(|aliased_expr| {
-            aliased_expr
-                .expr
-                .result_evaluate(builder.table_length(), alloc, accessor)
-        }));
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .result_evaluate(builder.table_length(), alloc, accessor)
+            })
+            .collect();
+
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. set indexes
@@ -192,13 +201,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .expect("selection is not boolean");
 
         // 2. columns
-        let columns = Vec::from_iter(
-            self.aliased_results
-                .iter()
-                .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor)),
-        );
+        let columns: Vec<_> = self
+            .aliased_results
+            .iter()
+            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .collect();
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // 3. Produce MLEs
+        filtered_columns.iter().copied().for_each(|column| {
+            builder.produce_intermediate_mle(column);
+        });
 
         let alpha = builder.consume_post_result_challenge();
         let beta = builder.consume_post_result_challenge();
@@ -221,19 +234,23 @@ fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
     beta: C::Scalar,
-    c_evals: Vec<C::Scalar>,
+    c_evals: &[C::Scalar],
     s_eval: C::Scalar,
-    d_evals: Vec<C::Scalar>,
-) -> Result<Vec<C::Scalar>, ProofError> {
+    d_evals: &[C::Scalar],
+) -> Result<(), ProofError> {
     let one_eval = builder.mle_evaluations.one_evaluation;
 
     let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
         Some(eval) => eval,
-        None => return Err(ProofError::VerificationError("Result indexes not valid.")),
+        None => {
+            return Err(ProofError::VerificationError {
+                error: "Result indexes not valid.",
+            })
+        }
     };
 
-    let c_fold_eval = alpha * one_eval + fold_vals(beta, &c_evals);
-    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, &d_evals);
+    let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
+    let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
     let c_star_eval = builder.consume_intermediate_mle();
     let d_star_eval = builder.consume_intermediate_mle();
 
@@ -255,10 +272,10 @@ fn verify_filter<C: Commitment>(
         d_bar_fold_eval * d_star_eval - chi_eval,
     );
 
-    Ok(c_evals)
+    Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,

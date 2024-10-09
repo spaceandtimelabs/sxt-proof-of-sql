@@ -3,14 +3,15 @@ use crate::{
     base::{
         commitment::Commitment,
         database::{Column, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor},
+        map::IndexSet,
         proof::ProofError,
         scalar::Scalar,
         slice_ops,
     },
     sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
+use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 /// Provable AST expression for an equals expression
@@ -90,6 +91,10 @@ impl<C: Commitment> ProofExpr<C> for EqualsExpr<C> {
     }
 }
 
+#[allow(
+    clippy::missing_panics_doc,
+    reason = "table_length is guaranteed to match lhs.len()"
+)]
 pub fn result_evaluate_equals_zero<'a, S: Scalar>(
     table_length: usize,
     alloc: &'a Bump,

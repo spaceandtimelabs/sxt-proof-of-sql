@@ -1,6 +1,7 @@
 use crate::{
     base::{
         database::{ColumnRef, ColumnType, LiteralValue, TestSchemaAccessor},
+        map::{indexmap, IndexMap},
         math::decimal::Precision,
     },
     sql::{
@@ -8,19 +9,27 @@ use crate::{
         proof_exprs::{ColumnExpr, DynProofExpr, LiteralExpr},
     },
 };
+use core::str::FromStr;
 use curve25519_dalek::RistrettoPoint;
-use indexmap::{indexmap, IndexMap};
 use proof_of_sql_parser::{
     intermediate_decimal::IntermediateDecimal,
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestamp},
     utility::*,
     Identifier, SelectStatement,
 };
-use std::str::FromStr;
 
+/// # Panics
+///
+/// Will panic if:
+/// - The parsing of the table reference `"sxt.sxt_tab"` fails, which would occur if the input
+///   string does not adhere to the expected format for identifiers. This is because `parse()`
+///   is called on the identifier string and `unwrap()` is used to handle the result.
+/// - The precision used for creating the `Decimal75` column type fails. The `Precision::new(7)`
+///   call is expected to succeed; however, if it encounters an invalid precision value, it will
+///   cause a panic when `unwrap()` is called.
 fn get_column_mappings_for_testing() -> IndexMap<Identifier, ColumnRef> {
     let tab_ref = "sxt.sxt_tab".parse().unwrap();
-    let mut column_mapping = IndexMap::new();
+    let mut column_mapping = IndexMap::default();
     // Setup column mapping
     column_mapping.insert(
         ident("boolean_column"),
@@ -261,7 +270,7 @@ fn we_can_not_have_missing_column_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_missing));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::MissingColumnWithoutTable(_))
+        Result::Err(ConversionError::MissingColumnWithoutTable { .. })
     ));
 }
 
@@ -275,13 +284,13 @@ fn we_can_not_have_non_boolean_column_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::NonbooleanWhereClause(_))
+        Result::Err(ConversionError::NonbooleanWhereClause { .. })
     ));
 }
 
 #[test]
 fn we_can_not_have_non_boolean_literal_as_where_clause() {
-    let column_mapping = IndexMap::new();
+    let column_mapping = IndexMap::default();
 
     let builder = WhereExprBuilder::new(&column_mapping);
 
@@ -289,7 +298,7 @@ fn we_can_not_have_non_boolean_literal_as_where_clause() {
     let res = builder.build::<RistrettoPoint>(Some(expr_non_boolean));
     assert!(matches!(
         res,
-        Result::Err(ConversionError::NonbooleanWhereClause(_))
+        Result::Err(ConversionError::NonbooleanWhereClause { .. })
     ));
 }
 
@@ -308,7 +317,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_eq_decimal() {
             t.schema_id(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 
@@ -327,7 +336,7 @@ fn we_expect_an_error_while_trying_to_check_varchar_column_ge_decimal() {
             t.schema_id(),
             &accessor,
         ),
-        Err(ConversionError::DataTypeMismatch(_, _))
+        Err(ConversionError::DataTypeMismatch { .. })
     ));
 }
 

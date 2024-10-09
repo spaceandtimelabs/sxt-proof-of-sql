@@ -1,4 +1,5 @@
 use crate::base::{database::Column, scalar::Scalar};
+use alloc::vec::Vec;
 use bumpalo::Bump;
 
 /// This function takes a selection vector and a set of columns and returns a
@@ -7,6 +8,8 @@ use bumpalo::Bump;
 ///
 /// The function returns a tuple of the filtered columns and the number of
 /// rows in the filtered columns.
+/// # Panics
+/// This function requires that `columns` and `selection` have the same length.
 pub fn filter_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     columns: &[Column<'a, S>],
@@ -22,11 +25,10 @@ pub fn filter_columns<'a, S: Scalar>(
         .map(|(i, _)| i)
         .collect();
     let result_length = indexes.len();
-    let filtered_result = Vec::from_iter(
-        columns
-            .iter()
-            .map(|column| filter_column_by_index(alloc, column, &indexes)),
-    );
+    let filtered_result: Vec<_> = columns
+        .iter()
+        .map(|column| filter_column_by_index(alloc, column, &indexes))
+        .collect();
     (filtered_result, result_length)
 }
 /// This function takes an index vector and a `Column` and returns a
@@ -40,6 +42,9 @@ pub fn filter_column_by_index<'a, S: Scalar>(
     match column {
         Column::Boolean(col) => {
             Column::Boolean(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
+        }
+        Column::TinyInt(col) => {
+            Column::TinyInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))
         }
         Column::SmallInt(col) => {
             Column::SmallInt(alloc.alloc_slice_fill_iter(indexes.iter().map(|&i| col[i])))

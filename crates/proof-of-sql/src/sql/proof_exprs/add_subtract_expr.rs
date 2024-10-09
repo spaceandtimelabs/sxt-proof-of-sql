@@ -6,12 +6,13 @@ use crate::{
             try_add_subtract_column_types, Column, ColumnRef, ColumnType, CommitmentAccessor,
             DataAccessor,
         },
+        map::IndexSet,
         proof::ProofError,
     },
     sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
 };
+use alloc::boxed::Box;
 use bumpalo::Bump;
-use indexmap::IndexSet;
 use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 

@@ -3,6 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 
 /// An intermediate type representing the time units from a parsed query
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PoSQLTimeUnit {
     /// Represents seconds with precision 0: ex "2024-06-20 12:34:56"
@@ -57,7 +58,9 @@ impl TryFrom<&str> for PoSQLTimeUnit {
             "3" => Ok(PoSQLTimeUnit::Millisecond),
             "6" => Ok(PoSQLTimeUnit::Microsecond),
             "9" => Ok(PoSQLTimeUnit::Nanosecond),
-            _ => Err(PoSQLTimestampError::UnsupportedPrecision(value.into())),
+            _ => Err(PoSQLTimestampError::UnsupportedPrecision {
+                error: value.into(),
+            }),
         }
     }
 }
@@ -76,7 +79,7 @@ impl fmt::Display for PoSQLTimeUnit {
 // allow(deprecated) for the sole purpose of testing that
 // timestamp precision is parsed correctly.
 #[cfg(test)]
-#[allow(deprecated)]
+#[allow(deprecated, clippy::missing_panics_doc)]
 mod time_unit_tests {
     use super::*;
     use crate::posql_time::{PoSQLTimestamp, PoSQLTimestampError};
@@ -95,11 +98,11 @@ mod time_unit_tests {
         let invalid_precisions = [
             "1", "2", "4", "5", "7", "8", "10", "zero", "three", "cat", "-1", "-2",
         ]; // Testing all your various invalid inputs
-        for &value in invalid_precisions.iter() {
+        for &value in &invalid_precisions {
             let result = PoSQLTimeUnit::try_from(value);
             assert!(matches!(
                 result,
-                Err(PoSQLTimestampError::UnsupportedPrecision(_))
+                Err(PoSQLTimestampError::UnsupportedPrecision { .. })
             ));
         }
     }
@@ -119,7 +122,7 @@ mod time_unit_tests {
     #[test]
     fn test_rfc3339_timestamp_with_microseconds() {
         let input = "2023-06-26T12:34:56.123456Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123456);
+        let expected = Utc.ymd(2023, 6, 26).and_hms_micro(12, 34, 56, 123_456);
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit(), PoSQLTimeUnit::Microsecond);
         assert_eq!(
@@ -130,7 +133,7 @@ mod time_unit_tests {
     #[test]
     fn test_rfc3339_timestamp_with_nanoseconds() {
         let input = "2023-06-26T12:34:56.123456789Z";
-        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123456789);
+        let expected = Utc.ymd(2023, 6, 26).and_hms_nano(12, 34, 56, 123_456_789);
         let result = PoSQLTimestamp::try_from(input).unwrap();
         assert_eq!(result.timeunit(), PoSQLTimeUnit::Nanosecond);
         assert_eq!(

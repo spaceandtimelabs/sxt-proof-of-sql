@@ -14,15 +14,16 @@ use crate::{
         VerificationBuilder,
     },
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 
 /// Count the number of components needed to prove a sign decomposition
 pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
     let dist = builder.consume_bit_distribution()?;
     if !is_within_acceptable_range(&dist) {
-        return Err(ProofError::VerificationError(
-            "bit distribution outside of acceptable range",
-        ));
+        return Err(ProofError::VerificationError {
+            error: "bit distribution outside of acceptable range",
+        });
     }
     if dist.num_varying_bits() == 0 {
         return Ok(());
@@ -37,6 +38,9 @@ pub fn count_sign(builder: &mut CountBuilder) -> Result<(), ProofError> {
 }
 
 /// Compute the sign bit for a column of scalars.
+///
+/// # Panics
+/// Panics if `bits.last()` is `None` or if `result.len()` does not match `table_length`.
 ///
 /// todo! make this more efficient and targeted at just the sign bit rather than all bits to create a proof
 pub fn result_evaluate_sign<'a, S: Scalar>(
@@ -66,9 +70,12 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
 
 /// Prove the sign decomposition for a column of scalars.
 ///
+/// # Panics
+/// Panics if `bits.last()` is `None`.
+///
 /// If x1, ..., xn denotes the data, prove the column of
 /// booleans, i.e. sign bits, s1, ..., sn where si == 1 if xi > MID and
-/// si == 1 if xi <= MID and MID is defined in base/bit/abs_bit_mask.rs
+/// `si == 1` if `xi <= MID` and `MID` is defined in `base/bit/abs_bit_mask.rs`
 ///
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
@@ -107,12 +114,16 @@ pub fn prover_evaluate_sign<'a, S: Scalar>(
         prove_bit_decomposition(builder, alloc, expr, &bits, &dist);
     }
 
+    // This might panic if `bits.last()` returns `None`.
     bits.last().unwrap()
 }
 
 /// Verify the sign decomposition for a column of scalars.
 ///
-/// See prover_evaluate_sign.
+/// # Panics
+/// Panics if `bit_evals.last()` is `None`.
+///
+/// See [`prover_evaluate_sign`].
 pub fn verifier_evaluate_sign<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     eval: C::Scalar,
@@ -163,7 +174,7 @@ fn verifier_const_sign_evaluate<S: Scalar>(
 }
 
 fn prove_bits_are_binary<'a, S: Scalar>(builder: &mut ProofBuilder<'a, S>, bits: &[&'a [bool]]) {
-    for &seq in bits.iter() {
+    for &seq in bits {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -179,7 +190,7 @@ fn verify_bits_are_binary<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     bit_evals: &[C::Scalar],
 ) {
-    for bit_eval in bit_evals.iter() {
+    for bit_eval in bit_evals {
         builder.produce_sumcheck_subpolynomial_evaluation(
             SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,
@@ -187,6 +198,10 @@ fn verify_bits_are_binary<C: Commitment>(
     }
 }
 
+/// # Panics
+/// Panics if `bits.last()` returns `None`.
+///
+/// This function generates subpolynomial terms for sumcheck, involving the scalar expression and its bit decomposition.
 fn prove_bit_decomposition<'a, S: Scalar>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
@@ -196,7 +211,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
 ) {
     let sign_mle = bits.last().unwrap();
     let sign_mle: &[_] =
-        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * (sign_mle[i] as i32));
+        alloc.alloc_slice_fill_with(sign_mle.len(), |i| 1 - 2 * i32::from(sign_mle[i]));
     let mut terms: Vec<SumcheckSubpolynomialTerm<S>> = Vec::new();
 
     // expr
@@ -220,6 +235,10 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     builder.produce_sumcheck_subpolynomial(SumcheckSubpolynomialType::Identity, terms);
 }
 
+/// # Panics
+/// Panics if `bit_evals.last()` returns `None`.
+///
+/// This function checks the consistency of the bit evaluations with the expression evaluation.
 fn verify_bit_decomposition<C: Commitment>(
     builder: &mut VerificationBuilder<'_, C>,
     expr_eval: C::Scalar,

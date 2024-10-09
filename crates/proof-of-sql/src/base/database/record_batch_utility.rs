@@ -1,15 +1,15 @@
+use alloc::sync::Arc;
 use arrow::array::{
     TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
     TimestampSecondArray,
 };
 use proof_of_sql_parser::posql_time::PoSQLTimeUnit;
-use std::sync::Arc;
 
-/// Extension trait for Vec<T> to convert it to an Arrow array
+/// Extension trait for `Vec<T>` to convert it to an Arrow array
 pub trait ToArrow {
     /// Returns the equivalent Arrow type
     fn to_type(&self) -> arrow::datatypes::DataType;
-    /// Converts the Vec<T> to an Arrow `ArrayRef`.
+    /// Converts the `Vec<T>` to an Arrow `ArrayRef`.
     fn to_array(self) -> Arc<dyn arrow::array::Array>;
 }
 
@@ -115,6 +115,10 @@ impl ToArrow for Vec<i128> {
         arrow::datatypes::DataType::Decimal128(38, 0)
     }
 
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the conversion to a [`Decimal128Array`](arrow::array::Decimal128Array) fails, which can happen if the data exceeds the specified precision and scale (38, 0). Ensure that all values are within the valid range for the Decimal128 type.
     fn to_array(self) -> Arc<dyn arrow::array::Array> {
         Arc::new(
             arrow::array::Decimal128Array::from(self)
@@ -150,12 +154,18 @@ string_to_arrow_array!(
     arrow::array::StringArray
 );
 
-/// Utility macro to simplify the creation of RecordBatches
+/// Utility macro to simplify the creation of [`RecordBatch`](arrow::record_batch::RecordBatch) instances
 #[macro_export]
+///
+/// # Panics
+///
+/// Will panic if the `RecordBatch` creation fails. This can occur if:
+/// - The lengths of the provided slices are not equal.
+/// - The `to_array()` method on any slice returns an error, indicating invalid data types or mismatched lengths.
 macro_rules! record_batch {
     ($($col_name:expr => $slice:expr), + $(,)?) => {
         {
-            use std::sync::Arc;
+            use alloc::sync::Arc;
             use arrow::datatypes::Field;
             use arrow::datatypes::Schema;
             use arrow::record_batch::RecordBatch;
@@ -167,7 +177,6 @@ macro_rules! record_batch {
                 ,)+]));
 
             let arrays = vec![$($slice.to_vec().to_array(),)+];
-
             RecordBatch::try_new(schema, arrays).unwrap()
         }
     }
@@ -176,11 +185,11 @@ macro_rules! record_batch {
 #[cfg(test)]
 mod tests {
     use crate::record_batch;
+    use alloc::sync::Arc;
     use arrow::{
         datatypes::{Field, Schema},
         record_batch::RecordBatch,
     };
-    use std::sync::Arc;
 
     #[test]
     fn test_record_batch_macro() {

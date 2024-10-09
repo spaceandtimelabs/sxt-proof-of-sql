@@ -1,19 +1,20 @@
 use super::PoSQLTimestampError;
+use alloc::{string::ToString, sync::Arc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 /// Captures a timezone from a timestamp query
 #[derive(Debug, Clone, Copy, Hash, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PoSQLTimeZone {
     /// Default variant for UTC timezone
     Utc,
-    /// TImezone offset in seconds
+    /// `TImezone` offset in seconds
     FixedOffset(i32),
 }
 
 impl PoSQLTimeZone {
     /// Parse a timezone from a count of seconds
+    #[must_use]
     pub fn from_offset(offset: i32) -> Self {
         if offset == 0 {
             PoSQLTimeZone::Utc
@@ -54,7 +55,9 @@ impl TryFrom<&Option<Arc<str>>> for PoSQLTimeZone {
                         let total_seconds = sign * ((hours * 3600) + (minutes * 60));
                         Ok(PoSQLTimeZone::FixedOffset(total_seconds))
                     }
-                    _ => Err(PoSQLTimestampError::InvalidTimezone(tz.to_string())),
+                    _ => Err(PoSQLTimestampError::InvalidTimezone {
+                        timezone: tz.to_string(),
+                    }),
                 }
             }
             None => Ok(PoSQLTimeZone::Utc),
@@ -74,7 +77,7 @@ impl fmt::Display for PoSQLTimeZone {
                 if seconds < 0 {
                     write!(f, "-{:02}:{:02}", hours.abs(), minutes)
                 } else {
-                    write!(f, "+{:02}:{:02}", hours, minutes)
+                    write!(f, "+{hours:02}:{minutes:02}")
                 }
             }
         }
@@ -84,23 +87,24 @@ impl fmt::Display for PoSQLTimeZone {
 #[cfg(test)]
 mod timezone_parsing_tests {
     use crate::posql_time::{timezone, PoSQLTimeZone, PoSQLTimestamp};
+    use alloc::format;
 
     #[test]
     fn test_display_fixed_offset_positive() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(4500); // +01:15
-        assert_eq!(format!("{}", timezone), "+01:15");
+        assert_eq!(format!("{timezone}"), "+01:15");
     }
 
     #[test]
     fn test_display_fixed_offset_negative() {
         let timezone = timezone::PoSQLTimeZone::FixedOffset(-3780); // -01:03
-        assert_eq!(format!("{}", timezone), "-01:03");
+        assert_eq!(format!("{timezone}"), "-01:03");
     }
 
     #[test]
     fn test_display_utc() {
         let timezone = timezone::PoSQLTimeZone::Utc;
-        assert_eq!(format!("{}", timezone), "+00:00");
+        assert_eq!(format!("{timezone}"), "+00:00");
     }
 
     #[test]

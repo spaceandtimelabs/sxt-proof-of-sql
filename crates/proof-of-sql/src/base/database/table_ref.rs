@@ -1,5 +1,10 @@
+use alloc::string::ToString;
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
-use std::str::FromStr;
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
@@ -9,21 +14,25 @@ pub struct TableRef {
 
 impl TableRef {
     /// Creates a new table reference from a resource id
+    #[must_use]
     pub fn new(resource_id: ResourceId) -> Self {
         Self { resource_id }
     }
 
     /// Returns the identifier of the schema
+    #[must_use]
     pub fn schema_id(&self) -> Identifier {
         self.resource_id.schema()
     }
 
     /// Returns the identifier of the table
+    #[must_use]
     pub fn table_id(&self) -> Identifier {
         self.resource_id.object_name()
     }
 
     /// Returns the underlying resource id of the table
+    #[must_use]
     pub fn resource_id(&self) -> ResourceId {
         self.resource_id
     }
@@ -37,8 +46,8 @@ impl FromStr for TableRef {
     }
 }
 
-impl std::fmt::Display for TableRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for TableRef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.resource_id.fmt(f)
     }
 }

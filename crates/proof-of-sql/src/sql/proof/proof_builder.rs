@@ -8,6 +8,7 @@ use crate::base::{
     polynomial::{CompositePolynomial, MultilinearExtension},
     scalar::Scalar,
 };
+use alloc::{boxed::Box, vec, vec::Vec};
 use num_traits::Zero;
 
 /// Track components used to form a query's proof
@@ -145,7 +146,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     )]
     pub fn evaluate_pcs_proof_mles(&self, evaluation_vec: &[S]) -> Vec<S> {
         let mut res = Vec::with_capacity(self.pcs_proof_mles.len());
-        for evaluator in self.pcs_proof_mles.iter() {
+        for evaluator in &self.pcs_proof_mles {
             res.push(evaluator.inner_product(evaluation_vec));
         }
         res
@@ -173,6 +174,9 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
     /// send commitments to the intermediate witness columns.
+    /// # Panics
+    ///
+    /// Will panic if there are no post-result challenges available to pop from the stack.
     pub fn consume_post_result_challenge(&mut self) -> S {
         self.post_result_challenges.pop().unwrap()
     }

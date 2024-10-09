@@ -2,14 +2,14 @@ use super::{
     dory_reduce_prove, dory_reduce_verify, scalar_product_prove, scalar_product_verify,
     DoryMessages, ProverSetup, ProverState, VerifierSetup, VerifierState,
 };
-use merlin::Transcript;
+use crate::base::proof::Transcript;
 
-/// This is the prover side of the Dory-Innerproduct algorithm in section 3.3 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the prover side of the Dory-Innerproduct algorithm in section 3.3 of <https://eprint.iacr.org/2020/1274.pdf>.
 /// This function builds/enqueues `messages`, appends to `transcript`, and consumes `state`.
 #[cfg(test)]
 pub fn dory_inner_product_prove(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: ProverState,
     setup: &ProverSetup,
 ) {
@@ -18,15 +18,15 @@ pub fn dory_inner_product_prove(
     for _ in 0..nu {
         dory_reduce_prove(messages, transcript, &mut state, setup);
     }
-    scalar_product_prove(messages, transcript, state)
+    scalar_product_prove(messages, transcript, state);
 }
 
-/// This is the verifier side of the Dory-Innerproduct algorithm in section 3.3 of https://eprint.iacr.org/2020/1274.pdf.
+/// This is the verifier side of the Dory-Innerproduct algorithm in section 3.3 of <https://eprint.iacr.org/2020/1274.pdf>.
 /// This function consumes/dequeues from `messages`, appends to `transcript`, and consumes `state`.
 #[cfg(test)]
 pub fn dory_inner_product_verify(
     messages: &mut DoryMessages,
-    transcript: &mut Transcript,
+    transcript: &mut impl Transcript,
     mut state: VerifierState,
     setup: &VerifierSetup,
 ) -> bool {

@@ -1,9 +1,11 @@
+use core::error::Error;
+use indexmap::IndexMap;
 use proof_of_sql::base::{
     commitment::{Commitment, QueryCommitments, TableCommitment},
     database::{CommitmentAccessor, MetadataAccessor, SchemaAccessor, TableRef},
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 pub struct CommitAccessor<C: Commitment> {
     base_path: PathBuf,
     inner: QueryCommitments<C>,
@@ -12,7 +14,7 @@ impl<C: Commitment + Serialize + for<'a> Deserialize<'a>> CommitAccessor<C> {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path,
-            inner: Default::default(),
+            inner: IndexMap::default(),
         }
     }
     pub fn write_commit(
@@ -20,12 +22,12 @@ impl<C: Commitment + Serialize + for<'a> Deserialize<'a>> CommitAccessor<C> {
         table_ref: &TableRef,
         commit: &TableCommitment<C>,
     ) -> Result<(), Box<dyn Error>> {
-        let path = self.base_path.join(format!("{}.commit", table_ref));
+        let path = self.base_path.join(format!("{table_ref}.commit"));
         fs::write(path, postcard::to_allocvec(commit)?)?;
         Ok(())
     }
     pub fn load_commit(&mut self, table_ref: TableRef) -> Result<(), Box<dyn Error>> {
-        let path = self.base_path.join(format!("{}.commit", table_ref));
+        let path = self.base_path.join(format!("{table_ref}.commit"));
         let commit = postcard::from_bytes(&fs::read(path)?)?;
         self.inner.insert(table_ref, commit);
         Ok(())

@@ -2,14 +2,15 @@ use crate::base::{
     bit::{make_abs_bit_mask, BitDistribution},
     scalar::Scalar,
 };
+use alloc::vec::Vec;
 use bumpalo::Bump;
 
-/// Let x1, ..., xn denote the values of a data column. Let
-/// b1, ..., bk denote the bit positions of abs(x1), ..., abs(xn)
+/// Let `x1, ..., xn` denote the values of a data column. Let
+/// `b1, ..., bk` denote the bit positions of `abs(x1), ..., abs(xn)`
 /// that vary.
 ///
-/// compute_varying_bit_matrix returns the matrix M where
-///   M_ij = abs(xi) & (1 << bj) == 1
+/// `compute_varying_bit_matrix` returns the matrix M where
+///   `M_ij = abs(xi) & (1 << bj) == 1`
 /// The last column of M corresponds to the sign bit if it varies.
 pub fn compute_varying_bit_matrix<'a, S: Scalar>(
     alloc: &'a Bump,

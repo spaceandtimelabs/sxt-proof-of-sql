@@ -4,6 +4,7 @@ on:
   workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -49,6 +50,18 @@ jobs:
         run: cargo check -p proof-of-sql --no-default-features --features="test"
       - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
         run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+      - name: Run cargo check (proof-of-sql) (just "arrow" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="arrow"
+      - name: Run cargo check (proof-of-sql) (just "rayon" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="rayon"
+      - name: Run cargo check (proof-of-sql) (just "perf" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="perf"
+      - name: Run cargo check (proof-of-sql) (just "std" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="std"
+      - name: Run cargo check (proof-of-sql-parser) with no_std target.
+        run: |
+          rustup target add thumbv7em-none-eabi
+          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
 
   test:
     name: Test Suite
@@ -75,16 +88,22 @@ jobs:
           sudo apt-get install -y clang lld
       - name: Run cargo test
         run: cargo test --all-features
+      - name: Install Foundry/forge for solidity tests
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run solidity tests (ignored by default)
+        run: cargo test --all-features --package proof-of-sql --lib -- tests::sol_test --show-output --ignored
+      - name: Run cargo test without rayon
+        run: cargo test --no-default-features --features="arrow blitzar"
       - name: Dry run cargo test (proof-of-sql) (test feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
       - name: Dry run cargo test (proof-of-sql) (arrow feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
       - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
-      - name: Dry run cargo test (proof-of-sql) (no features)
-        run: cargo test -p proof-of-sql --no-run --no-default-features
-      - name: Run cargo test (proof primitives - Dory) (no features - i.e. not using blitzar)
-        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features
+      - name: Dry run cargo test (proof-of-sql) (std feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
+      - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
+        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
       - name: Run hello_world example
         run: cargo run --example hello_world --features="blitzar test"
       - name: Run posql_db example
@@ -114,6 +133,8 @@ jobs:
         run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run clippy::pedantic for proof-of-sql-parser
+        run: cargo clippy --lib -p proof-of-sql-parser -- -D clippy::pedantic
 
   # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
   format:

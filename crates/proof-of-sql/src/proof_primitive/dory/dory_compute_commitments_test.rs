@@ -11,7 +11,7 @@ use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_int128_values() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::Int128(&[0, -1, 2])], 0, &setup);
@@ -25,7 +25,7 @@ fn we_can_compute_a_dory_commitment_with_int128_values() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_boolean_values() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -43,7 +43,7 @@ fn we_can_compute_a_dory_commitment_with_boolean_values() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_only_one_row() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 1, 2])], 0, &setup);
@@ -57,7 +57,7 @@ fn we_can_compute_a_dory_commitment_with_only_one_row() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_exactly_one_full_row() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 1, 2, 3])], 0, &setup);
@@ -72,7 +72,7 @@ fn we_can_compute_a_dory_commitment_with_exactly_one_full_row() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_exactly_one_full_row_and_an_offset() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[2, 3])], 2, &setup);
@@ -85,7 +85,7 @@ fn we_can_compute_a_dory_commitment_with_exactly_one_full_row_and_an_offset() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_exactly_one_full_row_and_an_offset_with_signed_data() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[-2, -3])], 2, &setup);
@@ -98,7 +98,7 @@ fn we_can_compute_a_dory_commitment_with_exactly_one_full_row_and_an_offset_with
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_fewer_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -123,7 +123,7 @@ fn we_can_compute_a_dory_commitment_with_fewer_rows_than_columns() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_more_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -159,7 +159,7 @@ fn we_can_compute_a_dory_commitment_with_more_rows_than_columns() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_an_offset_and_only_one_row() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 1])], 5, &setup);
@@ -172,7 +172,7 @@ fn we_can_compute_a_dory_commitment_with_an_offset_and_only_one_row() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_an_offset_and_fewer_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -197,7 +197,7 @@ fn we_can_compute_a_dory_commitment_with_an_offset_and_fewer_rows_than_columns()
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_an_offset_and_more_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -233,7 +233,7 @@ fn we_can_compute_a_dory_commitment_with_an_offset_and_more_rows_than_columns() 
 
 #[test]
 fn we_can_compute_three_dory_commitments_with_an_offset_and_more_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -319,20 +319,20 @@ fn we_can_compute_three_dory_commitments_with_an_offset_and_more_rows_than_colum
 
 #[test]
 fn we_can_compute_an_empty_dory_commitment() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
-    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 0, &setup);
+    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 0, &setup);
     assert_eq!(res[0].0, GT::zero());
-    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 5, &setup);
+    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 5, &setup);
     assert_eq!(res[0].0, GT::zero());
-    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 20, &setup);
+    let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 20, &setup);
     assert_eq!(res[0].0, GT::zero());
 }
 
 #[test]
 fn test_compute_dory_commitment_when_sigma_is_zero() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 0);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 1, 2, 3, 4])], 0, &setup);
@@ -348,7 +348,7 @@ fn test_compute_dory_commitment_when_sigma_is_zero() {
 
 #[test]
 fn test_compute_dory_commitment_with_zero_sigma_and_with_an_offset() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 0);
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0, 1, 2, 3, 4])], 5, &setup);
@@ -364,7 +364,7 @@ fn test_compute_dory_commitment_with_zero_sigma_and_with_an_offset() {
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_rows_than_columns() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -441,7 +441,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_fewer_ro
 #[test]
 fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_fewer_rows_than_columns(
 ) {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -517,7 +517,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offse
 
 #[test]
 fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_values() {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(
@@ -606,7 +606,7 @@ fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_signed_v
 #[test]
 fn we_can_compute_a_dory_commitment_with_mixed_committable_columns_with_an_offset_and_signed_values(
 ) {
-    let public_parameters = PublicParameters::rand(5, &mut test_rng());
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
     let setup = DoryProverPublicSetup::new(&prover_setup, 2);
     let res = compute_dory_commitments(

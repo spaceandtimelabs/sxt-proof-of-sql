@@ -2,7 +2,7 @@ use crate::base::database::ColumnType;
 use arrow::{
     array::{
         Array, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array, Int64Array,
-        StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
         TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Field, Schema, TimeUnit},
@@ -15,11 +15,11 @@ use rand::{
 };
 use std::sync::Arc;
 
-/// Specify what form a randomly generated TestAccessor can take
+/// Specify what form a randomly generated `TestAccessor` can take
 pub struct RandomTestAccessorDescriptor {
-    /// The minimum number of rows in the generated RecordBatch
+    /// The minimum number of rows in the generated `RecordBatch`
     pub min_rows: usize,
-    /// The maximum number of rows in the generated RecordBatch
+    /// The maximum number of rows in the generated `RecordBatch`
     pub max_rows: usize,
     /// The minimum value of the generated data
     pub min_value: i64,
@@ -38,7 +38,16 @@ impl Default for RandomTestAccessorDescriptor {
     }
 }
 
-/// Generate a DataFrame with random data
+/// Generate a `DataFrame` with random data
+///
+/// # Panics
+///
+/// This function may panic in the following cases:
+/// - If `Precision::new(7)` fails when creating a `Decimal75` column type, which would occur
+///   if the precision is invalid.
+/// - When calling `.unwrap()` on the result of `RecordBatch::try_new(schema, columns)`, which
+///   will panic if the schema and columns do not align correctly or if there are any other
+///   underlying errors.
 #[allow(dead_code)]
 pub fn make_random_test_accessor_data(
     rng: &mut StdRng,
@@ -60,7 +69,14 @@ pub fn make_random_test_accessor_data(
                 let boolean_values: Vec<bool> = values.iter().map(|x| x % 2 != 0).collect();
                 columns.push(Arc::new(BooleanArray::from(boolean_values)));
             }
-
+            ColumnType::TinyInt => {
+                column_fields.push(Field::new(*col_name, DataType::Int8, false));
+                let values: Vec<i8> = values
+                    .iter()
+                    .map(|x| ((*x >> 56) as i8)) // Shift right to align the lower 8 bits
+                    .collect();
+                columns.push(Arc::new(Int8Array::from(values)));
+            }
             ColumnType::SmallInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int16, false));
                 let values: Vec<i16> = values
@@ -79,15 +95,15 @@ pub fn make_random_test_accessor_data(
             }
             ColumnType::BigInt => {
                 column_fields.push(Field::new(*col_name, DataType::Int64, false));
-                let values: Vec<i64> = values.to_vec();
+                let values: Vec<i64> = values.clone();
                 columns.push(Arc::new(Int64Array::from(values)));
             }
             ColumnType::Int128 => {
                 column_fields.push(Field::new(*col_name, DataType::Decimal128(38, 0), false));
 
-                let values: Vec<i128> = values.iter().map(|x| *x as i128).collect();
+                let values: Vec<i128> = values.iter().map(|x| i128::from(*x)).collect();
                 columns.push(Arc::new(
-                    Decimal128Array::from(values.to_vec())
+                    Decimal128Array::from(values.clone())
                         .with_precision_and_scale(38, 0)
                         .unwrap(),
                 ));
@@ -101,7 +117,7 @@ pub fn make_random_test_accessor_data(
 
                 let values: Vec<i256> = values.iter().map(|x| i256::from(*x)).collect();
                 columns.push(Arc::new(
-                    Decimal256Array::from(values.to_vec())
+                    Decimal256Array::from(values.clone())
                         .with_precision_and_scale(precision.value(), *scale)
                         .unwrap(),
                 ));
@@ -111,7 +127,7 @@ pub fn make_random_test_accessor_data(
                     .iter()
                     .map(|v| "s".to_owned() + &v.to_string()[..])
                     .collect::<Vec<String>>()[..];
-                let col: Vec<_> = col.iter().map(|v| v.as_str()).collect();
+                let col: Vec<_> = col.iter().map(String::as_str).collect();
 
                 column_fields.push(Field::new(*col_name, DataType::Utf8, false));
 
@@ -134,15 +150,15 @@ pub fn make_random_test_accessor_data(
                 ));
                 // Create the correct timestamp array based on the time unit
                 let timestamp_array: Arc<dyn Array> = match tu {
-                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.to_vec())),
+                    PoSQLTimeUnit::Second => Arc::new(TimestampSecondArray::from(values.clone())),
                     PoSQLTimeUnit::Millisecond => {
-                        Arc::new(TimestampMillisecondArray::from(values.to_vec()))
+                        Arc::new(TimestampMillisecondArray::from(values.clone()))
                     }
                     PoSQLTimeUnit::Microsecond => {
-                        Arc::new(TimestampMicrosecondArray::from(values.to_vec()))
+                        Arc::new(TimestampMicrosecondArray::from(values.clone()))
                     }
                     PoSQLTimeUnit::Nanosecond => {
-                        Arc::new(TimestampNanosecondArray::from(values.to_vec()))
+                        Arc::new(TimestampNanosecondArray::from(values.clone()))
                     }
                 };
                 columns.push(timestamp_array);
@@ -170,6 +186,7 @@ mod tests {
             ("c", ColumnType::Int128),
             ("d", ColumnType::SmallInt),
             ("e", ColumnType::Int),
+            ("f", ColumnType::TinyInt),
         ];
 
         let data1 = make_random_test_accessor_data(&mut rng, &cols, &descriptor);
