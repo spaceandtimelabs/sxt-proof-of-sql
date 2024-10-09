@@ -141,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        features: [ "test", "blitzar", "arrow", "rayon", "perf", "std", "default" ]  # Add more if needed
+        features: [ "test", "blitzar", "arrow", "rayon", "perf", "std", "default" ]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
