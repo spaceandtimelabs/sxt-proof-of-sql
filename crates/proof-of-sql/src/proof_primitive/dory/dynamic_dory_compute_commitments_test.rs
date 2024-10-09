@@ -179,11 +179,11 @@ fn we_can_compute_three_dynamic_dory_commitments_with_unsigned_bigint_and_offset
 fn we_can_compute_an_empty_dynamic_dory_commitment() {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let setup = ProverSetup::from(&public_parameters);
-    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 0, &setup);
+    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 0, &setup);
     assert_eq!(res[0].0, GT::zero());
-    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 5, &setup);
+    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 5, &setup);
     assert_eq!(res[0].0, GT::zero());
-    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0, 0])], 20, &setup);
+    let res = compute_dynamic_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 20, &setup);
     assert_eq!(res[0].0, GT::zero());
 }
 
