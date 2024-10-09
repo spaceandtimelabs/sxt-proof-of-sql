@@ -230,7 +230,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     }
 }
 
-fn verify_filter<C: Commitment>(
+pub(crate) fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
     beta: C::Scalar,
@@ -276,7 +276,7 @@ fn verify_filter<C: Commitment>(
 }
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
-pub(super) fn prove_filter<'a, S: Scalar + 'a>(
+pub(crate) fn prove_filter<'a, S: Scalar + 'a>(
     builder: &mut ProofBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
