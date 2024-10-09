@@ -148,9 +148,10 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y clang lld
       - uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Run Cargo Coverage (without running tests)
-      # This will generate human-readable coverage summary and enforce a threshold of 90%
-        run: cargo llvm-cov --workspace --no-run --lcov --text --output-path lcov.info --features ${{ matrix.features }} --fail-under-lines 90
+      - name: Generate Human-Readable Coverage Report
+        run: cargo llvm-cov --workspace --no-run --text --features ${{ matrix.features }} --fail-under-lines 90
+      - name: Generate LCOV Report
+        run: cargo llvm-cov --workspace --no-run --lcov --output-path lcov.info --features ${{ matrix.features }}
 
   # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
   format:
