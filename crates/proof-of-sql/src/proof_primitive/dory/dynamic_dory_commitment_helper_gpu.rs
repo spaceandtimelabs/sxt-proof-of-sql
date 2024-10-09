@@ -1,5 +1,8 @@
 use super::{DynamicDoryCommitment, G1Affine, ProverSetup};
-use crate::{base::commitment::CommittableColumn, proof_primitive::dory::pack_scalars::min_as_f};
+use crate::{
+    base::commitment::CommittableColumn,
+    proof_primitive::dory::{offset_to_bytes::OffsetToBytes, pack_scalars::min_as_f},
+};
 use ark_ec::CurveGroup;
 use ark_std::ops::Mul;
 
@@ -43,6 +46,50 @@ fn signed_commits(
         .zip(min_sub_commits.into_iter())
         .map(|(unsigned, min)| (unsigned + min).into())
         .collect()
+}
+
+/// Copies the column data to the scalar row slice.
+///
+/// # Arguments
+///
+/// * `column` - A reference to the committable column.
+/// * `scalar_row_slice` - A mutable reference to the scalar row slice.
+/// * `start` - The start index of the slice.
+/// * `end` - The end index of the slice.
+/// * `index` - The index of the column.
+fn copy_column_data_to_slice(
+    column: &CommittableColumn,
+    scalar_row_slice: &mut [u8],
+    start: usize,
+    end: usize,
+    index: usize,
+) {
+    match column {
+        CommittableColumn::Boolean(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::TinyInt(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::SmallInt(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::Int(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::BigInt(column) | CommittableColumn::TimestampTZ(_, _, column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::Int128(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::Scalar(column)
+        | CommittableColumn::Decimal75(_, _, column)
+        | CommittableColumn::VarChar(column) => {
+            scalar_row_slice[start..end].copy_from_slice(&column[index].offset_to_bytes());
+        }
+        CommittableColumn::RangeCheckWord(_) => todo!(),
+    }
 }
 
 pub(super) fn compute_dynamic_dory_commitments(
