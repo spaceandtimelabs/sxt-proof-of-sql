@@ -25,9 +25,9 @@ use crate::base::{
 use alloc::sync::Arc;
 use arrow::{
     array::{
-        ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, Int16Array, Int32Array,
-        Int64Array, Int8Array, StringArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray,
+        ArrayRef, BooleanArray, Decimal128Array, Decimal256Array, FixedSizeBinaryArray, Int16Array,
+        Int32Array, Int64Array, Int8Array, StringArray, TimestampMicrosecondArray,
+        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray,
     },
     datatypes::{i256, DataType, Schema, SchemaRef, TimeUnit as ArrowTimeUnit},
     error::ArrowError,
@@ -112,6 +112,9 @@ impl<S: Scalar> From<OwnedColumn<S>> for ArrayRef {
                 PoSQLTimeUnit::Microsecond => Arc::new(TimestampMicrosecondArray::from(col)),
                 PoSQLTimeUnit::Nanosecond => Arc::new(TimestampNanosecondArray::from(col)),
             },
+            OwnedColumn::FixedSizeBinary(byte_width, col) => {
+                Arc::new(FixedSizeBinaryArray::new(byte_width, col.into(), None))
+            }
         }
     }
 }
@@ -150,6 +153,11 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     /// - `Decimal128Array` when converting from `DataType::Decimal128(38, 0)`.
     /// - `Decimal256Array` when converting from `DataType::Decimal256` if precision is less than or equal to 75.
     /// - `StringArray` when converting from `DataType::Utf8`.
+    /// - `TimestampSecondArray` when converting from `DataType::Timestamp(ArrowTimeUnit::Second)`.
+    /// - `TimestampMillisecondArray` when converting from `DataType::Timestamp(ArrowTimeUnit::Millisecond)`.
+    /// - `TimestampMicrosecondArray` when converting from `DataType::Timestamp(ArrowTimeUnit::Microsecond)`.
+    /// - `TimestampNanosecondArray` when converting from `DataType::Timestamp(ArrowTimeUnit::Nanosecond)`.
+    /// - `FixedSizeBinaryArray` when converting from `DataType::FixedSizeBinary`.
     fn try_from(value: &ArrayRef) -> Result<Self, Self::Error> {
         match &value.data_type() {
             // Arrow uses a bit-packed representation for booleans.
@@ -224,6 +232,15 @@ impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
                     .iter()
                     .map(|s| s.unwrap().to_string())
                     .collect(),
+            )),
+            DataType::FixedSizeBinary(byte_width) => Ok(Self::FixedSizeBinary(
+                *byte_width,
+                value
+                    .as_any()
+                    .downcast_ref::<FixedSizeBinaryArray>()
+                    .unwrap()
+                    .values()
+                    .to_vec(),
             )),
             DataType::Timestamp(time_unit, timezone) => match time_unit {
                 ArrowTimeUnit::Second => {
