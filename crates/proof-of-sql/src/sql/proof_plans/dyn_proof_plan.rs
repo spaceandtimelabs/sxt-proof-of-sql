@@ -1,9 +1,10 @@
 use super::{FilterExec, GroupByExec, ProjectionExec};
 use crate::{
     base::{commitment::Commitment, database::Column, map::IndexSet},
-    sql::proof::{ProofPlan, ProverEvaluate},
+    sql::proof::{ProofPlan, ProverEvaluate, ResultBuilder},
 };
 use alloc::vec::Vec;
+use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
 /// The query plan for proving a query
@@ -41,14 +42,6 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
             DynProofPlan::Projection(expr) => expr.count(builder, accessor),
             DynProofPlan::GroupBy(expr) => expr.count(builder, accessor),
             DynProofPlan::Filter(expr) => expr.count(builder, accessor),
-        }
-    }
-
-    fn get_length(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
-        match self {
-            DynProofPlan::Projection(expr) => expr.get_length(accessor),
-            DynProofPlan::GroupBy(expr) => expr.get_length(accessor),
-            DynProofPlan::Filter(expr) => expr.get_length(accessor),
         }
     }
 
@@ -91,7 +84,20 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
+impl<C: Commitment> ProverEvaluate<C> for DynProofPlan<C> {
+    fn get_input_length<'a>(
+        &self,
+        builder: &mut ResultBuilder,
+        alloc: &'a Bump,
+        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+    ) -> usize {
+        match self {
+            DynProofPlan::Projection(expr) => expr.get_input_length(builder, alloc, accessor),
+            DynProofPlan::GroupBy(expr) => expr.get_input_length(builder, alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.get_input_length(builder, alloc, accessor),
+        }
+    }
+
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
