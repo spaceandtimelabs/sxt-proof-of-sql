@@ -104,6 +104,19 @@ jobs:
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
       - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
         run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Run Cargo Test with Coverage
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+      - name: Upload Coverage to Codecov
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: codecov/codecov-action@v4
+          attempt_limit: 3
+          attempt_delay: 10000
+          with: |
+            token: ${{ secrets.CODECOV_TOKEN }}
+            files: lcov.info
+            fail_ci_if_error: true
       - name: Run hello_world example
         run: cargo run --example hello_world --features="blitzar test"
       - name: Run posql_db example
