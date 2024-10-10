@@ -1,6 +1,6 @@
 /// Track the result created by a query
 pub struct ResultBuilder {
-    table_length: usize,
+    pub(crate) table_length: usize,
 
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
