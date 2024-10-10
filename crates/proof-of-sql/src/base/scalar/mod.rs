@@ -13,5 +13,5 @@ pub(crate) use mont_scalar::MontScalar;
 pub mod test_scalar;
 #[cfg(test)]
 mod test_scalar_test;
-pub mod scalar;
-pub use scalar::Scalar;
+pub mod scalar_trait;
+pub use scalar_trait::Scalar;
