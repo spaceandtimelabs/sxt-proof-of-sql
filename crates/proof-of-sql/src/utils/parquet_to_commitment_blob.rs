@@ -1,6 +1,6 @@
 use crate::{
     base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, ProverSetup, PublicParameters},
+    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters},
 };
 use arrow::{array::RecordBatch, compute::concat_batches, error::ArrowError};
 use curve25519_dalek::RistrettoPoint;
@@ -46,6 +46,11 @@ pub fn read_parquet_file_to_commitment_as_blob(path: &str) {
         dory_prover_setup,
         "dory_commitment".to_string(),
     );
+    read_parquet_file_to_commitment_as_blob_and_write_to_file::<DynamicDoryCommitment>(
+        path_object,
+        &prover_setup,
+        "dynamic_dory_commitment".to_string(),
+    );
 }
 
 /// # Panics
@@ -73,8 +78,8 @@ fn read_parquet_file_to_commitment_as_blob_and_write_to_file<
     let commitment = TableCommitment::<C>::try_from_record_batch(&record_batch, &setup).unwrap();
     let bytes: Vec<u8> = to_allocvec(&commitment).unwrap();
     let path_base = path.file_stem().unwrap().to_str().unwrap();
-    let path_extension = path.extension().unwrap().to_str().unwrap();
+    let path_extension = "txt";
     let mut output_file =
-        File::create(format!("{path_base}_{output_file_suffix}_{path_extension}")).unwrap();
+        File::create(format!("{path_base}_{output_file_suffix}.{path_extension}")).unwrap();
     output_file.write_all(&bytes).unwrap();
 }
