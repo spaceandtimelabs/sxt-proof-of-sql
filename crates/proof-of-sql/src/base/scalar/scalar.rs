@@ -1,10 +1,9 @@
-pub use error::ScalarConversionError;
 use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
-pub use mont_scalar::Curve25519Scalar;
-pub(crate) use mont_scalar::MontScalar;
 use num_bigint::BigInt;
-use crate::base::encode::varint_trait::VarInt;
+use crate::base::scalar::ScalarConversionError;
+use crate::base::encode::VarInt;
+use crate::base::scalar::RefInto;
 
 /// A trait for the scalar field used in Proof of SQL.
 pub trait Scalar:
@@ -48,7 +47,7 @@ pub trait Scalar:
     + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
     + num_traits::Inv<Output = Option<Self>> // Note: `inv` should return `None` exactly when the element is zero.
     + core::ops::SubAssign
-    + super::ref_into::RefInto<[u64; 4]>
+    + RefInto<[u64; 4]>
     + for<'a> core::convert::From<&'a String>
     + VarInt
     + core::convert::From<String>
