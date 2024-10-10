@@ -1,6 +1,6 @@
 /// Track the result created by a query
 pub struct ResultBuilder {
-    pub(crate) table_length: usize,
+    table_length: usize,
 
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -11,16 +11,21 @@ pub struct ResultBuilder {
 
 impl ResultBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
-    pub fn new(table_length: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            table_length,
+            table_length: 0,
             num_post_result_challenges: 0,
         }
     }
 
-    /// Get the length of the table
+    /// Get the length of the output table
     pub fn table_length(&self) -> usize {
         self.table_length
+    }
+
+    /// Set the length of the output table
+    pub fn set_table_length(&mut self, table_length: usize) {
+        self.table_length = table_length;
     }
 
     /// The number of challenges used in the proof.

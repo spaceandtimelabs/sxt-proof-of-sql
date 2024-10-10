@@ -245,7 +245,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        builder.table_length = count_column.len();
+        builder.set_table_length(count_column.len());
         builder.request_post_result_challenges(2);
         group_by_result_columns
             .into_iter()
