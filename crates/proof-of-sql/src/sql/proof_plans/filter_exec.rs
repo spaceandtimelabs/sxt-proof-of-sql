@@ -241,9 +241,9 @@ fn verify_filter<C: Commitment>(
     let one_eval = builder.mle_evaluations.one_evaluation;
 
     let Some(chi_eval) = builder.mle_evaluations.result_indexes_evaluation else {
-            return Err(ProofError::VerificationError {
-                error: "Result indexes not valid.",
-        })        
+        return Err(ProofError::VerificationError {
+            error: "Result indexes not valid.",
+        });
     };
 
     let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
