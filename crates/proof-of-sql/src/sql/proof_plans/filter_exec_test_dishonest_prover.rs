@@ -29,7 +29,17 @@ struct Dishonest;
 impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
 
-impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
+impl ProverEvaluate<RistrettoPoint> for DishonestFilterExec<RistrettoPoint> {
+    /// The length of the input table
+    fn get_input_length<'a>(
+        &self,
+        _builder: &mut ResultBuilder,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        accessor.get_length(self.table.table_ref)
+    }
+
     #[tracing::instrument(
         name = "DishonestFilterExec::result_evaluate",
         level = "debug",

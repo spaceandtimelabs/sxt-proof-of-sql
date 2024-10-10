@@ -1,13 +1,17 @@
 use super::{ProofPlan, ProvableQueryResult, QueryData, QueryProof, QueryResult};
-use crate::base::{
-    commitment::CommitmentEvaluationProof,
-    database::{
-        ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
+use crate::{
+    base::{
+        commitment::CommitmentEvaluationProof,
+        database::{
+            ColumnField, ColumnType, CommitmentAccessor, DataAccessor, OwnedColumn, OwnedTable,
+        },
+        proof::ProofError,
+        scalar::Scalar,
     },
-    proof::ProofError,
-    scalar::Scalar,
+    sql::proof::ResultBuilder,
 };
 use alloc::{vec, vec::Vec};
+use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
 
 /// The result of an sql query along with a proof that the query is valid. The
@@ -83,12 +87,13 @@ impl<CP: CommitmentEvaluationProof> VerifiableQueryResult<CP> {
         expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
+        builder: &mut ResultBuilder,
     ) -> Self {
         // a query must have at least one result column; if not, it should
         // have been rejected at the parsing stage.
-
+        let alloc = Bump::new();
         // handle the empty case
-        if expr.is_empty(accessor) {
+        if expr.is_empty(builder, alloc, accessor) {
             return VerifiableQueryResult {
                 provable_result: None,
                 proof: None,

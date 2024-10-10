@@ -7,14 +7,13 @@ use crate::base::{
     },
     map::IndexSet,
     proof::ProofError,
-    scalar::Scalar,
 };
 use alloc::vec::Vec;
 use bumpalo::Bump;
 use core::fmt::Debug;
 
 /// Provable nodes in the provable AST.
-pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scalar> {
+pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C> {
     /// Count terms used within the Query's proof
     fn count(
         &self,
@@ -22,16 +21,8 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError>;
 
-    /// The length of the input table
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
-
     /// The offset of the query, that is, how many rows to skip before starting to read the input table
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
-
-    /// Check if the input table is empty
-    fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
-        self.get_length(accessor) == 0
-    }
 
     /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate(
@@ -48,14 +39,14 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
     fn get_column_references(&self) -> IndexSet<ColumnRef>;
 }
 
-pub trait ProverEvaluate<S: Scalar> {
+pub trait ProverEvaluate<C: Commitment> {
     /// Evaluate the query and modify `ResultBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
         builder: &mut ResultBuilder,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>>;
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<Column<'a, C::Scalar>>;
 
     /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
@@ -65,10 +56,40 @@ pub trait ProverEvaluate<S: Scalar> {
     /// will be bulk deallocated once the proof is formed.
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut ProofBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
-        accessor: &'a dyn DataAccessor<S>,
-    ) -> Vec<Column<'a, S>>;
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<Column<'a, C::Scalar>>;
+
+    /// The length of the input table
+    fn get_input_length<'a>(
+        &self,
+        builder: &mut ResultBuilder,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize;
+
+    /// Check if the input table is empty
+    fn is_empty<'a>(
+        &self,
+        builder: &mut ResultBuilder,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> bool {
+        self.get_input_length(builder, alloc, accessor) == 0
+    }
+
+    /// The length of the output table
+    fn get_output_length<'a>(
+        &self,
+        builder: &mut ResultBuilder,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        self.result_evaluate(builder, alloc, accessor)
+            .first()
+            .map_or(0, |column| column.len())
+    }
 }
 
 /// Marker used as a trait bound for generic [`ProofPlan`] types to indicate the honesty of their implementation.

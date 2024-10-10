@@ -46,8 +46,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         expr: &(impl ProofPlan<CP::Commitment> + Serialize),
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
+        builder: &mut ResultBuilder,
     ) -> (Self, ProvableQueryResult) {
-        let table_length = expr.get_length(accessor);
+        let alloc = Bump::new();
+        let table_length = expr.get_input_length(builder, alloc, accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
         let generator_offset = expr.get_offset(accessor);
         assert!(num_sumcheck_variables > 0);
@@ -144,8 +146,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl CommitmentAccessor<CP::Commitment>,
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
+        builder: &mut ResultBuilder,
     ) -> QueryResult<CP::Scalar> {
-        let table_length = expr.get_length(accessor);
+        let alloc = Bump::new();
+        let table_length = expr.get_input_length(builder, alloc, accessor);
         let generator_offset = expr.get_offset(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
         assert!(num_sumcheck_variables > 0);

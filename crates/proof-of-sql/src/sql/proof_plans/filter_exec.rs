@@ -58,7 +58,7 @@ impl<C: Commitment, H: ProverHonestyMarker> OstensibleFilterExec<C, H> {
 
 impl<C: Commitment, H: ProverHonestyMarker> ProofPlan<C> for OstensibleFilterExec<C, H>
 where
-    OstensibleFilterExec<C, H>: ProverEvaluate<C::Scalar>,
+    OstensibleFilterExec<C, H>: ProverEvaluate<C>,
 {
     fn count(
         &self,
@@ -75,10 +75,6 @@ where
         builder.count_degree(3);
         builder.count_post_result_challenges(2);
         Ok(())
-    }
-
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
     }
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
@@ -150,7 +146,17 @@ where
 /// Alias for a filter expression with a honest prover.
 pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+impl<C: Commitment> ProverEvaluate<C> for FilterExec<C> {
+    /// The length of the input table
+    fn get_input_length<'a>(
+        &self,
+        _builder: &mut ResultBuilder,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        accessor.get_length(self.table.table_ref)
+    }
+
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,

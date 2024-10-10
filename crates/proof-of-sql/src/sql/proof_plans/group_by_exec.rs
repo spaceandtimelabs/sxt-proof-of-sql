@@ -92,10 +92,6 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
     }
@@ -210,7 +206,17 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     }
 }
 
-impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
+impl<C: Commitment> ProverEvaluate<C> for GroupByExec<C> {
+    /// The length of the input table
+    fn get_input_length<'a>(
+        &self,
+        _builder: &mut ResultBuilder,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        accessor.get_length(self.table.table_ref)
+    }
+
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
