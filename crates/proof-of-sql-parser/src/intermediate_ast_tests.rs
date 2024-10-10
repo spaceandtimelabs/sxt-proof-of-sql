@@ -108,6 +108,7 @@ fn we_can_parse_strings_having_control_characters() {
     );
 }
 
+#[allow(clippy::unicode_not_nfc)]
 #[test]
 fn unnormalized_strings_should_differ() {
     let lhs = StringLiteralParser::new().parse("'á'").unwrap();
