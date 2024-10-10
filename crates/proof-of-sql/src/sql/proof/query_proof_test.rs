@@ -14,7 +14,7 @@ use crate::{
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
-    sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{QueryData, ResultBuilder, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -48,8 +48,6 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
         vec![Column::BigInt(col)]
     }
 
@@ -124,7 +122,8 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         table,
     } = proof.verify(&expr, &accessor, &result, &()).unwrap();
     assert_ne!(verification_hash, [0; 32]);
-    let expected_result = owned_table([bigint("a1", [0])]);
+    let expected_col = vec![0_i64; n];
+    let expected_result = owned_table([bigint("a1", expected_col)]);
     assert_eq!(table, expected_result);
 }
 
@@ -203,7 +202,6 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
@@ -384,7 +382,6 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
@@ -595,7 +592,6 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         builder.request_post_result_challenges(2);
         vec![Column::BigInt(&[9, 25])]
     }

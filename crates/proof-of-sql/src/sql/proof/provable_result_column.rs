@@ -1,4 +1,3 @@
-use super::Indexes;
 use crate::{
     base::{database::Column, scalar::Scalar},
     sql::proof::ProvableResultElement,
@@ -7,24 +6,20 @@ use crate::{
 /// Interface for serializing an intermediate result column
 pub trait ProvableResultColumn {
     /// The number of bytes of the serialized result column
-    fn num_bytes(&self, selection: &Indexes) -> usize;
+    fn num_bytes(&self, length: u64) -> usize;
 
     /// Serialize the result column
-    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize;
+    fn write(&self, out: &mut [u8], length: u64) -> usize;
 }
 
 impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
-    fn num_bytes(&self, selection: &Indexes) -> usize {
-        let mut res = 0;
-        for i in selection.iter() {
-            res += self[i as usize].required_bytes();
-        }
-        res
+    fn num_bytes(&self, length: u64) -> usize {
+        (0..length as usize).map(|i| self[i].required_bytes()).sum()
     }
 
-    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
+    fn write(&self, out: &mut [u8], length: u64) -> usize {
         let mut res = 0;
-        for i in selection.iter() {
+        for i in 0..length {
             res += self[i as usize].encode(&mut out[res..]);
         }
         res
@@ -32,39 +27,39 @@ impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
 }
 
 impl<S: Scalar> ProvableResultColumn for Column<'_, S> {
-    fn num_bytes(&self, selection: &Indexes) -> usize {
+    fn num_bytes(&self, length: u64) -> usize {
         match self {
-            Column::Boolean(col) => col.num_bytes(selection),
-            Column::TinyInt(col) => col.num_bytes(selection),
-            Column::SmallInt(col) => col.num_bytes(selection),
-            Column::Int(col) => col.num_bytes(selection),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.num_bytes(selection),
-            Column::Int128(col) => col.num_bytes(selection),
-            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(selection),
-            Column::VarChar((col, _)) => col.num_bytes(selection),
+            Column::Boolean(col) => col.num_bytes(length),
+            Column::TinyInt(col) => col.num_bytes(length),
+            Column::SmallInt(col) => col.num_bytes(length),
+            Column::Int(col) => col.num_bytes(length),
+            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.num_bytes(length),
+            Column::Int128(col) => col.num_bytes(length),
+            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.num_bytes(length),
+            Column::VarChar((col, _)) => col.num_bytes(length),
         }
     }
 
-    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
+    fn write(&self, out: &mut [u8], length: u64) -> usize {
         match self {
-            Column::Boolean(col) => col.write(out, selection),
-            Column::TinyInt(col) => col.write(out, selection),
-            Column::SmallInt(col) => col.write(out, selection),
-            Column::Int(col) => col.write(out, selection),
-            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.write(out, selection),
-            Column::Int128(col) => col.write(out, selection),
-            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.write(out, selection),
-            Column::VarChar((col, _)) => col.write(out, selection),
+            Column::Boolean(col) => col.write(out, length),
+            Column::TinyInt(col) => col.write(out, length),
+            Column::SmallInt(col) => col.write(out, length),
+            Column::Int(col) => col.write(out, length),
+            Column::BigInt(col) | Column::TimestampTZ(_, _, col) => col.write(out, length),
+            Column::Int128(col) => col.write(out, length),
+            Column::Decimal75(_, _, col) | Column::Scalar(col) => col.write(out, length),
+            Column::VarChar((col, _)) => col.write(out, length),
         }
     }
 }
 
 impl<'a, T: ProvableResultElement<'a>, const N: usize> ProvableResultColumn for [T; N] {
-    fn num_bytes(&self, selection: &Indexes) -> usize {
-        (&self[..]).num_bytes(selection)
+    fn num_bytes(&self, length: u64) -> usize {
+        (&self[..]).num_bytes(length)
     }
 
-    fn write(&self, out: &mut [u8], selection: &Indexes) -> usize {
-        (&self[..]).write(out, selection)
+    fn write(&self, out: &mut [u8], length: u64) -> usize {
+        (&self[..]).write(out, length)
     }
 }

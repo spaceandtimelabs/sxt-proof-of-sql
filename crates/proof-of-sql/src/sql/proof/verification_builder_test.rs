@@ -7,7 +7,7 @@ use rand_core::OsRng;
 #[test]
 fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
     let mle_evaluations = SumcheckMleEvaluations {
-        table_length: 1,
+        input_length: 1,
         num_sumcheck_variables: 1,
         ..Default::default()
     };
@@ -28,7 +28,7 @@ fn an_empty_sumcheck_polynomial_evaluates_to_zero() {
 #[test]
 fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations() {
     let mle_evaluations = SumcheckMleEvaluations {
-        table_length: 1,
+        input_length: 1,
         num_sumcheck_variables: 1,
         ..Default::default()
     };
@@ -65,7 +65,7 @@ fn we_build_up_the_folded_pcs_proof_commitment() {
         Curve25519Scalar::from(456u64),
     ];
     let mle_evaluations = SumcheckMleEvaluations {
-        table_length: 1,
+        input_length: 1,
         num_sumcheck_variables: 1,
         pcs_proof_evaluations: &pcs_proof_evaluations,
         ..Default::default()

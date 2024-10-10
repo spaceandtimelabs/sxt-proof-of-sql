@@ -6,7 +6,7 @@ use crate::{
         polynomial::{compute_evaluation_vector, CompositePolynomial, MultilinearExtension},
         scalar::Curve25519Scalar,
     },
-    sql::proof::{Indexes, SumcheckSubpolynomialType},
+    sql::proof::SumcheckSubpolynomialType,
 };
 use alloc::sync::Arc;
 #[cfg(feature = "arrow")]
@@ -136,10 +136,9 @@ fn we_can_form_an_aggregated_sumcheck_polynomial() {
 #[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
-    let result_indexes = Indexes::Sparse(vec![1, 2]);
-    let col1: Column<Curve25519Scalar> = Column::BigInt(&[10_i64, 11, 12]);
-    let col2: Column<Curve25519Scalar> = Column::BigInt(&[-2_i64, -3, -4]);
-    let res = ProvableQueryResult::new(&result_indexes, &[col1, col2]);
+    let col1: Column<Curve25519Scalar> = Column::BigInt(&[11_i64, 12]);
+    let col2: Column<Curve25519Scalar> = Column::BigInt(&[-3_i64, -4]);
+    let res = ProvableQueryResult::new(2, &[col1, col2]);
 
     let column_fields = vec![
         ColumnField::new("a".parse().unwrap(), ColumnType::BigInt),

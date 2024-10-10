@@ -8,7 +8,7 @@ use crate::{
     },
     sql::{
         proof::{
-            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
         // Making this explicit to ensure that we don't accidentally use the
@@ -58,11 +58,9 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
                     .result_evaluate(builder.table_length(), alloc, accessor)
             })
             .collect();
-        // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // Compute filtered_columns
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         builder.request_post_result_challenges(2);
         filtered_columns
     }
@@ -91,7 +89,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
         // 3. Produce MLEs
