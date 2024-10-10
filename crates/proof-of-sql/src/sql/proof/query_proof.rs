@@ -56,7 +56,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut result_builder = ResultBuilder::new();
         let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
         let provable_result =
-            ProvableQueryResult::new(result_builder.table_length() as u64, &result_cols);
+            ProvableQueryResult::new(result_builder.result_table_length() as u64, &result_cols);
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =

@@ -204,7 +204,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(builder.table_length() as u64, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -249,7 +249,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(builder.table_length() as u64, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -282,7 +282,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
     let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(builder.table_length() as u64, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -321,7 +321,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(builder.table_length() as u64, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
