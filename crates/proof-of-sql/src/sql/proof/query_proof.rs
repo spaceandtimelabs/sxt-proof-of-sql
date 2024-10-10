@@ -6,7 +6,7 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::{Commitment, CommitmentEvaluationProof},
-        database::{Column, CommitmentAccessor, DataAccessor},
+        database::{CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
@@ -56,7 +56,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         let mut result_builder = ResultBuilder::new(table_length);
         let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
         let provable_result =
-            ProvableQueryResult::new(&result_builder.table_length(), &result_cols);
+            ProvableQueryResult::new(result_builder.table_length() as u64, &result_cols);
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =

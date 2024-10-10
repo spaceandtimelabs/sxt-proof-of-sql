@@ -1,5 +1,3 @@
-use super::Indexes;
-
 /// Track the result created by a query
 pub struct ResultBuilder {
     table_length: usize,
@@ -16,7 +14,6 @@ impl ResultBuilder {
     pub fn new(table_length: usize) -> Self {
         Self {
             table_length,
-            result_index_vector: Indexes::default(),
             num_post_result_challenges: 0,
         }
     }

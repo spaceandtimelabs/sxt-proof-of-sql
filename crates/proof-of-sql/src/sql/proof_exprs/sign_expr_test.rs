@@ -64,7 +64,7 @@ fn we_can_verify_a_constant_decomposition() {
         &sumcheck_random_scalars,
         &[],
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
@@ -88,7 +88,7 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
         &sumcheck_random_scalars,
         &[],
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
