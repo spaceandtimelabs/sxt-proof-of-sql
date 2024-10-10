@@ -21,7 +21,7 @@ use multiply_expr::MultiplyExpr;
 mod multiply_expr_test;
 
 mod bitwise_verification;
-use bitwise_verification::*;
+use bitwise_verification::{is_within_acceptable_range, verify_constant_abs_decomposition, verify_constant_sign_decomposition};
 #[cfg(test)]
 mod bitwise_verification_test;
 
@@ -39,12 +39,12 @@ use and_expr::AndExpr;
 mod and_expr_test;
 
 mod inequality_expr;
-use inequality_expr::*;
+use inequality_expr::InequalityExpr;
 #[cfg(all(test, feature = "blitzar"))]
 mod inequality_expr_test;
 
 mod or_expr;
-use or_expr::*;
+use or_expr::{OrExpr, count_or, prover_evaluate_or, result_evaluate_or, verifier_evaluate_or};
 #[cfg(all(test, feature = "blitzar"))]
 mod or_expr_test;
 
@@ -62,12 +62,12 @@ pub(crate) use numerical_util::{
 };
 
 mod equals_expr;
-use equals_expr::*;
+use equals_expr::{EqualsExpr, count_equals_zero, prover_evaluate_equals_zero, result_evaluate_equals_zero, verifier_evaluate_equals_zero};
 #[cfg(all(test, feature = "blitzar"))]
 mod equals_expr_test;
 
 mod sign_expr;
-use sign_expr::*;
+use sign_expr::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
 #[cfg(all(test, feature = "blitzar"))]
 mod sign_expr_test;
 

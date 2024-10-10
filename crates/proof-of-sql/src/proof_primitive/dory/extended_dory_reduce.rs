@@ -1,6 +1,6 @@
 use super::{
-    dory_reduce_helper::*,
-    extended_dory_reduce_helper::*,
+    dory_reduce_helper::{dory_reduce_prove_compute_Cs, dory_reduce_prove_compute_Ds, dory_reduce_prove_fold_v_vecs, dory_reduce_prove_mutate_v_vecs, dory_reduce_verify_update_C, dory_reduce_verify_update_Ds},
+    extended_dory_reduce_helper::{extended_dory_reduce_prove_compute_E_betas, extended_dory_reduce_prove_compute_signed_Es, extended_dory_reduce_prove_fold_s_vecs, extended_dory_reduce_verify_update_Es},
     extended_state::{ExtendedProverState, ExtendedVerifierState},
     DoryMessages, ProverSetup, VerifierSetup,
 };
