@@ -5,6 +5,7 @@ use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use num_traits::Zero;
 
+#[allow(clippy::struct_field_names)]
 #[derive(Default, Clone, CanonicalSerialize, CanonicalDeserialize, PartialEq, Eq, Debug)]
 /// The messages sent from the prover to the verifier in the interactive protocol.
 /// This is, in essence, the proof.
