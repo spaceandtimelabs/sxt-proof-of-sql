@@ -16,7 +16,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -120,13 +120,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
             .collect::<Result<Vec<_>, _>>()?;
-        // 3. indexes
-        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
-            ProofError::VerificationError {
-                error: "invalid indexes",
-            },
-        )?;
-        // 4. filtered_columns
+        // 3. filtered_columns
 
         let group_by_result_columns_evals: Vec<_> =
             repeat_with(|| builder.consume_intermediate_mle())
@@ -218,10 +212,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+                .result_evaluate(input_length, alloc, accessor);
 
         let selection = selection_column
             .as_boolean()
@@ -231,7 +226,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.result_evaluate(builder.table_length(), alloc, accessor))
+            .map(|expr| expr.result_evaluate(input_length, alloc, accessor))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
@@ -239,10 +234,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect::<Vec<_>>();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
@@ -250,9 +245,8 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             ..
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(count_column.len() as u64)));
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
+        builder.set_result_table_length(count_column.len());
         builder.request_post_result_challenges(2);
         group_by_result_columns
             .into_iter()
@@ -287,7 +281,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect::<Vec<_>>();
-        // 3. Compute filtered_columns and indexes
+        // 3. Compute filtered_columns
         let AggregatedColumns {
             group_by_columns: group_by_result_columns,
             sum_columns: sum_result_columns,
@@ -331,7 +325,7 @@ fn verify_group_by<C: Commitment>(
     (g_in_evals, sum_in_evals, sel_in_eval): (Vec<C::Scalar>, Vec<C::Scalar>, C::Scalar),
     (g_out_evals, sum_out_evals, count_out_eval): (Vec<C::Scalar>, Vec<C::Scalar>, C::Scalar),
 ) -> Result<(), ProofError> {
-    let one_eval = builder.mle_evaluations.one_evaluation;
+    let one_eval = builder.mle_evaluations.input_one_evaluation;
 
     // g_in_fold = alpha + sum beta^j * g_in[j]
     let g_in_fold_eval = alpha * one_eval + fold_vals(beta, &g_in_evals);

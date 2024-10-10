@@ -2,13 +2,10 @@ use super::{
     verifiable_query_result_test::EmptyTestQueryExpr, ProofPlan, ProvableQueryResult, QueryProof,
     VerifiableQueryResult,
 };
-use crate::{
-    base::{
-        commitment::{Commitment, CommittableColumn},
-        database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
-        scalar::Curve25519Scalar,
-    },
-    sql::proof::Indexes,
+use crate::base::{
+    commitment::{Commitment, CommittableColumn},
+    database::{Column, CommitmentAccessor, OwnedTableTestAccessor, TableRef, TestAccessor},
+    scalar::Curve25519Scalar,
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::{ristretto::RistrettoPoint, traits::Identity};
@@ -94,7 +91,7 @@ fn tamper_no_result(
     // add a result
     let mut res_p = res.clone();
     let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[0_i64; 0])];
-    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![]), &cols));
+    res_p.provable_result = Some(ProvableQueryResult::new(0, &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // add a proof
@@ -117,7 +114,7 @@ fn tamper_empty_result(
     // try to add a result
     let mut res_p = res.clone();
     let cols: [Column<'_, Curve25519Scalar>; 1] = [Column::BigInt(&[123_i64])];
-    res_p.provable_result = Some(ProvableQueryResult::new(&Indexes::Sparse(vec![0]), &cols));
+    res_p.provable_result = Some(ProvableQueryResult::new(1, &cols));
     assert!(res_p.verify(expr, accessor, &()).is_err());
 }
 
@@ -126,8 +123,6 @@ fn tamper_empty_result(
 /// Will panic if:
 /// - `res.provable_result` is `None`, which leads to calling `unwrap()` on it in the subsequent
 ///   code and may cause an unexpected behavior.
-/// - The `provable_res.indexes()` returns an empty vector, which leads to attempting to modify an
-///   index of an empty result, causing an invalid state.
 /// - The assertion `assert!(res_p.verify(expr, accessor, &()).is_err())` fails, indicating that the
 ///   verification did not fail as expected after tampering.
 fn tamper_result(
@@ -140,23 +135,11 @@ fn tamper_result(
         return;
     }
     let provable_res = res.provable_result.as_ref().unwrap();
-    if provable_res.indexes().is_empty() {
+
+    if provable_res.table_length() == 0 {
         tamper_empty_result(res, expr, accessor);
         return;
     }
-
-    // try to change an index
-    let mut res_p = res.clone();
-    let mut provable_res_p = provable_res.clone();
-    match provable_res_p.indexes_mut() {
-        Indexes::Sparse(indexes) => indexes[0] += 1,
-        Indexes::Dense(range) => {
-            range.start += 1;
-            range.end += 1;
-        }
-    }
-    res_p.provable_result = Some(provable_res_p);
-    assert!(res_p.verify(expr, accessor, &()).is_err());
 
     // try to change data
     let mut res_p = res.clone();

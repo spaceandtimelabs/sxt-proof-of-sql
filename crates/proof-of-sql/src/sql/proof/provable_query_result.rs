@@ -1,6 +1,4 @@
-use super::{
-    decode_and_convert, decode_multiple_elements, Indexes, ProvableResultColumn, QueryError,
-};
+use super::{decode_and_convert, decode_multiple_elements, ProvableResultColumn, QueryError};
 use crate::base::{
     database::{Column, ColumnField, ColumnType, OwnedColumn, OwnedTable},
     polynomial::compute_evaluation_vector,
@@ -15,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
-    indexes: Indexes,
+    pub(crate) table_length: u64,
     data: Vec<u8>,
 }
 
@@ -25,22 +23,16 @@ impl ProvableQueryResult {
     pub fn num_columns(&self) -> usize {
         self.num_columns as usize
     }
-    /// The indexes in the result.
-    #[must_use]
-    pub fn indexes(&self) -> &Indexes {
-        &self.indexes
-    }
-    /// A mutable reference to a the indexes in the result. Because the struct is deserialized from untrusted data, it
-    /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
-    #[cfg(test)]
-    pub fn indexes_mut(&mut self) -> &mut Indexes {
-        &mut self.indexes
-    }
     /// A mutable reference to the number of columns in the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
     #[cfg(test)]
     pub fn num_columns_mut(&mut self) -> &mut u64 {
         &mut self.num_columns
+    }
+    /// The number of rows in the result
+    #[must_use]
+    pub fn table_length(&self) -> usize {
+        self.table_length as usize
     }
     /// A mutable reference to the underlying encoded data of the result. Because the struct is deserialized from untrusted data, it
     /// cannot maintain any invariant on its data members; hence, this function is available to allow for easy manipulation for testing.
@@ -51,29 +43,36 @@ impl ProvableQueryResult {
     /// This function is available to allow for easy creation for testing.
     #[cfg(test)]
     #[must_use]
-    pub fn new_from_raw_data(num_columns: u64, indexes: Indexes, data: Vec<u8>) -> Self {
+    pub fn new_from_raw_data(num_columns: u64, table_length: u64, data: Vec<u8>) -> Self {
         Self {
             num_columns,
-            indexes,
+            table_length,
             data,
         }
     }
 
     /// Form intermediate query result from index rows and result columns
+    /// # Panics
+    ///
+    /// Will panic if `table_length` is somehow larger than the length of some column
+    /// which should never happen.
     #[must_use]
-    pub fn new<'a, S: Scalar>(indexes: &'a Indexes, columns: &'a [Column<'a, S>]) -> Self {
+    pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
+        assert!(columns
+            .iter()
+            .all(|column| table_length == column.len() as u64));
         let mut sz = 0;
         for col in columns {
-            sz += col.num_bytes(indexes);
+            sz += col.num_bytes(table_length);
         }
         let mut data = vec![0u8; sz];
         let mut sz = 0;
         for col in columns {
-            sz += col.write(&mut data[sz..], indexes);
+            sz += col.write(&mut data[sz..], table_length);
         }
         ProvableQueryResult {
             num_columns: columns.len() as u64,
-            indexes: indexes.clone(),
+            table_length,
             data,
         }
     }
@@ -91,32 +90,20 @@ impl ProvableQueryResult {
     pub fn evaluate<S: Scalar>(
         &self,
         evaluation_point: &[S],
-        table_length: usize,
+        output_length: usize,
         column_result_fields: &[ColumnField],
     ) -> Result<Vec<S>, QueryError> {
         if self.num_columns as usize != column_result_fields.len() {
             return Err(QueryError::InvalidColumnCount);
         }
-
-        if !self.indexes.valid(table_length) {
-            return Err(QueryError::InvalidIndexes);
-        }
-
-        let evaluation_vec_len = self
-            .indexes
-            .iter()
-            .max()
-            .map(|max| max as usize + 1)
-            .unwrap_or(0);
-        let mut evaluation_vec = vec![Zero::zero(); evaluation_vec_len];
+        let mut evaluation_vec = vec![Zero::zero(); output_length];
         compute_evaluation_vector(&mut evaluation_vec, evaluation_point);
-
         let mut offset: usize = 0;
         let mut res = Vec::with_capacity(self.num_columns as usize);
 
         for field in column_result_fields {
             let mut val = S::zero();
-            for index in self.indexes.iter() {
+            for entry in evaluation_vec.iter().take(output_length) {
                 let (x, sz) = match field.data_type() {
                     ColumnType::Boolean => decode_and_convert::<bool, S>(&self.data[offset..]),
                     ColumnType::TinyInt => decode_and_convert::<i8, S>(&self.data[offset..]),
@@ -133,12 +120,11 @@ impl ProvableQueryResult {
                         decode_and_convert::<i64, S>(&self.data[offset..])
                     }
                 }?;
-                val += evaluation_vec[index as usize] * x;
+                val += *entry * x;
                 offset += sz;
             }
             res.push(val);
         }
-
         if offset != self.data.len() {
             return Err(QueryError::MiscellaneousEvaluationError);
         }
@@ -161,7 +147,7 @@ impl ProvableQueryResult {
             return Err(QueryError::InvalidColumnCount);
         }
 
-        let n = self.indexes.len();
+        let n = self.table_length();
         let mut offset: usize = 0;
 
         let owned_table = OwnedTable::try_new(

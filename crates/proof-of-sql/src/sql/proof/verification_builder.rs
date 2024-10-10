@@ -63,7 +63,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
     }
 
     pub fn table_length(&self) -> usize {
-        self.mle_evaluations.table_length
+        self.mle_evaluations.input_length
     }
 
     pub fn generator_offset(&self) -> usize {
