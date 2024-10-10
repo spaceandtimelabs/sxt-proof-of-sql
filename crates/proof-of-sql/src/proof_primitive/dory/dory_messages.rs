@@ -52,6 +52,8 @@ impl DoryMessages {
         transcript.extend_canonical_serialize_as_le(&message);
         self.G2_messages.insert(0, message);
     }
+
+    #[allow(clippy::large_types_passed_by_value)]
     /// Pushes a GT element from the prover onto the queue, and appends it to the transcript.
     pub(super) fn prover_send_GT_message(&mut self, transcript: &mut impl Transcript, message: GT) {
         transcript.extend_canonical_serialize_as_le(&message);
