@@ -73,7 +73,7 @@ pub fn jaeger_scaffold<CP: CommitmentEvaluationProof>(
         .unwrap();
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::module_name_repetitions)]
 pub fn criterion_scaffold<CP: CommitmentEvaluationProof>(
     c: &mut Criterion,
     title: &str,

@@ -2,7 +2,10 @@
 
 use blitzar::{compute::init_backend, proof::InnerProductProof};
 use proof_of_sql::{
-    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
+    base::database::{
+        owned_table_utility::{bigint, owned_table, varchar},
+        OwnedTableTestAccessor, TestAccessor,
+    },
     sql::{parse::QueryExpr, proof::QueryProof},
 };
 use std::{
