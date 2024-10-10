@@ -60,7 +60,7 @@ impl ProvableQueryResult {
     pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
         assert!(columns
             .iter()
-            .all(|column| table_length <= column.len() as u64));
+            .all(|column| table_length == column.len() as u64));
         let mut sz = 0;
         for col in columns {
             sz += col.num_bytes(table_length);
