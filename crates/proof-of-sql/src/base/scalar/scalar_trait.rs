@@ -1,9 +1,10 @@
 use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
 use num_bigint::BigInt;
-use crate::base::scalar::ScalarConversionError;
-use crate::base::encode::VarInt;
-use crate::base::scalar::RefInto;
+use crate::base::{
+    encode::VarInt,
+    scalar::{RefInto, ScalarConversionError},
+};
 
 /// A trait for the scalar field used in Proof of SQL.
 pub trait Scalar:

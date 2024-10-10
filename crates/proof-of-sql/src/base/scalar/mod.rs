@@ -3,8 +3,7 @@ pub mod scalar_trait;
 pub use scalar_trait::Scalar;
 mod error;
 pub use error::ScalarConversionError;
-pub use super::ref_into::RefInto;
-pub use super::encode::VarInt;
+pub use super::{encode::VarInt, ref_into::RefInto};
 mod mont_scalar;
 #[cfg(test)]
 mod mont_scalar_test;
