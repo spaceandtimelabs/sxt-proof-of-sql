@@ -1,11 +1,5 @@
-use super::Indexes;
-
 /// Track the result created by a query
-pub struct ResultBuilder {
-    table_length: usize,
-    /// TODO: add docs
-    pub(crate) result_index_vector: Indexes,
-
+pub struct PreproofBuilder {
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -13,24 +7,18 @@ pub struct ResultBuilder {
     num_post_result_challenges: usize,
 }
 
-impl ResultBuilder {
+impl Default for PreproofBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PreproofBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
-    pub fn new(table_length: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            table_length,
-            result_index_vector: Indexes::default(),
             num_post_result_challenges: 0,
         }
-    }
-
-    /// Get the length of the table
-    pub fn table_length(&self) -> usize {
-        self.table_length
-    }
-
-    /// Set the indexes of the rows select in the result
-    pub fn set_result_indexes(&mut self, result_index: Indexes) {
-        self.result_index_vector = result_index;
     }
 
     /// The number of challenges used in the proof.

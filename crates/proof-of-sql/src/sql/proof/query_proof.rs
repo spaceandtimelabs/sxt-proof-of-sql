@@ -6,13 +6,13 @@ use crate::{
     base::{
         bit::BitDistribution,
         commitment::{Commitment, CommitmentEvaluationProof},
-        database::{CommitmentAccessor, DataAccessor},
+        database::{Column, CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::proof::{QueryData, ResultBuilder},
+    sql::proof::{PreproofBuilder, QueryData},
 };
 use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
@@ -53,10 +53,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
-        let mut result_builder = ResultBuilder::new(table_length);
-        let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
-        let provable_result =
-            ProvableQueryResult::new(&result_builder.result_index_vector, &result_cols);
+        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let output_length = result_cols.first().map_or(0, Column::len);
+        let mut preproof_builder = PreproofBuilder::new();
+        expr.preproof_evaluate(&mut preproof_builder);
+
+        let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
@@ -69,7 +71,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Note: the last challenge in the vec is the first one that is consumed.
         let post_result_challenges =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(result_builder.num_post_result_challenges())
+                .take(preproof_builder.num_post_result_challenges())
                 .collect();
 
         let mut builder =
@@ -145,9 +147,10 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        let table_length = expr.get_length(accessor);
+        let input_length = expr.get_length(accessor);
+        let output_length = result.table_length();
         let generator_offset = expr.get_offset(accessor);
-        let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
+        let num_sumcheck_variables = cmp::max(log2_up(input_length), 1);
         assert!(num_sumcheck_variables > 0);
 
         // validate bit decompositions
@@ -175,7 +178,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
-            make_transcript(expr, result, table_length, generator_offset);
+            make_transcript(expr, result, input_length, generator_offset);
 
         // These are the challenges that will be consumed by the proof
         // Specifically, these are the challenges that the verifier sends to
@@ -197,7 +200,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .take(num_random_scalars)
                 .collect();
         let sumcheck_random_scalars =
-            SumcheckRandomScalars::new(&random_scalars, table_length, num_sumcheck_variables);
+            SumcheckRandomScalars::new(&random_scalars, input_length, num_sumcheck_variables);
 
         // verify sumcheck up to the evaluation check
         let poly_info = CompositePolynomialInfo {
@@ -226,11 +229,11 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         // pass over the provable AST to fill in the verification builder
         let sumcheck_evaluations = SumcheckMleEvaluations::new(
-            table_length,
+            input_length,
+            output_length,
             &subclaim.evaluation_point,
             &sumcheck_random_scalars,
             &self.pcs_proof_evaluations,
-            result.indexes(),
         );
         let mut builder = VerificationBuilder::new(
             generator_offset,
@@ -247,7 +250,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // compute the evaluation of the result MLEs
         let result_evaluations = result.evaluate(
             &subclaim.evaluation_point,
-            table_length,
+            output_length,
             &column_result_fields[..],
         )?;
         // check the evaluation of the result MLEs
@@ -274,7 +277,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 &product,
                 &subclaim.evaluation_point,
                 generator_offset as u64,
-                table_length,
+                input_length,
                 setup,
             )
             .map_err(|_e| ProofError::VerificationError {

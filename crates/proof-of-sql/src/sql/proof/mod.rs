@@ -68,10 +68,5 @@ pub(crate) use result_element_serialization::{
     decode_and_convert, decode_multiple_elements, ProvableResultElement,
 };
 
-mod indexes;
-pub(crate) use indexes::Indexes;
-#[cfg(test)]
-mod indexes_test;
-
-mod result_builder;
-pub(crate) use result_builder::ResultBuilder;
+mod preproof_builder;
+pub(crate) use preproof_builder::PreproofBuilder;

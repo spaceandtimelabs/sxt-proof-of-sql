@@ -14,7 +14,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{ProvableQueryResult, QueryData, ResultBuilder},
+    sql::proof::{PreproofBuilder, ProvableQueryResult, QueryData},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -27,7 +27,7 @@ pub(super) struct EmptyTestQueryExpr {
 impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     fn result_evaluate<'a>(
         &self,
-        _builder: &mut ResultBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -35,6 +35,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
         vec![Column::BigInt(res); self.columns]
     }
+    fn preproof_evaluate(&self, _builder: &mut PreproofBuilder) {}
     fn prover_evaluate<'a>(
         &self,
         builder: &mut ProofBuilder<'a, S>,

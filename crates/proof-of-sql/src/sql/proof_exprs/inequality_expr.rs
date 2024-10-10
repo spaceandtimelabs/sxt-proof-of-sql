@@ -123,7 +123,7 @@ impl<C: Commitment> ProofExpr<C> for InequalityExpr<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let one_eval = builder.mle_evaluations.one_evaluation;
+        let one_eval = builder.mle_evaluations.input_one_evaluation;
         let lhs_eval = self.lhs.verifier_evaluate(builder, accessor)?;
         let rhs_eval = self.rhs.verifier_evaluate(builder, accessor)?;
         let lhs_scale = self.lhs.data_type().scale().unwrap_or(0);
