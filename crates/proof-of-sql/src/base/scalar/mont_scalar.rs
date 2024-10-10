@@ -128,7 +128,7 @@ macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
     };
 }
 
-/// Implement `From<&[u8]>` for MontScalar
+/// Implement `From<&[u8]>` for `MontScalar`
 impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
     fn from(x: &[u8]) -> Self {
         if x.is_empty() {

@@ -8,7 +8,6 @@ use alloc::string::String;
 use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
-#[cfg(test)]
 /// Module for a test Scalar
 #[cfg(test)]
 pub mod test_scalar;
