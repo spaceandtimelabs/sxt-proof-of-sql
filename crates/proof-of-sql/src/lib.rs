@@ -8,6 +8,8 @@ extern crate alloc;
 pub mod base;
 pub mod proof_primitive;
 pub mod sql;
+/// Various utilities
+pub mod utils;
 
 #[cfg(test)]
 mod tests;
