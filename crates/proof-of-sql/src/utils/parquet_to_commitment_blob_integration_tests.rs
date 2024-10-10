@@ -1,9 +1,10 @@
 use super::parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob;
 use crate::{
     base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, ProverSetup, PublicParameters},
+    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters},
 };
 use arrow::array::{ArrayRef, Int32Array, RecordBatch};
+use curve25519_dalek::RistrettoPoint;
 use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
 use postcard::from_bytes;
 use rand::SeedableRng;
@@ -36,7 +37,7 @@ fn read_commitment_from_blob<C: Commitment + Serialize + for<'a> Deserialize<'a>
     from_bytes(&bytes).unwrap()
 }
 
-fn calculate_dory_commitment(record_batch: RecordBatch) -> TableCommitment<DoryCommitment> {
+fn calculate_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<DoryCommitment> {
     let setup_seed = "spaceandtime".to_string();
     let mut rng = {
         // Convert the seed string to bytes and create a seeded RNG
@@ -56,6 +57,30 @@ fn calculate_dory_commitment(record_batch: RecordBatch) -> TableCommitment<DoryC
         .unwrap()
 }
 
+fn calculate_ristretto_point(record_batch: &RecordBatch) -> TableCommitment<RistrettoPoint> {
+    TableCommitment::<RistrettoPoint>::try_from_record_batch(&record_batch, &())
+        .unwrap()
+}
+
+fn calculate_dynamic_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<DynamicDoryCommitment> {
+    let setup_seed = "spaceandtime".to_string();
+    let mut rng = {
+        // Convert the seed string to bytes and create a seeded RNG
+        let seed_bytes = setup_seed
+            .bytes()
+            .chain(std::iter::repeat(0u8))
+            .take(32)
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("collection is guaranteed to contain 32 elements");
+        ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
+    };
+    let public_parameters = PublicParameters::rand(4, &mut rng);
+    let prover_setup = ProverSetup::from(&public_parameters);
+    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch(&record_batch, &&prover_setup)
+        .unwrap()
+}
+
 fn delete_file_if_exists(path: &str) {
     if Path::new(path).exists() {
         fs::remove_file(path).unwrap();
@@ -65,11 +90,13 @@ fn delete_file_if_exists(path: &str) {
 #[test]
 fn we_can_retrieve_commitments_and_save_to_file() {
     let parquet_path = "example.parquet";
-    let ristretto_point_path = "example_ristretto_point.parquet";
-    let dory_commitment_path = "example_dory_commitment.parquet";
+    let ristretto_point_path = "example_ristretto_point.txt";
+    let dory_commitment_path = "example_dory_commitment.txt";
+    let dynamic_dory_commitment_path = "example_dynamic_dory_commitment.txt";
     delete_file_if_exists(parquet_path);
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
+    delete_file_if_exists(dynamic_dory_commitment_path);
     let column = Int32Array::from(vec![1, 2, 3, 4]);
     let record_batch =
         RecordBatch::try_from_iter(vec![("id", Arc::new(column) as ArrayRef)]).unwrap();
@@ -77,9 +104,18 @@ fn we_can_retrieve_commitments_and_save_to_file() {
     read_parquet_file_to_commitment_as_blob(parquet_path);
     assert_eq!(
         read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
-        calculate_dory_commitment(record_batch)
+        calculate_dory_commitment(&record_batch)
+    );
+    assert_eq!(
+        read_commitment_from_blob::<RistrettoPoint>(ristretto_point_path),
+        calculate_ristretto_point(&record_batch)
+    );
+    assert_eq!(
+        read_commitment_from_blob::<DynamicDoryCommitment>(dynamic_dory_commitment_path),
+        calculate_dynamic_dory_commitment(&record_batch)
     );
     delete_file_if_exists(parquet_path);
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
+    delete_file_if_exists(dynamic_dory_commitment_path);
 }
