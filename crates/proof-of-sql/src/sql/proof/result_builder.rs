@@ -9,6 +9,12 @@ pub struct ResultBuilder {
     num_post_result_challenges: usize,
 }
 
+impl Default for ResultBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ResultBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
     pub fn new() -> Self {
