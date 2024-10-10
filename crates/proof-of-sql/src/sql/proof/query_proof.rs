@@ -53,7 +53,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
-        let mut result_builder = ResultBuilder::new(table_length);
+        let mut result_builder = ResultBuilder::new();
         let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
         let provable_result =
             ProvableQueryResult::new(result_builder.table_length() as u64, &result_cols);

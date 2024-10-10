@@ -173,7 +173,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
 
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        builder.table_length = result_len;
+        builder.set_table_length(result_len);
         builder.request_post_result_challenges(2);
         filtered_columns
     }
