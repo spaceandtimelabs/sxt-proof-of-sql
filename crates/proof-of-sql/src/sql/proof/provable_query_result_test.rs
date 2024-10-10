@@ -57,12 +57,9 @@ fn we_can_evaluate_result_columns_as_mles() {
 
 #[test]
 fn we_can_evaluate_result_columns_with_no_rows() {
-    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[10, 11, 12])];
+    let cols: [Column<Curve25519Scalar>; 1] = [Column::BigInt(&[0; 0])];
     let res = ProvableQueryResult::new(0, &cols);
-    let evaluation_point = [
-        Curve25519Scalar::from(10u64),
-        Curve25519Scalar::from(100u64),
-    ];
+    let evaluation_point = [];
     let mut evaluation_vec = [Curve25519Scalar::ZERO; 0];
     compute_evaluation_vector(&mut evaluation_vec, &evaluation_point);
     let column_fields =
