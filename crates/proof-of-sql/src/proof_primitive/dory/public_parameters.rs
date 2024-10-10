@@ -1,7 +1,6 @@
 use super::{G1Affine, G2Affine};
 use alloc::vec::Vec;
 use ark_ff::UniformRand;
-#[cfg(feature = "std")]
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -98,7 +97,6 @@ impl PublicParameters {
     }
 }
 
-#[cfg(feature = "std")]
 impl CanonicalSerialize for PublicParameters {
     fn serialize_with_mode<W: ark_serialize::Write>(
         &self,
@@ -164,7 +162,6 @@ impl CanonicalSerialize for PublicParameters {
     }
 }
 
-#[cfg(feature = "std")]
 impl CanonicalDeserialize for PublicParameters {
     fn deserialize_with_mode<R: ark_serialize::Read>(
         mut reader: R,
@@ -207,7 +204,6 @@ impl CanonicalDeserialize for PublicParameters {
     // Remove unnecessary methods if they're not overridden
 }
 
-#[cfg(feature = "std")]
 // Implement the Valid trait to perform validation on deserialized data
 impl Valid for PublicParameters {
     fn check(&self) -> Result<(), SerializationError> {
