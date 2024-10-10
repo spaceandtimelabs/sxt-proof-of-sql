@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProvableQueryResult {
     num_columns: u64,
-    table_length: u64,
+    pub(crate) table_length: u64,
     data: Vec<u8>,
 }
 
@@ -118,7 +118,6 @@ impl ProvableQueryResult {
             }
             res.push(val);
         }
-
         if offset != self.data.len() {
             return Err(QueryError::MiscellaneousEvaluationError);
         }
