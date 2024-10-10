@@ -66,7 +66,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
-        Ok(builder.mle_evaluations.one_evaluation - eval)
+        Ok(builder.mle_evaluations.input_one_evaluation - eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

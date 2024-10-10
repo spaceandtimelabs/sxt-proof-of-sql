@@ -70,7 +70,7 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let mut commitment = builder.mle_evaluations.one_evaluation;
+        let mut commitment = builder.mle_evaluations.input_one_evaluation;
         commitment *= self.value.to_scalar();
         Ok(commitment)
     }

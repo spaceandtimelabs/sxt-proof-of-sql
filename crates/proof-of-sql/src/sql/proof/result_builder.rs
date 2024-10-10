@@ -3,8 +3,6 @@ use super::Indexes;
 /// Track the result created by a query
 pub struct ResultBuilder {
     table_length: usize,
-    /// TODO: add docs
-    pub(crate) result_index_vector: Indexes,
 
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
@@ -26,11 +24,6 @@ impl ResultBuilder {
     /// Get the length of the table
     pub fn table_length(&self) -> usize {
         self.table_length
-    }
-
-    /// Set the indexes of the rows select in the result
-    pub fn set_result_indexes(&mut self, result_index: Indexes) {
-        self.result_index_vector = result_index;
     }
 
     /// The number of challenges used in the proof.
