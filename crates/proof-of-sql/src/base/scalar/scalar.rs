@@ -4,7 +4,7 @@ use core::{cmp::Ordering, ops::Sub};
 pub use mont_scalar::Curve25519Scalar;
 pub(crate) use mont_scalar::MontScalar;
 use num_bigint::BigInt;
-// use crate::base::encode::varint_trait::VarInt;
+use crate::base::encode::varint_trait::VarInt;
 
 /// A trait for the scalar field used in Proof of SQL.
 pub trait Scalar:
@@ -50,7 +50,7 @@ pub trait Scalar:
     + core::ops::SubAssign
     + super::ref_into::RefInto<[u64; 4]>
     + for<'a> core::convert::From<&'a String>
-    + super::encode::VarInt
+    + VarInt
     + core::convert::From<String>
     + core::convert::From<i128>
     + core::convert::From<i64>
