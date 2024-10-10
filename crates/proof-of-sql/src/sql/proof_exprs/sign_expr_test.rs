@@ -1,14 +1,9 @@
-use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_evaluate_sign};
+use super::{count_sign, prover_evaluate_sign, result_evaluate_sign};
 use crate::{
-    base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
-    sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
-        VerificationBuilder,
-    },
+    base::{bit::BitDistribution, scalar::Curve25519Scalar},
+    sql::proof::{CountBuilder, ProofBuilder},
 };
 use bumpalo::Bump;
-use curve25519_dalek::RistrettoPoint;
-use num_traits::Zero;
 
 #[test]
 fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
@@ -47,53 +42,6 @@ fn count_fails_if_a_bit_distribution_is_out_of_range() {
 fn count_fails_if_no_bit_distribution_is_available() {
     let mut builder = CountBuilder::new(&[]);
     assert!(count_sign(&mut builder).is_err());
-}
-
-#[test]
-fn we_can_verify_a_constant_decomposition() {
-    let data = [123_i64, 123, 123];
-
-    let dists = [BitDistribution::new::<Curve25519Scalar, _>(&data)];
-    let scalars = [Curve25519Scalar::from(97), Curve25519Scalar::from(3432)];
-    let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
-    let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
-    let sumcheck_evaluations = SumcheckMleEvaluations::new(
-        data.len(),
-        &evaluation_point,
-        &sumcheck_random_scalars,
-        &[],
-        &Indexes::default(),
-    );
-    let one_eval = sumcheck_evaluations.one_evaluation;
-
-    let mut builder: VerificationBuilder<RistrettoPoint> =
-        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
-    let data_eval = (&data).evaluate_at_point(&evaluation_point);
-    let eval = verifier_evaluate_sign(&mut builder, data_eval, one_eval).unwrap();
-    assert_eq!(eval, Curve25519Scalar::zero());
-}
-
-#[test]
-fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_distribution() {
-    let data = [123_i64, 123, 123];
-
-    let dists = [BitDistribution::new::<Curve25519Scalar, _>(&data)];
-    let scalars = [Curve25519Scalar::from(97), Curve25519Scalar::from(3432)];
-    let sumcheck_random_scalars = SumcheckRandomScalars::new(&scalars, data.len(), 2);
-    let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
-    let sumcheck_evaluations = SumcheckMleEvaluations::new(
-        data.len(),
-        &evaluation_point,
-        &sumcheck_random_scalars,
-        &[],
-        &Indexes::default(),
-    );
-    let one_eval = sumcheck_evaluations.one_evaluation;
-
-    let mut builder: VerificationBuilder<RistrettoPoint> =
-        VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
-    let data_eval = Curve25519Scalar::from(2) * (&data).evaluate_at_point(&evaluation_point);
-    assert!(verifier_evaluate_sign(&mut builder, data_eval, one_eval).is_err());
 }
 
 #[test]

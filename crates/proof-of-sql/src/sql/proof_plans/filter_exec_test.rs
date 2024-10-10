@@ -2,8 +2,8 @@ use super::{test_utility::*, FilterExec};
 use crate::{
     base::{
         database::{
-            owned_table_utility::*, ColumnField, ColumnRef, ColumnType, LiteralValue, OwnedTable,
-            OwnedTableTestAccessor, TableRef, TestAccessor,
+            owned_table_utility::*, Column, ColumnField, ColumnRef, ColumnType, LiteralValue,
+            OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
         },
         map::{IndexMap, IndexSet},
         math::decimal::Precision,
@@ -11,7 +11,7 @@ use crate::{
     },
     sql::{
         proof::{
-            exercise_verification, ProofPlan, ProvableQueryResult, ProverEvaluate, ResultBuilder,
+            exercise_verification, PreproofBuilder, ProofPlan, ProvableQueryResult, ProverEvaluate,
             VerifiableQueryResult,
         },
         proof_exprs::{test_utility::*, ColumnExpr, DynProofExpr, LiteralExpr, TableExpr},
@@ -192,8 +192,10 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         where_clause,
     );
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(0);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(0, &alloc, &accessor);
+    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let mut builder = PreproofBuilder::new();
+    expr.preproof_evaluate(&mut builder);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -203,10 +205,9 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
             ColumnType::Decimal75(Precision::new(75).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new(output_length, &result_cols)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -237,8 +238,10 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let mut builder = PreproofBuilder::new();
+    expr.preproof_evaluate(&mut builder);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -248,10 +251,9 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new(output_length, &result_cols)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [0; 0]),
         int128("c", [0; 0]),
@@ -278,13 +280,14 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let mut builder = PreproofBuilder::new();
+    expr.preproof_evaluate(&mut builder);
     let fields = &[];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new(output_length, &result_cols)
+        .to_owned_table(fields)
+        .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
     assert_eq!(res, expected);
 }
@@ -309,8 +312,10 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
-    let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let output_length = result_cols.first().map_or(0, Column::len) as u64;
+    let mut builder = PreproofBuilder::new();
+    expr.preproof_evaluate(&mut builder);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
         ColumnField::new("c".parse().unwrap(), ColumnType::Int128),
@@ -320,10 +325,9 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
             ColumnType::Decimal75(Precision::new(1).unwrap(), 0),
         ),
     ];
-    let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
-            .to_owned_table(fields)
-            .unwrap();
+    let res: OwnedTable<Curve25519Scalar> = ProvableQueryResult::new(output_length, &result_cols)
+        .to_owned_table(fields)
+        .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
         bigint("b", [3, 5]),
         int128("c", [3, 5]),
