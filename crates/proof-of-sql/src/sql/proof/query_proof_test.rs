@@ -198,7 +198,7 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -378,7 +378,7 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
