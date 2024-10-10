@@ -47,7 +47,9 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
+        let input_length = self.length;
+        let col = alloc.alloc_slice_fill_copy(input_length, self.column_fill_value);
+        builder.set_result_table_length(input_length);
         vec![Column::BigInt(col)]
     }
 
@@ -198,11 +200,12 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _builder: &mut ResultBuilder,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
+        builder.set_result_table_length(2);
         vec![Column::BigInt(res)]
     }
 
@@ -378,11 +381,12 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _builder: &mut ResultBuilder,
+        builder: &mut ResultBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
+        builder.set_result_table_length(2);
         vec![Column::BigInt(res)]
     }
 
@@ -593,6 +597,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         builder.request_post_result_challenges(2);
+        builder.set_result_table_length(2);
         vec![Column::BigInt(&[9, 25])]
     }
 

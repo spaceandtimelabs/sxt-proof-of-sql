@@ -152,10 +152,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+                .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -167,13 +168,13 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
 
         // Compute filtered_columns and indexes
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        builder.set_table_length(result_len);
+        builder.set_result_table_length(result_len);
         builder.request_post_result_challenges(2);
         filtered_columns
     }
