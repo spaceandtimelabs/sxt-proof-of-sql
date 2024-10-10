@@ -52,8 +52,15 @@ impl ProvableQueryResult {
     }
 
     /// Form intermediate query result from index rows and result columns
+    /// # Panics
+    ///
+    /// Will panic if `table_length` is somehow larger than the length of some column
+    /// which should never happen.
     #[must_use]
     pub fn new<'a, S: Scalar>(table_length: u64, columns: &'a [Column<'a, S>]) -> Self {
+        assert!(columns
+            .iter()
+            .all(|column| table_length <= column.len() as u64));
         let mut sz = 0;
         for col in columns {
             sz += col.num_bytes(table_length);

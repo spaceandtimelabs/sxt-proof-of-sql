@@ -14,7 +14,8 @@ pub trait ProvableResultColumn {
 
 impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
     fn num_bytes(&self, length: u64) -> usize {
-        (0..length as usize).map(|i| self[i].required_bytes()).sum()
+        assert_eq!(self.len() as u64, length);
+        self.iter().map(ProvableResultElement::required_bytes).sum()
     }
 
     fn write(&self, out: &mut [u8], length: u64) -> usize {
