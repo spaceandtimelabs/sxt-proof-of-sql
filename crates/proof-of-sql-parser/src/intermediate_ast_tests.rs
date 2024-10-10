@@ -5,7 +5,7 @@ use crate::{
     utility::*,
     SelectStatement,
 };
-use alloc::{borrow::ToOwned, string::ToString, vec};
+use alloc::{borrow::ToOwned, string::{String, ToString}, vec};
 
 // Sting parser tests
 #[test]
@@ -26,7 +26,7 @@ fn we_can_correctly_escape_the_single_quote_character() {
 
 #[test]
 fn we_can_parse_empty_strings() {
-    assert_eq!(StringLiteralParser::new().parse("''"), Ok("".to_string()));
+    assert_eq!(StringLiteralParser::new().parse("''"), Ok(String::new()));
 }
 
 #[test]
