@@ -218,7 +218,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
     terms.push((S::one(), vec![Box::new(expr)]));
 
     // expr bit decomposition
-    let const_part = S::from(dist.constant_part());
+    let const_part = S::from_limbs(dist.constant_part());
     if !const_part.is_zero() {
         terms.push((-const_part, vec![Box::new(sign_mle)]));
     }
@@ -227,7 +227,7 @@ fn prove_bit_decomposition<'a, S: Scalar>(
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         terms.push((
-            -S::from(mult),
+            -S::from_limbs(mult),
             vec![Box::new(sign_mle), Box::new(bits[vary_index])],
         ));
         vary_index += 1;
@@ -249,12 +249,12 @@ fn verify_bit_decomposition<C: Commitment>(
     let sign_eval = bit_evals.last().unwrap();
     let sign_eval = builder.mle_evaluations.input_one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;
-    eval -= sign_eval * C::Scalar::from(dist.constant_part());
+    eval -= sign_eval * C::Scalar::from_limbs(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
         let bit_eval = bit_evals[vary_index];
-        eval -= C::Scalar::from(mult) * sign_eval * bit_eval;
+        eval -= C::Scalar::from_limbs(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
     builder.produce_sumcheck_subpolynomial_evaluation(SumcheckSubpolynomialType::Identity, eval);

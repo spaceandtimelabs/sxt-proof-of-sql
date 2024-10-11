@@ -1,5 +1,5 @@
 use crate::base::scalar::MontScalar;
-use ark_ff::MontConfig;
+use ark_ff::{MontConfig, PrimeField};
 
 /// U256 represents an unsigned 256-bits integer number
 ///

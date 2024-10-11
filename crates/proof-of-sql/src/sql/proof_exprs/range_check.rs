@@ -10,7 +10,7 @@ fn decompose_scalar_to_words<'a, S: Scalar + 'a>(
     byte_counts: &mut [u64],
 ) {
     for (i, scalar) in scalars.iter().enumerate() {
-        let scalar_array: [u64; 4] = (*scalar).into(); // Convert scalar to u64 array
+        let scalar_array: [u64; 4] = (*scalar).to_limbs(); // Convert scalar to u64 array
         let scalar_bytes_full = cast_slice::<u64, u8>(&scalar_array); // Cast u64 array to u8 slice
         let scalar_bytes = &scalar_bytes_full[..31];
 

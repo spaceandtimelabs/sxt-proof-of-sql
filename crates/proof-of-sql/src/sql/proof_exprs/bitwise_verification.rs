@@ -38,12 +38,12 @@ pub fn verify_constant_sign_decomposition<S: Scalar>(
             && !dist.has_varying_sign_bit()
     );
     let lhs = if dist.sign_bit() { -eval } else { eval };
-    let mut rhs = S::from(dist.constant_part()) * one_eval;
+    let mut rhs = S::from_limbs(dist.constant_part()) * one_eval;
     let mut vary_index = 0;
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
         let mut mult = [0u64; 4];
         mult[int_index] = 1u64 << bit_index;
-        rhs += S::from(mult) * bit_evals[vary_index];
+        rhs += S::from_limbs(mult) * bit_evals[vary_index];
         vary_index += 1;
     });
     if lhs == rhs {
@@ -72,7 +72,7 @@ pub fn verify_constant_abs_decomposition<S: Scalar>(
             && dist.has_varying_sign_bit()
     );
     let t = one_eval - S::TWO * sign_eval;
-    if S::from(dist.constant_part()) * t == eval {
+    if S::from_limbs(dist.constant_part()) * t == eval {
         Ok(())
     } else {
         Err(ProofError::VerificationError {
