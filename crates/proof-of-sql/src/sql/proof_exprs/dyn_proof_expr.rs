@@ -74,13 +74,13 @@ impl<C: Commitment> DynProofExpr<C> {
     pub fn try_new_equals(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Equal) {
+        if type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Equal) {
+            Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
+        } else {
             Err(ConversionError::DataTypeMismatch {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
-        } else {
-            Ok(Self::Equals(EqualsExpr::new(Box::new(lhs), Box::new(rhs))))
         }
     }
     /// Create a new inequality expression
@@ -91,21 +91,21 @@ impl<C: Commitment> DynProofExpr<C> {
     ) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !type_check_binary_operation(
+        if type_check_binary_operation(
             &lhs_datatype,
             &rhs_datatype,
             BinaryOperator::LessThanOrEqual,
         ) {
-            Err(ConversionError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        } else {
             Ok(Self::Inequality(InequalityExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
                 is_lte,
             )))
+        } else {
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         }
     }
 
@@ -113,17 +113,17 @@ impl<C: Commitment> DynProofExpr<C> {
     pub fn try_new_add(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Add) {
-            Err(ConversionError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        } else {
+        if type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Add) {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
                 false,
             )))
+        } else {
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         }
     }
 
@@ -131,17 +131,17 @@ impl<C: Commitment> DynProofExpr<C> {
     pub fn try_new_subtract(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Subtract) {
-            Err(ConversionError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        } else {
+        if type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Subtract) {
             Ok(Self::AddSubtract(AddSubtractExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
                 true,
             )))
+        } else {
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         }
     }
 
@@ -149,16 +149,16 @@ impl<C: Commitment> DynProofExpr<C> {
     pub fn try_new_multiply(lhs: DynProofExpr<C>, rhs: DynProofExpr<C>) -> ConversionResult<Self> {
         let lhs_datatype = lhs.data_type();
         let rhs_datatype = rhs.data_type();
-        if !type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Multiply) {
-            Err(ConversionError::DataTypeMismatch {
-                left_type: lhs_datatype.to_string(),
-                right_type: rhs_datatype.to_string(),
-            })
-        } else {
+        if type_check_binary_operation(&lhs_datatype, &rhs_datatype, BinaryOperator::Multiply) {
             Ok(Self::Multiply(MultiplyExpr::new(
                 Box::new(lhs),
                 Box::new(rhs),
             )))
+        } else {
+            Err(ConversionError::DataTypeMismatch {
+                left_type: lhs_datatype.to_string(),
+                right_type: rhs_datatype.to_string(),
+            })
         }
     }
 
