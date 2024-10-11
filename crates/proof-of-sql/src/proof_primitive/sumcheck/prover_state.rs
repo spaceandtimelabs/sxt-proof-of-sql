@@ -23,9 +23,10 @@ pub struct ProverState<S: Scalar> {
 impl<S: Scalar> ProverState<S> {
     #[tracing::instrument(name = "ProverState::create", level = "debug", skip_all)]
     pub fn create(polynomial: &CompositePolynomial<S>) -> Self {
-        if polynomial.num_variables == 0 {
-            panic!("Attempt to prove a constant.")
-        }
+        assert!(
+            polynomial.num_variables != 0,
+            "Attempt to prove a constant."
+        );
 
         // create a deep copy of all unique MLExtensions
         let flattened_ml_extensions = polynomial
