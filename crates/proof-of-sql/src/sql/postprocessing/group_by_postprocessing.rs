@@ -232,31 +232,28 @@ impl<S: Scalar> PostprocessingStep<S> for GroupByPostprocessing {
         let selection_in = vec![true; owned_table.num_rows()];
         let (sum_identifiers, sum_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Sum)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (max_identifiers, max_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Max)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let (min_identifiers, min_columns): (Vec<_>, Vec<_>) = evaluated_columns
             .get(&AggregationOperator::Min)
-            .map(|tuple| {
+            .map_or((vec![], vec![]), |tuple| {
                 tuple
                     .iter()
                     .map(|(id, c)| (*id, Column::<S>::from_owned_column(c, &alloc)))
                     .unzip()
-            })
-            .unwrap_or((vec![], vec![]));
+            });
         let aggregation_results = aggregate_columns(
             &alloc,
             &group_by_ins,
