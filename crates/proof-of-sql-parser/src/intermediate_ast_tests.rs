@@ -780,7 +780,7 @@ fn we_can_parse_multiple_order_by() {
 // But due to some lalrpop restriction, we aren't.
 // This problem will be addressed in a future PR.
 #[test]
-#[should_panic]
+#[should_panic(expected = "lalrpop restriction prevents parsing reserved keywords in order by")]
 fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
     let ast = "select a as asc from tab order by a asc"
         .parse::<SelectStatement>()

@@ -262,13 +262,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Long names are not allowed")]
     fn long_names_panic() {
         Identifier::new("t".repeat(65));
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "Long Unicode names are not allowed")]
     fn long_unicode_names_panic() {
         Identifier::new("茶".repeat(22));
     }
