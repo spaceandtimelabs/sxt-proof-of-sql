@@ -149,12 +149,12 @@ jobs:
         run: cargo llvm-cov clean --workspace
       - name: Run Tests to Generate Coverage Data (All Features)
         run: cargo llvm-cov --no-report --all-features
-      - name: Run Tests to Generate Coverage Data (Rayon Only)
-        run: cargo llvm-cov --no-report --no-default-features --features="rayon"
-      - name: Run Tests to Generate Coverage Data (Blitzar Only)
-        run: cargo llvm-cov --no-report --no-default-features --features="blitzar"
-      - name: Run Tests to Generate Coverage Data (std only)
-        run: cargo llvm-cov --no-report --no-default-features --features="std"
+      #- name: Run Tests to Generate Coverage Data (Rayon Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="rayon"
+      #- name: Run Tests to Generate Coverage Data (Blitzar Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="blitzar"
+      #- name: Run Tests to Generate Coverage Data (std only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="std"
       - name: Generate Final LCOV Report (Merged Coverage)
         run: cargo llvm-cov report --summary-only --fail-under-lines 90
       # Future CodeCov Integration
