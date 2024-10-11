@@ -1,7 +1,5 @@
 /// Track the result created by a query
-pub struct ResultBuilder {
-    result_table_length: usize,
-
+pub struct FirstRoundBuilder {
     /// The number of challenges used in the proof.
     /// Specifically, these are the challenges that the verifier sends to
     /// the prover after the prover sends the result, but before the prover
@@ -9,29 +7,18 @@ pub struct ResultBuilder {
     num_post_result_challenges: usize,
 }
 
-impl Default for ResultBuilder {
+impl Default for FirstRoundBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ResultBuilder {
+impl FirstRoundBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
     pub fn new() -> Self {
         Self {
-            result_table_length: 0,
             num_post_result_challenges: 0,
         }
-    }
-
-    /// Get the length of the output table
-    pub fn result_table_length(&self) -> usize {
-        self.result_table_length
-    }
-
-    /// Set the length of the output table
-    pub fn set_result_table_length(&mut self, result_table_length: usize) {
-        self.result_table_length = result_table_length;
     }
 
     /// The number of challenges used in the proof.

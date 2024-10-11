@@ -13,8 +13,8 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, HonestProver, ProofBuilder, ProofPlan, ProverEvaluate,
-            ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
+            ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
@@ -148,11 +148,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -173,17 +172,19 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .collect();
 
         // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        builder.set_result_table_length(result_len);
-        builder.request_post_result_challenges(2);
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         filtered_columns
     }
 
-    #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
+    }
+
+    #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -263,7 +264,7 @@ fn verify_filter<C: Commitment>(
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
     beta: S,
