@@ -290,12 +290,14 @@ pub(super) mod tests {
             k => Some(k),
         })
         .enumerate()
-        .filter_map(|(i, b)| if b % 2 == 0 {
-            None
-        } else {
-            Some(point.get(i).copied().unwrap_or(F::ZERO))
+        .filter_map(|(i, b)| {
+            if b % 2 == 0 {
+                None
+            } else {
+                Some(point.get(i).copied().unwrap_or(F::ZERO))
+            }
         })
-        .product()        
+        .product()
     }
 
     #[test]

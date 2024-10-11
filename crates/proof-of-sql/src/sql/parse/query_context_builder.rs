@@ -152,7 +152,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_binary_expr(
         &mut self,
-        op: BinaryOperator, 
+        op: BinaryOperator,
         left: &Expression,
         right: &Expression,
     ) -> ConversionResult<ColumnType> {
@@ -170,7 +170,7 @@ impl<'a> QueryContextBuilder<'a> {
             | BinaryOperator::Subtract
             | BinaryOperator::Add => Ok(left_dtype),
         }
-    }    
+    }
 
     fn visit_unary_expr(
         &mut self,

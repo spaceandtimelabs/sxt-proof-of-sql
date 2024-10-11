@@ -31,7 +31,11 @@ pub fn exercise_verification(
     table_ref: TableRef,
 ) {
     let verification_result = res.verify(expr, accessor, &());
-    assert!(verification_result.is_ok(), "Verification failed: {:?}", verification_result.err());
+    assert!(
+        verification_result.is_ok(),
+        "Verification failed: {:?}",
+        verification_result.err()
+    );
 
     // try changing the result
     tamper_result(res, expr, accessor);

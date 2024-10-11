@@ -58,7 +58,7 @@ where
 
     fn id(&self) -> *const c_void {
         self.as_ptr().cast::<c_void>()
-    } 
+    }
 }
 
 /// TODO: add docs

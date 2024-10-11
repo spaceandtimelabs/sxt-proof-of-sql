@@ -372,7 +372,7 @@ impl<T: MontConfig<4>> Display for MontScalar<T> {
             }
         } else {
             None
-        };        
+        };
         match (f.alternate(), sign) {
             (false, None) => {
                 let data = self.0.into_bigint().0;
