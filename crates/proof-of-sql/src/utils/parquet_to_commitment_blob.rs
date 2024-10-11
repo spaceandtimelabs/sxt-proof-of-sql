@@ -1,15 +1,20 @@
 use crate::{
     base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters},
+    proof_primitive::dory::{
+        DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters,
+    },
 };
-use arrow::{array::RecordBatch, compute::concat_batches, error::ArrowError};
-use curve25519_dalek::RistrettoPoint;
+use arrow::{
+    array::RecordBatch,
+    compute::{concat_batches, sort_to_indices, take},
+    error::ArrowError,
+};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write};
 
 /// Performs the following:
 /// Reads a parquet file into a `RecordBatch`,
@@ -19,13 +24,51 @@ use std::{fs::File, io::Write, path::Path};
 /// # Panics
 ///
 /// Panics when fails any part of the process
-pub fn read_parquet_file_to_commitment_as_blob(path: &str) {
-    let path_object = Path::new(path);
-    read_parquet_file_to_commitment_as_blob_and_write_to_file::<RistrettoPoint>(
-        path_object,
-        (),
-        "ristretto_point".to_string(),
-    );
+pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>) {
+    let unsorted_record_batches_with_unmodified_schema: Vec<RecordBatch> = paths
+        .iter()
+        .map(|path| {
+            let file = File::open(path).unwrap();
+            let reader = ParquetRecordBatchReaderBuilder::try_new(file)
+                .unwrap()
+                .build()
+                .unwrap();
+            let record_batch_results: Vec<Result<RecordBatch, ArrowError>> = reader.collect();
+            let record_batches: Vec<RecordBatch> = record_batch_results
+                .into_iter()
+                .map(|record_batch_result| record_batch_result.unwrap())
+                .collect();
+            let schema = record_batches.first().unwrap().schema();
+            concat_batches(&schema, &record_batches).unwrap()
+        })
+        .collect();
+    let schema = unsorted_record_batches_with_unmodified_schema
+        .first()
+        .unwrap()
+        .schema();
+    let unsorted_record_batch_with_unmodified_schema =
+        concat_batches(&schema, &unsorted_record_batches_with_unmodified_schema).unwrap();
+    let indices = sort_to_indices(
+        unsorted_record_batch_with_unmodified_schema
+            .column_by_name("SXTMETA_ROW_NUMBER")
+            .unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let index = schema.index_of("SXTMETA_ROW_NUMBER").unwrap();
+    let columns = unsorted_record_batch_with_unmodified_schema
+        .columns()
+        .iter()
+        .map(|c| take(&*c, &indices, None).unwrap())
+        .collect();
+    let mut record_batch = RecordBatch::try_new(
+        unsorted_record_batch_with_unmodified_schema.schema(),
+        columns,
+    )
+    .unwrap();
+    record_batch.remove_column(index);
+
     let setup_seed = "spaceandtime".to_string();
     let mut rng = {
         // Convert the seed string to bytes and create a seeded RNG
@@ -42,12 +85,12 @@ pub fn read_parquet_file_to_commitment_as_blob(path: &str) {
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
     read_parquet_file_to_commitment_as_blob_and_write_to_file::<DoryCommitment>(
-        path_object,
+        &record_batch,
         dory_prover_setup,
         "dory_commitment".to_string(),
     );
     read_parquet_file_to_commitment_as_blob_and_write_to_file::<DynamicDoryCommitment>(
-        path_object,
+        &record_batch,
         &prover_setup,
         "dynamic_dory_commitment".to_string(),
     );
@@ -59,27 +102,13 @@ pub fn read_parquet_file_to_commitment_as_blob(path: &str) {
 fn read_parquet_file_to_commitment_as_blob_and_write_to_file<
     C: Commitment + Serialize + for<'a> Deserialize<'a>,
 >(
-    path: &Path,
+    record_batch: &RecordBatch,
     setup: C::PublicSetup<'_>,
-    output_file_suffix: String,
+    output_file_base: String,
 ) {
-    let file = File::open(path).unwrap();
-    let reader = ParquetRecordBatchReaderBuilder::try_new(file)
-        .unwrap()
-        .build()
-        .unwrap();
-    let record_batch_results: Vec<Result<RecordBatch, ArrowError>> = reader.collect();
-    let record_batches: Vec<RecordBatch> = record_batch_results
-        .into_iter()
-        .map(|record_batch_result| record_batch_result.unwrap())
-        .collect();
-    let schema = record_batches.first().unwrap().schema();
-    let record_batch: RecordBatch = concat_batches(&schema, &record_batches).unwrap();
     let commitment = TableCommitment::<C>::try_from_record_batch(&record_batch, &setup).unwrap();
     let bytes: Vec<u8> = to_allocvec(&commitment).unwrap();
-    let path_base = path.file_stem().unwrap().to_str().unwrap();
     let path_extension = "txt";
-    let mut output_file =
-        File::create(format!("{path_base}_{output_file_suffix}.{path_extension}")).unwrap();
+    let mut output_file = File::create(format!("{output_file_base}.{path_extension}")).unwrap();
     output_file.write_all(&bytes).unwrap();
 }
