@@ -12,7 +12,7 @@ This example demonstrates generating and verifying a proof of the query `SELECT 
 #### Run
 
 ```bash
-cargo run --example hello_world
+cargo run --example hello_world --features="test"
 ```
 
 #### Output
