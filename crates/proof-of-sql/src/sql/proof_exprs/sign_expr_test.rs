@@ -2,7 +2,7 @@ use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_eva
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+        CountBuilder, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
         VerificationBuilder,
     },
 };
@@ -59,12 +59,12 @@ fn we_can_verify_a_constant_decomposition() {
     let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
+        data.len(),
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Indexes::default(),
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
@@ -83,12 +83,12 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
+        data.len(),
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Indexes::default(),
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());

@@ -165,7 +165,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
     let expr: DynProofPlan<RistrettoPoint> =
         projection(cols_expr_plan(t, &["b", "c", "d", "e"], &accessor), tab(t));
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(0);
+    let mut builder = ResultBuilder::new();
     let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
@@ -177,7 +177,7 @@ fn we_can_get_an_empty_result_from_a_basic_projection_on_an_empty_table_using_re
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([
@@ -204,11 +204,11 @@ fn we_can_get_no_columns_from_a_basic_projection_with_no_selected_columns_using_
     accessor.add_table(t, data, 0);
     let expr: DynProofPlan<RistrettoPoint> = projection(cols_expr_plan(t, &[], &accessor), tab(t));
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
+    let mut builder = ResultBuilder::new();
     let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected = OwnedTable::try_new(IndexMap::default()).unwrap();
@@ -240,7 +240,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         tab(t),
     );
     let alloc = Bump::new();
-    let mut builder = ResultBuilder::new(5);
+    let mut builder = ResultBuilder::new();
     let result_cols = expr.result_evaluate(&mut builder, &alloc, &accessor);
     let fields = &[
         ColumnField::new("b".parse().unwrap(), ColumnType::BigInt),
@@ -252,7 +252,7 @@ fn we_can_get_the_correct_result_from_a_basic_projection_using_result_evaluate()
         ),
     ];
     let res: OwnedTable<Curve25519Scalar> =
-        ProvableQueryResult::new(&builder.result_index_vector, &result_cols)
+        ProvableQueryResult::new(builder.result_table_length() as u64, &result_cols)
             .to_owned_table(fields)
             .unwrap();
     let expected: OwnedTable<Curve25519Scalar> = owned_table([

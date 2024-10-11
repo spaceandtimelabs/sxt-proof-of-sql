@@ -2,9 +2,13 @@
 use ark_std::test_rng;
 use blitzar::compute::init_backend;
 use proof_of_sql::{
-    base::database::{owned_table_utility::*, OwnedTableTestAccessor, TestAccessor},
     proof_primitive::dory::{
         DynamicDoryEvaluationProof, ProverSetup, PublicParameters, VerifierSetup,
+  },
+
+    base::database::{
+        owned_table_utility::{bigint, owned_table, varchar},
+        OwnedTableTestAccessor, TestAccessor,
     },
     sql::{parse::QueryExpr, proof::QueryProof},
 };
