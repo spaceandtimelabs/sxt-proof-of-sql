@@ -7,7 +7,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
 };
 use alloc::{boxed::Box, vec};
 use bumpalo::Bump;
@@ -58,7 +58,7 @@ impl<C: Commitment> ProofExpr<C> for OrExpr<C> {
     #[tracing::instrument(name = "OrExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
@@ -106,7 +106,7 @@ pub fn result_evaluate_or<'a>(
     reason = "lhs and rhs are guaranteed to have the same length, ensuring no panic occurs"
 )]
 pub fn prover_evaluate_or<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     lhs: &'a [bool],
     rhs: &'a [bool],

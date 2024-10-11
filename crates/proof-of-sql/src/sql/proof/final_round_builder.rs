@@ -12,7 +12,7 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use num_traits::Zero;
 
 /// Track components used to form a query's proof
-pub struct ProofBuilder<'a, S: Scalar> {
+pub struct FinalRoundBuilder<'a, S: Scalar> {
     table_length: usize,
     num_sumcheck_variables: usize,
     bit_distributions: Vec<BitDistribution>,
@@ -29,7 +29,7 @@ pub struct ProofBuilder<'a, S: Scalar> {
     post_result_challenges: Vec<S>,
 }
 
-impl<'a, S: Scalar> ProofBuilder<'a, S> {
+impl<'a, S: Scalar> FinalRoundBuilder<'a, S> {
     pub fn new(
         table_length: usize,
         num_sumcheck_variables: usize,
@@ -96,7 +96,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Compute commitments of all the interemdiate MLEs used in sumcheck
     #[tracing::instrument(
-        name = "ProofBuilder::commit_intermediate_mles",
+        name = "FinalRoundBuilder::commit_intermediate_mles",
         level = "debug",
         skip_all
     )]
@@ -115,7 +115,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Given random multipliers, construct an aggregatated sumcheck polynomial from all
     /// the individual subpolynomials.
     #[tracing::instrument(
-        name = "ProofBuilder::make_sumcheck_polynomial",
+        name = "FinalRoundBuilder::make_sumcheck_polynomial",
         level = "debug",
         skip_all
     )]
@@ -140,7 +140,7 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
     /// Given the evaluation vector, compute evaluations of all the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
     #[tracing::instrument(
-        name = "ProofBuilder::evaluate_pcs_proof_mles",
+        name = "FinalRoundBuilder::evaluate_pcs_proof_mles",
         level = "debug",
         skip_all
     )]
@@ -154,7 +154,11 @@ impl<'a, S: Scalar> ProofBuilder<'a, S> {
 
     /// Given random multipliers, multiply and add together all of the MLEs used in sumcheck except
     /// for those that correspond to result columns sent to the verifier.
-    #[tracing::instrument(name = "ProofBuilder::fold_pcs_proof_mles", level = "debug", skip_all)]
+    #[tracing::instrument(
+        name = "FinalRoundBuilder::fold_pcs_proof_mles",
+        level = "debug",
+        skip_all
+    )]
     pub fn fold_pcs_proof_mles(&self, multipliers: &[S]) -> Vec<S> {
         assert_eq!(multipliers.len(), self.pcs_proof_mles.len());
         let mut res = vec![Zero::zero(); self.table_length];

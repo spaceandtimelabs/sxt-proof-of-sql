@@ -1,18 +1,18 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
+    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
     SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
     base::{
         bit::BitDistribution,
         commitment::{Commitment, CommitmentEvaluationProof},
-        database::{CommitmentAccessor, DataAccessor},
+        database::{Column, CommitmentAccessor, DataAccessor},
         math::log2_up,
         polynomial::{compute_evaluation_vector, CompositePolynomialInfo},
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::proof::{QueryData, ResultBuilder},
+    sql::proof::{FirstRoundBuilder, QueryData},
 };
 use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
@@ -53,10 +53,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
-        let mut result_builder = ResultBuilder::new();
-        let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
-        let provable_result =
-            ProvableQueryResult::new(result_builder.result_table_length() as u64, &result_cols);
+
+        // Evaluate query result
+        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let output_length = result_cols.first().map_or(0, Column::len);
+        let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
+
+        // Prover First Round
+        let mut first_round_builder = FirstRoundBuilder::new();
+        expr.first_round_evaluate(&mut first_round_builder);
 
         // construct a transcript for the proof
         let mut transcript: Keccak256Transcript =
@@ -69,12 +74,12 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         // Note: the last challenge in the vec is the first one that is consumed.
         let post_result_challenges =
             core::iter::repeat_with(|| transcript.scalar_challenge_as_be())
-                .take(result_builder.num_post_result_challenges())
+                .take(first_round_builder.num_post_result_challenges())
                 .collect();
 
         let mut builder =
-            ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
-        expr.prover_evaluate(&mut builder, &alloc, accessor);
+            FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
+        expr.final_round_evaluate(&mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
