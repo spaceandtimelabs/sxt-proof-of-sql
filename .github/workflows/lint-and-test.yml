@@ -104,10 +104,16 @@ jobs:
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
       - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
         run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
-      - name: Run hello_world example
+      - name: Run hello_world example (With Blitzar)
+        run: cargo run --example hello_world --features="test"
+      - name: Run hello_world example (Without Blitzar and With Rayon)
+        run: cargo run --example hello_world --no-default-features --features="rayon test"
+      - name: Run hello_world example (Without Blitzar and Without Rayon)
         run: cargo run --example hello_world --no-default-features --features="test"
-      - name: Run posql_db example
+      - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
+      - name: Run posql_db example (Without Blitzar)
+        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
 
   clippy:
     name: Clippy

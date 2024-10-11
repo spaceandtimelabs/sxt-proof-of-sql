@@ -73,12 +73,12 @@ The "Hello World" example demonstrates generating and verifying a proof of the q
 #### Run
 
 ```bash
-cargo run --example hello_world --no-default-features --features="test" 
+cargo run --example hello_world 
 ```
 > [!NOTE]
-> To run this example with the `blitzar` feature:
+> To run this example without the `blitzar` (i.e CPU only) feature:
 > ```bash
-> cargo run --example hello_world --features="blitzar test"
+> cargo run --example hello_world --no-default-features --features="rayon test"
 > ```
 
 #### Output
