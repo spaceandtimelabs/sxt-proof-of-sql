@@ -6,7 +6,7 @@ use crate::{
         map::IndexSet,
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
@@ -50,7 +50,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
     #[tracing::instrument(name = "NotExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
@@ -66,7 +66,7 @@ impl<C: Commitment> ProofExpr<C> for NotExpr<C> {
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
         let eval = self.expr.verifier_evaluate(builder, accessor)?;
-        Ok(builder.mle_evaluations.one_evaluation - eval)
+        Ok(builder.mle_evaluations.input_one_evaluation - eval)
     }
 
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {

@@ -22,6 +22,7 @@ use std::env;
 
 const SIZE: usize = 1_000_000;
 
+#[allow(clippy::items_after_statements)]
 fn main() {
     init_backend();
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

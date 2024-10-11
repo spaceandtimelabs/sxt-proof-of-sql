@@ -10,7 +10,7 @@ use crate::{
         proof::ProofError,
     },
     sql::{
-        proof::{CountBuilder, ProofBuilder, SumcheckSubpolynomialType, VerificationBuilder},
+        proof::{CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialType, VerificationBuilder},
         proof_exprs::multiply_columns,
     },
 };
@@ -69,7 +69,7 @@ impl<C: Commitment> ProofExpr<C> for MultiplyExpr<C> {
     )]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {

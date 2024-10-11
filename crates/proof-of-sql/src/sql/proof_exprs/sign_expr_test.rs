@@ -2,7 +2,7 @@ use super::{count_sign, prover_evaluate_sign, result_evaluate_sign, verifier_eva
 use crate::{
     base::{bit::BitDistribution, polynomial::MultilinearExtension, scalar::Curve25519Scalar},
     sql::proof::{
-        CountBuilder, Indexes, ProofBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
+        CountBuilder, FinalRoundBuilder, SumcheckMleEvaluations, SumcheckRandomScalars,
         VerificationBuilder,
     },
 };
@@ -16,7 +16,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_constant_column() {
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
-    let mut builder = ProofBuilder::new(3, 2, Vec::new());
+    let mut builder = FinalRoundBuilder::new(3, 2, Vec::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
     assert_eq!(sign, [false; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -28,7 +28,7 @@ fn prover_evaluation_generates_the_bit_distribution_of_a_negative_constant_colum
     let dist = BitDistribution::new::<Curve25519Scalar, _>(&data);
     let alloc = Bump::new();
     let data: Vec<Curve25519Scalar> = data.into_iter().map(Curve25519Scalar::from).collect();
-    let mut builder = ProofBuilder::new(3, 2, Vec::new());
+    let mut builder = FinalRoundBuilder::new(3, 2, Vec::new());
     let sign = prover_evaluate_sign(&mut builder, &alloc, &data, false);
     assert_eq!(sign, [true; 3]);
     assert_eq!(builder.bit_distributions(), [dist]);
@@ -59,12 +59,12 @@ fn we_can_verify_a_constant_decomposition() {
     let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
+        data.len(),
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Indexes::default(),
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());
@@ -83,12 +83,12 @@ fn verification_of_constant_data_fails_if_the_commitment_doesnt_match_the_bit_di
     let evaluation_point = [Curve25519Scalar::from(324), Curve25519Scalar::from(97)];
     let sumcheck_evaluations = SumcheckMleEvaluations::new(
         data.len(),
+        data.len(),
         &evaluation_point,
         &sumcheck_random_scalars,
         &[],
-        &Indexes::default(),
     );
-    let one_eval = sumcheck_evaluations.one_evaluation;
+    let one_eval = sumcheck_evaluations.input_one_evaluation;
 
     let mut builder: VerificationBuilder<RistrettoPoint> =
         VerificationBuilder::new(0, sumcheck_evaluations, &dists, &[], &[], &[], Vec::new());

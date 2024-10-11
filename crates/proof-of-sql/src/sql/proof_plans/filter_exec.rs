@@ -13,8 +13,8 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, HonestProver, Indexes, ProofBuilder, ProofPlan, ProverEvaluate,
-            ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
+            ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
@@ -101,13 +101,7 @@ where
                 .map(|aliased_expr| aliased_expr.expr.verifier_evaluate(builder, accessor))
                 .collect::<Result<Vec<_>, _>>()?,
         );
-        // 3. indexes
-        let indexes_eval = builder.mle_evaluations.result_indexes_evaluation.ok_or(
-            ProofError::VerificationError {
-                error: "invalid indexes",
-            },
-        )?;
-        // 4. filtered_columns
+        // 3. filtered_columns
         let filtered_columns_evals: Vec<_> = repeat_with(|| builder.consume_intermediate_mle())
             .take(self.aliased_results.len())
             .collect();
@@ -154,14 +148,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+                .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -173,23 +167,24 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
 
         // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        builder.request_post_result_challenges(2);
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         filtered_columns
     }
 
-    #[tracing::instrument(name = "FilterExec::prover_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
+    }
+
+    #[tracing::instrument(name = "FilterExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -206,7 +201,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         // 3. Produce MLEs
         filtered_columns.iter().copied().for_each(|column| {
@@ -238,16 +233,8 @@ fn verify_filter<C: Commitment>(
     s_eval: C::Scalar,
     d_evals: &[C::Scalar],
 ) -> Result<(), ProofError> {
-    let one_eval = builder.mle_evaluations.one_evaluation;
-
-    let chi_eval = match builder.mle_evaluations.result_indexes_evaluation {
-        Some(eval) => eval,
-        None => {
-            return Err(ProofError::VerificationError {
-                error: "Result indexes not valid.",
-            })
-        }
-    };
+    let one_eval = builder.mle_evaluations.input_one_evaluation;
+    let chi_eval = builder.mle_evaluations.output_one_evaluation;
 
     let c_fold_eval = alpha * one_eval + fold_vals(beta, c_evals);
     let d_bar_fold_eval = alpha * one_eval + fold_vals(beta, d_evals);
@@ -277,7 +264,7 @@ fn verify_filter<C: Commitment>(
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
     beta: S,

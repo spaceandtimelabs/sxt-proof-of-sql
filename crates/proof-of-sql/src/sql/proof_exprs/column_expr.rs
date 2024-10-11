@@ -6,7 +6,7 @@ use crate::{
         map::IndexSet,
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::marker::PhantomData;
@@ -59,7 +59,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     }
 
     /// Evaluate the column expression and
-    /// add the result to the [`ResultBuilder`](crate::sql::proof::ResultBuilder)
+    /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
     fn result_evaluate<'a>(
         &self,
         table_length: usize,
@@ -75,7 +75,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// add the components needed to prove the result
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
