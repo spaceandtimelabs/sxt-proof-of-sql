@@ -156,12 +156,14 @@ jobs:
       - name: Run Tests to Generate Coverage Data (std only)
         run: cargo llvm-cov --no-report --no-default-features --features="std"
       - name: Generate Final LCOV Report (Merged Coverage)
-        run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
+        run: cargo llvm-cov report --summary-only --fail-under-lines 95
       # Future CodeCov Integration
       # To integrate with CodeCov in the future,, follow these steps: 
       # 1. Add the CodeCov token to the repository secrets.
       # 2. Use the CodeCov Action to upload the coverage report. For more detailed info refer to [CodeCov Documentation](https://docs.codecov.com/docs).
       #
+      # - name: Generate Final LCOV Report (Merged Coverage)
+      #   run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
       # - name: Upload Coverage to Codecov
       # uses: codecov/codecov-action@v2
       # with:
