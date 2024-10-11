@@ -83,11 +83,11 @@ workspace = true
 
 [[example]]
 name = "hello_world"
-required-features = [ "blitzar", "test" ]
+required-features = ["test"]
 
 [[example]]
 name = "posql_db"
-required-features = [ "arrow", "blitzar" ]
+required-features = [ "arrow" ]
 
 [[bench]]
 name = "posql_benches"
