@@ -363,16 +363,16 @@ impl<T: MontConfig<4>> From<&MontScalar<T>> for [u64; 4] {
 
 impl<T: MontConfig<4>> Display for MontScalar<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let sign = match f.sign_plus() {
-            true => {
-                let n = -self;
-                match self > &n {
-                    true => Some(Some(n)),
-                    false => Some(None),
-                }
+        let sign = if f.sign_plus() {
+            let n = -self;
+            if self > &n {
+                Some(Some(n))
+            } else {
+                Some(None)
             }
-            false => None,
-        };
+        } else {
+            None
+        };        
         match (f.alternate(), sign) {
             (false, None) => {
                 let data = self.0.into_bigint().0;
