@@ -153,11 +153,10 @@ jobs:
         run: cargo llvm-cov --no-report --no-default-features --features="rayon"
       - name: Run Tests to Generate Coverage Data (Blitzar Only)
         run: cargo llvm-cov --no-report --no-default-features --features="blitzar"
-      - name: Run Tests to Generate Coverage Data (No Features)
-        run: cargo llvm-cov --no-report --no-default-features
+      - name: Run Tests to Generate Coverage Data (std only)
+        run: cargo llvm-cov --no-report --no-default-features --features="std"
       - name: Generate Final LCOV Report (Merged Coverage)
         run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
-
       # Future CodeCov Integration
       # To integrate with CodeCov in the future,, follow these steps: 
       # 1. Add the CodeCov token to the repository secrets.
