@@ -152,7 +152,7 @@ pub fn verifier_evaluate_equals_zero<C: Commitment>(
     // consume mle evaluations
     let lhs_pseudo_inv_eval = builder.consume_intermediate_mle();
     let selection_not_eval = builder.consume_intermediate_mle();
-    let selection_eval = builder.mle_evaluations.one_evaluation - selection_not_eval;
+    let selection_eval = builder.mle_evaluations.input_one_evaluation - selection_not_eval;
 
     // subpolynomial: selection * lhs
     builder.produce_sumcheck_subpolynomial_evaluation(

@@ -247,7 +247,7 @@ fn verify_bit_decomposition<C: Commitment>(
 ) {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.one_evaluation - C::Scalar::TWO * *sign_eval;
+    let sign_eval = builder.mle_evaluations.input_one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;
     eval -= sign_eval * C::Scalar::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {

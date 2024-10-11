@@ -8,7 +8,7 @@ use crate::{
     },
     sql::{
         proof::{
-            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
             VerifiableQueryResult,
         },
         // Making this explicit to ensure that we don't accidentally use the
@@ -41,10 +41,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
+        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+                .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -55,14 +56,13 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        builder.set_result_table_length(result_len);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
         builder.request_post_result_challenges(2);
         filtered_columns
     }
@@ -91,7 +91,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
         // 3. Produce MLEs
