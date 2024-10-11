@@ -36,7 +36,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
         vec![Column::BigInt(res); self.columns]
     }
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,

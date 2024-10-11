@@ -53,7 +53,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -210,7 +210,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -392,7 +392,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
 
     fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
@@ -605,7 +605,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
         builder.request_post_result_challenges(2);
     }
 
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,

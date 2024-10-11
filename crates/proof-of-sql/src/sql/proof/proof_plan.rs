@@ -66,7 +66,7 @@ pub trait ProverEvaluate<S: Scalar> {
     /// Intermediate values that are needed to form the proof are allocated into the arena
     /// allocator alloc. These intermediate values will persist through proof creation and
     /// will be bulk deallocated once the proof is formed.
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,

@@ -79,7 +79,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let mut builder =
             FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
-        expr.prover_evaluate(&mut builder, &alloc, accessor);
+        expr.final_round_evaluate(&mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();

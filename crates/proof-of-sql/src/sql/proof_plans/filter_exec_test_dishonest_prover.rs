@@ -69,12 +69,12 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     }
 
     #[tracing::instrument(
-        name = "DishonestFilterExec::prover_evaluate",
+        name = "DishonestFilterExec::final_round_evaluate",
         level = "debug",
         skip_all
     )]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,

@@ -256,9 +256,9 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         builder.request_post_result_challenges(2);
     }
 
-    #[tracing::instrument(name = "GroupByExec::prover_evaluate", level = "debug", skip_all)]
+    #[tracing::instrument(name = "GroupByExec::final_round_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
