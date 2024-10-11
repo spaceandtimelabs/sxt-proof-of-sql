@@ -26,7 +26,6 @@ use proof_of_sql::{
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
-use std::ops::Deref;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of
 /// commitments. Chose the number of columns to randomly generate across supported `PoSQL`
@@ -99,34 +98,28 @@ pub fn generate_random_owned_table<S: Scalar>(
         let identifier = format!("column_{}", rng.gen::<u32>());
 
         match column_type {
-            "bigint" => columns.push(bigint(identifier.deref(), vec![rng.gen::<i64>(); num_rows])),
+            "bigint" => columns.push(bigint(&*identifier, vec![rng.gen::<i64>(); num_rows])),
             "boolean" => columns.push(boolean(
-                identifier.deref(),
+                &*identifier,
                 generate_random_boolean_vector(num_rows),
             )),
-            "int128" => columns.push(int128(
-                identifier.deref(),
-                vec![rng.gen::<i128>(); num_rows],
-            )),
+            "int128" => columns.push(int128(&*identifier, vec![rng.gen::<i128>(); num_rows])),
             "scalar" => columns.push(scalar(
-                identifier.deref(),
+                &*identifier,
                 vec![generate_random_u64_array(); num_rows],
             )),
-            "varchar" => columns.push(varchar(identifier.deref(), gen_rnd_str(num_rows))),
+            "varchar" => columns.push(varchar(&*identifier, gen_rnd_str(num_rows))),
             "decimal75" => columns.push(decimal75(
-                identifier.deref(),
+                &*identifier,
                 12,
                 2,
                 vec![generate_random_u64_array(); num_rows],
             )),
-            "tinyint" => columns.push(tinyint(identifier.deref(), vec![rng.gen::<i8>(); num_rows])),
-            "smallint" => columns.push(smallint(
-                identifier.deref(),
-                vec![rng.gen::<i16>(); num_rows],
-            )),
-            "int" => columns.push(int(identifier.deref(), vec![rng.gen::<i32>(); num_rows])),
+            "tinyint" => columns.push(tinyint(&*identifier, vec![rng.gen::<i8>(); num_rows])),
+            "smallint" => columns.push(smallint(&*identifier, vec![rng.gen::<i16>(); num_rows])),
+            "int" => columns.push(int(&*identifier, vec![rng.gen::<i32>(); num_rows])),
             "timestamptz" => columns.push(timestamptz(
-                identifier.deref(),
+                &*identifier,
                 PoSQLTimeUnit::Second,
                 PoSQLTimeZone::Utc,
                 vec![rng.gen::<i64>(); num_rows],
