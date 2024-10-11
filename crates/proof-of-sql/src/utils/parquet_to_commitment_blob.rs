@@ -60,7 +60,7 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_pre
     let columns = unsorted_record_batch_with_unmodified_schema
         .columns()
         .iter()
-        .map(|c| take(&*c, &indices, None).unwrap())
+        .map(|c| take(c, &indices, None).unwrap())
         .collect();
     let mut record_batch = RecordBatch::try_new(
         unsorted_record_batch_with_unmodified_schema.schema(),
@@ -104,7 +104,7 @@ fn write_record_batch_to_blob<C: Commitment + Serialize + for<'a> Deserialize<'a
     setup: C::PublicSetup<'_>,
     output_file_base: String,
 ) {
-    let commitment = TableCommitment::<C>::try_from_record_batch(&record_batch, &setup).unwrap();
+    let commitment = TableCommitment::<C>::try_from_record_batch(record_batch, &setup).unwrap();
     let bytes: Vec<u8> = to_allocvec(&commitment).unwrap();
     let path_extension = "txt";
     let mut output_file = File::create(format!("{output_file_base}.{path_extension}")).unwrap();
