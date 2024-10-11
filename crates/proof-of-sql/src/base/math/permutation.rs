@@ -70,7 +70,7 @@ impl Permutation {
                 permutation_size: self.size(),
                 slice_length: slice.len(),
             })
-        }        
+        }
     }
 }
 

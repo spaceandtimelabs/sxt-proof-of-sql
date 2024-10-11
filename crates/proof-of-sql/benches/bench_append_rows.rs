@@ -103,10 +103,7 @@ pub fn generate_random_owned_table<S: Scalar>(
                 &*identifier,
                 generate_random_boolean_vector(num_rows),
             )),
-            "int128" => columns.push(int128(
-                &*identifier,
-                vec![rng.gen::<i128>(); num_rows],
-            )),
+            "int128" => columns.push(int128(&*identifier, vec![rng.gen::<i128>(); num_rows])),
             "scalar" => columns.push(scalar(
                 &*identifier,
                 vec![generate_random_u64_array(); num_rows],
@@ -119,10 +116,7 @@ pub fn generate_random_owned_table<S: Scalar>(
                 vec![generate_random_u64_array(); num_rows],
             )),
             "tinyint" => columns.push(tinyint(&*identifier, vec![rng.gen::<i8>(); num_rows])),
-            "smallint" => columns.push(smallint(
-                &*identifier,
-                vec![rng.gen::<i16>(); num_rows],
-            )),
+            "smallint" => columns.push(smallint(&*identifier, vec![rng.gen::<i16>(); num_rows])),
             "int" => columns.push(int(&*identifier, vec![rng.gen::<i32>(); num_rows])),
             "timestamptz" => columns.push(timestamptz(
                 &*identifier,

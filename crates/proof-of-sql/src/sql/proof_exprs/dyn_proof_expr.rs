@@ -106,7 +106,7 @@ impl<C: Commitment> DynProofExpr<C> {
                 left_type: lhs_datatype.to_string(),
                 right_type: rhs_datatype.to_string(),
             })
-        }        
+        }
     }
 
     /// Create a new add expression
