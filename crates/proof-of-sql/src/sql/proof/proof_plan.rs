@@ -1,4 +1,4 @@
-use super::{CountBuilder, ProofBuilder, ResultBuilder, VerificationBuilder};
+use super::{CountBuilder, FirstRoundBuilder, ProofBuilder, VerificationBuilder};
 use crate::base::{
     commitment::Commitment,
     database::{
@@ -49,10 +49,10 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
 }
 
 pub trait ProverEvaluate<S: Scalar> {
-    /// Evaluate the query and modify `ResultBuilder` to track the result of the query.
+    /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;

@@ -14,7 +14,7 @@ use crate::{
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
-    sql::proof::{QueryData, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -43,7 +43,7 @@ impl Default for TrivialTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -200,7 +200,7 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -381,7 +381,7 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -592,7 +592,7 @@ struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

@@ -1,5 +1,5 @@
 /// Track the result created by a query
-pub struct ResultBuilder {
+pub struct FirstRoundBuilder {
     result_table_length: usize,
 
     /// The number of challenges used in the proof.
@@ -9,13 +9,13 @@ pub struct ResultBuilder {
     num_post_result_challenges: usize,
 }
 
-impl Default for ResultBuilder {
+impl Default for FirstRoundBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ResultBuilder {
+impl FirstRoundBuilder {
     /// Create a new result builder for a table with the given length. For multi table queries, this will likely need to change.
     pub fn new() -> Self {
         Self {

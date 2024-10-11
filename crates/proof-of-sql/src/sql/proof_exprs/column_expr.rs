@@ -59,7 +59,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     }
 
     /// Evaluate the column expression and
-    /// add the result to the [`ResultBuilder`](crate::sql::proof::ResultBuilder)
+    /// add the result to the [`FirstRoundBuilder`](crate::sql::proof::FirstRoundBuilder)
     fn result_evaluate<'a>(
         &self,
         table_length: usize,

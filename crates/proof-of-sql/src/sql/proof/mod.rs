@@ -68,5 +68,5 @@ pub(crate) use result_element_serialization::{
     decode_and_convert, decode_multiple_elements, ProvableResultElement,
 };
 
-mod result_builder;
-pub(crate) use result_builder::ResultBuilder;
+mod first_round_builder;
+pub(crate) use first_round_builder::FirstRoundBuilder;

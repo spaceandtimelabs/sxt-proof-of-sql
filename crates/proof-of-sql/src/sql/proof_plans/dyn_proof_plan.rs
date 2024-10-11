@@ -95,7 +95,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut crate::sql::proof::ResultBuilder,
+        builder: &mut crate::sql::proof::FirstRoundBuilder,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {

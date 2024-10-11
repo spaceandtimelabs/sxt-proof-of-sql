@@ -8,7 +8,7 @@ use crate::{
     },
     sql::{
         proof::{
-            ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            FirstRoundBuilder, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError,
             VerifiableQueryResult,
         },
         // Making this explicit to ensure that we don't accidentally use the
@@ -37,7 +37,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     )]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {

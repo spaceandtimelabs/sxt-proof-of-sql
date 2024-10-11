@@ -16,7 +16,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, FirstRoundBuilder, ProofBuilder, ProofPlan, ProverEvaluate,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -208,7 +208,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {

@@ -12,7 +12,7 @@ use crate::{
         proof::{Keccak256Transcript, ProofError, Transcript},
     },
     proof_primitive::sumcheck::SumcheckProof,
-    sql::proof::{QueryData, ResultBuilder},
+    sql::proof::{FirstRoundBuilder, QueryData},
 };
 use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
@@ -53,7 +53,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         assert!(num_sumcheck_variables > 0);
 
         let alloc = Bump::new();
-        let mut result_builder = ResultBuilder::new();
+        let mut result_builder = FirstRoundBuilder::new();
         let result_cols = expr.result_evaluate(&mut result_builder, &alloc, accessor);
         let provable_result =
             ProvableQueryResult::new(result_builder.result_table_length() as u64, &result_cols);

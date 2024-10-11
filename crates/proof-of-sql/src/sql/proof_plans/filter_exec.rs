@@ -13,8 +13,8 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, HonestProver, ProofBuilder, ProofPlan, ProverEvaluate,
-            ProverHonestyMarker, ResultBuilder, SumcheckSubpolynomialType, VerificationBuilder,
+            CountBuilder, FirstRoundBuilder, HonestProver, ProofBuilder, ProofPlan, ProverEvaluate,
+            ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
@@ -148,7 +148,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        builder: &mut FirstRoundBuilder,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
