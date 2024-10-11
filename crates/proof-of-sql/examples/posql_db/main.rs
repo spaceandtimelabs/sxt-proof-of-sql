@@ -5,7 +5,6 @@ mod commit_accessor;
 mod csv_accessor;
 /// TODO: add docs
 mod record_batch_accessor;
-use ark_std::rand::thread_rng;
 use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
@@ -153,7 +152,7 @@ fn main() {
     blitzar::compute::init_backend();
     println!("Done.");
 
-    let mut rng = thread_rng();
+    let mut rng = <ark_std::rand::rngs::StdRng as ark_std::rand::SeedableRng>::from_seed([0u8; 32]);
     let public_parameters = PublicParameters::rand(5, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
     let verifier_setup = VerifierSetup::from(&public_parameters);
