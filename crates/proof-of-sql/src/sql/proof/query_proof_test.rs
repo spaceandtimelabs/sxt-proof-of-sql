@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
+    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
 };
 use crate::{
     base::{
@@ -14,7 +14,7 @@ use crate::{
         proof::ProofError,
         scalar::{Curve25519Scalar, Scalar},
     },
-    sql::proof::{Indexes, QueryData, ResultBuilder, SumcheckSubpolynomialType},
+    sql::proof::{FirstRoundBuilder, QueryData, SumcheckSubpolynomialType},
 };
 use bumpalo::Bump;
 use serde::Serialize;
@@ -43,19 +43,19 @@ impl Default for TrivialTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
-        let indexes = Indexes::Sparse(vec![0u64]);
-        builder.set_result_indexes(indexes);
+        let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         vec![Column::BigInt(col)]
     }
 
-    fn prover_evaluate<'a>(
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -124,7 +124,8 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         table,
     } = proof.verify(&expr, &accessor, &result, &()).unwrap();
     assert_ne!(verification_hash, [0; 32]);
-    let expected_result = owned_table([bigint("a1", [0])]);
+    let expected_col = vec![0_i64; n];
+    let expected_result = owned_table([bigint("a1", expected_col)]);
     assert_eq!(table, expected_result);
 }
 
@@ -199,18 +200,19 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _table_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
 
-    fn prover_evaluate<'a>(
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -380,18 +382,19 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
         vec![Column::BigInt(res)]
     }
 
-    fn prover_evaluate<'a>(
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -591,18 +594,20 @@ struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        _input_length: usize,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.set_result_indexes(Indexes::Sparse(vec![0, 1]));
-        builder.request_post_result_challenges(2);
         vec![Column::BigInt(&[9, 25])]
     }
 
-    fn prover_evaluate<'a>(
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
+    }
+
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

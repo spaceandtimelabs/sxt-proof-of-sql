@@ -7,7 +7,7 @@ use crate::{
         proof::ProofError,
         scalar::Scalar,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use serde::{Deserialize, Serialize};
@@ -57,7 +57,7 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
@@ -70,7 +70,7 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
         builder: &mut VerificationBuilder<C>,
         _accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let mut commitment = builder.mle_evaluations.one_evaluation;
+        let mut commitment = builder.mle_evaluations.input_one_evaluation;
         commitment *= self.value.to_scalar();
         Ok(commitment)
     }
