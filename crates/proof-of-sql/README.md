@@ -73,7 +73,7 @@ The "Hello World" example demonstrates generating and verifying a proof of the q
 #### Run
 
 ```bash
-cargo run --example hello_world
+cargo run --example hello_world --features="test"
 ```
 
 #### Output
