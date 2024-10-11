@@ -99,9 +99,7 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_pre
 /// # Panics
 ///
 /// Panics when fails any part of the process
-fn write_record_batch_to_blob<
-    C: Commitment + Serialize + for<'a> Deserialize<'a>,
->(
+fn write_record_batch_to_blob<C: Commitment + Serialize + for<'a> Deserialize<'a>>(
     record_batch: &RecordBatch,
     setup: C::PublicSetup<'_>,
     output_file_base: String,
