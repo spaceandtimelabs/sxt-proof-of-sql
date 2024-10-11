@@ -54,7 +54,7 @@ fn calculate_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<Dory
     let public_parameters = PublicParameters::rand(4, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
-    TableCommitment::<DoryCommitment>::try_from_record_batch(&record_batch, &dory_prover_setup)
+    TableCommitment::<DoryCommitment>::try_from_record_batch(record_batch, &dory_prover_setup)
         .unwrap()
 }
 
@@ -75,7 +75,7 @@ fn calculate_dynamic_dory_commitment(
     };
     let public_parameters = PublicParameters::rand(4, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
-    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch(&record_batch, &&prover_setup)
+    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch(record_batch, &&prover_setup)
         .unwrap()
 }
 
@@ -97,30 +97,29 @@ fn we_can_retrieve_commitments_and_save_to_file() {
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
     delete_file_if_exists(dynamic_dory_commitment_path);
-    let column_a_unsorted_1 = Int32Array::from(vec![2, 4]);
-    let column_b_unsorted_1 = Int32Array::from(vec![1, 4]);
-    let column_a_unsorted_2 = Int32Array::from(vec![1, 3]);
-    let column_b_unsorted_2 = Int32Array::from(vec![2, 3]);
-    let column_b_sorted = Int32Array::from(vec![2, 1, 3, 4]);
+    let proof_column_unsorted_1 = Int32Array::from(vec![2, 4]);
+    let column_unsorted_1 = Int32Array::from(vec![1, 4]);
+    let proof_column_unsorted_2 = Int32Array::from(vec![1, 3]);
+    let column_unsorted_2 = Int32Array::from(vec![2, 3]);
+    let column_sorted = Int32Array::from(vec![2, 1, 3, 4]);
     let record_batch_unsorted_1 = RecordBatch::try_from_iter(vec![
         (
             "SXTMETA_ROW_NUMBER",
-            Arc::new(column_a_unsorted_1) as ArrayRef,
+            Arc::new(proof_column_unsorted_1) as ArrayRef,
         ),
-        ("column", Arc::new(column_b_unsorted_1) as ArrayRef),
+        ("column", Arc::new(column_unsorted_1) as ArrayRef),
     ])
     .unwrap();
     let record_batch_unsorted_2 = RecordBatch::try_from_iter(vec![
         (
             "SXTMETA_ROW_NUMBER",
-            Arc::new(column_a_unsorted_2) as ArrayRef,
+            Arc::new(proof_column_unsorted_2) as ArrayRef,
         ),
-        ("column", Arc::new(column_b_unsorted_2) as ArrayRef),
+        ("column", Arc::new(column_unsorted_2) as ArrayRef),
     ])
     .unwrap();
     let record_batch_sorted =
-        RecordBatch::try_from_iter(vec![("column", Arc::new(column_b_sorted) as ArrayRef)])
-            .unwrap();
+        RecordBatch::try_from_iter(vec![("column", Arc::new(column_sorted) as ArrayRef)]).unwrap();
     create_mock_file_from_record_batch(parquet_path_1, &record_batch_unsorted_1);
     create_mock_file_from_record_batch(parquet_path_2, &record_batch_unsorted_2);
     read_parquet_file_to_commitment_as_blob(vec![parquet_path_1, parquet_path_2], "example");
