@@ -84,12 +84,12 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_pre
     let public_parameters = PublicParameters::rand(20, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
     let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 12);
-    read_parquet_file_to_commitment_as_blob_and_write_to_file::<DoryCommitment>(
+    write_record_batch_to_blob::<DoryCommitment>(
         &record_batch,
         dory_prover_setup,
         format!("{output_path_prefix}_dory_commitment"),
     );
-    read_parquet_file_to_commitment_as_blob_and_write_to_file::<DynamicDoryCommitment>(
+    write_record_batch_to_blob::<DynamicDoryCommitment>(
         &record_batch,
         &prover_setup,
         format!("{output_path_prefix}_dynamic_dory_commitment"),
@@ -99,7 +99,7 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_pre
 /// # Panics
 ///
 /// Panics when fails any part of the process
-fn read_parquet_file_to_commitment_as_blob_and_write_to_file<
+fn write_record_batch_to_blob<
     C: Commitment + Serialize + for<'a> Deserialize<'a>,
 >(
     record_batch: &RecordBatch,
