@@ -10,7 +10,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
             VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
@@ -102,16 +102,18 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        let input_length = accessor.get_length(self.table.table_ref);
         let columns: Vec<_> = self
             .aliased_results
             .iter()
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
-        builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
+        // For projection, the result table length is the same as the input table length
+        builder.set_result_table_length(input_length);
         columns
     }
 
