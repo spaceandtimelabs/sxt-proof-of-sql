@@ -3,7 +3,7 @@ use crate::base::{
     commitment::Commitment,
     database::{
         Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-        OwnedTable,
+        OwnedTable, TableRef,
     },
     map::IndexSet,
     proof::ProofError,
@@ -22,16 +22,8 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
         accessor: &dyn MetadataAccessor,
     ) -> Result<(), ProofError>;
 
-    /// The length of the input table
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize;
-
     /// The offset of the query, that is, how many rows to skip before starting to read the input table
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize;
-
-    /// Check if the input table is empty
-    fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
-        self.get_length(accessor) == 0
-    }
 
     /// Form components needed to verify and proof store into `VerificationBuilder`
     fn verifier_evaluate(
@@ -44,11 +36,31 @@ pub trait ProofPlan<C: Commitment>: Debug + Send + Sync + ProverEvaluate<C::Scal
     /// Return all the result column fields
     fn get_column_result_fields(&self) -> Vec<ColumnField>;
 
-    /// Return all the columns referenced in the Query
+    /// Return all the columns referenced in the query
     fn get_column_references(&self) -> IndexSet<ColumnRef>;
+
+    /// Return all the tables references in the query
+    fn get_table_references(&self) -> IndexSet<TableRef>;
+
+    /// Check if the input tables are all empty
+    fn is_empty(&self, accessor: &dyn MetadataAccessor) -> bool {
+        self.get_table_references()
+            .iter()
+            .all(|table_ref| accessor.get_length(*table_ref) == 0)
+    }
 }
 
 pub trait ProverEvaluate<S: Scalar> {
+    /// Get the length of the input tables
+    fn get_input_lengths<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize>;
+
+    /// Get the length of the output table
+    fn get_output_length<'a>(&self, alloc: &'a Bump, accessor: &'a dyn DataAccessor<S>) -> usize;
+
     /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,

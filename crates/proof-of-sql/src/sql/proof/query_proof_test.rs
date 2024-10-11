@@ -7,7 +7,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
+            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef, TestAccessor,
             UnimplementedTestAccessor,
         },
         map::IndexSet,
@@ -41,6 +41,16 @@ impl Default for TrivialTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![self.length]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        self.length
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -80,9 +90,6 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         self.offset
     }
@@ -107,6 +114,9 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }
@@ -198,6 +208,16 @@ impl Default for SquareTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _table_length: usize,
@@ -246,9 +266,6 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -276,6 +293,9 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }
@@ -380,6 +400,16 @@ impl Default for DoubleSquareTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -441,9 +471,6 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -479,6 +506,9 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }
@@ -592,6 +622,16 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
 #[derive(Debug, Serialize)]
 struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -644,9 +684,6 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         builder.count_post_result_challenges(2);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -675,6 +712,9 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
+        unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
         unimplemented!("no real usage for this function yet")
     }
 }

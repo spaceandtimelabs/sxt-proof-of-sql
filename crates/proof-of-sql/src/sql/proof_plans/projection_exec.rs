@@ -3,7 +3,7 @@ use crate::{
         commitment::Commitment,
         database::{
             Column, ColumnField, ColumnRef, CommitmentAccessor, DataAccessor, MetadataAccessor,
-            OwnedTable,
+            OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -16,7 +16,7 @@ use crate::{
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
     },
 };
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 use bumpalo::Bump;
 use core::iter::repeat_with;
 use serde::{Deserialize, Serialize};
@@ -54,10 +54,6 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
     }
@@ -92,9 +88,29 @@ impl<C: Commitment> ProofPlan<C> for ProjectionExec<C> {
         });
         columns
     }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        core::iter::once(self.table.table_ref).collect()
+    }
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        accessor.get_length(self.table.table_ref)
+    }
+
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,

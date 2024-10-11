@@ -44,14 +44,6 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
         }
     }
 
-    fn get_length(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
-        match self {
-            DynProofPlan::Projection(expr) => expr.get_length(accessor),
-            DynProofPlan::GroupBy(expr) => expr.get_length(accessor),
-            DynProofPlan::Filter(expr) => expr.get_length(accessor),
-        }
-    }
-
     fn get_offset(&self, accessor: &dyn crate::base::database::MetadataAccessor) -> usize {
         match self {
             DynProofPlan::Projection(expr) => expr.get_offset(accessor),
@@ -89,9 +81,41 @@ impl<C: Commitment> ProofPlan<C> for DynProofPlan<C> {
             DynProofPlan::Filter(expr) => expr.get_column_references(),
         }
     }
+
+    fn get_table_references(&self) -> IndexSet<crate::base::database::TableRef> {
+        match self {
+            DynProofPlan::Projection(expr) => expr.get_table_references(),
+            DynProofPlan::GroupBy(expr) => expr.get_table_references(),
+            DynProofPlan::Filter(expr) => expr.get_table_references(),
+        }
+    }
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        alloc: &'a bumpalo::Bump,
+        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        match self {
+            DynProofPlan::Projection(expr) => expr.get_input_lengths(alloc, accessor),
+            DynProofPlan::GroupBy(expr) => expr.get_input_lengths(alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.get_input_lengths(alloc, accessor),
+        }
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a bumpalo::Bump,
+        accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
+    ) -> usize {
+        match self {
+            DynProofPlan::Projection(expr) => expr.get_output_length(alloc, accessor),
+            DynProofPlan::GroupBy(expr) => expr.get_output_length(alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.get_output_length(alloc, accessor),
+        }
+    }
+
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,

@@ -8,7 +8,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
+            MetadataAccessor, OwnedTable, TableRef, TestAccessor, UnimplementedTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -25,6 +25,16 @@ pub(super) struct EmptyTestQueryExpr {
     pub(super) columns: usize,
 }
 impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![self.length]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        self.length
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -59,9 +69,6 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         builder.count_intermediate_mles(self.columns);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         0
     }
@@ -87,6 +94,9 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
         unimplemented!("no real usage for this function yet")
+    }
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        IndexSet::default()
     }
 }
 

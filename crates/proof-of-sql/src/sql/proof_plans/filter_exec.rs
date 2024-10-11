@@ -4,7 +4,7 @@ use crate::{
         commitment::Commitment,
         database::{
             filter_util::filter_columns, Column, ColumnField, ColumnRef, CommitmentAccessor,
-            DataAccessor, MetadataAccessor, OwnedTable,
+            DataAccessor, MetadataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -77,10 +77,6 @@ where
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
     }
@@ -139,12 +135,41 @@ where
 
         columns
     }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        core::iter::once(self.table.table_ref).collect()
+    }
 }
 
 /// Alias for a filter expression with a honest prover.
 pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        selection_column
+            .as_boolean()
+            .expect("selection is not boolean")
+            .iter()
+            .filter(|&&b| b)
+            .count()
+    }
+
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,

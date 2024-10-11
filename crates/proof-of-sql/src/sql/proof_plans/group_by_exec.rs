@@ -7,7 +7,7 @@ use crate::{
                 aggregate_columns, compare_indexes_by_owned_columns, AggregatedColumns,
             },
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable,
+            MetadataAccessor, OwnedTable, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -90,10 +90,6 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         builder.count_degree(3);
         builder.count_post_result_challenges(2);
         Ok(())
-    }
-
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
     }
 
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
@@ -202,9 +198,48 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
 
         columns
     }
+
+    fn get_table_references(&self) -> IndexSet<TableRef> {
+        core::iter::once(self.table.table_ref).collect()
+    }
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        // 1. selection
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
+        // 2. columns
+        let group_by_columns = self
+            .group_by_exprs
+            .iter()
+            .map(|expr| expr.result_evaluate(input_length, alloc, accessor))
+            .collect::<Vec<_>>();
+        // Compute filtered_columns
+        let AggregatedColumns { count_column, .. } =
+            aggregate_columns(alloc, &group_by_columns, &[], &[], &[], selection)
+                .expect("columns should be aggregatable");
+        count_column.len()
+    }
+
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
