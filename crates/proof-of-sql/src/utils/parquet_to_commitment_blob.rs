@@ -24,7 +24,7 @@ use std::{fs::File, io::Write};
 /// # Panics
 ///
 /// Panics when fails any part of the process
-pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>) {
+pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_prefix: &str) {
     let unsorted_record_batches_with_unmodified_schema: Vec<RecordBatch> = paths
         .iter()
         .map(|path| {
@@ -87,12 +87,12 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>) {
     read_parquet_file_to_commitment_as_blob_and_write_to_file::<DoryCommitment>(
         &record_batch,
         dory_prover_setup,
-        "dory_commitment".to_string(),
+        format!("{output_path_prefix}_dory_commitment"),
     );
     read_parquet_file_to_commitment_as_blob_and_write_to_file::<DynamicDoryCommitment>(
         &record_batch,
         &prover_setup,
-        "dynamic_dory_commitment".to_string(),
+        format!("{output_path_prefix}_dynamic_dory_commitment"),
     );
 }
 

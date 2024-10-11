@@ -6,7 +6,6 @@ use crate::{
     },
 };
 use arrow::array::{ArrayRef, Int32Array, RecordBatch};
-use curve25519_dalek::RistrettoPoint;
 use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
 use postcard::from_bytes;
 use rand::SeedableRng;
@@ -59,10 +58,6 @@ fn calculate_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<Dory
         .unwrap()
 }
 
-fn calculate_ristretto_point(record_batch: &RecordBatch) -> TableCommitment<RistrettoPoint> {
-    TableCommitment::<RistrettoPoint>::try_from_record_batch(&record_batch, &()).unwrap()
-}
-
 fn calculate_dynamic_dory_commitment(
     record_batch: &RecordBatch,
 ) -> TableCommitment<DynamicDoryCommitment> {
@@ -92,33 +87,53 @@ fn delete_file_if_exists(path: &str) {
 
 #[test]
 fn we_can_retrieve_commitments_and_save_to_file() {
-    let parquet_path = "example.parquet";
+    let parquet_path_1 = "example-1.parquet";
+    let parquet_path_2 = "example-2.parquet";
     let ristretto_point_path = "example_ristretto_point.txt";
     let dory_commitment_path = "example_dory_commitment.txt";
     let dynamic_dory_commitment_path = "example_dynamic_dory_commitment.txt";
-    delete_file_if_exists(parquet_path);
+    delete_file_if_exists(parquet_path_1);
+    delete_file_if_exists(parquet_path_2);
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
     delete_file_if_exists(dynamic_dory_commitment_path);
-    let column_a = Int32Array::from(vec![2, 1, 3, 4]);
-    let column_b = Int32Array::from(vec![1, 2, 3, 4]);
-    let record_batch =
-        RecordBatch::try_from_iter(vec![("SXTMETA_ROW_NUMBER", Arc::new(column_a) as ArrayRef), ("column", Arc::new(column_b) as ArrayRef)]).unwrap();
-    create_mock_file_from_record_batch(parquet_path, &record_batch);
-    read_parquet_file_to_commitment_as_blob(vec![parquet_path]);
+    let column_a_unsorted_1 = Int32Array::from(vec![2, 4]);
+    let column_b_unsorted_1 = Int32Array::from(vec![1, 4]);
+    let column_a_unsorted_2 = Int32Array::from(vec![1, 3]);
+    let column_b_unsorted_2 = Int32Array::from(vec![2, 3]);
+    let column_b_sorted = Int32Array::from(vec![2, 1, 3, 4]);
+    let record_batch_unsorted_1 = RecordBatch::try_from_iter(vec![
+        (
+            "SXTMETA_ROW_NUMBER",
+            Arc::new(column_a_unsorted_1) as ArrayRef,
+        ),
+        ("column", Arc::new(column_b_unsorted_1) as ArrayRef),
+    ])
+    .unwrap();
+    let record_batch_unsorted_2 = RecordBatch::try_from_iter(vec![
+        (
+            "SXTMETA_ROW_NUMBER",
+            Arc::new(column_a_unsorted_2) as ArrayRef,
+        ),
+        ("column", Arc::new(column_b_unsorted_2) as ArrayRef),
+    ])
+    .unwrap();
+    let record_batch_sorted =
+        RecordBatch::try_from_iter(vec![("column", Arc::new(column_b_sorted) as ArrayRef)])
+            .unwrap();
+    create_mock_file_from_record_batch(parquet_path_1, &record_batch_unsorted_1);
+    create_mock_file_from_record_batch(parquet_path_2, &record_batch_unsorted_2);
+    read_parquet_file_to_commitment_as_blob(vec![parquet_path_1, parquet_path_2], "example");
     assert_eq!(
         read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
-        calculate_dory_commitment(&record_batch)
-    );
-    assert_eq!(
-        read_commitment_from_blob::<RistrettoPoint>(ristretto_point_path),
-        calculate_ristretto_point(&record_batch)
+        calculate_dory_commitment(&record_batch_sorted)
     );
     assert_eq!(
         read_commitment_from_blob::<DynamicDoryCommitment>(dynamic_dory_commitment_path),
-        calculate_dynamic_dory_commitment(&record_batch)
+        calculate_dynamic_dory_commitment(&record_batch_sorted)
     );
-    delete_file_if_exists(parquet_path);
+    delete_file_if_exists(parquet_path_1);
+    delete_file_if_exists(parquet_path_2);
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
     delete_file_if_exists(dynamic_dory_commitment_path);
