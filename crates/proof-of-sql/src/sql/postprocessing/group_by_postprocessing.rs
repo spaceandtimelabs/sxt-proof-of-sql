@@ -76,14 +76,14 @@ fn get_aggregate_and_remainder_expressions(
         Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr,
         Expression::Aggregation { op, expr } => {
             let key = (op, (*expr));
-            if !aggregation_expr_map.contains_key(&key) {
+            if aggregation_expr_map.contains_key(&key) {
+                Expression::Column(*aggregation_expr_map.get(&key).unwrap())
+            } else {
                 let new_col_id = format!("__col_agg_{}", aggregation_expr_map.len())
                     .parse()
                     .unwrap();
                 aggregation_expr_map.insert(key, new_col_id);
                 Expression::Column(new_col_id)
-            } else {
-                Expression::Column(*aggregation_expr_map.get(&key).unwrap())
             }
         }
         Expression::Binary { op, left, right } => {
