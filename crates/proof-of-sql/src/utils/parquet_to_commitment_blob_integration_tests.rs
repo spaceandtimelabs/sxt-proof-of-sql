@@ -1,7 +1,9 @@
 use super::parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob;
 use crate::{
     base::commitment::{Commitment, TableCommitment},
-    proof_primitive::dory::{DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters},
+    proof_primitive::dory::{
+        DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters,
+    },
 };
 use arrow::array::{ArrayRef, Int32Array, RecordBatch};
 use curve25519_dalek::RistrettoPoint;
@@ -58,11 +60,12 @@ fn calculate_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<Dory
 }
 
 fn calculate_ristretto_point(record_batch: &RecordBatch) -> TableCommitment<RistrettoPoint> {
-    TableCommitment::<RistrettoPoint>::try_from_record_batch(&record_batch, &())
-        .unwrap()
+    TableCommitment::<RistrettoPoint>::try_from_record_batch(&record_batch, &()).unwrap()
 }
 
-fn calculate_dynamic_dory_commitment(record_batch: &RecordBatch) -> TableCommitment<DynamicDoryCommitment> {
+fn calculate_dynamic_dory_commitment(
+    record_batch: &RecordBatch,
+) -> TableCommitment<DynamicDoryCommitment> {
     let setup_seed = "spaceandtime".to_string();
     let mut rng = {
         // Convert the seed string to bytes and create a seeded RNG
@@ -97,11 +100,12 @@ fn we_can_retrieve_commitments_and_save_to_file() {
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
     delete_file_if_exists(dynamic_dory_commitment_path);
-    let column = Int32Array::from(vec![1, 2, 3, 4]);
+    let column_a = Int32Array::from(vec![2, 1, 3, 4]);
+    let column_b = Int32Array::from(vec![1, 2, 3, 4]);
     let record_batch =
-        RecordBatch::try_from_iter(vec![("id", Arc::new(column) as ArrayRef)]).unwrap();
+        RecordBatch::try_from_iter(vec![("SXTMETA_ROW_NUMBER", Arc::new(column_a) as ArrayRef), ("column", Arc::new(column_b) as ArrayRef)]).unwrap();
     create_mock_file_from_record_batch(parquet_path, &record_batch);
-    read_parquet_file_to_commitment_as_blob(parquet_path);
+    read_parquet_file_to_commitment_as_blob(vec![parquet_path]);
     assert_eq!(
         read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
         calculate_dory_commitment(&record_batch)
