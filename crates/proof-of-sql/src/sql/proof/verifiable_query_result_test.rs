@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
+    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, VerifiableQueryResult,
     VerificationBuilder,
 };
 use crate::{
@@ -38,7 +38,7 @@ impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     }
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

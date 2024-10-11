@@ -13,8 +13,8 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FirstRoundBuilder, HonestProver, ProofBuilder, ProofPlan, ProverEvaluate,
-            ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, HonestProver, ProofPlan,
+            ProverEvaluate, ProverHonestyMarker, SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, DynProofExpr, ProofExpr, TableExpr},
     },
@@ -183,7 +183,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -263,7 +263,7 @@ fn verify_filter<C: Commitment>(
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
 pub(super) fn prove_filter<'a, S: Scalar + 'a>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
     beta: S,

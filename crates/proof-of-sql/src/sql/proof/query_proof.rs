@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
+    CountBuilder, FinalRoundBuilder, ProofCounts, ProofPlan, ProvableQueryResult, QueryResult,
     SumcheckMleEvaluations, SumcheckRandomScalars, VerificationBuilder,
 };
 use crate::{
@@ -73,7 +73,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
                 .collect();
 
         let mut builder =
-            ProofBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
+            FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
         expr.prover_evaluate(&mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();

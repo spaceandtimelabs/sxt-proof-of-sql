@@ -6,7 +6,7 @@ use crate::{
         map::IndexSet,
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::marker::PhantomData;
@@ -75,7 +75,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// add the components needed to prove the result
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {

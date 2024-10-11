@@ -11,7 +11,7 @@ use crate::{
     },
     sql::{
         parse::{type_check_binary_operation, ConversionError, ConversionResult},
-        proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+        proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
     },
 };
 use alloc::{boxed::Box, string::ToString};
@@ -253,7 +253,7 @@ impl<C: Commitment> ProofExpr<C> for DynProofExpr<C> {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {

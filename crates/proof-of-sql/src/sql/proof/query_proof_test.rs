@@ -1,5 +1,5 @@
 use super::{
-    CountBuilder, ProofBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
+    CountBuilder, FinalRoundBuilder, ProofPlan, ProverEvaluate, QueryProof, VerificationBuilder,
 };
 use crate::{
     base::{
@@ -55,7 +55,7 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -211,7 +211,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -392,7 +392,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -603,7 +603,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
 
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {

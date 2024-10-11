@@ -1,4 +1,4 @@
-use super::{CountBuilder, FirstRoundBuilder, ProofBuilder, VerificationBuilder};
+use super::{CountBuilder, FinalRoundBuilder, FirstRoundBuilder, VerificationBuilder};
 use crate::base::{
     commitment::Commitment,
     database::{
@@ -57,7 +57,7 @@ pub trait ProverEvaluate<S: Scalar> {
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;
 
-    /// Evaluate the query and modify `ProofBuilder` to store an intermediate representation
+    /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.
     ///
     /// Intermediate values that are needed to form the proof are allocated into the arena
@@ -65,7 +65,7 @@ pub trait ProverEvaluate<S: Scalar> {
     /// will be bulk deallocated once the proof is formed.
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, S>,
+        builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;

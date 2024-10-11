@@ -2,10 +2,10 @@
 mod count_builder;
 pub(crate) use count_builder::CountBuilder;
 
-mod proof_builder;
-pub(crate) use proof_builder::ProofBuilder;
+mod final_round_builder;
+pub(crate) use final_round_builder::FinalRoundBuilder;
 #[cfg(all(test, feature = "blitzar"))]
-mod proof_builder_test;
+mod final_round_builder_test;
 
 mod composite_polynomial_builder;
 pub(crate) use composite_polynomial_builder::CompositePolynomialBuilder;

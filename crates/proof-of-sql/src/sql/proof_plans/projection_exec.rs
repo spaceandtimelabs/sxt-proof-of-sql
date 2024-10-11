@@ -10,7 +10,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FirstRoundBuilder, ProofBuilder, ProofPlan, ProverEvaluate,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
@@ -121,7 +121,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {

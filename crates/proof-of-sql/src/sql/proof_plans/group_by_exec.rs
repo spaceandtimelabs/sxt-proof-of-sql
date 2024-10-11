@@ -16,7 +16,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, FirstRoundBuilder, ProofBuilder, ProofPlan, ProverEvaluate,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             SumcheckSubpolynomialType, VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ColumnExpr, DynProofExpr, ProofExpr, TableExpr},
@@ -259,7 +259,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     #[allow(unused_variables)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -365,7 +365,7 @@ fn verify_group_by<C: Commitment>(
     reason = "alpha is guaranteed to not be zero in this context"
 )]
 pub fn prove_group_by<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
     beta: S,
