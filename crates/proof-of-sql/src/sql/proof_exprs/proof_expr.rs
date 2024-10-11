@@ -5,7 +5,7 @@ use crate::{
         map::IndexSet,
         proof::ProofError,
     },
-    sql::proof::{CountBuilder, ProofBuilder, VerificationBuilder},
+    sql::proof::{CountBuilder, FinalRoundBuilder, VerificationBuilder},
 };
 use bumpalo::Bump;
 use core::fmt::Debug;
@@ -32,7 +32,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
     /// of values
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar>;
