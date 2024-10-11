@@ -75,6 +75,11 @@ The "Hello World" example demonstrates generating and verifying a proof of the q
 ```bash
 cargo run --example hello_world --features="test"
 ```
+> [!NOTE]
+> To run this example with the `blitzar` feature:
+> ```bash
+> cargo run --example hello_world --features="blitzar test"
+> ```
 
 #### Output
 
