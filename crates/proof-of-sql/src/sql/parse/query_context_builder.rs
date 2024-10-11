@@ -95,6 +95,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }

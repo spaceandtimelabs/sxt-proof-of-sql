@@ -225,6 +225,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,

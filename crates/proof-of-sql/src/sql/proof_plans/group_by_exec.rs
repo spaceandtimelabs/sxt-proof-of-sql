@@ -319,6 +319,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn verify_group_by<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
