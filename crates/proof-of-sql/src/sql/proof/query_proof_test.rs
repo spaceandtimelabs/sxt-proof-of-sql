@@ -43,15 +43,15 @@ impl Default for TrivialTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        let input_length = self.length;
-        let col = alloc.alloc_slice_fill_copy(input_length, self.column_fill_value);
-        builder.set_result_table_length(input_length);
+        let col = alloc.alloc_slice_fill_copy(self.length, self.column_fill_value);
         vec![Column::BigInt(col)]
     }
+
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     fn prover_evaluate<'a>(
         &self,
@@ -200,14 +200,15 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        _table_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        builder.set_result_table_length(2);
         vec![Column::BigInt(res)]
     }
+
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     fn prover_evaluate<'a>(
         &self,
@@ -381,14 +382,15 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let res: &[_] = alloc.alloc_slice_copy(&self.res);
-        builder.set_result_table_length(2);
         vec![Column::BigInt(res)]
     }
+
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     fn prover_evaluate<'a>(
         &self,
@@ -592,13 +594,15 @@ struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        _input_length: usize,
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        builder.request_post_result_challenges(2);
-        builder.set_result_table_length(2);
         vec![Column::BigInt(&[9, 25])]
+    }
+
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
     }
 
     fn prover_evaluate<'a>(

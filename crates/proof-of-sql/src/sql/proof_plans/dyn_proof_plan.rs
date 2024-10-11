@@ -95,14 +95,22 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut crate::sql::proof::FirstRoundBuilder,
+        input_length: usize,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
-            DynProofPlan::Projection(expr) => expr.result_evaluate(builder, alloc, accessor),
-            DynProofPlan::GroupBy(expr) => expr.result_evaluate(builder, alloc, accessor),
-            DynProofPlan::Filter(expr) => expr.result_evaluate(builder, alloc, accessor),
+            DynProofPlan::Projection(expr) => expr.result_evaluate(input_length, alloc, accessor),
+            DynProofPlan::GroupBy(expr) => expr.result_evaluate(input_length, alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.result_evaluate(input_length, alloc, accessor),
+        }
+    }
+
+    fn first_round_evaluate(&self, builder: &mut crate::sql::proof::FirstRoundBuilder) {
+        match self {
+            DynProofPlan::Projection(expr) => expr.first_round_evaluate(builder),
+            DynProofPlan::GroupBy(expr) => expr.first_round_evaluate(builder),
+            DynProofPlan::Filter(expr) => expr.first_round_evaluate(builder),
         }
     }
 

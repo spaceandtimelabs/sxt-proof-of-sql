@@ -208,11 +208,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -246,13 +245,15 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         } = aggregate_columns(alloc, &group_by_columns, &sum_columns, &[], &[], selection)
             .expect("columns should be aggregatable");
         let sum_result_columns_iter = sum_result_columns.iter().map(|col| Column::Scalar(col));
-        builder.set_result_table_length(count_column.len());
-        builder.request_post_result_challenges(2);
         group_by_result_columns
             .into_iter()
             .chain(sum_result_columns_iter)
             .chain(iter::once(Column::BigInt(count_column)))
             .collect::<Vec<_>>()
+    }
+
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
     }
 
     #[tracing::instrument(name = "GroupByExec::prover_evaluate", level = "debug", skip_all)]

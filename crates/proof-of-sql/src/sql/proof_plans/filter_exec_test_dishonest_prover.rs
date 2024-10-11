@@ -37,11 +37,10 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     )]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
-        let input_length = accessor.get_length(self.table.table_ref);
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
@@ -60,11 +59,13 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             })
             .collect();
         // Compute filtered_columns
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
-        builder.set_result_table_length(result_len);
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        builder.request_post_result_challenges(2);
         filtered_columns
+    }
+
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
     }
 
     #[tracing::instrument(

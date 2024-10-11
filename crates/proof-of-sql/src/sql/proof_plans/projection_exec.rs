@@ -98,11 +98,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
-        let input_length = accessor.get_length(self.table.table_ref);
         let columns: Vec<_> = self
             .aliased_results
             .iter()
@@ -112,10 +111,10 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
                     .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
-        // For projection, the result table length is the same as the input table length
-        builder.set_result_table_length(input_length);
         columns
     }
+
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
 
     #[tracing::instrument(name = "ProjectionExec::prover_evaluate", level = "debug", skip_all)]
     #[allow(unused_variables)]

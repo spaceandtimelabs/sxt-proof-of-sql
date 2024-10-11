@@ -52,10 +52,13 @@ pub trait ProverEvaluate<S: Scalar> {
     /// Evaluate the query and modify `FirstRoundBuilder` to track the result of the query.
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>>;
+
+    /// Evaluate the query and modify `FirstRoundBuilder` to form the query's proof.
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder);
 
     /// Evaluate the query and modify `FinalRoundBuilder` to store an intermediate representation
     /// of the query result and track all the components needed to form the query's proof.

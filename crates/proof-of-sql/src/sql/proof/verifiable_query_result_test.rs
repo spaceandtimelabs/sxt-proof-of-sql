@@ -27,15 +27,15 @@ pub(super) struct EmptyTestQueryExpr {
 impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
     fn result_evaluate<'a>(
         &self,
-        builder: &mut FirstRoundBuilder,
+        _input_length: usize,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
         let zeros = vec![0; self.length];
         let res: &[_] = alloc.alloc_slice_copy(&zeros);
-        builder.set_result_table_length(self.length);
         vec![Column::BigInt(res); self.columns]
     }
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
     fn prover_evaluate<'a>(
         &self,
         builder: &mut FinalRoundBuilder<'a, S>,
