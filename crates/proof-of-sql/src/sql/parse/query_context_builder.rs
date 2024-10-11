@@ -133,9 +133,9 @@ impl<'a> QueryContextBuilder<'a> {
             Expression::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
             Expression::Literal(literal) => self.visit_literal(literal),
             Expression::Column(_) => self.visit_column_expr(expr),
-            Expression::Unary { op, expr } => self.visit_unary_expr(op, expr),
-            Expression::Binary { op, left, right } => self.visit_binary_expr(op, left, right),
-            Expression::Aggregation { op, expr } => self.visit_agg_expr(op, expr),
+            Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
+            Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expression::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
         }
     }
 
@@ -152,13 +152,13 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_binary_expr(
         &mut self,
-        op: &BinaryOperator,
+        op: BinaryOperator,
         left: &Expression,
         right: &Expression,
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
-        check_dtypes(left_dtype, right_dtype, *op)?;
+        check_dtypes(left_dtype, right_dtype, op)?;
         match op {
             BinaryOperator::And
             | BinaryOperator::Or
@@ -174,7 +174,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_unary_expr(
         &mut self,
-        op: &UnaryOperator,
+        op: UnaryOperator,
         expr: &Expression,
     ) -> ConversionResult<ColumnType> {
         match op {
@@ -193,7 +193,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_agg_expr(
         &mut self,
-        op: &AggregationOperator,
+        op: AggregationOperator,
         expr: &Expression,
     ) -> ConversionResult<ColumnType> {
         self.context.set_in_agg_scope(true)?;
@@ -201,7 +201,7 @@ impl<'a> QueryContextBuilder<'a> {
         let expr_dtype = self.visit_expr(expr)?;
 
         // We only support sum/max/min aggregations on numeric columns.
-        if op != &AggregationOperator::Count && expr_dtype == ColumnType::VarChar {
+        if op != AggregationOperator::Count && expr_dtype == ColumnType::VarChar {
             return Err(ConversionError::non_numeric_expr_in_agg(
                 expr_dtype.to_string(),
                 op.to_string(),
@@ -211,7 +211,7 @@ impl<'a> QueryContextBuilder<'a> {
         self.context.set_in_agg_scope(false)?;
 
         // Count aggregation always results in an integer type
-        if op == &AggregationOperator::Count {
+        if op == AggregationOperator::Count {
             Ok(ColumnType::BigInt)
         } else {
             Ok(expr_dtype)
