@@ -73,7 +73,7 @@ The "Hello World" example demonstrates generating and verifying a proof of the q
 #### Run
 
 ```bash
-cargo run --example hello_world --features="test"
+cargo run --example hello_world --no-default-features --features="test" 
 ```
 > [!NOTE]
 > To run this example with the `blitzar` feature:
