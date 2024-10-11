@@ -81,9 +81,9 @@ pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_pre
             .expect("collection is guaranteed to contain 32 elements");
         ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
     };
-    let public_parameters = PublicParameters::rand(4, &mut rng);
+    let public_parameters = PublicParameters::rand(20, &mut rng);
     let prover_setup = ProverSetup::from(&public_parameters);
-    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 3);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 12);
     read_parquet_file_to_commitment_as_blob_and_write_to_file::<DoryCommitment>(
         &record_batch,
         dory_prover_setup,
