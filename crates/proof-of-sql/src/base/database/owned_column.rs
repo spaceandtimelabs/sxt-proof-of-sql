@@ -87,10 +87,10 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TimestampTZ(tu, tz, col) => {
                 OwnedColumn::TimestampTZ(*tu, *tz, permutation.try_apply(col)?)
             }
-            OwnedColumn::FixedSizeBinary(byte_width, col) => {
-                // FIXME: Would that work for all FixedSizeBinary cases?
-                OwnedColumn::FixedSizeBinary(*byte_width, permutation.try_apply(col)?)
-            }
+            OwnedColumn::FixedSizeBinary(byte_width, col) => OwnedColumn::FixedSizeBinary(
+                *byte_width,
+                permutation.try_chunked_apply(col, *byte_width as usize)?,
+            ),
         })
     }
 
@@ -404,6 +404,37 @@ mod test {
         assert_eq!(
             col.try_permute(&permutation).unwrap(),
             OwnedColumn::Int128(vec![2, 4, 5, 1, 3])
+        );
+    }
+
+    #[test]
+    fn we_can_permute_a_fixed_size_binary_column() {
+        let byte_width = 4;
+        let col: OwnedColumn<Curve25519Scalar> = OwnedColumn::FixedSizeBinary(
+            byte_width,
+            vec![
+                0x01, 0x02, 0x03, 0x04, // First element
+                0x05, 0x06, 0x07, 0x08, // Second element
+                0x09, 0x0A, 0x0B, 0x0C, // Third element
+                0x0D, 0x0E, 0x0F, 0x10, // Fourth element
+                0x11, 0x12, 0x13, 0x14, // Fifth element
+            ],
+        );
+
+        let permutation = Permutation::try_new(vec![1, 3, 4, 0, 2]).unwrap();
+
+        assert_eq!(
+            col.try_permute(&permutation).unwrap(),
+            OwnedColumn::FixedSizeBinary(
+                byte_width,
+                vec![
+                    0x05, 0x06, 0x07, 0x08, // Second element
+                    0x0D, 0x0E, 0x0F, 0x10, // Fourth element
+                    0x11, 0x12, 0x13, 0x14, // Fifth element
+                    0x01, 0x02, 0x03, 0x04, // First element
+                    0x09, 0x0A, 0x0B, 0x0C, // Third element
+                ]
+            )
         );
     }
 

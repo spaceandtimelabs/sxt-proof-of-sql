@@ -72,6 +72,40 @@ impl Permutation {
             Ok(self.permutation.iter().map(|&i| slice[i].clone()).collect())
         }
     }
+
+    /// Apply the permutation to chunks of the given size within the slice
+    pub fn try_chunked_apply<T>(
+        &self,
+        slice: &[T],
+        chunk_size: usize,
+    ) -> Result<Vec<T>, PermutationError>
+    where
+        T: Clone,
+    {
+        if slice.len() % chunk_size != 0 {
+            return Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: self.size(),
+                slice_length: slice.len(),
+            });
+        }
+
+        let num_chunks = slice.len() / chunk_size;
+        if self.size() != num_chunks {
+            return Err(PermutationError::PermutationSizeMismatch {
+                permutation_size: self.size(),
+                slice_length: num_chunks,
+            });
+        }
+
+        let mut result = Vec::with_capacity(slice.len());
+        for &i in &self.permutation {
+            let start = i * chunk_size;
+            let end = start + chunk_size;
+            result.extend_from_slice(&slice[start..end]);
+        }
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -110,6 +144,28 @@ mod test {
                 permutation_size: 3,
                 slice_length: 2
             })
+        );
+    }
+
+    #[test]
+    fn test_apply_chunked_permutation() {
+        let slice = vec![
+            0x01, 0x02, 0x03, 0x04, // First chunk
+            0x05, 0x06, 0x07, 0x08, // Second chunk
+            0x09, 0x0A, 0x0B, 0x0C, // Third chunk
+        ];
+        let chunk_size = 4;
+        let permutation = Permutation::try_new(vec![2, 0, 1]).unwrap();
+
+        let permuted = permutation.try_chunked_apply(&slice, chunk_size).unwrap();
+
+        assert_eq!(
+            permuted,
+            vec![
+                0x09, 0x0A, 0x0B, 0x0C, // Third chunk
+                0x01, 0x02, 0x03, 0x04, // First chunk
+                0x05, 0x06, 0x07, 0x08, // Second chunk
+            ]
         );
     }
 }
