@@ -8,7 +8,8 @@ use bumpalo::Bump;
 #[test]
 fn we_can_filter_columns() {
     let selection = vec![true, false, true, false, true];
-    let str_scalars: [TestScalar; 5] = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [TestScalar; 5] =
+        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![
@@ -39,7 +40,8 @@ fn we_can_filter_columns() {
 #[test]
 fn we_can_filter_columns_with_empty_result() {
     let selection = vec![false, false, false, false, false];
-    let str_scalars: [TestScalar; 5] = ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
+    let str_scalars: [TestScalar; 5] =
+        ["1".into(), "2".into(), "3".into(), "4".into(), "5".into()];
     let scalars = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let decimals = [1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
     let columns = vec![
