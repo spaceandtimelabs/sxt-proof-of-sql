@@ -1,4 +1,4 @@
-use super::{OwnedColumn, OwnedTable};
+use crate::base::database::{OwnedColumn, OwnedTable};
 use crate::{
     base::{
         database::{owned_table_utility::*, OwnedArrowConversionError},
