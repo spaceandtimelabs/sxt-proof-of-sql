@@ -2,7 +2,7 @@ use super::scalar_varint::{
     read_scalar_varint, read_scalar_varints, scalar_varint_size, scalar_varints_size,
     write_scalar_varint, write_scalar_varints,
 };
-use crate::base::{encode::U256, scalar::test_scalar::TestScalar};
+use crate::base::{encode::U256, scalar::test_scalar::TestScalar, scalar::Curve25519Scalar};
 use alloc::vec;
 
 #[test]
@@ -195,7 +195,7 @@ fn valid_varint_encoded_input_that_map_to_curve25519_scalars_smaller_than_the_p_
     // buf represents the number 2^252 - 1
     // removing the varint encoding, we would have y = ((2^252 - 1) // 2 + 1) % p
     // since we want x, we would have x = -y
-    let expected_x = -TestScalar::from(&U256::from_words(
+    let expected_x = -Curve25519Scalar::from(&U256::from_words(
         0x0000_0000_0000_0000_0000_0000_0000_0000,
         0x0800_0000_0000_0000_0000_0000_0000_0000,
     ));
@@ -216,7 +216,7 @@ fn valid_varint_encoded_input_that_map_to_curve25519_scalars_bigger_than_the_p_f
     // at this point, buf represents the number 2^256 - 2,
     // which has 256 bit-length, where 255 bits are set to 1
     // also, `expected_val` is simply x = ((2^256 - 2) >> 1) % p
-    let expected_val: TestScalar = (&U256::from_words(
+    let expected_val: Curve25519Scalar = (&U256::from_words(
         0x6de7_2ae9_8b3a_b623_977f_4a47_7547_3484,
         0x0fff_ffff_ffff_ffff_ffff_ffff_ffff_ffff,
     ))

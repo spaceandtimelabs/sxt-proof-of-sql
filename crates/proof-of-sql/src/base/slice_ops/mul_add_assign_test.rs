@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::test_scalar::TestScalar
+use crate::base::scalar::test_scalar::TestScalar;
 
 #[test]
 fn test_mul_add_assign() {
