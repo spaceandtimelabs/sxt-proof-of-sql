@@ -184,7 +184,7 @@ fn big_additive_inverses_that_are_smaller_than_the_input_scalars_are_correctly_e
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_curve25519_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
+fn valid_varint_encoded_input_that_map_to_test_scalars_smaller_than_the_p_field_order_in_the_read_scalar_will_not_wrap_around_p(
 ) {
     let mut buf = [0b1111_1111_u8; 36];
 
@@ -204,7 +204,7 @@ fn valid_varint_encoded_input_that_map_to_curve25519_scalars_smaller_than_the_p_
 }
 
 #[test]
-fn valid_varint_encoded_input_that_map_to_curve25519_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
+fn valid_varint_encoded_input_that_map_to_test_scalars_bigger_than_the_p_field_order_in_the_read_scalar_will_wrap_around_p(
 ) {
     let mut buf = [0b1111_1111_u8; 37];
 

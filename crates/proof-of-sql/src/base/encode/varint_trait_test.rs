@@ -1,5 +1,5 @@
 use super::VarInt;
-use crate::base::scalar::{test_scalar::TestScalar, Scalar};
+use crate::base::scalar::{ Scalar, test_scalar::TestScalar};
 use alloc::{vec, vec::Vec};
 use core::{
     fmt::Debug,
@@ -398,12 +398,12 @@ fn we_can_encode_and_decode_small_u128_values() {
 }
 
 #[test]
-fn we_can_encode_and_decode_small_curve25519_scalar_values() {
+fn we_can_encode_and_decode_small_test_scalar_values() {
     test_small_signed_values_encode_and_decode_properly::<TestScalar>(TestScalar::ONE);
 }
 
 #[test]
-fn we_can_encode_and_decode_i128_and_curve25519_scalar_the_same() {
+fn we_can_encode_and_decode_i128_and_test_scalar_the_same() {
     let mut rng = rand::thread_rng();
     test_encode_and_decode_types_align::<i128, TestScalar>(
         &rng.gen::<[_; 32]>(),
