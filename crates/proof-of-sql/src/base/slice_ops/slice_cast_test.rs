@@ -1,5 +1,5 @@
 use super::*;
-use crate::base::scalar::Curve25519Scalar;
+use crate::base::scalar::{test_scalar::TestScalar, Curve25519Scalar};
 use curve25519_dalek::scalar::Scalar;
 
 #[test]
@@ -87,7 +87,7 @@ fn test_slice_cast_mut_random() {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let a: Vec<u32> = (0..100).map(|_| rng.gen()).collect();
-    let mut b: Vec<Curve25519Scalar> = vec![Curve25519Scalar::default(); 100];
+    let mut b: Vec<TestScalar> = vec![TestScalar::default(); 100];
     slice_cast_mut(&a, &mut b);
     assert_eq!(b, slice_cast(&a));
 }
