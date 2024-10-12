@@ -56,9 +56,9 @@ mod tests {
 
     use super::{convert_i256_to_scalar, convert_scalar_to_i256};
     use crate::base::{
-        database::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256},
         scalar::{Curve25519Scalar, Scalar},
     };
+    use crate::arrow::base_database_arrow::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256};
     use arrow::datatypes::i256;
     use num_traits::Zero;
     use rand::RngCore;

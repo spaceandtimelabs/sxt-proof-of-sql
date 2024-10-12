@@ -1,4 +1,4 @@
-use super::{ProvableQueryResult, QueryError};
+use crate::sql::proof::{ProvableQueryResult, QueryError};
 use crate::base::{
     database::{Column, ColumnField, ColumnType},
     math::decimal::Precision,

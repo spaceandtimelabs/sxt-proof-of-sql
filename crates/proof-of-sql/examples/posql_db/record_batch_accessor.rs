@@ -1,9 +1,10 @@
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use indexmap::IndexMap;
+use proof_of_sql::arrow::base_database_arrow::ArrayRefExt;
 use proof_of_sql::base::{
     database::{
-        ArrayRefExt, Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor,
+        Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor,
         TableRef,
     },
     scalar::Scalar,
