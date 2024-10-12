@@ -1,5 +1,10 @@
 use super::CommitmentEvaluationProof;
-use crate::base::{commitment::vec_commitment_ext::VecCommitmentExt, database::Column, commitment::test_evaluation_proof::TestEvaluationProof};
+use crate::base::{
+    commitment::{
+        test_evaluation_proof::TestEvaluationProof, vec_commitment_ext::VecCommitmentExt,
+    },
+    database::Column,
+};
 use ark_std::UniformRand;
 use merlin::Transcript;
 use num_traits::{One, Zero};

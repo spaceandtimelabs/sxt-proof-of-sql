@@ -1,5 +1,5 @@
 use super::VarInt;
-use crate::base::scalar::{ Scalar, Curve25519Scalar};
+use crate::base::scalar::{Curve25519Scalar, Scalar};
 use alloc::{vec, vec::Vec};
 use core::{
     fmt::Debug,

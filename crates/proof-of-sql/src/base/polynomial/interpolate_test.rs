@@ -4,7 +4,7 @@
  * See third_party/license/arkworks.LICENSE
  */
 use super::interpolate::*;
-use crate::base::scalar::{test_scalar::TestScalar as S, test_scalar::TestScalar};
+use crate::base::scalar::test_scalar::{TestScalar as S, TestScalar};
 use ark_std::UniformRand;
 use core::iter;
 use num_traits::{Inv, Zero};

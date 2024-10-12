@@ -2,7 +2,7 @@ use crate::{
     base::{
         database::{owned_table_utility::*, OwnedColumn, OwnedTable, OwnedTableError},
         map::IndexMap,
-        scalar::test_scalar::TestScalar
+        scalar::test_scalar::TestScalar,
     },
     proof_primitive::dory::DoryScalar,
 };

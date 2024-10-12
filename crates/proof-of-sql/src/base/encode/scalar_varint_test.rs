@@ -2,7 +2,10 @@ use super::scalar_varint::{
     read_scalar_varint, read_scalar_varints, scalar_varint_size, scalar_varints_size,
     write_scalar_varint, write_scalar_varints,
 };
-use crate::base::{encode::U256, scalar::test_scalar::TestScalar, scalar::Curve25519Scalar};
+use crate::base::{
+    encode::U256,
+    scalar::{test_scalar::TestScalar, Curve25519Scalar},
+};
 use alloc::vec;
 
 #[test]
@@ -264,8 +267,7 @@ fn write_read_and_compare_encoding(expected_scals: &[TestScalar]) {
     let total_bytes_read = write_scalar_varints(&mut buf_vec[..], expected_scals);
 
     let buf = &buf_vec[0..total_bytes_read];
-    let mut scals =
-        vec![TestScalar::from_le_bytes_mod_order(&[0_u8; 32]); expected_scals.len()];
+    let mut scals = vec![TestScalar::from_le_bytes_mod_order(&[0_u8; 32]); expected_scals.len()];
     read_scalar_varints(&mut scals[..], buf).unwrap();
 
     for (scal, expected_scal) in scals.iter().zip(expected_scals.iter()) {
@@ -276,10 +278,7 @@ fn write_read_and_compare_encoding(expected_scals: &[TestScalar]) {
 #[test]
 fn scalar_slices_are_correctly_encoded_and_decoded() {
     write_read_and_compare_encoding(&[TestScalar::from(0_u128)]);
-    write_read_and_compare_encoding(&[
-        TestScalar::from(1_u64),
-        TestScalar::from(4_u32),
-    ]);
+    write_read_and_compare_encoding(&[TestScalar::from(1_u64), TestScalar::from(4_u32)]);
     write_read_and_compare_encoding(&[
         TestScalar::from(1_u64),
         TestScalar::from(u128::MAX),
