@@ -1614,38 +1614,60 @@ fn we_cannot_use_non_grouped_columns_outside_agg() {
         let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
 
         assert!(matches!(
-            result.unwrap_err(),
-            ConversionError::PostprocessingError {
+            result,
+            Err(ConversionError::PostprocessingError {
                 source: PostprocessingError::IdentifierNotInAggregationOperatorOrGroupByClause { .. }
-            }
-        ) || matches!(
-            result.unwrap_err(),
-            ConversionError::InvalidGroupByColumnRef { .. }
+            })
+        ));
+    }
+
+    for query_text in query_texts {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
+    
+        assert!(matches!(
+            result,
+            Err(ConversionError::InvalidGroupByColumnRef { .. })
         ));
     }
 }
 
 #[test]
 fn varchar_column_is_not_compatible_with_integer_column() {
-    let query_texts = vec![
+    let bigint_to_varchar_queries = vec![
         "select -123 * s from sxt.t",
         "select i - s from sxt.t",
+    ];
+
+    let varchar_to_bigint_queries = vec![
         "select s from sxt.t where 'abc' = i",
         "select s from sxt.t where 'abc' != i",
     ];
 
-    for query_text in query_texts {
+    for query_text in bigint_to_varchar_queries {
         let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
         let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
 
-        assert!(matches!(
-            result.unwrap_err(),
-            ConversionError::DataTypeMismatch {
-                left_type,
-                right_type,
-            } if left_type == ColumnType::BigInt.to_string() && right_type == ColumnType::VarChar.to_string()
-            || left_type == ColumnType::VarChar.to_string() && right_type == ColumnType::BigInt.to_string()
-        ));
+        assert_eq!(
+            result,
+            Err(ConversionError::DataTypeMismatch {
+                left_type: ColumnType::BigInt.to_string(),
+                right_type: ColumnType::VarChar.to_string(),
+            })
+        );
+    }
+
+    for query_text in varchar_to_bigint_queries {
+        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
+        let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
+
+        assert_eq!(
+            result,
+            Err(ConversionError::DataTypeMismatch {
+                left_type: ColumnType::VarChar.to_string(),
+                right_type: ColumnType::BigInt.to_string(),
+            })
+        );
     }
 }
 
@@ -1655,33 +1677,52 @@ fn arithmetic_operations_are_not_allowed_with_varchar_column() {
     let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
     let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
     
-    assert!(matches!(
-        result.unwrap_err(),
-        ConversionError::DataTypeMismatch {
-            left_type,
-            right_type,
-        } if left_type == ColumnType::VarChar.to_string() && right_type == ColumnType::VarChar.to_string()
-    ));
+    assert_eq!(
+        result,
+        Err(ConversionError::DataTypeMismatch {
+            left_type: ColumnType::VarChar.to_string(),
+            right_type: ColumnType::VarChar.to_string(),
+        })
+    );
 }
 
 #[test]
 fn varchar_column_is_not_allowed_within_numeric_aggregations() {
-    let query_texts = [
-        "select sum(s) from sxt.t",
-        "select max(s) from sxt.t",
-        "select min(s) from sxt.t",
-    ];
+    let sum_query = "select sum(s) from sxt.t";
+    let intermediate_ast = SelectStatementParser::new().parse(sum_query).unwrap();
+    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
 
-    for query_text in query_texts.iter() {
-        let intermediate_ast = SelectStatementParser::new().parse(query_text).unwrap();
-        let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
+    assert!(matches!(
+        result,
+        Err(ConversionError::NonNumericExprInAgg {
+            expr_type,
+            agg_fn
+        }) if expr_type == "varchar" && agg_fn == "sum"
+    ));
 
-        assert!(matches!(
-            result.unwrap_err(),
-            ConversionError::NonNumericExprInAgg { expr_type, agg_fn }
-            if expr_type == "varchar" && (agg_fn == "sum" || agg_fn == "max" || agg_fn == "min")
-        ));
-    }
+    let max_query = "select max(s) from sxt.t";
+    let intermediate_ast = SelectStatementParser::new().parse(max_query).unwrap();
+    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
+
+    assert!(matches!(
+        result,
+        Err(ConversionError::NonNumericExprInAgg {
+            expr_type,
+            agg_fn
+        }) if expr_type == "varchar" && agg_fn == "max"
+    ));
+
+    let min_query = "select min(s) from sxt.t";
+    let intermediate_ast = SelectStatementParser::new().parse(min_query).unwrap();
+    let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, None, &None);
+
+    assert!(matches!(
+        result,
+        Err(ConversionError::NonNumericExprInAgg {
+            expr_type,
+            agg_fn
+        }) if expr_type == "varchar" && agg_fn == "min"
+    ));
 }
 
 #[test]
@@ -1889,8 +1930,8 @@ fn nested_aggregations_are_not_supported() {
         let result = QueryExpr::<NaiveCommitment>::try_new(intermediate_ast, t.schema_id(), &accessor);
 
         assert_eq!(
-            result.err(),
-            Some(ConversionError::InvalidExpression {
+            result,
+            Err(ConversionError::InvalidExpression {
                 expression: "nested aggregations are not supported".to_string()
             })
         );
