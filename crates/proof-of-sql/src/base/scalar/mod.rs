@@ -47,8 +47,6 @@ pub trait Scalar:
     + core::convert::TryInto <i32>
     + core::convert::TryInto <i64>
     + core::convert::TryInto <i128>
-    + core::convert::Into<[u64; 4]>
-    + core::convert::From<[u64; 4]>
     + core::cmp::Ord
     + core::ops::Neg<Output = Self>
     + num_traits::Zero
@@ -57,7 +55,6 @@ pub trait Scalar:
     + ark_std::UniformRand //This enables us to get `Scalar`s as challenges from the transcript
     + num_traits::Inv<Output = Option<Self>> // Note: `inv` should return `None` exactly when the element is zero.
     + core::ops::SubAssign
-    + super::ref_into::RefInto<[u64; 4]>
     + for<'a> core::convert::From<&'a String>
     + super::encode::VarInt
     + core::convert::From<String>
@@ -87,4 +84,9 @@ pub trait Scalar:
             _ => Ordering::Greater,
         }
     }
+
+    fn from_limbs(val: [u64; 4]) -> Self;
+
+    fn to_limbs(&self) -> [u64; 4];
+
 }

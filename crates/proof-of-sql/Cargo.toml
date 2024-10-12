@@ -52,7 +52,7 @@ zerocopy = { workspace = true }
 [dev-dependencies]
 alloy-sol-types = { workspace = true }
 arrow-csv = { workspace = true }
-blitzar = { workspace = true }
+#blitzar = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 criterion = { workspace = true, features = ["html_reports"] }
 merlin = { workspace = true }
@@ -74,7 +74,8 @@ default = ["arrow", "perf"]
 arrow = ["dep:arrow", "std"]
 blitzar = ["dep:blitzar", "dep:merlin", "std"]
 test = ["dep:rand", "std"]
-perf = ["blitzar", "rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
+#perf = ["blitzar", "rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
+perf = ["rayon", "ark-ec/parallel", "ark-poly/parallel", "ark-ff/asm"]
 rayon = ["dep:rayon", "std"]
 std = ["snafu/std"]
 

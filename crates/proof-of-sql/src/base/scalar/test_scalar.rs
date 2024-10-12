@@ -1,5 +1,5 @@
 use super::{MontScalar, Scalar};
-use ark_ff::{Fp, MontBackend, MontConfig};
+use ark_ff::{Fp, MontBackend, MontConfig, PrimeField};
 
 /// An implementation of `Scalar` intended for use in testing when a concrete implementation is required.
 ///
@@ -13,6 +13,14 @@ impl Scalar for TestScalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+
+    fn from_limbs(val: [u64; 4]) -> Self {
+        Self(Fp::new(ark_ff::BigInt(val)))
+    }
+
+    fn to_limbs(&self) -> [u64; 4] {
+        self.0.into_bigint().0
+    }
 }
 
 pub struct TestMontConfig(pub ark_curve25519::FrConfig);

@@ -1,5 +1,5 @@
 use super::Transcript;
-use crate::base::{ref_into::RefInto, scalar::Scalar};
+use crate::base::scalar::Scalar;
 use zerocopy::{AsBytes, FromBytes};
 
 /// A trait used to facilitate implementation of [Transcript](super::Transcript).
@@ -48,10 +48,10 @@ impl<T: TranscriptCore> Transcript for T {
         &mut self,
         messages: impl IntoIterator<Item = &'a S>,
     ) {
-        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(RefInto::ref_into));
+        self.extend_as_be::<[u64; 4]>(messages.into_iter().map(|s| s.to_limbs()));
     }
     fn scalar_challenge_as_be<S: Scalar>(&mut self) -> S {
-        receive_challenge_as_be::<[u64; 4]>(self).into()
+        S::from_limbs(receive_challenge_as_be::<[u64; 4]>(self))
     }
     fn challenge_as_le(&mut self) -> [u8; 32] {
         self.raw_challenge()

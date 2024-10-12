@@ -30,6 +30,7 @@ use crate::base::{
 };
 use alloc::vec::Vec;
 use ark_ec::pairing::PairingOutput;
+use ark_ff::{Fp, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use core::ops::Mul;
 use derive_more::{AddAssign, Neg, Sub, SubAssign};
@@ -45,6 +46,14 @@ impl Scalar for DoryScalar {
     const ZERO: Self = Self(ark_ff::MontFp!("0"));
     const ONE: Self = Self(ark_ff::MontFp!("1"));
     const TWO: Self = Self(ark_ff::MontFp!("2"));
+
+    fn from_limbs(val: [u64; 4]) -> Self {
+        Self(Fp::new(ark_ff::BigInt(val)))
+    }
+
+    fn to_limbs(&self) -> [u64; 4] {
+        self.0.into_bigint().0
+    }
 }
 
 #[derive(

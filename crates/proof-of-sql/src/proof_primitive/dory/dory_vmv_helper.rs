@@ -1,13 +1,12 @@
 #[cfg(not(feature = "blitzar"))]
 use super::G1Projective;
-use super::{transpose, G1Affine, ProverSetup, F};
+use super::{G1Affine, ProverSetup, F};
 use crate::base::polynomial::compute_evaluation_vector;
 #[cfg(feature = "blitzar")]
 use crate::base::slice_ops::slice_cast;
 use alloc::{vec, vec::Vec};
 #[cfg(not(feature = "blitzar"))]
 use ark_ec::{AffineRepr, VariableBaseMSM};
-use ark_ff::{BigInt, MontBackend};
 #[cfg(feature = "blitzar")]
 use blitzar::compute::ElementP2;
 #[cfg(feature = "blitzar")]
