@@ -1,6 +1,5 @@
 use super::*;
-use crate::base::scalar::Curve25519Scalar;
-use crate::base::scalar::test_scalar::TestScalar;
+use crate::base::scalar::{test_scalar::TestScalar, Curve25519Scalar};
 use curve25519_dalek::scalar::Scalar;
 
 #[test]

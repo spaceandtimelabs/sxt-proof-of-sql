@@ -14,13 +14,9 @@ fn we_compute_the_correct_evaluation_vector_for_a_small_example() {
     assert_eq!(v, expected_v);
 
     let mut v = [TestScalar::zero(); 4];
-    compute_evaluation_vector(
-        &mut v,
-        &[TestScalar::from(3u64), TestScalar::from(4u64)],
-    );
+    compute_evaluation_vector(&mut v, &[TestScalar::from(3u64), TestScalar::from(4u64)]);
     let expected_v = [
-        (TestScalar::one() - TestScalar::from(4u64))
-            * (TestScalar::one() - TestScalar::from(3u64)),
+        (TestScalar::one() - TestScalar::from(4u64)) * (TestScalar::one() - TestScalar::from(3u64)),
         (TestScalar::one() - TestScalar::from(4u64)) * TestScalar::from(3u64),
         TestScalar::from(4u64) * (TestScalar::one() - TestScalar::from(3u64)),
         TestScalar::from(4u64) * TestScalar::from(3u64),
@@ -36,13 +32,9 @@ fn we_compute_the_evaluation_vectors_not_a_power_of_2() {
     assert_eq!(v, expected_v);
 
     let mut v = [TestScalar::zero(); 3];
-    compute_evaluation_vector(
-        &mut v,
-        &[TestScalar::from(3u64), TestScalar::from(4u64)],
-    );
+    compute_evaluation_vector(&mut v, &[TestScalar::from(3u64), TestScalar::from(4u64)]);
     let expected_v = [
-        (TestScalar::one() - TestScalar::from(4u64))
-            * (TestScalar::one() - TestScalar::from(3u64)),
+        (TestScalar::one() - TestScalar::from(4u64)) * (TestScalar::one() - TestScalar::from(3u64)),
         (TestScalar::one() - TestScalar::from(4u64)) * TestScalar::from(3u64),
         TestScalar::from(4u64) * (TestScalar::one() - TestScalar::from(3u64)),
     ];
@@ -98,9 +90,6 @@ fn we_get_the_same_result_using_evaluation_vector_as_direct_evaluation() {
         3,
         &TestScalar::unwrap_slice(&xs),
     );
-    let expected_eval = TestScalar::new(
-        poly.evaluate(&TestScalar::unwrap_slice(&point))
-            .unwrap(),
-    );
+    let expected_eval = TestScalar::new(poly.evaluate(&TestScalar::unwrap_slice(&point)).unwrap());
     assert_eq!(eval, expected_eval);
 }
