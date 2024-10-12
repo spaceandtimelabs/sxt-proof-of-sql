@@ -73,8 +73,7 @@ fn we_can_compute_the_bit_matrix_for_data_with_varying_bits_and_constant_bits() 
 fn we_can_compute_the_bit_matrix_for_data_entries_bigger_than_64_bit_integers() {
     let mut val = [0; 4];
     val[3] = 1 << 2;
-    let data: Vec<TestScalar> =
-        vec![TestScalar::from_bigint(val), TestScalar::one()];
+    let data: Vec<TestScalar> = vec![TestScalar::from_bigint(val), TestScalar::one()];
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     let alloc = Bump::new();
     let matrix = compute_varying_bit_matrix(&alloc, &data, &dist);
