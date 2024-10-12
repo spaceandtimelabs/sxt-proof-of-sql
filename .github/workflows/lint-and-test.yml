@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 name: CI-Lint-And-Test
 
 on:
@@ -229,3 +230,193 @@ jobs:
         run: npm install -g solhint
       - name: Run tests
         run: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' -w 0
+=======
+name: CI-Lint-And-Test
+
+on:
+  workflow_call:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  BLITZAR_BACKEND: cpu
+
+jobs:
+  # Run cargo check (with various feature permutations)
+  check:
+    name: Check Package
+    runs-on: large-8-core-32gb-22-04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld     
+      - name: Run cargo check (no features, exclude examples)
+        run: cargo check --no-default-features
+      - name: Run cargo check (default features)
+        run: cargo check --all-targets
+      - name: Run cargo check (all features)
+        run: cargo check --all-targets --all-features
+      - name: Run cargo check (proof-of-sql) (no features)
+        run: cargo check -p proof-of-sql --no-default-features
+      - name: Run cargo check (proof-of-sql) (all features)
+        run: cargo check -p proof-of-sql --all-features
+      - name: Run cargo check (proof-of-sql) (just "test" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="test"
+      - name: Run cargo check (proof-of-sql) (just "blitzar" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="blitzar"
+      - name: Run cargo check (proof-of-sql) (just "arrow" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="arrow"
+      - name: Run cargo check (proof-of-sql) (just "rayon" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="rayon"
+      - name: Run cargo check (proof-of-sql) (just "perf" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="perf"
+      - name: Run cargo check (proof-of-sql) (just "std" feature)
+        run: cargo check -p proof-of-sql --no-default-features --features="std"
+      - name: Run cargo check (proof-of-sql-parser) with no_std target.
+        run: |
+          rustup target add thumbv7em-none-eabi
+          cargo check -p proof-of-sql-parser --target thumbv7em-none-eabi
+
+  test:
+    name: Test Suite
+    runs-on: large-8-core-32gb-22-04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+      - name: Install Dependencies
+        run: |
+          export DEBIAN_FRONTEND=non-interactive
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+      - name: Run cargo test
+        run: cargo test --all-features
+      - name: Install Foundry/forge for solidity tests
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Run solidity tests (ignored by default)
+        run: cargo test --all-features --package proof-of-sql --lib -- tests::sol_test --show-output --ignored
+      - name: Run cargo test without rayon
+        run: cargo test --no-default-features --features="arrow blitzar"
+      - name: Dry run cargo test (proof-of-sql) (test feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="test"
+      - name: Dry run cargo test (proof-of-sql) (arrow feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="arrow"
+      - name: Dry run cargo test (proof-of-sql) (blitzar feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="blitzar"
+      - name: Dry run cargo test (proof-of-sql) (std feature only)
+        run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
+      - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
+        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
+      - name: Run hello_world example
+        run: cargo run --example hello_world --features="blitzar test"
+      - name: Run posql_db example
+        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
+
+  clippy:
+    name: Clippy
+    runs-on: large-8-core-32gb-22-04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
+      - name: Install stable toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+          rustup component add clippy
+      - name: Install Dependencies
+        run: export DEBIAN_FRONTEND=non-interactive && sudo apt-get update && sudo apt-get install -y clang lld
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run clippy::pedantic for proof-of-sql-parser
+        run: cargo clippy --lib -p proof-of-sql-parser -- -D clippy::pedantic
+
+  # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install stable toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env
+          rustup component add rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
+
+  udeps:
+    name: Unused Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install nightly toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y --profile minimal && source ~/.cargo/env && rustup default nightly
+          cargo install cargo-udeps --locked
+      - name: Run cargo udeps
+        run: cargo +nightly udeps --all-targets
+
+  foundrycheck: # Modified from the foundry book: https://book.getfoundry.sh/config/continuous-integration
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run tests
+        run: forge test --root=crates/proof-of-sql --summary --detailed
+
+  solhint:
+    name: solhint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install solhint
+        run: npm install -g solhint
+      - name: Run tests
+        run: solhint -c 'crates/proof-of-sql/.solhint.json' 'crates/proof-of-sql/**/*.sol' -w 0
+>>>>>>> Stashed changes
