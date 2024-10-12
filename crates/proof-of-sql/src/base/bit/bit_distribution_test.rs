@@ -10,7 +10,10 @@ fn we_can_compute_the_bit_distribution_of_an_empty_slice() {
     assert!(!dist.has_varying_sign_bit());
     assert!(!dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::zero());
+    assert_eq!(
+        TestScalar::from(dist.constant_part()),
+        TestScalar::zero()
+    );
 
     let mut cnt = 0;
     dist.for_each_abs_constant_bit(|_i: usize, _pos: usize| {
@@ -157,7 +160,10 @@ fn we_can_compute_the_bit_distribution_of_negative_values() {
     assert!(!dist.has_varying_sign_bit());
     assert!(dist.sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::one());
+    assert_eq!(
+        TestScalar::from(dist.constant_part()),
+        TestScalar::one()
+    );
     assert_eq!(dist.most_significant_abs_bit(), 0);
 
     let mut cnt = 0;
@@ -187,7 +193,10 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs() {
     let dist = BitDistribution::new::<TestScalar, _>(&data);
     assert_eq!(dist.num_varying_bits(), 1);
     assert!(dist.has_varying_sign_bit());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::one());
+    assert_eq!(
+        TestScalar::from(dist.constant_part()),
+        TestScalar::one()
+    );
     assert_eq!(dist.most_significant_abs_bit(), 0);
 
     let mut cnt = 0;
@@ -220,7 +229,10 @@ fn we_can_compute_the_bit_distribution_of_values_with_different_signs_and_values
     assert_eq!(dist.num_varying_bits(), 3);
     assert!(dist.has_varying_sign_bit());
     assert!(dist.is_valid());
-    assert_eq!(TestScalar::from(dist.constant_part()), TestScalar::zero());
+    assert_eq!(
+        TestScalar::from(dist.constant_part()),
+        TestScalar::zero()
+    );
     assert_eq!(dist.most_significant_abs_bit(), 2);
 
     let mut cnt = 0;
