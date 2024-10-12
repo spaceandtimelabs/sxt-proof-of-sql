@@ -11,6 +11,7 @@ use bumpalo::Bump;
 use proof_of_sql_parser::{Identifier, ParseError};
 use core::ops::Range;
 use snafu::Snafu;
+use alloc::vec::Vec;
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
 #[cfg(feature = "arrow")]

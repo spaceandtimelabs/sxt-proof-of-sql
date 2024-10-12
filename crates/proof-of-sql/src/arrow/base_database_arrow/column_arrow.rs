@@ -2,7 +2,7 @@
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use crate::base::database::{ColumnField, ColumnType};
-use std::sync::Arc;
+use alloc::sync::Arc;
 use crate::base::math::decimal::Precision;
 
 /// Convert [`ColumnType`] values to some arrow [`DataType`]
