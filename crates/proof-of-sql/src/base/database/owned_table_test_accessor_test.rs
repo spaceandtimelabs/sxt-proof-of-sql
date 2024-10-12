@@ -3,11 +3,12 @@ use super::{
     OwnedTableTestAccessor, SchemaAccessor, TestAccessor,
 };
 use crate::base::{
-    commitment::{Commitment, CommittableColumn},
+    commitment::{
+        naive_commitment::NaiveCommitment, test_evaluation_proof::TestEvaluationProof, Commitment,
+        CommittableColumn,
+    },
     database::owned_table_utility::*,
     scalar::test_scalar::TestScalar,
-    commitment::test_evaluation_proof::TestEvaluationProof,
-    commitment::naive_commitment::NaiveCommitment
 };
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 

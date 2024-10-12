@@ -66,8 +66,6 @@ fn test_composite_polynomial_hypercube_sum() {
     let sum = prod.hypercube_sum(4);
     assert_eq!(
         sum,
-        TestScalar::from(
-            3 * ((-7) * 2 + 2 * (-8) + (-6) * 4 + 17 * 1) + 2 * (1 + 3 + (-5) + (-9))
-        )
+        TestScalar::from(3 * ((-7) * 2 + 2 * (-8) + (-6) * 4 + 17 * 1) + 2 * (1 + 3 + (-5) + (-9)))
     );
 }
