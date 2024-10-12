@@ -103,7 +103,9 @@ jobs:
       - name: Dry run cargo test (proof-of-sql) (std feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
       - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
-        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
+        run: |
+            cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std" && \
+            cargo test proof_primitive::dory::dynamic_dory_compute_commitments_test --no-default-features --features="std"
       - name: Run hello_world example (With Blitzar)
         run: cargo run --example hello_world --features="test"
       - name: Run hello_world example (Without Blitzar and With Rayon)
