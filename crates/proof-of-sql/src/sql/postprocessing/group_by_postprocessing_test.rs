@@ -8,9 +8,9 @@ use crate::{
         OwnedTablePostprocessing, PostprocessingError,
     },
 };
-use proof_of_sql_parser::{
-    intermediate_ast::AggregationOperator, intermediate_decimal::IntermediateDecimal, utility::*,
-};
+use bigdecimal::BigDecimal;
+use proof_of_sql_parser::{intermediate_ast::AggregationOperator, utility::*};
+use proof_of_sql_utils::big_decimal_ext::BigDecimalExt;
 
 #[test]
 fn we_cannot_have_invalid_group_bys() {
@@ -221,15 +221,12 @@ fn we_can_do_complex_group_bys() {
             aliased_expr(
                 sub(
                     min(add(col("b"), lit(4))),
-                    lit("2.4".parse::<IntermediateDecimal>().unwrap()),
+                    lit("2.4".parse::<BigDecimal>().unwrap()),
                 ),
                 "min_b",
             ),
             aliased_expr(
-                sum(mul(
-                    col("c"),
-                    lit("1.4".parse::<IntermediateDecimal>().unwrap()),
-                )),
+                sum(mul(col("c"), lit("1.4".parse::<BigDecimal>().unwrap()))),
                 "sum_c",
             ),
             aliased_expr(add(count(col("d")), lit(3)), "count_d"),
@@ -257,10 +254,7 @@ fn we_can_do_complex_group_bys() {
         &[
             aliased_expr(
                 add(
-                    count(add(
-                        col("a"),
-                        lit("2.5".parse::<IntermediateDecimal>().unwrap()),
-                    )),
+                    count(add(col("a"), lit("2.5".parse::<BigDecimal>().unwrap()))),
                     lit(2),
                 ),
                 "count_a",
@@ -270,10 +264,7 @@ fn we_can_do_complex_group_bys() {
                     lit(2),
                     add(
                         max(add(mul(lit(2), col("c")), lit(1))),
-                        sum(mul(
-                            lit("2.5".parse::<IntermediateDecimal>().unwrap()),
-                            col("d"),
-                        )),
+                        sum(mul(lit("2.5".parse::<BigDecimal>().unwrap()), col("d"))),
                     ),
                 ),
                 "res",
@@ -281,19 +272,13 @@ fn we_can_do_complex_group_bys() {
             aliased_expr(sub(count(col("d")), lit(1)), "count_d_alt"),
             aliased_expr(
                 sub(
-                    min(add(
-                        col("b"),
-                        lit("2.4".parse::<IntermediateDecimal>().unwrap()),
-                    )),
-                    lit("3.4".parse::<IntermediateDecimal>().unwrap()),
+                    min(add(col("b"), lit("2.4".parse::<BigDecimal>().unwrap()))),
+                    lit("3.4".parse::<BigDecimal>().unwrap()),
                 ),
                 "min_b",
             ),
             aliased_expr(
-                sum(mul(
-                    col("c"),
-                    lit("1.7".parse::<IntermediateDecimal>().unwrap()),
-                )),
+                sum(mul(col("c"), lit("1.7".parse::<BigDecimal>().unwrap()))),
                 "sum_c",
             ),
             aliased_expr(sub(count(col("d")), lit(3)), "count_d"),

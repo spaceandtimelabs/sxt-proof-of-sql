@@ -8,10 +8,7 @@ use alloc::{
     string::{String, ToString},
 };
 use core::result::Result;
-use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
-    ResourceId,
-};
+use proof_of_sql_parser::{posql_time::PoSQLTimestampError, Identifier, ResourceId};
 use snafu::Snafu;
 
 /// Errors from converting an intermediate AST into a provable AST.
@@ -153,14 +150,6 @@ impl From<String> for ConversionError {
 impl From<ConversionError> for String {
     fn from(error: ConversionError) -> Self {
         error.to_string()
-    }
-}
-
-impl From<IntermediateDecimalError> for ConversionError {
-    fn from(err: IntermediateDecimalError) -> ConversionError {
-        ConversionError::DecimalConversionError {
-            source: DecimalError::IntermediateDecimalConversionError { source: err },
-        }
     }
 }
 

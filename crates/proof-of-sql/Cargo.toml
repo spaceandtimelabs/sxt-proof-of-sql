@@ -48,6 +48,7 @@ snafu = { workspace = true }
 tiny-keccak = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
 zerocopy = { workspace = true }
+proof_of_sql_utils={ path = "../proof-of-sql-utils" }
 
 [dev-dependencies]
 alloy-sol-types = { workspace = true }
