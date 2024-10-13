@@ -126,6 +126,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Scale the decimal to the new scale factor. Negative scaling and overflow error out.
+    #[allow(clippy::cast_sign_loss)]
     pub fn with_precision_and_scale(
         &self,
         new_precision: Precision,
@@ -142,6 +143,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Get a decimal with given precision and scale from an i64
+    #[allow(clippy::cast_sign_loss)]
     pub fn from_i64(value: i64, precision: Precision, scale: i8) -> DecimalResult<Self> {
         const MINIMAL_PRECISION: u8 = 19;
         let raw_precision = precision.value();
@@ -160,6 +162,7 @@ impl<S: Scalar> Decimal<S> {
     }
 
     /// Get a decimal with given precision and scale from an i128
+    #[allow(clippy::cast_sign_loss)]
     pub fn from_i128(value: i128, precision: Precision, scale: i8) -> DecimalResult<Self> {
         const MINIMAL_PRECISION: u8 = 39;
         let raw_precision = precision.value();
