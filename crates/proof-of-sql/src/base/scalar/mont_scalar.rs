@@ -565,6 +565,8 @@ where
     MontScalar<T>: Scalar,
 {
     type Error = ScalarConversionError;
+
+    #[allow(clippy::cast_possible_wrap)]
     fn try_from(value: MontScalar<T>) -> Result<Self, Self::Error> {
         let (sign, abs): (i128, [u64; 4]) = if value > <MontScalar<T>>::MAX_SIGNED {
             (-1, (-value).into())

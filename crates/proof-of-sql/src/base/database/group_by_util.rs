@@ -124,7 +124,8 @@ pub fn aggregate_columns<'a, S: Scalar>(
         .collect();
 
     // Cast the counts to something compatible with BigInt.
-    let count_column_out = alloc.alloc_slice_fill_iter(counts.into_iter().map(|c| c as i64));
+    let count_column_out =
+        alloc.alloc_slice_fill_iter(counts.into_iter().map(|c| c.try_into().unwrap_or(i64::MAX)));
 
     Ok(AggregatedColumns {
         group_by_columns: group_by_columns_out,

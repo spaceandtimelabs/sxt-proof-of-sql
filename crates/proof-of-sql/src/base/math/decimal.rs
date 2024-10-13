@@ -349,7 +349,10 @@ mod scale_adjust_test {
             "0.000000000000000000000000000000000000000000000000000000000000000000000000001"
                 .parse()
                 .unwrap();
-        let target_scale = MAX_SUPPORTED_PRECISION as i8;
+        let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
+            Ok(val) => val,
+            Err(_) => i8::MAX,
+        };
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
             Precision::new(decimal.value().digits() as u8,).unwrap(),
@@ -359,7 +362,10 @@ mod scale_adjust_test {
 
         // this is ok because it can be scaled to 75 precision
         let decimal = "0.1".parse().unwrap();
-        let target_scale = MAX_SUPPORTED_PRECISION as i8;
+        let target_scale = match MAX_SUPPORTED_PRECISION.try_into() {
+            Ok(val) => val,
+            Err(_) => i8::MAX,
+        };
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
             Precision::new(MAX_SUPPORTED_PRECISION).unwrap(),
