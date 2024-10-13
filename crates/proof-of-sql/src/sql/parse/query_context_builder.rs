@@ -45,7 +45,7 @@ impl<'a> QueryContextBuilder<'a> {
             }
         }
         self
-    }    
+    }
 
     pub fn visit_where_expr(
         mut self,

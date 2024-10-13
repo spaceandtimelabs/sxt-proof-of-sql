@@ -50,7 +50,7 @@ impl<C: Commitment> EnrichedExpr<C> {
                 dyn_proof_expr: None,
             },
         }
-    }    
+    }
 
     /// Get the alias of the `EnrichedExpr`.
     ///

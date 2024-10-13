@@ -114,7 +114,7 @@ impl<'a, C: Commitment> VerificationBuilder<'a, C> {
                 SumcheckSubpolynomialType::ZeroSum => eval,
             };
         self.produced_subpolynomials += 1;
-    }    
+    }
 
     #[allow(
         clippy::missing_panics_doc,
