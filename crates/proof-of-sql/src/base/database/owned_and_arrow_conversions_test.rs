@@ -142,7 +142,7 @@ fn we_cannot_convert_a_record_batch_if_it_has_repeated_column_names() {
 }
 
 #[test]
-#[should_panic(expected = "Converting an owned table with scalar column causes panic")]
+#[should_panic(expected = "not implemented: Cannot convert Scalar type to arrow type")]
 fn we_panic_when_converting_an_owned_table_with_a_scalar_column() {
     let owned_table = owned_table::<Curve25519Scalar>([scalar("a", [0; 0])]);
     let _ = RecordBatch::try_from(owned_table);

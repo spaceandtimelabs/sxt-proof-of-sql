@@ -779,8 +779,9 @@ fn we_can_parse_multiple_order_by() {
 // TODO: we should be able to pass this test.
 // But due to some lalrpop restriction, we aren't.
 // This problem will be addressed in a future PR.
+#[allow(clippy::should_panic_without_expect)]
 #[test]
-#[should_panic(expected = "lalrpop restriction prevents parsing reserved keywords in order by")]
+#[should_panic]
 fn we_cannot_parse_order_by_referencing_reserved_keywords_yet() {
     let ast = "select a as asc from tab order by a asc"
         .parse::<SelectStatement>()

@@ -22,7 +22,9 @@ fn test_mul_add_assign_uneven() {
 
 /// test [`mul_add_assign`] with with uneven panics when len(a) < len(b)
 #[test]
-#[should_panic(expected = "Length of vector a must not be shorter than vector b")]
+#[should_panic(
+    expected = "The length of result must be greater than or equal to the length of the vector of values to be multiplied and added"
+)]
 fn test_mul_add_assign_uneven_panic() {
     let mut a = vec![1, 2, 3, 4];
     let b = vec![2, 3, 4, 5, 6];
