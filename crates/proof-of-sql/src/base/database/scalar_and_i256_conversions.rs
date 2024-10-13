@@ -40,10 +40,10 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
         let abs_value = if value.is_negative() { -*value } else { *value };
         let (low, high) = abs_value.to_parts();
         let limbs = [
-            low as u64,
-            (low >> 64) as u64,
-            high as u64,
-            (high >> 64) as u64,
+            u64::try_from(low).unwrap_or(u64::MAX),
+            u64::try_from(low >> 64).unwrap_or(u64::MAX),
+            u64::try_from(high).unwrap_or(u64::MAX),
+            u64::try_from(high >> 64).unwrap_or(u64::MAX),
         ];
 
         // Convert limbs to Scalar and adjust for sign

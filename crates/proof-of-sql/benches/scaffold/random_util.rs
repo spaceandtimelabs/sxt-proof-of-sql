@@ -47,7 +47,7 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     (ColumnType::VarChar, _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
                             let len = rng
-                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                                .gen_range(0..=bound.map(|b| usize::try_from(b(num_rows)).unwrap_or(usize::MAX)).unwrap_or(10));
                             alloc.alloc_str(
                                 &rng.sample_iter(&rand::distributions::Alphanumeric)
                                     .take(len)

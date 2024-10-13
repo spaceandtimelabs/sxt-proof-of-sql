@@ -246,7 +246,7 @@ mod scale_adjust_test {
 
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale
         )
         .is_err());
@@ -285,7 +285,7 @@ mod scale_adjust_test {
 
         let limbs = try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -300,7 +300,7 @@ mod scale_adjust_test {
         let expected_limbs = [12345, 0, 0, 0];
         let limbs = try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX)).unwrap(),
             target_scale,
         )
         .unwrap();
@@ -316,7 +316,7 @@ mod scale_adjust_test {
         let target_scale = 6; // now precision exceeds maximum
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_err());
@@ -358,7 +358,7 @@ mod scale_adjust_test {
         };
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_ok());
@@ -381,7 +381,7 @@ mod scale_adjust_test {
         let target_scale = 75;
         assert!(try_into_to_scalar::<Curve25519Scalar>(
             &decimal,
-            Precision::new(decimal.value().digits() as u8,).unwrap(),
+            Precision::new(u8::try_from(decimal.value().digits()).unwrap_or(u8::MAX),).unwrap(),
             target_scale
         )
         .is_err());

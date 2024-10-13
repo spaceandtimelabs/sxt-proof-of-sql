@@ -25,7 +25,7 @@ pub fn write_u256_varint(buf: &mut [u8], mut zig_x: U256) -> usize {
     while zig_x.high != 0 || zig_x.low >= 0b1000_0000 {
         // we read the next 7 bits from `zig_x` casting to u8 and setting
         // the 8-th bit to 1 to indicate that we still need to write more bytes to buf
-        buf[pos] = (zig_x.low as u8) | 0b1000_0000;
+        buf[pos] = u8::try_from(zig_x.low).unwrap_or(0b1000_0000);
         pos += 1;
 
         // we shift the whole `zig_x` number 7 bits to right

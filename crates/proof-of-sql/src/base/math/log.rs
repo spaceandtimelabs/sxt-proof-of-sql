@@ -71,7 +71,7 @@ mod tests {
         assert_eq!(log2_up(4u32), 2);
     }
 
-    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     #[test]
     fn test_log2_bytes_ceil() {
         // 0-1 edge cases

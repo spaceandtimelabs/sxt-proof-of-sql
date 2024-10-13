@@ -77,7 +77,7 @@ macro_rules! impl_varint {
                 (self as u64).required_space()
             }
 
-            #[allow(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::cast_possible_truncation)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = u64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -101,7 +101,7 @@ macro_rules! impl_varint {
                 (self as i64).required_space()
             }
 
-            #[allow(clippy::cast_lossless)]
+            #[allow(clippy::cast_lossless, clippy::cast_possible_truncation)]
             fn decode_var(src: &[u8]) -> Option<(Self, usize)> {
                 let (n, s) = i64::decode_var(src)?;
                 // This check is required to ensure that we actually return `None` when `src` has a value that would overflow `Self`.
@@ -194,12 +194,12 @@ impl VarInt for u64 {
         let mut i = 0;
 
         while n >= 0x80 {
-            dst[i] = MSB | (n as u8);
+            dst[i] = MSB | u8::try_from(n).unwrap_or(u8::MAX);
             i += 1;
             n >>= 7;
         }
 
-        dst[i] = n as u8;
+        dst[i] = u8::try_from(n).unwrap_or(u8::MAX);
         i + 1
     }
 }
