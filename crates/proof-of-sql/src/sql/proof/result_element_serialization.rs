@@ -316,6 +316,31 @@ mod tests {
         }
     }
 
+    #[test]
+    fn arbitrary_encoded_buffers_are_correctly_decoded() {
+        let mut rng = StdRng::from_seed([0u8; 32]);
+        let dist = Uniform::new(1, usize::MAX);
+
+        for _ in 0..100 {
+            let value = (0..(dist.sample(&mut rng) % 100))
+                .map(|_v| (dist.sample(&mut rng) % 255) as u8)
+                .collect::<Vec<u8>>();
+            let value_slice = &value[..];
+
+            let mut out = vec![0_u8; value_slice.required_bytes()];
+            value_slice.encode(&mut out[..]);
+
+            let (decoded_value, read_bytes) = <&[u8]>::decode(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, value_slice);
+
+            let (decoded_value, read_bytes) =
+                decode_and_convert::<&[u8], Curve25519Scalar>(&out[..]).unwrap();
+            assert_eq!(read_bytes, out.len());
+            assert_eq!(decoded_value, value_slice.into());
+        }
+    }
+
     fn encode_multiple_rows<'a, T: ProvableResultElement<'a>>(data: &[T]) -> Vec<u8> {
         let total_len = data
             .iter()
