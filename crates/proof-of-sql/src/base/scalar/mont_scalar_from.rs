@@ -18,7 +18,7 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
     ///
     /// - If the byte slice is empty, the result is the zero scalar.
     /// - If the byte slice has length 31 or less, the bytes are directly converted to a scalar.
-    /// - If the byte slice has length 32, the bytes are hashed using `blake3` and the result is
+    /// - If the byte slice has length 32 or larger, the bytes are hashed using `blake3` and the result is
     ///   converted to a scalar.
     fn from(x: &[u8]) -> Self {
         match x.len() {
@@ -29,14 +29,13 @@ impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
                 bytes[..x.len()].copy_from_slice(x);
                 Self::from_le_bytes_mod_order(&bytes)
             }
-            32 => {
+            _ => {
                 // Hash and convert if exactly 32 bytes
                 let hash = blake3::hash(x);
                 let mut bytes: [u8; 32] = hash.into();
                 bytes[31] &= 0b0000_1111_u8;
                 Self::from_le_bytes_mod_order(&bytes)
             }
-            _ => panic!("Unsupported byte length for conversion to MontScalar"),
         }
     }
 }
