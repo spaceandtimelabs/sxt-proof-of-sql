@@ -70,9 +70,9 @@ fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
     let Gamma_2 = public_parameters.Gamma_2;
 
     // Calculate the expected result
-    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(0x01020304)
-        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(0x05060708)
-        + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(0x090A0B0C);
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(0x0102_0304)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(0x0506_0708)
+        + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(0x090A_0B0C);
 
     // Assert that the computed result matches the expected result
     assert_eq!(res[0].0, expected);

@@ -76,8 +76,9 @@ fn compute_dory_commitment(
         CommittableColumn::RangeCheckWord(column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
-        CommittableColumn::FixedSizeBinary(column) => {
-            compute_dory_commitment_impl(column, offset, setup)
+        CommittableColumn::FixedSizeBinary(byte_size, column) => {
+            let scalars: Vec<_> = column.chunks_exact(*byte_size as usize).collect();
+            compute_dory_commitment_impl(&scalars, offset, setup)
         }
     }
 }
