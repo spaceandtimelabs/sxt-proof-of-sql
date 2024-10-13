@@ -67,6 +67,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Element-wise equality check for two columns
+    #[allow(clippy::too_many_lines)]
     pub fn element_wise_eq(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -248,6 +249,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Element-wise <= check for two columns
+    #[allow(clippy::too_many_lines)]
     pub fn element_wise_le(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -428,6 +430,7 @@ impl<S: Scalar> OwnedColumn<S> {
     }
 
     /// Element-wise >= check for two columns
+    #[allow(clippy::too_many_lines)]
     pub fn element_wise_ge(&self, rhs: &Self) -> ColumnOperationResult<Self> {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -611,6 +614,7 @@ impl<S: Scalar> OwnedColumn<S> {
 impl<S: Scalar> Add for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
+    #[allow(clippy::too_many_lines)]
     fn add(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -804,6 +808,7 @@ impl<S: Scalar> Add for OwnedColumn<S> {
 impl<S: Scalar> Sub for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
+    #[allow(clippy::too_many_lines)]
     fn sub(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -1001,6 +1006,7 @@ impl<S: Scalar> Sub for OwnedColumn<S> {
 impl<S: Scalar> Mul for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
+    #[allow(clippy::too_many_lines)]
     fn mul(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {
@@ -1198,6 +1204,7 @@ impl<S: Scalar> Mul for OwnedColumn<S> {
 impl<S: Scalar> Div for OwnedColumn<S> {
     type Output = ColumnOperationResult<Self>;
 
+    #[allow(clippy::too_many_lines)]
     fn div(self, rhs: Self) -> Self::Output {
         if self.len() != rhs.len() {
             return Err(ColumnOperationError::DifferentColumnLength {

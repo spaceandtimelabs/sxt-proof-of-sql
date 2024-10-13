@@ -21,7 +21,8 @@ impl<'a, T: ProvableResultElement<'a>> ProvableResultColumn for &[T] {
     fn write(&self, out: &mut [u8], length: u64) -> usize {
         let mut res = 0;
         for i in 0..length {
-            res += self[i as usize].encode(&mut out[res..]);
+            let index: usize = usize::try_from(i).expect("Index out of bounds");
+            res += self[index].encode(&mut out[res..]);
         }
         res
     }

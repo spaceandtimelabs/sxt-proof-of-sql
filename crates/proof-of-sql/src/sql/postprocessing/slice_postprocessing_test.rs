@@ -22,6 +22,7 @@ fn we_can_slice_an_owned_table_using_only_a_positive_limit_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_zero_limit_value() {
     let limit = 0;
@@ -38,6 +39,7 @@ fn we_can_slice_an_owned_table_using_only_a_zero_limit_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_positive_offset_value() {
     let offset = 3;
@@ -54,6 +56,7 @@ fn we_can_slice_an_owned_table_using_only_a_positive_offset_value() {
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_only_a_negative_offset_value() {
     let offset = -2;
@@ -61,21 +64,20 @@ fn we_can_slice_an_owned_table_using_only_a_negative_offset_value() {
     let data_d = ["alfa", "beta", "abc", "f", "kl", "f"];
     let table: OwnedTable<Curve25519Scalar> =
         owned_table([bigint("a", data_a.to_vec()), varchar("d", data_d.to_vec())]);
+    let data_length_i64: i64 = match data_a.len().try_into() {
+        Ok(val) => val,
+        Err(_) => i64::MAX,
+    };
     let expected_table = owned_table([
-        bigint(
-            "a",
-            data_a[(data_a.len() as i64 + offset) as usize..].to_vec(),
-        ),
-        varchar(
-            "d",
-            data_d[(data_a.len() as i64 + offset) as usize..].to_vec(),
-        ),
+        bigint("a", data_a[(data_length_i64 + offset) as usize..].to_vec()),
+        varchar("d", data_d[(data_length_i64 + offset) as usize..].to_vec()),
     ]);
     let postprocessing = [slice(None, Some(offset))];
     let actual_table = apply_postprocessing_steps(table, &postprocessing).unwrap();
     assert_eq!(actual_table, expected_table);
 }
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 #[test]
 fn we_can_slice_an_owned_table_using_both_limit_and_offset_values() {
     let offset = -2;
@@ -84,7 +86,12 @@ fn we_can_slice_an_owned_table_using_both_limit_and_offset_values() {
     let data_d = ["alfa", "beta", "abc", "f", "kl", "f"];
     let table: OwnedTable<Curve25519Scalar> =
         owned_table([bigint("a", data_a.to_vec()), varchar("d", data_d.to_vec())]);
-    let beg_expected_index = (data_a.len() as i64 + offset) as usize;
+    let data_length_i64: i64 = match data_a.len().try_into() {
+        Ok(val) => val,
+        Err(_) => i64::MAX,
+    };
+
+    let beg_expected_index = (data_length_i64 + offset) as usize;
     let expected_table = owned_table([
         bigint(
             "a",

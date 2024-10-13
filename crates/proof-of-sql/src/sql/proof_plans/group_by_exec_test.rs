@@ -75,6 +75,7 @@ fn we_can_prove_a_group_by_with_bigint_columns() {
     assert_eq!(res, expected);
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn we_can_prove_a_complex_group_by_query_with_many_columns() {
     let scalar_filter_data: Vec<Curve25519Scalar> = [

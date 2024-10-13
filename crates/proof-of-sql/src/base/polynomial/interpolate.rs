@@ -95,10 +95,17 @@ where
         .iter()
         .enumerate()
         .map(|(idx, &eval_i)| {
-            let i = idx as i32;
+            let i = match idx.try_into() {
+                Ok(val) => val,
+                Err(_) => i32::MAX,
+            };
             let mut scaled_lagrange_basis = vec![S::zero(); n + 1];
+            let n_i32 = match n.try_into() {
+                Ok(val) => val,
+                Err(_) => i32::MAX,
+            };
             // First compute the constant factor of this lagrange basis polynomial:
-            scaled_lagrange_basis[0] = (i - n as i32..0)
+            scaled_lagrange_basis[0] = (i - n_i32..0)
                 .chain(1..=i)
                 .map(S::from)
                 .product::<S>()
@@ -107,7 +114,7 @@ where
                 * eval_i;
             // Then multiply by the appropriate linear terms:
             // for j in 0..=n if j != i {
-            for neg_j in (-(n as i32)..-i).chain(1 - i..=0).map(S::from) {
+            for neg_j in (-(n_i32)..-i).chain(1 - i..=0).map(S::from) {
                 for k in (0..n).rev() {
                     scaled_lagrange_basis[k + 1] =
                         scaled_lagrange_basis[k + 1] + neg_j * scaled_lagrange_basis[k];

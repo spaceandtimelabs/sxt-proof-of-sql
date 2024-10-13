@@ -12,6 +12,7 @@ pub type OptionalRandBound = Option<fn(usize) -> i64>;
 /// Will panic if:
 /// - The provided identifier cannot be parsed into an `Identifier` type.
 /// - An unsupported `ColumnType` is encountered, triggering a panic in the `todo!()` macro.
+#[allow(clippy::cast_sign_loss)]
 pub fn generate_random_columns<'a, S: Scalar>(
     alloc: &'a Bump,
     rng: &mut impl Rng,
@@ -45,8 +46,11 @@ pub fn generate_random_columns<'a, S: Scalar>(
                     }
                     (ColumnType::VarChar, _) => {
                         let strs = alloc.alloc_slice_fill_with(num_rows, |_| {
-                            let len = rng
-                                .gen_range(0..=bound.map(|b| b(num_rows) as usize).unwrap_or(10));
+                            let len = rng.gen_range(
+                                0..=bound
+                                    .map(|b| usize::try_from(b(num_rows)).unwrap_or(usize::MAX))
+                                    .unwrap_or(10),
+                            );
                             alloc.alloc_str(
                                 &rng.sample_iter(&rand::distributions::Alphanumeric)
                                     .take(len)

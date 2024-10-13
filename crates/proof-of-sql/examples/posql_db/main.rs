@@ -146,6 +146,7 @@ fn end_timer(instant: Instant) {
 /// - **Proof Verification Failure**: Panics if the proof verification process fails.
 /// - **Serialization/Deserialization Failure**: Panics if the proof cannot be serialized or deserialized.
 /// - **Record Batch Conversion Failure**: Panics if the query result cannot be converted into a `RecordBatch`.
+#[allow(clippy::too_many_lines)]
 fn main() {
     let args = CliArgs::parse();
     println!("Warming up GPU...");

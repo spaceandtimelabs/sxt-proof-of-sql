@@ -140,6 +140,8 @@ impl<S: Scalar> TryFrom<ArrayRef> for OwnedColumn<S> {
 }
 impl<S: Scalar> TryFrom<&ArrayRef> for OwnedColumn<S> {
     type Error = OwnedArrowConversionError;
+
+    #[allow(clippy::too_many_lines)]
     /// # Panics
     ///
     /// Will panic if downcasting fails for the following types:
