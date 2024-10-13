@@ -1980,6 +1980,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_add_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2159,6 +2160,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_subtract_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2319,6 +2321,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_multiply_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
@@ -2499,6 +2502,7 @@ mod test {
         ));
     }
 
+    #[allow(clippy::too_many_lines)]
     #[test]
     fn we_can_try_divide_decimal_columns() {
         // lhs is integer and rhs is decimal with nonnegative scale
