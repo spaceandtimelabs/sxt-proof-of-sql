@@ -4,6 +4,7 @@ use super::{
 };
 use crate::base::commitment::CommittableColumn;
 use alloc::{vec, vec::Vec};
+use itertools::Itertools;
 
 #[tracing::instrument(name = "compute_dory_commitment_impl (cpu)", level = "debug", skip_all)]
 /// # Panics
@@ -61,10 +62,9 @@ fn compute_dory_commitment(
         CommittableColumn::RangeCheckWord(column) => {
             compute_dory_commitment_impl(column, offset, setup)
         }
-        CommittableColumn::FixedSizeBinary(_byte_width, column) => {
-            // FIXME: Is this interpretation correct? or should we chunk the bytes
-            // into `byte_width`-sized chunks and convert each chunk into a scalar?
-            compute_dory_commitment_impl(column, offset, setup)
+        CommittableColumn::FixedSizeBinary(byte_width, column) => {
+            let scalars: Vec<_> = column.chunks_exact(*byte_width as usize).collect_vec();
+            compute_dory_commitment_impl(&scalars, offset, setup)
         }
     }
 }

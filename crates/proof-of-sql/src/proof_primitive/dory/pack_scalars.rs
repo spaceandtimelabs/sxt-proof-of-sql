@@ -467,13 +467,13 @@ pub fn bit_table_and_scalars_for_packed_msm(
                     num_matrix_commitment_columns,
                 );
             }
-            CommittableColumn::FixedSizeBinary(byte_width, column) => {
+            CommittableColumn::FixedSizeBinary(_, column) => {
                 pack_bit(
                     column,
                     &mut packed_scalars,
                     cumulative_bit_sum_table[i],
                     offset,
-                    *byte_width as usize,
+                    committable_columns[i].column_type().byte_size(),
                     bit_table_full_sum_in_bytes,
                     num_matrix_commitment_columns,
                 );

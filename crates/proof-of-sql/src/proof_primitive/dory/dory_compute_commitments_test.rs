@@ -42,6 +42,43 @@ fn we_can_compute_a_dory_commitment_with_boolean_values() {
 }
 
 #[test]
+fn we_can_compute_a_dory_commitment_with_fixed_size_binary_values() {
+    // Define the byte width for the FixedSizeBinary elements
+    let byte_width = 4;
+
+    // Create a column with FixedSizeBinary data
+    let column = vec![
+        0x01, 0x02, 0x03, 0x04, // First element
+        0x05, 0x06, 0x07, 0x08, // Second element
+        0x09, 0x0A, 0x0B, 0x0C, // Third element
+    ];
+
+    // Initialize public parameters and setup
+    let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let setup = DoryProverPublicSetup::new(&prover_setup, 2);
+
+    // Compute the Dory commitments
+    let res = compute_dory_commitments(
+        &[CommittableColumn::FixedSizeBinary(byte_width, &column)],
+        0,
+        &setup,
+    );
+
+    // Extract the Gamma values
+    let Gamma_1 = public_parameters.Gamma_1;
+    let Gamma_2 = public_parameters.Gamma_2;
+
+    // Calculate the expected result
+    let expected: GT = Pairing::pairing(Gamma_1[0], Gamma_2[0]) * F::from(0x01020304)
+        + Pairing::pairing(Gamma_1[1], Gamma_2[0]) * F::from(0x05060708)
+        + Pairing::pairing(Gamma_1[2], Gamma_2[0]) * F::from(0x090A0B0C);
+
+    // Assert that the computed result matches the expected result
+    assert_eq!(res[0].0, expected);
+}
+
+#[test]
 fn we_can_compute_a_dory_commitment_with_only_one_row() {
     let public_parameters = PublicParameters::test_rand(5, &mut test_rng());
     let prover_setup = ProverSetup::from(&public_parameters);
