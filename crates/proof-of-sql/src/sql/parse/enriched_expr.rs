@@ -28,12 +28,12 @@ impl<C: Commitment> EnrichedExpr<C> {
     /// and the `residue_expression` will contain the remaining expression.
     pub fn new(
         expression: AliasedResultExpr,
-        column_mapping: IndexMap<Identifier, ColumnRef>,
+        column_mapping: &IndexMap<Identifier, ColumnRef>,
     ) -> Self {
         // TODO: Using new_agg (ironically) disables aggregations in `QueryExpr` for now.
         // Re-enable aggregations when we add `GroupByExec` generalizations.
         let res_dyn_proof_expr =
-            DynProofExprBuilder::new_agg(&column_mapping).build(&expression.expr);
+            DynProofExprBuilder::new_agg(column_mapping).build(&expression.expr);
         match res_dyn_proof_expr {
             Ok(dyn_proof_expr) => {
                 let alias = expression.alias;
@@ -50,7 +50,7 @@ impl<C: Commitment> EnrichedExpr<C> {
                 dyn_proof_expr: None,
             },
         }
-    }
+    }    
 
     /// Get the alias of the `EnrichedExpr`.
     ///

@@ -46,11 +46,11 @@ fn we_build_up_a_sumcheck_polynomial_evaluation_from_subpolynomial_evaluations()
         Vec::new(),
     );
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         Curve25519Scalar::from(2u64),
     );
     builder.produce_sumcheck_subpolynomial_evaluation(
-        SumcheckSubpolynomialType::ZeroSum,
+        &SumcheckSubpolynomialType::ZeroSum,
         Curve25519Scalar::from(3u64),
     );
     let expected_sumcheck_evaluation = subpolynomial_multipliers[0] * Curve25519Scalar::from(2u64)

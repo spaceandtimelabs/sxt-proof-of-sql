@@ -195,7 +195,7 @@ fn verify_bits_are_binary<C: Commitment>(
 ) {
     for bit_eval in bit_evals {
         builder.produce_sumcheck_subpolynomial_evaluation(
-            SumcheckSubpolynomialType::Identity,
+            &SumcheckSubpolynomialType::Identity,
             *bit_eval - *bit_eval * *bit_eval,
         );
     }
@@ -260,5 +260,5 @@ fn verify_bit_decomposition<C: Commitment>(
         eval -= C::Scalar::from(mult) * sign_eval * bit_eval;
         vary_index += 1;
     });
-    builder.produce_sumcheck_subpolynomial_evaluation(SumcheckSubpolynomialType::Identity, eval);
+    builder.produce_sumcheck_subpolynomial_evaluation(&SumcheckSubpolynomialType::Identity, eval);
 }
