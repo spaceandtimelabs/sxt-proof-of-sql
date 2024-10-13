@@ -89,7 +89,10 @@ fn interpolate_uni_poly_gives_correct_value_for_known_evaluation() {
     ];
     for i in 0..evaluations.len() {
         assert_eq!(
-            interpolate_uni_poly(&evaluations, Curve25519Scalar::from(u32::try_from(i).unwrap_or(u32::MAX))),
+            interpolate_uni_poly(
+                &evaluations,
+                Curve25519Scalar::from(u32::try_from(i).unwrap_or(u32::MAX))
+            ),
             evaluations[i]
         );
     }
