@@ -103,11 +103,19 @@ jobs:
       - name: Dry run cargo test (proof-of-sql) (std feature only)
         run: cargo test -p proof-of-sql --no-run --no-default-features --features="std"
       - name: Run cargo test (proof primitives - Dory) (std feature only - i.e. not using blitzar)
-        run: cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std"
-      - name: Run hello_world example
-        run: cargo run --example hello_world --features="blitzar test"
-      - name: Run posql_db example
+        run: |
+            cargo test proof_primitive::dory::dory_compute_commitments_test --no-default-features --features="std" && \
+            cargo test proof_primitive::dory::dynamic_dory_compute_commitments_test --no-default-features --features="std"
+      - name: Run hello_world example (With Blitzar)
+        run: cargo run --example hello_world --features="test"
+      - name: Run hello_world example (Without Blitzar and With Rayon)
+        run: cargo run --example hello_world --no-default-features --features="rayon test"
+      - name: Run hello_world example (Without Blitzar and Without Rayon)
+        run: cargo run --example hello_world --no-default-features --features="test"
+      - name: Run posql_db example (With Blitzar)
         run: bash crates/proof-of-sql/examples/posql_db/run_example.sh
+      - name: Run posql_db example (Without Blitzar)
+        run: bash crates/proof-of-sql/examples/posql_db/run_example.sh --no-default-features --features="rayon"
 
   clippy:
     name: Clippy
@@ -136,6 +144,41 @@ jobs:
       - name: Run clippy::pedantic for proof-of-sql-parser
         run: cargo clippy --lib -p proof-of-sql-parser -- -D clippy::pedantic
 
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Clean Previous Coverage Artifacts
+        run: cargo llvm-cov clean --workspace
+      - name: Run Tests to Generate Coverage Data (All Features)
+        run: cargo llvm-cov --no-report --all-features
+      #- name: Run Tests to Generate Coverage Data (Rayon Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="rayon"
+      #- name: Run Tests to Generate Coverage Data (Blitzar Only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="blitzar"
+      #- name: Run Tests to Generate Coverage Data (std only)
+      #  run: cargo llvm-cov --no-report --no-default-features --features="std"
+      - name: Generate Final LCOV Report (Merged Coverage)
+        run: cargo llvm-cov report --summary-only --fail-under-lines 90
+      # Future CodeCov Integration
+      # To integrate with CodeCov in the future,, follow these steps: 
+      # 1. Add the CodeCov token to the repository secrets.
+      # 2. Use the CodeCov Action to upload the coverage report. For more detailed info refer to [CodeCov Documentation](https://docs.codecov.com/docs).
+      #
+      # - name: Generate Final LCOV Report (Merged Coverage)
+      #   run: cargo llvm-cov report --lcov --output-path lcov.info --fail-under-lines 95
+      # - name: Upload Coverage to Codecov
+      # uses: codecov/codecov-action@v2
+      # with:
+      #   token: ${{ secrets.CODECOV_TOKEN }}
+      #   files: lcov.info
+      #   fail_ci_if_error: true
+        
   # Run cargo fmt --all -- --config imports_granularity=Crate,group_imports=One --check
   format:
     name: Format

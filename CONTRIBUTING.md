@@ -14,6 +14,7 @@ The following guideline is heavily based on the [Angular Project Guideline](http
    - [Submitting a Pull Request (PR)](#submit-pr)
    - [Addressing review feedback](#address-review)
    - [Updating the commit message](#updating-commit-message)
+   - [Running Code Coverage Locally](#coverage-locally)
    - [After your pull request is merged](#after-pr-merged)
  - [Coding Rules](#rules)
  - [Commit Message Guidelines](#commit-guidelines)
@@ -246,6 +247,12 @@ In order to update the commit message of the last commit on your branch:
 
 NOTE: If you need to update the commit message of an earlier commit, you can use `git rebase` in interactive mode. See the [git docs](https://git-scm.com/docs/git-rebase#_interactive_mode) for more details.
 
+### <a name="coverage-locally"></a> Running Code Coverage Locally 
+To run code coverage locally, install `cargo-llvm-cov` by following the instructions here: [cargo-llvm-cov Installation](https://github.com/taiki-e/cargo-llvm-cov).
+
+For users of VSCode, you can display coverage reports directly in the IDE by following these instructions: [Display Coverage in VSCode](https://github.com/taiki-e/cargo-llvm-cov?tab=readme-ov-file#display-coverage-in-vs-code).
+
+You can exclude specific functions from coverage by adding an attribute to your code: [Exclude Functions from Coverage](https://github.com/taiki-e/cargo-llvm-cov?tab=readme-ov-file#exclude-function-from-coverage).
 
 ### <a name="after-pr-merged"></a> After your pull request is merged
 
@@ -274,7 +281,6 @@ After your pull request is merged, you can safely delete your branch and pull th
     ```shell
     git pull --ff upstream main
     ```
-
 
 ## <a name="rules"></a> Coding Rules
 To ensure consistency throughout the source code, keep these rules in mind as you are working:

@@ -63,13 +63,13 @@ impl Permutation {
     where
         T: Clone,
     {
-        if slice.len() != self.size() {
+        if slice.len() == self.size() {
+            Ok(self.permutation.iter().map(|&i| slice[i].clone()).collect())
+        } else {
             Err(PermutationError::PermutationSizeMismatch {
                 permutation_size: self.size(),
                 slice_length: slice.len(),
             })
-        } else {
-            Ok(self.permutation.iter().map(|&i| slice[i].clone()).collect())
         }
     }
 }

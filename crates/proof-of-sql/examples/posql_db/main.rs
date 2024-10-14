@@ -9,16 +9,18 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use blitzar::proof::InnerProductProof;
 use clap::{arg, Parser, Subcommand, ValueEnum};
 use commit_accessor::CommitAccessor;
 use csv_accessor::{read_record_batch_from_csv, CsvDataAccessor};
-use curve25519_dalek::RistrettoPoint;
 use itertools::Itertools;
 use proof_of_sql::{
     base::{
         commitment::TableCommitment,
         database::{SchemaAccessor, TableRef},
+    },
+    proof_primitive::dory::{
+        DynamicDoryCommitment, DynamicDoryEvaluationProof, ProverSetup, PublicParameters,
+        VerifierSetup,
     },
     sql::{parse::QueryExpr, proof::VerifiableQueryResult},
 };
@@ -149,6 +151,11 @@ fn main() {
     println!("Warming up GPU...");
     blitzar::compute::init_backend();
     println!("Done.");
+
+    let mut rng = <ark_std::rand::rngs::StdRng as ark_std::rand::SeedableRng>::from_seed([0u8; 32]);
+    let public_parameters = PublicParameters::rand(5, &mut rng);
+    let prover_setup = ProverSetup::from(&public_parameters);
+    let verifier_setup = VerifierSetup::from(&public_parameters);
     match args.command {
         Commands::Create {
             table,
@@ -156,7 +163,7 @@ fn main() {
             data_types,
         } => {
             let commit_accessor =
-                CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
+                CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path));
             let schema = Schema::new(
                 columns
@@ -166,7 +173,7 @@ fn main() {
                     .collect::<Vec<_>>(),
             );
             let batch = RecordBatch::new_empty(Arc::new(schema));
-            let table_commitment = TableCommitment::try_from_record_batch(&batch, &())
+            let table_commitment = TableCommitment::try_from_record_batch(&batch, &&prover_setup)
                 .expect("Failed to create table commitment.");
             commit_accessor
                 .write_commit(&table, &table_commitment)
@@ -180,7 +187,7 @@ fn main() {
             file: file_path,
         } => {
             let mut commit_accessor =
-                CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
+                CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path));
             commit_accessor
                 .load_commit(table_name)
@@ -200,7 +207,7 @@ fn main() {
                 .expect("Failed to write batch");
             let timer = start_timer("Updating Commitment");
             table_commitment
-                .try_append_record_batch(&append_batch, &())
+                .try_append_record_batch(&append_batch, &&prover_setup)
                 .expect("Failed to append batch");
             end_timer(timer);
             commit_accessor
@@ -209,7 +216,7 @@ fn main() {
         }
         Commands::Prove { query, file } => {
             let mut commit_accessor =
-                CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
+                CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let mut csv_accessor = CsvDataAccessor::new(PathBuf::from(args.path.clone()));
             let tables = query.get_table_references("example".parse().unwrap());
             for table in tables.into_iter().map(TableRef::new) {
@@ -230,10 +237,10 @@ fn main() {
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
             let timer = start_timer("Generating Proof");
-            let proof = VerifiableQueryResult::<InnerProductProof>::new(
+            let proof = VerifiableQueryResult::<DynamicDoryEvaluationProof>::new(
                 query.proof_expr(),
                 &csv_accessor,
-                &(),
+                &&prover_setup,
             );
             end_timer(timer);
             fs::write(
@@ -244,7 +251,7 @@ fn main() {
         }
         Commands::Verify { query, file } => {
             let mut commit_accessor =
-                CommitAccessor::<RistrettoPoint>::new(PathBuf::from(args.path.clone()));
+                CommitAccessor::<DynamicDoryCommitment>::new(PathBuf::from(args.path.clone()));
             let table_refs = query.get_table_references("example".parse().unwrap());
             for table_ref in table_refs {
                 let table_name = TableRef::new(table_ref);
@@ -254,12 +261,13 @@ fn main() {
             }
             let query =
                 QueryExpr::try_new(query, "example".parse().unwrap(), &commit_accessor).unwrap();
-            let result: VerifiableQueryResult<InnerProductProof> =
+            let result: VerifiableQueryResult<DynamicDoryEvaluationProof> =
                 postcard::from_bytes(&fs::read(file).expect("Failed to read proof"))
                     .expect("Failed to deserialize proof");
+
             let timer = start_timer("Verifying Proof");
             let query_result = result
-                .verify(query.proof_expr(), &commit_accessor, &())
+                .verify(query.proof_expr(), &commit_accessor, &&verifier_setup)
                 .expect("Failed to verify proof");
             end_timer(timer);
             println!(

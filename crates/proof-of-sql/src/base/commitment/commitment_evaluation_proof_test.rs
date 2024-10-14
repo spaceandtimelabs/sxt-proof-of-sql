@@ -123,7 +123,7 @@ pub fn test_random_commitment_evaluation_proof<CP: CommitmentEvaluationProof>(
     assert!(r.is_err(), "verification improperly succeeded");
 
     // Invalid offset
-    let wrong_offset = if offset == 0 { 1 } else { 0 };
+    let wrong_offset = u64::from(offset == 0);
     let mut transcript = Transcript::new(b"evaluation_proof");
     let r = proof.verify_proof(
         &mut transcript,

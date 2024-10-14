@@ -8,7 +8,7 @@ use crate::{
     },
     sql::{
         proof::{
-            Indexes, ProofBuilder, ProverEvaluate, ProverHonestyMarker, QueryError, ResultBuilder,
+            FinalRoundBuilder, FirstRoundBuilder, ProverEvaluate, ProverHonestyMarker, QueryError,
             VerifiableQueryResult,
         },
         // Making this explicit to ensure that we don't accidentally use the
@@ -37,14 +37,14 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     )]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
-                .result_evaluate(builder.table_length(), alloc, accessor);
+                .result_evaluate(input_length, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -55,27 +55,28 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
-        // Compute filtered_columns and indexes
-        let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
+        // Compute filtered_columns
+        let (filtered_columns, _) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
-        // 3. set indexes
-        builder.set_result_indexes(Indexes::Dense(0..(result_len as u64)));
-        builder.request_post_result_challenges(2);
         filtered_columns
     }
 
+    fn first_round_evaluate(&self, builder: &mut FirstRoundBuilder) {
+        builder.request_post_result_challenges(2);
+    }
+
     #[tracing::instrument(
-        name = "DishonestFilterExec::prover_evaluate",
+        name = "DishonestFilterExec::final_round_evaluate",
         level = "debug",
         skip_all
     )]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, Curve25519Scalar>,
+        builder: &mut FinalRoundBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
@@ -91,7 +92,7 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             .iter()
             .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
             .collect();
-        // Compute filtered_columns and indexes
+        // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
         let filtered_columns = tamper_column(alloc, filtered_columns);
         // 3. Produce MLEs
