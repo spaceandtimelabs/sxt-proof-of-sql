@@ -1,6 +1,6 @@
 /// This module contains the definition of the `Scalar` trait, which is used to represent the scalar field used in Proof of SQL.
-pub mod scalar_trait;
-pub use scalar_trait::Scalar;
+pub mod scalar;
+pub use scalar::Scalar;
 mod error;
 pub use super::{encode::VarInt, ref_into::RefInto};
 pub use error::ScalarConversionError;
