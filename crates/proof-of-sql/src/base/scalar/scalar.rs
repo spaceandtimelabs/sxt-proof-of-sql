@@ -1,4 +1,4 @@
-#[allow(clippy::module_inception)]
+#![allow(clippy::module_inception)]
 
 use crate::base::{
     encode::VarInt,
