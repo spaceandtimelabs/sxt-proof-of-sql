@@ -328,6 +328,36 @@ fn we_can_compute_an_empty_dory_commitment() {
     assert_eq!(res[0].0, GT::zero());
     let res = compute_dory_commitments(&[CommittableColumn::BigInt(&[0; 0])], 20, &setup);
     assert_eq!(res[0].0, GT::zero());
+    let res = compute_dory_commitments(
+        &[
+            CommittableColumn::BigInt(&[0; 0]),
+            CommittableColumn::BigInt(&[0; 0]),
+        ],
+        0,
+        &setup,
+    );
+    assert_eq!(res[0].0, GT::zero());
+    assert_eq!(res[1].0, GT::zero());
+    let res = compute_dory_commitments(
+        &[
+            CommittableColumn::BigInt(&[0; 0]),
+            CommittableColumn::BigInt(&[0; 0]),
+        ],
+        5,
+        &setup,
+    );
+    assert_eq!(res[0].0, GT::zero());
+    assert_eq!(res[1].0, GT::zero());
+    let res = compute_dory_commitments(
+        &[
+            CommittableColumn::BigInt(&[0; 0]),
+            CommittableColumn::BigInt(&[0; 0]),
+        ],
+        20,
+        &setup,
+    );
+    assert_eq!(res[0].0, GT::zero());
+    assert_eq!(res[1].0, GT::zero());    
 }
 
 #[test]
