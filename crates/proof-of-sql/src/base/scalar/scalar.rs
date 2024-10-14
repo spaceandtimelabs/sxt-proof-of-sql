@@ -1,3 +1,5 @@
+#[allow(clippy::module_inception)]
+
 use crate::base::{
     encode::VarInt,
     scalar::{RefInto, ScalarConversionError},
