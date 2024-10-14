@@ -1,1 +1,1 @@
-pub mod table_commitment_arrow;
+pub mod table_commitment;
