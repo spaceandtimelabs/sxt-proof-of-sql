@@ -8,7 +8,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, TestAccessor, UnimplementedTestAccessor,
+            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TableRef,
         },
         map::IndexSet,
         proof::ProofError,
@@ -25,6 +25,16 @@ pub(super) struct EmptyTestQueryExpr {
     pub(super) columns: usize,
 }
 impl<S: Scalar> ProverEvaluate<S> for EmptyTestQueryExpr {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![self.length]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        self.length
+    }
     fn result_evaluate<'a>(
         &self,
         _input_lengths: &[usize],
@@ -60,9 +70,6 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
         builder.count_intermediate_mles(self.columns);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         0
     }
@@ -87,7 +94,15 @@ impl<C: Commitment> ProofPlan<C> for EmptyTestQueryExpr {
     }
 
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        (1..=self.columns)
+            .map(|i| {
+                ColumnRef::new(
+                    TableRef::new("sxt.test".parse().unwrap()),
+                    format!("a{i}").parse().unwrap(),
+                    ColumnType::BigInt,
+                )
+            })
+            .collect()
     }
 }
 
@@ -97,7 +112,13 @@ fn we_can_verify_queries_on_an_empty_table() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; 0];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash: _,
@@ -113,7 +134,13 @@ fn empty_verification_fails_if_the_result_contains_non_null_members() {
         columns: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; 0];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        0,
+        (),
+    );
     let res = VerifiableQueryResult::<InnerProductProof> {
         provable_result: Some(ProvableQueryResult::default()),
         proof: None,

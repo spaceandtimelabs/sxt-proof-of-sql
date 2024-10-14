@@ -30,6 +30,31 @@ impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
 
 impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        let selection_column: Column<'a, Curve25519Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        selection_column
+            .as_boolean()
+            .expect("selection is not boolean")
+            .iter()
+            .filter(|&&b| b)
+            .count()
+    }
+
     #[tracing::instrument(
         name = "DishonestFilterExec::result_evaluate",
         level = "debug",
