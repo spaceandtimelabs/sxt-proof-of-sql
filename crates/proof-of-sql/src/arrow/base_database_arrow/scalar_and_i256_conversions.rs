@@ -55,10 +55,12 @@ pub fn convert_i256_to_scalar<S: Scalar>(value: &i256) -> Option<S> {
 mod tests {
 
     use super::{convert_i256_to_scalar, convert_scalar_to_i256};
-    use crate::base::{
-        scalar::{Curve25519Scalar, Scalar},
+    use crate::{
+        arrow::base_database_arrow::scalar_and_i256_conversions::{
+            MAX_SUPPORTED_I256, MIN_SUPPORTED_I256,
+        },
+        base::scalar::{Curve25519Scalar, Scalar},
     };
-    use crate::arrow::base_database_arrow::scalar_and_i256_conversions::{MAX_SUPPORTED_I256, MIN_SUPPORTED_I256};
     use arrow::datatypes::i256;
     use num_traits::Zero;
     use rand::RngCore;

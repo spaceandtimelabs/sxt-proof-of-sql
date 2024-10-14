@@ -1,13 +1,14 @@
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
 use indexmap::IndexMap;
-use proof_of_sql::arrow::base_database_arrow::ArrayRefExt;
-use proof_of_sql::base::{
-    database::{
-        Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor,
-        TableRef,
+use proof_of_sql::{
+    arrow::base_database_arrow::ArrayRefExt,
+    base::{
+        database::{
+            Column, ColumnRef, ColumnType, DataAccessor, MetadataAccessor, SchemaAccessor, TableRef,
+        },
+        scalar::Scalar,
     },
-    scalar::Scalar,
 };
 use proof_of_sql_parser::Identifier;
 

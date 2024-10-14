@@ -1,6 +1,6 @@
 use super::{
-    AppendColumnCommitmentsError, ColumnCommitments,
-    ColumnCommitmentsMismatch, Commitment, DuplicateIdentifiers,
+    AppendColumnCommitmentsError, ColumnCommitments, ColumnCommitmentsMismatch, Commitment,
+    DuplicateIdentifiers,
 };
 use core::ops::Range;
 use serde::{Deserialize, Serialize};
@@ -80,7 +80,6 @@ pub struct TableCommitment<C>
 where
     C: Commitment,
 {
-    pub (crate) column_commitments: ColumnCommitments<C>,
-    pub (crate) range: Range<usize>,
+    pub(crate) column_commitments: ColumnCommitments<C>,
+    pub(crate) range: Range<usize>,
 }
-

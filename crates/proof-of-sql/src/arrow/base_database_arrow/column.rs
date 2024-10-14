@@ -1,9 +1,11 @@
+use crate::base::{
+    database::{ColumnField, ColumnType},
+    math::decimal::Precision,
+};
+use alloc::sync::Arc;
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
 use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
-use crate::base::database::{ColumnField, ColumnType};
-use alloc::sync::Arc;
-use crate::base::math::decimal::Precision;
 
 /// Convert [`ColumnType`] values to some arrow [`DataType`]
 #[cfg(feature = "arrow")]

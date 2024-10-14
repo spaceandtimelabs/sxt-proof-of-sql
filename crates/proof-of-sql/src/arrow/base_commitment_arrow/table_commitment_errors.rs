@@ -1,17 +1,22 @@
-use crate::base::{commitment::{AppendColumnCommitmentsError, AppendTableCommitmentError, ColumnCommitments, ColumnCommitmentsMismatch, Commitment, CommittableColumn, MixedLengthColumns, NegativeRange, TableCommitment, TableCommitmentArithmeticError, TableCommitmentFromColumnsError}, database::{ColumnField, CommitmentAccessor, OwnedTable, TableRef}};
-use crate::base::{
-    database::Column,
-    scalar::Scalar,
-};
 #[cfg(feature = "arrow")]
 use crate::arrow::base_database_arrow::{ArrayRefExt, ArrowArrayToColumnConversionError};
+use crate::base::{
+    commitment::{
+        AppendColumnCommitmentsError, AppendTableCommitmentError, ColumnCommitments,
+        ColumnCommitmentsMismatch, Commitment, CommittableColumn, MixedLengthColumns,
+        NegativeRange, TableCommitment, TableCommitmentArithmeticError,
+        TableCommitmentFromColumnsError,
+    },
+    database::{Column, ColumnField, CommitmentAccessor, OwnedTable, TableRef},
+    scalar::Scalar,
+};
+use alloc::vec::Vec;
 #[cfg(feature = "arrow")]
 use arrow::record_batch::RecordBatch;
 use bumpalo::Bump;
-use proof_of_sql_parser::{Identifier, ParseError};
 use core::ops::Range;
+use proof_of_sql_parser::{Identifier, ParseError};
 use snafu::Snafu;
-use alloc::vec::Vec;
 
 /// Errors that can occur when trying to create or extend a [`TableCommitment`] from a record batch.
 #[cfg(feature = "arrow")]
@@ -420,15 +425,13 @@ impl<C: Commitment> TableCommitment<C> {
     }
 }
 
-
 #[cfg(all(test, feature = "arrow", feature = "blitzar"))]
 mod tests {
     use super::*;
-    use crate::base::commitment::NegativeRange;
-    use crate::base::database::Column;
     use crate::{
         base::{
-            database::{owned_table_utility::*, OwnedColumn},
+            commitment::NegativeRange,
+            database::{owned_table_utility::*, Column, OwnedColumn},
             map::IndexMap,
             scalar::Curve25519Scalar,
         },

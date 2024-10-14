@@ -5,9 +5,9 @@
 
 extern crate alloc;
 
+pub mod arrow;
 pub mod base;
 pub mod proof_primitive;
-pub mod arrow;
 pub mod sql;
 
 #[cfg(test)]

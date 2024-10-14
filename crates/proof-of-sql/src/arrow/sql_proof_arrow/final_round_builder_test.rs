@@ -1,15 +1,20 @@
 #[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
-    use crate::{base::{database::{Column, ColumnField, ColumnType}, scalar::Curve25519Scalar}, sql::proof::ProvableQueryResult};
+    use crate::{
+        base::{
+            database::{Column, ColumnField, ColumnType},
+            scalar::Curve25519Scalar,
+        },
+        sql::proof::ProvableQueryResult,
+    };
+    use alloc::sync::Arc;
     #[cfg(feature = "arrow")]
     use arrow::{
         array::Int64Array,
         datatypes::{Field, Schema},
         record_batch::RecordBatch,
     };
-    use alloc::sync::Arc;
-
 
     let col1: Column<Curve25519Scalar> = Column::BigInt(&[11_i64, 12]);
     let col2: Column<Curve25519Scalar> = Column::BigInt(&[-3_i64, -4]);

@@ -1,9 +1,11 @@
-use crate::sql::proof::{ProvableQueryResult, QueryError};
-use crate::base::{
-    database::{Column, ColumnField, ColumnType},
-    math::decimal::Precision,
-    polynomial::compute_evaluation_vector,
-    scalar::{Curve25519Scalar, Scalar},
+use crate::{
+    base::{
+        database::{Column, ColumnField, ColumnType},
+        math::decimal::Precision,
+        polynomial::compute_evaluation_vector,
+        scalar::{Curve25519Scalar, Scalar},
+    },
+    sql::proof::{ProvableQueryResult, QueryError},
 };
 use alloc::sync::Arc;
 use arrow::{

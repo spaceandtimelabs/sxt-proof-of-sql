@@ -1,6 +1,6 @@
+use crate::{base::scalar::Scalar, sql::proof::QueryData};
 #[cfg(feature = "arrow")]
 use arrow::{error::ArrowError, record_batch::RecordBatch};
-use crate::{base::scalar::Scalar, sql::proof::QueryData};
 
 impl<S: Scalar> QueryData<S> {
     #[cfg(all(test, feature = "arrow"))]
