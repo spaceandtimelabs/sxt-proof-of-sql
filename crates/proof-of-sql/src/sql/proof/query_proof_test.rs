@@ -7,8 +7,7 @@ use crate::{
         database::{
             owned_table_utility::{bigint, owned_table},
             Column, ColumnField, ColumnRef, ColumnType, CommitmentAccessor, DataAccessor,
-            MetadataAccessor, OwnedTable, OwnedTableTestAccessor, TestAccessor,
-            UnimplementedTestAccessor,
+            MetadataAccessor, OwnedTable, OwnedTableTestAccessor,
         },
         map::IndexSet,
         proof::ProofError,
@@ -41,6 +40,16 @@ impl Default for TrivialTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![self.length]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        self.length
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -80,9 +89,6 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         builder.count_anchored_mles(self.anchored_mle_count);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        self.length
-    }
     fn get_offset(&self, _accessor: &dyn MetadataAccessor) -> usize {
         self.offset
     }
@@ -107,7 +113,12 @@ impl<C: Commitment> ProofPlan<C> for TrivialTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        core::iter::once(ColumnRef::new(
+            "sxt.test".parse().unwrap(),
+            "a1".parse().unwrap(),
+            ColumnType::BigInt,
+        ))
+        .collect()
     }
 }
 
@@ -117,7 +128,13 @@ fn verify_a_trivial_query_proof_with_given_offset(n: usize, offset_generators: u
         offset: offset_generators,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let column: Vec<i64> = vec![0_i64; n];
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", column)]),
+        offset_generators,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     let QueryData {
         verification_hash,
@@ -150,7 +167,12 @@ fn verify_fails_if_the_summation_in_sumcheck_isnt_zero() {
         column_fill_value: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [123_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -163,7 +185,12 @@ fn verify_fails_if_the_sumcheck_evaluation_isnt_correct() {
         evaluation: 123,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -176,7 +203,12 @@ fn verify_fails_if_counts_dont_match() {
         anchored_mle_count: 1,
         ..Default::default()
     };
-    let accessor = UnimplementedTestAccessor::new_empty();
+    let accessor = OwnedTableTestAccessor::<InnerProductProof>::new_from_table(
+        "sxt.test".parse().unwrap(),
+        owned_table([bigint("a1", [0_i64; 2])]),
+        0,
+        (),
+    );
     let (proof, result) = QueryProof::<InnerProductProof>::new(&expr, &accessor, &());
     assert!(proof.verify(&expr, &accessor, &result, &()).is_err());
 }
@@ -198,6 +230,16 @@ impl Default for SquareTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _table_length: usize,
@@ -246,9 +288,6 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -276,7 +315,12 @@ impl<C: Commitment> ProofPlan<C> for SquareTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        core::iter::once(ColumnRef::new(
+            "sxt.test".parse().unwrap(),
+            "a1".parse().unwrap(),
+            ColumnType::BigInt,
+        ))
+        .collect()
     }
 }
 
@@ -380,6 +424,16 @@ impl Default for DoubleSquareTestProofPlan {
     }
 }
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -441,9 +495,6 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         builder.count_anchored_mles(1);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -479,7 +530,12 @@ impl<C: Commitment> ProofPlan<C> for DoubleSquareTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        core::iter::once(ColumnRef::new(
+            "sxt.test".parse().unwrap(),
+            "a1".parse().unwrap(),
+            ColumnType::BigInt,
+        ))
+        .collect()
     }
 }
 
@@ -592,6 +648,16 @@ fn verify_fails_the_result_doesnt_satisfy_an_intermediate_equation() {
 #[derive(Debug, Serialize)]
 struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        _accessor: &'a dyn DataAccessor<S>,
+    ) -> Vec<usize> {
+        vec![2]
+    }
+    fn get_output_length<'a>(&self, _alloc: &'a Bump, _accessor: &'a dyn DataAccessor<S>) -> usize {
+        2
+    }
     fn result_evaluate<'a>(
         &self,
         _input_length: usize,
@@ -644,9 +710,6 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         builder.count_post_result_challenges(2);
         Ok(())
     }
-    fn get_length(&self, _accessor: &dyn MetadataAccessor) -> usize {
-        2
-    }
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset("sxt.test".parse().unwrap())
     }
@@ -675,7 +738,12 @@ impl<C: Commitment> ProofPlan<C> for ChallengeTestProofPlan {
         vec![ColumnField::new("a1".parse().unwrap(), ColumnType::BigInt)]
     }
     fn get_column_references(&self) -> IndexSet<ColumnRef> {
-        unimplemented!("no real usage for this function yet")
+        core::iter::once(ColumnRef::new(
+            "sxt.test".parse().unwrap(),
+            "a1".parse().unwrap(),
+            ColumnType::BigInt,
+        ))
+        .collect()
     }
 }
 

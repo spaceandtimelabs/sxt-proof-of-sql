@@ -72,6 +72,7 @@ mod test_accessor;
 #[cfg(any(test, feature = "test"))]
 pub use test_accessor::TestAccessor;
 #[cfg(test)]
+#[allow(unused_imports)]
 pub(crate) use test_accessor::UnimplementedTestAccessor;
 
 #[cfg(test)]
