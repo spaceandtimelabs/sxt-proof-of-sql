@@ -357,7 +357,7 @@ fn we_can_compute_an_empty_dory_commitment() {
         &setup,
     );
     assert_eq!(res[0].0, GT::zero());
-    assert_eq!(res[1].0, GT::zero());    
+    assert_eq!(res[1].0, GT::zero());
 }
 
 #[test]
