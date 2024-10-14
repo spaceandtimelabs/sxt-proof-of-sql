@@ -10,7 +10,7 @@ use crate::{
     },
     sql::{
         proof::{
-            CountBuilder, Indexes, ProofBuilder, ProofPlan, ProverEvaluate, ResultBuilder,
+            CountBuilder, FinalRoundBuilder, FirstRoundBuilder, ProofPlan, ProverEvaluate,
             VerificationBuilder,
         },
         proof_exprs::{AliasedDynProofExpr, ProofExpr, TableExpr},
@@ -98,7 +98,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        builder: &mut ResultBuilder,
+        input_length: usize,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
@@ -108,18 +108,23 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
             .map(|aliased_expr| {
                 aliased_expr
                     .expr
-                    .result_evaluate(builder.table_length(), alloc, accessor)
+                    .result_evaluate(input_length, alloc, accessor)
             })
             .collect();
-        builder.set_result_indexes(Indexes::Dense(0..(builder.table_length() as u64)));
         columns
     }
 
-    #[tracing::instrument(name = "ProjectionExec::prover_evaluate", level = "debug", skip_all)]
+    fn first_round_evaluate(&self, _builder: &mut FirstRoundBuilder) {}
+
+    #[tracing::instrument(
+        name = "ProjectionExec::final_round_evaluate",
+        level = "debug",
+        skip_all
+    )]
     #[allow(unused_variables)]
-    fn prover_evaluate<'a>(
+    fn final_round_evaluate<'a>(
         &self,
-        builder: &mut ProofBuilder<'a, C::Scalar>,
+        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {

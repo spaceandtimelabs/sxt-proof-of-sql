@@ -1,6 +1,6 @@
 use super::{Scalar, ScalarConversionError};
 use crate::base::math::decimal::MAX_SUPPORTED_PRECISION;
-use alloc::{format, vec::Vec};
+use alloc::{format, string::String, vec::Vec};
 use ark_ff::{BigInteger, Field, Fp, Fp256, MontBackend, MontConfig, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use bytemuck::TransparentWrapper;
@@ -13,7 +13,7 @@ use core::{
     ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 use num_bigint::BigInt;
-use num_traits::Signed;
+use num_traits::{Signed, Zero};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(CanonicalSerialize, CanonicalDeserialize, TransparentWrapper)]
@@ -116,6 +116,66 @@ impl<T: MontConfig<4>> Ord for MontScalar<T> {
 // --------------------------------------------------------------------------------
 // end replacement for #[derive(...)]
 // --------------------------------------------------------------------------------
+
+/// TODO: add docs
+macro_rules! impl_from_for_mont_scalar_for_type_supported_by_from {
+    ($tt:ty) => {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
+            fn from(x: $tt) -> Self {
+                Self(x.into())
+            }
+        }
+    };
+}
+
+/// Implement `From<&[u8]>` for `MontScalar`
+impl<T: MontConfig<4>> From<&[u8]> for MontScalar<T> {
+    fn from(x: &[u8]) -> Self {
+        if x.is_empty() {
+            return Self::zero();
+        }
+
+        let hash = blake3::hash(x);
+        let mut bytes: [u8; 32] = hash.into();
+        bytes[31] &= 0b0000_1111_u8;
+
+        Self::from_le_bytes_mod_order(&bytes)
+    }
+}
+
+/// TODO: add docs
+macro_rules! impl_from_for_mont_scalar_for_string {
+    ($tt:ty) => {
+        impl<T: MontConfig<4>> From<$tt> for MontScalar<T> {
+            fn from(x: $tt) -> Self {
+                x.as_bytes().into()
+            }
+        }
+    };
+}
+
+impl_from_for_mont_scalar_for_type_supported_by_from!(bool);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(u128);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i8);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i16);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i32);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i64);
+impl_from_for_mont_scalar_for_type_supported_by_from!(i128);
+impl_from_for_mont_scalar_for_string!(&str);
+impl_from_for_mont_scalar_for_string!(String);
+
+impl<F: MontConfig<4>, T> From<&T> for MontScalar<F>
+where
+    T: Into<MontScalar<F>> + Clone,
+{
+    fn from(x: &T) -> Self {
+        x.clone().into()
+    }
+}
 
 /// A wrapper type around the field element `ark_curve25519::Fr` and should be used in place of `ark_curve25519::Fr`.
 ///
@@ -303,15 +363,15 @@ impl<T: MontConfig<4>> From<&MontScalar<T>> for [u64; 4] {
 
 impl<T: MontConfig<4>> Display for MontScalar<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let sign = match f.sign_plus() {
-            true => {
-                let n = -self;
-                match self > &n {
-                    true => Some(Some(n)),
-                    false => Some(None),
-                }
+        let sign = if f.sign_plus() {
+            let n = -self;
+            if self > &n {
+                Some(Some(n))
+            } else {
+                Some(None)
             }
-            false => None,
+        } else {
+            None
         };
         match (f.alternate(), sign) {
             (false, None) => {

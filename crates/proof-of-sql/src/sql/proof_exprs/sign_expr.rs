@@ -10,7 +10,7 @@ use crate::{
         scalar::Scalar,
     },
     sql::proof::{
-        CountBuilder, ProofBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
+        CountBuilder, FinalRoundBuilder, SumcheckSubpolynomialTerm, SumcheckSubpolynomialType,
         VerificationBuilder,
     },
 };
@@ -80,7 +80,7 @@ pub fn result_evaluate_sign<'a, S: Scalar>(
 /// Note: We can only prove the sign bit for non-zero scalars, and we restict
 /// the range of non-zero scalar so that there is a unique sign representation.
 pub fn prover_evaluate_sign<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
     #[cfg(test)] treat_column_of_zeros_as_negative: bool,
@@ -173,7 +173,10 @@ fn verifier_const_sign_evaluate<S: Scalar>(
     }
 }
 
-fn prove_bits_are_binary<'a, S: Scalar>(builder: &mut ProofBuilder<'a, S>, bits: &[&'a [bool]]) {
+fn prove_bits_are_binary<'a, S: Scalar>(
+    builder: &mut FinalRoundBuilder<'a, S>,
+    bits: &[&'a [bool]],
+) {
     for &seq in bits {
         builder.produce_intermediate_mle(seq);
         builder.produce_sumcheck_subpolynomial(
@@ -203,7 +206,7 @@ fn verify_bits_are_binary<C: Commitment>(
 ///
 /// This function generates subpolynomial terms for sumcheck, involving the scalar expression and its bit decomposition.
 fn prove_bit_decomposition<'a, S: Scalar>(
-    builder: &mut ProofBuilder<'a, S>,
+    builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     expr: &'a [S],
     bits: &[&'a [bool]],
@@ -247,7 +250,7 @@ fn verify_bit_decomposition<C: Commitment>(
 ) {
     let mut eval = expr_eval;
     let sign_eval = bit_evals.last().unwrap();
-    let sign_eval = builder.mle_evaluations.one_evaluation - C::Scalar::TWO * *sign_eval;
+    let sign_eval = builder.mle_evaluations.input_one_evaluation - C::Scalar::TWO * *sign_eval;
     let mut vary_index = 0;
     eval -= sign_eval * C::Scalar::from(dist.constant_part());
     dist.for_each_abs_varying_bit(|int_index: usize, bit_index: usize| {
