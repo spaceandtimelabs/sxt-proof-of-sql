@@ -3,7 +3,7 @@ use crate::{
     base::commitment::{Commitment, TableCommitment},
     proof_primitive::dory::{
         DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters,
-    },
+    }, utils::parquet_to_commitment_blob::PARQUET_FILE_PROOF_ORDER_COLUMN,
 };
 use arrow::array::{ArrayRef, Int32Array, RecordBatch};
 use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
@@ -89,47 +89,47 @@ fn delete_file_if_exists(path: &str) {
 fn we_can_retrieve_commitments_and_save_to_file() {
     let parquet_path_1 = "example-1.parquet";
     let parquet_path_2 = "example-2.parquet";
-    let ristretto_point_path = "example_ristretto_point.txt";
-    let dory_commitment_path = "example_dory_commitment.txt";
-    let dynamic_dory_commitment_path = "example_dynamic_dory_commitment.txt";
+    let ristretto_point_path = "example-ristretto-point.txt";
+    let dory_commitment_path = "example-dory-commitment.txt";
+    let dynamic_dory_commitment_path = "example-dynamic-dory-commitment.txt";
     delete_file_if_exists(parquet_path_1);
     delete_file_if_exists(parquet_path_2);
     delete_file_if_exists(ristretto_point_path);
     delete_file_if_exists(dory_commitment_path);
     delete_file_if_exists(dynamic_dory_commitment_path);
-    let proof_column_unsorted_1 = Int32Array::from(vec![2, 4]);
-    let column_unsorted_1 = Int32Array::from(vec![1, 4]);
-    let proof_column_unsorted_2 = Int32Array::from(vec![1, 3]);
-    let column_unsorted_2 = Int32Array::from(vec![2, 3]);
-    let column_sorted = Int32Array::from(vec![2, 1, 3, 4]);
-    let record_batch_unsorted_1 = RecordBatch::try_from_iter(vec![
+    let proof_column_1 = Int32Array::from(vec![1, 2]);
+    let column_1 = Int32Array::from(vec![2, 1]);
+    let proof_column_2 = Int32Array::from(vec![3, 4]);
+    let column_2 = Int32Array::from(vec![3, 4]);
+    let column = Int32Array::from(vec![2, 1, 3, 4]);
+    let record_batch_1 = RecordBatch::try_from_iter(vec![
         (
-            "SXTMETA_ROW_NUMBER",
-            Arc::new(proof_column_unsorted_1) as ArrayRef,
+            PARQUET_FILE_PROOF_ORDER_COLUMN,
+            Arc::new(proof_column_1) as ArrayRef,
         ),
-        ("column", Arc::new(column_unsorted_1) as ArrayRef),
+        ("column", Arc::new(column_1) as ArrayRef),
     ])
     .unwrap();
-    let record_batch_unsorted_2 = RecordBatch::try_from_iter(vec![
+    let record_batch_2 = RecordBatch::try_from_iter(vec![
         (
-            "SXTMETA_ROW_NUMBER",
-            Arc::new(proof_column_unsorted_2) as ArrayRef,
+            PARQUET_FILE_PROOF_ORDER_COLUMN,
+            Arc::new(proof_column_2) as ArrayRef,
         ),
-        ("column", Arc::new(column_unsorted_2) as ArrayRef),
+        ("column", Arc::new(column_2) as ArrayRef),
     ])
     .unwrap();
-    let record_batch_sorted =
-        RecordBatch::try_from_iter(vec![("column", Arc::new(column_sorted) as ArrayRef)]).unwrap();
-    create_mock_file_from_record_batch(parquet_path_1, &record_batch_unsorted_1);
-    create_mock_file_from_record_batch(parquet_path_2, &record_batch_unsorted_2);
+    let record_batch =
+        RecordBatch::try_from_iter(vec![("column", Arc::new(column) as ArrayRef)]).unwrap();
+    create_mock_file_from_record_batch(parquet_path_1, &record_batch_1);
+    create_mock_file_from_record_batch(parquet_path_2, &record_batch_2);
     read_parquet_file_to_commitment_as_blob(vec![parquet_path_1, parquet_path_2], "example");
     assert_eq!(
-        read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
-        calculate_dory_commitment(&record_batch_sorted)
+        read_commitment_from_blob::<DynamicDoryCommitment>(dynamic_dory_commitment_path),
+        calculate_dynamic_dory_commitment(&record_batch)
     );
     assert_eq!(
-        read_commitment_from_blob::<DynamicDoryCommitment>(dynamic_dory_commitment_path),
-        calculate_dynamic_dory_commitment(&record_batch_sorted)
+        read_commitment_from_blob::<DoryCommitment>(dory_commitment_path),
+        calculate_dory_commitment(&record_batch)
     );
     delete_file_if_exists(parquet_path_1);
     delete_file_if_exists(parquet_path_2);
