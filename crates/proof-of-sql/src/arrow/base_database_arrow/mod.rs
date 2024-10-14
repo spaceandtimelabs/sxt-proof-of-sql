@@ -1,5 +1,6 @@
-pub mod column_arrow;
+mod column;
 #[cfg(feature = "arrow")]
+/// Module for Arrow array to column conversion
 pub mod arrow_array_to_column_conversion;
 #[cfg(feature = "arrow")]
 pub use arrow_array_to_column_conversion::{ArrayRefExt, ArrowArrayToColumnConversionError};

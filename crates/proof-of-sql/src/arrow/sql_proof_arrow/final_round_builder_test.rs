@@ -1,4 +1,3 @@
-
 #[cfg(feature = "arrow")]
 #[test]
 fn we_can_form_the_provable_query_result() {
