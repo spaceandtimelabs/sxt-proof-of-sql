@@ -33,7 +33,7 @@ static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 pub fn read_parquet_file_to_commitment_as_blob(
     parquet_files: Vec<PathBuf>,
     output_path_prefix: &str,
-    prover_setup: ProverSetup,
+    prover_setup: &ProverSetup,
 ) {
     //let setup_seed = "SpaceAndTime".to_string();
     //let mut rng = {
