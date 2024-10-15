@@ -43,7 +43,7 @@ impl Default for TrivialTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _input_length: usize,
+        _input_lengths: &[usize],
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -55,11 +55,14 @@ impl<S: Scalar> ProverEvaluate<S> for TrivialTestProofPlan {
 
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
-        let col = alloc.alloc_slice_fill_copy(builder.table_length(), self.column_fill_value);
+        assert_eq!(input_lengths.len(), 1);
+        let input_length = input_lengths[0];
+        let col = alloc.alloc_slice_fill_copy(input_length, self.column_fill_value);
         builder.produce_intermediate_mle(col as &[_]);
         builder.produce_sumcheck_subpolynomial(
             SumcheckSubpolynomialType::Identity,
@@ -200,7 +203,7 @@ impl Default for SquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _table_length: usize,
+        _input_lengths: &[usize],
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -212,6 +215,7 @@ impl<S: Scalar> ProverEvaluate<S> for SquareTestProofPlan {
 
     fn final_round_evaluate<'a>(
         &self,
+        _input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
@@ -382,7 +386,7 @@ impl Default for DoubleSquareTestProofPlan {
 impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _input_length: usize,
+        _input_lengths: &[usize],
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -394,6 +398,7 @@ impl<S: Scalar> ProverEvaluate<S> for DoubleSquareTestProofPlan {
 
     fn final_round_evaluate<'a>(
         &self,
+        _input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,
@@ -594,7 +599,7 @@ struct ChallengeTestProofPlan {}
 impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
     fn result_evaluate<'a>(
         &self,
-        _input_length: usize,
+        _input_lengths: &[usize],
         _alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<S>,
     ) -> Vec<Column<'a, S>> {
@@ -607,6 +612,7 @@ impl<S: Scalar> ProverEvaluate<S> for ChallengeTestProofPlan {
 
     fn final_round_evaluate<'a>(
         &self,
+        _input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, S>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<S>,

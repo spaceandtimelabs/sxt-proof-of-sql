@@ -148,10 +148,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -184,13 +186,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[allow(unused_variables)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
+            self.where_clause
+                .prover_evaluate(input_length, builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -199,7 +205,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(input_length, builder, alloc, accessor)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);

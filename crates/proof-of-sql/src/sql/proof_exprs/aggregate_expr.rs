@@ -55,11 +55,13 @@ impl<C: Commitment> ProofExpr<C> for AggregateExpr<C> {
     #[tracing::instrument(name = "AggregateExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        self.expr.prover_evaluate(builder, alloc, accessor)
+        self.expr
+            .prover_evaluate(table_length, builder, alloc, accessor)
     }
 
     fn verifier_evaluate(

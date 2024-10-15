@@ -32,6 +32,7 @@ pub trait ProofExpr<C: Commitment>: Debug + Send + Sync {
     /// of values
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,

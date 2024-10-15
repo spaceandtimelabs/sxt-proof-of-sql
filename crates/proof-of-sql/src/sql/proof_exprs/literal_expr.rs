@@ -57,11 +57,11 @@ impl<C: Commitment> ProofExpr<C> for LiteralExpr<C::Scalar> {
     #[tracing::instrument(name = "LiteralExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
-        builder: &mut FinalRoundBuilder<'a, C::Scalar>,
+        table_length: usize,
+        _builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         _accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let table_length = builder.table_length();
         Column::from_literal_with_length(&self.value, table_length, alloc)
     }
 
