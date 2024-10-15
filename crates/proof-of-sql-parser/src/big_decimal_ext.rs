@@ -23,8 +23,7 @@ pub enum BigDecimalError {
 impl BigDecimalExt for BigDecimal {
     /// Calculate precision after trimming leading and trailing zeros
     fn precision(&self) -> u8 {
-        let trimmed = self.normalized();
-        trimmed.digits() as u8
+        let trimmed = self.normalized().digits() as u8;
     }
 
     /// Calculate scale (fractional digits) after trimming trailing zeros
