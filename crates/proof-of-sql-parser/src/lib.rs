@@ -16,8 +16,6 @@ mod intermediate_ast_tests;
 /// Shortcuts to construct intermediate AST nodes.
 pub mod utility;
 
-pub mod big_decimal_ext;
-
 /// TODO: add docs
 pub(crate) mod select_statement;
 pub use select_statement::SelectStatement;
