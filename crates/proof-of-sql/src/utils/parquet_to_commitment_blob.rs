@@ -48,15 +48,11 @@ pub fn read_parquet_file_to_commitment_as_blob(
     //};
     //let public_parameters = PublicParameters::rand(12, &mut rng);
     //let prover_setup = ProverSetup::from(&public_parameters);
-    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
-
-    let mut offset: usize = 0;
-    let commitments: Vec<(
-        TableCommitment<DoryCommitment>,
-        TableCommitment<DynamicDoryCommitment>,
-    )> = parquet_files
+    //let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
+    let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
         .iter()
         .map(|path| {
+            println!("Committing to {}", path.as_path().to_str().unwrap());
             let file = File::open(path).unwrap();
             let reader = ParquetRecordBatchReaderBuilder::try_new(file)
                 .unwrap()
@@ -75,37 +71,36 @@ pub fn read_parquet_file_to_commitment_as_blob(
                 .as_any()
                 .downcast_ref::<Int32Array>()
                 .unwrap();
-            let length = meta_row_number_column.len();
-            let new_offset = offset + length;
-            let range = ((offset + 1) as i32)..((new_offset + 1) as i32);
-            assert_eq!(
-                meta_row_number_column,
-                &Int32Array::from(range.collect::<Vec<_>>())
-            );
+
+            let offset = meta_row_number_column.value(0) - 1;
             record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
             let record_batch = replace_nulls_within_record_batch(record_batch);
-            let dory_commitment =
-                TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
-                    &record_batch,
-                    offset,
-                    &dory_prover_setup,
-                )
-                .unwrap();
+            //let dory_commitment =
+            //TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
+            //&record_batch,
+            //offset,
+            //&dory_prover_setup,
+            //)
+            //.unwrap();
             let dynamic_dory_commitment =
                 TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
                     &record_batch,
-                    offset,
+                    offset as usize,
                     &&prover_setup,
                 )
                 .unwrap();
-            offset = new_offset;
-            (dory_commitment, dynamic_dory_commitment)
+            dynamic_dory_commitment
         })
         .collect();
-    let unzipped = commitments.into_iter().unzip();
-    aggregate_commitments_to_blob(unzipped.0, format!("{output_path_prefix}-dory-commitment"));
+
+    println!("done computing per-file commitments, now sorting and aggregating");
+    commitments.sort_by(|commitment_a, commitment_b| {
+        commitment_a.range().start.cmp(&commitment_b.range().start)
+    });
+
+    //aggregate_commitments_to_blob(unzipped.0, format!("{output_path_prefix}-dory-commitment"));
     aggregate_commitments_to_blob(
-        unzipped.1,
+        commitments,
         format!("{output_path_prefix}-dynamic-dory-commitment"),
     );
 }
@@ -154,6 +149,7 @@ fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch {
         .columns()
         .into_iter()
         .map(|column| {
+            println!("found nullable column, converting...");
             if column.is_nullable() {
                 let column_type = column.data_type();
                 let column: ArrayRef = match column_type {

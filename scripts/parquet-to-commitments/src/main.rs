@@ -14,6 +14,8 @@ fn main() {
 
     let output_prefix = env::args().skip(1).next().unwrap();
 
+    println!("Generating setup..");
+
     let setup_seed = "SpaceAndTime".to_string();
     let mut rng = {
         // Convert the seed string to bytes and create a seeded RNG
