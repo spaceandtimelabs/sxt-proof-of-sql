@@ -1,7 +1,7 @@
 use crate::base::{database::ColumnType, math::decimal::DecimalError};
 use alloc::string::String;
 use core::result::Result;
-use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{BinaryOperator, UnaryOperator};
 use snafu::Snafu;
 
 /// Errors from operations on columns.
