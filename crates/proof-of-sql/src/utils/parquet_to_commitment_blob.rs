@@ -10,7 +10,7 @@ use arrow::{
         Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray,
         TimestampMicrosecondArray, TimestampMillisecondArray, TimestampSecondArray,
     },
-    compute::concat_batches,
+    compute::{concat_batches, sort_to_indices, take},
     datatypes::{DataType, TimeUnit},
     error::ArrowError,
 };
@@ -62,7 +62,7 @@ pub fn read_parquet_file_to_commitment_as_blob(
             let record_batch_results: Vec<Result<RecordBatch, ArrowError>> = reader.collect();
             let record_batches: Vec<RecordBatch> = record_batch_results
                 .into_iter()
-                .map(|record_batch_result| record_batch_result.unwrap())
+                .map(|record_batch_result| sort_record_batch_by_meta_row_number(record_batch_result.unwrap()))
                 .collect();
             let schema = record_batches.first().unwrap().schema();
             let mut record_batch = concat_batches(&schema, &record_batches).unwrap();
@@ -245,4 +245,26 @@ fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch {
         })
         .collect();
     RecordBatch::try_new(schema, new_columns).unwrap()
+}
+
+fn sort_record_batch_by_meta_row_number(record_batch: RecordBatch) -> RecordBatch{
+    let schema = record_batch.schema();
+    let indices = sort_to_indices(
+        record_batch
+            .column_by_name(PARQUET_FILE_PROOF_ORDER_COLUMN)
+            .unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let columns = record_batch
+        .columns()
+        .iter()
+        .map(|c| take(c, &indices, None).unwrap())
+        .collect();
+    RecordBatch::try_new(
+        schema,
+        columns,
+    )
+    .unwrap()
 }
