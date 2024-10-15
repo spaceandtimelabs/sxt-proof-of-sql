@@ -10,6 +10,7 @@ license-file.workspace = true
 proof-of-sql.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
+glob = { version = "0.3.1" }
 
 [lints]
 workspace = true

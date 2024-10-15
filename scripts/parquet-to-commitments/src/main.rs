@@ -1,21 +1,40 @@
-//! Accepts a list of parquet files from stdin, a output-file prefix as an env arg, then produces
-//! commitment files starting with that prefix.
+//! Binary for computing commitments to many parquet files for many tables.
+//!
+//! Accepts two positional arguments:
+//! 1. the source, a path to the `v0/ETHEREUM/` directory
+//! 2. the output_prefix, used when writing commitments to files
 
+use glob::glob;
 use proof_of_sql::{
     proof_primitive::dory::{ProverSetup, PublicParameters},
     utils::parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob,
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use std::{env, io, path::Path};
+use std::{
+    env,
+    fs::read_dir,
+    path::{Path, PathBuf},
+};
 
 fn main() {
-    let parquet_paths = io::stdin()
-        .lines()
-        .map(|line| line.unwrap().parse().unwrap())
-        .collect();
+    let mut args = env::args().skip(1);
 
-    let output_prefix = env::args().skip(1).next().unwrap();
+    let source: PathBuf = args.next().unwrap().parse().unwrap();
+    let output_prefix = args.next().unwrap();
+
+    let table_identifiers: Vec<(String, String)> = read_dir(source.clone())
+        .unwrap()
+        .map(|entry| {
+            let dir_name = entry.unwrap().file_name();
+
+            let table_name = dir_name.to_str().unwrap().to_string();
+
+            let table_name = table_name.strip_prefix("SXT_ETHEREUM_").unwrap();
+
+            ("ETHEREUM".to_string(), table_name.to_string())
+        })
+        .collect();
 
     let public_parameters_path = Path::new("public-parameters");
 
@@ -50,5 +69,23 @@ fn main() {
     let prover_setup = ProverSetup::from(&public_parameters);
 
     println!("Beginning parquet to commitments..");
-    read_parquet_file_to_commitment_as_blob(parquet_paths, &output_prefix, prover_setup)
+    table_identifiers
+        .iter()
+        .for_each(|(namespace, table_name)| {
+            let parquets_for_table = glob(&format!(
+                "{}/SXT_{namespace}_{table_name}/**/**/*.parquet",
+                source.as_path().to_str().unwrap()
+            ))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+            let full_output_prefix = format!("{output_prefix}-{namespace}-{table_name}");
+
+            read_parquet_file_to_commitment_as_blob(
+                parquets_for_table,
+                &full_output_prefix,
+                &prover_setup,
+            )
+        });
 }
