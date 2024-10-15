@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/proof-of-sql", "crates/proof-of-sql-parser", "crates/proof-of-sql-utils"]
+members = ["crates/proof-of-sql", "crates/proof-of-sql-parser"]
 
 [workspace.package]
 edition = "2021"
