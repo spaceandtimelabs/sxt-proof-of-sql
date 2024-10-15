@@ -1,15 +1,14 @@
 use crate::{
     base::commitment::{Commitment, TableCommitment},
     proof_primitive::dory::{
-        DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup, PublicParameters,
+        DoryCommitment, DoryProverPublicSetup, DynamicDoryCommitment, ProverSetup,
     },
 };
 use arrow::{
     array::{
-        Array, ArrayRef, ArrowPrimitiveType, AsArray, BooleanArray, Decimal128Array,
-        Decimal256Array, Int16Array, Int32Array, Int64Array, Int8Array, NativeAdapter,
-        PrimitiveArray, RecordBatch, StringArray, TimestampMicrosecondArray,
-        TimestampMillisecondArray, TimestampSecondArray,
+        Array, ArrayRef, ArrowPrimitiveType, BooleanArray, Decimal128Array, Decimal256Array,
+        Int16Array, Int32Array, Int64Array, Int8Array, PrimitiveArray, RecordBatch, StringArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampSecondArray,
     },
     compute::concat_batches,
     datatypes::{DataType, TimeUnit},
@@ -17,12 +16,10 @@ use arrow::{
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
-use rand::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, sync::Arc};
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
 
-pub static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
+static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 
 /// Performs the following:
 /// Reads a collection of parquet files which in aggregate represent a single table of data,
@@ -32,15 +29,35 @@ pub static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 /// # Panics
 ///
 /// Panics when any part of the process fails
-pub fn read_parquet_file_to_commitment_as_blob(path_bases: Vec<&str>, output_path_prefix: &str) {
+pub fn read_parquet_file_to_commitment_as_blob(
+    parquet_files: Vec<PathBuf>,
+    output_path_prefix: &str,
+    prover_setup: ProverSetup,
+) {
+    //let setup_seed = "SpaceAndTime".to_string();
+    //let mut rng = {
+    //// Convert the seed string to bytes and create a seeded RNG
+    //let seed_bytes = setup_seed
+    //.bytes()
+    //.chain(std::iter::repeat(0u8))
+    //.take(32)
+    //.collect::<Vec<_>>()
+    //.try_into()
+    //.expect("collection is guaranteed to contain 32 elements");
+    //ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
+    //};
+    //let public_parameters = PublicParameters::rand(12, &mut rng);
+    //let prover_setup = ProverSetup::from(&public_parameters);
+    let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
+
     let mut offset: usize = 0;
     let commitments: Vec<(
         TableCommitment<DoryCommitment>,
         TableCommitment<DynamicDoryCommitment>,
-    )> = path_bases
+    )> = parquet_files
         .iter()
-        .map(|path_base| {
-            let file = File::open(format!("{path_base}.parquet")).unwrap();
+        .map(|path| {
+            let file = File::open(path).unwrap();
             let reader = ParquetRecordBatchReaderBuilder::try_new(file)
                 .unwrap()
                 .build()
@@ -67,21 +84,6 @@ pub fn read_parquet_file_to_commitment_as_blob(path_bases: Vec<&str>, output_pat
             );
             record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
             let record_batch = replace_nulls_within_record_batch(record_batch);
-            let setup_seed = "spaceandtime".to_string();
-            let mut rng = {
-                // Convert the seed string to bytes and create a seeded RNG
-                let seed_bytes = setup_seed
-                    .bytes()
-                    .chain(std::iter::repeat(0u8))
-                    .take(32)
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .expect("collection is guaranteed to contain 32 elements");
-                ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
-            };
-            let public_parameters = PublicParameters::rand(12, &mut rng);
-            let prover_setup = ProverSetup::from(&public_parameters);
-            let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
             let dory_commitment =
                 TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
                     &record_batch,
