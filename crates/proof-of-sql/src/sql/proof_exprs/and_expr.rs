@@ -60,12 +60,17 @@ impl<C: Commitment> ProofExpr<C> for AndExpr<C> {
     #[tracing::instrument(name = "AndExpr::prover_evaluate", level = "debug", skip_all)]
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column: Column<'a, C::Scalar> =
+            self.lhs
+                .prover_evaluate(table_length, builder, alloc, accessor);
+        let rhs_column: Column<'a, C::Scalar> =
+            self.rhs
+                .prover_evaluate(table_length, builder, alloc, accessor);
         let lhs = lhs_column.as_boolean().expect("lhs is not boolean");
         let rhs = rhs_column.as_boolean().expect("rhs is not boolean");
         let n = lhs.len();

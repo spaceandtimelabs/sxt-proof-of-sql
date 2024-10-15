@@ -98,10 +98,12 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[tracing::instrument(name = "ProjectionExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         let columns: Vec<_> = self
             .aliased_results
             .iter()
@@ -124,15 +126,22 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for ProjectionExec<C> {
     #[allow(unused_variables)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. Evaluate result expressions
         let res: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(input_length, builder, alloc, accessor)
+            })
             .collect();
         // 2. Produce MLEs
         res.clone().into_iter().for_each(|column| {

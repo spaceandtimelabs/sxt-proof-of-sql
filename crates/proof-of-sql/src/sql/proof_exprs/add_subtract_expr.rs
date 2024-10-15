@@ -79,12 +79,17 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
     )]
     fn prover_evaluate<'a>(
         &self,
+        table_length: usize,
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let lhs_column: Column<'a, C::Scalar> = self.lhs.prover_evaluate(builder, alloc, accessor);
-        let rhs_column: Column<'a, C::Scalar> = self.rhs.prover_evaluate(builder, alloc, accessor);
+        let lhs_column: Column<'a, C::Scalar> =
+            self.lhs
+                .prover_evaluate(table_length, builder, alloc, accessor);
+        let rhs_column: Column<'a, C::Scalar> =
+            self.rhs
+                .prover_evaluate(table_length, builder, alloc, accessor);
         Column::Scalar(add_subtract_columns(
             lhs_column,
             rhs_column,
