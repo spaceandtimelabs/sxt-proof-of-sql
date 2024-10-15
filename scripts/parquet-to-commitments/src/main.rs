@@ -30,7 +30,7 @@ fn main() {
 
             let table_name = dir_name.to_str().unwrap().to_string();
 
-            let table_name = table_name.strip_prefix("SXT_ETHEREUM_").unwrap();
+            let table_name = table_name.strip_prefix("SQL_ETHEREUM_").unwrap();
 
             ("ETHEREUM".to_string(), table_name.to_string())
         })
