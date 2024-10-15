@@ -73,7 +73,7 @@ fn main() {
         .iter()
         .for_each(|(namespace, table_name)| {
             let parquets_for_table = glob(&format!(
-                "{}/SXT_{namespace}_{table_name}/**/**/*.parquet",
+                "{}/SQL_{namespace}_{table_name}/**/**/*.parquet",
                 source.as_path().to_str().unwrap()
             ))
             .unwrap()
