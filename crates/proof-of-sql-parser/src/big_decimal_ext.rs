@@ -28,8 +28,7 @@ impl BigDecimalExt for BigDecimal {
 
     /// Calculate scale (fractional digits) after trimming trailing zeros
     fn scale(&self) -> i8 {
-        let trimmed = self.normalized();
-        trimmed.fractional_digit_count() as i8
+        let trimmed = self.normalized().fractional_digit_count() as i8;
     }
 
     /// Try to convert BigDecimal to BigInt with precision and scale adjustment
