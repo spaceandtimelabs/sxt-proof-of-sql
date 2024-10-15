@@ -92,10 +92,6 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
     }
@@ -205,13 +201,50 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
 }
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        // 1. selection
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        let selection = selection_column
+            .as_boolean()
+            .expect("selection is not boolean");
+
+        // 2. columns
+        let group_by_columns = self
+            .group_by_exprs
+            .iter()
+            .map(|expr| expr.result_evaluate(input_length, alloc, accessor))
+            .collect::<Vec<_>>();
+        // Compute filtered_columns
+        let AggregatedColumns { count_column, .. } =
+            aggregate_columns(alloc, &group_by_columns, &[], &[], &[], selection)
+                .expect("columns should be aggregatable");
+        count_column.len()
+    }
+
     #[tracing::instrument(name = "GroupByExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -260,13 +293,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
     #[allow(unused_variables)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
+            self.where_clause
+                .prover_evaluate(input_length, builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -275,12 +312,16 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for GroupByExec<C> {
         let group_by_columns = self
             .group_by_exprs
             .iter()
-            .map(|expr| expr.prover_evaluate(builder, alloc, accessor))
+            .map(|expr| expr.prover_evaluate(input_length, builder, alloc, accessor))
             .collect::<Vec<_>>();
         let sum_columns = self
             .sum_expr
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(input_length, builder, alloc, accessor)
+            })
             .collect::<Vec<_>>();
         // 3. Compute filtered_columns
         let AggregatedColumns {

@@ -47,15 +47,15 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         accessor: &impl DataAccessor<CP::Scalar>,
         setup: &CP::ProverPublicSetup<'_>,
     ) -> (Self, ProvableQueryResult) {
-        let table_length = expr.get_length(accessor);
+        let alloc = Bump::new();
+        // TODO: Modify this to handle multiple tables
+        let table_length = expr.get_input_lengths(&alloc, accessor)[0];
         let num_sumcheck_variables = cmp::max(log2_up(table_length), 1);
         let generator_offset = expr.get_offset(accessor);
         assert!(num_sumcheck_variables > 0);
 
-        let alloc = Bump::new();
-
         // Evaluate query result
-        let result_cols = expr.result_evaluate(table_length, &alloc, accessor);
+        let result_cols = expr.result_evaluate(&[table_length], &alloc, accessor);
         let output_length = result_cols.first().map_or(0, Column::len);
         let provable_result = ProvableQueryResult::new(output_length as u64, &result_cols);
 
@@ -79,7 +79,7 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
 
         let mut builder =
             FinalRoundBuilder::new(table_length, num_sumcheck_variables, post_result_challenges);
-        expr.final_round_evaluate(&mut builder, &alloc, accessor);
+        expr.final_round_evaluate(&[table_length], &mut builder, &alloc, accessor);
 
         let num_sumcheck_variables = builder.num_sumcheck_variables();
         let table_length = builder.table_length();
@@ -150,7 +150,9 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         result: &ProvableQueryResult,
         setup: &CP::VerifierPublicSetup<'_>,
     ) -> QueryResult<CP::Scalar> {
-        let input_length = expr.get_length(accessor);
+        //TODO: Modify this when we have multiple tables
+        assert!(expr.get_table_references().len() == 1);
+        let input_length = accessor.get_length(*expr.get_table_references().first().unwrap());
         let output_length = result.table_length();
         let generator_offset = expr.get_offset(accessor);
         let num_sumcheck_variables = cmp::max(log2_up(input_length), 1);
@@ -264,6 +266,8 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
         }
 
         // perform the evaluation check of the sumcheck polynomial
+        println!("sumcheck evaluation: {:?}", builder.sumcheck_evaluation());
+        println!("expected evaluation: {:?}", subclaim.expected_evaluation);
         if builder.sumcheck_evaluation() != subclaim.expected_evaluation {
             Err(ProofError::VerificationError {
                 error: "sumcheck evaluation check failed",
@@ -295,6 +299,13 @@ impl<CP: CommitmentEvaluationProof> QueryProof<CP> {
     }
 
     fn validate_sizes(&self, counts: &ProofCounts) -> bool {
+        println!("intermediate mles: {:?}", counts.intermediate_mles);
+        println!("anchored mles: {:?}", counts.anchored_mles);
+        println!("commitments: {:?}", self.commitments.len());
+        println!(
+            "pcs_proof_evaluations: {:?}",
+            self.pcs_proof_evaluations.len()
+        );
         self.commitments.len() == counts.intermediate_mles
             && self.pcs_proof_evaluations.len() == counts.intermediate_mles + counts.anchored_mles
     }

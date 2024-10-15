@@ -30,6 +30,31 @@ impl ProverHonestyMarker for Dishonest {}
 type DishonestFilterExec<C> = OstensibleFilterExec<C, Dishonest>;
 
 impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<Curve25519Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        let selection_column: Column<'a, Curve25519Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        selection_column
+            .as_boolean()
+            .expect("selection is not boolean")
+            .iter()
+            .filter(|&&b| b)
+            .count()
+    }
+
     #[tracing::instrument(
         name = "DishonestFilterExec::result_evaluate",
         level = "debug",
@@ -37,10 +62,12 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     )]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
             self.where_clause
@@ -76,13 +103,17 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
     #[allow(unused_variables)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, Curve25519Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<Curve25519Scalar>,
     ) -> Vec<Column<'a, Curve25519Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, Curve25519Scalar> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
+            self.where_clause
+                .prover_evaluate(input_length, builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -90,7 +121,11 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(input_length, builder, alloc, accessor)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -113,6 +148,10 @@ impl ProverEvaluate<Curve25519Scalar> for DishonestFilterExec<RistrettoPoint> {
             &filtered_columns,
             result_len,
         );
+        // 3. Produce MLEs
+        filtered_columns.iter().for_each(|column| {
+            builder.produce_intermediate_mle(column.as_scalar(alloc));
+        });
         filtered_columns
     }
 }

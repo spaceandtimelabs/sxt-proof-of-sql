@@ -77,10 +77,6 @@ where
         Ok(())
     }
 
-    fn get_length(&self, accessor: &dyn MetadataAccessor) -> usize {
-        accessor.get_length(self.table.table_ref)
-    }
-
     fn get_offset(&self, accessor: &dyn MetadataAccessor) -> usize {
         accessor.get_offset(self.table.table_ref)
     }
@@ -145,13 +141,40 @@ where
 pub type FilterExec<C> = OstensibleFilterExec<C, HonestProver>;
 
 impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
+    fn get_input_lengths<'a>(
+        &self,
+        _alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> Vec<usize> {
+        vec![accessor.get_length(self.table.table_ref)]
+    }
+
+    fn get_output_length<'a>(
+        &self,
+        alloc: &'a Bump,
+        accessor: &'a dyn DataAccessor<C::Scalar>,
+    ) -> usize {
+        let input_length = accessor.get_length(self.table.table_ref);
+        let selection_column: Column<'a, C::Scalar> =
+            self.where_clause
+                .result_evaluate(input_length, alloc, accessor);
+        selection_column
+            .as_boolean()
+            .expect("selection is not boolean")
+            .iter()
+            .filter(|&&b| b)
+            .count()
+    }
+
     #[tracing::instrument(name = "FilterExec::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
             self.where_clause
@@ -184,13 +207,17 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     #[allow(unused_variables)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
+        assert!(input_lengths.len() == 1);
+        let input_length = input_lengths[0];
         // 1. selection
         let selection_column: Column<'a, C::Scalar> =
-            self.where_clause.prover_evaluate(builder, alloc, accessor);
+            self.where_clause
+                .prover_evaluate(input_length, builder, alloc, accessor);
         let selection = selection_column
             .as_boolean()
             .expect("selection is not boolean");
@@ -199,7 +226,11 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
         let columns: Vec<_> = self
             .aliased_results
             .iter()
-            .map(|aliased_expr| aliased_expr.expr.prover_evaluate(builder, alloc, accessor))
+            .map(|aliased_expr| {
+                aliased_expr
+                    .expr
+                    .prover_evaluate(input_length, builder, alloc, accessor)
+            })
             .collect();
         // Compute filtered_columns
         let (filtered_columns, result_len) = filter_columns(alloc, &columns, selection);
@@ -225,7 +256,7 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for FilterExec<C> {
     }
 }
 
-fn verify_filter<C: Commitment>(
+pub(crate) fn verify_filter<C: Commitment>(
     builder: &mut VerificationBuilder<C>,
     alpha: C::Scalar,
     beta: C::Scalar,
@@ -263,7 +294,7 @@ fn verify_filter<C: Commitment>(
 }
 
 #[allow(clippy::too_many_arguments, clippy::many_single_char_names)]
-pub(super) fn prove_filter<'a, S: Scalar + 'a>(
+pub(crate) fn prove_filter<'a, S: Scalar + 'a>(
     builder: &mut FinalRoundBuilder<'a, S>,
     alloc: &'a Bump,
     alpha: S,
