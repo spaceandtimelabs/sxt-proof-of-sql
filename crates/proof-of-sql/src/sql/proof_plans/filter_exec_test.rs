@@ -192,7 +192,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_on_an_empty_table_using_result
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(0, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&[0], &alloc, &accessor);
     let output_length = result_cols.first().map_or(0, Column::len) as u64;
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
@@ -239,7 +239,7 @@ fn we_can_get_an_empty_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&[5], &alloc, &accessor);
     let output_length = result_cols.first().map_or(0, Column::len) as u64;
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
@@ -282,7 +282,7 @@ fn we_can_get_no_columns_from_a_basic_filter_with_no_selected_columns_using_resu
         equal(column(t, "a", &accessor), const_int128(5));
     let expr = filter(cols_expr_plan(t, &[], &accessor), tab(t), where_clause);
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&[5], &alloc, &accessor);
     let output_length = result_cols.first().map_or(0, Column::len) as u64;
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);
@@ -315,7 +315,7 @@ fn we_can_get_the_correct_result_from_a_basic_filter_using_result_evaluate() {
         where_clause,
     );
     let alloc = Bump::new();
-    let result_cols = expr.result_evaluate(5, &alloc, &accessor);
+    let result_cols = expr.result_evaluate(&[5], &alloc, &accessor);
     let output_length = result_cols.first().map_or(0, Column::len) as u64;
     let mut builder = FirstRoundBuilder::new();
     expr.first_round_evaluate(&mut builder);

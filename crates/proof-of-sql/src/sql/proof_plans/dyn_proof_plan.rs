@@ -95,14 +95,14 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::result_evaluate", level = "debug", skip_all)]
     fn result_evaluate<'a>(
         &self,
-        input_length: usize,
+        input_lengths: &[usize],
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
-            DynProofPlan::Projection(expr) => expr.result_evaluate(input_length, alloc, accessor),
-            DynProofPlan::GroupBy(expr) => expr.result_evaluate(input_length, alloc, accessor),
-            DynProofPlan::Filter(expr) => expr.result_evaluate(input_length, alloc, accessor),
+            DynProofPlan::Projection(expr) => expr.result_evaluate(input_lengths, alloc, accessor),
+            DynProofPlan::GroupBy(expr) => expr.result_evaluate(input_lengths, alloc, accessor),
+            DynProofPlan::Filter(expr) => expr.result_evaluate(input_lengths, alloc, accessor),
         }
     }
 
@@ -117,14 +117,21 @@ impl<C: Commitment> ProverEvaluate<C::Scalar> for DynProofPlan<C> {
     #[tracing::instrument(name = "DynProofPlan::final_round_evaluate", level = "debug", skip_all)]
     fn final_round_evaluate<'a>(
         &self,
+        input_lengths: &[usize],
         builder: &mut crate::sql::proof::FinalRoundBuilder<'a, C::Scalar>,
         alloc: &'a bumpalo::Bump,
         accessor: &'a dyn crate::base::database::DataAccessor<C::Scalar>,
     ) -> Vec<Column<'a, C::Scalar>> {
         match self {
-            DynProofPlan::Projection(expr) => expr.final_round_evaluate(builder, alloc, accessor),
-            DynProofPlan::GroupBy(expr) => expr.final_round_evaluate(builder, alloc, accessor),
-            DynProofPlan::Filter(expr) => expr.final_round_evaluate(builder, alloc, accessor),
+            DynProofPlan::Projection(expr) => {
+                expr.final_round_evaluate(input_lengths, builder, alloc, accessor)
+            }
+            DynProofPlan::GroupBy(expr) => {
+                expr.final_round_evaluate(input_lengths, builder, alloc, accessor)
+            }
+            DynProofPlan::Filter(expr) => {
+                expr.final_round_evaluate(input_lengths, builder, alloc, accessor)
+            }
         }
     }
 }
