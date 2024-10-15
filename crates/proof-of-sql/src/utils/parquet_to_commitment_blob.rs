@@ -5,7 +5,7 @@ use crate::{
     },
 };
 use arrow::{
-    array::{Int32Array, RecordBatch},
+    array::{Array, ArrayRef, ArrowPrimitiveType, AsArray, Int32Array, NativeAdapter, PrimitiveArray, RecordBatch},
     compute::concat_batches,
     error::ArrowError,
 };
@@ -14,7 +14,7 @@ use postcard::to_allocvec;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, sync::Arc};
 
 pub static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 
@@ -26,15 +26,15 @@ pub static PARQUET_FILE_PROOF_ORDER_COLUMN: &str = "META_ROW_NUMBER";
 /// # Panics
 ///
 /// Panics when any part of the process fails
-pub fn read_parquet_file_to_commitment_as_blob(paths: Vec<&str>, output_path_prefix: &str) {
+pub fn read_parquet_file_to_commitment_as_blob(path_bases: Vec<&str>, output_path_prefix: &str) {
     let mut offset: usize = 0;
     let commitments: Vec<(
         TableCommitment<DoryCommitment>,
         TableCommitment<DynamicDoryCommitment>,
-    )> = paths
+    )> = path_bases
         .iter()
-        .map(|path| {
-            let file = File::open(path).unwrap();
+        .map(|path_base| {
+            let file = File::open(format!("{path_base}.parquet")).unwrap();
             let reader = ParquetRecordBatchReaderBuilder::try_new(file)
                 .unwrap()
                 .build()
@@ -120,8 +120,38 @@ fn aggregate_commitments_to_blob<C: Commitment + Serialize + for<'a> Deserialize
             },
         )
         .unwrap();
-    let bytes: Vec<u8> = to_allocvec(&commitment).unwrap();
+    write_commitment_to_blob(&commitment, output_file_base);
+}
+
+fn write_commitment_to_blob<C: Commitment + Serialize + for<'a> Deserialize<'a>>(
+    commitment: &TableCommitment<C>,
+    output_file_base: String,
+) {
+    let bytes: Vec<u8> = to_allocvec(commitment).unwrap();
     let path_extension = "txt";
     let mut output_file = File::create(format!("{output_file_base}.{path_extension}")).unwrap();
     output_file.write_all(&bytes).unwrap();
+}
+
+fn replace_nulls<T: ArrowPrimitiveType>(array: &PrimitiveArray<T>) -> PrimitiveArray<T>
+where
+    NativeAdapter<T>: From<<T as ArrowPrimitiveType>::Native>,
+{
+    array
+        .iter()
+        .map(|value: Option<<T as ArrowPrimitiveType>::Native>| {
+            value.unwrap_or(T::Native::default())
+        })
+        .collect()
+}
+
+fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch{
+    let schema = record_batch.schema();
+    let new_columns: Vec<_> = record_batch.columns().into_iter().map(|column| {
+        match column.is_nullable() {
+            true => Arc::new(replace_nulls(column.as_primitive())) as ArrayRef,
+            false => Arc::new(column.as_primitive()) as ArrayRef
+        }
+    }).collect();
+    RecordBatch::try_new(schema, new_columns).unwrap()
 }
