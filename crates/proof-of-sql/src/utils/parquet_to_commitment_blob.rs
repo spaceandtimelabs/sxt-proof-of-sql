@@ -5,8 +5,14 @@ use crate::{
     },
 };
 use arrow::{
-    array::{Array, ArrayRef, ArrowPrimitiveType, AsArray, Int32Array, NativeAdapter, PrimitiveArray, RecordBatch},
+    array::{
+        Array, ArrayRef, ArrowPrimitiveType, AsArray, BooleanArray, Decimal128Array,
+        Decimal256Array, Int16Array, Int32Array, Int64Array, Int8Array, NativeAdapter,
+        PrimitiveArray, RecordBatch, StringArray, TimestampMicrosecondArray,
+        TimestampMillisecondArray, TimestampSecondArray,
+    },
     compute::concat_batches,
+    datatypes::{DataType, TimeUnit},
     error::ArrowError,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
@@ -60,6 +66,7 @@ pub fn read_parquet_file_to_commitment_as_blob(path_bases: Vec<&str>, output_pat
                 &Int32Array::from(range.collect::<Vec<_>>())
             );
             record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
+            let record_batch = replace_nulls_within_record_batch(record_batch);
             let setup_seed = "spaceandtime".to_string();
             let mut rng = {
                 // Convert the seed string to bytes and create a seeded RNG
@@ -133,25 +140,109 @@ fn write_commitment_to_blob<C: Commitment + Serialize + for<'a> Deserialize<'a>>
     output_file.write_all(&bytes).unwrap();
 }
 
-fn replace_nulls<T: ArrowPrimitiveType>(array: &PrimitiveArray<T>) -> PrimitiveArray<T>
-where
-    NativeAdapter<T>: From<<T as ArrowPrimitiveType>::Native>,
-{
-    array
-        .iter()
-        .map(|value: Option<<T as ArrowPrimitiveType>::Native>| {
-            value.unwrap_or(T::Native::default())
-        })
-        .collect()
+fn replace_nulls_primitive<T: ArrowPrimitiveType>(array: &PrimitiveArray<T>) -> PrimitiveArray<T> {
+    PrimitiveArray::from_iter_values(array.iter().map(
+        |value: Option<<T as ArrowPrimitiveType>::Native>| value.unwrap_or(T::Native::default()),
+    ))
 }
 
-fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch{
+fn replace_nulls_within_record_batch(record_batch: RecordBatch) -> RecordBatch {
     let schema = record_batch.schema();
-    let new_columns: Vec<_> = record_batch.columns().into_iter().map(|column| {
-        match column.is_nullable() {
-            true => Arc::new(replace_nulls(column.as_primitive())) as ArrayRef,
-            false => Arc::new(column.as_primitive()) as ArrayRef
-        }
-    }).collect();
+    let new_columns: Vec<_> = record_batch
+        .columns()
+        .into_iter()
+        .map(|column| {
+            if column.is_nullable() {
+                let column_type = column.data_type();
+                let column: ArrayRef = match column_type {
+                    DataType::Int8 => Arc::new(replace_nulls_primitive(
+                        column.as_any().downcast_ref::<Int8Array>().unwrap(),
+                    )),
+                    DataType::Int16 => Arc::new(replace_nulls_primitive(
+                        column.as_any().downcast_ref::<Int16Array>().unwrap(),
+                    )),
+                    DataType::Int32 => Arc::new(replace_nulls_primitive(
+                        column.as_any().downcast_ref::<Int32Array>().unwrap(),
+                    )),
+                    DataType::Int64 => Arc::new(replace_nulls_primitive(
+                        column.as_any().downcast_ref::<Int64Array>().unwrap(),
+                    )),
+
+                    DataType::Decimal128(precision, scale) => Arc::new(
+                        replace_nulls_primitive(
+                            column.as_any().downcast_ref::<Decimal128Array>().unwrap(),
+                        )
+                        .with_precision_and_scale(*precision, *scale)
+                        .unwrap(),
+                    ),
+                    DataType::Decimal256(precision, scale) => Arc::new(
+                        replace_nulls_primitive(
+                            column.as_any().downcast_ref::<Decimal256Array>().unwrap(),
+                        )
+                        .with_precision_and_scale(*precision, *scale)
+                        .unwrap(),
+                    ),
+                    DataType::Timestamp(TimeUnit::Second, timezone) => Arc::new(
+                        replace_nulls_primitive(
+                            column
+                                .as_any()
+                                .downcast_ref::<TimestampSecondArray>()
+                                .unwrap(),
+                        )
+                        .with_timezone_opt(timezone.clone()),
+                    ),
+                    DataType::Timestamp(TimeUnit::Millisecond, timezone) => Arc::new(
+                        replace_nulls_primitive(
+                            column
+                                .as_any()
+                                .downcast_ref::<TimestampMillisecondArray>()
+                                .unwrap(),
+                        )
+                        .with_timezone_opt(timezone.clone()),
+                    ),
+                    DataType::Timestamp(TimeUnit::Microsecond, timezone) => Arc::new(
+                        replace_nulls_primitive(
+                            column
+                                .as_any()
+                                .downcast_ref::<TimestampMicrosecondArray>()
+                                .unwrap(),
+                        )
+                        .with_timezone_opt(timezone.clone()),
+                    ),
+                    DataType::Timestamp(TimeUnit::Nanosecond, timezone) => Arc::new(
+                        replace_nulls_primitive(
+                            column
+                                .as_any()
+                                .downcast_ref::<TimestampMicrosecondArray>()
+                                .unwrap(),
+                        )
+                        .with_timezone_opt(timezone.clone()),
+                    ),
+                    DataType::Boolean => Arc::new(
+                        column
+                            .as_any()
+                            .downcast_ref::<BooleanArray>()
+                            .unwrap()
+                            .iter()
+                            .map(|element| Some(element.unwrap_or(false)))
+                            .collect::<BooleanArray>(),
+                    ),
+                    DataType::Utf8 => Arc::new(StringArray::from_iter_values(
+                        column
+                            .as_any()
+                            .downcast_ref::<StringArray>()
+                            .unwrap()
+                            .iter()
+                            .map(|element| element.unwrap_or("")),
+                    )),
+                    _ => unimplemented!(),
+                };
+
+                column
+            } else {
+                column.clone()
+            }
+        })
+        .collect();
     RecordBatch::try_new(schema, new_columns).unwrap()
 }
