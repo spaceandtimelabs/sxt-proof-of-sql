@@ -16,6 +16,7 @@ use arrow::{
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Write, path::PathBuf, sync::Arc};
 
@@ -50,9 +51,9 @@ pub fn read_parquet_file_to_commitment_as_blob(
     //let prover_setup = ProverSetup::from(&public_parameters);
     //let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
     let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
-        .iter()
+        .par_iter()
         .map(|path| {
-            println!("Committing to {}", path.as_path().to_str().unwrap());
+            println!("Committing to {}..", path.as_path().to_str().unwrap());
             let file = File::open(path).unwrap();
             let reader = ParquetRecordBatchReaderBuilder::try_new(file)
                 .unwrap()
@@ -65,6 +66,7 @@ pub fn read_parquet_file_to_commitment_as_blob(
                 .collect();
             let schema = record_batches.first().unwrap().schema();
             let mut record_batch = concat_batches(&schema, &record_batches).unwrap();
+
             let meta_row_number_column = record_batch
                 .column_by_name(PARQUET_FILE_PROOF_ORDER_COLUMN)
                 .unwrap()
