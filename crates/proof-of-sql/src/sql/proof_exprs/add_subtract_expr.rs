@@ -13,7 +13,7 @@ use crate::{
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
+use sqlparser::ast::BinaryOperator;
 use serde::{Deserialize, Serialize};
 
 /// Provable numerical `+` / `-` expression
@@ -44,9 +44,9 @@ impl<C: Commitment> ProofExpr<C> for AddSubtractExpr<C> {
 
     fn data_type(&self) -> ColumnType {
         let operator = if self.is_subtract {
-            BinaryOperator::Subtract
+            BinaryOperator::Minus
         } else {
-            BinaryOperator::Add
+            BinaryOperator::Plus
         };
         try_add_subtract_column_types(self.lhs.data_type(), self.rhs.data_type(), operator)
             .expect("Failed to add/subtract column types")

@@ -12,18 +12,18 @@ use crate::{
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use itertools::Itertools;
-use proof_of_sql_parser::{intermediate_ast::Expression, Identifier};
+use sqlparser::ast::{Expr, Ident};
 
-pub struct FilterExecBuilder<C: Commitment> {
+pub struct FilterExecBuilder<'a, C: Commitment> {
     table_expr: Option<TableExpr>,
     where_expr: Option<DynProofExpr<C>>,
     filter_result_expr_list: Vec<AliasedDynProofExpr<C>>,
-    column_mapping: IndexMap<Identifier, ColumnRef>,
+    column_mapping: IndexMap<Ident, ColumnRef<'a>>,
 }
 
 // Public interface
-impl<C: Commitment> FilterExecBuilder<C> {
-    pub fn new(column_mapping: IndexMap<Identifier, ColumnRef>) -> Self {
+impl<'a, C: Commitment> FilterExecBuilder<'a, C> {
+    pub fn new(column_mapping: IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             table_expr: None,
             where_expr: None,
@@ -39,7 +39,7 @@ impl<C: Commitment> FilterExecBuilder<C> {
 
     pub fn add_where_expr(
         mut self,
-        where_expr: Option<Box<Expression>>,
+        where_expr: Option<Box<Expr>>,
     ) -> Result<Self, ConversionError> {
         self.where_expr = WhereExprBuilder::new(&self.column_mapping).build(where_expr)?;
         Ok(self)

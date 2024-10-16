@@ -4,7 +4,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 
 /// Access metadata of a table span in a database.
 ///
@@ -101,7 +101,7 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_ref` and `column_id` must always be lowercase.
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType>;
+    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType>;
 
     /// Lookup all the column names and their data types in the specified table
     ///
@@ -110,5 +110,5 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_name` must be lowercase.
-    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Identifier, ColumnType)>;
+    fn lookup_schema(&self, table_ref: TableRef) -> Vec<(Ident, ColumnType)>;
 }

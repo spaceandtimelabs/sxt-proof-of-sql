@@ -13,9 +13,9 @@ use core::{
     fmt::{Display, Formatter},
     mem::size_of,
 };
+use sqlparser::ast::Ident;
 use proof_of_sql_parser::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-    Identifier,
 };
 use serde::{Deserialize, Serialize};
 
@@ -503,16 +503,18 @@ impl Display for ColumnType {
 
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
-pub struct ColumnRef {
-    column_id: Identifier,
+pub struct ColumnRef<'a>{
+    #[serde(borrow)]
+
+    column_id: &'a Ident,
     table_ref: TableRef,
     column_type: ColumnType,
 }
 
-impl ColumnRef {
+impl ColumnRef<'_> {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
-    pub fn new(table_ref: TableRef, column_id: Identifier, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: TableRef, column_id: &Ident, column_type: ColumnType) -> Self {
         Self {
             column_id,
             table_ref,
@@ -528,7 +530,7 @@ impl ColumnRef {
 
     /// Returns the column identifier of this column
     #[must_use]
-    pub fn column_id(&self) -> Identifier {
+    pub fn column_id(&self) -> &Ident {
         self.column_id
     }
 
@@ -544,21 +546,21 @@ impl ColumnRef {
 ///
 /// This is the analog of a `Field` in Apache Arrow.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
-pub struct ColumnField {
-    name: Identifier,
+pub struct ColumnField<'a> {
+    name: &'a Ident,
     data_type: ColumnType,
 }
 
-impl ColumnField {
+impl ColumnField<'_> {
     /// Create a new `ColumnField` from a name and a type
     #[must_use]
-    pub fn new(name: Identifier, data_type: ColumnType) -> ColumnField {
+    pub fn new(name: &Ident, data_type: ColumnType) -> ColumnField {
         ColumnField { name, data_type }
     }
 
     /// Returns the name of the column
     #[must_use]
-    pub fn name(&self) -> Identifier {
+    pub fn name(&self) -> &Ident {
         self.name
     }
 
@@ -571,10 +573,10 @@ impl ColumnField {
 
 /// Convert [`ColumnField`] values to arrow Field
 #[cfg(feature = "arrow")]
-impl From<&ColumnField> for Field {
-    fn from(column_field: &ColumnField) -> Self {
+impl<'a> From<ColumnField<'a>> for Field {
+    fn from(column_field: ColumnField<'a>) -> Self {
         Field::new(
-            column_field.name().name(),
+            column_field.name().to_string(),
             (&column_field.data_type()).into(),
             false,
         )

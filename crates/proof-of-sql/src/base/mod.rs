@@ -17,4 +17,6 @@ pub(crate) mod map;
 pub(crate) mod slice_ops;
 
 mod rayon_cfg;
+mod utility;
+
 pub(crate) use rayon_cfg::if_rayon;

@@ -11,10 +11,8 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, string::ToString, vec::Vec};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression, OrderBy, Slice},
-    Identifier,
-};
+use sqlparser::ast::{Expr, Ident, OrderBy};
+
 
 #[derive(Default, Debug)]
 pub struct QueryContext {
@@ -26,12 +24,12 @@ pub struct QueryContext {
     in_result_scope: bool,
     has_visited_group_by: bool,
     order_by_exprs: Vec<OrderBy>,
-    group_by_exprs: Vec<Identifier>,
-    where_expr: Option<Box<Expression>>,
-    result_column_set: IndexSet<Identifier>,
+    group_by_exprs: Vec<Ident>,
+    where_expr: Option<Box<Expr>>,
+    result_column_set: IndexSet<Ident>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: IndexMap<Identifier, ColumnRef>,
-    first_result_col_out_agg_scope: Option<Identifier>,
+    column_mapping: IndexMap<Ident, ColumnRef<'_>>,
+    first_result_col_out_agg_scope: Option<Ident>,
 }
 
 impl QueryContext {
@@ -48,11 +46,11 @@ impl QueryContext {
             .expect("Table should already have been set")
     }
 
-    pub fn set_where_expr(&mut self, where_expr: Option<Box<Expression>>) {
+    pub fn set_where_expr(&mut self, where_expr: Option<Box<Expr>>) {
         self.where_expr = where_expr;
     }
 
-    pub fn get_where_expr(&self) -> &Option<Box<Expression>> {
+    pub fn get_where_expr(&self) -> &Option<Box<Expr>> {
         &self.where_expr
     }
 
@@ -101,15 +99,15 @@ impl QueryContext {
         self.agg_counter > 0 || !self.group_by_exprs.is_empty()
     }
 
-    pub fn push_column_ref(&mut self, column: Identifier, column_ref: ColumnRef) {
+    pub fn push_column_ref(&mut self, column: Ident, column_ref: ColumnRef) {
         self.col_ref_counter += 1;
-        self.push_result_column_ref(column);
+        self.push_result_column_ref(column.clone());
         self.column_mapping.insert(column, column_ref);
     }
 
-    fn push_result_column_ref(&mut self, column: Identifier) {
+    fn push_result_column_ref(&mut self, column: Ident) {
         if self.is_in_result_scope() {
-            self.result_column_set.insert(column);
+            self.result_column_set.insert(column.clone());
 
             if !self.is_in_agg_scope() && self.first_result_col_out_agg_scope.is_none() {
                 self.first_result_col_out_agg_scope = Some(column);
@@ -125,13 +123,13 @@ impl QueryContext {
         Ok(())
     }
 
-    pub fn set_group_by_exprs(&mut self, exprs: Vec<Identifier>) {
+    pub fn set_group_by_exprs(&mut self, exprs: Vec<Ident>) {
         self.group_by_exprs = exprs;
 
         // Add the group by columns to the result column set
         // to ensure their integrity in the filter expression.
         for group_column in &self.group_by_exprs {
-            self.result_column_set.insert(*group_column);
+            self.result_column_set.insert(group_column.clone());
         }
 
         self.has_visited_group_by = true;
@@ -141,7 +139,7 @@ impl QueryContext {
         self.order_by_exprs = order_by_exprs;
     }
 
-    pub fn is_in_group_by_exprs(&self, column: &Identifier) -> ConversionResult<bool> {
+    pub fn is_in_group_by_exprs(&self, column: &Ident) -> ConversionResult<bool> {
         // Non-aggregated result column references must be included in the group by statement.
         if self.group_by_exprs.is_empty() || self.is_in_agg_scope() || !self.is_in_result_scope() {
             return Ok(false);
@@ -197,7 +195,7 @@ impl QueryContext {
         for by_expr in &self.order_by_exprs {
             self.res_aliased_exprs
                 .iter()
-                .find(|col| col.alias == by_expr.expr)
+                .find(|col| col.alias == by_expr.exprs)
                 .ok_or(ConversionError::InvalidOrderBy {
                     alias: by_expr.expr.as_str().to_string(),
                 })?;
@@ -210,15 +208,15 @@ impl QueryContext {
         &self.slice_expr
     }
 
-    pub fn get_group_by_exprs(&self) -> &[Identifier] {
+    pub fn get_group_by_exprs(&self) -> &[Ident] {
         &self.group_by_exprs
     }
 
-    pub fn get_result_column_set(&self) -> IndexSet<Identifier> {
+    pub fn get_result_column_set(&self) -> IndexSet<Ident> {
         self.result_column_set.clone()
     }
 
-    pub fn get_column_mapping(&self) -> IndexMap<Identifier, ColumnRef> {
+    pub fn get_column_mapping(&self) -> IndexMap<Ident, ColumnRef> {
         self.column_mapping.clone()
     }
 }
@@ -272,7 +270,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
             .iter()
             .zip(res_group_by_columns.iter())
             .all(|(ident, res)| {
-                if let Expression::Column(res_ident) = *res.expr {
+                if let Expr::Column(res_ident) = *res.expr {
                     res_ident == *ident
                 } else {
                     false
@@ -283,7 +281,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
         let sum_expr = sum_expr_columns
             .iter()
             .map(|res| {
-                if let Expression::Aggregation {
+                if let Expr::Aggregation {
                     op: AggregationOperator::Sum,
                     ..
                 } = (*res.expr).clone()
@@ -306,7 +304,7 @@ impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
         let count_column = &value.res_aliased_exprs[num_result_columns - 1];
         let count_column_compliant = matches!(
             *count_column.expr,
-            Expression::Aggregation {
+            Expr::Aggregation {
                 op: AggregationOperator::Count,
                 ..
             }

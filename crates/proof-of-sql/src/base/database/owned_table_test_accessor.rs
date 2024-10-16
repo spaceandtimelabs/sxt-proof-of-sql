@@ -7,6 +7,7 @@ use crate::base::{
     map::IndexMap,
 };
 use bumpalo::Bump;
+use sqlparser::ast::Ident;
 use proof_of_sql_parser::Identifier;
 
 /// A test accessor that uses [`OwnedTable`] as the underlying table type.
@@ -149,13 +150,13 @@ impl<CP: CommitmentEvaluationProof> MetadataAccessor for OwnedTableTestAccessor<
     }
 }
 impl<CP: CommitmentEvaluationProof> SchemaAccessor for OwnedTableTestAccessor<'_, CP> {
-    fn lookup_column(&self, table_ref: TableRef, column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, table_ref: TableRef, column_id: &Ident) -> Option<ColumnType> {
         Some(
             self.tables
                 .get(&table_ref)?
                 .0
                 .inner_table()
-                .get(&column_id)?
+                .get(column_id)?
                 .column_type(),
         )
     }

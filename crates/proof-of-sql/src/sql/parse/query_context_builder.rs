@@ -7,13 +7,9 @@ use crate::base::{
     math::decimal::Precision,
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};
-use proof_of_sql_parser::{
-    intermediate_ast::{
-        AggregationOperator, AliasedResultExpr, BinaryOperator, Expression, Literal, OrderBy,
-        SelectResultExpr, Slice, TableExpression, UnaryOperator,
-    },
-    Identifier, ResourceId,
-};
+
+use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy, Ident};
+
 
 pub struct QueryContextBuilder<'a> {
     context: QueryContext,
@@ -32,12 +28,12 @@ impl<'a> QueryContextBuilder<'a> {
     #[allow(clippy::vec_box, clippy::missing_panics_doc)]
     pub fn visit_table_expr(
         mut self,
-        table_expr: Vec<Box<TableExpression>>,
-        default_schema: Identifier,
+        table_expr: Vec<Box<Table>>,
+        default_schema: Ident,
     ) -> Self {
         assert_eq!(table_expr.len(), 1);
-        match *table_expr[0] {
-            TableExpression::Named { table, schema } => {
+        match *table_expr {
+            Table { table, schema } => {
                 self.context.set_table_ref(TableRef::new(ResourceId::new(
                     schema.unwrap_or(default_schema),
                     table,
@@ -49,7 +45,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_where_expr(
         mut self,
-        mut where_expr: Option<Box<Expression>>,
+        mut where_expr: Option<Box<Expr>>,
     ) -> ConversionResult<Self> {
         if let Some(expr) = where_expr.as_deref_mut() {
             self.visit_expr(expr)?;
@@ -115,7 +111,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let col_expr = Expression::Column(column_name);
+            let col_expr = Expr::Column(column_name);
             self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_name))?;
         }
         Ok(())
@@ -128,22 +124,22 @@ impl<'a> QueryContextBuilder<'a> {
     }
 
     /// Visits the expression and returns its data type.
-    fn visit_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
+    fn visit_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
         match expr {
-            Expression::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
-            Expression::Literal(literal) => self.visit_literal(literal),
-            Expression::Column(_) => self.visit_column_expr(expr),
-            Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
-            Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
-            Expression::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
+            Expr::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
+            Expr::Value(literal) => self.visit_literal(literal),
+            Expr::Column(_) => self.visit_column_expr(expr),
+            Expr::Unary { op, expr } => self.visit_unary_expr(*op, expr),
+            Expr::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expr::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
         }
     }
 
     /// # Panics
     /// Panics if the expression is not a column expression.
-    fn visit_column_expr(&mut self, expr: &Expression) -> ConversionResult<ColumnType> {
+    fn visit_column_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
         let identifier = match expr {
-            Expression::Column(identifier) => *identifier,
+            Expr::Column(identifier) => *identifier,
             _ => panic!("Must be a column expression"),
         };
 
@@ -153,8 +149,8 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_binary_expr(
         &mut self,
         op: BinaryOperator,
-        left: &Expression,
-        right: &Expression,
+        left: &Expr,
+        right: &Expr,
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
@@ -175,7 +171,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_unary_expr(
         &mut self,
         op: UnaryOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> ConversionResult<ColumnType> {
         match op {
             UnaryOperator::Not => {
@@ -194,7 +190,7 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_agg_expr(
         &mut self,
         op: AggregationOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> ConversionResult<ColumnType> {
         self.context.set_in_agg_scope(true)?;
 
@@ -219,17 +215,17 @@ impl<'a> QueryContextBuilder<'a> {
     }
 
     #[allow(clippy::unused_self)]
-    fn visit_literal(&self, literal: &Literal) -> Result<ColumnType, ConversionError> {
+    fn visit_literal(&self, literal: &Value) -> Result<ColumnType, ConversionError> {
         match literal {
-            Literal::Boolean(_) => Ok(ColumnType::Boolean),
-            Literal::BigInt(_) => Ok(ColumnType::BigInt),
-            Literal::Int128(_) => Ok(ColumnType::Int128),
-            Literal::VarChar(_) => Ok(ColumnType::VarChar),
-            Literal::Decimal(d) => {
+            Value::Boolean(_) => Ok(ColumnType::Boolean),
+            Value::BigInt(_) => Ok(ColumnType::BigInt),
+            Value::Int128(_) => Ok(ColumnType::Int128),
+            Value::VarChar(_) => Ok(ColumnType::VarChar),
+            Value::Decimal(d) => {
                 let precision = Precision::new(d.precision())?;
                 Ok(ColumnType::Decimal75(precision, d.scale()))
             }
-            Literal::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
+            Value::Timestamp(its) => Ok(ColumnType::TimestampTZ(its.timeunit(), its.timezone())),
         }
     }
 

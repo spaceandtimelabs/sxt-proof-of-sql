@@ -12,38 +12,33 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, BinaryOperator, Expression, Literal, UnaryOperator},
-    posql_time::{PoSQLTimeUnit, PoSQLTimestampError},
-    Identifier,
-};
-
+use sqlparser::ast::{BinaryOperator, Expr, Ident, UnaryOperator, Value};
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
-/// a `proof_of_sql_parser::intermediate_ast::Expression`.
+/// a `proof_of_sql_parser::intermediate_ast::Expr`.
 pub struct DynProofExprBuilder<'a> {
-    column_mapping: &'a IndexMap<Identifier, ColumnRef>,
+    column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>,
     in_agg_scope: bool,
 }
 
 impl<'a> DynProofExprBuilder<'a> {
     /// Creates a new `DynProofExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: false,
         }
     }
     /// Creates a new `DynProofExprBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Identifier, ColumnRef>) -> Self {
+    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: true,
         }
     }
-    /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expression`
+    /// Builds a `proofs::sql::proof_exprs::DynProofExpr` from a `proof_of_sql_parser::intermediate_ast::Expr`
     pub fn build<C: Commitment>(
         &self,
-        expr: &Expression,
+        expr: &Expr,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         self.visit_expr(expr)
     }
@@ -54,23 +49,23 @@ impl<'a> DynProofExprBuilder<'a> {
 impl DynProofExprBuilder<'_> {
     fn visit_expr<C: Commitment>(
         &self,
-        expr: &Expression,
+        expr: &Expr,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         match expr {
-            Expression::Column(identifier) => self.visit_column(*identifier),
-            Expression::Literal(lit) => self.visit_literal(lit),
-            Expression::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
-            Expression::Unary { op, expr } => self.visit_unary_expr(*op, expr),
-            Expression::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
+            Expr::Identifier(identifier) => self.visit_column(identifier),
+            Expr::Value(lit) => self.visit_literal(lit),
+            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
+            Expr::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
-                error: format!("Expression {expr:?} is not supported yet"),
+                error: format!("Expr {expr:?} is not supported yet"),
             }),
         }
     }
 
     fn visit_column<C: Commitment>(
         &self,
-        identifier: Identifier,
+        identifier: Ident,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
             *self.column_mapping.get(&identifier).ok_or(
@@ -84,13 +79,15 @@ impl DynProofExprBuilder<'_> {
     #[allow(clippy::unused_self)]
     fn visit_literal<C: Commitment>(
         &self,
-        lit: &Literal,
+        lit: &Value,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         match lit {
-            Literal::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),
-            Literal::BigInt(i) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
-            Literal::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
-            Literal::Decimal(d) => {
+            Value::Boolean(b) => Ok(DynProofExpr::new_literal(LiteralValue::Boolean(*b))),
+            Value::Number(i, true) => Ok(DynProofExpr::new_literal(LiteralValue::BigInt(*i))),
+            Value::Number(i, false) => Ok(DynProofExpr::new_literal(LiteralValue::Int(*i))),
+
+            //TODO: Handle int128 Value::Int128(i) => Ok(DynProofExpr::new_literal(LiteralValue::Int128(*i))),
+            Value::Decimal(d) => {
                 let scale = d.scale();
                 let precision =
                     Precision::new(d.precision()).map_err(|_| DecimalConversionError {
@@ -104,11 +101,14 @@ impl DynProofExprBuilder<'_> {
                     try_into_to_scalar(d, precision, scale)?,
                 )))
             }
-            Literal::VarChar(s) => Ok(DynProofExpr::new_literal(LiteralValue::VarChar((
+            Value::SingleQuotedString(s)| Value::DoubleQuotedString(s)
+            | Value::SingleQuotedRawStringLiteral(s) | Value::DoubleQuotedRawStringLiteral(s)
+            | Value::TripleDoubleQuotedString(s) | Value::TripleSingleQuotedString(s)=>
+                Ok(DynProofExpr::new_literal(LiteralValue::VarChar((
                 s.clone(),
                 s.into(),
             )))),
-            Literal::Timestamp(its) => {
+            Value::Timestamp(its) => {
                 let timestamp = match its.timeunit() {
                     PoSQLTimeUnit::Nanosecond => {
                         its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
@@ -135,19 +135,20 @@ impl DynProofExprBuilder<'_> {
     fn visit_unary_expr<C: Commitment>(
         &self,
         op: UnaryOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         let expr = self.visit_expr(expr);
         match op {
             UnaryOperator::Not => DynProofExpr::try_new_not(expr?),
+            _ => panic!("Unexpected UnaryOperator {op}!"),
         }
     }
 
     fn visit_binary_expr<C: Commitment>(
         &self,
         op: BinaryOperator,
-        left: &Expression,
-        right: &Expression,
+        left: &Expr,
+        right: &Expr,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         match op {
             BinaryOperator::And => {
@@ -160,27 +161,27 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_or(left?, right?)
             }
-            BinaryOperator::Equal => {
+            BinaryOperator::Eq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_equals(left?, right?)
             }
-            BinaryOperator::GreaterThanOrEqual => {
+            BinaryOperator::GtEq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, false)
             }
-            BinaryOperator::LessThanOrEqual => {
+            BinaryOperator::LtEq => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_inequality(left?, right?, true)
             }
-            BinaryOperator::Add => {
+            BinaryOperator::Plus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_add(left?, right?)
             }
-            BinaryOperator::Subtract => {
+            BinaryOperator::Minus => {
                 let left = self.visit_expr(left);
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_subtract(left?, right?)
@@ -190,7 +191,7 @@ impl DynProofExprBuilder<'_> {
                 let right = self.visit_expr(right);
                 DynProofExpr::try_new_multiply(left?, right?)
             }
-            BinaryOperator::Division => Err(ConversionError::Unprovable {
+            BinaryOperator::Divide => Err(ConversionError::Unprovable {
                 error: format!("Binary operator {op:?} is not supported at this location"),
             }),
         }
@@ -199,7 +200,7 @@ impl DynProofExprBuilder<'_> {
     fn visit_aggregate_expr<C: Commitment>(
         &self,
         op: AggregationOperator,
-        expr: &Expression,
+        expr: &Expr,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         if self.in_agg_scope {
             return Err(ConversionError::InvalidExpression {

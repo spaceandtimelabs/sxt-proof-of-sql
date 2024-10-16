@@ -64,3 +64,4 @@ metastore_db
 # forge test files
 out
 cache
+/crates/demo/

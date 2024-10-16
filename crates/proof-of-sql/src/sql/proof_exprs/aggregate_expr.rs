@@ -10,8 +10,23 @@ use crate::{
 };
 use alloc::boxed::Box;
 use bumpalo::Bump;
-use proof_of_sql_parser::intermediate_ast::AggregationOperator;
 use serde::{Deserialize, Serialize};
+
+// Aggregation operators
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
+/// Aggregation operators
+pub enum AggregationOperator {
+    /// Maximum
+    Max,
+    /// Minimum
+    Min,
+    /// Sum
+    Sum,
+    /// Count
+    Count,
+    /// Return the first value
+    First,
+}
 
 /// Provable aggregate expression
 ///
