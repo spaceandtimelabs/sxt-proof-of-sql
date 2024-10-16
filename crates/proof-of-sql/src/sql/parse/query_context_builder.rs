@@ -5,6 +5,7 @@ use crate::base::{
         SchemaAccessor, TableRef,
     },
     math::decimal::Precision,
+    resource_id::ResourceId,
 };
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 
@@ -12,7 +13,7 @@ use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy,
 
 
 pub struct QueryContextBuilder<'a> {
-    context: QueryContext<'a>,
+    context: QueryContext,
     schema_accessor: &'a dyn SchemaAccessor,
 }
 
@@ -85,13 +86,13 @@ impl<'a> QueryContextBuilder<'a> {
         group_by_exprs: Vec<Ident>,
     ) -> ConversionResult<Self> {
         for id in &group_by_exprs {
-            self.visit_column_identifier(*id)?;
+            self.visit_column_identifier(id)?;
         }
         self.context.set_group_by_exprs(group_by_exprs);
         Ok(self)
     }
 
-    pub fn build(self) -> ConversionResult<QueryContext<'a>> {
+    pub fn build(self) -> ConversionResult<QueryContext> {
         Ok(self.context)
     }
 }
@@ -111,7 +112,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     fn visit_select_all_expr(&mut self) -> ConversionResult<()> {
         for (column_name, _) in self.lookup_schema() {
-            let col_expr = Expr::Column(column_name);
+            let col_expr = Expr::Identifier(column_name.clone());
             self.visit_aliased_expr(AliasedResultExpr::new(col_expr, column_name))?;
         }
         Ok(())
@@ -128,9 +129,9 @@ impl<'a> QueryContextBuilder<'a> {
         match expr {
             Expr::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
             Expr::Value(literal) => self.visit_literal(literal),
-            Expr::Column(_) => self.visit_column_expr(expr),
+            Expr::Identifier(_)  => self.visit_column_expr(expr),
             Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
-            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(op.clone(), left, right),
             Expr::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
         }
     }
@@ -139,7 +140,7 @@ impl<'a> QueryContextBuilder<'a> {
     /// Panics if the expression is not a column expression.
     fn visit_column_expr(&mut self, expr: &Expr) -> ConversionResult<ColumnType> {
         let identifier = match expr {
-            Expr::Column(identifier) => *identifier,
+            Expr::Identifier(identifier) => identifier,
             _ => panic!("Must be a column expression"),
         };
 
@@ -154,7 +155,7 @@ impl<'a> QueryContextBuilder<'a> {
     ) -> ConversionResult<ColumnType> {
         let left_dtype = self.visit_expr(left)?;
         let right_dtype = self.visit_expr(right)?;
-        check_dtypes(left_dtype, right_dtype, op)?;
+        check_dtypes(left_dtype, right_dtype, op.clone())?;
         match op {
             BinaryOperator::And
             | BinaryOperator::Or
@@ -222,7 +223,8 @@ impl<'a> QueryContextBuilder<'a> {
     fn visit_literal(&self, literal: &Value) -> Result<ColumnType, ConversionError> {
         match literal {
             Value::Boolean(_) => Ok(ColumnType::Boolean),
-            Value::BigInt(_) => Ok(ColumnType::BigInt),
+            Value::Number(_, true) => Ok(ColumnType::BigInt),
+            Value::Number(txt, false)  if   txt    => Ok(ColumnType::BigInt),
             Value::Int128(_) => Ok(ColumnType::Int128),
             Value::VarChar(_) => Ok(ColumnType::VarChar),
             Value::Decimal(d) => {
@@ -242,9 +244,9 @@ impl<'a> QueryContextBuilder<'a> {
             resource_id: Box::new(table_ref.resource_id()),
         })?;
 
-        let column = ColumnRef::new(*table_ref, column_name, column_type);
+        let column = ColumnRef::new(*table_ref, column_name.clone(), column_type);
 
-        self.context.push_column_ref(column_name, column);
+        self.context.push_column_ref(column_name.clone(), column);
 
         Ok(column_type)
     }
@@ -304,6 +306,7 @@ pub(crate) fn type_check_binary_operation(
         }
         BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
         BinaryOperator::Divide => left_dtype.is_numeric() && right_dtype.is_numeric(),
+        _ => panic!("Unimplemented binary operator: {binary_operator}"),
     }
 }
 
