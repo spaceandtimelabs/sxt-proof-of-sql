@@ -7,7 +7,6 @@ use alloc::{
 use proof_of_sql_parser::intermediate_decimal::{IntermediateDecimal, IntermediateDecimalError};
 use serde::{Deserialize, Deserializer, Serialize};
 use snafu::Snafu;
-
 /// Errors related to decimal operations.
 #[derive(Snafu, Debug, Eq, PartialEq)]
 pub enum DecimalError {

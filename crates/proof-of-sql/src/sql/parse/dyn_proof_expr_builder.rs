@@ -12,7 +12,9 @@ use crate::{
     },
 };
 use alloc::{borrow::ToOwned, boxed::Box, format, string::ToString};
-use sqlparser::ast::{BinaryOperator, Expr, Ident, UnaryOperator, Value};
+use sqlparser::ast::{BinaryOperator, DataType, Expr, Ident, UnaryOperator, Value};
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimestamp, PoSQLTimestampError};
+
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expr`.
 pub struct DynProofExprBuilder<'a> {
@@ -56,6 +58,33 @@ impl DynProofExprBuilder<'_> {
             Expr::Value(lit) => self.visit_literal(lit),
             Expr::BinaryOp { op, left, right } => self.visit_binary_expr(op.clone(), left, right),
             Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
+            Expr::TypedString { value, data_type: DataType::Timestamp(_, _)  } => {
+
+            },
+                Expr::TypedString { value, data_type: DataType::Timestamp(_, _)  } => {
+                let raw = expr.to_string();
+                let its = PoSQLTimestamp::try_from(&raw).unwrap();
+
+                let timestamp = match its.timeunit() {
+                    PoSQLTimeUnit::Nanosecond => {
+                        its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
+                            PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range:
+                                Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192
+                                and 2262-04-11T23:47:16.854775807.".to_owned()
+                            }
+                        }).unwrap()
+                    }
+                    PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
+                    PoSQLTimeUnit::Millisecond => its.timestamp().timestamp_millis(),
+                    PoSQLTimeUnit::Second => its.timestamp().timestamp(),
+                };
+
+                Ok(DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
+                    its.timeunit(),
+                    its.timezone(),
+                    timestamp,
+                )))
+            },
             Expr::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
                 error: format!("Expr {expr:?} is not supported yet"),
@@ -68,9 +97,9 @@ impl DynProofExprBuilder<'_> {
         identifier: &Ident,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
-            *self.column_mapping.get(&identifier).ok_or(
+            self.column_mapping.get(identifier).cloned().ok_or(
                 ConversionError::MissingColumnWithoutTable {
-                    identifier: Box::new(identifier.clone()),
+                    identifier: Box::new(identifier.to_owned()),
                 },
             )?,
         )))
@@ -108,27 +137,6 @@ impl DynProofExprBuilder<'_> {
                 s.clone(),
                 s.into(),
             )))),
-            Value::Timestamp(its) => {
-                let timestamp = match its.timeunit() {
-                    PoSQLTimeUnit::Nanosecond => {
-                        its.timestamp().timestamp_nanos_opt().ok_or_else(|| {
-                                PoSQLTimestampError::UnsupportedPrecision{ error: "Timestamp out of range: 
-                                Valid nanosecond timestamps must be between 1677-09-21T00:12:43.145224192 
-                                and 2262-04-11T23:47:16.854775807.".to_owned()
-                        }
-                        })?
-                    }
-                    PoSQLTimeUnit::Microsecond => its.timestamp().timestamp_micros(),
-                    PoSQLTimeUnit::Millisecond => its.timestamp().timestamp_millis(),
-                    PoSQLTimeUnit::Second => its.timestamp().timestamp(),
-                };
-
-                Ok(DynProofExpr::new_literal(LiteralValue::TimeStampTZ(
-                    its.timeunit(),
-                    its.timezone(),
-                    timestamp,
-                )))
-            }
         }
     }
 

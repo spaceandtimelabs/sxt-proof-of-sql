@@ -9,7 +9,7 @@ use crate::base::{
 };
 use blitzar::proof::InnerProductProof;
 use curve25519_dalek::ristretto::RistrettoPoint;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 #[test]
 fn we_can_query_the_length_of_a_table() {
@@ -32,7 +32,7 @@ fn we_can_query_the_length_of_a_table() {
 #[test]
 fn we_can_access_the_columns_of_a_table() {
     let mut accessor = OwnedTableTestAccessor::<InnerProductProof>::new_empty_with_setup(());
-    let table_ref_1 = "sxt.test".parse().unwrap();
+    let table_ref_1 =  "sxt.test".parse().unwrap();
     let table_ref_2 = "sxt.test2".parse().unwrap();
 
     let data1 = owned_table([bigint("a", [1, 2, 3]), bigint("b", [4, 5, 6])]);

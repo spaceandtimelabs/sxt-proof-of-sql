@@ -24,7 +24,7 @@ use proof_of_sql::{
         DoryCommitment, DoryProverPublicSetup, DoryScalar, ProverSetup, PublicParameters,
     },
 };
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 use rand::Rng;
 
 /// Bench dory performance when appending rows to a table. This includes the computation of

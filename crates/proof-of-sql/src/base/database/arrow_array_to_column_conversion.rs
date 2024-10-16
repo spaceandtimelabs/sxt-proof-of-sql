@@ -10,7 +10,7 @@ use arrow::{
 };
 use bumpalo::Bump;
 use core::ops::Range;
-use proof_of_sql_parser::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError};
 use snafu::Snafu;
 
 #[derive(Snafu, Debug, PartialEq)]

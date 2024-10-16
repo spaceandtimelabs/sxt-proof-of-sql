@@ -8,14 +8,15 @@ use core::{
     fmt::{self, Display},
     str::FromStr,
 };
+use std::sync::Arc;
 use sqlparser::ast::Ident;
 use crate::base::utility;
 
 /// Unique resource identifier, like `schema.object_name`.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ResourceId {
-    schema: Ident,
-    object_name: Ident,
+    schema: Arc<Ident>,
+    object_name: Arc<Ident>,
 }
 impl serde::Serialize for ResourceId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -41,8 +42,8 @@ impl ResourceId {
     #[must_use]
     pub fn new(schema: Ident, object_name: Ident) -> Self {
         Self {
-            schema,
-            object_name,
+            schema: schema.into(),
+            object_name: object_name.into(),
         }
     }
 
@@ -54,25 +55,22 @@ impl ResourceId {
     /// These identifiers are defined here:
     /// <https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS>.
     pub fn try_new(schema: &str, object_name: &str) -> ParseResult<Self> {
-        let schema = utility::ident();
-        let object_name = Identifier::try_new(object_name)?;
+        let schema = utility::ident(schema);
+        let object_name = utility::ident(object_name);
 
-        Ok(ResourceId {
-            schema,
-            object_name,
-        })
+        Ok(ResourceId::new(schema, object_name))
     }
 
     /// The schema identifier of this [`ResourceId`].
     #[must_use]
-    pub fn schema(&self) -> Identifier {
-        self.schema
+    pub fn schema(&self) -> &Ident {
+        &self.schema
     }
 
     /// The `object_name` identifier of this [`ResourceId`].
     #[must_use]
-    pub fn object_name(&self) -> Identifier {
-        self.object_name
+    pub fn object_name(&self) -> &Ident {
+        &self.object_name
     }
 
     /// Conversion to string in the format used in `KeyDB`.
@@ -121,14 +119,13 @@ impl FromStr for ResourceId {
             }
         })?;
 
-        // use unsafe `Identifier::new` to prevent double parsing the ids
+        // use unsafe `Ident::new` to prevent double parsing the ids
         Ok(ResourceId {
-            schema: Identifier::new(schema),
-            object_name: Identifier::new(object_name),
+            schema: Ident::new(schema),
+            object_name: Ident::new(object_name),
         })
     }
 }
-impl_serde_from_str!(ResourceId);
 
 #[cfg(test)]
 mod tests {

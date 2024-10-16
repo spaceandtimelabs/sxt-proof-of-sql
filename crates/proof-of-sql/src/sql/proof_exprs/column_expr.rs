@@ -80,7 +80,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let column = accessor.get_column(self.column_ref);
+        let column = accessor.get_column(&self.column_ref);
         builder.produce_anchored_mle(column);
         column
     }
@@ -92,7 +92,7 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
         builder: &mut VerificationBuilder<C>,
         accessor: &dyn CommitmentAccessor<C>,
     ) -> Result<C::Scalar, ProofError> {
-        let col_commit = accessor.get_commitment(self.column_ref);
+        let col_commit = accessor.get_commitment(self.column_ref.clone());
         Ok(builder.consume_anchored_mle(col_commit))
     }
 
@@ -100,6 +100,6 @@ impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// references in the `BoolExpr` or forwards the call to some
     /// subsequent `bool_expr`
     fn get_column_references(&self, columns: &mut IndexSet<ColumnRef>) {
-        columns.insert(self.column_ref);
+        columns.insert(self.column_ref.clone());
     }
 }

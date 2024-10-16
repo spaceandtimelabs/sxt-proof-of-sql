@@ -7,7 +7,7 @@ extern crate alloc;
 
 pub mod base;
 
-mod posql_time;
+pub mod posql_time;
 pub mod proof_primitive;
 pub mod sql;
 

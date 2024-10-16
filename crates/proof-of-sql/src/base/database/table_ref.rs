@@ -6,6 +6,7 @@ use core::{
 };
 use serde::{Deserialize, Serialize};
 use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
+use crate::base::resource_id::ResourceId;
 
 /// Expression for an SQL table
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
@@ -53,4 +54,21 @@ impl Display for TableRef {
     }
 }
 
-impl_serde_from_str!(TableRef);
+impl serde::Serialize for TableRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+impl<'d> serde::Deserialize<'d> for TableRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'d>,
+    {
+        extern crate alloc;
+        let string = alloc::string::String::deserialize(deserializer)?;
+        TableRef::from_str(&string).map_err(serde::de::Error::custom)
+    }
+}

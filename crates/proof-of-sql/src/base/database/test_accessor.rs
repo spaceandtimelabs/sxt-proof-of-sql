@@ -4,7 +4,7 @@ use super::{
 };
 use crate::base::{commitment::Commitment, scalar::Curve25519Scalar};
 use curve25519_dalek::ristretto::RistrettoPoint;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 
 /// A trait that defines the interface for a combined metadata, schema, commitment, and data accessor for unit testing purposes.
 pub trait TestAccessor<C: Commitment>:
@@ -73,11 +73,11 @@ impl MetadataAccessor for UnimplementedTestAccessor {
     }
 }
 impl SchemaAccessor for UnimplementedTestAccessor {
-    fn lookup_column(&self, _table_ref: TableRef, _column_id: Identifier) -> Option<ColumnType> {
+    fn lookup_column(&self, _table_ref: TableRef, _column_id: Ident) -> Option<ColumnType> {
         unimplemented!()
     }
 
-    fn lookup_schema(&self, _table_ref: TableRef) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self, _table_ref: TableRef) -> Vec<(Ident, ColumnType)> {
         unimplemented!()
     }
 }
