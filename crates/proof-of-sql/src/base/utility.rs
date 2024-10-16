@@ -1,7 +1,8 @@
 
 use alloc::{boxed::Box, vec, vec::Vec};
+use std::sync::Arc;
 use clap::Id;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderBy, OrderByExpr, Query, SetExpr, Table, UnaryOperator, Value};
 
 ///
@@ -22,6 +23,15 @@ pub fn assert_ident_valid(name: &str) {
 pub fn ident(name: &str) -> Ident {
     assert_ident_valid(name);
     Ident::from(name)
+}
+///
+/// # Panics
+///
+/// This function will panic if`name`(if provided) cannot be parsed.
+/// Construct an identifier from a str
+#[must_use]
+pub fn ident_arc(name: &str) -> Arc<Ident> {
+    Arc::new(ident(name))
 }
 
 /// Construct a new boxed `Expr` A == B
@@ -386,7 +396,7 @@ pub fn order(id: &str, direction: OrderByDirection) -> OrderBy {
     OrderBy {
         exprs:  vec![OrderByExpr {
             expr: Expr::Identifier(Ident::from(id)),
-            asc: Some(direction == OrderByDirection::Ascending),
+            asc: Some(direction == OrderByDirection::Asc),
             nulls_first: None,
             with_fill: None
         }],
@@ -396,8 +406,8 @@ pub fn order(id: &str, direction: OrderByDirection) -> OrderBy {
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum OrderByDirection {
-    Descending,
-    Ascending
+    Desc,
+    Asc
 }
 /// Order by multiple columns i.e. ORDER BY ID0 [ASC|DESC], ID1 [ASC|DESC], ...
 ///
@@ -411,7 +421,7 @@ pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> OrderBy {
         .zip(directions.iter())
         .map(|(id, dir)|OrderByExpr {
             expr: Expr::Identifier(Ident::from(id)),
-            asc: Some(dir == OrderByDirection::Ascending),
+            asc: Some(dir == OrderByDirection::Asc),
             nulls_first: None,
             with_fill: None
         })

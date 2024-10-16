@@ -15,10 +15,9 @@ use alloc::{
     vec::Vec,
 };
 use core::cmp::Ordering;
-use proof_of_sql_parser::{
-    intermediate_ast::OrderByDirection,
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-};
+use crate::base::utility::OrderByDirection;
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
+
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 #[non_exhaustive]
@@ -363,7 +362,6 @@ mod test {
     use crate::base::{math::decimal::Precision, scalar::Curve25519Scalar};
     use alloc::vec;
     use bumpalo::Bump;
-    use proof_of_sql_parser::intermediate_ast::OrderByDirection;
 
     #[test]
     fn we_can_slice_a_column() {
