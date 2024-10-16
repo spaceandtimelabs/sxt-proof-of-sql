@@ -42,15 +42,15 @@ use sqlparser::ast::Ident;
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GroupByExec<'a, C: Commitment> {
-    pub(super) group_by_exprs: Vec<ColumnExpr<'a, C>>,
+pub struct GroupByExec<C: Commitment> {
+    pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
     pub(super) sum_expr: Vec<AliasedDynProofExpr<C>>,
     pub(super) count_alias: Ident,
     pub(super) table: TableExpr,
     pub(super) where_clause: DynProofExpr<C>,
 }
 
-impl<'a, C: Commitment> GroupByExec<'a, C> {
+impl<C: Commitment> GroupByExec<C> {
     /// Creates a new `group_by` expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
@@ -69,7 +69,7 @@ impl<'a, C: Commitment> GroupByExec<'a, C> {
     }
 }
 
-impl<'a, C: Commitment> ProofPlan<C> for GroupByExec<'a, C> {
+impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
     fn count(
         &self,
         builder: &mut CountBuilder,

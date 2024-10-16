@@ -15,7 +15,7 @@ use sqlparser::ast::{Expr, Ident, OrderBy};
 
 
 #[derive(Default, Debug)]
-pub struct QueryContext<'a> {
+pub struct QueryContext {
     in_agg_scope: bool,
     agg_counter: usize,
     slice_expr: Option<Slice>,
@@ -28,11 +28,11 @@ pub struct QueryContext<'a> {
     where_expr: Option<Box<Expr>>,
     result_column_set: IndexSet<Ident>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: IndexMap<Ident, ColumnRef<'a>>,
+    column_mapping: IndexMap<Ident, ColumnRef>,
     first_result_col_out_agg_scope: Option<Ident>,
 }
 
-impl<'a> QueryContext<'a> {
+impl QueryContext {
     #[allow(clippy::missing_panics_doc)]
     pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
@@ -116,7 +116,7 @@ impl<'a> QueryContext<'a> {
     }
 
     #[allow(clippy::missing_panics_doc)]
-    pub fn push_aliased_result_expr(&mut self, expr: AliasedResultExpr) -> ConversionResult<()> {
+    pub fn push_aliased_result_expr(&mut self, expr: proof_of_sql_parser::intermediate_ast::AliasedResultExpr) -> ConversionResult<()> {
         assert!(&self.has_visited_group_by, "Group by must be visited first");
         self.res_aliased_exprs.push(expr);
 
@@ -183,7 +183,7 @@ impl<'a> QueryContext<'a> {
             && self.first_result_col_out_agg_scope.is_some()
         {
             return Err(ConversionError::InvalidGroupByColumnRef {
-                column: self.first_result_col_out_agg_scope.unwrap().to_string(),
+                column: self.first_result_col_out_agg_scope.as_ref().unwrap().to_string(),
             });
         }
 
@@ -225,10 +225,10 @@ impl<'a> QueryContext<'a> {
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong
-impl<'a, C: Commitment> TryFrom<&QueryContext<'a>> for Option<GroupByExec<'a, C>> {
+impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
     type Error = ConversionError;
 
-    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<'a, C>>, Self::Error> {
+    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<C>>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));
@@ -246,10 +246,10 @@ impl<'a, C: Commitment> TryFrom<&QueryContext<'a>> for Option<GroupByExec<'a, C>
                     .column_mapping
                     .get(expr)
                     .ok_or(ConversionError::MissingColumn {
-                        identifier: Box::new(*expr),
+                        identifier: Box::new(expr.clone()),
                         resource_id: Box::new(resource_id),
                     })
-                    .map(|column_ref| ColumnExpr::<C>::new(*column_ref))
+                    .map(|column_ref| ColumnExpr::<C>::new(column_ref.clone()))
             })
             .collect::<Result<Vec<ColumnExpr<C>>, ConversionError>>()?;
         // For a query to be provable the result columns must be of one of three kinds below:

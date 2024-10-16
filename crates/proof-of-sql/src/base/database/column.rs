@@ -502,21 +502,19 @@ impl Display for ColumnType {
 }
 
 /// Reference of a SQL column
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Copy, Serialize, Deserialize)]
-pub struct ColumnRef<'a>{
-    #[serde(borrow)]
-
-    column_id: &'a Ident,
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
+pub struct ColumnRef {
+    column_id: Arc<Ident>,
     table_ref: TableRef,
     column_type: ColumnType,
 }
 
-impl ColumnRef<'_> {
+impl ColumnRef {
     /// Create a new `ColumnRef` from a table, column identifier and column type
     #[must_use]
-    pub fn new(table_ref: TableRef, column_id: &Ident, column_type: ColumnType) -> Self {
+    pub fn new(table_ref: TableRef, column_id: Ident, column_type: ColumnType) -> Self {
         Self {
-            column_id,
+            column_id: Arc::new(column_id),
             table_ref,
             column_type,
         }
@@ -531,7 +529,7 @@ impl ColumnRef<'_> {
     /// Returns the column identifier of this column
     #[must_use]
     pub fn column_id(&self) -> &Ident {
-        self.column_id
+        &self.column_id
     }
 
     /// Returns the column type of this column

@@ -17,14 +17,14 @@ use sqlparser::ast::Ident;
 ///
 /// Note: this is currently limited to named column expressions.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct ColumnExpr<'a, C: Commitment> {
-    column_ref: ColumnRef<'a>,
+pub struct ColumnExpr<C: Commitment + 'static> {
+    column_ref: ColumnRef,
     _phantom_data: PhantomData<C>,
 }
 
-impl<'a, C: Commitment> ColumnExpr<'a, C> {
+impl<C: Commitment> ColumnExpr<C> {
     /// Create a new column expression
-    pub fn new(column_ref: ColumnRef<'a>) -> Self {
+    pub fn new(column_ref: ColumnRef) -> Self {
         Self {
             column_ref,
             _phantom_data: PhantomData,
@@ -32,8 +32,8 @@ impl<'a, C: Commitment> ColumnExpr<'a, C> {
     }
 
     /// Return the column referenced by this [`ColumnExpr`]
-    pub fn get_column_reference(&self) -> ColumnRef {
-        self.column_ref
+    pub fn get_column_reference(&self) -> &ColumnRef {
+        &self.column_ref
     }
 
     /// Wrap the column output name and its type within the [`ColumnField`]
@@ -47,7 +47,7 @@ impl<'a, C: Commitment> ColumnExpr<'a, C> {
     }
 }
 
-impl<'a, C: Commitment> ProofExpr<C> for ColumnExpr<'a, C> {
+impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
     /// Count the number of proof terms needed by this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);
@@ -67,7 +67,7 @@ impl<'a, C: Commitment> ProofExpr<C> for ColumnExpr<'a, C> {
         _alloc: &'a Bump,
         accessor: &'a dyn DataAccessor<C::Scalar>,
     ) -> Column<'a, C::Scalar> {
-        let column = accessor.get_column(self.column_ref);
+        let column = accessor.get_column(&self.column_ref);
         assert_eq!(column.len(), table_length);
         column
     }

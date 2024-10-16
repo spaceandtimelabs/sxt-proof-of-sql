@@ -84,7 +84,7 @@ pub trait CommitmentAccessor<C: Commitment>: MetadataAccessor {
 /// will only be accessing information about columns that exist in the database.
 pub trait DataAccessor<S: Scalar>: MetadataAccessor {
     /// Return the data span in the table (not the full-table data)
-    fn get_column(&self, column: ColumnRef) -> Column<S>;
+    fn get_column(&self, column: &ColumnRef) -> Column<S>;
 }
 
 /// Access tables and their schemas in a database.

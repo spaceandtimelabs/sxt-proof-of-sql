@@ -55,6 +55,7 @@ mod naive_commitment_test;
 /// A trait for using commitment schemes generically.
 pub trait Commitment:
     AddAssign
++'static
     + SubAssign
     + Sized
     + Default

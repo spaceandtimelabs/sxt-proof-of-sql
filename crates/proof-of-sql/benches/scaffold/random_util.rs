@@ -3,8 +3,9 @@ use proof_of_sql::base::{
     database::{Column, ColumnType},
     scalar::Scalar,
 };
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 use rand::Rng;
+use utility;
 
 pub type OptionalRandBound = Option<fn(usize) -> i64>;
 /// # Panics
@@ -17,12 +18,12 @@ pub fn generate_random_columns<'a, S: Scalar>(
     rng: &mut impl Rng,
     columns: &[(&str, ColumnType, OptionalRandBound)],
     num_rows: usize,
-) -> Vec<(Identifier, Column<'a, S>)> {
+) -> Vec<(Ident, Column<'a, S>)> {
     columns
         .iter()
         .map(|(id, ty, bound)| {
+            utility::ident(id);
             (
-                id.parse().unwrap(),
                 match (ty, bound) {
                     (ColumnType::BigInt, None) => {
                         Column::BigInt(alloc.alloc_slice_fill_with(num_rows, |_| rng.gen()))
