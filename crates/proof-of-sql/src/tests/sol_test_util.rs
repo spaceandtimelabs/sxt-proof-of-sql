@@ -28,7 +28,7 @@ impl ForgeScript {
         Self { command }
     }
     /// Adds an argument to pass to the script. Only one argument can be passed per use.
-    pub fn arg(&mut self, arg: impl SolValue) -> &mut Self {
+    pub fn arg(&mut self, arg: &impl SolValue) -> &mut Self {
         self.command.arg(Bytes::from(arg.abi_encode()).to_string());
         self
     }

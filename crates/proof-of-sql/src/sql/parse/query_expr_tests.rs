@@ -1940,30 +1940,30 @@ fn query_expr_for_test_table(sql_text: &str) -> QueryExpr<RistrettoPoint> {
 }
 
 /// Serializes and deserializes [`QueryExpr`] with flexbuffers and asserts that it remains the same.
-fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: QueryExpr<RistrettoPoint>) {
-    let serialized = flexbuffers::to_vec(&query_expr).unwrap();
+fn assert_query_expr_serializes_to_and_from_flex_buffers(query_expr: &QueryExpr<RistrettoPoint>) {
+    let serialized = flexbuffers::to_vec(query_expr).unwrap();
     let deserialized: QueryExpr<RistrettoPoint> =
         flexbuffers::from_slice(serialized.as_slice()).unwrap();
-    assert_eq!(deserialized, query_expr);
+    assert_eq!(deserialized, *query_expr);
 }
 
 #[test]
 fn basic_query_expr_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table("select * from table");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
 fn query_expr_with_selected_columns_can_serialize_to_and_from_flex_buffers() {
     let query_expr =
         query_expr_for_test_table("select bigint_column, varchar_column, int128_column from table");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
 fn query_expr_with_aggregation_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table("select count(*) from table group by bigint_column");
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
@@ -1971,7 +1971,7 @@ fn query_expr_with_filters_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table(
         "select * from table where bigint_column != 5 and varchar_column = 'example' or int128_column = 10",
     );
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]
@@ -1979,7 +1979,7 @@ fn query_expr_with_order_and_limits_can_serialize_to_and_from_flex_buffers() {
     let query_expr = query_expr_for_test_table(
         "select * from table order by int128_column desc limit 1 offset 1",
     );
-    assert_query_expr_serializes_to_and_from_flex_buffers(query_expr);
+    assert_query_expr_serializes_to_and_from_flex_buffers(&query_expr);
 }
 
 #[test]

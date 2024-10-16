@@ -8,7 +8,7 @@ fn we_can_run_solidity_script_from_rust() {
         "./sol_src/tests/TestScript.t.sol",
         "rustTestWeCanThrowErrorDependingOnParameter",
     )
-    .arg(U256::from(1234))
+    .arg(&U256::from(1234))
     .execute()
     .unwrap();
 
@@ -17,7 +17,7 @@ fn we_can_run_solidity_script_from_rust() {
             "./sol_src/tests/TestScript.t.sol",
             "rustTestWeCanThrowErrorDependingOnParameter",
         )
-        .arg(U256::from(0))
+        .arg(&U256::from(0))
         .execute(),
         Err(ForgeScriptError::SolidityError { .. })
     ));
@@ -33,7 +33,7 @@ fn we_can_pass_custom_struct_into_solidity_from_rust() {
         "./sol_src/tests/TestScript.t.sol",
         "rustTestWeCanAcceptCustomStructAsEncodedBytes",
     )
-    .arg(arg)
+    .arg(&arg)
     .execute()
     .unwrap();
 }

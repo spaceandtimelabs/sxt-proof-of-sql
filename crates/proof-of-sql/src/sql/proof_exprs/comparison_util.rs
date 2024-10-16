@@ -14,6 +14,7 @@ use proof_of_sql_parser::intermediate_ast::BinaryOperator;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
+#[allow(clippy::unnecessary_wraps)]
 fn unchecked_subtract_impl<'a, S: Scalar>(
     alloc: &'a Bump,
     lhs: &[S],

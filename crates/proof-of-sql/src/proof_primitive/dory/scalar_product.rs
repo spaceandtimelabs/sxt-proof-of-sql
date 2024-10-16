@@ -7,7 +7,7 @@ use crate::base::proof::Transcript;
 pub fn scalar_product_prove(
     messages: &mut DoryMessages,
     transcript: &mut impl Transcript,
-    state: ProverState,
+    state: &ProverState,
 ) {
     // See section 3.1 of https://eprint.iacr.org/2020/1274.pdf.
     //

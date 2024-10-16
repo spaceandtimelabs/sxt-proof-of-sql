@@ -56,7 +56,7 @@ impl<C: Commitment> QueryExpr<C> {
                 where_expr,
                 group_by,
             } => QueryContextBuilder::new(schema_accessor)
-                .visit_table_expr(from, default_schema)
+                .visit_table_expr(&from, default_schema)
                 .visit_group_by_exprs(group_by)?
                 .visit_result_exprs(result_exprs)?
                 .visit_where_expr(where_expr)?
@@ -130,7 +130,7 @@ impl<C: Commitment> QueryExpr<C> {
             let column_mapping = context.get_column_mapping();
             let enriched_exprs = result_aliased_exprs
                 .iter()
-                .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), column_mapping.clone()))
+                .map(|aliased_expr| EnrichedExpr::new(aliased_expr.clone(), &column_mapping))
                 .collect::<Vec<_>>();
             let select_exprs = enriched_exprs
                 .iter()
