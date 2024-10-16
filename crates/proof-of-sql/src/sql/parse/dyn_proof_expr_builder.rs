@@ -202,6 +202,9 @@ impl DynProofExprBuilder<'_> {
             BinaryOperator::Divide => Err(ConversionError::Unprovable {
                 error: format!("Binary operator {op:?} is not supported at this location"),
             }),
+            _ => Err(ConversionError::Unprovable {
+                error: format!("Binary operator {op:?} unimplemented"),
+            }),
         }
     }
 
