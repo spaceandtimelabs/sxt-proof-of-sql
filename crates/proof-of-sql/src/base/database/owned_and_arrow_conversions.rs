@@ -33,11 +33,9 @@ use arrow::{
     error::ArrowError,
     record_batch::RecordBatch,
 };
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone, PoSQLTimestampError},
-    Identifier, ParseError,
-};
 use snafu::Snafu;
+use sqlparser::ast::Ident;
+use sqlparser::parser::ParserError;
 
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
@@ -58,7 +56,7 @@ pub enum OwnedArrowConversionError {
     #[snafu(transparent)]
     FieldParseFail {
         /// The underlying source error
-        source: ParseError,
+        source: ParserError,
     },
     /// This error occurs when creating an owned table fails, which should only occur when there are zero columns.
     #[snafu(transparent)]
@@ -126,7 +124,7 @@ impl<S: Scalar> TryFrom<OwnedTable<S>> for RecordBatch {
                 value
                     .into_inner()
                     .into_iter()
-                    .map(|(identifier, owned_column)| (identifier, ArrayRef::from(owned_column))),
+                    .map(|(identifier, owned_column)| (identifier.value, ArrayRef::from(owned_column))),
             )
         }
     }
@@ -301,7 +299,7 @@ impl<S: Scalar> TryFrom<RecordBatch> for OwnedTable<S> {
             .zip(value.columns())
             .map(|(field, array_ref)| {
                 let owned_column = OwnedColumn::try_from(array_ref)?;
-                let identifier = Identifier::try_new(field.name())?; //This may always succeed.
+                let identifier = Ident::new(field.name()); //This may always succeed.
                 Ok((identifier, owned_column))
             })
             .collect();

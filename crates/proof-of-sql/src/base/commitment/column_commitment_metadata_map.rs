@@ -4,11 +4,11 @@ use super::{
 };
 use crate::base::{database::ColumnField, map::IndexMap};
 use alloc::string::{String, ToString};
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 use snafu::Snafu;
 
 /// Mapping of column identifiers to column metadata used to associate metadata with commitments.
-pub type ColumnCommitmentMetadataMap = IndexMap<Identifier, ColumnCommitmentMetadata>;
+pub type ColumnCommitmentMetadataMap = IndexMap<Ident, ColumnCommitmentMetadata>;
 
 /// During commitment operation, metadata indicates that operand tables cannot be the same.
 #[derive(Debug, Snafu)]
@@ -28,7 +28,7 @@ pub enum ColumnCommitmentsMismatch {
     #[snafu(display(
         "column with identifier {id_a} cannot operate with column with identifier {id_b}"
     ))]
-    Identifier {
+    Ident {
         /// The first column identifier
         id_a: String,
         /// The second column identifier
@@ -44,7 +44,7 @@ pub trait ColumnCommitmentMetadataMapExt {
 
     /// Construct this mapping from an iterator of column identifiers and columns.
     fn from_columns<'a>(
-        columns: impl IntoIterator<Item = (&'a Identifier, &'a CommittableColumn<'a>)>,
+        columns: impl IntoIterator<Item = (&'a Ident, &'a CommittableColumn<'a>)>,
     ) -> Self
     where
         Self: Sized;
@@ -74,7 +74,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
     }
 
     fn from_columns<'a>(
-        columns: impl IntoIterator<Item = (&'a Identifier, &'a CommittableColumn<'a>)>,
+        columns: impl IntoIterator<Item = (&'a Ident, &'a CommittableColumn<'a>)>,
     ) -> Self
     where
         Self: Sized,
@@ -82,7 +82,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
         columns
             .into_iter()
             .map(|(identifier, column)| {
-                (*identifier, ColumnCommitmentMetadata::from_column(column))
+                (identifier, ColumnCommitmentMetadata::from_column(column))
             })
             .collect()
     }
@@ -99,7 +99,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier {
+                    Err(ColumnCommitmentsMismatch::Ident {
                         id_a: identifier_a.to_string(),
                         id_b: identifier_b.to_string(),
                     })?;
@@ -122,7 +122,7 @@ impl ColumnCommitmentMetadataMapExt for ColumnCommitmentMetadataMap {
             .zip(other)
             .map(|((identifier_a, metadata_a), (identifier_b, metadata_b))| {
                 if identifier_a != identifier_b {
-                    Err(ColumnCommitmentsMismatch::Identifier {
+                    Err(ColumnCommitmentsMismatch::Ident {
                         id_a: identifier_a.to_string(),
                         id_b: identifier_b.to_string(),
                     })?;
@@ -148,7 +148,7 @@ mod tests {
     fn metadata_map_from_owned_table(
         table: OwnedTable<Curve25519Scalar>,
     ) -> ColumnCommitmentMetadataMap {
-        let (identifiers, columns): (Vec<&Identifier>, Vec<CommittableColumn>) = table
+        let (identifiers, columns): (Vec<&Ident>, Vec<CommittableColumn>) = table
             .inner_table()
             .into_iter()
             .map(|(identifier, owned_column)| (identifier, CommittableColumn::from(owned_column)))
@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(metadata_map.len(), 4);
 
         let (index_0, metadata_0) = metadata_map.get_index(0).unwrap();
-        assert_eq!(index_0, "bigint_column");
+        assert_eq!(index_0.value, "bigint_column");
         assert_eq!(metadata_0.column_type(), &ColumnType::BigInt);
         if let ColumnBounds::BigInt(Bounds::Sharp(bounds)) = metadata_0.bounds() {
             assert_eq!(bounds.min(), &-5);
@@ -186,7 +186,7 @@ mod tests {
         }
 
         let (index_1, metadata_1) = metadata_map.get_index(1).unwrap();
-        assert_eq!(index_1, "int128_column");
+        assert_eq!(index_1.value, "int128_column");
         assert_eq!(metadata_1.column_type(), &ColumnType::Int128);
         if let ColumnBounds::Int128(Bounds::Sharp(bounds)) = metadata_1.bounds() {
             assert_eq!(bounds.min(), &100);
@@ -196,12 +196,12 @@ mod tests {
         }
 
         let (index_2, metadata_2) = metadata_map.get_index(2).unwrap();
-        assert_eq!(index_2, "varchar_column");
+        assert_eq!(index_2.value, "varchar_column");
         assert_eq!(metadata_2.column_type(), &ColumnType::VarChar);
         assert_eq!(metadata_2.bounds(), &ColumnBounds::NoOrder);
 
         let (index_3, metadata_3) = metadata_map.get_index(3).unwrap();
-        assert_eq!(index_3, "scalar_column");
+        assert_eq!(index_3.value, "scalar_column");
         assert_eq!(metadata_3.column_type(), &ColumnType::Scalar);
         assert_eq!(metadata_3.bounds(), &ColumnBounds::NoOrder);
     }
@@ -256,9 +256,9 @@ mod tests {
 
         assert_eq!(b_difference_a.len(), 4);
 
-        // Check metatadata for ordered columns is mostly the same (now bounded)
+        // Check metadata for ordered columns is mostly the same (now bounded)
         let (index_0, metadata_0) = b_difference_a.get_index(0).unwrap();
-        assert_eq!(index_0, "bigint_column");
+        assert_eq!(index_0.value, "bigint_column");
         assert_eq!(metadata_0.column_type(), &ColumnType::BigInt);
         if let ColumnBounds::BigInt(Bounds::Bounded(bounds)) = metadata_0.bounds() {
             assert_eq!(bounds.min(), &-5);
@@ -268,7 +268,7 @@ mod tests {
         }
 
         let (index_1, metadata_1) = b_difference_a.get_index(1).unwrap();
-        assert_eq!(index_1, "int128_column");
+        assert_eq!(index_1.value, "int128_column");
         assert_eq!(metadata_1.column_type(), &ColumnType::Int128);
         if let ColumnBounds::Int128(Bounds::Bounded(bounds)) = metadata_1.bounds() {
             assert_eq!(bounds.min(), &100);

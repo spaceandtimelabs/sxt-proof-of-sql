@@ -7,11 +7,9 @@ use crate::base::{
 use alloc::{boxed::Box, format, string::ToString, vec, vec::Vec};
 use bumpalo::Bump;
 use itertools::{izip, Itertools};
-use proof_of_sql_parser::{
-    intermediate_ast::{AggregationOperator, AliasedResultExpr, Expression},
-    Identifier,
-};
+
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::{Expr, Ident};
 
 /// A group by expression
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -20,10 +18,10 @@ pub struct GroupByPostprocessing {
     remainder_exprs: Vec<AliasedResultExpr>,
 
     /// A list of identifiers in the group by clause
-    group_by_identifiers: Vec<Identifier>,
+    group_by_identifiers: Vec<Ident>,
 
     /// A list of aggregation expressions
-    aggregation_exprs: Vec<(AggregationOperator, Expression, Identifier)>,
+    aggregation_exprs: Vec<(AggregationOperator, Expr, Ident)>,
 }
 
 /// Check whether multiple layers of aggregation exist within the same GROUP BY clause
@@ -31,31 +29,31 @@ pub struct GroupByPostprocessing {
 ///
 /// If the context is within an aggregation function, then any aggregation function is considered nested.
 /// Otherwise we need two layers of aggregation functions to be nested.
-fn contains_nested_aggregation(expr: &Expression, is_agg: bool) -> bool {
+fn contains_nested_aggregation(expr: &Expr, is_agg: bool) -> bool {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => false,
-        Expression::Aggregation { expr, .. } => is_agg || contains_nested_aggregation(expr, true),
-        Expression::Binary { left, right, .. } => {
+        Expr::Identifier(_) | Expr::Value(_) | Expr::Wildcard => false,
+        Expr::Aggregation { expr, .. } => is_agg || contains_nested_aggregation(expr, true),
+        Expr::BinaryOp { left, right, .. } => {
             contains_nested_aggregation(left, is_agg) || contains_nested_aggregation(right, is_agg)
         }
-        Expression::Unary { expr, .. } => contains_nested_aggregation(expr, is_agg),
+        Expr::UnaryOp { expr, .. } => contains_nested_aggregation(expr, is_agg),
     }
 }
 
 /// Get identifiers NOT in aggregate functions
-fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
+fn get_free_identifiers_from_expr(expr: &Expr) -> IndexSet<Ident> {
     match expr {
-        Expression::Column(identifier) => IndexSet::from_iter([*identifier]),
-        Expression::Literal(_) | Expression::Aggregation { .. } | Expression::Wildcard => {
+        Expr::Identifier(identifier) => IndexSet::from_iter([identifier.clone()]),
+        Expr::Value(_) | Expr::Aggregation { .. } | Expr::Wildcard => {
             IndexSet::default()
         }
-        Expression::Binary { left, right, .. } => {
+        Expr::BinaryOp { left, right, .. } => {
             let mut left_identifiers = get_free_identifiers_from_expr(left);
             let right_identifiers = get_free_identifiers_from_expr(right);
             left_identifiers.extend(right_identifiers);
             left_identifiers
         }
-        Expression::Unary { expr, .. } => get_free_identifiers_from_expr(expr),
+        Expr::UnaryOp { expr, .. } => get_free_identifiers_from_expr(expr),
     }
 }
 
@@ -69,37 +67,37 @@ fn get_free_identifiers_from_expr(expr: &Expression) -> IndexSet<Identifier> {
 /// Will panic if the key for an aggregation expression cannot be parsed as a valid identifier
 /// or if there are issues retrieving an identifier from the map.
 fn get_aggregate_and_remainder_expressions(
-    expr: Expression,
-    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
-) -> Expression {
+    expr: Expr,
+    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expr), Ident>,
+) -> Expr {
     match expr {
-        Expression::Column(_) | Expression::Literal(_) | Expression::Wildcard => expr,
-        Expression::Aggregation { op, expr } => {
+        Expr::Identifier(_) | Expr::Value(_) | Expr::Wildcard => expr,
+        Expr::Aggregation { op, expr } => {
             let key = (op, (*expr));
             if aggregation_expr_map.contains_key(&key) {
-                Expression::Column(*aggregation_expr_map.get(&key).unwrap())
+                Expr::Column(*aggregation_expr_map.get(&key).unwrap())
             } else {
                 let new_col_id = format!("__col_agg_{}", aggregation_expr_map.len())
                     .parse()
                     .unwrap();
                 aggregation_expr_map.insert(key, new_col_id);
-                Expression::Column(new_col_id)
+                Expr::Column(new_col_id)
             }
         }
-        Expression::Binary { op, left, right } => {
+        Expr::BinaryOp { op, left, right } => {
             let left_remainder =
                 get_aggregate_and_remainder_expressions(*left, aggregation_expr_map);
             let right_remainder =
                 get_aggregate_and_remainder_expressions(*right, aggregation_expr_map);
-            Expression::Binary {
+            Expr::BinaryOp {
                 op,
                 left: Box::new(left_remainder),
                 right: Box::new(right_remainder),
             }
         }
-        Expression::Unary { op, expr } => {
+        Expr::UnaryOp { op, expr } => {
             let remainder = get_aggregate_and_remainder_expressions(*expr, aggregation_expr_map);
-            Expression::Unary {
+            Expr::UnaryOp {
                 op,
                 expr: Box::new(remainder),
             }
@@ -113,8 +111,8 @@ fn get_aggregate_and_remainder_expressions(
 /// Will panic if there is an issue retrieving the first element from the difference of free identifiers and group-by identifiers, indicating a logical inconsistency in the identifiers.
 fn check_and_get_aggregation_and_remainder(
     expr: AliasedResultExpr,
-    group_by_identifiers: &[Identifier],
-    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expression), Identifier>,
+    group_by_identifiers: &[Ident],
+    aggregation_expr_map: &mut IndexMap<(AggregationOperator, Expr), Ident>,
 ) -> PostprocessingResult<AliasedResultExpr> {
     let free_identifiers = get_free_identifiers_from_expr(&expr.expr);
     let group_by_identifier_set = group_by_identifiers
@@ -148,10 +146,10 @@ fn check_and_get_aggregation_and_remainder(
 impl GroupByPostprocessing {
     /// Create a new group by expression containing the group by and aggregation expressions
     pub fn try_new(
-        by_ids: Vec<Identifier>,
+        by_ids: Vec<Ident>,
         aliased_exprs: Vec<AliasedResultExpr>,
     ) -> PostprocessingResult<Self> {
-        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
+        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expr), Ident> =
             IndexMap::default();
         // Look for aggregation expressions and check for non-aggregation expressions that contain identifiers not in the group by clause
         let remainder_exprs: Vec<AliasedResultExpr> = aliased_exprs
@@ -177,7 +175,7 @@ impl GroupByPostprocessing {
 
     /// Get group by identifiers
     #[must_use]
-    pub fn group_by(&self) -> &[Identifier] {
+    pub fn group_by(&self) -> &[Ident] {
         &self.group_by_identifiers
     }
 
@@ -189,7 +187,7 @@ impl GroupByPostprocessing {
 
     /// Get aggregation expressions
     #[must_use]
-    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expression, Identifier)] {
+    pub fn aggregation_exprs(&self) -> &[(AggregationOperator, Expr, Ident)] {
         &self.aggregation_exprs
     }
 }
@@ -377,19 +375,19 @@ mod tests {
     fn we_can_get_free_identifiers_from_expr() {
         // Literal
         let expr = lit("Not an identifier");
-        let expected: IndexSet<Identifier> = IndexSet::default();
+        let expected: IndexSet<Ident> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // a + b + 1
         let expr = add(add(col("a"), col("b")), lit(1));
-        let expected: IndexSet<Identifier> = [ident("a"), ident("b")].iter().copied().collect();
+        let expected: IndexSet<Ident> = [ident("a"), ident("b")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // ! (a == b || c >= a)
         let expr = not(or(equal(col("a"), col("b")), ge(col("c"), col("a"))));
-        let expected: IndexSet<Identifier> = [ident("a"), ident("b"), ident("c")]
+        let expected: IndexSet<Ident> = [ident("a"), ident("b"), ident("c")]
             .iter()
             .copied()
             .collect();
@@ -398,20 +396,20 @@ mod tests {
 
         // SUM(a + b) * 2
         let expr = mul(sum(add(col("a"), col("b"))), lit(2));
-        let expected: IndexSet<Identifier> = IndexSet::default();
+        let expected: IndexSet<Ident> = IndexSet::default();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
 
         // (COUNT(a + b) + c) * d
         let expr = mul(add(count(add(col("a"), col("b"))), col("c")), col("d"));
-        let expected: IndexSet<Identifier> = [ident("c"), ident("d")].iter().copied().collect();
+        let expected: IndexSet<Ident> = [ident("c"), ident("d")].iter().copied().collect();
         let actual = get_free_identifiers_from_expr(&expr);
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn we_can_get_aggregate_and_remainder_expressions() {
-        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expression), Identifier> =
+        let mut aggregation_expr_map: IndexMap<(AggregationOperator, Expr), Ident> =
             IndexMap::default();
         // SUM(a) + b
         let expr = add(sum(col("a")), col("b"));

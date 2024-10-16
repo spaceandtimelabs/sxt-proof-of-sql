@@ -18,7 +18,7 @@ use crate::base::scalar::Scalar;
 use alloc::string::String;
 use core::ops::Deref;
 use sqlparser::ast::Ident;
-use proof_of_sql_parser::{
+use crate::{
     posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
 };
 use crate::base::utility;

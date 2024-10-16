@@ -16,20 +16,20 @@ use sqlparser::ast::{BinaryOperator, Expr, Ident, UnaryOperator, Value};
 /// Builder that enables building a `proofs::sql::proof_exprs::DynProofExpr` from
 /// a `proof_of_sql_parser::intermediate_ast::Expr`.
 pub struct DynProofExprBuilder<'a> {
-    column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>,
+    column_mapping: &'a IndexMap<Ident, ColumnRef>,
     in_agg_scope: bool,
 }
 
 impl<'a> DynProofExprBuilder<'a> {
     /// Creates a new `DynProofExprBuilder` with the given column mapping.
-    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>) -> Self {
+    pub fn new(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: false,
         }
     }
     /// Creates a new `DynProofExprBuilder` with the given column mapping and within aggregation scope.
-    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Ident, ColumnRef<'a>>) -> Self {
+    pub(crate) fn new_agg(column_mapping: &'a IndexMap<Ident, ColumnRef>) -> Self {
         Self {
             column_mapping,
             in_agg_scope: true,
@@ -54,7 +54,7 @@ impl DynProofExprBuilder<'_> {
         match expr {
             Expr::Identifier(identifier) => self.visit_column(identifier),
             Expr::Value(lit) => self.visit_literal(lit),
-            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(op.clone(), left, right),
             Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
             Expr::Aggregation { op, expr } => self.visit_aggregate_expr(*op, expr),
             _ => Err(ConversionError::Unprovable {
@@ -65,12 +65,12 @@ impl DynProofExprBuilder<'_> {
 
     fn visit_column<C: Commitment>(
         &self,
-        identifier: Ident,
+        identifier: &Ident,
     ) -> Result<DynProofExpr<C>, ConversionError> {
         Ok(DynProofExpr::Column(ColumnExpr::new(
             *self.column_mapping.get(&identifier).ok_or(
                 ConversionError::MissingColumnWithoutTable {
-                    identifier: Box::new(identifier),
+                    identifier: Box::new(identifier.clone()),
                 },
             )?,
         )))

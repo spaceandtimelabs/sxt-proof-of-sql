@@ -7,7 +7,7 @@ use crate::base::{
     map::IndexMap,
 };
 use alloc::vec::Vec;
-use proof_of_sql_parser::Identifier;
+use sqlparser::ast::Ident;
 
 /// The commitments for all of the tables in a query.
 ///
@@ -55,7 +55,7 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
                         &accessor
                             .lookup_schema(table_ref)
                             .iter()
-                            .filter_map(|c| columns.iter().find(|x| x.name() == c.0).copied())
+                            .filter_map(|c| columns.iter().find(|x| x.name().value == c.0.value).copied())
                             .collect::<Vec<_>>(),
                         accessor,
                     ),
@@ -66,13 +66,13 @@ impl<C: Commitment> QueryCommitmentsExt<C> for QueryCommitments<C> {
 }
 
 impl<C: Commitment> MetadataAccessor for QueryCommitments<C> {
-    fn get_length(&self, table_ref: crate::base::database::TableRef) -> usize {
+    fn get_length(&self, table_ref: TableRef) -> usize {
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment.num_rows()
     }
 
-    fn get_offset(&self, table_ref: crate::base::database::TableRef) -> usize {
+    fn get_offset(&self, table_ref: TableRef) -> usize {
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment.range().start
@@ -96,8 +96,8 @@ impl<C: Commitment> CommitmentAccessor<C> for QueryCommitments<C> {
 impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     fn lookup_column(
         &self,
-        table_ref: crate::base::database::TableRef,
-        column_id: Identifier,
+        table_ref: TableRef,
+        column_id: Ident,
     ) -> Option<ColumnType> {
         let table_commitment = self.get(&table_ref)?;
 
@@ -112,15 +112,15 @@ impl<C: Commitment> SchemaAccessor for QueryCommitments<C> {
     /// Panics if the column metadata cannot be found.
     fn lookup_schema(
         &self,
-        table_ref: crate::base::database::TableRef,
-    ) -> Vec<(Identifier, ColumnType)> {
+        table_ref: TableRef,
+    ) -> Vec<(Ident, ColumnType)> {
         let table_commitment = self.get(&table_ref).unwrap();
 
         table_commitment
             .column_commitments()
             .column_metadata()
             .iter()
-            .map(|(identifier, column_metadata)| (*identifier, *column_metadata.column_type()))
+            .map(|(identifier, column_metadata)| (identifier.clone(), *column_metadata.column_type()))
             .collect()
     }
 }
@@ -143,6 +143,7 @@ mod tests {
         },
     };
     use curve25519_dalek::RistrettoPoint;
+    use crate::base::utility;
 
     #[test]
     fn we_can_get_length_and_offset_of_tables() {
@@ -161,7 +162,7 @@ mod tests {
         let no_offset_id = "no.off".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Ident, &OwnedColumn<Curve25519Scalar>)>::new(),
             0,
             &(),
         )
@@ -202,14 +203,14 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_commitment_of_a_column() {
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id = utility::ident("column_a");
+        let column_b_id = utility::ident("column_b");
 
         let table_a: OwnedTable<Curve25519Scalar> = owned_table([
-            bigint(column_a_id, [1, 2, 3, 4]),
-            varchar(column_b_id, ["Lorem", "ipsum", "dolor", "sit"]),
+            bigint(column_a_id.clone().value, [1, 2, 3, 4]),
+            varchar(column_b_id.clone().value, ["Lorem", "ipsum", "dolor", "sit"]),
         ]);
-        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id, [1, 2])]);
+        let table_b: OwnedTable<Curve25519Scalar> = owned_table([scalar(column_a_id.value, [1, 2])]);
 
         let table_a_commitment =
             TableCommitment::<RistrettoPoint>::from_owned_table_with_offset(&table_a, 2, &());
@@ -226,7 +227,7 @@ mod tests {
         assert_eq!(
             query_commitments.get_commitment(ColumnRef::new(
                 table_a_id,
-                column_a_id,
+                column_a_id.clone(),
                 ColumnType::BigInt
             )),
             table_a_commitment.column_commitments().commitments()[0]
@@ -252,8 +253,8 @@ mod tests {
     #[allow(clippy::similar_names)]
     #[test]
     fn we_can_get_schema_of_tables() {
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id: Ident = "column_a".parse().unwrap();
+        let column_b_id: Ident = "column_b".parse().unwrap();
 
         let table_a: OwnedTable<Curve25519Scalar> = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),
@@ -269,7 +270,7 @@ mod tests {
         let table_b_id = "table.b".parse().unwrap();
 
         let no_columns_commitment = TableCommitment::try_from_columns_with_offset(
-            Vec::<(&Identifier, &OwnedColumn<Curve25519Scalar>)>::new(),
+            Vec::<(&Ident, &OwnedColumn<Curve25519Scalar>)>::new(),
             0,
             &(),
         )
@@ -331,8 +332,8 @@ mod tests {
         let prover_setup = ProverSetup::from(&public_parameters);
         let setup = DoryProverPublicSetup::new(&prover_setup, 3);
 
-        let column_a_id: Identifier = "column_a".parse().unwrap();
-        let column_b_id: Identifier = "column_b".parse().unwrap();
+        let column_a_id: Ident = "column_a".parse().unwrap();
+        let column_b_id: Ident = "column_b".parse().unwrap();
 
         let table_a = owned_table([
             bigint(column_a_id, [1, 2, 3, 4]),

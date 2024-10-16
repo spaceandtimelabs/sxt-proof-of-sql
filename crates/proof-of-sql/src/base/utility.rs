@@ -1,8 +1,18 @@
 
 use alloc::{boxed::Box, vec, vec::Vec};
-use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderBy, Query, SetExpr, Table, UnaryOperator, Value};
-use proof_of_sql_parser::intermediate_ast::Literal;
+use clap::Id;
+use serde::Serialize;
+use sqlparser::ast::{BinaryOperator, Expr, Ident, OrderBy, OrderByExpr, Query, SetExpr, Table, UnaryOperator, Value};
 
+///
+/// # Panics
+///
+/// This function will panic if`name`(if provided) cannot be parsed.
+/// Construct an identifier from a str
+pub fn assert_ident_valid(name: &str) {
+    // TODO: implement
+    assert!(name.len() > 0);
+}
 ///
 /// # Panics
 ///
@@ -10,7 +20,7 @@ use proof_of_sql_parser::intermediate_ast::Literal;
 /// Construct an identifier from a str
 #[must_use]
 pub fn ident(name: &str) -> Ident {
-    // TODO:  Panic!
+    assert_ident_valid(name);
     Ident::from(name)
 }
 
@@ -172,7 +182,8 @@ pub fn sum(expr: Box<Expr>) -> Box<Query> {
     Box::new(Query {
         body: Box::new(SetExpr::Select(Box())),
         op: AggregationOperator::Sum,
-        expr,
+        fetch   : None,
+        for_clause: Some()
     })
 }
 
@@ -322,9 +333,9 @@ pub fn query(
     result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
     where_expr: Box<Expr>,
-    group_by: Vec<Identifier>,
-) -> Box<SetExpression> {
-    Box::new(SetExpression::Query {
+    group_by: Vec<Ident>,
+) -> Box<SetExpr> {
+    Box::new( ::Query {
         result_exprs,
         from: vec![tab],
         where_expr: Some(where_expr),
@@ -339,7 +350,7 @@ pub fn query(
 pub fn query_all(
     result_exprs: Vec<SelectResultExpr>,
     tab: Box<TableExpression>,
-    group_by: Vec<Identifier>,
+    group_by: Vec<Ident>,
 ) -> Box<SetExpression> {
     Box::new(SetExpression::Query {
         result_exprs,
@@ -371,13 +382,23 @@ pub fn select(
 ///
 /// This function will panic if the `id` cannot be parsed into an identifier.
 #[must_use]
-pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
-    vec![OrderBy {
-        expr: id.parse().unwrap(),
-        direction,
-    }]
+pub fn order(id: &str, direction: OrderByDirection) -> OrderBy {
+    OrderBy {
+        exprs:  vec![OrderByExpr {
+            expr: Expr::Identifier(Ident::from(id)),
+            asc: Some(direction == OrderByDirection::Ascending),
+            nulls_first: None,
+            with_fill: None
+        }],
+        interpolate: None,
+    }
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
+pub enum OrderByDirection {
+    Descending,
+    Ascending
+}
 /// Order by multiple columns i.e. ORDER BY ID0 [ASC|DESC], ID1 [ASC|DESC], ...
 ///
 /// # Panics
@@ -385,14 +406,21 @@ pub fn order(id: &str, direction: OrderByDirection) -> Vec<OrderBy> {
 /// This function will panic if any of the `ids` cannot be parsed
 /// into an identifier.
 #[must_use]
-pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> Vec<OrderBy> {
-    ids.iter()
+pub fn orders(ids: &[&str], directions: &[OrderByDirection]) -> OrderBy {
+    let exprs: Vec<OrderByExpr> = ids.iter()
         .zip(directions.iter())
-        .map(|(id, dir)| OrderBy {
-            expr: id.parse().unwrap(),
-            direction: *dir,
+        .map(|(id, dir)|OrderByExpr {
+            expr: Expr::Identifier(Ident::from(id)),
+            asc: Some(dir == OrderByDirection::Ascending),
+            nulls_first: None,
+            with_fill: None
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+
+    OrderBy {
+        exprs,
+        interpolate: None,
+    }
 }
 
 /// Slice a query result using `LIMIT` and `OFFSET` clauses i.e. LIMIT N OFFSET M

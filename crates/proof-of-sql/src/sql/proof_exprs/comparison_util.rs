@@ -10,7 +10,7 @@ use crate::{
 use alloc::string::ToString;
 use bumpalo::Bump;
 use core::cmp;
-use proof_of_sql_parser::intermediate_ast::BinaryOperator;
+use sqlparser::ast::BinaryOperator;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 
@@ -55,9 +55,9 @@ pub(crate) fn scale_and_subtract<'a, S: Scalar>(
     let lhs_type = lhs.column_type();
     let rhs_type = rhs.column_type();
     let operator = if is_equal {
-        BinaryOperator::Equal
+        BinaryOperator::Eq
     } else {
-        BinaryOperator::LessThanOrEqual
+        BinaryOperator::LtEq
     };
     if !type_check_binary_operation(&lhs_type, &rhs_type, operator) {
         return Err(ConversionError::DataTypeMismatch {

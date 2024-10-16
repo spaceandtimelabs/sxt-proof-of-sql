@@ -16,7 +16,7 @@ use crate::base::{
     scalar::Scalar,
 };
 use core::ops::{Add, Div, Mul, Sub};
-use proof_of_sql_parser::intermediate_ast::{BinaryOperator, UnaryOperator};
+use sqlparser::ast::{BinaryOperator, UnaryOperator};
 
 impl<S: Scalar> OwnedColumn<S> {
     /// Element-wise NOT operation for a column
@@ -240,7 +240,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 todo!("Implement equality check for TimeStampTZ")
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Equal,
+                operator: BinaryOperator::Eq,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -420,7 +420,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 todo!("Implement inequality check for TimeStampTZ")
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::LessThanOrEqual,
+                operator: BinaryOperator::LtEq,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -600,7 +600,7 @@ impl<S: Scalar> OwnedColumn<S> {
                 todo!("Implement inequality check for TimeStampTZ")
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::GreaterThanOrEqual,
+                operator: BinaryOperator::GtEq,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -793,7 +793,7 @@ impl<S: Scalar> Add for OwnedColumn<S> {
                 Ok(Self::Decimal75(new_precision, new_scale, new_values))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Add,
+                operator: BinaryOperator::Plus,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -990,7 +990,7 @@ impl<S: Scalar> Sub for OwnedColumn<S> {
                 Ok(Self::Decimal75(new_precision, new_scale, new_values))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Subtract,
+                operator: BinaryOperator::Minus,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),
@@ -1384,7 +1384,7 @@ impl<S: Scalar> Div for OwnedColumn<S> {
                 Ok(Self::Decimal75(new_precision, new_scale, new_values))
             }
             _ => Err(ColumnOperationError::BinaryOperationInvalidColumnType {
-                operator: BinaryOperator::Division,
+                operator: BinaryOperator::Divide,
                 left_type: self.column_type(),
                 right_type: rhs.column_type(),
             }),

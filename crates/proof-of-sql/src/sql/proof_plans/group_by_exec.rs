@@ -26,7 +26,6 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use bumpalo::Bump;
 use core::{iter, iter::repeat_with};
 use num_traits::One;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
 use sqlparser::ast::Ident;
 
