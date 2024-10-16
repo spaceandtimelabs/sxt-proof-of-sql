@@ -5,6 +5,7 @@ use core::{
     str::FromStr,
 };
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
 use crate::base::resource_id::ResourceId;
 
@@ -23,20 +24,20 @@ impl TableRef {
 
     /// Returns the identifier of the schema
     #[must_use]
-    pub fn schema_id(&self) -> Identifier {
+    pub fn schema_id(&self) -> &Ident {
         self.resource_id.schema()
     }
 
     /// Returns the identifier of the table
     #[must_use]
-    pub fn table_id(&self) -> Identifier {
+    pub fn table_id(&self) -> &Ident {
         self.resource_id.object_name()
     }
 
     /// Returns the underlying resource id of the table
     #[must_use]
-    pub fn resource_id(&self) -> ResourceId {
-        self.resource_id
+    pub fn resource_id(&self) -> &ResourceId {
+        &self.resource_id
     }
 }
 
