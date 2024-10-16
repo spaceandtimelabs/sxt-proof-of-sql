@@ -9,10 +9,11 @@ use alloc::{
 };
 use core::result::Result;
 use proof_of_sql_parser::{
-    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError, Identifier,
+    intermediate_decimal::IntermediateDecimalError, posql_time::PoSQLTimestampError,
     ResourceId,
 };
 use snafu::Snafu;
+use sqlparser::ast::Ident;
 
 /// Errors from converting an intermediate AST into a provable AST.
 #[derive(Snafu, Debug, PartialEq, Eq)]
@@ -21,7 +22,7 @@ pub enum ConversionError {
     /// The column is missing in the table
     MissingColumn {
         /// The missing column identifier
-        identifier: Box<Identifier>,
+        identifier: Box<Ident>,
         /// The table resource id
         resource_id: Box<ResourceId>,
     },
@@ -30,7 +31,7 @@ pub enum ConversionError {
     /// The column is missing (without table information)
     MissingColumnWithoutTable {
         /// The missing column identifier
-        identifier: Box<Identifier>,
+        identifier: Box<Ident>,
     },
 
     #[snafu(display("Expected '{expected}' but found '{actual}'"))]
