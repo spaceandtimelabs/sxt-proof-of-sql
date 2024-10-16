@@ -18,7 +18,6 @@ pub(crate) mod slice_ops;
 
 mod rayon_cfg;
 mod utility;
-mod resource_id;
-mod ident;
+pub mod resource_id;
 
 pub(crate) use rayon_cfg::if_rayon;
