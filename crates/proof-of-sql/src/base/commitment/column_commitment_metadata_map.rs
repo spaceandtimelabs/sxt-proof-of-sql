@@ -146,7 +146,7 @@ mod tests {
     use itertools::Itertools;
 
     fn metadata_map_from_owned_table(
-        table: OwnedTable<Curve25519Scalar>,
+        table: &OwnedTable<Curve25519Scalar>,
     ) -> ColumnCommitmentMetadataMap {
         let (identifiers, columns): (Vec<&Identifier>, Vec<CommittableColumn>) = table
             .inner_table()
@@ -171,7 +171,7 @@ mod tests {
             scalar("scalar_column", [1000, 2000, -1000, 0]),
         ]);
 
-        let metadata_map = metadata_map_from_owned_table(table);
+        let metadata_map = metadata_map_from_owned_table(&table);
 
         assert_eq!(metadata_map.len(), 4);
 
@@ -214,7 +214,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum"]),
             scalar("scalar_column", [1000, 2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [-5, 0, 10]),
@@ -222,7 +222,7 @@ mod tests {
             varchar("varchar_column", ["dolor", "sit", "amet"]),
             scalar("scalar_column", [-1000, 0, -2000]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         let table_c = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
@@ -230,7 +230,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_c = metadata_map_from_owned_table(table_c);
+        let metadata_c = metadata_map_from_owned_table(&table_c);
 
         assert_eq!(metadata_a.try_union(metadata_b).unwrap(), metadata_c);
     }
@@ -242,7 +242,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum"]),
             scalar("scalar_column", [1000, 2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
@@ -250,7 +250,7 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         let b_difference_a = metadata_b.try_difference(metadata_a.clone()).unwrap();
 
@@ -297,13 +297,13 @@ mod tests {
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
             scalar("scalar_column", [1000, 2000, -1000, 0, -2000]),
         ]);
-        let metadata_a = metadata_map_from_owned_table(table_a);
+        let metadata_a = metadata_map_from_owned_table(&table_a);
 
         let table_b = owned_table([
             bigint("bigint_column", [1, 5, -5, 0, 10]),
             varchar("varchar_column", ["Lorem", "ipsum", "dolor", "sit", "amet"]),
         ]);
-        let metadata_b = metadata_map_from_owned_table(table_b);
+        let metadata_b = metadata_map_from_owned_table(&table_b);
 
         assert!(matches!(
             metadata_a.clone().try_union(metadata_b.clone()),
@@ -337,25 +337,25 @@ mod tests {
         let strings = ["Lorem", "ipsum", "dolor", "sit"];
 
         let ab_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_b, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_a, ints), bigint(id_b, ints)]));
 
-        let ab_iv_metadata = metadata_map_from_owned_table(owned_table([
+        let ab_iv_metadata = metadata_map_from_owned_table(&owned_table([
             bigint(id_a, ints),
             varchar(id_b, strings),
         ]));
 
-        let ab_vi_metadata = metadata_map_from_owned_table(owned_table([
+        let ab_vi_metadata = metadata_map_from_owned_table(&owned_table([
             varchar(id_a, strings),
             bigint(id_b, ints),
         ]));
 
         let ad_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_a, ints), bigint(id_d, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_a, ints), bigint(id_d, ints)]));
 
         let cb_ii_metadata =
-            metadata_map_from_owned_table(owned_table([bigint(id_c, ints), bigint(id_b, ints)]));
+            metadata_map_from_owned_table(&owned_table([bigint(id_c, ints), bigint(id_b, ints)]));
 
-        let cd_vv_metadata = metadata_map_from_owned_table(owned_table([
+        let cd_vv_metadata = metadata_map_from_owned_table(&owned_table([
             varchar(id_c, strings),
             varchar(id_d, strings),
         ]));
