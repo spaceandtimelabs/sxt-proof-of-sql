@@ -4,10 +4,11 @@ use core::{
     fmt::{Display, Formatter},
     str::FromStr,
 };
+use serde::{Deserialize, Serialize};
 use proof_of_sql_parser::{impl_serde_from_str, Identifier, ResourceId};
 
 /// Expression for an SQL table
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
 pub struct TableRef {
     resource_id: ResourceId,
 }
