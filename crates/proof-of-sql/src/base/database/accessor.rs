@@ -101,7 +101,7 @@ pub trait SchemaAccessor {
     ///
     /// Precondition 1: the table must exist and be tamperproof.
     /// Precondition 2: `table_ref` and `column_id` must always be lowercase.
-    fn lookup_column(&self, table_ref: TableRef, column_id: Ident) -> Option<ColumnType>;
+    fn lookup_column(&self, table_ref: TableRef, column_id: &Ident) -> Option<ColumnType>;
 
     /// Lookup all the column names and their data types in the specified table
     ///

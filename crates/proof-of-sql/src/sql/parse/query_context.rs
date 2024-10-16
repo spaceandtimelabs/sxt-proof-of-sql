@@ -15,7 +15,7 @@ use sqlparser::ast::{Expr, Ident, OrderBy};
 
 
 #[derive(Default, Debug)]
-pub struct QueryContext {
+pub struct QueryContext<'a> {
     in_agg_scope: bool,
     agg_counter: usize,
     slice_expr: Option<Slice>,
@@ -28,11 +28,11 @@ pub struct QueryContext {
     where_expr: Option<Box<Expr>>,
     result_column_set: IndexSet<Ident>,
     res_aliased_exprs: Vec<AliasedResultExpr>,
-    column_mapping: IndexMap<Ident, ColumnRef<'_>>,
+    column_mapping: IndexMap<Ident, ColumnRef<'a>>,
     first_result_col_out_agg_scope: Option<Ident>,
 }
 
-impl QueryContext {
+impl<'a> QueryContext<'a> {
     #[allow(clippy::missing_panics_doc)]
     pub fn set_table_ref(&mut self, table: TableRef) {
         assert!(self.table.is_none());
@@ -196,8 +196,8 @@ impl QueryContext {
             self.res_aliased_exprs
                 .iter()
                 .find(|col| col.alias == by_expr.exprs)
-                .ok_or(ConversionError::InvalidOrderBy {
-                    alias: by_expr.expr.as_str().to_string(),
+                .ok_or_else(|| ConversionError::InvalidOrderBy {
+                    alias: by_expr.exprs.as_str().to_string(),
                 })?;
         }
 
@@ -225,10 +225,10 @@ impl QueryContext {
 ///
 /// We use Some if the query is provable and None if it is not
 /// We error out if the query is wrong
-impl<C: Commitment> TryFrom<&QueryContext> for Option<GroupByExec<C>> {
+impl<'a, C: Commitment> TryFrom<&QueryContext<'a>> for Option<GroupByExec<'a, C>> {
     type Error = ConversionError;
 
-    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<C>>, Self::Error> {
+    fn try_from(value: &QueryContext) -> Result<Option<GroupByExec<'a, C>>, Self::Error> {
         let where_clause = WhereExprBuilder::new(&value.column_mapping)
             .build(value.where_expr.clone())?
             .unwrap_or_else(|| DynProofExpr::new_literal(LiteralValue::Boolean(true)));

@@ -10,20 +10,21 @@ use crate::{
 };
 use bumpalo::Bump;
 use core::marker::PhantomData;
-use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
+
 /// Provable expression for a column
 ///
 /// Note: this is currently limited to named column expressions.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct ColumnExpr<C: Commitment> {
-    column_ref: ColumnRef,
+pub struct ColumnExpr<'a, C: Commitment> {
+    column_ref: ColumnRef<'a>,
     _phantom_data: PhantomData<C>,
 }
 
-impl<C: Commitment> ColumnExpr<C> {
+impl<'a, C: Commitment> ColumnExpr<'a, C> {
     /// Create a new column expression
-    pub fn new(column_ref: ColumnRef) -> Self {
+    pub fn new(column_ref: ColumnRef<'a>) -> Self {
         Self {
             column_ref,
             _phantom_data: PhantomData,
@@ -41,12 +42,12 @@ impl<C: Commitment> ColumnExpr<C> {
     }
 
     /// Get the column identifier
-    pub fn column_id(&self) -> Identifier {
+    pub fn column_id(&self) -> &Ident {
         self.column_ref.column_id()
     }
 }
 
-impl<C: Commitment> ProofExpr<C> for ColumnExpr<C> {
+impl<'a, C: Commitment> ProofExpr<C> for ColumnExpr<'a, C> {
     /// Count the number of proof terms needed by this expression
     fn count(&self, builder: &mut CountBuilder) -> Result<(), ProofError> {
         builder.count_anchored_mles(1);

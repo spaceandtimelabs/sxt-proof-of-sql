@@ -28,6 +28,7 @@ use core::{iter, iter::repeat_with};
 use num_traits::One;
 use proof_of_sql_parser::Identifier;
 use serde::{Deserialize, Serialize};
+use sqlparser::ast::Ident;
 
 /// Provable expressions for queries of the form
 /// ```ignore
@@ -41,21 +42,21 @@ use serde::{Deserialize, Serialize};
 ///
 /// Note: if `group_by_exprs` is empty, then the query is equivalent to removing the `GROUP BY` clause.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GroupByExec<C: Commitment> {
-    pub(super) group_by_exprs: Vec<ColumnExpr<C>>,
+pub struct GroupByExec<'a, C: Commitment> {
+    pub(super) group_by_exprs: Vec<ColumnExpr<'a, C>>,
     pub(super) sum_expr: Vec<AliasedDynProofExpr<C>>,
-    pub(super) count_alias: Identifier,
+    pub(super) count_alias: Ident,
     pub(super) table: TableExpr,
     pub(super) where_clause: DynProofExpr<C>,
 }
 
-impl<C: Commitment> GroupByExec<C> {
+impl<'a, C: Commitment> GroupByExec<'a, C> {
     /// Creates a new `group_by` expression.
     pub fn new(
         group_by_exprs: Vec<ColumnExpr<C>>,
         sum_expr: Vec<AliasedDynProofExpr<C>>,
-        count_alias: Identifier,
-        table: TableExpr,
+        count_alias: Ident,
+        table: Ident,
         where_clause: DynProofExpr<C>,
     ) -> Self {
         Self {
@@ -68,7 +69,7 @@ impl<C: Commitment> GroupByExec<C> {
     }
 }
 
-impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
+impl<'a, C: Commitment> ProofPlan<C> for GroupByExec<'a, C> {
     fn count(
         &self,
         builder: &mut CountBuilder,
@@ -179,10 +180,10 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
             .iter()
             .map(|col| col.get_column_field())
             .chain(self.sum_expr.iter().map(|aliased_expr| {
-                ColumnField::new(aliased_expr.alias, aliased_expr.expr.data_type())
+                ColumnField::new(&aliased_expr.alias, aliased_expr.expr.data_type())
             }))
             .chain(iter::once(ColumnField::new(
-                self.count_alias,
+                &self.count_alias,
                 ColumnType::BigInt,
             )))
             .collect()

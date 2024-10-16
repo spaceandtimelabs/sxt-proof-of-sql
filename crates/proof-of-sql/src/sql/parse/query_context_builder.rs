@@ -12,7 +12,7 @@ use sqlparser::ast::{Table, BinaryOperator, UnaryOperator, Expr, Value, OrderBy,
 
 
 pub struct QueryContextBuilder<'a> {
-    context: QueryContext,
+    context: QueryContext<'a>,
     schema_accessor: &'a dyn SchemaAccessor,
 }
 
@@ -82,7 +82,7 @@ impl<'a> QueryContextBuilder<'a> {
 
     pub fn visit_group_by_exprs(
         mut self,
-        group_by_exprs: Vec<Identifier>,
+        group_by_exprs: Vec<Ident>,
     ) -> ConversionResult<Self> {
         for id in &group_by_exprs {
             self.visit_column_identifier(*id)?;
@@ -91,7 +91,7 @@ impl<'a> QueryContextBuilder<'a> {
         Ok(self)
     }
 
-    pub fn build(self) -> ConversionResult<QueryContext> {
+    pub fn build(self) -> ConversionResult<QueryContext<'a>> {
         Ok(self.context)
     }
 }
@@ -102,7 +102,7 @@ impl<'a> QueryContextBuilder<'a> {
         clippy::missing_panics_doc,
         reason = "The assertion ensures there is at least one column, and this is a fundamental requirement for schema retrieval."
     )]
-    fn lookup_schema(&self) -> Vec<(Identifier, ColumnType)> {
+    fn lookup_schema(&self) -> Vec<(Ident, ColumnType)> {
         let table_ref = self.context.get_table_ref();
         let columns = self.schema_accessor.lookup_schema(*table_ref);
         assert!(!columns.is_empty(), "At least one column must exist");
@@ -129,8 +129,8 @@ impl<'a> QueryContextBuilder<'a> {
             Expr::Wildcard => Ok(ColumnType::BigInt), // Since COUNT(*) = COUNT(1)
             Expr::Value(literal) => self.visit_literal(literal),
             Expr::Column(_) => self.visit_column_expr(expr),
-            Expr::Unary { op, expr } => self.visit_unary_expr(*op, expr),
-            Expr::Binary { op, left, right } => self.visit_binary_expr(*op, left, right),
+            Expr::UnaryOp { op, expr } => self.visit_unary_expr(*op, expr),
+            Expr::BinaryOp { op, left, right } => self.visit_binary_expr(*op, left, right),
             Expr::Aggregation { op, expr } => self.visit_agg_expr(*op, expr),
         }
     }
@@ -158,13 +158,16 @@ impl<'a> QueryContextBuilder<'a> {
         match op {
             BinaryOperator::And
             | BinaryOperator::Or
-            | BinaryOperator::Equal
-            | BinaryOperator::GreaterThanOrEqual
-            | BinaryOperator::LessThanOrEqual => Ok(ColumnType::Boolean),
+            | BinaryOperator::Eq
+            | BinaryOperator::GtEq
+            | BinaryOperator::Gt
+            | BinaryOperator::Lt
+            | BinaryOperator::LtEq => Ok(ColumnType::Boolean),
             BinaryOperator::Multiply
-            | BinaryOperator::Division
-            | BinaryOperator::Subtract
-            | BinaryOperator::Add => Ok(left_dtype),
+            | BinaryOperator::Divide
+            | BinaryOperator::Minus
+            | BinaryOperator::Plus => Ok(left_dtype),
+            _ => panic!("Unmapped binary operator: {op}"),
         }
     }
 
@@ -183,7 +186,8 @@ impl<'a> QueryContextBuilder<'a> {
                     });
                 }
                 Ok(ColumnType::Boolean)
-            }
+            },
+            _ => panic!("Unmapped unary operator: {op}"),
         }
     }
 
@@ -229,12 +233,12 @@ impl<'a> QueryContextBuilder<'a> {
         }
     }
 
-    fn visit_column_identifier(&mut self, column_name: Identifier) -> ConversionResult<ColumnType> {
+    fn visit_column_identifier(&mut self, column_name: &Ident) -> ConversionResult<ColumnType> {
         let table_ref = self.context.get_table_ref();
         let column_type = self.schema_accessor.lookup_column(*table_ref, column_name);
 
         let column_type = column_type.ok_or_else(|| ConversionError::MissingColumn {
-            identifier: Box::new(column_name),
+            identifier: Box::new(column_name.to_owned()),
             resource_id: Box::new(table_ref.resource_id()),
         })?;
 
@@ -259,7 +263,7 @@ pub(crate) fn type_check_binary_operation(
                 (ColumnType::Boolean, ColumnType::Boolean)
             )
         }
-        BinaryOperator::Equal => {
+        BinaryOperator::Eq => {
             matches!(
                 (left_dtype, right_dtype),
                 (ColumnType::VarChar, ColumnType::VarChar)
@@ -269,7 +273,7 @@ pub(crate) fn type_check_binary_operation(
                     | (ColumnType::Scalar, _)
             ) || (left_dtype.is_numeric() && right_dtype.is_numeric())
         }
-        BinaryOperator::GreaterThanOrEqual | BinaryOperator::LessThanOrEqual => {
+        BinaryOperator::GtEq | BinaryOperator::LtEq => {
             if left_dtype == &ColumnType::VarChar || right_dtype == &ColumnType::VarChar {
                 return false;
             }
@@ -291,15 +295,15 @@ pub(crate) fn type_check_binary_operation(
                         | (ColumnType::TimestampTZ(_, _), ColumnType::TimestampTZ(_, _))
                 )
         }
-        BinaryOperator::Add => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Add).is_ok()
+        BinaryOperator::Plus => {
+            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Plus).is_ok()
         }
-        BinaryOperator::Subtract => {
-            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Subtract)
+        BinaryOperator::Minus => {
+            try_add_subtract_column_types(*left_dtype, *right_dtype, BinaryOperator::Minus)
                 .is_ok()
         }
         BinaryOperator::Multiply => try_multiply_column_types(*left_dtype, *right_dtype).is_ok(),
-        BinaryOperator::Division => left_dtype.is_numeric() && right_dtype.is_numeric(),
+        BinaryOperator::Divide => left_dtype.is_numeric() && right_dtype.is_numeric(),
     }
 }
 
