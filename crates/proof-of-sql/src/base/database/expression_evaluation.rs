@@ -13,7 +13,7 @@ impl<S: Scalar> OwnedTable<S> {
         match expr {
             Expr::Identifier(identifier) => self.evaluate_column(identifier),
             Expr::Value(lit) => self.evaluate_literal(lit),
-            Expr::BinaryOp { op, left, right } => self.evaluate_binary_expr(*op, left, right),
+            Expr::BinaryOp { op, left, right } => self.evaluate_binary_expr(op.clone(), left, right),
             Expr::UnaryOp { op, expr } => self.evaluate_unary_expr(*op, expr),
             _ => Err(ExpressionEvaluationError::Unsupported {
                 expression: format!("Expr {expr:?} is not supported yet"),
@@ -64,6 +64,7 @@ impl<S: Scalar> OwnedTable<S> {
         let column = self.evaluate(expr)?;
         match op {
             UnaryOperator::Not => Ok(column.element_wise_not()?),
+            _ => panic!("Unary operator not implemented: {op}"),
         }
     }
 
@@ -78,13 +79,14 @@ impl<S: Scalar> OwnedTable<S> {
         match op {
             BinaryOperator::And => Ok(left.element_wise_and(&right)?),
             BinaryOperator::Or => Ok(left.element_wise_or(&right)?),
-            BinaryOperator::Equal => Ok(left.element_wise_eq(&right)?),
-            BinaryOperator::GreaterThanOrEqual => Ok(left.element_wise_ge(&right)?),
-            BinaryOperator::LessThanOrEqual => Ok(left.element_wise_le(&right)?),
-            BinaryOperator::Add => Ok((left + right)?),
-            BinaryOperator::Subtract => Ok((left - right)?),
+            BinaryOperator::Eq => Ok(left.element_wise_eq(&right)?),
+            BinaryOperator::GtEq => Ok(left.element_wise_ge(&right)?),
+            BinaryOperator::LtEq => Ok(left.element_wise_le(&right)?),
+            BinaryOperator::Plus => Ok((left + right)?),
+            BinaryOperator::Minus => Ok((left - right)?),
             BinaryOperator::Multiply => Ok((left * right)?),
-            BinaryOperator::Division => Ok((left / right)?),
+            BinaryOperator::Divide => Ok((left / right)?),
+            _ => panic!("Binary operator not implemented: {op}"),
         }
     }
 }
