@@ -150,7 +150,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
                 let cols = self
                     .group_by_exprs
                     .iter()
-                    .map(|col| table.inner_table().get(&col.column_id()))
+                    .map(|col| table.inner_table().get(col.column_id()))
                     .collect::<Option<Vec<_>>>()
                     .ok_or(ProofError::VerificationError {
                         error: "Result does not all correct group by columns.",
@@ -192,7 +192,7 @@ impl<C: Commitment> ProofPlan<C> for GroupByExec<C> {
         let mut columns = IndexSet::default();
 
         for col in &self.group_by_exprs {
-            columns.insert(col.get_column_reference());
+            columns.insert(col.get_column_reference().clone());
         }
         for aliased_expr in &self.sum_expr {
             aliased_expr.expr.get_column_references(&mut columns);
