@@ -14,10 +14,10 @@ use core::{
     mem::size_of,
 };
 use sqlparser::ast::Ident;
-use proof_of_sql_parser::{
-    posql_time::{PoSQLTimeUnit, PoSQLTimeZone},
-};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::Visitor;
+use serde::ser::SerializeStruct;
+use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Represents a read-only view of a column in an in-memory,
 /// column-oriented database.
@@ -502,11 +502,53 @@ impl Display for ColumnType {
 }
 
 /// Reference of a SQL column
-#[derive(Debug, PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ColumnRef {
     column_id: Arc<Ident>,
     table_ref: TableRef,
     column_type: ColumnType,
+}
+impl Serialize for ColumnRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer
+    {
+        let mut state = serializer.serialize_struct("ColumnRef", 3)?;
+        state.serialize_field("column_id", &self.column_id.value)?;
+        state.serialize_field("column_type", &self.column_type)?;
+        state.serialize_field("table_ref", &self.table_ref)?;
+
+        state.end()
+    }
+}
+
+impl<'de> Visitor<'de> for &ColumnRef {
+    type Value = String;
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+        write!(formatter, "ColumnRef")
+    }
+
+
+    fn visit_str<E>(self, value: &str) -> Result<String, E>
+    where
+        E: de::Error,
+    {
+        match value {
+            "column_id" => Ok(self.column_id.value.clone()),
+            "column_type" => Ok(self.column_type.clone()),
+            "nanos" => Ok(self.column_id.value.clone()),
+            _ => Err(de::Error::unknown_field(value, FIELDS)),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for ColumnRef {
+    fn deserialize< D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        let mut state = deserializer.deserialize_struct::<ColumnRef>(self);
+        todo!()
+    }
 }
 
 impl ColumnRef {
