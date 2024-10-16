@@ -18,7 +18,7 @@ pub fn dory_inner_product_prove(
     for _ in 0..nu {
         dory_reduce_prove(messages, transcript, &mut state, setup);
     }
-    scalar_product_prove(messages, transcript, state);
+    scalar_product_prove(messages, transcript, &state);
 }
 
 /// This is the verifier side of the Dory-Innerproduct algorithm in section 3.3 of <https://eprint.iacr.org/2020/1274.pdf>.

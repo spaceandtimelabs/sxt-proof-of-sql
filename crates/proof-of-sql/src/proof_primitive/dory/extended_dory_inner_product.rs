@@ -25,7 +25,7 @@ pub fn extended_dory_inner_product_prove(
         extended_dory_reduce_prove(messages, transcript, &mut state, setup);
     }
     let base_state = fold_scalars_0_prove(messages, transcript, state, setup);
-    scalar_product_prove(messages, transcript, base_state);
+    scalar_product_prove(messages, transcript, &base_state);
 }
 
 /// This is the verifier side of the extended Dory-Innerproduct algorithm in section 4.3 of https://eprint.iacr.org/2020/1274.pdf.
