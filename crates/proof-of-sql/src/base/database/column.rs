@@ -1,9 +1,5 @@
 use super::{LiteralValue, OwnedColumn, TableRef};
-use crate::base::{
-    math::decimal::{scale_scalar, Precision},
-    scalar::Scalar,
-    slice_ops::slice_cast_with,
-};
+use crate::base::{math::decimal::{scale_scalar, Precision}, scalar::Scalar, slice_ops::slice_cast_with, utility};
 use alloc::{sync::Arc, vec::Vec};
 #[cfg(feature = "arrow")]
 use arrow::datatypes::{DataType, Field, TimeUnit as ArrowTimeUnit};
@@ -14,9 +10,10 @@ use core::{
     mem::size_of,
 };
 use sqlparser::ast::Ident;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use serde::de::Visitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeStruct;
+use crate::base::resource_id::ResourceId;
 use crate::posql_time::{PoSQLTimeUnit, PoSQLTimeZone};
 
 /// Represents a read-only view of a column in an in-memory,
@@ -500,7 +497,6 @@ impl Display for ColumnType {
         }
     }
 }
-
 /// Reference of a SQL column
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct ColumnRef {
@@ -508,6 +504,16 @@ pub struct ColumnRef {
     table_ref: TableRef,
     column_type: ColumnType,
 }
+impl Default for ColumnRef {
+    fn default() -> Self {
+        Self {
+            column_id: Arc::new( Ident::new("")),
+            column_type: ColumnType::Boolean,
+            table_ref:  TableRef::new(ResourceId::default()),
+        }
+    }
+}
+
 impl Serialize for ColumnRef {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -522,32 +528,37 @@ impl Serialize for ColumnRef {
     }
 }
 
-impl<'de> Visitor<'de> for &ColumnRef {
-    type Value = String;
+struct ColumnRefVisitor;
+impl<'de> Visitor<'de> for ColumnRefVisitor {
+    type Value = ColumnRef;
     fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
         write!(formatter, "ColumnRef")
     }
-
-
-    fn visit_str<E>(self, value: &str) -> Result<String, E>
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
     where
-        E: de::Error,
+        M: MapAccess<'de>,
     {
-        match value {
-            "column_id" => Ok(self.column_id.value.clone()),
-            "column_type" => Ok(self.column_type.clone()),
-            "nanos" => Ok(self.column_id.value.clone()),
-            _ => Err(de::Error::unknown_field(value, FIELDS)),
+        let mut map = ColumnRef::default();
+        while let Some(key) = access.next_key::<&str>() {
+            match key {
+                "column_id" => map.column_id = utility::ident_arc( &access.next_value::<String>()?),
+                "column_type" => map.column_type = access.next_value::<ColumnType>()?,
+                "table_ref" => map.table_ref = access.next_value::<TableRef>()?,
+            }
         }
+
+        Ok(map)
     }
 }
+const COL_FIELDS: &[&str] = &["column_id", "column_type", "table_ref"];
 impl<'de> Deserialize<'de> for ColumnRef {
     fn deserialize< D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>
     {
-        let mut state = deserializer.deserialize_struct::<ColumnRef>(self);
-        todo!()
+
+        const FIELDS: &[&str] = &["secs", "nanos"];
+        deserializer.deserialize_struct("Duration", FIELDS, ColumnRefVisitor)
     }
 }
 
@@ -564,8 +575,8 @@ impl ColumnRef {
 
     /// Returns the table reference of this column
     #[must_use]
-    pub fn table_ref(&self) -> TableRef {
-        self.table_ref
+    pub fn table_ref(&self) -> &TableRef {
+        &self.table_ref
     }
 
     /// Returns the column identifier of this column
