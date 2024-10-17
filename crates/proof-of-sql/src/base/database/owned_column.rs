@@ -112,7 +112,7 @@ impl<S: Scalar> OwnedColumn<S> {
             OwnedColumn::TinyInt(_, col) => col.is_empty(),
             OwnedColumn::SmallInt(_, col) => col.is_empty(),
             OwnedColumn::Int(_, col) => col.is_empty(),
-            OwnedColumn::BigInt(meta, col) | OwnedColumn::TimestampTZ(_,_, _, col) => col.is_empty(),
+            OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(_,_, _, col) => col.is_empty(),
             OwnedColumn::VarChar(_, col) => col.is_empty(),
             OwnedColumn::Int128(_, col) => col.is_empty(),
             OwnedColumn::Scalar(_, col) | OwnedColumn::Decimal75(_, _, _, col) => col.is_empty(),
