@@ -163,3 +163,5 @@ pub use dynamic_dory_commitment::DynamicDoryCommitment;
 #[cfg(test)]
 mod dynamic_dory_commitment_evaluation_proof_test;
 pub use dynamic_dory_commitment_evaluation_proof::DynamicDoryEvaluationProof;
+
+mod owned_setup;
