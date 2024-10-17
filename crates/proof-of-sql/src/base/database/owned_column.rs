@@ -52,33 +52,33 @@ impl<S: Scalar> OwnedColumn<S> {
     #[must_use]
     pub fn len(&self) -> usize {
         match self {
-            OwnedColumn::Boolean(col) => col.len(),
-            OwnedColumn::TinyInt(col) => col.len(),
-            OwnedColumn::SmallInt(col) => col.len(),
-            OwnedColumn::Int(col) => col.len(),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.len(),
-            OwnedColumn::VarChar(col) => col.len(),
-            OwnedColumn::Int128(col) => col.len(),
-            OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.len(),
+            OwnedColumn::Boolean(_, col) => col.len(),
+            OwnedColumn::TinyInt(_, col) => col.len(),
+            OwnedColumn::SmallInt(_, col) => col.len(),
+            OwnedColumn::Int(_, col) => col.len(),
+            OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(_, _, _, col) => col.len(),
+            OwnedColumn::VarChar(_, col) => col.len(),
+            OwnedColumn::Int128(_, col) => col.len(),
+            OwnedColumn::Decimal75(_, _, _, col) | OwnedColumn::Scalar(_, col) => col.len(),
         }
     }
 
     /// Returns the column with its entries permutated
     pub fn try_permute(&self, permutation: &Permutation) -> Result<Self, PermutationError> {
         Ok(match self {
-            OwnedColumn::Boolean(col) => OwnedColumn::Boolean(permutation.try_apply(col)?),
-            OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(permutation.try_apply(col)?),
-            OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(permutation.try_apply(col)?),
-            OwnedColumn::Int(col) => OwnedColumn::Int(permutation.try_apply(col)?),
-            OwnedColumn::BigInt(col) => OwnedColumn::BigInt(permutation.try_apply(col)?),
-            OwnedColumn::VarChar(col) => OwnedColumn::VarChar(permutation.try_apply(col)?),
-            OwnedColumn::Int128(col) => OwnedColumn::Int128(permutation.try_apply(col)?),
-            OwnedColumn::Decimal75(precision, scale, col) => {
-                OwnedColumn::Decimal75(*precision, *scale, permutation.try_apply(col)?)
+            OwnedColumn::Boolean(meta, col) => OwnedColumn::Boolean(*meta, permutation.try_apply(col)?),
+            OwnedColumn::TinyInt(meta, col) => OwnedColumn::TinyInt(*meta, permutation.try_apply(col)?),
+            OwnedColumn::SmallInt(meta, col) => OwnedColumn::SmallInt(*meta, permutation.try_apply(col)?),
+            OwnedColumn::Int(meta, col) => OwnedColumn::Int(*meta, permutation.try_apply(col)?),
+            OwnedColumn::BigInt(meta, col) => OwnedColumn::BigInt(*meta, permutation.try_apply(col)?),
+            OwnedColumn::VarChar(meta, col) => OwnedColumn::VarChar(*meta, permutation.try_apply(col)?),
+            OwnedColumn::Int128(meta, col) => OwnedColumn::Int128(*meta, permutation.try_apply(col)?),
+            OwnedColumn::Decimal75(meta, precision, scale, col) => {
+                OwnedColumn::Decimal75(*meta, *precision, *scale, permutation.try_apply(col)?)
             }
-            OwnedColumn::Scalar(col) => OwnedColumn::Scalar(permutation.try_apply(col)?),
-            OwnedColumn::TimestampTZ(tu, tz, col) => {
-                OwnedColumn::TimestampTZ(*tu, *tz, permutation.try_apply(col)?)
+            OwnedColumn::Scalar(meta, col) => OwnedColumn::Scalar(*meta, permutation.try_apply(col)?),
+            OwnedColumn::TimestampTZ(meta, tu, tz, col) => {
+                OwnedColumn::TimestampTZ(*meta, *tu, *tz, permutation.try_apply(col)?)
             }
         })
     }
@@ -87,19 +87,19 @@ impl<S: Scalar> OwnedColumn<S> {
     #[must_use]
     pub fn slice(&self, start: usize, end: usize) -> Self {
         match self {
-            OwnedColumn::Boolean(col) => OwnedColumn::Boolean(col[start..end].to_vec()),
-            OwnedColumn::TinyInt(col) => OwnedColumn::TinyInt(col[start..end].to_vec()),
-            OwnedColumn::SmallInt(col) => OwnedColumn::SmallInt(col[start..end].to_vec()),
-            OwnedColumn::Int(col) => OwnedColumn::Int(col[start..end].to_vec()),
-            OwnedColumn::BigInt(col) => OwnedColumn::BigInt(col[start..end].to_vec()),
-            OwnedColumn::VarChar(col) => OwnedColumn::VarChar(col[start..end].to_vec()),
-            OwnedColumn::Int128(col) => OwnedColumn::Int128(col[start..end].to_vec()),
-            OwnedColumn::Decimal75(precision, scale, col) => {
-                OwnedColumn::Decimal75(*precision, *scale, col[start..end].to_vec())
+            OwnedColumn::Boolean(meta, col) => OwnedColumn::Boolean(*meta, col[start..end].to_vec()),
+            OwnedColumn::TinyInt(meta, col) => OwnedColumn::TinyInt(*meta, col[start..end].to_vec()),
+            OwnedColumn::SmallInt(meta, col) => OwnedColumn::SmallInt(*meta, col[start..end].to_vec()),
+            OwnedColumn::Int(meta, col) => OwnedColumn::Int(*meta, col[start..end].to_vec()),
+            OwnedColumn::BigInt(meta, col) => OwnedColumn::BigInt(*meta, col[start..end].to_vec()),
+            OwnedColumn::VarChar(meta, col) => OwnedColumn::VarChar(*meta, col[start..end].to_vec()),
+            OwnedColumn::Int128(meta, col) => OwnedColumn::Int128(*meta, col[start..end].to_vec()),
+            OwnedColumn::Decimal75(meta, precision, scale, col) => {
+                OwnedColumn::Decimal75(*meta, *precision, *scale, col[start..end].to_vec())
             }
-            OwnedColumn::Scalar(col) => OwnedColumn::Scalar(col[start..end].to_vec()),
-            OwnedColumn::TimestampTZ(tu, tz, col) => {
-                OwnedColumn::TimestampTZ(*tu, *tz, col[start..end].to_vec())
+            OwnedColumn::Scalar(meta, col) => OwnedColumn::Scalar(*meta, col[start..end].to_vec()),
+            OwnedColumn::TimestampTZ(meta, tu, tz, col) => {
+                OwnedColumn::TimestampTZ(*meta, *tu, *tz, col[start..end].to_vec())
             }
         }
     }
@@ -108,39 +108,41 @@ impl<S: Scalar> OwnedColumn<S> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
-            OwnedColumn::Boolean(col) => col.is_empty(),
-            OwnedColumn::TinyInt(col) => col.is_empty(),
-            OwnedColumn::SmallInt(col) => col.is_empty(),
-            OwnedColumn::Int(col) => col.is_empty(),
-            OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => col.is_empty(),
-            OwnedColumn::VarChar(col) => col.is_empty(),
-            OwnedColumn::Int128(col) => col.is_empty(),
-            OwnedColumn::Scalar(col) | OwnedColumn::Decimal75(_, _, col) => col.is_empty(),
+            OwnedColumn::Boolean(_, col) => col.is_empty(),
+            OwnedColumn::TinyInt(_, col) => col.is_empty(),
+            OwnedColumn::SmallInt(_, col) => col.is_empty(),
+            OwnedColumn::Int(_, col) => col.is_empty(),
+            OwnedColumn::BigInt(meta, col) | OwnedColumn::TimestampTZ(_,_, _, col) => col.is_empty(),
+            OwnedColumn::VarChar(_, col) => col.is_empty(),
+            OwnedColumn::Int128(_, col) => col.is_empty(),
+            OwnedColumn::Scalar(_, col) | OwnedColumn::Decimal75(_, _, _, col) => col.is_empty(),
         }
     }
     /// Returns the type of the column.
     #[must_use]
     pub fn column_type(&self) -> ColumnType {
         match self {
-            OwnedColumn::Boolean(_) => ColumnType::Boolean,
-            OwnedColumn::TinyInt(_) => ColumnType::TinyInt,
-            OwnedColumn::SmallInt(_) => ColumnType::SmallInt,
-            OwnedColumn::Int(_) => ColumnType::Int,
-            OwnedColumn::BigInt(_) => ColumnType::BigInt,
-            OwnedColumn::VarChar(_) => ColumnType::VarChar,
-            OwnedColumn::Int128(_) => ColumnType::Int128,
-            OwnedColumn::Scalar(_) => ColumnType::Scalar,
-            OwnedColumn::Decimal75(precision, scale, _) => {
-                ColumnType::Decimal75(*precision, *scale)
+            OwnedColumn::Boolean(meta, _) => ColumnType::Boolean(*meta),
+            OwnedColumn::TinyInt(meta, _) => ColumnType::TinyInt(*meta),
+            OwnedColumn::SmallInt(meta, _) => ColumnType::SmallInt(*meta),
+            OwnedColumn::Int(meta, _) => ColumnType::Int(*meta),
+            OwnedColumn::BigInt(meta, _) => ColumnType::BigInt(*meta),
+            OwnedColumn::VarChar(meta, _) => ColumnType::VarChar(*meta),
+            OwnedColumn::Int128(meta, _) => ColumnType::Int128(*meta),
+            OwnedColumn::Scalar(meta, _) => ColumnType::Scalar(*meta),
+            OwnedColumn::Decimal75(meta, precision, scale, _) => {
+                ColumnType::Decimal75(*meta, *precision, *scale)
             }
-            OwnedColumn::TimestampTZ(tu, tz, _) => ColumnType::TimestampTZ(*tu, *tz),
+            OwnedColumn::TimestampTZ(meta, tu, tz, _) =>
+                ColumnType::TimestampTZ(*meta, *tu, *tz),
         }
     }
 
     /// Convert a slice of scalars to a vec of owned columns
     pub fn try_from_scalars(scalars: &[S], column_type: ColumnType) -> OwnedColumnResult<Self> {
         match column_type {
-            ColumnType::Boolean => Ok(OwnedColumn::Boolean(
+            ColumnType::Boolean(meta) => Ok(OwnedColumn::Boolean(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<bool, _> { TryInto::<bool>::try_into(*s) })
@@ -149,7 +151,8 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::TinyInt => Ok(OwnedColumn::TinyInt(
+            ColumnType::TinyInt(meta) => Ok(OwnedColumn::TinyInt(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<i8, _> { TryInto::<i8>::try_into(*s) })
@@ -158,7 +161,8 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::SmallInt => Ok(OwnedColumn::SmallInt(
+            ColumnType::SmallInt(meta) => Ok(OwnedColumn::SmallInt(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<i16, _> { TryInto::<i16>::try_into(*s) })
@@ -167,7 +171,8 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::Int => Ok(OwnedColumn::Int(
+            ColumnType::Int(meta) => Ok(OwnedColumn::Int(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<i32, _> { TryInto::<i32>::try_into(*s) })
@@ -176,7 +181,8 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::BigInt => Ok(OwnedColumn::BigInt(
+            ColumnType::BigInt(meta) => Ok(OwnedColumn::BigInt(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<i64, _> { TryInto::<i64>::try_into(*s) })
@@ -185,7 +191,8 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::Int128 => Ok(OwnedColumn::Int128(
+            ColumnType::Int128(meta) => Ok(OwnedColumn::Int128(
+                meta,
                 scalars
                     .iter()
                     .map(|s| -> Result<i128, _> { TryInto::<i128>::try_into(*s) })
@@ -194,11 +201,12 @@ impl<S: Scalar> OwnedColumn<S> {
                         error: "Overflow in scalar conversions".to_string(),
                     })?,
             )),
-            ColumnType::Scalar => Ok(OwnedColumn::Scalar(scalars.to_vec())),
-            ColumnType::Decimal75(precision, scale) => {
-                Ok(OwnedColumn::Decimal75(precision, scale, scalars.to_vec()))
+            ColumnType::Scalar(meta) => Ok(OwnedColumn::Scalar(
+                meta,scalars.to_vec())),
+            ColumnType::Decimal75(meta, precision, scale) => {
+                Ok(OwnedColumn::Decimal75(meta, precision, scale, scalars.to_vec()))
             }
-            ColumnType::TimestampTZ(tu, tz) => {
+            ColumnType::TimestampTZ(meta, tu, tz) => {
                 let raw_values: Vec<i64> = scalars
                     .iter()
                     .map(|s| -> Result<i64, _> { TryInto::<i64>::try_into(*s) })
@@ -206,12 +214,12 @@ impl<S: Scalar> OwnedColumn<S> {
                     .map_err(|_| OwnedColumnError::ScalarConversionError {
                         error: "Overflow in scalar conversions".to_string(),
                     })?;
-                Ok(OwnedColumn::TimestampTZ(tu, tz, raw_values))
+                Ok(OwnedColumn::TimestampTZ(meta, tu, tz, raw_values))
             }
             // Can not convert scalars to VarChar
-            ColumnType::VarChar => Err(OwnedColumnError::TypeCastError {
-                from_type: ColumnType::Scalar,
-                to_type: ColumnType::VarChar,
+            ColumnType::VarChar(meta) => Err(OwnedColumnError::TypeCastError {
+                from_type: ColumnType::Scalar(ColumnTypeAssociatedData::default()),
+                to_type: ColumnType::VarChar(meta),
             }),
         }
     }
@@ -236,7 +244,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i8], panicking if it is not.
     pub fn i8_iter(&self) -> impl Iterator<Item = &i8> {
         match self {
-            OwnedColumn::TinyInt(col) => col.iter(),
+            OwnedColumn::TinyInt(_, col) => col.iter(),
             _ => panic!("Expected TinyInt column"),
         }
     }
@@ -245,7 +253,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i16], panicking if it is not.
     pub fn i16_iter(&self) -> impl Iterator<Item = &i16> {
         match self {
-            OwnedColumn::SmallInt(col) => col.iter(),
+            OwnedColumn::SmallInt(_, col) => col.iter(),
             _ => panic!("Expected SmallInt column"),
         }
     }
@@ -254,7 +262,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i32], panicking if it is not.
     pub fn i32_iter(&self) -> impl Iterator<Item = &i32> {
         match self {
-            OwnedColumn::Int(col) => col.iter(),
+            OwnedColumn::Int(_, col) => col.iter(),
             _ => panic!("Expected Int column"),
         }
     }
@@ -263,7 +271,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i64], panicking if it is not.
     pub fn i64_iter(&self) -> impl Iterator<Item = &i64> {
         match self {
-            OwnedColumn::TimestampTZ(_, _, col) | OwnedColumn::BigInt(col) => col.iter(),
+            OwnedColumn::TimestampTZ(_, _, _, col) | OwnedColumn::BigInt(_, col) => col.iter(),
             _ => panic!("Expected TimestampTZ or BigInt column"),
         }
     }
@@ -272,7 +280,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [i128], panicking if it is not.
     pub fn i128_iter(&self) -> impl Iterator<Item = &i128> {
         match self {
-            OwnedColumn::Int128(col) => col.iter(),
+            OwnedColumn::Int128(_, col) => col.iter(),
             _ => panic!("Expected Int128 column"),
         }
     }
@@ -281,7 +289,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [bool], panicking if it is not.
     pub fn bool_iter(&self) -> impl Iterator<Item = &bool> {
         match self {
-            OwnedColumn::Boolean(col) => col.iter(),
+            OwnedColumn::Boolean(_, col) => col.iter(),
             _ => panic!("Expected Boolean column"),
         }
     }
@@ -290,7 +298,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is a [Scalar], panicking if it is not.
     pub fn scalar_iter(&self) -> impl Iterator<Item = &S> {
         match self {
-            OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col.iter(),
+            OwnedColumn::Decimal75(_, _, _, col) | OwnedColumn::Scalar(_, col) => col.iter(),
             _ => panic!("Expected Scalar or Decimal75 column"),
         }
     }
@@ -299,7 +307,7 @@ impl<S: Scalar> OwnedColumn<S> {
     /// assuming the underlying type is [String], panicking if it is not.
     pub fn string_iter(&self) -> impl Iterator<Item = &String> {
         match self {
-            OwnedColumn::VarChar(col) => col.iter(),
+            OwnedColumn::VarChar(_, col) => col.iter(),
             _ => panic!("Expected VarChar column"),
         }
     }
@@ -308,20 +316,21 @@ impl<S: Scalar> OwnedColumn<S> {
 impl<'a, S: Scalar> From<&Column<'a, S>> for OwnedColumn<S> {
     fn from(col: &Column<'a, S>) -> Self {
         match col {
-            Column::Boolean(col) => OwnedColumn::Boolean(col.to_vec()),
-            Column::TinyInt(col) => OwnedColumn::TinyInt(col.to_vec()),
-            Column::SmallInt(col) => OwnedColumn::SmallInt(col.to_vec()),
-            Column::Int(col) => OwnedColumn::Int(col.to_vec()),
-            Column::BigInt(col) => OwnedColumn::BigInt(col.to_vec()),
-            Column::VarChar((col, _)) => {
-                OwnedColumn::VarChar(col.iter().map(ToString::to_string).collect())
+            Column::Boolean(meta, col) => OwnedColumn::Boolean(*meta, col.to_vec()),
+            Column::TinyInt(meta, col) => OwnedColumn::TinyInt(*meta, col.to_vec()),
+            Column::SmallInt(meta, col) => OwnedColumn::SmallInt(*meta, col.to_vec()),
+            Column::Int(meta, col) => OwnedColumn::Int(*meta, col.to_vec()),
+            Column::BigInt(meta, col) => OwnedColumn::BigInt(*meta, col.to_vec()),
+            Column::VarChar(meta, (col, _)) => {
+                OwnedColumn::VarChar(*meta, col.iter().map(ToString::to_string).collect())
             }
-            Column::Int128(col) => OwnedColumn::Int128(col.to_vec()),
-            Column::Decimal75(precision, scale, col) => {
-                OwnedColumn::Decimal75(*precision, *scale, col.to_vec())
+            Column::Int128(meta, col) => OwnedColumn::Int128(*meta, col.to_vec()),
+            Column::Decimal75(meta, precision, scale, col) => {
+                OwnedColumn::Decimal75(*meta, *precision, *scale, col.to_vec())
             }
-            Column::Scalar(col) => OwnedColumn::Scalar(col.to_vec()),
-            Column::TimestampTZ(tu, tz, col) => OwnedColumn::TimestampTZ(*tu, *tz, col.to_vec()),
+            Column::Scalar(meta, col) => OwnedColumn::Scalar(*meta, col.to_vec()),
+            Column::TimestampTZ(meta, tu, tz, col) =>
+                OwnedColumn::TimestampTZ(*meta, *tu, *tz, col.to_vec()),
         }
     }
 }
@@ -338,16 +347,16 @@ pub(crate) fn compare_indexes_by_owned_columns_with_direction<S: Scalar>(
         .iter()
         .map(|(col, direction)| {
             let ordering = match col {
-                OwnedColumn::Boolean(col) => col[i].cmp(&col[j]),
-                OwnedColumn::TinyInt(col) => col[i].cmp(&col[j]),
-                OwnedColumn::SmallInt(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Int(col) => col[i].cmp(&col[j]),
-                OwnedColumn::BigInt(col) | OwnedColumn::TimestampTZ(_, _, col) => {
+                OwnedColumn::Boolean(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::TinyInt(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::SmallInt(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::Int(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::BigInt(_, col) | OwnedColumn::TimestampTZ(_, _, _, col) => {
                     col[i].cmp(&col[j])
                 }
-                OwnedColumn::Int128(col) => col[i].cmp(&col[j]),
-                OwnedColumn::Decimal75(_, _, col) | OwnedColumn::Scalar(col) => col[i].cmp(&col[j]),
-                OwnedColumn::VarChar(col) => col[i].cmp(&col[j]),
+                OwnedColumn::Int128(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::Decimal75(_, _, _, col) | OwnedColumn::Scalar(_, col) => col[i].cmp(&col[j]),
+                OwnedColumn::VarChar(_, col) => col[i].cmp(&col[j]),
             };
             match direction {
                 OrderByDirection::Asc => ordering,
