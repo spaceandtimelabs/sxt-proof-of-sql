@@ -7,12 +7,19 @@
 use glob::glob;
 use proof_of_sql::{
     proof_primitive::dory::{ProverSetup, PublicParameters},
-    utils::{parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob, parse::find_bigdecimals},
+    utils::{
+        parquet_to_commitment_blob::read_parquet_file_to_commitment_as_blob,
+        parse::find_bigdecimals,
+    },
 };
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use std::{
-    env, fs::{read_dir, File}, io::Read, path::{Path, PathBuf}
+    env,
+    fs::{read_dir, File},
+    io::Read,
+    panic,
+    path::{Path, PathBuf},
 };
 
 fn main() {
@@ -22,8 +29,10 @@ fn main() {
     let output_prefix = args.next().unwrap();
 
     let mut sql = "".to_string();
-            File::open("./ddl_ethereum_snapshot_2024_10_11.sql").unwrap().read_to_string(&mut sql);
-            let big_decimal_commitments = find_bigdecimals(&sql);
+    File::open("./ddl_ethereum_snapshot_2024_10_11.sql")
+        .unwrap()
+        .read_to_string(&mut sql);
+    let big_decimal_commitments = find_bigdecimals(&sql);
 
     let table_identifiers: Vec<(String, String)> = read_dir(source.clone())
         .unwrap()
@@ -83,11 +92,16 @@ fn main() {
             .unwrap();
 
             let full_output_prefix = format!("{output_prefix}-{namespace}-{table_name}");
-            read_parquet_file_to_commitment_as_blob(
-                parquets_for_table,
-                &full_output_prefix,
-                &prover_setup,
-                big_decimal_commitments.get(table_name).unwrap().to_vec()
-            );
+            let result = panic::catch_unwind(|| {
+                read_parquet_file_to_commitment_as_blob(
+                    parquets_for_table,
+                    &full_output_prefix,
+                    &prover_setup,
+                    big_decimal_commitments.get(table_name).unwrap().to_vec(),
+                );
+            });
+            if result.is_err() {
+                println!("Table failed: {}", table_name);
+            }
         });
 }

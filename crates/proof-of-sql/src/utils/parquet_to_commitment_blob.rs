@@ -26,7 +26,7 @@ use arrow::{
 use core::str::FromStr;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use postcard::to_allocvec;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{de, Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Arc};
 
@@ -44,26 +44,11 @@ pub fn read_parquet_file_to_commitment_as_blob(
     parquet_files: Vec<PathBuf>,
     output_path_prefix: &str,
     prover_setup: &ProverSetup,
-    big_decimal_columns: Vec<(String, u8, i8)>
+    big_decimal_columns: Vec<(String, u8, i8)>,
 ) {
-    //let setup_seed = "SpaceAndTime".to_string();
-    //let mut rng = {
-    //// Convert the seed string to bytes and create a seeded RNG
-    //let seed_bytes = setup_seed
-    //.bytes()
-    //.chain(std::iter::repeat(0u8))
-    //.take(32)
-    //.collect::<Vec<_>>()
-    //.try_into()
-    //.expect("collection is guaranteed to contain 32 elements");
-    //ChaCha20Rng::from_seed(seed_bytes) // Seed ChaChaRng
-    //};
-    //let public_parameters = PublicParameters::rand(12, &mut rng);
-    //let prover_setup = ProverSetup::from(&public_parameters);
-    //let dory_prover_setup = DoryProverPublicSetup::new(&prover_setup, 20);
     let mut commitments: Vec<TableCommitment<DynamicDoryCommitment>> = parquet_files
         .par_iter()
-        .map(|path| {
+        .flat_map(|path| {
             println!("Committing to {}..", path.as_path().to_str().unwrap());
             let file = File::open(path).unwrap();
             let reader = ParquetRecordBatchReaderBuilder::try_new(file)
@@ -78,33 +63,39 @@ pub fn read_parquet_file_to_commitment_as_blob(
                 })
                 .collect();
             let schema = record_batches.first().unwrap().schema();
-            let mut record_batch = concat_batches(&schema, &record_batches).unwrap();
+            println!(
+                "File row COUNT: {}",
+                record_batches.iter().map(|rb| rb.num_rows()).sum::<usize>()
+            );
+            let commitments: Vec<_> = record_batches
+                .into_par_iter()
+                .map(|mut unmodified_record_batch| {
+                    let meta_row_number_column = unmodified_record_batch
+                        .column_by_name(PARQUET_FILE_PROOF_ORDER_COLUMN)
+                        .unwrap()
+                        .as_any()
+                        .downcast_ref::<Int32Array>()
+                        .unwrap();
 
-            let meta_row_number_column = record_batch
-                .column_by_name(PARQUET_FILE_PROOF_ORDER_COLUMN)
-                .unwrap()
-                .as_any()
-                .downcast_ref::<Int32Array>()
-                .unwrap();
-
-            let offset = meta_row_number_column.value(0) - 1;
-            record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
-            let record_batch = replace_nulls_within_record_batch(correct_utf8_fields(record_batch, big_decimal_columns.clone()));
-            //let dory_commitment =
-            //TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
-            //&record_batch,
-            //offset,
-            //&dory_prover_setup,
-            //)
-            //.unwrap();
-            let dynamic_dory_commitment =
-                TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
-                    &record_batch,
-                    offset as usize,
-                    &&prover_setup,
-                )
-                .unwrap();
-            dynamic_dory_commitment
+                    let offset = meta_row_number_column.value(0) - 1;
+                    unmodified_record_batch
+                        .remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
+                    let record_batch = replace_nulls_within_record_batch(correct_utf8_fields(
+                        unmodified_record_batch,
+                        big_decimal_columns.clone(),
+                    ));
+                    let dynamic_dory_commitment =
+                    TableCommitment::<DynamicDoryCommitment>::try_from_record_batch_with_offset(
+                        &record_batch,
+                        offset as usize,
+                        &&prover_setup,
+                    )
+                    .unwrap();
+                    dynamic_dory_commitment
+                })
+                .collect();
+            println!("Commitments generated");
+            commitments
         })
         .collect();
 
