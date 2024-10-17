@@ -44,6 +44,7 @@ pub fn read_parquet_file_to_commitment_as_blob(
     parquet_files: Vec<PathBuf>,
     output_path_prefix: &str,
     prover_setup: &ProverSetup,
+    big_decimal_columns: Vec<(String, u8, i8)>
 ) {
     //let setup_seed = "SpaceAndTime".to_string();
     //let mut rng = {
@@ -88,7 +89,7 @@ pub fn read_parquet_file_to_commitment_as_blob(
 
             let offset = meta_row_number_column.value(0) - 1;
             record_batch.remove_column(schema.index_of(PARQUET_FILE_PROOF_ORDER_COLUMN).unwrap());
-            let record_batch = replace_nulls_within_record_batch(record_batch);
+            let record_batch = replace_nulls_within_record_batch(correct_utf8_fields(record_batch, big_decimal_columns.clone()));
             //let dory_commitment =
             //TableCommitment::<DoryCommitment>::try_from_record_batch_with_offset(
             //&record_batch,
