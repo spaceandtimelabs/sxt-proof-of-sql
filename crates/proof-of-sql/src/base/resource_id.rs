@@ -126,8 +126,8 @@ impl FromStr for ResourceId {
 
         // use unsafe `Ident::new` to prevent double parsing the ids
         Ok(ResourceId {
-            schema: Ident::new(schema),
-            object_name: Ident::new(object_name),
+            schema: Ident::new(schema).into(),
+            object_name: Ident::new(object_name).into(),
         })
     }
 }
